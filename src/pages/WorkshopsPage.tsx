@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
-  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight,
+  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,9 @@ import { motion } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import { generateWorkshopContractPDF, ContractData, ContractCompanyData } from "@/utils/generateWorkshopContractPDF";
 import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
+import WorkshopCostModal, { COST_CATEGORIES, PHASES, CATEGORY_GL_MAP, PAYMENT_CREDIT_MAP as NEW_PAYMENT_CREDIT } from "@/components/workshops/WorkshopCostModal";
+import WorkshopCostReport from "@/components/workshops/WorkshopCostReport";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 /* ── Types ── */
 type Workshop = {
@@ -38,6 +41,9 @@ type WorkshopCost = {
   amount: number; cost_date: string; supplier_name: string | null; payment_method: string | null;
   notes: string | null; created_at: string; linked_transaction_id: string | null;
   supplier_contact_id: string | null;
+  category?: string | null; quantity?: number | null; unit?: string | null; unit_price?: number | null;
+  waste_percentage?: number | null; waste_amount?: number | null; phase?: string | null;
+  invoice_number?: string | null; receipt_url?: string | null;
 };
 type WorkshopPayment = {
   id: string; workshop_id: string; amount: number; payment_method: string;
@@ -148,6 +154,9 @@ export default function WorkshopsPage() {
   const [deletingWorkshop, setDeletingWorkshop] = useState<Workshop | null>(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [showNewCost, setShowNewCost] = useState(false);
+  const [showCostReport, setShowCostReport] = useState(false);
+  const [costFilter, setCostFilter] = useState("all");
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
@@ -179,7 +188,7 @@ export default function WorkshopsPage() {
     cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"),
     supplier_name: "", payment_method: "نقدي", notes: "",
     supplier_contact_id: null as string | null,
-  });
+  }); // kept for backward compat with delete/etc
   const [invoiceForm, setInvoiceForm] = useState({
     amount: 0, payment_method: "آجل", description: "",
   });
@@ -575,9 +584,18 @@ export default function WorkshopsPage() {
 
   const costSummary = useMemo(() => {
     const summary: Record<string, number> = {};
+    const byCategory: Record<string, number> = {};
+    const byPhase: Record<string, number> = {};
     let total = 0;
-    costs.forEach(c => { summary[c.cost_type] = (summary[c.cost_type] || 0) + c.amount; total += c.amount; });
-    return { byType: summary, total };
+    costs.forEach(c => {
+      summary[c.cost_type] = (summary[c.cost_type] || 0) + c.amount;
+      const cat = c.category || c.cost_type || "other";
+      byCategory[cat] = (byCategory[cat] || 0) + c.amount;
+      const ph = c.phase || "preparation";
+      byPhase[ph] = (byPhase[ph] || 0) + c.amount;
+      total += c.amount;
+    });
+    return { byType: summary, byCategory, byPhase, total };
   }, [costs]);
 
   const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments]);
@@ -586,6 +604,22 @@ export default function WorkshopsPage() {
     if (!selectedWorkshop || !selectedWorkshop.total_budget) return 0;
     return (costSummary.total / selectedWorkshop.total_budget) * 100;
   }, [selectedWorkshop, costSummary.total]);
+
+  // Filtered costs for table
+  const materialCats = ["wood_natural", "mdf", "glass", "paint", "varnish", "marble", "hardware", "countertop", "adhesive", "veneer", "fittings", "wood", "crystal"];
+  const laborCats = ["labor"];
+  const transportCats = ["transport"];
+  const filteredCosts = useMemo(() => {
+    if (costFilter === "all") return costs;
+    return costs.filter(c => {
+      const cat = c.category || c.cost_type || "other";
+      if (costFilter === "materials") return materialCats.includes(cat);
+      if (costFilter === "labor") return laborCats.includes(cat);
+      if (costFilter === "transport") return transportCats.includes(cat);
+      if (costFilter === "unpaid") return c.payment_method === "آجل";
+      return true;
+    });
+  }, [costs, costFilter]);
 
   const filteredCustomers = useMemo(() =>
     contacts.filter(c => ["customer", "عميل", "both", "كلاهما"].includes(c.contact_type) && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
@@ -700,18 +734,24 @@ export default function WorkshopsPage() {
             </div>
           )}
 
-          {/* KPIs */}
+          {/* KPIs - Professional */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: "الميزانية", value: `${selectedWorkshop.total_budget?.toLocaleString()} ₪`, cls: "text-foreground" },
-              { label: "إجمالي التكاليف", value: `${costSummary.total.toLocaleString()} ₪`, cls: "text-destructive" },
-              { label: "المقبوض", value: `${totalPaid.toLocaleString()} ₪`, cls: "text-emerald-500" },
-              { label: "المتبقي على الزبون", value: `${(selectedWorkshop.total_budget - totalPaid).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - totalPaid) > 0 ? "text-amber-600" : "text-emerald-500" },
-              { label: "الربح", value: `${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-emerald-500" : "text-destructive" },
+              { label: "الميزانية", value: `${selectedWorkshop.total_budget?.toLocaleString()} ₪`, cls: "text-foreground", showBar: false },
+              { label: "المصروف", value: `${costSummary.total.toLocaleString()} ₪`, cls: "text-destructive", showBar: false },
+              { label: "المتبقي", value: `${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-foreground" : "text-destructive", showBar: false },
+              { label: "نسبة الإنجاز", value: `${Math.round(budgetUsedPct)}%`, cls: "text-foreground", showBar: true },
+              { label: "الربح", value: `${profit.toLocaleString()} ₪`, cls: profit >= 0 ? "text-emerald-600" : "text-destructive", showBar: false },
             ].map(kpi => (
               <div key={kpi.label} className="rounded-xl bg-card border border-border p-3 text-center">
                 <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
                 <p className={`text-base font-bold ${kpi.cls}`}>{kpi.value}</p>
+                {kpi.showBar && (
+                  <div className="h-2 bg-muted rounded-full overflow-hidden mt-1.5">
+                    <div className={`h-full rounded-full transition-all ${budgetUsedPct > 95 ? "bg-destructive" : budgetUsedPct > 80 ? "bg-amber-500" : "bg-emerald-500"}`}
+                      style={{ width: `${Math.min(budgetUsedPct, 100)}%` }} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -736,13 +776,12 @@ export default function WorkshopsPage() {
               <div className="space-y-1.5">
                 {payments.map(p => (
                   <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
-                    <span className="text-emerald-500 font-bold">+{p.amount.toLocaleString()} ₪</span>
+                    <span className="text-emerald-600 font-bold">+{p.amount.toLocaleString()} ₪</span>
                     <span className="text-muted-foreground">{p.payment_method}</span>
                     <span className="flex-1 text-muted-foreground truncate">{p.description}</span>
                     <span className="text-muted-foreground/60">{p.payment_date}</span>
                   </div>
                 ))}
-                {/* Progress bar for payments */}
                 <div className="mt-2">
                   <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                     <span>المدفوع {Math.round((totalPaid / (selectedWorkshop.total_budget || 1)) * 100)}%</span>
@@ -756,210 +795,161 @@ export default function WorkshopsPage() {
             )}
           </div>
 
-          {/* Cost breakdown */}
-          {Object.keys(costSummary.byType).length > 0 && (
-            <div className="rounded-xl bg-card border border-border p-4 space-y-3">
-              <h3 className="text-sm font-bold text-foreground">تفصيل التكاليف (مرتبط بالقيود المحاسبية)</h3>
-              <div className="space-y-2">
-                {COST_TYPES.filter(ct => costSummary.byType[ct.value]).map(ct => {
-                  const amount = costSummary.byType[ct.value];
-                  const pct = costSummary.total > 0 ? (amount / costSummary.total * 100) : 0;
-                  const acct = COST_ACCOUNT_MAP[ct.value];
-                  return (
-                    <div key={ct.value} className="flex items-center gap-3">
-                      <span className="text-lg w-8 text-center">{ct.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm text-foreground">{ct.label}</span>
-                        <span className="text-[10px] text-muted-foreground mr-2">({acct?.debit})</span>
-                      </div>
-                      <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-sm font-bold text-foreground w-24 text-left tabular-nums">{amount.toLocaleString()} ₪</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Actions */}
           {selectedWorkshop.status === "active" && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")} className="flex-1">⏸️ إيقاف</Button>
               <Button size="sm" onClick={() => {
                 setInvoiceForm({ amount: selectedWorkshop.total_budget - totalPaid, payment_method: "آجل", description: "" });
                 setShowInvoiceDialog(true);
               }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">💰 فوترة واكتمال</Button>
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowCostReport(true)}>
+                <BarChart3 className="h-3.5 w-3.5" /> تقرير التكلفة
+              </Button>
             </div>
           )}
           {selectedWorkshop.status === "paused" && (
             <Button size="sm" onClick={() => handleUpdateStatus(selectedWorkshop, "active")} className="w-full">▶️ استئناف</Button>
           )}
 
-          {/* Add cost */}
+          {/* Add cost button */}
           <Button onClick={() => setShowNewCost(true)} className="w-full gap-2">
             <Plus className="h-4 w-4" /> إضافة تكلفة (مع قيد محاسبي)
           </Button>
 
-          {/* Costs list */}
-          <div className="space-y-2">
+          {/* ── Cost Ledger Table ── */}
+          <div className="space-y-3">
             <h3 className="text-sm font-bold text-foreground">سجل التكاليف</h3>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {[
+                { key: "all", label: "الكل" },
+                { key: "materials", label: "مواد" },
+                { key: "labor", label: "عمالة" },
+                { key: "transport", label: "نقل" },
+                { key: "unpaid", label: "غير مدفوع" },
+              ].map(f => (
+                <button key={f.key} onClick={() => setCostFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                    costFilter === f.key ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent/5"
+                  }`}>{f.label}</button>
+              ))}
+            </div>
             {loadingCosts ? (
               <p className="text-sm text-muted-foreground text-center py-8">جاري التحميل...</p>
-            ) : costs.length === 0 ? (
+            ) : filteredCosts.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">لا توجد تكاليف مسجلة بعد</p>
+                <p className="text-sm">{costs.length === 0 ? "لا توجد تكاليف مسجلة بعد" : "لا توجد نتائج للفلتر المحدد"}</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {costs.map(cost => {
-                  const ct = getCostType(cost.cost_type);
-                  const acct = COST_ACCOUNT_MAP[cost.cost_type];
-                  return (
-                    <motion.div key={cost.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl bg-card border border-border p-3 flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${ct.color}`}>{ct.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground">{ct.label}</p>
-                          {cost.supplier_name && <span className="text-[10px] text-muted-foreground">— {cost.supplier_name}</span>}
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">{cost.description || cost.payment_method}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground/60">{format(new Date(cost.cost_date), "dd/MM/yyyy")}</span>
-                          {cost.linked_transaction_id && (
-                            <Badge variant="outline" className="text-[8px] h-4 px-1">قيد {acct?.debit}</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm font-bold text-destructive tabular-nums">{cost.amount.toLocaleString()} ₪</p>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteCost(cost)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </motion.div>
-                  );
-                })}
+              <div className="overflow-x-auto rounded-xl border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right text-[10px]">التاريخ</TableHead>
+                      <TableHead className="text-right text-[10px]">الفئة</TableHead>
+                      <TableHead className="text-right text-[10px]">البند</TableHead>
+                      <TableHead className="text-right text-[10px]">الكمية</TableHead>
+                      <TableHead className="text-right text-[10px]">سعر الوحدة</TableHead>
+                      <TableHead className="text-right text-[10px]">المبلغ</TableHead>
+                      <TableHead className="text-right text-[10px]">المرحلة</TableHead>
+                      <TableHead className="text-right text-[10px]">المورد</TableHead>
+                      <TableHead className="text-right text-[10px]">الدفع</TableHead>
+                      <TableHead className="text-right text-[10px] w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCosts.map(cost => {
+                      const catInfo = COST_CATEGORIES.find(cc => cc.value === (cost.category || cost.cost_type)) || { icon: "📦", label: cost.cost_type };
+                      const phaseInfo = PHASES.find(p => p.value === cost.phase);
+                      return (
+                        <TableRow key={cost.id}>
+                          <TableCell className="text-[11px] whitespace-nowrap">{format(new Date(cost.cost_date), "dd/MM")}</TableCell>
+                          <TableCell className="text-[11px]"><span className="mr-1">{catInfo.icon}</span>{catInfo.label}</TableCell>
+                          <TableCell className="text-[11px] max-w-[120px] truncate">{cost.description || "—"}</TableCell>
+                          <TableCell className="text-[11px] tabular-nums">{cost.quantity || "—"} {cost.unit || ""}</TableCell>
+                          <TableCell className="text-[11px] tabular-nums">{cost.unit_price ? `${cost.unit_price.toLocaleString()} ₪` : "—"}</TableCell>
+                          <TableCell className="text-[11px] font-bold text-destructive tabular-nums">{cost.amount.toLocaleString()} ₪</TableCell>
+                          <TableCell className="text-[10px]">{phaseInfo?.label || "—"}</TableCell>
+                          <TableCell className="text-[11px] truncate max-w-[80px]">{cost.supplier_name || "—"}</TableCell>
+                          <TableCell className="text-[10px]">{cost.payment_method || "—"}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteCost(cost)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
-        </div>
 
-        {/* ── Add Cost Dialog ── */}
-        <Dialog open={showNewCost} onOpenChange={setShowNewCost}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
-            <DialogHeader>
-              <DialogTitle>إضافة تكلفة (مع قيد محاسبي تلقائي)</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label>نوع التكلفة</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {COST_TYPES.map(ct => (
-                    <button key={ct.value} onClick={() => setCostForm(f => ({ ...f, cost_type: ct.value }))}
-                      className={`p-2 rounded-xl border text-center transition-all ${
-                        costForm.cost_type === ct.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
-                      }`}>
-                      <span className="text-xl block">{ct.icon}</span>
-                      <span className="text-[10px] font-medium text-foreground">{ct.label}</span>
-                    </button>
-                  ))}
-                </div>
-                {/* Show GL mapping */}
-                <p className="text-[10px] text-muted-foreground text-center">
-                  القيد: مدين {COST_ACCOUNT_MAP[costForm.cost_type]?.debit} ← دائن {PAYMENT_CREDIT_MAP[costForm.payment_method]}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>المبلغ (₪)</Label>
-                  <Input type="number" value={costForm.amount || ""} onChange={e => setCostForm(f => ({ ...f, amount: Number(e.target.value) }))} />
-                </div>
-                <div className="space-y-1">
-                  <Label>التاريخ</Label>
-                  <Input type="date" value={costForm.cost_date} onChange={e => setCostForm(f => ({ ...f, cost_date: e.target.value }))} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label>الوصف</Label>
-                <Input value={costForm.description} onChange={e => setCostForm(f => ({ ...f, description: e.target.value }))} placeholder="مثل: خشب سويدي 18مم" />
-              </div>
-
-              {/* Supplier picker */}
-              <div className="space-y-1">
-                <Label>المورد</Label>
-                {costForm.supplier_contact_id ? (
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/5 border border-border">
-                    <span className="text-sm flex-1 text-foreground">
-                      {contacts.find(c => c.id === costForm.supplier_contact_id)?.contact_name || costForm.supplier_name}
-                    </span>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => {
-                      setCostForm(f => ({ ...f, supplier_contact_id: null, supplier_name: "" }));
-                    }}>✕</Button>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <div className="relative">
-                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input value={supplierSearch} onChange={e => { setSupplierSearch(e.target.value); setShowSupplierPicker(true); }}
-                        onFocus={() => setShowSupplierPicker(true)}
-                        placeholder="ابحث عن مورد أو اكتب الاسم مباشرة..." className="pr-8 h-9 text-sm" />
-                    </div>
-                    {showSupplierPicker && supplierSearch && (
-                      <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card">
-                        {filteredSuppliers.slice(0, 5).map(s => (
-                          <button key={s.id} onClick={() => {
-                            setCostForm(f => ({ ...f, supplier_contact_id: s.id, supplier_name: s.contact_name }));
-                            setShowSupplierPicker(false); setSupplierSearch("");
-                          }} className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground">
-                            {s.contact_name}
-                          </button>
-                        ))}
-                        {filteredSuppliers.length === 0 && supplierSearch.trim().length > 1 && (
-                          <button onClick={async () => {
-                            const name = supplierSearch.trim();
-                            const { data, error } = await supabase.from("contacts").upsert(
-                              { contact_name: name, contact_type: "مورد", user_id: user!.id, current_balance: 0 },
-                              { onConflict: "contact_name,user_id" }
-                            ).select().single();
-                            if (error) { toast.error("خطأ في إضافة المورد"); return; }
-                            toast.success(`تم إضافة المورد "${name}"`);
-                            setCostForm(f => ({ ...f, supplier_contact_id: data.id, supplier_name: data.contact_name }));
-                            setShowSupplierPicker(false); setSupplierSearch("");
-                            loadContacts();
-                          }} className="w-full text-right px-3 py-2 text-sm hover:bg-primary/10 text-primary font-medium flex items-center gap-2">
-                            <UserPlus className="h-3.5 w-3.5" />
-                            إضافة مورد جديد "{supplierSearch.trim()}"
-                          </button>
-                        )}
+          {/* ── Cost Breakdown (Collapsible) ── */}
+          {Object.keys(costSummary.byCategory).length > 0 && (
+            <Collapsible open={showCostBreakdown} onOpenChange={setShowCostBreakdown}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between text-sm font-bold">
+                  📊 توزيع التكاليف حسب النوع
+                  {showCostBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-2">
+                <div className="rounded-xl bg-card border border-border p-4 space-y-2">
+                  {Object.entries(costSummary.byCategory).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => {
+                    const pct = costSummary.total > 0 ? (amount / costSummary.total * 100) : 0;
+                    const catInfo = COST_CATEGORIES.find(cc => cc.value === cat) || COST_TYPES.find(ct => ct.value === cat) || { icon: "📦", label: cat };
+                    return (
+                      <div key={cat} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span>{catInfo.icon} {catInfo.label}</span>
+                          <span className="tabular-nums font-medium">{Math.round(pct)}% — {amount.toLocaleString()} ₪</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
-                    )}
-                    <Input value={costForm.supplier_name} onChange={e => setCostForm(f => ({ ...f, supplier_name: e.target.value }))}
-                      placeholder="أو اكتب اسم المورد يدوياً" className="h-8 text-xs" />
+                    );
+                  })}
+                </div>
+                {Object.keys(costSummary.byPhase).length > 0 && (
+                  <div className="rounded-xl bg-card border border-border p-4 space-y-2">
+                    <h4 className="text-xs font-bold text-foreground">🏗️ التكاليف حسب مراحل العمل</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {PHASES.map(p => {
+                        const amt = costSummary.byPhase[p.value] || 0;
+                        if (amt === 0) return null;
+                        return (
+                          <div key={p.value} className="rounded-lg bg-accent/5 border border-border px-3 py-2 text-center">
+                            <p className="text-[10px] text-muted-foreground">{p.label}</p>
+                            <p className="text-sm font-bold text-foreground tabular-nums">{amt.toLocaleString()} ₪</p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
 
-              {/* Payment method */}
-              <div className="space-y-1">
-                <Label>طريقة الدفع</Label>
-                <div className="flex gap-1">
-                  {["نقدي", "بنك", "آجل"].map(m => (
-                    <button key={m} onClick={() => setCostForm(f => ({ ...f, payment_method: m }))}
-                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
-                        costForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                      }`}>{m}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowNewCost(false)}>إلغاء</Button>
-              <Button onClick={handleAddCost} disabled={costForm.amount <= 0}>إضافة + قيد</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* ── New Cost Modal ── */}
+        <WorkshopCostModal
+          open={showNewCost} onOpenChange={setShowNewCost}
+          workshopId={selectedWorkshop.id} workshopName={selectedWorkshop.name}
+          userId={user!.id} contacts={contacts}
+          onSaved={() => loadCosts(selectedWorkshop.id)} onContactsReload={loadContacts}
+        />
+
+        {/* ── Cost Report Modal ── */}
+        <WorkshopCostReport
+          open={showCostReport} onOpenChange={setShowCostReport}
+          workshopName={selectedWorkshop.name} customerName={selectedWorkshop.customer_name || "—"}
+          budget={selectedWorkshop.total_budget} costs={costs} totalPaid={totalPaid}
+        />
 
         {/* ── Invoice/Complete Dialog ── */}
         <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
