@@ -709,132 +709,168 @@ const ChequesPage = () => {
             </div>
           </div>
         </div>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20"><Plus className="h-4 w-4" /> شيك جديد</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
-            <DialogHeader><DialogTitle className="text-center">تسجيل شيك جديد</DialogTitle></DialogHeader>
-            <div className="space-y-3 mt-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">نوع الشيك *</Label>
-                  <Select value={newCheque.cheque_type} onValueChange={(v) => setNewCheque(p => ({ ...p, cheque_type: v as ChequeType, party_type: v === 'وارد' ? 'عميل' : 'مورد' }))}>
-                    <SelectTrigger className="h-9 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="وارد">⬇ وارد (من عميل)</SelectItem>
-                      <SelectItem value="صادر">⬆ صادر (لمورد)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">العملة</Label>
-                  <Select value={newCheque.currency} onValueChange={(v) => setNewCheque(p => ({ ...p, currency: v }))}>
-                    <SelectTrigger className="h-9 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="شيكل">₪ شيكل</SelectItem>
-                      <SelectItem value="دينار">دينار</SelectItem>
-                      <SelectItem value="دولار">$ دولار</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-1.5 rounded-xl text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => openAddDialog('وارد')}>
+            <ArrowDownCircle className="h-4 w-4" /> تسجيل شيك وارد
+          </Button>
+          <Button variant="outline" className="gap-1.5 rounded-xl text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => openAddDialog('صادر')}>
+            <ArrowUpCircle className="h-4 w-4" /> تسجيل شيك صادر
+          </Button>
+        </div>
+      </div>
+
+      {/* Add Cheque Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg">
+              {addType === 'وارد' ? '⬇ تسجيل شيكات واردة' : '⬆ تسجيل شيكات صادرة'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Shared: Party Name */}
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label className="text-xs font-semibold">اسم {addType === 'وارد' ? 'العميل / الجهة' : 'المورد / الجهة'} *</Label>
+              <Popover open={partyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Input className="h-9 rounded-xl" value={partySearch} onChange={e => {
+                    setPartySearch(e.target.value);
+                    setNewCheques(prev => prev.map(r => ({ ...r, party_name: e.target.value })));
+                    setPartyPopoverOpen(true);
+                  }} onFocus={() => setPartyPopoverOpen(true)} placeholder="ابحث عن زبون أو مورد..." />
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
+                  {(() => {
+                    const filteredContacts = contacts.filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
+                    const exactMatch = contacts.some(c => c.contact_name === partySearch.trim());
+                    return (
+                      <>
+                        {filteredContacts.length > 0 ? filteredContacts.slice(0, 20).map(c => (
+                          <button key={c.id} className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center gap-2" onClick={() => {
+                            setNewCheques(prev => prev.map(r => ({ ...r, party_name: c.contact_name })));
+                            setPartySearch(c.contact_name);
+                            setPartyPopoverOpen(false);
+                          }}>
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{c.contact_name}</span>
+                            <Badge variant="outline" className="text-[9px] mr-auto">{c.contact_type}</Badge>
+                          </button>
+                        )) : <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>}
+                        {partySearch.trim() && !exactMatch && (
+                          <button className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2 text-primary font-medium border-t border-border mt-1 pt-2" onClick={() => handleQuickAddContact(partySearch)} disabled={quickAddingContact}>
+                            <UserPlus className="h-3.5 w-3.5" />إضافة "{partySearch.trim()}" كجهة جديدة
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Source bank for outgoing cheques */}
+            {addType === 'صادر' && (
               <div>
-                <Label className="text-xs">اسم {newCheque.cheque_type === 'وارد' ? 'العميل' : 'المورد'} *</Label>
-                <Popover open={partyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Input className="h-9 rounded-xl" value={partySearch} onChange={e => { setPartySearch(e.target.value); setNewCheque(p => ({ ...p, party_name: e.target.value })); setPartyPopoverOpen(true); }} onFocus={() => setPartyPopoverOpen(true)} placeholder={`ابحث أو أضف ${newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد'}`} />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
-                    {(() => {
-                      const targetType = newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد';
-                      const filteredContacts = contacts.filter(c => c.contact_type === targetType || c.contact_type === 'كلاهما').filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
-                      const exactMatch = contacts.some(c => c.contact_name === partySearch.trim());
-                      return (
-                        <>
-                          {filteredContacts.length > 0 ? filteredContacts.map(c => (
-                            <button key={c.id} className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center gap-2" onClick={() => { setNewCheque(p => ({ ...p, party_name: c.contact_name })); setPartySearch(c.contact_name); setPartyPopoverOpen(false); }}>
-                              <User className="h-3.5 w-3.5 text-muted-foreground" />{c.contact_name}
-                            </button>
-                          )) : <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>}
-                          {partySearch.trim() && !exactMatch && (
-                            <button className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2 text-primary font-medium border-t border-border mt-1 pt-2" onClick={() => handleQuickAddContact(partySearch)} disabled={quickAddingContact}>
-                              <UserPlus className="h-3.5 w-3.5" />إضافة "{partySearch.trim()}" كـ{targetType} جديد
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label className="text-xs">المبلغ *</Label><Input className="h-9 rounded-xl" type="number" value={newCheque.amount} onChange={e => setNewCheque(p => ({ ...p, amount: e.target.value }))} placeholder="0" /></div>
-                <div><Label className="text-xs">تاريخ الاستحقاق *</Label><Input className="h-9 rounded-xl" type="date" value={newCheque.cheque_date} onChange={e => setNewCheque(p => ({ ...p, cheque_date: e.target.value }))} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label className="text-xs">رقم الشيك</Label><Input className="h-9 rounded-xl" value={newCheque.cheque_number} onChange={e => setNewCheque(p => ({ ...p, cheque_number: e.target.value }))} placeholder="اختياري" /></div>
-                {newCheque.cheque_type === 'وارد' ? (
-                  <div><Label className="text-xs">البنك</Label><Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" /></div>
+                <Label className="text-xs font-semibold flex items-center gap-1"><Building2 className="h-3 w-3" /> دفتر الشيكات (الحساب البنكي) *</Label>
+                {bankAccounts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground mt-2">لا توجد حسابات بنكية</p>
                 ) : (
-                  <div><Label className="text-xs">البنك</Label>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{bankAccounts.find(b => b.id === newCheque.source_bank_account_id)?.bank_name || '—'}</p>
+                  <div className="flex gap-2 mt-1.5 overflow-x-auto pb-1">
+                    {bankAccounts.map(bank => (
+                      <button key={bank.id} onClick={() => setNewCheques(prev => prev.map(r => ({ ...r, source_bank_account_id: bank.id, bank_name: bank.bank_name })))} type="button"
+                        className={`px-3 py-2 rounded-xl border transition-all flex items-center gap-2 flex-shrink-0 ${
+                          newCheques[0]?.source_bank_account_id === bank.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/30'
+                        }`}>
+                        <Building2 className={`h-3.5 w-3.5 ${newCheques[0]?.source_bank_account_id === bank.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className="text-xs font-medium">{bank.name}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-              {/* Source bank account for outgoing cheques */}
-              {newCheque.cheque_type === 'صادر' && (
-                <div>
-                  <Label className="text-xs font-semibold flex items-center gap-1"><Building2 className="h-3 w-3" /> دفتر الشيكات (الحساب البنكي المصدر) *</Label>
-                  {bankAccounts.length === 0 ? (
-                    <p className="text-xs text-muted-foreground mt-2">لا توجد حسابات بنكية — أضف حساباً بنكياً أولاً</p>
-                  ) : (
-                    <div className="space-y-1.5 mt-2 max-h-40 overflow-y-auto">
-                      {bankAccounts.map(bank => (
-                        <button key={bank.id} onClick={() => setNewCheque(p => ({ ...p, source_bank_account_id: bank.id, bank_name: bank.bank_name }))} type="button"
-                          className={`w-full text-right px-3 py-2.5 rounded-xl border transition-all flex items-center justify-between ${
-                            newCheque.source_bank_account_id === bank.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/30'
-                          }`}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className={`h-4 w-4 ${newCheque.source_bank_account_id === bank.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <div>
-                              <p className="text-sm font-medium">{bank.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{bank.bank_name}</p>
-                            </div>
-                          </div>
-                          {bank.gl_account_code && <span className="text-[10px] text-muted-foreground font-mono">{bank.gl_account_code}</span>}
-                        </button>
-                      ))}
+            )}
+
+            {/* Cheque Rows */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">الشيكات ({newCheques.length})</Label>
+                <Button type="button" variant="outline" size="sm" className="gap-1 text-xs rounded-lg h-7" onClick={addChequeRow}>
+                  <Plus className="h-3 w-3" /> إضافة شيك
+                </Button>
+              </div>
+
+              {newCheques.map((row, idx) => (
+                <div key={idx} className="border border-border/60 rounded-xl p-3 space-y-2 relative bg-muted/20">
+                  {newCheques.length > 1 && (
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="outline" className="text-[10px]">شيك {idx + 1}</Badge>
+                      <button onClick={() => removeChequeRow(idx)} className="text-destructive hover:bg-destructive/10 rounded-lg p-1"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   )}
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">رقم الشيك</Label>
+                      <Input className="h-8 rounded-lg text-xs" value={row.cheque_number} onChange={e => updateChequeRow(idx, 'cheque_number', e.target.value)} placeholder="رقم" />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">المبلغ *</Label>
+                      <Input className="h-8 rounded-lg text-xs" type="number" value={row.amount} onChange={e => updateChequeRow(idx, 'amount', e.target.value)} placeholder="0" />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">تاريخ الاستحقاق *</Label>
+                      <Input className="h-8 rounded-lg text-xs" type="date" value={row.cheque_date} onChange={e => updateChequeRow(idx, 'cheque_date', e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">العملة</Label>
+                      <Select value={row.currency} onValueChange={(v) => updateChequeRow(idx, 'currency', v)}>
+                        <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="شيكل">₪ شيكل</SelectItem>
+                          <SelectItem value="دينار">دينار</SelectItem>
+                          <SelectItem value="دولار">$ دولار</SelectItem>
+                          <SelectItem value="يورو">€ يورو</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {addType === 'وارد' && (
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">البنك</Label>
+                        <Input className="h-8 rounded-lg text-xs" value={row.bank_name} onChange={e => updateChequeRow(idx, 'bank_name', e.target.value)} placeholder="اختياري" />
+                      </div>
+                    )}
+                    {row.currency !== 'شيكل' && (
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">سعر الصرف</Label>
+                        <Input className="h-8 rounded-lg text-xs" type="number" step="0.01" value={row.exchange_rate} onChange={e => updateChequeRow(idx, 'exchange_rate', e.target.value)} placeholder="1.00" />
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">ملاحظات</Label>
+                      <Input className="h-8 rounded-lg text-xs" value={row.notes} onChange={e => updateChequeRow(idx, 'notes', e.target.value)} placeholder="اختياري" />
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div>
-                <Label className="text-xs">الحساب المحاسبي</Label>
-                <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Input className="h-9 rounded-xl" value={accountSearch || (newCheque.linked_account ? (() => { const acc = accounts.find(a => a.account_code === newCheque.linked_account); return acc ? `${acc.account_code} - ${acc.account_name}` : newCheque.linked_account; })() : '')} onChange={e => { setAccountSearch(e.target.value); if (!e.target.value) setNewCheque(p => ({ ...p, linked_account: '' })); setAccountPopoverOpen(true); }} onFocus={() => setAccountPopoverOpen(true)} placeholder="ابحث عن حساب من الشجرة" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
-                    {(() => {
-                      const filteredAccts = accounts.filter(a => !accountSearch || a.account_code.includes(accountSearch) || a.account_name.includes(accountSearch)).slice(0, 20);
-                      return filteredAccts.length > 0 ? filteredAccts.map(a => (
-                        <button key={a.account_code} className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center justify-between" onClick={() => { setNewCheque(p => ({ ...p, linked_account: a.account_code })); setAccountSearch(''); setAccountPopoverOpen(false); }}>
-                          <span>{a.account_name}</span><span className="text-xs text-muted-foreground font-mono">{a.account_code}</span>
-                        </button>
-                      )) : <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>;
-                    })()}
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div><Label className="text-xs">ملاحظات</Label><Input className="h-9 rounded-xl" value={newCheque.notes} onChange={e => setNewCheque(p => ({ ...p, notes: e.target.value }))} placeholder="اختياري" /></div>
-              <Button onClick={handleAdd} disabled={submitting} className="w-full rounded-xl h-10 shadow-md shadow-primary/20 gap-2">
-                {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}تسجيل الشيك
-              </Button>
+              ))}
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+
+            {/* Total */}
+            {newCheques.length > 0 && (
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
+                <span className="text-xs font-semibold">الإجمالي: {newCheques.length} شيك</span>
+                <span className="text-sm font-bold text-primary">₪{newCheques.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0).toLocaleString()}</span>
+              </div>
+            )}
+
+            <Button onClick={handleAdd} disabled={submitting} className="w-full rounded-xl h-10 shadow-md shadow-primary/20 gap-2">
+              {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              تسجيل {newCheques.length > 1 ? `${newCheques.length} شيكات` : 'الشيك'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* KPI Cards */}
       {cheques.length > 0 && (
