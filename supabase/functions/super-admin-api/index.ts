@@ -329,11 +329,18 @@ Deno.serve(async (req) => {
         .select("*, plans(name, plan_key, monthly_price)")
         .order("created_at", { ascending: false });
 
+      // Get admin user IDs only
+      const { data: adminRoles } = await admin.from("user_roles").select("user_id").eq("role", "admin");
+      const adminUserIds = new Set((adminRoles || []).map((r: any) => r.user_id));
+
+      // Filter subscriptions to admin users only
+      const adminSubs = (subs || []).filter((s: any) => adminUserIds.has(s.user_id));
+
       // Enrich with user info
       const { data: profiles } = await admin.from("profiles").select("user_id, display_name, company_name");
       const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
 
-      const enriched = (subs || []).map((s: any) => {
+      const enriched = adminSubs.map((s: any) => {
         const profile = (profiles || []).find((p: any) => p.user_id === s.user_id);
         const authUser = authUsers?.find((u: any) => u.id === s.user_id);
         return {
