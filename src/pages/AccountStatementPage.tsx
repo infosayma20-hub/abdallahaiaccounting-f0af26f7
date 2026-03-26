@@ -8,8 +8,7 @@ import {
   MessageSquare, Link2, Eye, Pencil, Receipt, User, Menu,
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
+import { generateStatementPDF } from "@/utils/generateStatementPDF";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1244,58 +1243,57 @@ const AccountStatementPage = () => {
   }, [selectedEntityId, rows]);
 
   const handleDownloadPDF = useCallback(async () => {
-    const element = document.getElementById("statement-preview-doc");
-    if (!element) return;
+    if (!selectedEntityId || filteredRows.length === 0) return;
     setPdfGenerating(true);
     try {
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        toast({ title: "يرجى السماح بالنوافذ المنبثقة لتحميل PDF", variant: "destructive" });
-        return;
-      }
-      // Clone logos to base64 to avoid CORS
-      const cloned = element.cloneNode(true) as HTMLElement;
-      const imgs = cloned.querySelectorAll("img");
-      for (const img of Array.from(imgs)) {
-        try {
-          const src = (img as HTMLImageElement).src;
-          if (src && !src.startsWith("data:")) {
-            const resp = await fetch(src, { mode: "cors" });
-            const blob = await resp.blob();
-            const dataUrl = await new Promise<string>((res) => {
-              const reader = new FileReader();
-              reader.onloadend = () => res(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-            (img as HTMLImageElement).src = dataUrl;
-          }
-        } catch { /* keep original src */ }
-      }
+      const entityType = isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTabConfig.type;
+      const entityPhone = isAccountsTab ? undefined : isEmployeesTab ? selectedEmployee?.phone || undefined : selectedContact?.phone || undefined;
+      const entityCode = isAccountsTab ? selectedAccount?.account_code : isEmployeesTab ? selectedEmployee?.account_code || undefined : selectedContact?.linked_account_code || undefined;
 
-      printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
-        <meta charset="utf-8" />
-        <title>كشف حساب - ${selectedEntityName}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Cairo', 'Inter', sans-serif; direction: rtl; background: #fff; }
-          @page { size: A4; margin: 0; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-        </style>
-      </head><body>${cloned.outerHTML}</body></html>`);
-      printWindow.document.close();
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 600);
-      };
+      const doc = generateStatementPDF(
+        {
+          entityName: selectedEntityName,
+          entityType,
+          entityPhone,
+          entityCode,
+          dateFrom,
+          dateTo,
+          statementNumber,
+          currency: statementCurrency,
+          openingBalance,
+          closingBalance,
+          totalDebit,
+          totalCredit,
+          rows: filteredRows.map(r => ({
+            date: r.date,
+            description: r.description,
+            reference: r.reference,
+            debit: r.debit,
+            credit: r.credit,
+            balance: r.balance,
+            isLineItem: r.isLineItem,
+          })),
+          agingData,
+        },
+        {
+          name: companyInfo.name,
+          phone: companyInfo.phone,
+          email: companyInfo.email,
+          address: companyInfo.address,
+          tax_number: companyInfo.tax_number,
+          logo_url: companyInfo.logo_url,
+        }
+      );
+
+      doc.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
+      toast({ title: "تم تحميل PDF بنجاح ✓" });
     } catch (err) {
       console.error("PDF download error:", err);
       toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
     } finally {
       setPdfGenerating(false);
     }
-  }, [selectedEntityName, dateFrom, toast]);
+  }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, dateTo, statementNumber, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, companyInfo, isAccountsTab, isEmployeesTab, activeTabConfig, selectedAccount, selectedEmployee, selectedContact, toast]);
 
   const handlePrintStatement = useCallback(() => {
     const element = document.getElementById("statement-preview-doc");
