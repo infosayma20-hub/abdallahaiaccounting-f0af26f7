@@ -231,11 +231,12 @@ const ChequesPage = () => {
     if (!user || !name.trim()) return;
     setQuickAddingContact(true);
     try {
-      const contactType = newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد';
+      const contactType = addType === 'وارد' ? 'عميل' : 'مورد';
       const { error } = await supabase.from('contacts').insert({ user_id: user.id, contact_name: name.trim(), contact_type: contactType });
       if (error) throw error;
       toast.success(`تم إضافة "${name.trim()}" كـ${contactType} جديد`);
-      setNewCheque(p => ({ ...p, party_name: name.trim() }));
+      // Update all rows with the new party name
+      setNewCheques(prev => prev.map(r => ({ ...r, party_name: name.trim() })));
       setPartySearch(name.trim());
       setPartyPopoverOpen(false);
       fetchContacts();
@@ -243,96 +244,79 @@ const ChequesPage = () => {
     finally { setQuickAddingContact(false); }
   };
 
-  const fetchCheques = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase.from('cheques').select('*').eq('user_id', user.id).order('cheque_date', { ascending: false });
-    if (error) { toast.error("خطأ في جلب الشيكات"); }
-    else { setCheques((data || []) as unknown as Cheque[]); }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchCheques(); fetchContacts(); fetchAccounts(); fetchBankAccounts(); }, [user]);
-
-  const fetchHistory = async (chequeId: string) => {
-    if (statusHistory[chequeId]) return;
-    const { data } = await supabase.from('cheque_status_history').select('*').eq('cheque_id', chequeId).order('created_at', { ascending: false });
-    setStatusHistory(prev => ({ ...prev, [chequeId]: (data || []) as StatusHistory[] }));
-  };
-
-  // Helper: find contact_id by name
-  const findContactId = (partyName: string): string | null => {
-    const contact = contacts.find(c => c.contact_name === partyName);
-    return contact?.id || null;
-  };
-
   const handleAdd = async () => {
-    if (!user || !newCheque.party_name || !newCheque.amount || !newCheque.cheque_date) {
-      toast.error("يرجى تعبئة الحقول المطلوبة"); return;
-    }
-    if (newCheque.cheque_type === 'صادر' && !newCheque.source_bank_account_id) {
-      toast.error("يرجى اختيار الحساب البنكي المصدر للشيك الصادر"); return;
+    if (!user) return;
+    // Validate all rows
+    for (let i = 0; i < newCheques.length; i++) {
+      const row = newCheques[i];
+      if (!row.party_name || !row.amount || !row.cheque_date) {
+        toast.error(`يرجى تعبئة الحقول المطلوبة في الشيك ${i + 1}`); return;
+      }
+      if (addType === 'صادر' && !row.source_bank_account_id) {
+        toast.error(`يرجى اختيار الحساب البنكي في الشيك ${i + 1}`); return;
+      }
     }
     if (submitting) return;
     setSubmitting(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const chequeStatus: ChequeStatus = newCheque.cheque_date > today ? 'آجل' : 'مستحق';
-      const amount = parseFloat(newCheque.amount);
-      const contactId = findContactId(newCheque.party_name);
-      const sourceBank = bankAccounts.find(b => b.id === newCheque.source_bank_account_id);
+      for (const row of newCheques) {
+        const today = new Date().toISOString().split('T')[0];
+        const chequeStatus: ChequeStatus = row.cheque_date > today ? 'آجل' : 'مستحق';
+        const amount = parseFloat(row.amount);
+        const contactId = findContactId(row.party_name);
+        const sourceBank = bankAccounts.find(b => b.id === row.source_bank_account_id);
 
-      const { data: chequeData, error } = await supabase.from('cheques').insert({
-        user_id: user.id, cheque_type: newCheque.cheque_type, status: chequeStatus,
-        cheque_number: newCheque.cheque_number || null, bank_name: newCheque.cheque_type === 'صادر' ? (sourceBank?.bank_name || newCheque.bank_name || null) : (newCheque.bank_name || null),
-        cheque_date: newCheque.cheque_date, amount, currency: newCheque.currency,
-        party_name: newCheque.party_name, party_type: newCheque.party_type,
-        linked_account: newCheque.linked_account || null, notes: newCheque.notes || null,
-        source_bank_account_id: newCheque.source_bank_account_id || null,
-        contact_id: contactId,
-      } as any).select('id').single();
-      if (error) throw error;
+        const { data: chequeData, error } = await supabase.from('cheques').insert({
+          user_id: user.id, cheque_type: addType, status: chequeStatus,
+          cheque_number: row.cheque_number || null,
+          bank_name: addType === 'صادر' ? (sourceBank?.bank_name || row.bank_name || null) : (row.bank_name || null),
+          cheque_date: row.cheque_date, amount, currency: row.currency,
+          party_name: row.party_name, party_type: row.party_type,
+          linked_account: row.linked_account || null, notes: row.notes || null,
+          source_bank_account_id: row.source_bank_account_id || null,
+          contact_id: contactId,
+        } as any).select('id').single();
+        if (error) throw error;
+        const chequeId = chequeData?.id || '';
 
-      const chequeId = chequeData?.id || '';
+        // Journal entry
+        if (addType === 'وارد') {
+          await supabase.from('transactions').insert({
+            user_id: user.id, transaction_date: row.cheque_date,
+            description: `تسجيل شيك وارد - ${row.party_name} #${row.cheque_number || ''}`,
+            debit_account_code: '1150', credit_account_code: '1130',
+            amount, currency: row.currency || 'شيكل',
+            transaction_type: 'cheque_register', contact_id: contactId,
+            reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
+            idempotency_key: `CHQ-REG-${chequeId}`,
+            ...(row.exchange_rate ? { exchange_rate: parseFloat(row.exchange_rate), foreign_amount: amount } : {}),
+          });
+        } else {
+          await supabase.from('transactions').insert({
+            user_id: user.id, transaction_date: row.cheque_date,
+            description: `تسجيل شيك صادر - ${row.party_name} #${row.cheque_number || ''}`,
+            debit_account_code: '2100', credit_account_code: '1160',
+            amount, currency: row.currency || 'شيكل',
+            transaction_type: 'cheque_register', contact_id: contactId,
+            reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
+            idempotency_key: `CHQ-REG-${chequeId}`,
+            ...(row.exchange_rate ? { exchange_rate: parseFloat(row.exchange_rate), foreign_amount: amount } : {}),
+          });
+        }
 
-      // Journal entry for registration
-      if (newCheque.cheque_type === 'وارد') {
-        // Incoming cheque: Debit شيكات واردة (1150), Credit ذمم عملاء (1130)
-        await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: newCheque.cheque_date,
-          description: `تسجيل شيك وارد - ${newCheque.party_name} #${newCheque.cheque_number || ''}`,
-          debit_account_code: '1150', credit_account_code: '1130',
-          amount, currency: newCheque.currency || 'شيكل',
-          transaction_type: 'cheque_register', contact_id: contactId,
-          reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
-          idempotency_key: `CHQ-REG-${chequeId}`,
-        });
-      } else {
-        // Outgoing cheque: Debit ذمم موردين (2100), Credit شيكات صادرة (1160)
-        await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: newCheque.cheque_date,
-          description: `تسجيل شيك صادر - ${newCheque.party_name} #${newCheque.cheque_number || ''}`,
-          debit_account_code: '2100', credit_account_code: '1160',
-          amount, currency: newCheque.currency || 'شيكل',
-          transaction_type: 'cheque_register', contact_id: contactId,
-          reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
-          idempotency_key: `CHQ-REG-${chequeId}`,
+        await supabase.from('cheque_status_history').insert({
+          cheque_id: chequeId, user_id: user.id,
+          from_status: null, to_status: chequeStatus,
+          action_type: 'register',
         });
       }
 
-      // Record initial status history
-      await supabase.from('cheque_status_history').insert({
-        cheque_id: chequeId, user_id: user.id,
-        from_status: null, to_status: chequeStatus,
-        action_type: 'register',
-      });
-
-      toast.success(`تم تسجيل شيك ${newCheque.cheque_type} وإنشاء القيد ✅`);
+      toast.success(`تم تسجيل ${newCheques.length} شيك ${addType} وإنشاء القيود ✅`);
       setAddOpen(false);
-      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '', source_bank_account_id: '' });
+      setNewCheques([emptyChequeRow(addType)]);
       setPartySearch('');
       fetchCheques();
-    } catch { toast.error("خطأ في حفظ الشيك"); }
+    } catch { toast.error("خطأ في حفظ الشيكات"); }
     finally { setSubmitting(false); }
   };
 
