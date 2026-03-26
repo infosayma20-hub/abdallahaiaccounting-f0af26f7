@@ -852,7 +852,7 @@ const MANAGEABLE_APPS = [
 ];
 
 function AppVisibilityManager() {
-  const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string }[]>([]);
+  const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string; roles?: string[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState("");
   const [hiddenApps, setHiddenApps] = useState<string[]>([]);
