@@ -964,7 +964,7 @@ export default function WorkshopsPage() {
 
         {/* ── Payment Dialog ── */}
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <DialogTitle>💵 تسجيل دفعة من الزبون</DialogTitle>
             </DialogHeader>
@@ -974,10 +974,48 @@ export default function WorkshopsPage() {
                 <div className="flex justify-between"><span className="text-muted-foreground">المدفوع سابقاً</span><span className="font-bold text-emerald-500">{totalPaid.toLocaleString()} ₪</span></div>
                 <div className="flex justify-between border-t border-border pt-1"><span className="text-muted-foreground">المتبقي</span><span className="font-bold text-amber-600">{((selectedWorkshop?.total_budget || 0) - totalPaid).toLocaleString()} ₪</span></div>
               </div>
-              <div className="space-y-1">
-                <Label>مبلغ الدفعة (₪)</Label>
-                <Input type="number" value={paymentForm.amount || ""} onChange={e => setPaymentForm(f => ({ ...f, amount: Number(e.target.value) }))} />
+
+              {/* Amount + Currency */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2 space-y-1">
+                  <Label>مبلغ الدفعة</Label>
+                  <Input type="number" value={paymentForm.amount || ""} onChange={e => setPaymentForm(f => ({ ...f, amount: Number(e.target.value) }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>العملة</Label>
+                  <select
+                    value={paymentForm.currency}
+                    onChange={e => {
+                      const code = e.target.value;
+                      const cur = currencies.find(c => c.code === code);
+                      setPaymentForm(f => ({ ...f, currency: code, exchange_rate: code === "ILS" ? 1 : (cur?.sell_rate || 1) }));
+                    }}
+                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm"
+                  >
+                    <option value="ILS">₪ شيكل</option>
+                    {currencies.filter(c => c.code !== "ILS").map(c => (
+                      <option key={c.code} value={c.code}>{c.code} {c.name_ar}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              {/* Exchange rate */}
+              {paymentForm.currency !== "ILS" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">سعر الصرف</Label>
+                    <Input type="number" step="0.01" value={paymentForm.exchange_rate || ""} onChange={e => setPaymentForm(f => ({ ...f, exchange_rate: Number(e.target.value) }))} dir="ltr" className="text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">المعادل بالشيكل</Label>
+                    <div className="flex items-center h-10 px-3 rounded-lg border border-border bg-muted/30 text-sm font-bold">
+                      {(paymentForm.amount * paymentForm.exchange_rate).toLocaleString()} ₪
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <Label>طريقة الدفع</Label>
                 <div className="flex gap-1">
@@ -993,10 +1031,25 @@ export default function WorkshopsPage() {
               {/* Cheque fields */}
               {paymentForm.payment_method === "شيك" && (
                 <div className="space-y-2 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5">
-                  <p className="text-xs font-bold text-primary">بيانات الشيك الوارد</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-primary">بيانات الشيك الوارد</p>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-[10px] text-muted-foreground">عدد الشيكات:</Label>
+                      <Input type="number" min={1} max={24} value={paymentForm.cheque_count}
+                        onChange={e => setPaymentForm(f => ({ ...f, cheque_count: Math.max(1, Number(e.target.value)) }))}
+                        className="w-14 h-7 text-xs text-center" dir="ltr" />
+                    </div>
+                  </div>
+
+                  {paymentForm.cheque_count > 1 && (
+                    <div className="p-2 rounded bg-accent/10 text-[10px] text-muted-foreground">
+                      سيتم إنشاء {paymentForm.cheque_count} شيك متسلسل بدءاً من رقم {paymentForm.cheque_number || "..."} — المبلغ لكل شيك: {paymentForm.amount > 0 ? (paymentForm.amount / paymentForm.cheque_count).toLocaleString() : 0} — بفارق شهر بين كل استحقاق
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs">رقم الشيك *</Label>
+                      <Label className="text-xs">رقم الشيك الأول *</Label>
                       <Input value={paymentForm.cheque_number} onChange={e => setPaymentForm(f => ({ ...f, cheque_number: e.target.value }))} placeholder="مثال: 1234" dir="ltr" className="text-sm" />
                     </div>
                     <div className="space-y-1">
@@ -1010,7 +1063,7 @@ export default function WorkshopsPage() {
                       <Input value={paymentForm.cheque_bank} onChange={e => setPaymentForm(f => ({ ...f, cheque_bank: e.target.value }))} placeholder="مثال: بنك فلسطين" className="text-sm" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">تاريخ الاستحقاق</Label>
+                      <Label className="text-xs">تاريخ الاستحقاق {paymentForm.cheque_count > 1 ? "(الأول)" : ""}</Label>
                       <Input type="date" value={paymentForm.cheque_date} onChange={e => setPaymentForm(f => ({ ...f, cheque_date: e.target.value }))} className="text-sm" />
                     </div>
                   </div>
