@@ -527,7 +527,6 @@ const ProfitLoss = () => {
     <div className="space-y-5 max-w-[1200px] mx-auto pb-10 px-4 pt-4" dir="rtl">
       {/* ── Header ── */}
       <PageHeader title="قائمة الدخل" breadcrumb={["المحاسبة", "التقارير", "قائمة الدخل"]} />
-      </div>
 
       {/* ── Date Controls ── */}
       <Card className="p-4 space-y-3">
