@@ -47,14 +47,14 @@ const AppCard = ({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.35, ease: "easeOut" }}
-      className={`relative rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
+      className={`relative rounded-2xl border overflow-hidden transition-all duration-300 ${
         isLocked
           ? "border-border/20 bg-muted/20 opacity-40 cursor-not-allowed"
           : disabled
           ? "border-border/20 bg-muted/20 opacity-50 grayscale cursor-not-allowed"
           : isExpanded
-          ? "border-primary/40 bg-white shadow-xl scale-[1.01]"
-          : "border-border/40 bg-white hover:border-primary/30 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.01]"
+          ? "border-primary/30 bg-card shadow-lg"
+          : "border-border/30 bg-card hover:border-primary/20 hover:shadow-lg hover:-translate-y-1 transition-transform"
       }`}
     >
       <button
@@ -81,7 +81,7 @@ const AppCard = ({
         {/* Title */}
         <div className="space-y-1">
           <div className="flex items-center justify-center gap-2">
-            <p className={`text-sm font-bold ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
+            <p className={`text-sm font-medium ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
               {app.label}
             </p>
             {!isDisabledOrLocked && app.isNew && (
@@ -236,7 +236,7 @@ const AppsLauncher = () => {
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* Title */}
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
+          <h2 className="text-3xl font-medium text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
           <p className="text-sm text-muted-foreground">كل احتياج، تطبيق واحد.</p>
         </div>
 
@@ -248,7 +248,7 @@ const AppsLauncher = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ابحث عن تطبيق..."
-              className="pr-10 rounded-lg bg-white border border-border h-10 text-sm"
+              className="pr-10 rounded-lg bg-card border border-border/30 h-10 text-sm"
             />
           </div>
         </div>
