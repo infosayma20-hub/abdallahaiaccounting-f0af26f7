@@ -463,23 +463,55 @@ const ProfilePage = () => {
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3 justify-center px-2">
-        <Button onClick={handleSave} disabled={saving} className="px-8 h-11 rounded-lg text-sm font-bold gap-2">
+        <Button onClick={handleSave} disabled={saving} className="px-8 h-11 rounded-lg text-sm font-medium gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           حفظ
         </Button>
-        <Button variant="outline" onClick={() => navigate(-1)} className="px-8 h-11 rounded-lg text-sm font-bold">
+        <Button variant="outline" onClick={() => navigate(-1)} className="px-8 h-11 rounded-lg text-sm font-medium">
           إلغاء
         </Button>
       </div>
 
       <hr className="border-border/30" />
 
+      {/* Notifications Settings */}
+      <div className="space-y-4 px-2">
+        <h2 className="text-lg font-medium text-primary" style={{ fontFamily: "Tajawal, sans-serif" }}>إعدادات الإشعارات</h2>
+        <div className="space-y-3">
+          {[
+            { label: "إشعارات البريد الإلكتروني", desc: "تلقي تحديثات عبر البريد" },
+            { label: "إشعارات الفواتير", desc: "تنبيه عند إنشاء أو استحقاق فاتورة" },
+            { label: "إشعارات المدفوعات", desc: "تنبيه عند استلام دفعة" },
+            { label: "تقارير أسبوعية", desc: "ملخص مالي أسبوعي عبر البريد" },
+          ].map((item) => (
+            <label key={item.label} className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card hover:bg-muted/20 cursor-pointer transition-colors">
+              <input type="checkbox" defaultChecked className="mt-1 h-4 w-4 rounded border-border text-primary accent-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <hr className="border-border/30" />
+
       {/* 2FA Section */}
       <div className="space-y-3 px-2">
-        <h2 className="text-lg font-bold text-primary" style={{ fontFamily: "Tajawal, sans-serif" }}>التحقق الثنائي</h2>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-sm text-foreground">التحقق الثنائي غير مفعّل</span>
-          <Button variant="default" className="px-6 h-10 rounded-lg text-sm font-bold">
+        <h2 className="text-lg font-medium text-primary" style={{ fontFamily: "Tajawal, sans-serif" }}>التحقق الثنائي (2FA)</h2>
+        <div className="rounded-2xl border border-border/30 bg-card p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5 text-success" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">التحقق الثنائي غير مفعّل</p>
+              <p className="text-xs text-muted-foreground">أضف طبقة حماية إضافية لحسابك باستخدام Google Authenticator أو رسالة SMS</p>
+            </div>
+          </div>
+          <Button variant="default" className="w-full h-11 rounded-xl text-sm font-medium gap-2">
+            <ShieldCheck className="h-4 w-4" />
             تفعيل التحقق الثنائي
           </Button>
         </div>
@@ -487,7 +519,7 @@ const ProfilePage = () => {
 
       {/* Logout */}
       <div className="px-2 pt-4">
-        <Button onClick={signOut} variant="outline" className="w-full h-12 rounded-xl text-sm font-bold gap-2 text-destructive border-destructive/30 hover:bg-destructive/5">
+        <Button onClick={signOut} variant="outline" className="w-full h-12 rounded-xl text-sm font-medium gap-2 text-destructive border-destructive/30 hover:bg-destructive/5">
           <LogOut className="h-4 w-4" />
           تسجيل الخروج
         </Button>
