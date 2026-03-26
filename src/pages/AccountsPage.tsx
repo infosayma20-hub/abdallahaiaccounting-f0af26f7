@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
+import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -415,10 +416,12 @@ const AccountsPage = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(210,20%,98%)] dark:bg-background" dir="rtl">
-      {/* Action buttons toolbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-2 pb-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
+        <PageHeader title="شجرة الحسابات" breadcrumb={["المحاسبة", "شجرة الحسابات"]} />
+
+        {/* Action buttons toolbar */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold" style={{ background: "hsl(var(--navy))" }}>
+          <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold">
             <Plus className="h-3.5 w-3.5" />
             إضافة حساب
           </Button>
@@ -432,13 +435,6 @@ const AccountsPage = () => {
           <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </Button>
-        </div>
-      </div>
-
-      {/* Qoyod-style navy banner */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-4">
-        <div className="rounded-xl px-6 py-4" style={{ background: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--finix-navy-light)) 100%)" }}>
-          <h1 className="text-lg font-bold text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>شجرة الحسابات</h1>
         </div>
       </div>
 

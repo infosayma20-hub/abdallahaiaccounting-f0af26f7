@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
@@ -8,6 +9,7 @@ import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
 import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -271,22 +273,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
+      <PageHeader title={title} breadcrumb={["المالية", title]} />
+      {/* Actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/finance/receipts")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <DollarSign className={`h-5 w-5 ${isReceipt ? "text-emerald-500" : "text-destructive"}`} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">{title}</h1>
-              <p className="text-xs text-muted-foreground">{isReceipt ? "إدارة سندات القبض والمقبوضات" : "إدارة سندات الصرف والمدفوعات"}</p>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">{isReceipt ? "إدارة سندات القبض والمقبوضات" : "إدارة سندات الصرف والمدفوعات"}</p>
         <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
           if (isReceipt) { navigate("/finance/receipt/new"); }
           else { navigate("/finance/payment/new"); }
@@ -316,49 +306,52 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       </div>
 
       {/* Toolbar */}
-      <div className="space-y-3">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-          <Input
-            placeholder="ابحث برقم السند، الوصف، الجهة..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pr-10 rounded-xl bg-muted/30"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Payment method pills + status filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-            <button onClick={() => setPaymentFilter("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${paymentFilter === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-              الكل
-            </button>
-            {PAYMENT_METHODS.map(m => (
-              <button key={m} onClick={() => setPaymentFilter(m)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${paymentFilter === m ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                {m}
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-3 space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              placeholder="ابحث برقم السند، الوصف، الجهة..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
               </button>
-            ))}
+            )}
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] rounded-xl text-xs">
-              <SelectValue placeholder="حالة السند" />
-            </SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="active">بدون الملغية</SelectItem>
-              <SelectItem value="all">كل الحالات</SelectItem>
-              <SelectItem value="مرحّل">✅ مرحّل</SelectItem>
-              <SelectItem value="مسودة">📝 مسودة</SelectItem>
-              <SelectItem value="ملغي">🔴 ملغي فقط</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+
+          {/* Payment method pills + status filter */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+              <button onClick={() => setPaymentFilter("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${paymentFilter === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                الكل
+              </button>
+              {PAYMENT_METHODS.map(m => (
+                <button key={m} onClick={() => setPaymentFilter(m)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${paymentFilter === m ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                  {m}
+                </button>
+              ))}
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px] rounded-xl text-xs h-9">
+                <SelectValue placeholder="حالة السند" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                <SelectItem value="active">بدون الملغية</SelectItem>
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="مرحّل">✅ مرحّل</SelectItem>
+                <SelectItem value="مسودة">📝 مسودة</SelectItem>
+                <SelectItem value="ملغي">🔴 ملغي فقط</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-[11px] text-muted-foreground mr-auto">{filtered.length} سند</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Loading */}
       {loading && (
