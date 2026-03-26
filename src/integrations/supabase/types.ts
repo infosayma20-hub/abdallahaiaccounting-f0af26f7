@@ -10554,50 +10554,77 @@ export type Database = {
       workshop_costs: {
         Row: {
           amount: number
+          category: string | null
           cost_date: string | null
           cost_type: string
           created_at: string | null
           description: string | null
           id: string
+          invoice_number: string | null
           linked_transaction_id: string | null
           notes: string | null
           payment_method: string | null
+          phase: string | null
+          quantity: number | null
           receipt_image_url: string | null
+          receipt_url: string | null
           supplier_contact_id: string | null
           supplier_name: string | null
+          unit: string | null
+          unit_price: number | null
           user_id: string
+          waste_amount: number | null
+          waste_percentage: number | null
           workshop_id: string
         }
         Insert: {
           amount?: number
+          category?: string | null
           cost_date?: string | null
           cost_type: string
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_number?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           payment_method?: string | null
+          phase?: string | null
+          quantity?: number | null
           receipt_image_url?: string | null
+          receipt_url?: string | null
           supplier_contact_id?: string | null
           supplier_name?: string | null
+          unit?: string | null
+          unit_price?: number | null
           user_id: string
+          waste_amount?: number | null
+          waste_percentage?: number | null
           workshop_id: string
         }
         Update: {
           amount?: number
+          category?: string | null
           cost_date?: string | null
           cost_type?: string
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_number?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           payment_method?: string | null
+          phase?: string | null
+          quantity?: number | null
           receipt_image_url?: string | null
+          receipt_url?: string | null
           supplier_contact_id?: string | null
           supplier_name?: string | null
+          unit?: string | null
+          unit_price?: number | null
           user_id?: string
+          waste_amount?: number | null
+          waste_percentage?: number | null
           workshop_id?: string
         }
         Relationships: [
