@@ -319,15 +319,25 @@ const TrialBalancePage = () => {
 
   // Export PDF
   const handleExportPDF = () => {
-    const tableHeaders = ["الكود", "اسم الحساب", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
-    const tableRows = filteredRows.map(r => [
-      r.accountCode,
-      r.accountName,
-      ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType,
-      r.totalDebit > 0 ? r.totalDebit.toLocaleString() : "—",
-      r.totalCredit > 0 ? r.totalCredit.toLocaleString() : "—",
-      r.balance !== 0 ? Math.abs(r.balance).toLocaleString() : "—",
-    ]);
+    const hasDateRange = !!dateFrom;
+    const tableHeaders = hasDateRange
+      ? ["الكود", "اسم الحساب", "النوع", "رصيد افتتاحي", "مدين ₪", "دائن ₪", "الرصيد ₪", "رصيد ختامي"]
+      : ["الكود", "اسم الحساب", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
+    const tableRows = filteredRows.map(r => {
+      const base = [
+        r.accountCode,
+        r.accountName,
+        ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType,
+      ];
+      if (hasDateRange) base.push(r.openingBalance !== 0 ? Math.abs(r.openingBalance).toLocaleString() : "—");
+      base.push(
+        r.totalDebit > 0 ? r.totalDebit.toLocaleString() : "—",
+        r.totalCredit > 0 ? r.totalCredit.toLocaleString() : "—",
+        r.balance !== 0 ? Math.abs(r.balance).toLocaleString() : "—",
+      );
+      if (hasDateRange) base.push(r.closingBalance !== 0 ? Math.abs(r.closingBalance).toLocaleString() : "—");
+      return base;
+    });
 
     const html = generateProfessionalPDFHtml({
       company: companyInfo,
