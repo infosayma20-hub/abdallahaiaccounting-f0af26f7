@@ -293,7 +293,7 @@ const ReportsPage = () => {
             <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
             <h2 className="text-sm font-bold text-foreground">التقارير المفضلة</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="flex flex-col gap-1.5">
             {favoriteReports.map(report => (
               <ReportCard key={report.slug} report={report} isFavorite={true} onToggleFavorite={() => toggleFavorite(report.slug)} onClick={() => report.available && navigate(report.path)} />
             ))}
@@ -340,7 +340,7 @@ const ReportsPage = () => {
               </button>
 
               {isExpanded && (
-                <div className="border-t border-border/40 p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="border-t border-border/40 p-3 flex flex-col gap-1.5">
                   {section.reports.map(report => (
                     <ReportCard key={report.slug} report={report} isFavorite={favorites.includes(report.slug)} onToggleFavorite={() => toggleFavorite(report.slug)} onClick={() => report.available && navigate(report.path)} />
                   ))}
