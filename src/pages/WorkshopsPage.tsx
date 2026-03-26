@@ -955,7 +955,7 @@ export default function WorkshopsPage() {
               <div className="space-y-1">
                 <Label>طريقة الدفع</Label>
                 <div className="flex gap-1">
-                  {["نقدي", "بنك"].map(m => (
+                  {["نقدي", "بنك", "شيك"].map(m => (
                     <button key={m} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m }))}
                       className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
                         paymentForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
@@ -963,6 +963,49 @@ export default function WorkshopsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Cheque fields */}
+              {paymentForm.payment_method === "شيك" && (
+                <div className="space-y-2 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5">
+                  <p className="text-xs font-bold text-primary">بيانات الشيك الوارد</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">رقم الشيك *</Label>
+                      <Input value={paymentForm.cheque_number} onChange={e => setPaymentForm(f => ({ ...f, cheque_number: e.target.value }))} placeholder="مثال: 1234" dir="ltr" className="text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">اسم الساحب</Label>
+                      <Input value={paymentForm.cheque_drawer} onChange={e => setPaymentForm(f => ({ ...f, cheque_drawer: e.target.value }))} placeholder={selectedWorkshop?.customer_name || "اسم صاحب الشيك"} className="text-sm" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">البنك المسحوب عليه</Label>
+                      <Input value={paymentForm.cheque_bank} onChange={e => setPaymentForm(f => ({ ...f, cheque_bank: e.target.value }))} placeholder="مثال: بنك فلسطين" className="text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">تاريخ الاستحقاق</Label>
+                      <Input type="date" value={paymentForm.cheque_date} onChange={e => setPaymentForm(f => ({ ...f, cheque_date: e.target.value }))} className="text-sm" />
+                    </div>
+                  </div>
+                  {bankAccounts.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">إيداع في حساب بنكي (اختياري)</Label>
+                      <select
+                        value={paymentForm.deposit_bank_id || ""}
+                        onChange={e => setPaymentForm(f => ({ ...f, deposit_bank_id: e.target.value || null }))}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">-- بدون إيداع فوري --</option>
+                        {bankAccounts.map(b => (
+                          <option key={b.id} value={b.id}>{b.name} — {b.bank_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-1">
                 <Label>التاريخ</Label>
                 <Input type="date" value={paymentForm.payment_date} onChange={e => setPaymentForm(f => ({ ...f, payment_date: e.target.value }))} />
