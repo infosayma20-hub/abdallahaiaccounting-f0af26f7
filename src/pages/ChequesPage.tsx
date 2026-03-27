@@ -316,7 +316,7 @@ const ChequesPage = () => {
           await supabase.from('transactions').insert({
             user_id: user.id, transaction_date: row.cheque_date,
             description: `تسجيل شيك صادر - ${row.party_name} #${row.cheque_number || ''}`,
-            debit_account_code: '2100', credit_account_code: '1160',
+            debit_account_code: '2110', credit_account_code: '1160',
             amount, currency: row.currency || 'شيكل',
             transaction_type: 'cheque_register', contact_id: contactId,
             reference: `CHQ-REG-${chequeId.slice(0, 8)}`,
@@ -423,7 +423,7 @@ const ChequesPage = () => {
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: new Date().toISOString().split('T')[0],
           description: `تظهير شيك - ${cheque.party_name} → ${data.endorsedToName}`,
-          debit_account_code: '2100', credit_account_code: '1150',
+          debit_account_code: '2110', credit_account_code: '1150',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
           transaction_type: 'cheque_endorsement', contact_id: data.endorsedToContactId || null,
           reference: `CHQ-END-${cheque.id.slice(0, 8)}`,
@@ -468,7 +468,7 @@ const ChequesPage = () => {
           const { data: txResult } = await supabase.from('transactions').insert({
             user_id: user.id, transaction_date: today,
             description: `إلغاء شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
-            debit_account_code: '1160', credit_account_code: '2100',
+            debit_account_code: '1160', credit_account_code: '2110',
             amount: cheque.amount, currency: cheque.currency || 'شيكل',
             transaction_type: 'cheque_cancel', contact_id: contactId,
             reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
@@ -507,7 +507,7 @@ const ChequesPage = () => {
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
-          debit_account_code: '1160', credit_account_code: '2100',
+          debit_account_code: '1160', credit_account_code: '2110',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
           transaction_type: 'cheque_bounce', contact_id: contactId,
           reference: `CHQ-OBNC-${cheque.id.slice(0, 8)}`,
@@ -535,7 +535,7 @@ const ChequesPage = () => {
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: today,
           description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
-          debit_account_code: '1160', credit_account_code: '2100',
+          debit_account_code: '1160', credit_account_code: '2110',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
           transaction_type: 'cheque_recover', contact_id: contactId,
           reference: `CHQ-RCV-${cheque.id.slice(0, 8)}`,

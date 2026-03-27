@@ -62,8 +62,8 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
   const bankCredit = sumByCode(txs, 'credit_account_code', '1120');
   const recDebit = sumByCode(txs, 'debit_account_code', '1130');
   const recCredit = sumByCode(txs, 'credit_account_code', '1130');
-  const payDebit = sumByCode(txs, 'debit_account_code', '2100');
-  const payCredit = sumByCode(txs, 'credit_account_code', '2100');
+  const payDebit = sumByCode(txs, 'debit_account_code', '2110');
+  const payCredit = sumByCode(txs, 'credit_account_code', '2110');
 
   return {
     cash: cashDebit - cashCredit,

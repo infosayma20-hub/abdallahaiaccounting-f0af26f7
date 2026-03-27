@@ -206,7 +206,7 @@ const PurchaseOrderCreatePage = () => {
           contact_type: "مورد",
           phone: newSupplier.phone || null,
           is_active: true,
-          linked_account_code: "2100",
+          linked_account_code: "2110",
         } as any);
       }
     }

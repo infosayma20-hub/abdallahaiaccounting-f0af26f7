@@ -20,7 +20,7 @@ const GLOSSARY: GlossaryItem[] = [
   { term: "قائمة الدخل", termEn: "Income Statement", definition: "تقرير يوضح أداء الشركة خلال فترة: الإيرادات - المصروفات = صافي الربح أو الخسارة.", relatedAccounts: "4000-5000" },
   { term: "التدفق النقدي", termEn: "Cash Flow", definition: "حركة النقد الفعلي: كم دخل وكم خرج. شركة رابحة قد تعاني من نقص سيولة!", example: "بعت بالآجل = ربح بدون نقد فوري" },
   { term: "الذمم المدينة", termEn: "Accounts Receivable", definition: "المبالغ المستحقة لك من الزبائن. بعت بالآجل = الزبون مدين لك.", relatedAccounts: "1130" },
-  { term: "الذمم الدائنة", termEn: "Accounts Payable", definition: "المبالغ المستحقة عليك للموردين. اشتريت بالآجل = أنت مدين للمورد.", relatedAccounts: "2100" },
+  { term: "الذمم الدائنة", termEn: "Accounts Payable", definition: "المبالغ المستحقة عليك للموردين. اشتريت بالآجل = أنت مدين للمورد.", relatedAccounts: "2110" },
   { term: "الإهلاك", termEn: "Depreciation", definition: "توزيع تكلفة الأصل الثابت على سنوات عمره الإنتاجي. سيارة بـ100,000 عمرها 5 سنوات = 20,000 سنوياً.", example: "مصروف إهلاك (مدين) ← مجمع الإهلاك (دائن)" },
   { term: "رأس المال العامل", termEn: "Working Capital", definition: "الأصول المتداولة - الالتزامات المتداولة. يقيس قدرتك على تغطية التزاماتك قصيرة الأجل.", example: "إذا كان سالباً = قد تواجه صعوبة في الدفع" },
   { term: "نقطة التعادل", termEn: "Break-even Point", definition: "النقطة التي تتساوى فيها الإيرادات مع التكاليف. بعدها كل شيكل إضافي = ربح صافي.", example: "تكاليف ثابتة 10,000 + هامش ربح 50% = تحتاج مبيعات 20,000" },
@@ -54,7 +54,7 @@ const AccountingTutor = () => {
     const tips: { icon: string; title: string; tip: string; priority: number }[] = [];
 
     const hasReceivables = transactions.some((t) => t.debit_account_code === "1130");
-    const hasPayables = transactions.some((t) => t.credit_account_code === "2100");
+    const hasPayables = transactions.some((t) => t.credit_account_code === "2110");
     const hasCheques = transactions.some((t) => t.transaction_type?.includes("cheque"));
     const hasSales = transactions.some((t) => t.credit_account_code?.startsWith("4"));
     const hasExpenses = transactions.some((t) => t.debit_account_code?.startsWith("5"));

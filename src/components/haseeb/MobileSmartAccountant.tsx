@@ -78,8 +78,8 @@ const MobileSmartAccountant = () => {
         const bankCredit = sumByCode(txs, 'credit_account_code', '1120');
         const recDebit = sumByCode(txs, 'debit_account_code', '1130');
         const recCredit = sumByCode(txs, 'credit_account_code', '1130');
-        const payDebit = sumByCode(txs, 'debit_account_code', '2100');
-        const payCredit = sumByCode(txs, 'credit_account_code', '2100');
+        const payDebit = sumByCode(txs, 'debit_account_code', '2110');
+        const payCredit = sumByCode(txs, 'credit_account_code', '2110');
 
         const salesToday = plTx
           .filter(tx => tx.credit_account_code?.startsWith('4') && tx.transaction_date === today)

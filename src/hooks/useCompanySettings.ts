@@ -159,7 +159,7 @@ const defaultSettings: CompanySettings = {
   default_cash_account: "1110",
   default_bank_account: "1120",
   default_receivable_account: "1130",
-  default_payable_account: "2100",
+  default_payable_account: "2110",
   vat_enabled: true,
   vat_rate: 16,
   vat_inclusive: false,

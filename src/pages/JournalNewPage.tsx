@@ -205,7 +205,7 @@ const JournalNewPage = () => {
     const preparedLines = lines.map(l => {
       if (!l.account_code && l.contact_id && l.contact_id !== "__none__") {
         const c = contacts.find(ct => ct.id === l.contact_id);
-        const autoCode = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2100" : c && isEmployee(c) ? "1180" : "";
+        const autoCode = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2110" : c && isEmployee(c) ? "1180" : "";
         const acct = accounts.find(a => a.account_code === autoCode);
         return { ...l, account_code: autoCode, account_name: acct?.account_name || "" };
       }
@@ -540,7 +540,7 @@ const JournalNewPage = () => {
                           if (v.startsWith("contact:")) {
                             const contactId = v.replace("contact:", "");
                             const c = contacts.find(ct => ct.id === contactId);
-                            const autoAccount = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2100" : c && isEmployee(c) ? "1180" : "";
+                            const autoAccount = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2110" : c && isEmployee(c) ? "1180" : "";
                             const acct = accounts.find(a => a.account_code === autoAccount);
                             setLines(prev => prev.map(l => l.id !== line.id ? l : {
                               ...l, contact_id: contactId, contact_name: c?.contact_name || "",

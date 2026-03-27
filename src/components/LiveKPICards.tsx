@@ -52,9 +52,9 @@ const ALL_KPIS: KPIConfig[] = [
   {
     id: "payables", label: "الذمم الدائنة", icon: "📋",
     compute: (txs) => {
-      const credits = txs.filter((t) => t.credit_account_code === "2100").reduce((s, t) => s + (Number(t.amount) || 0), 0);
-      const debits = txs.filter((t) => t.debit_account_code === "2100").reduce((s, t) => s + (Number(t.amount) || 0), 0);
-      return { value: credits - debits, trend: weeklyBalance(txs, "2100", true), change: 0 };
+      const credits = txs.filter((t) => t.credit_account_code === "2110").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const debits = txs.filter((t) => t.debit_account_code === "2110").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      return { value: credits - debits, trend: weeklyBalance(txs, "2110", true), change: 0 };
     },
     format: formatCurrency, colorPositive: false,
   },
