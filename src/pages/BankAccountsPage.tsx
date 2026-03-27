@@ -188,20 +188,14 @@ const BankAccountsPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/finance/receipts")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>الحسابات البنكية</h1>
-        </div>
-        {banks.length > 0 && (
-          <Button size="sm" className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }} onClick={() => { resetForm(); setModalOpen(true); }}>
+      <PageHeader title="الحسابات البنكية" breadcrumb={["المالية", "الحسابات البنكية"]} />
+      {banks.length > 0 && (
+        <div className="flex items-center justify-start">
+          <Button size="sm" className="gap-2" onClick={() => { resetForm(); setModalOpen(true); }}>
             <Plus className="h-4 w-4" />إضافة حساب بنكي
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Banks Grid */}
       {loading ? (

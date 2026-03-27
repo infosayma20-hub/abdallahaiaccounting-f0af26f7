@@ -74,8 +74,8 @@ const SalesRepresentativesPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <PageHeader title="إدارة المندوبين" breadcrumb={["المبيعات", "إدارة المندوبين"]} />
+      <PageHeader title="إدارة المندوبين" breadcrumb={["المبيعات", "إدارة المندوبين"]} />
+      <div className="flex items-center justify-start">
         <Button onClick={() => { setForm({ full_name: "", phone: "", email: "", region: "", sales_commission_rate: 0, collection_commission_rate: 0, linked_account_name: "", notes: "", is_active: true }); setEditingId(null); setShowForm(true); }} className="gap-2"><Plus className="h-4 w-4" /> إضافة مندوب</Button>
       </div>
 
