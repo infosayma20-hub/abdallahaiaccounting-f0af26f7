@@ -1917,13 +1917,17 @@ const POSPage = () => {
     if (!userId || !session || cart.length === 0 || !company) return;
     setSavingToTable(true);
     try {
-      // Check if there's already an open order for this table
-      const { data: existingOrder } = await supabase
-        .from("pos_orders")
-        .select("id")
-        .eq("table_id", activeOrder.tableId)
-        .in("state", ["draft", "open"] as any)
-        .maybeSingle();
+      // Check if there's already an open order for this table/session
+      let existingOrder = null;
+      if (activeOrder.tableId) {
+        const { data } = await supabase
+          .from("pos_orders")
+          .select("id")
+          .eq("table_id", activeOrder.tableId)
+          .in("state", ["draft", "open"] as any)
+          .maybeSingle();
+        existingOrder = data;
+      }
 
       if (existingOrder) {
         // Replace all items in existing order with current cart
@@ -2015,7 +2019,7 @@ const POSPage = () => {
         }
       }
 
-      toast.success(`💾 تم حفظ الطلب على ${activeOrder.tableName}`);
+      toast.success(activeOrder.tableName ? `💾 تم حفظ الطلب على ${activeOrder.tableName}` : "💾 تم حفظ الطلب كمسودة");
 
       // Clear this order tab or remove it
       if (orders.length > 1) {
