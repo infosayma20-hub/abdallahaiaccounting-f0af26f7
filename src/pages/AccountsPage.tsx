@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info, ArrowUpDown, Upload } from "lucide-react";
+import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
+import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
+import { exportAccountsToExcel } from "@/lib/accountsExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +41,6 @@ const EditAccountForm = ({ account, onSave, onCancel }: { account: { account_nam
   );
 };
 import { cn, multiWordMatchAny } from "@/lib/utils";
-import AddAccountDialog from "@/components/AddAccountDialog";
 
 interface Account {
   id: string;
@@ -200,8 +201,9 @@ const AccountsPage = () => {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
   const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [addSubParentCode, setAddSubParentCode] = useState<string | null>(null);
+  const [moveModalAccount, setMoveModalAccount] = useState<Account | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -427,15 +429,18 @@ const AccountsPage = () => {
 
         {/* Action buttons toolbar */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold">
+          <Button onClick={() => navigate("/accounts/new")} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold">
             <Plus className="h-3.5 w-3.5" />
             إضافة حساب
           </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5">
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5"
+            onClick={() => exportAccountsToExcel(accounts)}>
             <FileSpreadsheet className="h-3.5 w-3.5" />
             تصدير الحسابات
           </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5">
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5"
+            onClick={() => setShowImportModal(true)}>
+            <Upload className="h-3.5 w-3.5" />
             استيراد الحسابات
           </Button>
           <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
@@ -668,38 +673,33 @@ const AccountsPage = () => {
                     {/* Row Actions (hover) */}
                     {!isVirtualTypeHeader && (
                       <div className="hidden sm:flex items-center justify-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
-                          title="تعديل"
-                          onClick={() => setEditingAccount(acc)}
-                        >
+                        {!isProtected && (
+                          <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="نقل الحساب"
+                            onClick={() => setMoveModalAccount(acc)}>
+                            <ArrowUpDown className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                          </button>
+                        )}
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="تعديل"
+                          onClick={() => navigate(`/accounts/${acc.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
                         <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="عرض الحركات"
                           onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}>
                           <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
-                        <button 
-                          className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
-                          title="إضافة فرعي"
-                          onClick={() => { setAddSubParentCode(acc.account_code); setShowAddDialog(true); }}
-                        >
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="إضافة فرعي"
+                          onClick={() => navigate(`/accounts/new?parent=${acc.account_code}`)}>
                           <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
                         {!acc.is_system && !isProtected ? (
-                          <button 
-                            className="p-1 rounded hover:bg-destructive/10 transition-colors" 
-                            title="حذف الحساب"
-                            onClick={() => handleDeleteAccount(acc)}
-                          >
+                          <button className="p-1 rounded hover:bg-destructive/10 transition-colors" title="حذف الحساب"
+                            onClick={() => handleDeleteAccount(acc)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive/60 hover:text-destructive" />
                           </button>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="p-1 opacity-30 cursor-not-allowed">
-                                <Lock className="h-3.5 w-3.5 text-amber-500" />
-                              </span>
+                              <span className="p-1 opacity-30 cursor-not-allowed"><Lock className="h-3.5 w-3.5 text-amber-500" /></span>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs">محمي</TooltipContent>
                           </Tooltip>
@@ -723,61 +723,28 @@ const AccountsPage = () => {
         )}
       </div>
 
-      {/* Add Account Dialog */}
-      <AddAccountDialog
-        open={showAddDialog}
-        onOpenChange={(open) => { setShowAddDialog(open); if (!open) setAddSubParentCode(null); }}
-        accounts={accounts}
-        
-        onAdd={async (data) => {
-          if (!user) return false;
-          try {
-            const { error } = await supabase.from('accounts').insert({
-              user_id: user.id,
-              account_code: data.account_code,
-              account_name: data.account_name,
-              account_type: data.account_type,
-              parent_code: data.parent_code,
-              notes: data.notes,
-            });
-            if (error) throw error;
-            toast({ title: "تم إضافة الحساب بنجاح ✅" });
-            setAddSubParentCode(null);
-            fetchAccounts();
-            return true;
-          } catch (err: any) {
-            toast({ title: "خطأ", description: err.message, variant: "destructive" });
-            return false;
-          }
-        }}
-      />
+      {/* Move Account Modal */}
+      {user && (
+        <MoveAccountModal
+          account={moveModalAccount}
+          allAccounts={accounts}
+          isOpen={!!moveModalAccount}
+          onClose={() => setMoveModalAccount(null)}
+          onSuccess={fetchAccounts}
+          userId={user.id}
+        />
+      )}
 
-      {/* Edit Account Dialog */}
-      <Dialog open={!!editingAccount} onOpenChange={(o) => !o && setEditingAccount(null)}>
-        <DialogContent className="max-w-sm" dir="rtl">
-          <DialogHeader><DialogTitle>تعديل الحساب</DialogTitle></DialogHeader>
-          {editingAccount && (
-            <EditAccountForm
-              account={editingAccount}
-              onSave={async (name, notes) => {
-                if (!user || !editingAccount) return;
-                const { error } = await supabase.from('accounts').update({
-                  account_name: name,
-                  notes: notes || null,
-                }).eq('id', editingAccount.id);
-                if (error) {
-                  toast({ title: "خطأ", description: error.message, variant: "destructive" });
-                } else {
-                  toast({ title: "تم تعديل الحساب بنجاح ✅" });
-                  setEditingAccount(null);
-                  fetchAccounts();
-                }
-              }}
-              onCancel={() => setEditingAccount(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Import Accounts Modal */}
+      {user && (
+        <ImportAccountsModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onSuccess={fetchAccounts}
+          existingAccounts={accounts}
+          userId={user.id}
+        />
+      )}
     </div>
     </TooltipProvider>
   );

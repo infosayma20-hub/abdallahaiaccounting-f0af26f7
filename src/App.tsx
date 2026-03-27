@@ -21,6 +21,7 @@ const VoiceInput = lazy(() => import("./pages/VoiceInput"));
 const ProfitLoss = lazy(() => import("./pages/ProfitLoss"));
 const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const AccountsPage = lazy(() => import("./pages/AccountsPage"));
+const AccountFormPage = lazy(() => import("./pages/AccountFormPage"));
 const ContactsPage = lazy(() => import("./pages/ContactsPage"));
 const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
 const ContactPoliciesPage = lazy(() => import("./pages/ContactPoliciesPage"));
@@ -229,6 +230,8 @@ const App = () => (
                       <Route path="/profit-loss" element={<ProfitLoss />} />
                       <Route path="/transactions" element={<TransactionsPage />} />
                       <Route path="/accounts" element={<AccountsPage />} />
+                      <Route path="/accounts/new" element={<AccountFormPage mode="create" />} />
+                      <Route path="/accounts/:accountId/edit" element={<AccountFormPage mode="edit" />} />
                       <Route path="/contacts" element={<ContactsPage />} />
                       <Route path="/contacts/policies" element={<ContactPoliciesPage />} />
                       <Route path="/contacts/:id" element={<ContactDetailPage />} />
