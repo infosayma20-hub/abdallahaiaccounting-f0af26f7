@@ -719,12 +719,16 @@ const ChequesPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-1.5 rounded-xl text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => openAddDialog('وارد')}>
-            <ArrowDownCircle className="h-4 w-4" /> تسجيل شيك وارد
-          </Button>
-          <Button variant="outline" className="gap-1.5 rounded-xl text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => openAddDialog('صادر')}>
-            <ArrowUpCircle className="h-4 w-4" /> تسجيل شيك صادر
-          </Button>
+          {cheques.length > 0 && (
+            <>
+              <Button variant="outline" className="gap-1.5 rounded-xl text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => openAddDialog('وارد')}>
+                <ArrowDownCircle className="h-4 w-4" /> تسجيل شيك وارد
+              </Button>
+              <Button variant="outline" className="gap-1.5 rounded-xl text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => openAddDialog('صادر')}>
+                <ArrowUpCircle className="h-4 w-4" /> تسجيل شيك صادر
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
