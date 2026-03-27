@@ -3898,14 +3898,14 @@ const POSPage = () => {
 
           {/* Cart Items */}
           <ScrollArea className="flex-1">
-            <div className="p-2">
+            <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
-                  <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground/15" />
-                  <p className="text-sm font-medium text-muted-foreground/60">ابدأ بإضافة المنتجات</p>
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>ابدأ بإضافة المنتجات</p>
                 </div>
               ) : (
-                <div className="space-y-0.5">
+                <div>
                   {cart.map((item, index) => {
                     const product = products.find(p => p.id === item.product_id);
                     const catConfig = product ? getCatConfig(product.category) : DEFAULT_CAT_CONFIG;
@@ -3917,29 +3917,23 @@ const POSPage = () => {
                         initial={{ opacity: 0, x: -16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2 }}
-                        className={`p-2.5 rounded-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-primary/5 ring-1 ring-primary/20"
-                            : "hover:bg-muted/40"
-                        }`}
+                        className="py-3 cursor-pointer transition-all"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
                         onClick={() => setSelectedCartIndex(isSelected ? null : index)}
                       >
-                        <div className="flex items-start gap-2.5">
-                          {/* Thumbnail */}
-                          <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: catConfig.color + "12" }}>
-                            {product?.image_url ? (
-                              <img src={product.image_url} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <CatIcon className="h-4 w-4" style={{ color: catConfig.color + "80" }} />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-1">
-                              <p className="text-[13px] font-semibold text-foreground truncate leading-tight">{item.name}</p>
+                        {/* Item name + remove */}
+                        <div className="flex items-start justify-between gap-1 mb-1.5">
+                          <p className="text-[14px] font-medium truncate leading-tight" style={{ color: 'white' }}>{item.name}</p>
+                          {(isAdmin || posPerms.can_remove_cart_items) && (
+                            <button
+                              className="p-0.5 transition-colors shrink-0"
+                              style={{ color: 'rgba(255,255,255,0.3)' }}
+                              onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                               {(isAdmin || posPerms.can_remove_cart_items) && (
                               <button
                                 className="p-0.5 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
