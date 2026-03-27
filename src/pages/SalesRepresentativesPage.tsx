@@ -80,10 +80,18 @@ const SalesRepresentativesPage = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 text-center"><UserCheck className="h-5 w-5 mx-auto text-primary mb-1" /><p className="text-2xl font-bold text-foreground">{reps.filter(r => r.is_active).length}</p><p className="text-xs text-muted-foreground">مندوب نشط</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><TrendingUp className="h-5 w-5 mx-auto text-accent mb-1" /><p className="text-2xl font-bold text-foreground">{commissions.length}</p><p className="text-xs text-muted-foreground">عمولات</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><Percent className="h-5 w-5 mx-auto text-warning mb-1" /><p className="text-2xl font-bold text-foreground">{totalCommPending.toLocaleString()}</p><p className="text-xs text-muted-foreground">عمولات معلقة</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><Percent className="h-5 w-5 mx-auto text-primary mb-1" /><p className="text-2xl font-bold text-foreground">{totalCommPaid.toLocaleString()}</p><p className="text-xs text-muted-foreground">عمولات مدفوعة</p></CardContent></Card>
+        {[
+          { icon: <UserCheck className="h-5 w-5" />, value: reps.filter(r => r.is_active).length, label: "مندوب نشط" },
+          { icon: <TrendingUp className="h-5 w-5" />, value: commissions.length, label: "عمولات" },
+          { icon: <Percent className="h-5 w-5" />, value: totalCommPending.toLocaleString(), label: "عمولات معلقة" },
+          { icon: <Percent className="h-5 w-5" />, value: totalCommPaid.toLocaleString(), label: "عمولات مدفوعة" },
+        ].map((kpi, i) => (
+          <Card key={i}><CardContent className="p-4 text-center">
+            <div className="w-9 h-9 rounded-lg mx-auto mb-2 flex items-center justify-center" style={{ background: "#F0F4F8", color: "#1B3A5C" }}>{kpi.icon}</div>
+            <p className="text-2xl font-semibold" style={{ color: "#1B3A5C" }}>{kpi.value}</p>
+            <p className="text-xs" style={{ color: "#6B7280" }}>{kpi.label}</p>
+          </CardContent></Card>
+        ))}
       </div>
 
       <div className="relative max-w-md">

@@ -205,7 +205,7 @@ const BankAccountsPage = () => {
         <div className="text-center py-20">
           <Landmark className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground mb-4">لم تُعرَّف حسابات بنكية بعد</p>
-          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
+          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2">
             <Plus className="h-4 w-4" />إضافة حساب بنكي
           </Button>
         </div>
@@ -213,7 +213,7 @@ const BankAccountsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {banks.map(bank => (
             <Card key={bank.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-4 text-white rounded-t-xl" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
+              <div className="p-4 text-white rounded-t-xl" style={{ background: "#1B3A5C" }}>
                 <div className="flex items-center gap-2">
                   <Landmark className="h-5 w-5" />
                   <span className="text-sm font-bold">{bank.bank_name}</span>
