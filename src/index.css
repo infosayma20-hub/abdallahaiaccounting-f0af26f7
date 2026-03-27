@@ -322,6 +322,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* POS page — lighter font weights to match app style */
+.pos-page-root .font-bold {
+  font-weight: 500 !important;
+}
+.pos-page-root .font-semibold {
+  font-weight: 500 !important;
+}
+
   .font-en {
     font-family: 'Montserrat', sans-serif;
   }
