@@ -2645,6 +2645,7 @@ const POSPage = () => {
         setOrderDiscount(0);
         setOrderNote("");
         setSelectedCartIndex(null);
+        setRecallBanner(null);
         updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, guestCount: 1, guestName: "" }));
       }
       setSelectedEmployee(null);
