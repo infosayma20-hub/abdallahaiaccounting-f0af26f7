@@ -135,9 +135,9 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           background: disabled
             ? "transparent"
             : isHighlighted
-              ? `rgba(201,168,76,0.15)`
+              ? "rgba(255,255,255,0.08)"
               : "transparent",
-          borderRight: isHighlighted && !disabled ? `3px solid ${GOLD}` : "3px solid transparent",
+          borderRight: isHighlighted && !disabled ? "3px solid #FFFFFF" : "3px solid transparent",
         }}
         onMouseEnter={(e) => {
           if (disabled || isHighlighted) return;

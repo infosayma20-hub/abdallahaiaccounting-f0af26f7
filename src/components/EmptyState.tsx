@@ -31,20 +31,36 @@ const EmptyState = ({ icon, title, description, primaryAction, secondaryAction }
         initial={{ scale: 0.8 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.15, duration: 0.4, type: "spring" }}
-        className="w-28 h-28 mb-8 rounded-3xl bg-muted/40 border border-border/30 flex items-center justify-center"
+        className="flex items-center justify-center mb-6"
+        style={{ width: 120, height: 120 }}
       >
-        <div className="text-muted-foreground/40">
+        <div style={{ color: "#1B3A5C" }}>
           {icon}
         </div>
       </motion.div>
 
       {/* Title */}
-      <h2 className="text-xl font-medium text-foreground mb-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      <h2
+        className="mb-2"
+        style={{
+          fontFamily: "Tajawal, sans-serif",
+          fontSize: 22,
+          fontWeight: 500,
+          color: "#1B3A5C",
+        }}
+      >
         {title}
       </h2>
 
       {/* Description */}
-      <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-8">
+      <p
+        className="leading-relaxed mb-8 text-center"
+        style={{
+          fontSize: 14,
+          color: "#6B7280",
+          maxWidth: 400,
+        }}
+      >
         {description}
       </p>
 
