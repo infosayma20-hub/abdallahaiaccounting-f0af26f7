@@ -69,7 +69,7 @@ const BillingPage = () => {
       {/* Page Header */}
       <div
         className="w-full flex items-center"
-        style={{ backgroundColor: "#1B3A5C", borderRadius: 12, padding: "10px 20px", height: 44 }}
+        style={{ backgroundColor: "#1B3A5C", borderRadius: 12, borderTop: "3px solid #5B9BD5", padding: "10px 20px", height: 44 }}
       >
         <h1 className="text-right text-white" style={{ fontFamily: "Tajawal, sans-serif", fontSize: 18, fontWeight: 500 }}>
           إعدادات الاشتراكات
