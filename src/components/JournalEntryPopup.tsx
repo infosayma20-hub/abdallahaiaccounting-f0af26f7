@@ -67,7 +67,7 @@ const TEMPLATES: JournalTemplate[] = [
     name: "دفع مورد",
     icon: "💳",
     lines: [
-      { account_code: "2100", account_name: "ذمم موردين", debit: 0, credit: 0, memo: "" },
+      { account_code: "2110", account_name: "ذمم موردين", debit: 0, credit: 0, memo: "" },
       { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
     ],
   },
@@ -313,7 +313,7 @@ const QuickAddContactDialog = ({
   const [saving, setSaving] = useState(false);
 
   const isCustomer = contactType === "customer";
-  const accountPrefix = isCustomer ? "1130" : "2100";
+  const accountPrefix = isCustomer ? "1130" : "2110";
 
   const handleSave = async () => {
     if (!name) return;

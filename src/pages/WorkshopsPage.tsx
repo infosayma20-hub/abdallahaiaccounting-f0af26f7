@@ -643,7 +643,7 @@ export default function WorkshopsPage() {
         .select("debit_account_code, credit_account_code, amount")
         .eq("contact_id", selectedWorkshop.contact_id!)
         .is("is_deleted" as any, null)
-        .in("debit_account_code", ["1130", "2100"])
+        .in("debit_account_code", ["1130", "2110"])
         .or("credit_account_code.in.(1130,2100)");
       
       if (!data) { setCustomerBalance(0); return; }
@@ -651,8 +651,8 @@ export default function WorkshopsPage() {
       data.forEach((tx: any) => {
         if (tx.debit_account_code === "1130") balance += tx.amount;
         if (tx.credit_account_code === "1130") balance -= tx.amount;
-        if (tx.debit_account_code === "2100") balance -= tx.amount;
-        if (tx.credit_account_code === "2100") balance += tx.amount;
+        if (tx.debit_account_code === "2110") balance -= tx.amount;
+        if (tx.credit_account_code === "2110") balance += tx.amount;
       });
       setCustomerBalance(balance);
     };

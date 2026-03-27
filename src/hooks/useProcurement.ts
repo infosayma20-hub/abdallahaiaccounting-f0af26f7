@@ -253,7 +253,7 @@ export function usePurchaseInvoices() {
     const total = subtotal - (invoice.discount || 0) + (invoice.tax || 0);
 
     const isPaid = invoice.payment_status === "paid";
-    const creditAccount = isPaid ? "1110" : "2100";
+    const creditAccount = isPaid ? "1110" : "2110";
     const dbPaymentMethod = isPaid ? "cash" : "credit";
     const displayPaymentMethod = isPaid ? "نقدي" : "آجل";
 
@@ -340,7 +340,7 @@ export function usePurchaseInvoices() {
         contact_type: "مورد",
         phone: invoice.supplier_phone || null,
         is_active: true,
-        linked_account_code: "2100",
+        linked_account_code: "2110",
       } as any).select("id").single();
       if (newContact) contactId = (newContact as any).id;
     }

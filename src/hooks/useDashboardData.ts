@@ -371,7 +371,7 @@ export function useDashboardData() {
 
     return {
       receivables: buildAging("عميل", "1130", false),
-      payables: buildAging("مورد", "2100", true),
+      payables: buildAging("مورد", "2110", true),
     };
   }, [contacts, transactions]);
 

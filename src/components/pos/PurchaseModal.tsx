@@ -102,7 +102,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
       }
 
       // 3. Journal entry
-      const creditCode = paymentType === "cash" ? "1110" : "2100"; // صندوق أو ذمم موردين
+      const creditCode = paymentType === "cash" ? "1110" : "2110"; // صندوق أو ذمم موردين
       await supabase.from("transactions").insert({
         user_id: dataOwnerId,
         transaction_date: new Date().toISOString().split("T")[0],

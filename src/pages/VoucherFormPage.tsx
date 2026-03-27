@@ -348,8 +348,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         for (const t of data) {
           if (t.debit_account_code === "1130") bal1130 += t.amount;
           if (t.credit_account_code === "1130") bal1130 -= t.amount;
-          if (t.debit_account_code === "2100") bal2100 += t.amount;
-          if (t.credit_account_code === "2100") bal2100 -= t.amount;
+          if (t.debit_account_code === "2110") bal2100 += t.amount;
+          if (t.credit_account_code === "2110") bal2100 -= t.amount;
         }
         if (bal1130 !== 0 && bal2100 === 0) setComputedBalance(bal1130);
         else if (bal2100 !== 0 && bal1130 === 0) setComputedBalance(-bal2100);
@@ -606,7 +606,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
 
       // Determine the counterpart account code
-      let counterAccountCode = isReceipt ? "1130" : "2100"; // default: receivables / payables
+      let counterAccountCode = isReceipt ? "1130" : "2110"; // default: receivables / payables
       if (isAccountPayment && selectedGlAccount) {
         counterAccountCode = selectedGlAccount.account_code;
       }

@@ -731,7 +731,7 @@ const InvoiceCreatePage = () => {
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
           debit_account_code: form.type === "sales" ? debitCode : "5110",
-          credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2100" : debitCode,
+          credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2110" : debitCode,
           amount: summary.total,
           currency: form.currency,
           transaction_type: form.type === "sales" ? "sale" : "purchase",
