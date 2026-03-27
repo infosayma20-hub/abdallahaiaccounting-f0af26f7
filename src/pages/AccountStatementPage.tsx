@@ -365,7 +365,13 @@ const EntitySearchCombobox = ({ entities, selectedId, onSelect, placeholder }: E
                   {e.subtitle && <span className="text-[10px] text-muted-foreground">{e.subtitle}</span>}
                 </div>
                 <span className={cn("text-xs font-bold tabular-nums shrink-0 mr-2",
-                  e.balance > 0 ? "text-red-600" : e.balance < 0 ? "text-emerald-600" : "text-muted-foreground"
+                  (() => {
+                    const code = (e as any).accountCode || "";
+                    const isAssetOrExpense = code.startsWith("1") || code.startsWith("5");
+                    if (e.balance === 0) return "text-muted-foreground";
+                    if (isAssetOrExpense) return e.balance > 0 ? "text-foreground" : "text-red-600";
+                    return e.balance > 0 ? "text-red-600" : "text-emerald-600";
+                  })()
                 )}>
                   {e.balance === 0 ? "✓" : fmtAmount(e.balance)}
                 </span>
@@ -1545,7 +1551,13 @@ const AccountStatementPage = () => {
                     {entity.name}
                   </span>
                   <span className={cn("text-xs font-bold tabular-nums shrink-0 mr-2",
-                    entity.balance > 0 ? "text-red-600" : entity.balance < 0 ? "text-emerald-600" : "text-muted-foreground"
+                    (() => {
+                      const code = entity.accountCode || "";
+                      const isAssetOrExpense = code.startsWith("1") || code.startsWith("5");
+                      if (entity.balance === 0) return "text-muted-foreground";
+                      if (isAssetOrExpense) return entity.balance > 0 ? "text-foreground" : "text-red-600";
+                      return entity.balance > 0 ? "text-red-600" : "text-emerald-600";
+                    })()
                   )}>
                     {entity.balance === 0 ? "✓ مسدَّد" : fmtAmount(entity.balance)}
                   </span>
@@ -1553,7 +1565,12 @@ const AccountStatementPage = () => {
                 {entity.balance !== 0 && (
                   <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
                     <div
-                      className={cn("h-full rounded-full transition-all", entity.balance > 0 ? "bg-red-500" : "bg-emerald-500")}
+                      className={cn("h-full rounded-full transition-all", (() => {
+                        const code = entity.accountCode || "";
+                        const isAssetOrExpense = code.startsWith("1") || code.startsWith("5");
+                        if (isAssetOrExpense) return entity.balance > 0 ? "bg-primary" : "bg-red-500";
+                        return entity.balance > 0 ? "bg-red-500" : "bg-emerald-500";
+                      })())}
                       style={{ width: `${balPct}%` }}
                     />
                   </div>
