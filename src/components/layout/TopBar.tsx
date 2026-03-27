@@ -38,14 +38,20 @@ const IconButton = ({
       <button
         onClick={onClick}
         className={cn(
-          "relative w-9 h-9 rounded-lg flex items-center justify-center",
-          "text-muted-foreground hover:text-foreground hover:bg-secondary",
+          "relative flex items-center justify-center",
           "transition-all duration-150 cursor-pointer",
           className
         )}
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
       >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2 ring-background" />}
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
+        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2" style={{ ringColor: "#0D1B2E" }} />}
       </button>
     </TooltipTrigger>
     {title && <TooltipContent side="bottom"><p>{title}</p></TooltipContent>}
@@ -171,13 +177,16 @@ const ProfileDropdown = ({
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <button className={cn("flex items-center gap-2 h-9 px-2.5 rounded-lg", "bg-secondary hover:bg-secondary/80", "transition-all duration-150 cursor-pointer", "border border-transparent hover:border-border")}>
-        <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
+      <button className="flex items-center gap-2 h-9 px-2.5 rounded-lg transition-all duration-150 cursor-pointer" style={{ background: "rgba(255,255,255,0.08)" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+      >
+        <span className="text-[13px] font-medium hidden md:block max-w-[140px] truncate" style={{ color: "rgba(255,255,255,0.9)" }}>{displayName}</span>
         {avatarUrl ? (
-          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-accent/30" />
+          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-white/20" />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+            <span className="text-[11px] font-bold text-white leading-none">{initials}</span>
           </div>
         )}
       </button>
