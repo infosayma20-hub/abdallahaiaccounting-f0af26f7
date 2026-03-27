@@ -4401,41 +4401,41 @@ const POSPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Modal — Dark Navy Theme */}
+      {/* Payment Modal — Light Theme */}
       {showPayment && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.75)' }}
+          style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowPayment(false); }}
         >
           <div
-            className="w-full max-h-[95vh] overflow-hidden flex flex-col"
-            style={{ background: '#0D1B2E', borderRadius: 14, border: '1px solid rgba(255,255,255,0.12)', maxWidth: 520 }}
+            className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
+            style={{ background: '#ffffff', borderRadius: 14, border: '1px solid #e5e7eb', maxWidth: 520 }}
             dir="rtl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0" style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <span className="text-[16px] font-semibold" style={{ color: 'white' }}>طريقة الدفع</span>
+            <div className="flex items-center justify-between shrink-0" style={{ padding: '14px 18px', borderBottom: '1px solid #e5e7eb' }}>
+              <span className="text-[16px] font-semibold" style={{ color: '#111827' }}>طريقة الدفع</span>
               <button
                 onClick={() => setShowPayment(false)}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                style={{ background: '#f3f4f6', color: '#6b7280' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#e5e7eb'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#f3f4f6'; }}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto" style={{ background: '#112240' }}>
+            <div className="flex-1 overflow-y-auto" style={{ background: '#f9fafb' }}>
               {/* Amount display */}
-              <div className="text-center mx-4 mt-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 14 }}>
-                <p className="text-[13px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>المبلغ المطلوب</p>
+              <div className="text-center mx-4 mt-4" style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
+                <p className="text-[13px] mb-1" style={{ color: '#6b7280' }}>المبلغ المطلوب</p>
                 {customerDataDiscount && (
-                  <p className="text-xs mb-1" style={{ color: '#4ade80' }}>🎁 خصم {customerDataDiscount.discountPct}% = -₪{customerDataDiscount.discountAmount.toFixed(2)}</p>
+                  <p className="text-xs mb-1" style={{ color: '#16a34a' }}>🎁 خصم {customerDataDiscount.discountPct}% = -₪{customerDataDiscount.discountAmount.toFixed(2)}</p>
                 )}
-                <motion.p key={cartTotals.total} initial={{ scale: 1.05 }} animate={{ scale: 1 }} className="text-[32px] font-bold tabular-nums" style={{ color: 'white' }}>
+                <motion.p key={cartTotals.total} initial={{ scale: 1.05 }} animate={{ scale: 1 }} className="text-[32px] font-bold tabular-nums" style={{ color: '#111827' }}>
                   ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                 </motion.p>
               </div>
@@ -4443,10 +4443,10 @@ const POSPage = () => {
               {/* Payment methods */}
               <div className="grid grid-cols-4 gap-2 mx-4 mt-3">
                 {[
-                  { key: "cash", label: "نقد", icon: Banknote, selColor: "#16a34a" },
-                  { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#3b82f6" },
-                  { key: "credit", label: "آجل", icon: Receipt, selColor: "#f59e0b", requiresPerm: true },
-                  { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#8b5cf6" },
+                  { key: "cash", label: "نقد", icon: Banknote, selColor: "#16a34a", selBg: "#f0fdf4" },
+                  { key: "card", label: "بطاقة", icon: CreditCard, selColor: "#3b82f6", selBg: "#eff6ff" },
+                  { key: "credit", label: "آجل", icon: Receipt, selColor: "#f59e0b", selBg: "#fffbeb", requiresPerm: true },
+                  { key: "employee_account", label: "حساب موظف", icon: UserCheck, selColor: "#8b5cf6", selBg: "#f5f3ff" },
                 ].filter(m => {
                   if (m.requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
                   return true;
@@ -4470,12 +4470,12 @@ const POSPage = () => {
                       className="flex flex-col items-center gap-2 rounded-[10px] transition-all"
                       style={{
                         padding: '12px 8px',
-                        background: isActive ? `${m.selColor}33` : 'rgba(255,255,255,0.06)',
-                        border: isActive ? `1.5px solid ${m.selColor}` : '1.5px solid rgba(255,255,255,0.1)',
+                        background: isActive ? m.selBg : '#ffffff',
+                        border: isActive ? `1.5px solid ${m.selColor}` : '1.5px solid #e5e7eb',
                       }}
                     >
-                      <m.icon className="h-6 w-6" style={{ color: isActive ? (m.key === 'cash' ? '#4ade80' : m.selColor) : 'rgba(255,255,255,0.6)' }} />
-                      <span className="text-[12px] font-medium text-center" style={{ color: isActive ? (m.key === 'cash' ? '#4ade80' : m.selColor) : 'rgba(255,255,255,0.7)' }}>{m.label}</span>
+                      <m.icon className="h-6 w-6" style={{ color: isActive ? m.selColor : '#9ca3af' }} />
+                      <span className="text-[12px] font-medium text-center" style={{ color: isActive ? m.selColor : '#6b7280' }}>{m.label}</span>
                     </motion.button>
                   );
                 })}
@@ -4486,7 +4486,7 @@ const POSPage = () => {
                 <div className="mx-4 mt-3 space-y-3">
                   {/* Currency selector */}
                   <div>
-                    <p className="text-[12px] mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>العملة</p>
+                    <p className="text-[12px] mb-2" style={{ color: '#6b7280' }}>العملة</p>
                     <div className="grid grid-cols-5 gap-1.5">
                       {currencies.map((cur) => {
                         const isActive = paymentCurrency === cur.code;
@@ -4497,12 +4497,12 @@ const POSPage = () => {
                             className="flex flex-col items-center gap-0.5 rounded-lg transition-all"
                             style={{
                               padding: '8px 12px',
-                              background: isActive ? 'rgba(22,163,74,0.2)' : 'rgba(255,255,255,0.06)',
-                              border: isActive ? '1px solid #16a34a' : '1px solid rgba(255,255,255,0.1)',
+                              background: isActive ? '#f0fdf4' : '#ffffff',
+                              border: isActive ? '1.5px solid #16a34a' : '1.5px solid #e5e7eb',
                             }}
                           >
-                            <span className="text-[13px] font-medium" style={{ color: isActive ? '#4ade80' : 'white' }}>{cur.flag}</span>
-                            <span className="text-[11px]" style={{ color: isActive ? '#4ade80' : 'rgba(255,255,255,0.45)' }}>{cur.name}</span>
+                            <span className="text-[13px] font-medium" style={{ color: isActive ? '#16a34a' : '#374151' }}>{cur.flag}</span>
+                            <span className="text-[11px]" style={{ color: isActive ? '#16a34a' : '#9ca3af' }}>{cur.name}</span>
                           </button>
                         );
                       })}
@@ -4511,7 +4511,7 @@ const POSPage = () => {
 
                   {/* Amount received */}
                   <div>
-                    <p className="text-[12px] mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <p className="text-[12px] mb-1.5" style={{ color: '#6b7280' }}>
                       المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})
                     </p>
                     <input
@@ -4523,27 +4523,27 @@ const POSPage = () => {
                       className="w-full text-center text-[18px] font-semibold tabular-nums focus:outline-none transition-colors"
                       style={{
                         height: 48, borderRadius: 8,
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1.5px solid #f59e0b',
-                        color: 'white',
+                        background: '#ffffff',
+                        border: '2px solid #f59e0b',
+                        color: '#111827',
                       }}
                     />
                   </div>
 
                   {/* Exchange rate info */}
                   {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
-                    <div className="space-y-2 p-3 rounded-[10px]" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="space-y-2 p-3 rounded-[10px]" style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'white' }}>
+                        <span className="text-xs font-semibold flex items-center gap-1" style={{ color: '#111827' }}>
                           💱 سعر الصرف — {currencies.find(c => c.code === paymentCurrency)?.name}
                         </span>
                         {exchangeRateDetails[paymentCurrency] && (() => {
                           const rateDate = exchangeRateDetails[paymentCurrency].date;
                           const isStale = rateDate && new Date(rateDate).toDateString() !== new Date().toDateString();
-                          return isStale ? <span className="text-[10px]" style={{ color: '#fbbf24' }}>⚠️ لم يُحدَّث اليوم</span> : null;
+                          return isStale ? <span className="text-[10px]" style={{ color: '#d97706' }}>⚠️ لم يُحدَّث اليوم</span> : null;
                         })()}
                       </div>
-                      <div className="flex items-center justify-between text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      <div className="flex items-center justify-between text-[11px]" style={{ color: '#6b7280' }}>
                         <span>السعر في النظام: {exchangeRateDetails[paymentCurrency]?.rate?.toFixed(4) || '—'} ₪/{paymentCurrency}</span>
                         <span>{exchangeRateDetails[paymentCurrency]?.date ? `آخر تحديث: ${new Date(exchangeRateDetails[paymentCurrency].date).toLocaleDateString("ar-PS")}` : ''}</span>
                       </div>
@@ -4558,12 +4558,12 @@ const POSPage = () => {
                           step="0.0001"
                           className="flex-1 text-sm font-mono h-9 text-center focus:outline-none"
                           style={{
-                            background: rateEdited ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
-                            border: rateEdited ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 6, color: 'white',
+                            background: rateEdited ? '#fffbeb' : '#f9fafb',
+                            border: rateEdited ? '1px solid #f59e0b' : '1px solid #e5e7eb',
+                            borderRadius: 6, color: '#111827',
                           }}
                         />
-                        <span className="text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.5)' }}>₪/{paymentCurrency}</span>
+                        <span className="text-xs whitespace-nowrap" style={{ color: '#6b7280' }}>₪/{paymentCurrency}</span>
                         {rateEdited && (
                           <button
                             onClick={() => {
@@ -4571,20 +4571,20 @@ const POSPage = () => {
                               setEditedRate(null); setRateEdited(false);
                               setExchangeRates(prev => ({ ...prev, [paymentCurrency]: exchangeRateDetails[paymentCurrency]?.posOverride || original }));
                             }}
-                            className="text-[10px] whitespace-nowrap" style={{ color: '#60a5fa' }}
+                            className="text-[10px] whitespace-nowrap" style={{ color: '#3b82f6' }}
                           >← الرسمي</button>
                         )}
                       </div>
-                      {rateEdited && <p className="text-[10px]" style={{ color: '#fbbf24' }}>⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات</p>}
-                      <div className="flex justify-between items-center pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                        <span className="font-mono font-bold text-sm tabular-nums" style={{ color: 'white' }}>
+                      {rateEdited && <p className="text-[10px]" style={{ color: '#d97706' }}>⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات</p>}
+                      <div className="flex justify-between items-center pt-1" style={{ borderTop: '1px solid #f3f4f6' }}>
+                        <span className="text-xs" style={{ color: '#6b7280' }}>المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                        <span className="font-mono font-bold text-sm tabular-nums" style={{ color: '#111827' }}>
                           {currencies.find(c => c.code === paymentCurrency)?.symbol}{(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
                         </span>
                       </div>
-                      <div className="text-[10px] flex items-center gap-1 pt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <div className="text-[10px] flex items-center gap-1 pt-1" style={{ color: '#9ca3af' }}>
                         <span>📒 سيُسجَّل في:</span>
-                        <span className="font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                        <span className="font-medium" style={{ color: '#6b7280' }}>
                           {paymentCurrency === 'USD' ? 'صندوق الدولار (1111)' : paymentCurrency === 'JOD' ? 'صندوق الدينار (1112)' : paymentCurrency === 'EUR' ? 'صندوق اليورو (1113)' : paymentCurrency === 'EGP' ? 'صندوق الجنيه (1114)' : 'الصندوق (1110)'}
                         </span>
                       </div>
@@ -4605,11 +4605,11 @@ const POSPage = () => {
                     const displaySymbol = changeCurrency === "ILS" ? "₪" : changeCurrency === "USD" ? "$" : changeCurrency === "JOD" ? "د.أ " : "₪";
 
                     return (
-                      <div className="p-3 rounded-[10px] space-y-2" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
+                      <div className="p-3 rounded-[10px] space-y-2" style={{ border: '1px solid #e5e7eb', background: '#ffffff' }}>
                         {paymentCurrency !== "ILS" && (
                           <div className="flex justify-between text-xs">
-                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>ما يعادل بالشيكل</span>
-                            <span className="font-bold tabular-nums" style={{ color: 'white' }}>₪{tenderedInILS.toFixed(2)}</span>
+                            <span style={{ color: '#6b7280' }}>ما يعادل بالشيكل</span>
+                            <span className="font-bold tabular-nums" style={{ color: '#111827' }}>₪{tenderedInILS.toFixed(2)}</span>
                           </div>
                         )}
                         {changeILS >= 0 ? (
@@ -4623,29 +4623,29 @@ const POSPage = () => {
                                     <button key={cur} onClick={() => { setChangeCurrency(cur); setManualChangeAmount(null); }}
                                       className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                                       style={{
-                                        background: isActive ? '#16a34a' : 'rgba(255,255,255,0.08)',
-                                        color: isActive ? 'white' : 'rgba(255,255,255,0.6)',
+                                        background: isActive ? '#16a34a' : '#f3f4f6',
+                                        color: isActive ? 'white' : '#6b7280',
                                       }}
                                     >الباقي {label}</button>
                                   );
                                 })}
                               </div>
                             )}
-                            <div className="flex justify-between items-center p-3 rounded-[10px]" style={{ background: 'rgba(22,163,74,0.15)', border: '1.5px solid #16a34a' }}>
-                              <span className="text-sm font-bold" style={{ color: 'white' }}>الباقي للزبون</span>
+                            <div className="flex justify-between items-center p-3 rounded-[10px]" style={{ background: '#f0fdf4', border: '1.5px solid #16a34a' }}>
+                              <span className="text-sm font-bold" style={{ color: '#111827' }}>الباقي للزبون</span>
                               <div className="flex items-center gap-1">
-                                <span className="text-lg font-bold" style={{ color: '#4ade80' }}>{displaySymbol}</span>
+                                <span className="text-lg font-bold" style={{ color: '#16a34a' }}>{displaySymbol}</span>
                                 <input type="number" inputMode="decimal" step="0.01"
                                   value={manualChangeAmount !== null ? manualChangeAmount : displayChangeAmount.toFixed(2)}
                                   onChange={(e) => setManualChangeAmount(e.target.value)}
                                   onFocus={(e) => { if (manualChangeAmount === null) setManualChangeAmount(displayChangeAmount.toFixed(2)); e.target.select(); }}
                                   className="w-24 text-left text-2xl font-black tabular-nums bg-transparent border-none outline-none focus:ring-1 focus:ring-green-400 rounded px-1"
-                                  style={{ color: '#4ade80' }} dir="ltr"
+                                  style={{ color: '#16a34a' }} dir="ltr"
                                 />
                               </div>
                             </div>
                             {paymentCurrency !== "ILS" && changeILS > 0 && (
-                              <div className="flex justify-between text-[11px] pt-1.5" style={{ color: 'rgba(255,255,255,0.4)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                              <div className="flex justify-between text-[11px] pt-1.5" style={{ color: '#9ca3af', borderTop: '1px solid #f3f4f6' }}>
                                 {changeCurrency === "ILS" ? (
                                   <><span>أو بال{currencies.find(c => c.code === paymentCurrency)?.name}</span><span className="font-medium tabular-nums">{curSymbol}{changeInForeign.toFixed(2)}</span></>
                                 ) : (
@@ -4655,9 +4655,9 @@ const POSPage = () => {
                             )}
                           </>
                         ) : (
-                          <div className="flex justify-between items-center p-2.5 rounded-lg" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                            <span className="text-xs" style={{ color: '#fca5a5' }}>المبلغ غير كافٍ</span>
-                            <span className="text-lg font-bold tabular-nums" style={{ color: '#fca5a5' }}>-₪{Math.abs(changeILS).toFixed(2)}</span>
+                          <div className="flex justify-between items-center p-2.5 rounded-lg" style={{ background: '#fef2f2' }}>
+                            <span className="text-xs" style={{ color: '#dc2626' }}>المبلغ غير كافٍ</span>
+                            <span className="text-lg font-bold tabular-nums" style={{ color: '#dc2626' }}>-₪{Math.abs(changeILS).toFixed(2)}</span>
                           </div>
                         )}
                       </div>
@@ -4674,12 +4674,12 @@ const POSPage = () => {
                           className="flex-1 text-[13px] tabular-nums font-medium transition-all"
                           style={{
                             height: 38, borderRadius: 8,
-                            background: 'rgba(255,255,255,0.07)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            color: 'rgba(255,255,255,0.8)',
+                            background: '#ffffff',
+                            border: '1px solid #e5e7eb',
+                            color: '#374151',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f3f4f6'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}
                         >{cur?.symbol}{amt}</button>
                       );
                     })}
@@ -4690,9 +4690,9 @@ const POSPage = () => {
               {/* Credit customer selection */}
               {paymentMethod === "credit" && (
                 <div className="mx-4 mt-3 space-y-2">
-                  <label className="text-sm font-bold block" style={{ color: 'white' }}>اسم الزبون</label>
+                  <label className="text-sm font-bold block" style={{ color: '#111827' }}>اسم الزبون</label>
                   <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
                       value={customerSearch || customerName}
                       onChange={(e) => { setCustomerSearch(e.target.value); setCustomerName(e.target.value, null); setShowContactDropdown(true); }}
@@ -4700,10 +4700,10 @@ const POSPage = () => {
                       placeholder="ابحث عن زبون..."
                       autoFocus
                       className="w-full h-11 pr-10 text-sm focus:outline-none"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white' }}
+                      style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
                     />
                   </div>
-                  <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #e5e7eb' }}>
                     <ScrollArea className="max-h-[200px]">
                       {filteredContacts.length > 0 ? (
                         <div>
@@ -4712,27 +4712,27 @@ const POSPage = () => {
                               onClick={() => { setCustomerName(contact.contact_name, contact.id); setCustomerSearch(""); setShowContactDropdown(false); }}
                               className="w-full px-3 py-2.5 text-sm text-right transition flex items-center gap-2"
                               style={{
-                                color: customerName === contact.contact_name ? '#4ade80' : 'rgba(255,255,255,0.7)',
-                                background: customerName === contact.contact_name ? 'rgba(22,163,74,0.15)' : 'transparent',
-                                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                color: customerName === contact.contact_name ? '#16a34a' : '#374151',
+                                background: customerName === contact.contact_name ? '#f0fdf4' : 'transparent',
+                                borderBottom: '1px solid #f3f4f6',
                               }}
-                              onMouseEnter={e => { if (customerName !== contact.contact_name) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                              onMouseEnter={e => { if (customerName !== contact.contact_name) e.currentTarget.style.background = '#f9fafb'; }}
                               onMouseLeave={e => { if (customerName !== contact.contact_name) e.currentTarget.style.background = 'transparent'; }}
                             >
-                              <User className="h-4 w-4 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                              <User className="h-4 w-4 shrink-0" style={{ color: '#9ca3af' }} />
                               <span className="flex-1 truncate">{contact.contact_name}</span>
-                              {customerName === contact.contact_name && <CheckCircle className="h-4 w-4 shrink-0" style={{ color: '#4ade80' }} />}
+                              {customerName === contact.contact_name && <CheckCircle className="h-4 w-4 shrink-0" style={{ color: '#16a34a' }} />}
                             </button>
                           ))}
                         </div>
                       ) : (
-                        <div className="py-6 text-center text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>لا يوجد نتائج</div>
+                        <div className="py-6 text-center text-sm" style={{ color: '#9ca3af' }}>لا يوجد نتائج</div>
                       )}
                     </ScrollArea>
                     <button
                       onClick={() => { setNewCustomerName(customerSearch || ""); setShowQuickAddCustomer(true); setShowContactDropdown(false); }}
                       className="w-full px-3 py-2.5 text-sm text-right transition flex items-center gap-2 font-semibold"
-                      style={{ color: '#60a5fa', background: 'rgba(59,130,246,0.1)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                      style={{ color: '#3b82f6', background: '#eff6ff', borderTop: '1px solid #e5e7eb' }}
                     >
                       <PlusCircle className="h-4 w-4 shrink-0" />
                       <span>إضافة زبون جديد</span>
@@ -4744,42 +4744,42 @@ const POSPage = () => {
               {/* Employee account */}
               {paymentMethod === "employee_account" && (
                 <div className="mx-4 mt-3 space-y-2">
-                  <label className="text-sm font-medium mb-1.5 block" style={{ color: 'white' }}>اختر الموظف</label>
+                  <label className="text-sm font-medium mb-1.5 block" style={{ color: '#111827' }}>اختر الموظف</label>
                   <div className="relative">
-                    <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#9ca3af' }} />
                     <input
                       value={selectedEmployee ? selectedEmployee.full_name : employeeSearch}
                       onChange={(e) => { setEmployeeSearch(e.target.value); setSelectedEmployee(null); setShowEmployeeDropdown(true); }}
                       onFocus={() => setShowEmployeeDropdown(true)}
                       placeholder="ابحث عن موظف..."
                       className="w-full h-10 pr-10 text-sm focus:outline-none"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: 'white' }}
+                      style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }}
                     />
                   </div>
                   {showEmployeeDropdown && filteredEmployees.length > 0 && !selectedEmployee && (
-                    <div className="z-50 w-full rounded-lg shadow-lg max-h-40 overflow-y-auto" style={{ background: '#1a2d4a', border: '1px solid rgba(255,255,255,0.12)' }}>
+                    <div className="z-50 w-full rounded-lg shadow-lg max-h-40 overflow-y-auto" style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
                       {filteredEmployees.map((emp) => (
                         <button key={emp.id}
                           onClick={() => { setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code, job_title: emp.job_title }); setEmployeeSearch(""); setShowEmployeeDropdown(false); loadEmployeeBalance(emp.id); }}
                           className="w-full px-3 py-2 text-sm text-right transition flex items-center gap-2"
-                          style={{ color: 'rgba(255,255,255,0.7)' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                          style={{ color: '#374151' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          <UserCheck className="h-3.5 w-3.5 shrink-0" style={{ color: '#a78bfa' }} />
+                          <UserCheck className="h-3.5 w-3.5 shrink-0" style={{ color: '#8b5cf6' }} />
                           <span>{emp.full_name}</span>
                         </button>
                       ))}
                     </div>
                   )}
                   {selectedEmployee && (
-                    <div className="p-3 rounded-[10px]" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}>
+                    <div className="p-3 rounded-[10px]" style={{ background: '#f5f3ff', border: '1px solid #ddd6fe' }}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4" style={{ color: '#a78bfa' }} />
-                          <span className="text-sm font-medium" style={{ color: 'white' }}>{selectedEmployee.full_name}</span>
+                          <UserCheck className="h-4 w-4" style={{ color: '#8b5cf6' }} />
+                          <span className="text-sm font-medium" style={{ color: '#111827' }}>{selectedEmployee.full_name}</span>
                         </div>
-                        {selectedEmployee.job_title && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{selectedEmployee.job_title}</span>}
+                        {selectedEmployee.job_title && <span className="text-xs" style={{ color: '#6b7280' }}>{selectedEmployee.job_title}</span>}
                       </div>
                       <div className="mt-2">
                         <input
@@ -4787,7 +4787,7 @@ const POSPage = () => {
                           onChange={(e) => setEmployeeNote(e.target.value)}
                           placeholder="ملاحظة (مثال: غداء، أكل، سلفة...)"
                           className="w-full h-8 px-2 text-xs focus:outline-none"
-                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'white' }}
+                          style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6, color: '#111827' }}
                         />
                       </div>
                     </div>
@@ -4800,7 +4800,7 @@ const POSPage = () => {
             </div>
 
             {/* Footer — Confirm button */}
-            <div className="shrink-0" style={{ padding: '14px 16px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' }}>
+            <div className="shrink-0" style={{ padding: '14px 16px 16px', borderTop: '1px solid #e5e7eb', background: '#ffffff' }}>
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCompleteOrder()}
