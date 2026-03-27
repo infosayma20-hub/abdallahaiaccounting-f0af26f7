@@ -108,21 +108,7 @@ const POSReportsPage = () => {
   };
 
   const handlePrint = () => {
-    const content = document.querySelector('.min-h-screen');
-    if (!content) { window.print(); return; }
-    printThermalContent((content as HTMLElement).innerHTML, {
-      title: "تقارير نقطة البيع",
-      paperWidthMm: 80,
-      contentWidthMm: 72,
-      extraStyles: `
-        body { font-size: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 9px; }
-        th, td { padding: 2px 4px; border-bottom: 1px solid #ddd; text-align: right; }
-        th { font-weight: 700; background: #f5f5f5; }
-        h1, h2, h3 { font-size: 14px; margin: 4px 0; }
-        .print\\:hidden { display: none !important; }
-      `,
-    });
+    sonnerToast.info("الطباعة تتم عبر خدمة الطباعة المحلية — استخدم تصدير PDF بدلاً من ذلك");
   };
 
   const totalDiscounts = useMemo(() =>

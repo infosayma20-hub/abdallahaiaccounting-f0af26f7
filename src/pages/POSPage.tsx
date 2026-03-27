@@ -1994,55 +1994,31 @@ const POSPage = () => {
       tickets,
       orderNote: activeOrder.orderNote,
     });
-    // Dispatch print jobs per station
+    // Dispatch print jobs per station via bridge
     let printedCount = 0;
-    let failedCount = 0;
     for (const [stationId, group] of Object.entries(stationGroups)) {
-      const lines: PrintLine[] = [
-        { text: `🍳 طلب مطبخ — ${group.stationName}`, align: "center", bold: true, size: 2 },
-        { text: "", separator: true },
-        { text: `طاولة: ${tableName}    ${time}`, align: "right", bold: true },
-      ];
-      if (activeOrder.guestCount > 0) {
-        lines.push({ text: `عدد الضيوف: ${activeOrder.guestCount}`, align: "right" });
-      }
-      lines.push({ text: "", separator: true });
-      group.items.forEach(item => {
-        lines.push({ text: `${item.qty}× ${item.name}`, align: "right", bold: true });
-        (item.modifiers || []).forEach((m: any) => {
-          lines.push({ text: `  ← ${m.option_name}${m.extra_price > 0 ? ` +₪${m.extra_price}` : ""}`, align: "right" });
-        });
-        if (item.note) lines.push({ text: `  📝 ${item.note}`, align: "right" });
-      });
-      if (activeOrder.orderNote) {
-        lines.push({ text: "", separator: true });
-        lines.push({ text: `📝 ${activeOrder.orderNote}`, align: "right" });
-      }
-      lines.push({ text: "", separator: true });
-      lines.push({ text: `كاشير: ${cashierName}`, align: "center" });
-
-      const htmlContent = lines.map(l => l.separator ? "<hr>" : `<p style="text-align:${l.align || "right"};${l.bold ? "font-weight:bold;" : ""}${l.size === 2 ? "font-size:18px;" : ""}">${l.text}</p>`).join("");
-
-      const result = await dispatchPrintJob({
-        category: "kitchen",
-        stationId: stationId === "_default" ? undefined : stationId,
-        content: htmlContent,
-        lines,
-      });
-      if (result.printed.length > 0) printedCount++;
-      if (result.failed.length > 0) failedCount++;
+      const bridgeKitchenOrder: BridgePrintOrder = {
+        orderNumber: tickets[0]?.order_number || "---",
+        branchName: group.stationName || "المطبخ",
+        cashier: cashierName,
+        tableNumber: tableName,
+        orderType: activeOrder.orderType,
+        items: group.items.map((item: any) => ({
+          id: item.product_id || item.name,
+          name: item.name,
+          quantity: item.qty,
+          price: 0,
+          note: item.note || undefined,
+          modifiers: (item.modifiers || []).map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price })),
+        })),
+        total: 0,
+        orderNote: activeOrder.orderNote,
+      };
+      sendToBridge("kitchen", bridgeKitchenOrder)
+        .then(() => { printedCount++; })
+        .catch(() => { console.warn("Bridge print failed for station:", stationId); });
     }
-
-    if (printedCount > 0 && failedCount === 0) {
-      toast.success(`✅ تم إرسال ${tickets.length} تذكرة مطبخ`);
-    } else if (failedCount > 0) {
-      toast.warning(`⚠️ تم إرسال ${printedCount} تذكرة، فشل ${failedCount}`);
-      // Show dialog only when printing failed so user can retry manually
-      setShowKitchenTicket(true);
-    } else if (printedCount === 0) {
-      // No printers configured — show dialog as fallback
-      setShowKitchenTicket(true);
-    }
+    toast.success(`✅ تم إرسال ${tickets.length} تذكرة مطبخ`);
   };
 
   // Load existing table order into cart
@@ -2594,7 +2570,7 @@ const POSPage = () => {
 
       // Auto-open cash drawer after successful payment
       if (isAdmin || posPerms.open_cash_drawer) {
-        openCashDrawer();
+        bridgeOpenDrawer();
       }
 
       // Send digital receipt & survey if customer data was collected
