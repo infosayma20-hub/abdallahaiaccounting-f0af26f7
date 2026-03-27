@@ -3210,17 +3210,37 @@ const POSPage = () => {
                   ))}
                 </>
               )}
-              <button
-                onClick={() => {
-                  setNewCustomerName(customerSearch || "");
-                  setShowQuickAddCustomer(true);
-                  setShowContactDropdown(false);
-                }}
-                className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
-              >
-                <PlusCircle className="h-3 w-3 shrink-0" />
-                <span>إضافة زبون جديد</span>
-              </button>
+              {/* Inline add new customer with phone */}
+              <div className="border-t border-border px-3 py-2 bg-muted/20">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <PlusCircle className="h-3 w-3 text-primary shrink-0" />
+                  <span className="text-[11px] font-medium text-primary">إضافة "{customerSearch}" كزبون جديد</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="tel"
+                    placeholder="رقم الهاتف (اختياري)"
+                    value={newCustomerPhone}
+                    onChange={e => setNewCustomerPhone(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); setNewCustomerName(customerSearch || ""); handleQuickAddCustomer(); } }}
+                    className="flex-1 h-6 rounded border border-border bg-background px-2 text-[11px] focus:outline-none focus:border-primary/50 min-w-0"
+                    dir="ltr"
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewCustomerName(customerSearch || "");
+                      setTimeout(() => handleQuickAddCustomer(), 0);
+                    }}
+                    disabled={savingCustomer}
+                    className="h-6 px-2 rounded bg-primary text-primary-foreground text-[10px] font-medium hover:bg-primary/90 transition shrink-0 flex items-center gap-1"
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                    حفظ
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
