@@ -506,7 +506,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <aside
         className={cn("hidden lg:flex flex-col flex-shrink-0 transition-all duration-300")}
         style={{
-          width: collapsed ? 68 : 260,
+          width: collapsed ? 60 : 280,
           background: SIDEBAR_BG,
           borderLeft: `1px solid ${SEPARATOR}`,
         }}
