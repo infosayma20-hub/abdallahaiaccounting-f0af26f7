@@ -222,7 +222,7 @@ const PricingPage = () => {
                   >
                     {/* Popular badge */}
                     {isPro && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4A9EE8] to-[#E8D5A3] text-[#0A2342] px-5 py-1 rounded-full text-xs font-bold whitespace-nowrap">
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4A9EE8] to-[#7BB8F0] text-[#0A2342] px-5 py-1 rounded-full text-xs font-bold whitespace-nowrap">
                         ⭐ الأكثر شيوعاً
                       </div>
                     )}

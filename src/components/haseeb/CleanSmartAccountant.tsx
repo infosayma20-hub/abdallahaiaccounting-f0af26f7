@@ -480,7 +480,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                   </div>
                   {msg.role === "assistant" && (
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mr-2 self-end"
-                      style={{ background: "linear-gradient(135deg, #4A9EE8, #E8D5A3)" }}>
+                      style={{ background: "linear-gradient(135deg, #4A9EE8, #7BB8F0)" }}>
                       ✦
                     </div>
                   )}

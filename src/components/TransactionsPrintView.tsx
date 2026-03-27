@@ -166,7 +166,7 @@ const TransactionsPrintView = ({
       </div>
 
       {/* ━━━ GOLD ACCENT LINE ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #E8D48B, #4A9EE8)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
       <div style={{ padding: "10px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>

@@ -368,7 +368,7 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
         <button
           onClick={onNext}
           className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #4A9EE8, #E8D5A3)", color: "#1B3A5C" }}
+          style={{ background: "linear-gradient(135deg, #4A9EE8, #7BB8F0)", color: "#1B3A5C" }}
         >
           التالي ←
         </button>

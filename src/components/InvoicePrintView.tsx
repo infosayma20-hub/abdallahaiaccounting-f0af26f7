@@ -210,7 +210,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       )}
 
       {/* ━━━ GOLD ACCENT ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #E8D48B, #4A9EE8)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
 
       {/* ━━━ LEGAL & REGISTRATION STRIP ━━━ */}
       <div

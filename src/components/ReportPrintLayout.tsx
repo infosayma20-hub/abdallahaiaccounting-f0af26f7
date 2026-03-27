@@ -199,7 +199,7 @@ const ReportPrintLayout = ({
       </div>
 
       {/* ━━━ GOLD ACCENT LINE ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #E8D48B, #4A9EE8)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
       <div style={{ padding: "14px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
@@ -398,7 +398,7 @@ body{background:#fff;color:#1f2937;font-size:11px;line-height:1.5}
 .header-bar h2{font-size:16px;font-weight:700}.header-bar .sub{font-size:10px;opacity:0.8;margin-top:2px}
 .header-bar .title{text-align:left}.header-bar .title h1{font-size:18px;font-weight:700}
 .header-bar .title p{font-size:10px;opacity:0.8;font-family:'Segoe UI',sans-serif}
-.gold-line{height:3px;background:linear-gradient(90deg,#4A9EE8,#E8D48B,#4A9EE8)}
+.gold-line{height:3px;background:linear-gradient(90deg,#4A9EE8,#7BB8F0,#4A9EE8)}
 .info{padding:14px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #E5E7EB;font-size:10px}
 .info .report-title{font-size:16px;font-weight:700;color:#1B3A5C}
 .info .period{font-size:11px;color:#6B7280;margin-top:4px}

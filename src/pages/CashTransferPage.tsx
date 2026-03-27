@@ -447,7 +447,7 @@ const CashTransferPage = () => {
           {/* Submit */}
           <Button
             className="w-full h-12 text-base gap-2"
-            style={{ background: "linear-gradient(135deg, #4A9EE8, #A88B2E)" }}
+            style={{ background: "linear-gradient(135deg, #4A9EE8, #3A8BD6)" }}
             disabled={saving || !fromBoxId || !toBoxId || amountNum <= 0 || exceeds || fromBoxId === toBoxId}
             onClick={handleTransfer}
           >

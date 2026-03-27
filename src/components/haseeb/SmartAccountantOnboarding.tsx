@@ -47,7 +47,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
       <div className="relative h-1 bg-slate-100">
         <motion.div
           className="absolute inset-y-0 right-0 rounded-full"
-          style={{ background: "linear-gradient(90deg, #4A9EE8, #E8D5A3)" }}
+          style={{ background: "linear-gradient(90deg, #4A9EE8, #7BB8F0)" }}
           animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         />

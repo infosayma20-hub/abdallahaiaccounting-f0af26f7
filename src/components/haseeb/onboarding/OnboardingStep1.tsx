@@ -174,7 +174,7 @@ const OnboardingStep1 = ({ userName, onNext }: Props) => {
             onClick={onNext}
             className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
             style={{
-              background: "linear-gradient(135deg, #4A9EE8, #E8D5A3)",
+              background: "linear-gradient(135deg, #4A9EE8, #7BB8F0)",
               color: "#1B3A5C",
             }}
           >
