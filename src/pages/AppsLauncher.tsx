@@ -227,7 +227,7 @@ const AppsLauncher = () => {
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
   return (
-    <div className="min-h-full" style={{ background: '#F5F6F8' }} dir="rtl">
+    <div className="min-h-full bg-background" dir="rtl">
       
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* Title */}
