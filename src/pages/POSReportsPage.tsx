@@ -35,7 +35,7 @@ import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
-import { printThermalContent } from "@/lib/thermal-print";
+import { toast as sonnerToast } from "sonner";
 
 const PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "اليوم" },

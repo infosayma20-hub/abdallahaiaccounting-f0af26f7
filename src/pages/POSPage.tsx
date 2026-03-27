@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
 import { usePBXCallListener } from "@/hooks/usePBXCallListener";
-import { openCashDrawer } from "@/lib/cash-drawer";
+import { bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -38,7 +38,7 @@ import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
-import { dispatchPrintJob, type PrintLine } from "@/lib/pos-print";
+import { sendToBridge } from "@/lib/print-bridge-client";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import PurchaseModal from "@/components/pos/PurchaseModal";
