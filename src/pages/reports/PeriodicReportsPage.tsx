@@ -438,7 +438,7 @@ const PeriodicReportsPage = () => {
               </div>
 
               {/* Generate Button */}
-              <Button onClick={fetchReportData} disabled={loading} className="w-full h-11 text-sm font-bold gap-2 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90">
+              <Button onClick={fetchReportData} disabled={loading} className="w-full h-11 text-sm font-bold gap-2">
                 <Zap className="h-4 w-4" />
                 {loading ? "جارٍ التوليد..." : "⚡ توليد التقرير"}
               </Button>
