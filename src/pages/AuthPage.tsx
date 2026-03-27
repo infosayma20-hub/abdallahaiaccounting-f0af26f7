@@ -250,9 +250,9 @@ const AuthPage = () => {
         <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir="rtl">
           <div className="w-full max-w-[380px]">
 
-            {/* Logo — large */}
+            {/* Logo — large mark */}
             <div className="text-center mb-3">
-              <img src="/logos/amwali-navy-full.png" alt="AMWALI" className="h-28 mx-auto object-contain" />
+              <img src="/logos/amwali-mark-navy-large.png" alt="AMWALI" className="h-28 mx-auto object-contain" />
             </div>
 
             {/* Header — thin font */}
