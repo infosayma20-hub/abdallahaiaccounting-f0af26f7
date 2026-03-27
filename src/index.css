@@ -420,65 +420,7 @@
   50% { stroke: hsl(42, 86%, 70%); opacity: 1; }
 }
 
-/* ── Print Utilities ── */
-@media screen {
-  .print-only {
-    display: none !important;
-  }
-}
-
-@media print {
-  .no-print {
-    display: none !important;
-  }
-  .print-only {
-    display: block !important;
-  }
-
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-  }
-
-  #root {
-    display: block !important;
-  }
-
-  #print-portal,
-  #statement-print-wrapper,
-  #transactions-print-wrapper {
-    display: block !important;
-    position: fixed !important;
-    top: 0 !important;
-    right: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    z-index: 999999 !important;
-  }
-
-  @page {
-    size: A4 portrait;
-    margin: 8mm;
-  }
-
-  .statement-page,
-  .transactions-print-page {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-    page-break-inside: avoid !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-}
+/* ── Print Utilities (removed — all printing via bridge) ── */
 
 /* ═══════════════════════════════════════
    CUSTOM SCROLLBAR — FINIX BRAND
@@ -906,82 +848,7 @@ html {
   to   { opacity: 1; }
 }
 
-/* ─── Print Styles ─── */
-@media print {
-  /* Hide non-essential UI */
-  nav, aside, header,
-  [data-sidebar], [data-radix-popper-content-wrapper],
-  .print\\:hidden,
-  button:not(.print-keep),
-  [role="navigation"] {
-    display: none !important;
-  }
-
-  body {
-    direction: rtl;
-    font-family: 'Tajawal', 'Cairo', sans-serif;
-    font-size: 11pt;
-    background: white !important;
-    color: black !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* Force page layout */
-  @page {
-    size: A4 landscape;
-    margin: 15mm;
-  }
-
-  /* Make tables print-friendly */
-  table {
-    width: 100% !important;
-    border-collapse: collapse;
-    font-size: 9pt;
-  }
-
-  table thead {
-    display: table-header-group;
-  }
-
-  table th {
-    background: hsl(213 50% 11%) !important;
-    color: white !important;
-    padding: 6px 8px;
-    font-weight: 600;
-    font-size: 8pt;
-  }
-
-  table td {
-    padding: 4px 8px;
-    border-bottom: 0.5px solid #ddd;
-  }
-
-  table tr:nth-child(even) {
-    background: #f9f9f9 !important;
-  }
-
-  /* Show print header */
-  .print-header {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid black;
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-  }
-
-  /* Cards should be flat in print */
-  [class*="Card"], [class*="card"] {
-    border: none !important;
-    box-shadow: none !important;
-  }
-
-  /* KPI cards should print nicely */
-  .grid {
-    gap: 8px !important;
-  }
-}
+/* ── Print Styles (removed — all printing via bridge) ── */
 
 /* ═══════════════════════════════════════════════ */
 /* QOYOD UNIFIED DESIGN SYSTEM                    */
