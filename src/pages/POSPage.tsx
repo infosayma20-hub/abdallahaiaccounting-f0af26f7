@@ -3134,7 +3134,7 @@ const POSPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pos-container" dir="rtl" data-pos-layout>
+    <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
       {/* ══════ COMPACT TOP BAR — 36px ══════ */}
       <header className="flex items-center px-2 gap-1.5 shrink-0 text-white overflow-visible" style={{ height: 36, background: "#0A2342" }}>
         {/* Back */}
