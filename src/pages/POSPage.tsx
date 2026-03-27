@@ -3753,9 +3753,9 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[270px] lg:w-[310px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]" style={{ background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)/0.2) 100%)' }}>
+        <div className="pos-order-panel w-[270px] lg:w-[310px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.15)]">
           {/* Order Tabs — compact h-8 */}
-          <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
+          <div className="flex items-center border-b border-white/10 shrink-0 overflow-x-auto h-8">
             <button
               onClick={() => setShowAllOrders(true)}
               className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-8 px-2 flex-shrink-0"
@@ -3775,15 +3775,15 @@ const POSPage = () => {
                   onClick={() => setActiveOrderIndex(idx)}
                   className={`group relative flex items-center gap-1 px-2 h-8 text-[11px] font-medium whitespace-nowrap transition-all border-b-2 ${
                     isActive
-                      ? "border-primary text-primary bg-primary/5"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      ? "border-white text-white bg-white/10"
+                      : "border-transparent text-white/50 hover:text-white/80"
                   }`}
                 >
                   <ShoppingCart className="h-3 w-3" />
                   <span className="max-w-[80px] truncate">{order.customerName || order.name}</span>
                   {itemCount > 0 && (
                     <span className={`text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
-                      isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/60"
                     }`}>
                       {itemCount}
                     </span>
@@ -4032,7 +4032,7 @@ const POSPage = () => {
           </ScrollArea>
 
           {/* Bottom area - Customer + Note + Totals + Actions */}
-          <div className="border-t border-border bg-card shrink-0">
+          <div className="border-t border-white/10 shrink-0" style={{ background: 'rgba(255,255,255,0.03)' }}>
             {/* Order Type + Notes row */}
             {(
               <div className="px-2 pt-1 pb-1 space-y-1">
@@ -4146,7 +4146,7 @@ const POSPage = () => {
             )}
 
             {/* Totals */}
-            <div className="px-2 py-1.5 space-y-0.5 border-t border-border/60 shadow-[0_-1px_3px_rgba(0,0,0,0.04)]">
+            <div className="px-2 py-1.5 space-y-0.5 border-t border-white/10">
               {cartTotals.tax > 0 && (
                 <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>الضريبة</span>
@@ -4165,7 +4165,7 @@ const POSPage = () => {
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className="text-xl font-bold text-primary tabular-nums"
+                  className="text-xl font-bold text-white tabular-nums"
                 >
                   ₪{cartTotals.total.toFixed(2)}
                 </motion.span>
