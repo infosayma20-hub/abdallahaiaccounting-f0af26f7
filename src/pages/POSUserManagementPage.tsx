@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
