@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   ArrowRight, Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet,
   X, ArrowUpDown, ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown,
@@ -213,32 +214,15 @@ const GeneralLedgerPage = () => {
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">دفتر الأستاذ العام</h1>
-              <p className="text-xs text-muted-foreground">
-                {companyName && `${companyName} • `}{selectedAccount || "اختر حساب"} • {allRows.length} حركة
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={fetchData}>
-            <RefreshCw className="h-3.5 w-3.5" /> تحديث
-          </Button>
-          <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={handleExport} disabled={allRows.length === 0}>
-            <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
-          </Button>
-        </div>
+      <PageHeader title="دفتر الأستاذ العام" breadcrumb={["المحاسبة", "دفتر الأستاذ"]} />
+      
+      <div className="flex items-center gap-2 justify-start">
+        <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" onClick={fetchData}>
+          <RefreshCw className="h-3.5 w-3.5" /> تحديث
+        </Button>
+        <Button className="gap-1.5 rounded-lg q-btn-primary" onClick={handleExport} disabled={allRows.length === 0}>
+          <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
+        </Button>
       </div>
 
       {/* Filters */}
