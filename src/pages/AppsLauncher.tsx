@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
-import ModuleIcon from "@/components/ModuleIcon";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -62,13 +61,19 @@ const AppCard = ({
         onClick={handleClick}
         className={`w-full flex flex-col items-center gap-2 p-4 pb-3 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
       >
-        {isLocked ? (
-          <div className="w-[48px] h-[48px] rounded-xl flex items-center justify-center bg-muted/40 border border-border/20">
+        <div
+          className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center transition-all duration-300 border ${
+            isDisabledOrLocked
+              ? "bg-muted/40 border-border/20"
+              : `${app.bgColor || "bg-primary/8"} border-border/40 group-hover:scale-110 group-hover:shadow-md`
+          }`}
+        >
+          {isLocked ? (
             <Lock className="h-5 w-5 text-muted-foreground/40" />
-          </div>
-        ) : (
-          <ModuleIcon module={app.module} size="md" className="!w-[48px] !h-[48px] !rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-md" />
-        )}
+          ) : (
+            <app.icon className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
+          )}
+        </div>
 
         <div className="space-y-0.5">
           <div className="flex items-center justify-center gap-1.5">
