@@ -270,18 +270,13 @@ const QuickAccessButton = () => {
 };
 
 const AppLogo = () => {
-  const { company } = useCompany();
   const navigate = useNavigate();
   return (
     <button
-      onClick={() => navigate("/settings")}
+      onClick={() => navigate("/apps")}
       className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-secondary/60 transition-all duration-150 flex-shrink-0 cursor-pointer"
     >
-      {company.logo_url ? (
-        <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ border: "1px solid hsl(var(--border))" }} />
-      ) : (
-        <img src="/logos/amwali-mark-navy.png" alt="أموالي" className="w-8 h-8 object-contain" />
-      )}
+      <img src="/logos/amwali-mark-navy.png" alt="أموالي" className="w-8 h-8 object-contain" />
     </button>
   );
 };
