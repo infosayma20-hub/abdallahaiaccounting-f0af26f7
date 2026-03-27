@@ -149,10 +149,17 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
   useEffect(() => {
     if (open && autoPrint && data && !autoPrintDone.current) {
       autoPrintDone.current = true;
-      const timer = setTimeout(() => {
-        doPrint();
-      }, 600);
-      return () => clearTimeout(timer);
+      // Use requestAnimationFrame to print as soon as content is rendered
+      const raf = requestAnimationFrame(() => {
+        const timer = setTimeout(() => {
+          doPrint();
+        }, 150);
+        (raf as any).__timer = timer;
+      });
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout((raf as any).__timer);
+      };
     }
     if (!open) {
       autoPrintDone.current = false;
