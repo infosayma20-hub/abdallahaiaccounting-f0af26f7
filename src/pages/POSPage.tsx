@@ -3224,7 +3224,7 @@ const POSPage = () => {
                     value={newCustomerPhone}
                     onChange={e => setNewCustomerPhone(e.target.value)}
                     onClick={e => e.stopPropagation()}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); setNewCustomerName(customerSearch || ""); handleQuickAddCustomer(); } }}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddCustomer(customerSearch || ""); } }}
                     className="flex-1 h-6 rounded border border-border bg-background px-2 text-[11px] focus:outline-none focus:border-primary/50 min-w-0"
                     dir="ltr"
                   />
