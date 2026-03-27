@@ -245,7 +245,8 @@ const AppsLauncher = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ابحث عن تطبيق..."
-              className="pr-10 rounded-lg bg-card border border-border/30 h-10 text-sm"
+              className="pr-10 rounded-lg bg-card h-10 text-sm"
+              style={{ border: "2px solid #5B9BD5" }}
             />
           </div>
         </div>
