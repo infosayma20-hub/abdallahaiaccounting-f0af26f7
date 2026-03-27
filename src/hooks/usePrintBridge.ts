@@ -1,14 +1,9 @@
 /**
- * Print Bridge Hook — connects to local print-bridge.js service
- * running on the cashier's machine (localhost:3001)
- * 
- * The bridge handles ESC/POS communication with thermal printers
- * via TCP port 9100 on the local network.
+ * Print Bridge Hook — thin React wrapper around print-bridge-client.ts
  */
 import { useCallback } from "react";
+import { sendToBridge, checkBridgeStatus, bridgePrintAll as _bridgePrintAll, bridgeOpenDrawer } from "@/lib/print-bridge-client";
 import { toast } from "sonner";
-
-const BRIDGE_URL = "http://192.168.1.65:3001";
 
 export interface PrintItem {
   id: string;
@@ -22,6 +17,7 @@ export interface PrintItem {
 
 export interface PrintOrder {
   orderNumber: string | number;
+  queueNumber?: number;
   date?: string;
   time?: string;
   branchName: string;
@@ -41,33 +37,9 @@ export interface PrintOrder {
   orderNote?: string;
 }
 
-interface BridgeResult {
-  success: boolean;
-  results?: { name: string; success: boolean; error?: string }[];
-}
-
-type PrintType = "receipt" | "kitchen" | "both";
-
-async function sendToBridge(type: PrintType, order: PrintOrder): Promise<BridgeResult> {
-  const response = await fetch(`${BRIDGE_URL}/print`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, order }),
-    signal: AbortSignal.timeout(8000),
-  });
-  return response.json();
-}
-
 export function usePrintBridge() {
   const checkBridge = useCallback(async (): Promise<boolean> => {
-    try {
-      const res = await fetch(`${BRIDGE_URL}/status`, {
-        signal: AbortSignal.timeout(2000),
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
+    return checkBridgeStatus();
   }, []);
 
   const printReceipt = useCallback(async (order: PrintOrder) => {
@@ -93,10 +65,13 @@ export function usePrintBridge() {
         }
       })
       .catch(() => {
-        // Silent — bridge not running, fallback to browser print
-        console.warn("Print bridge unavailable — falling back to browser print");
+        console.warn("Print bridge unavailable");
       });
   }, []);
 
-  return { checkBridge, printReceipt, printKitchen, printAll };
+  const openDrawer = useCallback(() => {
+    bridgeOpenDrawer();
+  }, []);
+
+  return { checkBridge, printReceipt, printKitchen, printAll, openDrawer };
 }

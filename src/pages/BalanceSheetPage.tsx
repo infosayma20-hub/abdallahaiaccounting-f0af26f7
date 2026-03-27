@@ -333,8 +333,8 @@ const BalanceSheetPage = () => {
           <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading}>
             <Download className="h-3 w-3" /> PDF
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={() => window.print()} disabled={loading}>
-            <Printer className="h-3 w-3" /> طباعة
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading}>
+            <Printer className="h-3 w-3" /> طباعة PDF
           </Button>
         </div>
       </Card>

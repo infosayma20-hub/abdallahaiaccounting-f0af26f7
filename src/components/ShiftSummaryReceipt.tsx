@@ -2,7 +2,8 @@ import { useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle } from "lucide-react";
-import { printThermalContent } from "@/lib/thermal-print";
+import { sendToBridge } from "@/lib/print-bridge-client";
+import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface CurrencyBreakdown {
   [key: string]: { sales: number; count: number };
@@ -100,14 +101,17 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
   const autoPrintDone = useRef(false);
 
   const printSummary = () => {
-    const content = receiptRef.current;
-    if (!content) return;
-
-    printThermalContent(content.innerHTML, {
-      title: "ملخص الوردية",
-      paperWidthMm: 80,
-      contentWidthMm: 72,
-      extraStyles: shiftSummaryPrintStyles,
+    if (!data) return;
+    const bridgeOrder: PrintOrder = {
+      orderNumber: `SHIFT-${data.sessionId?.slice(0, 6) || "000"}`,
+      branchName: data.companyName || "مطعم الملكي",
+      cashier: data.cashierName,
+      items: [{ id: "shift", name: "ملخص الوردية", quantity: 1, price: data.totalSales }],
+      total: data.closingCash,
+      paymentMethod: "ملخص",
+    };
+    sendToBridge("receipt", bridgeOrder).catch(() => {
+      console.warn("Print bridge unavailable");
     });
   };
 

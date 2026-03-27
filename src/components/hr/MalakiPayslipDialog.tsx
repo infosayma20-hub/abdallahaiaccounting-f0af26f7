@@ -34,7 +34,7 @@ const Row = ({ label, value, bold, color }: { label: string; value: string; bold
 
 const MalakiPayslipDialog = ({ open, onClose, slip, employee, month, year }: Props) => {
   const handlePrint = () => {
-    window.print();
+    /* no browser print */
   };
 
   return (

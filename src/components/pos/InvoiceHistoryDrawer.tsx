@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import { multiWordMatchAny } from "@/lib/utils";
+import { sendToBridge } from "@/lib/print-bridge-client";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -912,71 +913,27 @@ export default function InvoiceHistoryDrawer({
                   size="sm"
                   className="gap-1.5 text-xs"
                   onClick={() => {
-                    const printWindow = window.open("", "_blank", "width=320,height=600");
-                    if (!printWindow) {
-                      toast.error("يرجى السماح بالنوافذ المنبثقة للطباعة");
-                      return;
-                    }
+                    // Use bridge for silent printing
                     const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
-                    const itemsHtml = orderLines.map(line => `
-                      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1f5f9;">
-                        <span style="flex:2;font-size:12px;font-weight:600;color:#1e293b;">${line.product_name}</span>
-                        <span style="flex:1;text-align:center;font-size:11px;color:#64748b;">${line.qty}</span>
-                        <span style="flex:1;text-align:center;font-size:11px;color:#64748b;">₪${line.unit_price.toFixed(2)}</span>
-                        <span style="flex:1;text-align:left;font-size:12px;font-weight:600;color:#1e293b;">₪${line.total.toFixed(2)}</span>
-                      </div>
-                    `).join("");
-                    const dateStr = format(new Date(selectedOrder.created_at), "dd/MM/yyyy HH:mm");
-                    printWindow.document.write(`
-                      <!DOCTYPE html>
-                      <html dir="rtl" lang="ar">
-                      <head><meta charset="UTF-8"><title>إيصال بيع</title>
-                      <style>
-                        @page { margin: 0; size: 80mm auto; }
-                        * { margin:0; padding:0; box-sizing:border-box; }
-                        body { font-family:'Segoe UI',Arial,sans-serif; font-size:12px; width:80mm; padding:3mm; color:#1a1a1a; direction:rtl; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-                      </style></head>
-                      <body>
-                        <div style="text-align:center;padding-bottom:8px;">
-                          <div style="font-size:20px;font-weight:800;color:#0f172a;">${cashierName ? '' : ''}${terminalName || 'نقطة البيع'}</div>
-                          <div style="font-size:10px;color:#94a3b8;margin-top:4px;">${dateStr}</div>
-                        </div>
-                        <hr style="border:none;border-top:2px solid #0f172a;margin:8px 0;" />
-                        <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
-                          <span style="color:#64748b;">رقم الطلب</span>
-                          <span style="font-weight:700;">${selectedOrder.order_number || '---'}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
-                          <span style="color:#64748b;">الزبون</span>
-                          <span>${selectedOrder.customer_name || 'زبون نقدي'}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
-                          <span style="color:#64748b;">طريقة الدفع</span>
-                          <span>${paymentLabel}</span>
-                        </div>
-                        <hr style="border:none;border-top:1px solid #e2e8f0;margin:8px 0;" />
-                        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:9px;font-weight:700;color:#94a3b8;border-bottom:1px solid #f1f5f9;">
-                          <span style="flex:2;">الصنف</span>
-                          <span style="flex:1;text-align:center;">الكمية</span>
-                          <span style="flex:1;text-align:center;">السعر</span>
-                          <span style="flex:1;text-align:left;">المجموع</span>
-                        </div>
-                        ${itemsHtml}
-                        <hr style="border:none;border-top:2px solid #0f172a;margin:8px 0;" />
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
-                          <span style="font-size:14px;font-weight:700;">الإجمالي</span>
-                          <span style="font-size:22px;font-weight:800;">₪${selectedOrder.total.toFixed(2)}</span>
-                        </div>
-                        <hr style="border:none;border-top:1px solid #e2e8f0;margin:8px 0;" />
-                        <div style="text-align:center;">
-                          <div style="font-size:12px;font-weight:600;color:#475569;">شكراً لتعاملكم معنا 🙏</div>
-                          <div style="font-size:10px;color:#94a3b8;">Thank you for your purchase</div>
-                        </div>
-                      </body></html>
-                    `);
-                    printWindow.document.close();
-                    printWindow.focus();
-                    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+                    const bridgeOrder = {
+                      orderNumber: selectedOrder.order_number || "---",
+                      branchName: terminalName || "نقطة البيع",
+                      cashier: cashierName,
+                      items: orderLines.map(line => ({
+                        id: line.product_id || line.product_name,
+                        name: line.product_name,
+                        quantity: line.qty,
+                        price: line.unit_price,
+                      })),
+                      subtotal: selectedOrder.subtotal || selectedOrder.total,
+                      discount: selectedOrder.discount_amount || 0,
+                      total: selectedOrder.total,
+                      paymentMethod: paymentLabel,
+                    };
+                    sendToBridge("receipt", bridgeOrder).catch(() => {
+                      console.warn("Print bridge unavailable");
+                    });
+                    toast.success("تم إرسال الإيصال للطابعة");
                   }}
                 >
                   <Printer className="h-3.5 w-3.5" /> طباعة

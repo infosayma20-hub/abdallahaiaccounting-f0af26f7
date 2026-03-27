@@ -100,7 +100,7 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
 
   if (!slip) return null;
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => { /* no browser print */ };
 
   // Group movements by source_type
   const groupedMovements: Record<string, Movement[]> = {};

@@ -214,8 +214,8 @@ const ExportPage = () => {
     if (!win) return;
     win.document.write(html);
     win.document.close();
-    win.print();
-    toast({ title: "تم فتح التقرير للطباعة/PDF ✅" });
+    /* view only — no browser print */
+    toast({ title: "تم فتح التقرير ✅" });
   };
 
   const totalAmount = filteredTransactions.reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);

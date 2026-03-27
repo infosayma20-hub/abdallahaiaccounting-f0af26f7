@@ -799,7 +799,7 @@ const InvoiceCreatePage = () => {
       if (container) {
         const root = createRoot(container);
         root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel="معاينة" />);
-        setTimeout(() => win.print(), 600);
+        /* view only — no browser print */
       }
     }, 200);
   };

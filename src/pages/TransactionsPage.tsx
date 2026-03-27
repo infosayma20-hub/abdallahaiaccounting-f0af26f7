@@ -522,11 +522,8 @@ const TransactionsPage = () => {
   };
 
   const handlePrint = () => {
-    setShowPrintView(true);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setShowPrintView(false), 500);
-    }, 300);
+    // No browser print dialog — use PDF export instead
+    toast({ title: "استخدم تصدير PDF للطباعة" });
   };
 
   const companyInfo = useMemo(() => ({

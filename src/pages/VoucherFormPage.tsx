@@ -1084,7 +1084,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!printWindow) return;
     printWindow.document.write(printHtml);
     printWindow.document.close();
-    setTimeout(() => { printWindow.print(); }, 400);
   };
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

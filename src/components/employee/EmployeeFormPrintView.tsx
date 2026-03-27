@@ -118,7 +118,7 @@ const EmployeeFormPrintView = ({ open, onClose, form, employeeName, employeeBran
       </html>
     `);
     printWindow.document.close();
-    setTimeout(() => { printWindow.print(); }, 400);
+    /* view only — no browser print */
   };
 
   const formData = form.form_data || {};

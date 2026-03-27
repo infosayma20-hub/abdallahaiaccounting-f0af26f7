@@ -208,7 +208,7 @@ body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align
   <div class="sub-instructions">افتح تطبيق الموظف → اضغط "تسجيل حضور" → وجّه الكاميرا نحو الرمز</div>
   <div class="badge">🔒 رمز ثابت — لا يتغير</div>
 </div>
-<script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>
+<script>window.onload = () => { /* QR print page — view only */ }</script>
 </body></html>`);
     printWindow.document.close();
   };

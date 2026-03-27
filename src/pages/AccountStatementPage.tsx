@@ -1302,22 +1302,8 @@ const AccountStatementPage = () => {
   }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, dateTo, statementNumber, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, companyInfo, isAccountsTab, isEmployeesTab, activeTabConfig, selectedAccount, selectedEmployee, selectedContact, toast]);
 
   const handlePrintStatement = useCallback(() => {
-    const element = document.getElementById("statement-preview-doc");
-    if (!element) { window.print(); return; }
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) { window.print(); return; }
-    printWindow.document.write(`<!DOCTYPE html><html dir="rtl"><head>
-      <meta charset="utf-8" />
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Cairo', 'Inter', sans-serif; direction: rtl; }
-        @page { size: A4; margin: 0; }
-        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-      </style>
-    </head><body>${element.outerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.onload = () => { printWindow.print(); printWindow.close(); };
+    // No browser print dialog — use PDF export
+    /* no browser print — use PDF export */
   }, []);
 
   // ─── EXPORT (XLSX/SheetJS) ───

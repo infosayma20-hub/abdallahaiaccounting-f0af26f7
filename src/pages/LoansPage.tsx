@@ -306,7 +306,7 @@ export default function LoansPage() {
     if (!w) return;
     w.document.write(html);
     w.document.close();
-    setTimeout(() => { w.print(); }, 500);
+    /* view only — no browser print */
   };
 
   const handlePrintSingle = (loan: any) => {
@@ -461,7 +461,7 @@ export default function LoansPage() {
     if (!w) return;
     w.document.write(html);
     w.document.close();
-    setTimeout(() => { w.print(); }, 500);
+    /* view only — no browser print */
   };
 
   return (

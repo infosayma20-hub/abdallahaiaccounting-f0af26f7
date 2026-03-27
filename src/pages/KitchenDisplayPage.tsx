@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2, ArrowRightFromLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { printThermalContent } from "@/lib/thermal-print";
-import { dispatchPrintJob } from "@/lib/pos-print";
+import { sendToBridge } from "@/lib/print-bridge-client";
+import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface Station {
   id: string;
@@ -182,37 +182,24 @@ export default function KitchenDisplayPage() {
       <table>${itemsHtml}</table>
     `;
 
-    // Try network printer first (auto-print, no dialog)
-    const printResult = await dispatchPrintJob({
-      category: "kitchen",
-      stationId: ticket.station_id,
-      content: bodyHtml,
+    // Send to bridge — silent, no dialog
+    const bridgeOrder: PrintOrder = {
+      orderNumber: ticket.order_number || "---",
+      branchName: station?.name || "المطبخ",
+      tableNumber: ticket.table_name,
+      items: ticket.items.map((item: any) => ({
+        id: item.product_id || item.name,
+        name: item.name,
+        quantity: item.qty,
+        price: 0,
+        note: item.note || undefined,
+        modifiers: item.modifiers?.map((m: any) => ({ option_name: m.option_name })),
+      })),
+      total: 0,
+    };
+    sendToBridge("kitchen", bridgeOrder).catch(() => {
+      console.warn("Print bridge unavailable");
     });
-
-    // If no network printer matched, fallback to browser thermal print with small paper
-    if (printResult.printed.includes("browser")) {
-      // Fetch kitchen ticket size from settings
-      const { data: settingsData } = await supabase
-        .from("company_settings" as any)
-        .select("pos_kitchen_ticket_size")
-        .maybeSingle();
-      const ticketSize = (settingsData as any)?.pos_kitchen_ticket_size || "58mm";
-      const paperMm = ticketSize === "80mm" ? 80 : 58;
-      const contentMm = paperMm === 80 ? 72 : 50;
-
-      printThermalContent(bodyHtml, {
-        title: "تذكرة مطبخ",
-        paperWidthMm: paperMm as 58 | 80,
-        contentWidthMm: contentMm,
-        extraStyles: `
-          .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
-          .station-name { font-size: 18px; font-weight: 900; color: #000; }
-          .order-num { font-size: 24px; font-weight: 900; margin: 3px 0; color: #000; }
-          table { width: 100%; border-collapse: collapse; }
-          td { color: #000 !important; }
-        `,
-      });
-    }
 
     supabase.from("kitchen_tickets").update({ printed_at: new Date().toISOString() } as any).eq("id", ticket.id);
   };
