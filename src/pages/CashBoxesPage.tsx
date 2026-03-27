@@ -225,19 +225,19 @@ const CashBoxesPage = () => {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: "إجمالي السيولة النقدية", value: `₪${fmt(totalBalance)}`, sub: "مجموع أرصدة كل الصناديق", icon: "💰", color: "#4A9EE8" },
-          { label: "الصندوق الرئيسي", value: `₪${fmt(mainBalance)}`, sub: mainBoxes[0]?.name || "غير معرّف", icon: "🏛️", color: "#0A2342" },
-          { label: "صناديق الفروع", value: `₪${fmt(branchBalance)}`, sub: `${branchBoxes.length} صندوق فرع نشط`, icon: "🏪", color: "#059669" },
-          { label: "صناديق نقاط البيع", value: `₪${fmt(posBalance)}`, sub: `${posBoxes.length} صندوق POS نشط`, icon: "🖥️", color: "#7C3AED" },
-          { label: "صناديق النثرية", value: `₪${fmt(pettyBalance)}`, sub: `${pettyBoxes.length} صندوق نثرية نشط`, icon: "🗃️", color: "#D97706" },
+          { label: "إجمالي السيولة النقدية", value: `₪${fmt(totalBalance)}`, sub: "مجموع أرصدة كل الصناديق", icon: "💰" },
+          { label: "الصندوق الرئيسي", value: `₪${fmt(mainBalance)}`, sub: mainBoxes[0]?.name || "غير معرّف", icon: "🏛️" },
+          { label: "صناديق الفروع", value: `₪${fmt(branchBalance)}`, sub: `${branchBoxes.length} صندوق فرع نشط`, icon: "🏪" },
+          { label: "صناديق نقاط البيع", value: `₪${fmt(posBalance)}`, sub: `${posBoxes.length} صندوق POS نشط`, icon: "🖥️" },
+          { label: "صناديق النثرية", value: `₪${fmt(pettyBalance)}`, sub: `${pettyBoxes.length} صندوق نثرية نشط`, icon: "🗃️" },
         ].map((kpi, i) => (
-          <Card key={i} className="p-3">
+          <Card key={i} className="p-3" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12 }}>
             <div className="flex items-center gap-2">
-              <span className="text-2xl shrink-0">{kpi.icon}</span>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-lg" style={{ background: "#F0F4F8" }}>{kpi.icon}</div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-muted-foreground truncate">{kpi.label}</p>
-                <p className="text-sm font-bold font-mono mt-0.5 whitespace-nowrap" style={{ color: kpi.color }}>{kpi.value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>
+                <p className="text-[11px] truncate" style={{ color: "#6B7280" }}>{kpi.label}</p>
+                <p className="text-sm font-semibold font-mono mt-0.5 whitespace-nowrap" style={{ color: "#1B3A5C" }}>{kpi.value}</p>
+                <p className="text-[10px] mt-0.5 truncate" style={{ color: "#6B7280" }}>{kpi.sub}</p>
               </div>
             </div>
           </Card>

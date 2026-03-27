@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -331,18 +332,9 @@ const PeriodicReportsPage = () => {
   const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto pb-10 print:pb-0" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/reports")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">التقارير الدورية</h1>
-            <p className="text-xs text-muted-foreground">قوالب تقارير جاهزة تُولَّد تلقائياً حسب الفترة</p>
-          </div>
-        </div>
+    <div className="p-4 md:p-6 space-y-6 max-w-[1200px] mx-auto pb-10 print:pb-0" dir="rtl">
+      <div className="print:hidden">
+        <PageHeader title="التقارير الدورية" breadcrumb={["التقارير", "التقارير الدورية"]} />
       </div>
 
       {/* Tabs: Generator / Archive */}
@@ -446,7 +438,7 @@ const PeriodicReportsPage = () => {
               </div>
 
               {/* Generate Button */}
-              <Button onClick={fetchReportData} disabled={loading} className="w-full h-11 text-sm font-bold gap-2 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90">
+              <Button onClick={fetchReportData} disabled={loading} className="w-full h-11 text-sm font-bold gap-2">
                 <Zap className="h-4 w-4" />
                 {loading ? "جارٍ التوليد..." : "⚡ توليد التقرير"}
               </Button>

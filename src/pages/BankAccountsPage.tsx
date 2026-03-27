@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Plus, Landmark, Loader2, Settings, FileText, X, Search, ChevronDown } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,20 +189,14 @@ const BankAccountsPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/finance/receipts")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>الحسابات البنكية</h1>
-        </div>
-        {banks.length > 0 && (
-          <Button size="sm" className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }} onClick={() => { resetForm(); setModalOpen(true); }}>
+      <PageHeader title="الحسابات البنكية" breadcrumb={["المالية", "الحسابات البنكية"]} />
+      {banks.length > 0 && (
+        <div className="flex items-center justify-start">
+          <Button size="sm" className="gap-2" onClick={() => { resetForm(); setModalOpen(true); }}>
             <Plus className="h-4 w-4" />إضافة حساب بنكي
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Banks Grid */}
       {loading ? (
@@ -210,7 +205,7 @@ const BankAccountsPage = () => {
         <div className="text-center py-20">
           <Landmark className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground mb-4">لم تُعرَّف حسابات بنكية بعد</p>
-          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
+          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2">
             <Plus className="h-4 w-4" />إضافة حساب بنكي
           </Button>
         </div>
@@ -218,7 +213,7 @@ const BankAccountsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {banks.map(bank => (
             <Card key={bank.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-4 text-white rounded-t-xl" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
+              <div className="p-4 text-white rounded-t-xl" style={{ background: "#1B3A5C" }}>
                 <div className="flex items-center gap-2">
                   <Landmark className="h-5 w-5" />
                   <span className="text-sm font-bold">{bank.bank_name}</span>

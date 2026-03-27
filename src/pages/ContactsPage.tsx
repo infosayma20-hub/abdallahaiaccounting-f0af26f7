@@ -436,41 +436,21 @@ const ContactsPage = () => {
       {/* KPI Cards */}
       {!loading && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setFilterType(null)}>
-            <CardContent className="p-3 text-center">
-              <Users className="h-5 w-5 text-primary mx-auto mb-1" />
-              <p className="text-lg font-bold tabular-nums">{contacts.length}</p>
-              <p className="text-[10px] text-muted-foreground">الكل</p>
-            </CardContent>
-          </Card>
-          <Card className="cursor-pointer hover:shadow-md transition-shadow border-emerald-200/50" onClick={() => setFilterType("عميل")}>
-            <CardContent className="p-3 text-center">
-              <Users className="h-5 w-5 text-emerald-600 mx-auto mb-1" />
-              <p className="text-lg font-bold tabular-nums">{customerCount}</p>
-              <p className="text-[10px] text-muted-foreground">زبائن</p>
-            </CardContent>
-          </Card>
-          <Card className="cursor-pointer hover:shadow-md transition-shadow border-amber-200/50" onClick={() => setFilterType("مورد")}>
-            <CardContent className="p-3 text-center">
-              <ShoppingBag className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-              <p className="text-lg font-bold tabular-nums">{supplierCount}</p>
-              <p className="text-[10px] text-muted-foreground">موردين</p>
-            </CardContent>
-          </Card>
-          <Card className="border-orange-200/50">
-            <CardContent className="p-3 text-center">
-              <AlertTriangle className="h-5 w-5 text-orange-600 mx-auto mb-1" />
-              <p className="text-lg font-bold tabular-nums text-orange-600">₪{totalOverdue.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground">متأخر</p>
-            </CardContent>
-          </Card>
-          <Card className="border-red-200/50">
-            <CardContent className="p-3 text-center">
-              <AlertTriangle className="h-5 w-5 text-red-600 mx-auto mb-1" />
-              <p className="text-lg font-bold tabular-nums text-red-600">{overLimitCount}</p>
-              <p className="text-[10px] text-muted-foreground">تجاوز السقف</p>
-            </CardContent>
-          </Card>
+          {[
+            { icon: <Users className="h-5 w-5" />, value: contacts.length, label: "الكل", onClick: () => setFilterType(null) },
+            { icon: <Users className="h-5 w-5" />, value: customerCount, label: "زبائن", onClick: () => setFilterType("عميل") },
+            { icon: <ShoppingBag className="h-5 w-5" />, value: supplierCount, label: "موردين", onClick: () => setFilterType("مورد") },
+            { icon: <AlertTriangle className="h-5 w-5" />, value: `₪${totalOverdue.toLocaleString()}`, label: "متأخر", isNegative: totalOverdue > 0 },
+            { icon: <AlertTriangle className="h-5 w-5" />, value: overLimitCount, label: "تجاوز السقف", isNegative: overLimitCount > 0 },
+          ].map((kpi, i) => (
+            <Card key={i} className="cursor-pointer hover:shadow-md transition-shadow" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12 }} onClick={kpi.onClick}>
+              <CardContent className="p-3 text-center">
+                <div className="w-9 h-9 rounded-lg mx-auto mb-1 flex items-center justify-center" style={{ background: "#F0F4F8", color: "#1B3A5C" }}>{kpi.icon}</div>
+                <p className="text-lg font-semibold tabular-nums" style={{ color: kpi.isNegative ? "#EF4444" : "#1B3A5C" }}>{kpi.value}</p>
+                <p className="text-[10px]" style={{ color: "#6B7280" }}>{kpi.label}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
