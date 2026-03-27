@@ -4080,7 +4080,23 @@ const POSPage = () => {
                         </div>
                         {/* Price + Qty row */}
                         <div className="flex items-center justify-between">
-                          <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                          {(isAdmin || posPerms.can_edit_prices) ? (
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              className="w-[80px] text-[14px] tabular-nums bg-transparent border-b border-dashed border-white/20 focus:border-white/60 outline-none"
+                              style={{ color: 'white' }}
+                              value={item.unit_price}
+                              onWheel={e => (e.target as HTMLElement).blur()}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => {
+                                const v = parseFloat(e.target.value);
+                                if (!isNaN(v) && v >= 0) updateCartItem(index, "unit_price", v);
+                              }}
+                            />
+                          ) : (
+                            <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                          )}
                           <div className="flex items-center gap-0">
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
