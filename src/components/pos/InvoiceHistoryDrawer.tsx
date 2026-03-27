@@ -915,6 +915,34 @@ export default function InvoiceHistoryDrawer({
 
               {/* Action buttons */}
               <div className="flex items-center gap-2 pt-4 border-t mt-3" style={{ borderColor: "#E2E8F0" }}>
+                {selectedOrder.state === "draft" && onLoadDraftToCart && (
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    style={{ background: "#16A34A", color: "white" }}
+                    onClick={() => {
+                      const items: CartItem[] = orderLines.map(line => ({
+                        id: crypto.randomUUID(),
+                        product_id: line.product_id || null,
+                        name: line.product_name,
+                        qty: line.qty,
+                        unit_price: line.unit_price,
+                        cost_price: 0,
+                        discount_pct: 0,
+                        tax_rate: 0,
+                        unit: "قطعة",
+                        total: line.total,
+                        note: "",
+                      }));
+                      onLoadDraftToCart(items, selectedOrder.id);
+                      setSelectedOrder(null);
+                      onClose();
+                      toast.success("تم تحميل الطلب المعلق للسلة — يمكنك الدفع الآن");
+                    }}
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" /> تحميل للسلة والدفع
+                  </Button>
+                )}
                 {printInvoices && (
                 <Button
                   variant="outline"
