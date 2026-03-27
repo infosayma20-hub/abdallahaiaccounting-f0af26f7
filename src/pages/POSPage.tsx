@@ -3698,13 +3698,13 @@ const POSPage = () => {
                               )}
 
                               {/* Name */}
-                              <p className={`font-semibold text-foreground leading-tight mb-0.5 break-words ${
+                              <p className={`leading-tight mb-0.5 break-words ${
                                 isFewProducts
-                                  ? "text-[13px] font-bold"
+                                  ? "text-[14px]"
                                   : cardSize === "S" 
                                     ? "text-[12px]" 
-                                    : "text-[12px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
+                                    : "text-[14px]"
+                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: '#1e293b', fontWeight: 500 }}>
                                 {product.name}
                               </p>
 
@@ -3716,11 +3716,11 @@ const POSPage = () => {
                               )}
 
                               {/* Price */}
-                              <p className={`font-bold text-primary tabular-nums ${
+                              <p className={`tabular-nums ${
                                 isFewProducts
                                   ? "text-sm"
-                                  : cardSize === "S" ? "text-[11px]" : "text-[12px]"
-                              }`}>
+                                  : cardSize === "S" ? "text-[11px]" : "text-[14px]"
+                              }`} style={{ color: '#1e40af', fontWeight: 600 }} dir="ltr">
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
                             </div>
