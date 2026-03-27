@@ -241,31 +241,44 @@ const AppsLauncher = () => {
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
   return (
-    <div className="min-h-full bg-background" dir="rtl">
+    <div style={{ minHeight: "100%", background: "#f1f5f9" }} dir="rtl">
       
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto px-8 pb-8" style={{ paddingTop: 48 }}>
         {/* Title */}
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl font-medium text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
-          <p className="text-sm text-muted-foreground">كل احتياج، تطبيق واحد.</p>
+        <div className="text-center space-y-2 mb-6">
+          <h2 style={{ fontSize: 32, fontWeight: 700, color: "#0D1B2E", fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
+          <p style={{ fontSize: 15, color: "#64748b" }}>كل احتياج. تطبيق واحد.</p>
         </div>
 
         {/* Search */}
-        <div className="flex justify-center">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
+        <div className="flex justify-center mb-8">
+          <div className="relative" style={{ width: 420 }}>
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#94a3b8" }} />
+            <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ابحث عن تطبيق..."
-              className="pr-10 rounded-lg bg-card h-10 text-sm"
-              style={{ border: "none", borderTop: "2px solid #5B9BD5" }}
+              style={{
+                width: "100%",
+                height: 44,
+                paddingRight: 40,
+                paddingLeft: 16,
+                borderRadius: 10,
+                background: "#ffffff",
+                border: "1.5px solid #dbeafe",
+                fontSize: 14,
+                color: "#0D1B2E",
+                outline: "none",
+                transition: "all 0.15s ease",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.boxShadow = "0 0 0 3px #eff6ff"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#dbeafe"; e.currentTarget.style.boxShadow = "none"; }}
             />
           </div>
         </div>
 
         {/* Apps Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {allFilteredApps.map((app, idx) => (
             <AppCard
               key={app.id}
@@ -281,9 +294,9 @@ const AppsLauncher = () => {
         </div>
 
         {totalResults === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
-            <Search className="h-8 w-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">لا توجد نتائج لـ "{search}"</p>
+          <div className="text-center py-16">
+            <Search className="h-8 w-8 mx-auto mb-3" style={{ color: "#94a3b8", opacity: 0.4 }} />
+            <p style={{ fontSize: 14, color: "#64748b" }}>لا توجد نتائج لـ "{search}"</p>
           </div>
         )}
       </div>
