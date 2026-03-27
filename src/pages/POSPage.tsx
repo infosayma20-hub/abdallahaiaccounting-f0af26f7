@@ -312,6 +312,14 @@ const POSPage = () => {
   const [cardSize, setCardSize] = useState<"S" | "M" | "L">(() => {
     return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "M";
   });
+  const [posDarkMode, setPosDarkMode] = useState(() => localStorage.getItem("pos-theme") === "dark");
+  const togglePosDark = useCallback(() => {
+    setPosDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem("pos-theme", next ? "dark" : "light");
+      return next;
+    });
+  }, []);
 
   // Employee account payment
   const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[]>([]);
