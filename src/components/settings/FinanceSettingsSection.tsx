@@ -19,14 +19,15 @@ const accountOptions = [
   { code: "1110", name: "الصندوق" },
   { code: "1120", name: "البنك" },
   { code: "1130", name: "ذمم عملاء" },
+  { code: "1140", name: "المخزون" },
   { code: "1150", name: "شيكات واردة" },
-  { code: "1200", name: "المخزون" },
   { code: "2110", name: "ذمم موردين" },
-  { code: "2200", name: "ضريبة مبيعات" },
-  { code: "2210", name: "ضريبة مشتريات" },
+  { code: "2130", name: "رواتب مستحقة" },
+  { code: "2140", name: "ضرائب مستحقة" },
   { code: "4100", name: "إيرادات المبيعات" },
-  { code: "5100", name: "مصروف الرواتب" },
-  { code: "5200", name: "تكلفة البضاعة" },
+  { code: "5100", name: "تكلفة المبيعات" },
+  { code: "5110", name: "المشتريات" },
+  { code: "5150", name: "الرواتب والأجور" },
 ];
 
 const AccountSelect = ({ value, onValueChange, label }: { value: string; onValueChange: (v: string) => void; label: string }) => (
