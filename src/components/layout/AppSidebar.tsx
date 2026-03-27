@@ -126,14 +126,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           }
         }}
         className={cn(
-          "w-full flex items-center rounded-lg transition-all duration-150 group relative",
-          collapsed ? "justify-center px-2 py-2.5" : "gap-3",
+          "w-full flex flex-row flex-nowrap items-center rounded-lg transition-all duration-150 group relative overflow-hidden",
+          collapsed ? "justify-center px-0 py-2" : "gap-3",
           disabled && "opacity-40 cursor-not-allowed",
         )}
         style={{
-          margin: "2px 8px",
-          width: "calc(100% - 16px)",
-          padding: collapsed ? undefined : "10px 12px",
+          margin: collapsed ? "2px 4px" : "2px 8px",
+          width: collapsed ? "calc(100% - 8px)" : "calc(100% - 16px)",
+          padding: collapsed ? "8px 0" : "10px 12px",
           fontSize: 14,
           fontWeight: isHighlighted && !disabled ? 500 : 400,
           color: disabled
