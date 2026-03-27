@@ -752,14 +752,14 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
     setSaving(true);
     try {
-      // 1. Find or create employee account under 1180
+      // 1. Find or create employee account under 2180
       let empAccountCode = "";
       const empAccName = `ذمم موظف - ${selectedEmp.full_name}`;
       const { data: existingAcc } = await supabase
         .from("accounts")
         .select("account_code")
         .eq("user_id", userId)
-        .eq("parent_code", "1180")
+        .eq("parent_code", "2180")
         .or(`account_name.eq.${empAccName},account_name.ilike.%${selectedEmp.full_name}%`)
         .limit(1)
         .maybeSingle();
@@ -767,16 +767,16 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
       if (existingAcc) {
         empAccountCode = existingAcc.account_code;
       } else {
-        // Get next available code under 1180
+        // Get next available code under 2180
         const { data: siblings } = await supabase
           .from("accounts")
           .select("account_code")
           .eq("user_id", userId)
-          .eq("parent_code", "1180")
+          .eq("parent_code", "2180")
           .order("account_code", { ascending: false })
           .limit(1);
 
-        const lastCode = siblings?.[0]?.account_code || "1180";
+        const lastCode = siblings?.[0]?.account_code || "21800";
         const nextNum = parseInt(lastCode) + 1;
         empAccountCode = String(nextNum);
 
@@ -784,8 +784,8 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
           user_id: userId,
           account_code: empAccountCode,
           account_name: empAccName,
-          account_type: "أصول",
-          parent_code: "1180",
+          account_type: "التزامات",
+          parent_code: "2180",
           is_active: true,
           is_system: false,
         });
@@ -832,7 +832,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
       if (instErr) throw instErr;
 
-      // 4. Create accounting entry: Debit employee account (1180.x), Credit selected cash box
+      // 4. Create accounting entry: Debit employee account (2180.x), Credit selected cash box
       const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
       const creditAccountCode = selectedBox?.gl_account_code || "1110";
       const creditLabel = selectedBox?.name || "الصندوق";
@@ -1021,7 +1021,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs space-y-1">
               <p className="font-semibold text-blue-700 dark:text-blue-400">📋 القيد المحاسبي الذي سيتم إنشاؤه:</p>
               <div className="flex justify-between">
-                <span>مدين: ذمم {selectedEmp.full_name} (1180.x)</span>
+                <span>مدين: ذمم {selectedEmp.full_name} (2180.x)</span>
                 <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
               </div>
               <div className="flex justify-between">

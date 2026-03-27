@@ -77,7 +77,7 @@ export default function HRDeductionsPage() {
         .from("accounts")
         .select("account_code, account_name")
         .eq("user_id", user!.id)
-        .eq("parent_code", "1180")
+        .eq("parent_code", "2180")
         .neq("is_active", false)
         .order("account_code");
 
