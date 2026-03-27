@@ -143,7 +143,7 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
-    toast.success("أهلاً بك في QOYOD قيود! 🎉");
+    toast.success("أهلاً بك في AMWALI أموالي! 🎉");
     navigate("/apps");
   };
 
@@ -177,7 +177,7 @@ const OnboardingPage = () => {
             {step === 1 && (
               <div className="text-center">
                 <div className="text-5xl mb-4">👋</div>
-                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في QOYOD!</h2>
+                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في AMWALI!</h2>
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
                   لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
                 </p>
@@ -353,7 +353,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن QOYOD؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن AMWALI؟</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {referralSources.map((r) => (
                     <button
@@ -368,7 +368,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ QOYOD؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ AMWALI؟</p>
                 <div className="flex flex-wrap gap-2">
                   {goalChips.map((g) => {
                     const selected = goals.includes(g);
@@ -391,7 +391,7 @@ const OnboardingPage = () => {
             {/* Step 6: App Tour */}
             {step === 6 && (
               <div className="text-center">
-                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في QOYOD!</h2>
+                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في AMWALI!</h2>
 
                 <div className="relative overflow-hidden rounded-2xl mb-6">
                   <AnimatePresence mode="wait">
@@ -425,7 +425,7 @@ const OnboardingPage = () => {
                           onClick={finishOnboarding}
                           className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
                         >
-                          ادخل إلى QOYOD ←
+                          ادخل إلى AMWALI ←
                         </button>
                       </motion.div>
                     )}

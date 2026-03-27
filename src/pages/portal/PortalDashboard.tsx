@@ -115,7 +115,7 @@ export default function PortalDashboard() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img
-            src={companyLogo || '/logo-icon-white.svg'}
+            src={companyLogo || '/logos/amwali-mark-white.png'}
             alt="Logo"
             style={{
               width: 34, height: 34, borderRadius: 8, objectFit: 'contain',

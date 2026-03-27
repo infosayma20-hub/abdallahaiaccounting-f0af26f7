@@ -335,7 +335,7 @@ const BankAccountsPage = () => {
                 <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "#E8A020", fontFamily: "Tajawal, sans-serif" }}>
                   ⚡ الربط بشجرة الحسابات
                 </h3>
-                <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات QOYOD</p>
+                <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات أموالي</p>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب البنك الرئيسي *</Label>
                   <AccountPicker accounts={accounts} value={glAccountCode} onChange={setGlAccountCode} placeholder="اختر حساب البنك..." />

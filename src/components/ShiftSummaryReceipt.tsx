@@ -340,7 +340,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             <div style={{ textAlign: "center", fontSize: 10, color: "#000", fontWeight: 600, lineHeight: 1.8 }}>
               هذا المستند صادر آلياً من النظام
               <br />
-              Powered by QOYOD
+              Powered by AMWALI
             </div>
           </div>
         </div>

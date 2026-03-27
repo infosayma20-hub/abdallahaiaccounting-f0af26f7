@@ -387,7 +387,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: t.textMuted }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
-        <div style={{ fontSize: 16, marginBottom: 8 }}>يجب ربط البوابة بحساب QOYOD أولاً</div>
+        <div style={{ fontSize: 16, marginBottom: 8 }}>يجب ربط البوابة بحساب AMWALI أولاً</div>
         <div style={{ fontSize: 13 }}>اذهب إلى الإعدادات لربط الحساب</div>
       </div>
     );

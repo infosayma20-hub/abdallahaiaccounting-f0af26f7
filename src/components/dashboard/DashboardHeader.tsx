@@ -77,7 +77,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground">نظام QOYOD — لوحة المعلومات</p>
+            <p className="text-[11px] text-muted-foreground">نظام AMWALI — لوحة المعلومات</p>
           </div>
         </div>
 

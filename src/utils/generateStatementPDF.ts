@@ -130,7 +130,7 @@ export const generateStatementPDF = (
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont('Amiri', 'bold');
-  doc.text(ar(company.name || 'QOYOD'), W - margin, 16, { align: 'right' });
+  doc.text(ar(company.name || 'AMWALI'), W - margin, 16, { align: 'right' });
 
   // Company details under name
   doc.setTextColor(200, 210, 220);
@@ -479,7 +479,7 @@ export const generateStatementPDF = (
   // Center: company name
   doc.setTextColor(...gold);
   doc.setFont('Amiri', 'bold');
-  doc.text(ar(company.name || 'QOYOD'), W / 2, H - 5, { align: 'center' });
+  doc.text(ar(company.name || 'AMWALI'), W / 2, H - 5, { align: 'center' });
 
   // Left: page number
   doc.setTextColor(255, 255, 255);

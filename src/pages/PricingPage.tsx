@@ -162,7 +162,7 @@ const PricingPage = () => {
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-[32px] font-extrabold text-white mb-3" style={{ fontFamily: "Tajawal" }}>
-              <span className="text-[hsl(43,55%,54%)]">QOYOD</span>
+              <span className="text-[hsl(43,55%,54%)]">AMWALI</span>
             </h1>
             <h2 className="text-[32px] font-extrabold text-white mb-3">
               اختر الخطة المناسبة لعملك

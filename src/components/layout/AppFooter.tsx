@@ -16,7 +16,7 @@ const AppFooter = () => {
       }}
     >
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-        <span>QOYOD © {year}</span>
+        <span>AMWALI © {year}</span>
         <span className="hidden sm:inline" style={{ color: "#D1D5DB" }}>|</span>
         <div className="flex items-center gap-3">
           <Link to="/terms" className="hover:text-foreground transition-colors">

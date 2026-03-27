@@ -30,7 +30,7 @@ export async function getDeviceFingerprint(): Promise<string> {
       ctx.fillStyle = "#f60";
       ctx.fillRect(125, 1, 62, 20);
       ctx.fillStyle = "#069";
-      ctx.fillText("QOYOD-POS", 2, 15);
+      ctx.fillText("AMWALI-POS", 2, 15);
       components.push(canvas.toDataURL().slice(-50));
     }
   } catch { /* ignore */ }
