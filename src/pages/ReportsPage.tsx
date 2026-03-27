@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   Search, Star, ChevronDown, ChevronUp,
   Scale, BarChart3, Landmark, FileText, Users, Package, Receipt,
