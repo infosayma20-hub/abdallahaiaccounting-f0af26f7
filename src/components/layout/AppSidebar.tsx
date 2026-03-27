@@ -166,8 +166,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         )}>
           <item.icon className={cn(
             "h-[18px] w-[18px] transition-colors",
-            disabled ? "text-white/30" : isHighlighted ? (item.color || "text-primary") : "text-white/70"
-          )} />
+            disabled ? "text-white/30" : isHighlighted ? (item.color || "text-primary") : ""
+          )} style={!disabled && !isHighlighted ? { color: "rgba(255,255,255,0.4)" } : undefined} />
         </div>
         {!collapsed && (
           <>
