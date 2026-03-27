@@ -47,52 +47,61 @@ const AppCard = ({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.35, ease: "easeOut" }}
-      className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${
-        isLocked
-          ? "border border-border/30 bg-muted/20 opacity-40 cursor-not-allowed"
-          : disabled
-          ? "border border-border/30 bg-muted/20 opacity-50 grayscale cursor-not-allowed"
-          : isExpanded
-          ? "border-2 border-primary/30 bg-white shadow-lg"
-          : "border border-border/60 bg-white shadow-sm hover:shadow-xl hover:border-primary/25 hover:-translate-y-1 transition-transform"
-      }`}
-      style={!isDisabledOrLocked ? { borderTop: "3px solid #5B9BD5" } : undefined}
+      className="relative rounded-[14px] overflow-hidden cursor-pointer"
+      style={{
+        background: isLocked ? "#f8fafc" : "#ffffff",
+        border: isLocked ? "1.5px solid #e2e8f0" : "1.5px solid #dbeafe",
+        transition: "all 0.15s ease",
+        ...(isDisabledOrLocked ? { opacity: 0.5 } : {}),
+      }}
+      onMouseEnter={(e) => {
+        if (isDisabledOrLocked) return;
+        e.currentTarget.style.borderColor = "#3b82f6";
+        e.currentTarget.style.boxShadow = "0 0 0 3px #eff6ff";
+        e.currentTarget.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        if (isDisabledOrLocked) return;
+        e.currentTarget.style.borderColor = "#dbeafe";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <button
         onClick={handleClick}
-        className={`w-full flex flex-col items-center gap-2 p-4 pb-3 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
+        className={`w-full flex flex-col items-center gap-2 p-5 pb-4 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
       >
         <div
-          className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center transition-all duration-300 border ${
+          className={`w-[52px] h-[52px] rounded-xl flex items-center justify-center transition-all duration-300 ${
             isDisabledOrLocked
-              ? "bg-muted/40 border-border/20"
-              : `${app.bgColor || "bg-primary/8"} border-border/40 group-hover:scale-110 group-hover:shadow-md`
+              ? "grayscale"
+              : `${app.bgColor || "bg-primary/8"} group-hover:scale-110`
           }`}
         >
           {isLocked ? (
-            <Lock className="h-5 w-5 text-muted-foreground/40" />
+            <Lock className="h-5 w-5" style={{ color: "#cbd5e1" }} />
           ) : (
             <app.icon className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
         </div>
 
-        <div className="space-y-0.5">
+        <div className="space-y-1">
           <div className="flex items-center justify-center gap-1.5">
-            <p className={`text-[13px] font-medium ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: isDisabledOrLocked ? "#94a3b8" : "#0D1B2E" }}>
               {app.label}
             </p>
             {!isDisabledOrLocked && app.isNew && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground leading-relaxed max-w-[180px] mx-auto line-clamp-2">
+          <p style={{ fontSize: 12, color: isLocked ? "#94a3b8" : "#64748b", lineHeight: 1.5, maxWidth: 180, margin: "0 auto" }} className="line-clamp-2">
             {isLocked ? "🔒 غير متاح" : disabled ? "غير مفعّل" : app.description}
           </p>
         </div>
 
         {/* Expand indicator */}
         {!isDisabledOrLocked && hasChildren && (
-          <ChevronDown className={`h-4 w-4 text-muted-foreground/40 transition-transform duration-300 ${isExpanded ? "rotate-180 text-primary" : ""}`} />
+          <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} style={{ color: isExpanded ? "#3b82f6" : "#94a3b8" }} />
         )}
       </button>
 
@@ -102,20 +111,24 @@ const AppCard = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
-          className="border-t border-border/30 px-4 pb-4 pt-2 space-y-1"
+          className="px-4 pb-4 pt-2 space-y-1"
+          style={{ borderTop: "1px solid #e2e8f0" }}
         >
           {app.groups!.map((group) => (
             <div key={group.groupLabel || "default"}>
               {group.groupLabel && (
-                <p className="text-[10px] font-bold text-muted-foreground/50 px-3 pt-2 pb-1">{group.groupLabel}</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", padding: "8px 12px 4px" }}>{group.groupLabel}</p>
               )}
               {group.children.map((child) => (
                 <button
                   key={child.path + child.label}
                   onClick={() => onNavigate(child.path)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-foreground hover:bg-primary/5 hover:text-primary transition-all text-right"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] transition-all text-right"
+                  style={{ color: "#0D1B2E" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#eff6ff"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  <ArrowLeft className="h-3 w-3 text-muted-foreground/40" />
+                  <ArrowLeft className="h-3 w-3" style={{ color: "#94a3b8" }} />
                   <span>{child.label}</span>
                 </button>
               ))}
