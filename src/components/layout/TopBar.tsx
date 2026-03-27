@@ -110,24 +110,31 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => { (acc[r.type] = acc[r.type] || []).push(r); return acc; }, {});
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-[560px]">
-      <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none z-10" strokeWidth={2} />
-      {loading && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10"><div className="h-4 w-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" /></div>}
-      {query && !loading && <button onClick={() => { setQuery(""); setResults([]); }} className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
+    <div ref={containerRef} className="relative w-full max-w-[340px]">
+      <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10" strokeWidth={2} style={{ color: "rgba(255,255,255,0.4)" }} />
+      {loading && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10"><div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /></div>}
+      {query && !loading && <button onClick={() => { setQuery(""); setResults([]); }} className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 hover:text-white" style={{ color: "rgba(255,255,255,0.5)" }}><X className="h-4 w-4" /></button>}
       <input
         ref={inputRef}
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder="ابحث عن معاملة، عميل، مورد، حساب..."
-        className={cn(
-          "w-full h-11 pr-10 pl-10 rounded-xl",
-          "bg-white border-2 border-[#5B9BD5]/40",
-          "text-sm text-foreground placeholder:text-muted-foreground/60",
-          "focus:outline-none focus:border-[#1B3A5C] focus:ring-[3px] focus:ring-[#5B9BD5]/20 focus:bg-white",
-          "transition-all duration-150 shadow-sm"
-        )}
+        placeholder="ابحث عن معاملة، عميل..."
+        style={{
+          width: "100%",
+          height: 36,
+          paddingRight: 40,
+          paddingLeft: 40,
+          borderRadius: 8,
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          color: "#fff",
+          fontSize: 13,
+          outline: "none",
+        }}
+        onFocusCapture={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; }}
+        onBlurCapture={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
       />
       {showResults && query.trim().length > 0 && (
         <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-[420px] overflow-y-auto">
@@ -309,7 +316,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
-    <header className="sticky top-0 z-40 bg-card border-b border-border" style={{ height: 60, boxShadow: "0 1px 4px rgba(13,27,42,0.06)" }}>
+    <header className="sticky top-0 z-40" style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
       <div className="h-full flex items-center gap-4 px-4 sm:px-6">
         <Tooltip>
           <TooltipTrigger asChild>
