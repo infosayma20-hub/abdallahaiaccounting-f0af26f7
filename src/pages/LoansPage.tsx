@@ -832,7 +832,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
       if (instErr) throw instErr;
 
-      // 4. Create accounting entry: Debit employee account (1180.x), Credit selected cash box
+      // 4. Create accounting entry: Debit employee account (2180.x), Credit selected cash box
       const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
       const creditAccountCode = selectedBox?.gl_account_code || "1110";
       const creditLabel = selectedBox?.name || "الصندوق";
@@ -1021,7 +1021,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-3 text-xs space-y-1">
               <p className="font-semibold text-blue-700 dark:text-blue-400">📋 القيد المحاسبي الذي سيتم إنشاؤه:</p>
               <div className="flex justify-between">
-                <span>مدين: ذمم {selectedEmp.full_name} (1180.x)</span>
+                <span>مدين: ذمم {selectedEmp.full_name} (2180.x)</span>
                 <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
               </div>
               <div className="flex justify-between">
