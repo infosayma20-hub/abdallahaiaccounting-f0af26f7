@@ -8,7 +8,7 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-const BRIDGE_URL = "http://localhost:3001";
+const BRIDGE_URL = "http://192.168.1.65:3001";
 
 export interface PrintItem {
   id: string;
