@@ -3581,291 +3581,223 @@ const POSPage = () => {
             onNewTable={() => navigate("/pos/floor-plan/edit")}
           />
 
-          {/* ── Compact Category Chips — max 2 rows ── */}
-          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
-            {isSortMode && (
-              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
+          {/* ── Action buttons (sort mode + add) ── */}
+          {isSortMode && (
+            <div className="px-3 py-1.5 border-b border-border/70 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
                 <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات</span>
               </div>
-            )}
-            <DndContext
-              sensors={dndSensors}
-              collisionDetection={closestCenter}
-              onDragStart={(e: DragStartEvent) => setDragActiveId(String(e.active.id))}
-              onDragEnd={handleCategoryDragEnd}
-            >
-              <SortableContext
-                items={categoriesWithCounts.categories.map(c => c.id)}
-                strategy={horizontalListSortingStrategy}
-                disabled={!isSortMode}
+            </div>
+          )}
+
+          {/* ── Admin action bar ── */}
+          {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
+            <div className="px-3 py-1.5 border-b border-border/70 bg-muted/20 shrink-0 flex items-center gap-2">
+              <button
+                onClick={() => setShowCategoryManager(true)}
+                className="h-7 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
               >
-                <div className="flex flex-wrap gap-1.5 items-stretch">
-                  {/* All */}
-                  <button
-                    onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border min-w-[68px] px-2 py-1.5 transition-all ${
-                      selectedCategory === "الكل"
-                        ? "bg-primary text-primary-foreground border-primary shadow-md"
-                        : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground hover:shadow-sm"
-                    }`}
-                  >
-                    <LayoutGrid className="h-4 w-4 shrink-0" />
-                    <span className="text-[10px] font-semibold leading-tight">الكل</span>
-                    <span className="text-[9px] opacity-70 leading-none">({categoriesWithCounts.all})</span>
-                  </button>
+                + تصنيف
+              </button>
+              <button
+                onClick={() => setShowAddProduct(true)}
+                className="h-7 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap border border-dashed border-primary/30 text-primary hover:bg-primary/10 transition-all"
+              >
+                ⊕ منتج
+              </button>
+            </div>
+          )}
 
-                  {categoriesWithCounts.categories.map((cat) => (
-                    <SortableCategoryChip
-                      key={cat.id}
-                      cat={cat}
-                      isActive={selectedCategory === cat.name}
-                      isSortMode={isSortMode}
-                      isDragging={dragActiveId === cat.id}
-                      onClick={() => !isSortMode && setSelectedCategory(cat.name)}
-                    />
-                  ))}
-
-                  {categoriesWithCounts.uncategorized > 0 && (
-                    <button
-                      onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border min-w-[68px] px-2 py-1.5 transition-all ${
-                        selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
-                          : "bg-card text-muted-foreground border-border hover:shadow-sm"
-                      }`}
-                    >
-                      <Package className="h-4 w-4 shrink-0" />
-                      <span className="text-[10px] font-semibold leading-tight">أخرى</span>
-                      <span className="text-[9px] opacity-70 leading-none">({categoriesWithCounts.uncategorized})</span>
-                    </button>
-                  )}
-
-                  {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
-                    <>
-                      <button
-                        onClick={() => setShowCategoryManager(true)}
-                        className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-border min-w-[68px] px-2 py-1.5 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
-                      >
-                        <PlusCircle className="h-4 w-4 shrink-0" />
-                        <span className="text-[10px] font-medium leading-tight">تصنيف</span>
-                      </button>
-                      <button
-                        onClick={() => setShowAddProduct(true)}
-                        className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-primary/30 min-w-[68px] px-2 py-1.5 text-primary hover:bg-primary/10 transition-all"
-                      >
-                        <Plus className="h-4 w-4 shrink-0" />
-                        <span className="text-[10px] font-medium leading-tight">منتج</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
-
-
-          {/* ── Products Grid ── */}
+          {/* ── Products by Category — Reports-style sections ── */}
           <ScrollArea className="flex-1">
-            <DndContext
-              sensors={dndSensors}
-              collisionDetection={closestCenter}
-              onDragStart={(e: DragStartEvent) => setDragActiveId(String(e.active.id))}
-              onDragEnd={handleProductDragEnd}
-            >
-              <SortableContext
-                items={filteredProducts.map(p => p.id)}
-                strategy={rectSortingStrategy}
-                disabled={!isSortMode}
-              >
-                <div dir="rtl" className={`p-2 grid ${
-                  filteredProducts.length <= 10 && filteredProducts.length > 0
-                    ? filteredProducts.length <= 3
-                      ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3"
-                      : filteredProducts.length <= 6
-                        ? "grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3"
-                        : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2"
-                    : cardSize === "S" 
-                      ? "grid-cols-6 sm:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-11 gap-1.5" 
-                      : cardSize === "M" 
-                        ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9 gap-1.5" 
-                        : "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2"
-                }`}>
-                  {filteredProducts.map((product) => {
-                    const productColor = getProductCatColor(product);
-                    const catConfig = getCatConfig(product.category);
-                    const CatIcon = catConfig.icon;
-                    const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
-                    const qtyInCart = cartQtyMap[product.id] || 0;
-                    const isFewProducts = filteredProducts.length <= 10;
+            <div dir="rtl" className="p-4 space-y-8">
+              {groupedByCategory.length > 0 ? (
+                groupedByCategory.map(({ cat, products: catProducts }) => {
+                  const CatSectionIcon = getCategoryIcon(cat.name);
+                  return (
+                    <div key={cat.id} className="space-y-3">
+                      {/* Section Header — like reports */}
+                      <div className="flex flex-col items-center text-center gap-2 pb-1">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center"
+                          style={{ backgroundColor: cat.color + '14', border: `1.5px solid ${cat.color}30` }}
+                        >
+                          <CatSectionIcon className="h-5 w-5" style={{ color: cat.color }} />
+                        </div>
+                        <h3 className="text-sm font-bold text-foreground">
+                          {cat.name}
+                          <span className="text-xs font-normal text-muted-foreground mr-1.5">({catProducts.length})</span>
+                        </h3>
+                      </div>
 
-                    return (
-                      <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
-                        {({ isDragging, style, ref, listeners, attributes }) => {
-                          const hasAddons = !!(productModifierMap[product.id]?.length);
-                          const isAddonOpen = openAddonProductId === product.id;
-                          const addonGroups = hasAddons ? modifierGroups.filter(g => productModifierMap[product.id]?.includes(g.id)) : [];
+                      {/* Products Grid */}
+                      <div className={`grid ${
+                        cardSize === "S" 
+                          ? "grid-cols-6 sm:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-11 gap-1.5" 
+                          : cardSize === "M" 
+                            ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9 gap-1.5" 
+                            : "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2"
+                      }`}>
+                        {catProducts.map((product) => {
+                          const productColor = cat.color;
+                          const catConfig = getCatConfig(product.category);
+                          const CatIcon = catConfig.icon;
+                          const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
+                          const qtyInCart = cartQtyMap[product.id] || 0;
 
                           return (
-                          <div
-                            ref={ref}
-                            {...attributes}
-                            {...listeners}
-                            data-addon-card={isAddonOpen ? "true" : undefined}
-                            onClick={() => !isSortMode && addToCart(product)}
-                            className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
-                              cardSize === "S" ? "rounded-lg" : "rounded-xl"
-                            } ${isSortMode 
-                              ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
-                              : isAddonOpen
-                                ? "border-primary bg-accent shadow-lg"
-                                : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
-                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
-                            style={{
-                              ...style,
-                              borderBottomWidth: cardSize === "S" ? "2px" : "3px",
-                              borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
-                              zIndex: isAddonOpen ? 10 : "auto",
-                            }}
-                          >
-                            {/* Sort mode grip icon */}
-                            {isSortMode && (
-                              <div className="absolute top-0.5 right-0.5 z-10">
-                                <GripVertical className="h-3 w-3 text-amber-500/70" />
-                              </div>
-                            )}
+                            <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
+                              {({ isDragging, style, ref, listeners, attributes }) => {
+                                const hasAddons = !!(productModifierMap[product.id]?.length);
+                                const isAddonOpen = openAddonProductId === product.id;
+                                const addonGroups = hasAddons ? modifierGroups.filter(g => productModifierMap[product.id]?.includes(g.id)) : [];
 
-                            {/* Cart qty badge */}
-                            {qtyInCart > 0 && !isSortMode && (
-                              <div
-                                className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
-                                  cardSize === "S" 
-                                    ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
-                                    : "min-w-[22px] h-[22px] text-[11px] px-1"
-                                }`}
-                              >
-                                {qtyInCart}
-                              </div>
-                            )}
-
-                            {/* Delete product button */}
-                            {!isSortMode && (isAdmin || posPerms.delete_products) && (
-                              <button
-                                className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
-                                title="حذف المنتج"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            )}
-
-                            {/* Low stock indicator */}
-                            {isLowStock && !isSortMode && (
-                              <div className={`absolute ${(isAdmin || posPerms.delete_products) ? "top-7" : "top-1"} right-1 z-10`}>
-                                <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                              </div>
-                            )}
-
-                            {/* Product visual */}
-                            <div className={
-                              cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
-                            }>
-                              {/* Icon/Image - hidden in S size */}
-                              {cardSize !== "S" && (
-                                product.image_url ? (
-                                  <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
-                                    cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
-                                  }`}>
-                                    <img
-                                      src={product.image_url}
-                                      alt={product.name}
-                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                      }}
-                                    />
-                                    <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
-                                      <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div
-                                    className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
-                                      cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
-                                    }`}
-                                    style={{ backgroundColor: productColor + "10" }}
-                                  >
-                                    <CatIcon 
-                                      className={`transition-transform duration-200 group-hover:scale-110 ${
-                                        cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
-                                      }`} 
-                                      style={{ color: productColor + "80" }} 
-                                    />
-                                  </div>
-                                )
-                              )}
-
-                              {/* Name */}
-                              <p className={`font-semibold text-foreground leading-tight mb-0.5 break-words ${
-                                isFewProducts
-                                  ? "text-[13px] font-bold"
-                                  : cardSize === "S" 
-                                    ? "text-[12px]" 
-                                    : "text-[12px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
-                                {product.name}
-                              </p>
-
-                              {/* Addon hint */}
-                              {cardSize !== "S" && hasAddons && (
-                                <p className="text-[9px] text-muted-foreground mb-0.5">
-                                  {addonGroups.length} إضافة متاحة
-                                </p>
-                              )}
-
-                              {/* Price */}
-                              <p className={`font-bold text-primary tabular-nums ${
-                                isFewProducts
-                                  ? "text-sm"
-                                  : cardSize === "S" ? "text-[11px]" : "text-[12px]"
-                              }`}>
-                                ₪{product.sell_price.toFixed(2)}
-                              </p>
-                            </div>
-
-                            {/* Inline Addon Panel */}
-                            <AnimatePresence>
-                              {isAddonOpen && addonGroups.length > 0 && (
-                                <InlineAddonPanel
-                                  product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
-                                  groups={addonGroups}
-                                  onConfirm={(data) => {
-                                    addToCartDirect(product, data.modifiers, data.note, data.quantity);
-                                    setOpenAddonProductId(null);
-                                    toast.success(`✓ أضيف للطلب — ${product.name}`);
+                                return (
+                                <div
+                                  ref={ref}
+                                  {...attributes}
+                                  {...listeners}
+                                  data-addon-card={isAddonOpen ? "true" : undefined}
+                                  onClick={() => !isSortMode && addToCart(product)}
+                                  className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
+                                    cardSize === "S" ? "rounded-lg" : "rounded-xl"
+                                  } ${isSortMode 
+                                    ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
+                                    : isAddonOpen
+                                      ? "border-primary bg-accent shadow-lg"
+                                      : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
+                                  } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
+                                  style={{
+                                    ...style,
+                                    borderBottomWidth: cardSize === "S" ? "2px" : "3px",
+                                    borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
+                                    zIndex: isAddonOpen ? 10 : "auto",
                                   }}
-                                  onClose={() => setOpenAddonProductId(null)}
-                                />
-                              )}
-                            </AnimatePresence>
-                          </div>
-                          );
-                        }}
-                      </SortableProductCard>
-                    );
-                  })}
+                                >
+                                  {isSortMode && (
+                                    <div className="absolute top-0.5 right-0.5 z-10">
+                                      <GripVertical className="h-3 w-3 text-amber-500/70" />
+                                    </div>
+                                  )}
 
-                  {filteredProducts.length === 0 && (
-                    <div className="col-span-full py-20 text-center text-muted-foreground">
-                      <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
-                      <p className="text-xs text-muted-foreground/60">لا توجد منتجات في هذا التصنيف</p>
+                                  {qtyInCart > 0 && !isSortMode && (
+                                    <div
+                                      className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
+                                        cardSize === "S" 
+                                          ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
+                                          : "min-w-[22px] h-[22px] text-[11px] px-1"
+                                      }`}
+                                    >
+                                      {qtyInCart}
+                                    </div>
+                                  )}
+
+                                  {!isSortMode && (isAdmin || posPerms.delete_products) && (
+                                    <button
+                                      className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
+                                      title="حذف المنتج"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  )}
+
+                                  {isLowStock && !isSortMode && (
+                                    <div className={`absolute ${(isAdmin || posPerms.delete_products) ? "top-7" : "top-1"} right-1 z-10`}>
+                                      <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                                    </div>
+                                  )}
+
+                                  <div className={
+                                    cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
+                                  }>
+                                    {cardSize !== "S" && (
+                                      product.image_url ? (
+                                        <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
+                                          cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                                        }`}>
+                                          <img
+                                            src={product.image_url}
+                                            alt={product.name}
+                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                            onError={(e) => {
+                                              (e.target as HTMLImageElement).style.display = 'none';
+                                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                            }}
+                                          />
+                                          <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
+                                            <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div
+                                          className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
+                                            cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                                          }`}
+                                          style={{ backgroundColor: productColor + "10" }}
+                                        >
+                                          <CatIcon 
+                                            className={`transition-transform duration-200 group-hover:scale-110 ${
+                                              cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
+                                            }`} 
+                                            style={{ color: productColor + "80" }} 
+                                          />
+                                        </div>
+                                      )
+                                    )}
+
+                                    <p className={`font-semibold text-foreground leading-tight mb-0.5 break-words ${
+                                      cardSize === "S" ? "text-[12px]" : "text-[12px]"
+                                    }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
+                                      {product.name}
+                                    </p>
+
+                                    {cardSize !== "S" && hasAddons && (
+                                      <p className="text-[9px] text-muted-foreground mb-0.5">
+                                        {addonGroups.length} إضافة متاحة
+                                      </p>
+                                    )}
+
+                                    <p className={`font-bold text-primary tabular-nums ${
+                                      cardSize === "S" ? "text-[11px]" : "text-[12px]"
+                                    }`}>
+                                      ₪{product.sell_price.toFixed(2)}
+                                    </p>
+                                  </div>
+
+                                  <AnimatePresence>
+                                    {isAddonOpen && addonGroups.length > 0 && (
+                                      <InlineAddonPanel
+                                        product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
+                                        groups={addonGroups}
+                                        onConfirm={(data) => {
+                                          addToCartDirect(product, data.modifiers, data.note, data.quantity);
+                                          setOpenAddonProductId(null);
+                                          toast.success(`✓ أضيف للطلب — ${product.name}`);
+                                        }}
+                                        onClose={() => setOpenAddonProductId(null)}
+                                      />
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                                );
+                              }}
+                            </SortableProductCard>
+                          );
+                        })}
+                      </div>
                     </div>
-                  )}
+                  );
+                })
+              ) : (
+                <div className="py-20 text-center text-muted-foreground">
+                  <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
+                  <p className="text-xs text-muted-foreground/60">لا توجد منتجات</p>
                 </div>
-              </SortableContext>
-            </DndContext>
+              )}
+            </div>
           </ScrollArea>
         </div>
 
