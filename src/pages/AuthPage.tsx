@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { QOYOD_COLORS as C } from "@/constants/colors";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -164,7 +163,7 @@ const AuthPage = () => {
       {/* LEFT panel — brand showcase with animated canvas (desktop only) */}
       <div
         className="hidden lg:flex lg:w-[48%] relative overflow-hidden"
-        style={{ background: C.navy.primary }}
+        style={{ background: "linear-gradient(135deg, #0a1628 0%, #0d2040 50%, #0a1628 100%)" }}
       >
         <Suspense fallback={null}>
           <FinancialCanvas />
@@ -189,7 +188,7 @@ const AuthPage = () => {
               ))}
             </div>
 
-            <p className="text-lg font-bold mt-8" style={{ color: C.gold.primary, fontFamily: "Tajawal" }}>
+            <p className="text-lg font-bold mt-8" style={{ color: "#E8A020", fontFamily: "Tajawal" }}>
               أعمالك في أبهى صورها
             </p>
           </div>
@@ -300,15 +299,11 @@ const AuthPage = () => {
                 <button
                   type="submit"
                   disabled={loading || (mode === "signup" && !agreedToTerms)}
-                  className="w-full h-12 rounded-lg text-base font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                  className="w-full h-12 rounded-lg text-base font-bold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   style={{
-                    background: C.gold.primary,
-                    boxShadow: `0 4px 12px ${C.gold.shadow}`,
+                    background: "linear-gradient(135deg, #E8A020, #F45E0C)",
+                    boxShadow: "0 4px 14px rgba(232,160,32,0.3)",
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.gold.hover}
-                  onMouseLeave={e => e.currentTarget.style.background = C.gold.primary}
-                  onMouseDown={e => e.currentTarget.style.background = C.gold.active}
-                  onMouseUp={e => e.currentTarget.style.background = C.gold.hover}
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {mode === "login" ? "دخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة"}
@@ -326,19 +321,19 @@ const AuthPage = () => {
                 </button>
                 <p className="text-sm text-muted-foreground">
                   ليس لديك حساب؟{" "}
-                  <button onClick={() => setMode("signup")} className="font-semibold hover:underline" style={{ color: C.gold.primary }}>أنشئ حساب مجاناً</button>
+                  <button onClick={() => setMode("signup")} className="text-accent font-semibold hover:underline">أنشئ حساب مجاناً</button>
                 </p>
               </>
             )}
             {mode === "signup" && (
               <p className="text-sm text-muted-foreground">
                 لديك حساب؟{" "}
-                <button onClick={() => setMode("login")} className="font-semibold hover:underline" style={{ color: C.gold.primary }}>تسجيل الدخول</button>
+                <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">تسجيل الدخول</button>
               </p>
             )}
             {mode === "forgot" && (
               <p className="text-sm text-muted-foreground">
-                <button onClick={() => setMode("login")} className="font-semibold hover:underline" style={{ color: C.gold.primary }}>العودة لتسجيل الدخول</button>
+                <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">العودة لتسجيل الدخول</button>
               </p>
             )}
           </div>

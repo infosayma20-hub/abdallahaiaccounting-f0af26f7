@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { QOYOD_COLORS as C } from "@/constants/colors";
 
 interface Node {
   x: number;
@@ -89,7 +88,7 @@ const FinancialCanvas = () => {
 
       // Layer 2: Perspective grid
       gridOffset = (gridOffset + 0.15) % 40;
-      ctx.strokeStyle = "rgba(201, 168, 76, 0.08)";
+      ctx.strokeStyle = "rgba(232, 160, 32, 0.08)";
       ctx.lineWidth = 0.5;
       const gridSpacing = 40;
       for (let i = -gridSpacing; i < w + gridSpacing; i += gridSpacing) {
@@ -102,7 +101,7 @@ const FinancialCanvas = () => {
         const yy = (j + gridOffset) % h;
         const scale = 0.5 + (yy / h) * 0.5;
         ctx.globalAlpha = scale * 0.15;
-        ctx.strokeStyle = "rgba(201, 168, 76, 1)";
+        ctx.strokeStyle = "rgba(232, 160, 32, 1)";
         ctx.beginPath();
         ctx.moveTo(0, yy);
         ctx.lineTo(w, yy);
@@ -120,7 +119,7 @@ const FinancialCanvas = () => {
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < connectionDist) {
             const alpha = (1 - dist / connectionDist) * 0.2;
-            ctx.strokeStyle = `rgba(201, 168, 76, ${alpha})`;
+            ctx.strokeStyle = `rgba(232, 160, 32, ${alpha})`;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -142,15 +141,15 @@ const FinancialCanvas = () => {
 
         // Glow
         const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.radius * 4);
-        grad.addColorStop(0, `rgba(201, 168, 76, ${n.opacity * pulse})`);
-        grad.addColorStop(1, "rgba(201, 168, 76, 0)");
+        grad.addColorStop(0, `rgba(232, 160, 32, ${n.opacity * pulse})`);
+        grad.addColorStop(1, "rgba(232, 160, 32, 0)");
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius * 4, 0, Math.PI * 2);
         ctx.fill();
 
         // Core
-        ctx.fillStyle = `rgba(201, 168, 76, ${n.opacity * pulse})`;
+        ctx.fillStyle = `rgba(232, 160, 32, ${n.opacity * pulse})`;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -159,7 +158,7 @@ const FinancialCanvas = () => {
       // Layer 4: Chart lines
       chartPhase += 0.005;
       for (let c = 0; c < 3; c++) {
-        ctx.strokeStyle = `rgba(201, 168, 76, ${0.15 + c * 0.05})`;
+        ctx.strokeStyle = `rgba(232, 160, 32, ${0.15 + c * 0.05})`;
         ctx.lineWidth = 1.5 - c * 0.3;
         ctx.beginPath();
         const baseY = h * (0.5 + c * 0.12);
@@ -195,7 +194,7 @@ const FinancialCanvas = () => {
           continue;
         }
 
-        ctx.fillStyle = `rgba(201, 168, 76, ${l.opacity * 0.45})`;
+        ctx.fillStyle = `rgba(232, 160, 32, ${l.opacity * 0.45})`;
         ctx.fillText(l.text, l.x, l.y);
       }
 
