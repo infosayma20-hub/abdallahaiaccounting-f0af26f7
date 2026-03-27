@@ -639,6 +639,15 @@ const ChequesPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
   const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  useEffect(() => {
+    if (user) {
+      fetchCheques();
+      fetchContacts();
+      fetchAccounts();
+      fetchBankAccounts();
+    }
+  }, [user]);
+
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus]);
 
   const toggleSort = (key: SortKey) => {
