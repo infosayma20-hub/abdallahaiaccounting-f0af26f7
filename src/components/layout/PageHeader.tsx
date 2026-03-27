@@ -46,7 +46,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   };
 
   return (
-    <div className="mb-6">
+    <div>
       {breadcrumb && breadcrumb.length > 0 && (
         <div className="mb-3 flex items-center gap-1 justify-end flex-wrap" dir="rtl"
           style={{ fontSize: 13 }}
@@ -76,19 +76,23 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
         </div>
       )}
       <div
-        className="w-full"
+        className="w-full flex items-center justify-between"
         style={{
           backgroundColor: "#1B3A5C",
-          padding: "18px 24px",
+          borderRadius: 12,
+          padding: "10px 20px",
+          height: 44,
+          margin: "0 0 16px 0",
         }}
       >
         <h1
           className="text-right"
           style={{
             fontFamily: "Tajawal, sans-serif",
-            fontSize: 22,
+            fontSize: 18,
             fontWeight: 500,
             color: "#FFFFFF",
+            lineHeight: 1,
           }}
         >
           {title}
