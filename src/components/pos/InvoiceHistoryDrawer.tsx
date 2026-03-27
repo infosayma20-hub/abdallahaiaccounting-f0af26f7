@@ -914,7 +914,6 @@ export default function InvoiceHistoryDrawer({
                   className="gap-1.5 text-xs"
                   onClick={() => {
                     // Use bridge for silent printing
-                    const { sendToBridge } = require("@/lib/print-bridge-client");
                     const paymentLabel = orderPayments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).join(", ") || "---";
                     const bridgeOrder = {
                       orderNumber: selectedOrder.order_number || "---",
