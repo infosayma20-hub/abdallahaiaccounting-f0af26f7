@@ -1368,8 +1368,9 @@ const POSPage = () => {
     setPosCustomerResults((data as POSCustomer[]) || []);
   }, [dataOwnerId]);
 
-  const handleQuickAddCustomer = async () => {
-    if (!newCustomerName.trim() || !dataOwnerId) return;
+  const handleQuickAddCustomer = async (overrideName?: string) => {
+    const nameToUse = overrideName || newCustomerName;
+    if (!nameToUse.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
     try {
       // Save only to pos_customers (separate from main contacts)
@@ -1377,7 +1378,7 @@ const POSPage = () => {
         .from("pos_customers")
         .insert({
           user_id: dataOwnerId,
-          name: newCustomerName.trim(),
+          name: nameToUse.trim(),
           whatsapp: newCustomerPhone.trim() || null,
           address: newCustomerAddress.trim() || null,
           total_visits: 0,
