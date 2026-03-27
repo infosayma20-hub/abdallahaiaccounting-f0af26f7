@@ -359,13 +359,7 @@ const OrdersPage = () => {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">الطلبيات</h1>
-            <p className="text-sm text-muted-foreground">إدارة الطلبيات والمتاجر الإلكترونية</p>
-          </div>
-        </div>
+        <PageHeader title="الطلبيات" breadcrumb={["المبيعات", "الطلبيات"]} />
         <Button onClick={() => { setForm({ ...defaultForm }); setItems([]); setEditingId(null); setShowForm(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> طلبية جديدة
         </Button>

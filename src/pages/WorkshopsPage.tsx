@@ -1361,13 +1361,7 @@ export default function WorkshopsPage() {
     <div className="min-h-full bg-background pb-24" dir="rtl">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <BackButton />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">🪵 إدارة الورشات والمناجر</h1>
-              <p className="text-sm text-muted-foreground">إدارة ورشات العمل وتتبع التكاليف — مرتبط بالمحاسبة</p>
-            </div>
-          </div>
+          <PageHeader title="إدارة الورشات والمناجر" breadcrumb={["الرئيسية", "إدارة الورشات والمناجر"]} />
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setView("reports")}><BarChart3 className="h-4 w-4 ml-1" /> التقارير</Button>
             <Button onClick={() => setShowNewWorkshop(true)} className="gap-2"><Plus className="h-4 w-4" /> ورشة جديدة</Button>

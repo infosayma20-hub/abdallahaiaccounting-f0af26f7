@@ -615,13 +615,7 @@ export default function POSUserManagementPage() {
   return (
     <div className="min-h-screen p-4 md:p-6 space-y-6" dir="rtl">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">إدارة مستخدمي نقاط البيع</h1>
-            <p className="text-muted-foreground text-sm">إدارة الكاشيرات والصلاحيات والأجهزة</p>
-          </div>
-        </div>
+        <PageHeader title="إدارة مستخدمي نقاط البيع" breadcrumb={["نقطة البيع", "إدارة المستخدمين"]} />
         {companies.length > 1 && (
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
