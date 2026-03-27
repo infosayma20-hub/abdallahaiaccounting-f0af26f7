@@ -5508,7 +5508,7 @@ const POSPage = () => {
           <p className="text-sm text-muted-foreground py-2">
             هل أنت متأكد من حذف "{confirmDeleteProduct?.name}"؟
             <br />
-            <span className="text-destructive text-xs">لا يمكن التراجع عن هذا الإجراء.</span>
+            <span className="text-muted-foreground text-xs">يمكنك التراجع خلال 10 ثوانٍ بعد الحذف.</span>
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProduct(null)}>إلغاء</Button>
