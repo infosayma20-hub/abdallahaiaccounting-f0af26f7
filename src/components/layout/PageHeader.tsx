@@ -46,7 +46,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   };
 
   return (
-    <div className="mb-6">
+    <div>
       {breadcrumb && breadcrumb.length > 0 && (
         <div className="mb-3 flex items-center gap-1 justify-end flex-wrap" dir="rtl"
           style={{ fontSize: 13 }}
