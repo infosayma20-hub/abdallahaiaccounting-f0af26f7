@@ -3008,14 +3008,14 @@ const POSPage = () => {
         e.preventDefault();
         return;
       }
-      // F9 = Send to printer
-      if (e.key === "F9" && cart.length > 0) {
+      // F9 = Send to printer (not for call center)
+      if (e.key === "F9" && cart.length > 0 && !isCallCenter) {
         handleSendToKitchen();
         e.preventDefault();
         return;
       }
-      // F10 = Save order
-      if (e.key === "F10" && cart.length > 0) {
+      // F10 = Save order (not for call center)
+      if (e.key === "F10" && cart.length > 0 && !isCallCenter) {
         handleSaveToTable();
         e.preventDefault();
         return;
@@ -4194,7 +4194,7 @@ const POSPage = () => {
             {/* Action Buttons */}
             <div className="p-3 pt-0 space-y-2">
               {/* Top row: Kitchen + Save (only when table is selected) */}
-              {cart.length > 0 && (
+              {cart.length > 0 && !isCallCenter && (
                 <div className="flex gap-2">
                   <button
                     onClick={handleSendToKitchen}
