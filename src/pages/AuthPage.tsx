@@ -215,7 +215,7 @@ const AuthPage = () => {
 
           {/* Content */}
           <div className="relative z-10">
-            <img src="/logos/amwali-white.jpg" alt="AMWALI" className="h-28 mb-14 object-contain" />
+            <img src="/logos/amwali-full-white.png" alt="AMWALI" className="h-28 mb-14 object-contain" />
 
             <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
               أعمالك في
