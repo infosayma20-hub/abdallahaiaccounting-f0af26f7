@@ -3443,13 +3443,12 @@ const POSPage = () => {
             onNewTable={() => navigate("/pos/floor-plan/edit")}
           />
 
-          {/* ── Odoo-Style Category Chips ── */}
-          <div className="px-4 py-2 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)] bg-muted/20">
-            {/* Sort mode banner */}
+          {/* ── Compact Category Chips — max 2 rows ── */}
+          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-hidden" style={{ maxHeight: isSortMode ? 'none' : '52px' }}>
             {isSortMode && (
-              <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
-                <GripVertical className="h-3.5 w-3.5" />
-                <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات لإعادة ترتيبها</span>
+              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
+                <GripVertical className="h-3 w-3" />
+                <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات</span>
               </div>
             )}
             <DndContext
@@ -3463,21 +3462,19 @@ const POSPage = () => {
                 strategy={horizontalListSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div className="flex flex-wrap gap-2 items-center">
+                <div className="flex flex-wrap gap-1.5 items-center">
                   {/* All */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
                       selectedCategory === "الكل"
-                        ? "bg-foreground text-background shadow-md"
-                        : "bg-card text-muted-foreground hover:text-foreground border border-border hover:border-foreground/20"
+                        ? "bg-foreground text-background shadow-sm"
+                        : "bg-card text-muted-foreground hover:text-foreground border border-border"
                     }`}
                   >
                     الكل ({categoriesWithCounts.all})
-                  </motion.button>
+                  </button>
 
-                  {/* Sortable category chips */}
                   {categoriesWithCounts.categories.map((cat) => (
                     <SortableCategoryChip
                       key={cat.id}
@@ -3490,35 +3487,31 @@ const POSPage = () => {
                   ))}
 
                   {categoriesWithCounts.uncategorized > 0 && (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`h-9 px-4 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 border ${
+                      className={`h-7 px-3 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
-                          : "bg-card text-muted-foreground border-border hover:border-muted-foreground/30"
+                          ? "bg-muted-foreground text-background border-muted-foreground"
+                          : "bg-card text-muted-foreground border-border"
                       }`}
                     >
                       أخرى ({categoriesWithCounts.uncategorized})
-                    </motion.button>
+                    </button>
                   )}
 
-                  {/* Management buttons - admin or manage_products_categories permission */}
                   {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
                     <>
                       <button
                         onClick={() => setShowCategoryManager(true)}
-                        className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
                       >
-                        <Plus className="h-3 w-3 inline-block ml-0.5" />
-                        تصنيف
+                        + تصنيف
                       </button>
                       <button
                         onClick={() => setShowAddProduct(true)}
-                        className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-primary/30 text-primary hover:bg-primary/10"
                       >
-                        <PlusCircle className="h-3 w-3 inline-block ml-0.5" />
-                        منتج
+                        ⊕ منتج
                       </button>
                     </>
                   )}
