@@ -1610,7 +1610,7 @@ const POSPage = () => {
     return groups;
   }, [products, posCategories, visiblePosCategories, categoriesWithCounts.categories, searchQuery]);
 
-
+  const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
       const cat = posCategories.find(c => c.id === product.pos_category_id);
       if (cat) return cat.color;
