@@ -56,6 +56,7 @@ const AppCard = ({
           ? "border-2 border-primary/30 bg-white shadow-lg"
           : "border border-border/60 bg-white shadow-sm hover:shadow-xl hover:border-primary/25 hover:-translate-y-1 transition-transform"
       }`}
+      style={!isDisabledOrLocked ? { borderTop: "3px solid #5B9BD5" } : undefined}
     >
       <button
         onClick={handleClick}
