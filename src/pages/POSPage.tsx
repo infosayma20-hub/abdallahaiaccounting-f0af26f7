@@ -4081,19 +4081,55 @@ const POSPage = () => {
                         {/* Price + Qty row */}
                         <div className="flex items-center justify-between">
                           {(isAdmin || posPerms.can_edit_prices) ? (
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              className="w-[80px] text-[14px] tabular-nums bg-transparent border-b border-dashed border-white/20 focus:border-white/60 outline-none"
-                              style={{ color: 'white' }}
-                              value={item.unit_price}
-                              onWheel={e => (e.target as HTMLElement).blur()}
-                              onClick={e => e.stopPropagation()}
-                              onChange={e => {
-                                const v = parseFloat(e.target.value);
-                                if (!isNaN(v) && v >= 0) updateCartItem(index, "unit_price", v);
+                            <div
+                              className="flex items-center h-[36px] w-[90px] rounded-lg overflow-hidden transition-all"
+                              style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                border: '1.5px solid rgba(255,255,255,0.2)',
                               }}
-                            />
+                              onFocus={e => {
+                                e.currentTarget.style.borderColor = '#3b82f6';
+                                e.currentTarget.style.background = 'rgba(59,130,246,0.12)';
+                              }}
+                              onBlur={e => {
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                              }}
+                            >
+                              {/* Spinners - right side (RTL) */}
+                              <div className="flex flex-col w-[22px] h-full shrink-0" style={{ borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+                                <button
+                                  className="flex-1 flex items-center justify-center cursor-pointer transition-colors"
+                                  style={{ color: 'rgba(255,255,255,0.5)', fontSize: '9px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                                  onClick={e => { e.stopPropagation(); updateCartItem(index, "unit_price", item.unit_price + 1); }}
+                                >▲</button>
+                                <button
+                                  className="flex-1 flex items-center justify-center cursor-pointer transition-colors"
+                                  style={{ color: 'rgba(255,255,255,0.5)', fontSize: '9px' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                                  onClick={e => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, item.unit_price - 1)); }}
+                                >▼</button>
+                              </div>
+                              {/* Input */}
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                className="flex-1 bg-transparent border-none outline-none text-center font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                style={{ color: 'white', fontSize: '15px', padding: '0 6px', direction: 'ltr' }}
+                                value={item.unit_price}
+                                onWheel={e => (e.target as HTMLElement).blur()}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => {
+                                  const v = parseFloat(e.target.value);
+                                  if (!isNaN(v) && v >= 0) updateCartItem(index, "unit_price", v);
+                                }}
+                              />
+                              {/* Currency label */}
+                              <span className="shrink-0 pr-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>₪</span>
+                            </div>
                           ) : (
                             <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
                           )}
