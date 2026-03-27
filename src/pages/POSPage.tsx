@@ -233,13 +233,6 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    backgroundColor: isActive ? cat.color : cat.color + "18",
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "60",
-    color: isActive ? "#fff" : undefined,
-    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)`,
-    borderStyle: isSortMode ? "dashed" as const : "solid" as const,
-    borderWidth: "1.5px",
-    cursor: isSortMode ? "grab" as const : "pointer" as const,
   };
   const cardStyle: React.CSSProperties = {
     ...style,
