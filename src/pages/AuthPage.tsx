@@ -187,9 +187,9 @@ const AuthPage = () => {
       {/* Top Nav — white with subtle border */}
       <nav
         className="w-full flex items-center justify-between px-8 shrink-0"
-        style={{ background: '#FFFFFF', borderBottom: '1px solid #E8EDF2', height: 52 }}
+        style={{ background: '#0D1B2E', borderBottom: 'none', height: 52 }}
       >
-        <img src="/logos/amwali-mark-navy.png" alt="AMWALI" className="h-7 w-auto object-contain" />
+        <img src="/logos/amwali-mark-white.png" alt="AMWALI" className="h-7 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <button
             className="px-5 py-2 rounded-lg text-sm transition-all"
