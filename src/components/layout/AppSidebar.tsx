@@ -158,7 +158,15 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           e.currentTarget.style.color = "rgba(255,255,255,0.75)";
         }}
       >
-        <ModuleIcon module={item.module} size="sm" active={!disabled && !!isHighlighted} />
+        <div className={cn(
+          "w-[36px] h-[36px] rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all",
+          disabled ? "bg-white/5" : isHighlighted ? `${item.bgColor || "bg-primary/10"}` : "bg-white/5"
+        )}>
+          <item.icon className={cn(
+            "h-[18px] w-[18px] transition-colors",
+            disabled ? "text-white/30" : isHighlighted ? (item.color || "text-primary") : "text-white/70"
+          )} />
+        </div>
         {!collapsed && (
           <>
             <span className="flex-1 text-right whitespace-nowrap">{item.label}</span>
