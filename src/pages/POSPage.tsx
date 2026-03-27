@@ -3518,12 +3518,16 @@ const POSPage = () => {
                   {categoriesWithCounts.uncategorized > 0 && (
                   <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
+                      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
-                          : "bg-card text-muted-foreground border-border"
+                          ? "text-white shadow-md"
+                          : "bg-white text-[#475569]"
                       }`}
-                      style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
+                      style={{
+                        minWidth: 80, height: 40, padding: "4px 14px",
+                        border: selectedCategory === "__uncategorized__" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
+                        background: selectedCategory === "__uncategorized__" ? '#0D1B2E' : undefined,
+                      }}
                     >
                       <span className="leading-tight">أخرى</span>
                       <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.uncategorized})</span>
@@ -3553,7 +3557,7 @@ const POSPage = () => {
 
 
           {/* ── Products Grid ── */}
-          <ScrollArea className="flex-1" style={{ background: 'hsl(var(--background))' }}>
+          <ScrollArea className="flex-1" style={{ background: '#f1f5f9' }}>
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
