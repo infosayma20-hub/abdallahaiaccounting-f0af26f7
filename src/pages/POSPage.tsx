@@ -233,10 +233,13 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    backgroundColor: isActive ? cat.color : cat.color + "18",
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "60",
+  };
+  const cardStyle: React.CSSProperties = {
+    ...style,
+    backgroundColor: isActive ? cat.color : cat.color + "12",
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "40",
     color: isActive ? "#fff" : undefined,
-    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)`,
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 3px 12px ${cat.color}35` : `0 1px 4px rgba(0,0,0,0.06)`,
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
     borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
@@ -247,14 +250,14 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border select-none ${
-        isSortMode ? "ring-1 ring-amber-400/50" : ""
+      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border select-none ${
+        isSortMode ? "ring-1 ring-amber-400/50" : "hover:scale-[1.03]"
       }`}
-      style={style}
+      style={{ ...cardStyle, minWidth: 80, height: 48, padding: "4px 10px" }}
     >
-      {isSortMode && <GripVertical className="h-3 w-3 inline-block ml-1 opacity-60" />}
-      {cat.name}
-      {cat.count > 0 && <span className="mr-1 opacity-75">({cat.count})</span>}
+      {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
+      <span className="leading-tight text-center">{cat.name}</span>
+      {cat.count > 0 && <span className="text-[9px] opacity-70 mt-0.5">({cat.count})</span>}
     </button>
   );
 };
@@ -3142,8 +3145,23 @@ const POSPage = () => {
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
 
-        {/* Connection dot */}
-        <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" title={`متصل${offlineMode.lastSyncAt ? ` • آخر مزامنة: ${offlineMode.lastSyncAt}` : ""}`} />
+        {/* Connection status */}
+        <div className="flex items-center gap-1 shrink-0 text-[10px]">
+          {offlineMode.isOnline ? (
+            <>
+              <Wifi className="h-3 w-3 text-green-400" />
+              <span className="text-green-400 font-medium">متصل</span>
+            </>
+          ) : (
+            <>
+              <WifiOff className="h-3 w-3 text-red-400" />
+              <span className="text-red-400 font-medium">غير متصل</span>
+            </>
+          )}
+          {offlineMode.lastSyncAt && (
+            <span className="text-white/40 hidden sm:inline">• آخر مزامنة: {offlineMode.lastSyncAt}</span>
+          )}
+        </div>
 
         {/* Company + Cashier name — compact */}
         <span className="text-[11px] font-medium whitespace-nowrap shrink-0 text-white/80 max-w-[160px] truncate">
@@ -3463,37 +3481,10 @@ const POSPage = () => {
         {/* ── LEFT: Products ── */}
         <div className="flex-1 flex flex-col min-w-0 bg-[hsl(var(--background))]">
 
-          {/* ── Table Selector Bar ── */}
-          <TableSelectorBar
-            dataOwnerId={dataOwnerId || ""}
-            activeTableId={activeOrder.tableId}
-            onTableSelect={(table: TableBarItem) => {
-              if (table.id === activeOrder.tableId) {
-                // Deselect current table
-                updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, name: `طلب ${activeOrderIndex + 1}` }));
-              } else if (table.status === "occupied") {
-                loadTableOrder(table.id, table.name);
-              } else {
-                // Available/cleaning table → check if another tab already has this table
-                const existingTabIdx = orders.findIndex(o => o.tableId === table.id);
-                if (existingTabIdx >= 0) {
-                  setActiveOrderIndex(existingTabIdx);
-                } else if (activeOrder.cart.length === 0 && !activeOrder.tableId) {
-                  // Current tab is empty and has no table → assign to it
-                  updateActiveOrder(o => ({ ...o, tableId: table.id, tableName: table.name, name: table.name }));
-                } else {
-                  // Current tab has items or another table → create new tab
-                  const newOrder = createNewOrder(orders.length + 1, table.id, table.name);
-                  setOrders(prev => [...prev, newOrder]);
-                  setActiveOrderIndex(orders.length);
-                }
-              }
-            }}
-            onNewTable={() => navigate("/pos/floor-plan/edit")}
-          />
+          {/* Table Selector Bar removed — using dropdown only */}
 
-          {/* ── Compact Category Chips — max 2 rows ── */}
-          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
+          {/* ── Category Cards Section ── */}
+          <div className="px-2 py-2 border-b border-border/50 overflow-y-auto shrink-0" style={{ maxHeight: 'none', background: 'linear-gradient(180deg, hsl(var(--muted)/0.35) 0%, hsl(var(--muted)/0.15) 100%)' }}>
             {isSortMode && (
               <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
@@ -3511,17 +3502,19 @@ const POSPage = () => {
                 strategy={horizontalListSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div className="flex flex-wrap gap-1.5 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+                    className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
                       selectedCategory === "الكل"
-                        ? "bg-foreground text-background shadow-sm"
-                        : "bg-card text-muted-foreground hover:text-foreground border border-border"
+                        ? "bg-foreground text-background shadow-md border-foreground"
+                        : "bg-card text-muted-foreground hover:text-foreground border-border"
                     }`}
+                    style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
                   >
-                    الكل ({categoriesWithCounts.all})
+                    <span className="leading-tight">الكل</span>
+                    <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
                   </button>
 
                   {categoriesWithCounts.categories.map((cat) => (
@@ -3536,15 +3529,17 @@ const POSPage = () => {
                   ))}
 
                   {categoriesWithCounts.uncategorized > 0 && (
-                    <button
+                  <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`h-7 px-3 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${
+                      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground"
+                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
                           : "bg-card text-muted-foreground border-border"
                       }`}
+                      style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
                     >
-                      أخرى ({categoriesWithCounts.uncategorized})
+                      <span className="leading-tight">أخرى</span>
+                      <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.uncategorized})</span>
                     </button>
                   )}
 
@@ -3571,7 +3566,7 @@ const POSPage = () => {
 
 
           {/* ── Products Grid ── */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1" style={{ background: 'hsl(var(--background))' }}>
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
@@ -3775,7 +3770,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
+        <div className="w-[340px] lg:w-[380px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]" style={{ background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)/0.2) 100%)' }}>
           {/* Order Tabs — compact h-8 */}
           <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
             <button
