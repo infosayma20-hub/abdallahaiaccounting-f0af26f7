@@ -212,6 +212,16 @@ const AuthPage = () => {
             <FinancialCanvas />
           </Suspense>
 
+          {/* Large transparent logo watermark */}
+          <div className="absolute inset-0 flex items-center justify-center z-[1] pointer-events-none">
+            <img
+              src="/logos/amwali-mark-white.png"
+              alt=""
+              className="w-[340px] h-[340px] object-contain"
+              style={{ opacity: 0.08 }}
+            />
+          </div>
+
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
             <div className="text-center space-y-8 max-w-sm">
               <div className="flex flex-col items-center gap-4">
@@ -260,15 +270,15 @@ const AuthPage = () => {
         </div>
 
         {/* RIGHT — Form panel */}
-        <div className="flex-1 flex items-center justify-center px-4 py-8" style={{ background: '#F8F9FA' }} dir="rtl">
+        <div className="flex-1 flex items-center justify-center px-4 py-8" style={{ background: '#FFFFFF' }} dir="rtl">
           <div className="w-full max-w-sm space-y-5">
             {/* Logo */}
-            <div className="flex flex-col items-center gap-3 mb-2">
-              <img src="/logos/amwali-mark-navy.png" alt="AMWALI" className="w-20 h-20 object-contain" />
-              <h2 className="text-2xl font-bold" style={{ color: '#1B3A5C', fontFamily: 'Tajawal' }}>
+            <div className="flex flex-col items-center gap-4 mb-2">
+              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="w-36 h-auto object-contain" />
+              <h2 className="text-3xl font-light tracking-wide" style={{ color: '#1B3A5C', fontFamily: 'Tajawal' }}>
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
-              <p className="text-sm" style={{ color: '#6B7280' }}>
+              <p className="text-sm font-light" style={{ color: '#6B7280', fontFamily: 'Tajawal' }}>
                 {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة"}
               </p>
             </div>
