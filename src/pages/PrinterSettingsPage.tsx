@@ -112,40 +112,26 @@ export default function PrinterSettingsPage() {
           </Button>
         </div>
 
-        {/* Bridge Status */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              {bridgeOnline === null && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
-              {bridgeOnline === true && <Wifi className="h-4 w-4 text-emerald-500" />}
-              {bridgeOnline === false && <WifiOff className="h-4 w-4 text-destructive" />}
-              خدمة الطباعة (Print Bridge)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {bridgeOnline === null && <p className="text-sm text-muted-foreground">جاري فحص الاتصال...</p>}
-            {bridgeOnline === true && (
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                <CheckCircle2 className="h-3 w-3 ml-1" /> متصلة — جاهزة للطباعة
-              </Badge>
-            )}
-            {bridgeOnline === false && (
-              <div className="space-y-2">
-                <Badge variant="destructive">
-                  <XCircle className="h-3 w-3 ml-1" /> غير متصلة
-                </Badge>
-                <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-xs space-y-1">
-                  <p className="font-medium text-destructive">⚠️ خدمة الطباعة غير متاحة على هذا الجهاز</p>
-                  <p className="text-muted-foreground">على جهاز الكاشير في المطعم، افتح CMD واكتب:</p>
-                  <code className="block bg-background p-2 rounded text-[11px] font-mono" dir="ltr">
-                    node print-bridge.js
-                  </code>
-                  <p className="text-muted-foreground mt-1">يجب أن يظهر: 🚀 Print Bridge — http://localhost:3001</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Bridge Status — compact inline */}
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+          <span className="text-sm font-medium text-muted-foreground">حالة Print Bridge:</span>
+          {bridgeOnline === null && (
+            <Badge variant="outline" className="gap-1">
+              <RefreshCw className="h-3 w-3 animate-spin" /> جاري الفحص...
+            </Badge>
+          )}
+          {bridgeOnline === true && (
+            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> متصل
+            </Badge>
+          )}
+          {bridgeOnline === false && (
+            <Badge variant="destructive" className="gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-destructive" /> غير متصل
+            </Badge>
+          )}
+          <span className="text-[10px] text-muted-foreground font-mono mr-auto" dir="ltr">192.168.1.65:3001</span>
+        </div>
 
         {/* Printers List */}
         {loading ? (
@@ -210,24 +196,6 @@ export default function PrinterSettingsPage() {
             })}
           </div>
         )}
-
-        {/* Help Section */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">📋 تعليمات التشغيل الدائم</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground space-y-2">
-            <p>1. حمّل Node.js من <span className="text-primary" dir="ltr">nodejs.org</span> (LTS)</p>
-            <p>2. ضع ملف <code className="bg-muted px-1 rounded" dir="ltr">print-bridge.js</code> على سطح المكتب</p>
-            <p>3. للتشغيل الدائم مع Windows:</p>
-            <code className="block bg-muted p-2 rounded font-mono" dir="ltr">
-              npm install -g pm2{"\n"}
-              pm2 start print-bridge.js --name malaki-print{"\n"}
-              pm2 startup{"\n"}
-              pm2 save
-            </code>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
