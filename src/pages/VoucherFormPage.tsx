@@ -999,7 +999,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- HEADER -->
   <div style="background:linear-gradient(135deg,#0D1B2A 0%,#1B3A5C 100%);padding:20px 28px;display:flex;justify-content:space-between;align-items:center;">
     <div>
-      <div style="font-size:18px;font-weight:700;color:#4A9EE8;">${settings.company_name || "QOYOD"}</div>
+      <div style="font-size:18px;font-weight:700;color:#4A9EE8;">${settings.company_name || "AMWALI"}</div>
       <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:2px;">${settings.address || ""}</div>
     </div>
     <div style="text-align:left;">
@@ -1074,7 +1074,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- FOOTER -->
   <div style="background:#f7f8fa;border-top:1px solid #edf0f4;padding:10px 28px;display:flex;justify-content:space-between;align-items:center;">
     <div style="font-size:9px;color:#aaa;">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
-    <div style="font-size:9px;color:#4A9EE8;font-weight:600;">QOYOD ERP Software</div>
+    <div style="font-size:9px;color:#4A9EE8;font-weight:600;">AMWALI ERP Software</div>
   </div>
 </div>
 </body>

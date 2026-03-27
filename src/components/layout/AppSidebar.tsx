@@ -316,7 +316,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                   fontFamily: "Tajawal, sans-serif",
                 }}
               >
-                {company.name || "QOYOD"}
+                {company.name || "AMWALI"}
               </h1>
               <p
                 className="leading-none truncate"

@@ -3126,7 +3126,7 @@ const POSPage = () => {
 
         {/* Company + Cashier name — compact */}
         <span className="text-[11px] font-medium whitespace-nowrap shrink-0 text-white/80 max-w-[160px] truncate">
-          {(company?.name || "QOYOD").slice(0, 15)} {session ? `| ${session.cashier_name}` : ""}
+          {(company?.name || "AMWALI").slice(0, 15)} {session ? `| ${session.cashier_name}` : ""}
         </span>
 
         {/* Search — integrated in top bar */}

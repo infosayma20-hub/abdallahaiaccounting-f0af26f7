@@ -36,7 +36,7 @@ const TrialExpiredOverlay = () => {
         {/* Top Section */}
         <div className="text-center px-8 pt-8 pb-6" style={{ background: "linear-gradient(135deg, #0D1B2A, #08111A)" }}>
           <div className="text-sm font-bold mb-4" style={{ color: "#E8A020", fontFamily: "Montserrat" }}>
-            QOYOD
+            AMWALI
           </div>
           <div className="text-[48px] mb-3">🔒</div>
           <h2 className="text-2xl font-extrabold text-white mb-2" style={{ fontFamily: "Tajawal" }}>

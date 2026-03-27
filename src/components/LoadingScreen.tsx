@@ -84,7 +84,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
           }}
         >
           <div style={{ background: 'white', borderRadius: 20, padding: '14px 18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/q-icon.svg" alt="QOYOD قيود" style={{ width: 120, height: 'auto' }} />
+            <img src="/q-icon.svg" alt="AMWALI أموالي" style={{ width: 120, height: 'auto' }} />
           </div>
         </div>
 
@@ -181,7 +181,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
           letterSpacing: 1,
         }}
       >
-        QOYOD | قيود
+        AMWALI | قيود
       </p>
     </div>
   );

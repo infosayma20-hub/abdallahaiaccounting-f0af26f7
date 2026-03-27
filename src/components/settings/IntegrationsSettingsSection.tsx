@@ -83,8 +83,8 @@ const IntegrationsSettingsSection = ({ settings, onChange }: Props) => {
           <div className="flex items-center gap-3 mb-3">
             <span className="text-2xl">🔌</span>
             <div>
-              <p className="font-medium text-sm">QOYOD API</p>
-              <p className="text-xs text-muted-foreground">دمج QOYOD مع أنظمتك الخارجية</p>
+              <p className="font-medium text-sm">AMWALI API</p>
+              <p className="text-xs text-muted-foreground">دمج AMWALI مع أنظمتك الخارجية</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

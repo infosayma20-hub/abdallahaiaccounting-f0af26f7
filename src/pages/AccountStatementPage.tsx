@@ -1328,7 +1328,7 @@ const AccountStatementPage = () => {
 
       // Build header rows
       const rows: any[][] = [];
-      rows.push([companyInfo.name || companyName || "QOYOD قيود"]);
+      rows.push([companyInfo.name || companyName || "AMWALI أموالي"]);
       rows.push(["كشف الحساب — Statement of Account"]);
       rows.push(["العميل:", selectedEntityName, "", "", "من:", fmtDate(dateFrom)]);
       rows.push(["الهاتف:", selectedEntityInfo.phone || "—", "", "", "إلى:", fmtDate(dateTo)]);

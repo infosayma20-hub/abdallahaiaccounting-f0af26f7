@@ -151,9 +151,9 @@ export default function PortalSettings() {
           background: '#111', borderRadius: 14, padding: 20,
           border: '1px solid rgba(212,160,23,0.2)', marginBottom: 20,
         }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginBottom: 12 }}>🔗 ربط حساب QOYOD</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginBottom: 12 }}>🔗 ربط حساب AMWALI</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>
-            أدخل معرف المستخدم (User ID) لحساب QOYOD الذي ترغب في عرض بياناته
+            أدخل معرف المستخدم (User ID) لحساب AMWALI الذي ترغب في عرض بياناته
           </div>
           <input value={linkedUserId} onChange={e => setLinkedUserId(e.target.value)}
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"

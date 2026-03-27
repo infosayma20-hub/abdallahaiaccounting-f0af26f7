@@ -465,7 +465,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         }}
       >
         <span>طُبع بتاريخ: {fmtToday}</span>
-        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>QOYOD قيود</span>
+        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>AMWALI أموالي</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

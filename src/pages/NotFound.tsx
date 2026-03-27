@@ -32,7 +32,7 @@ const NotFound = () => {
       {/* Content */}
       <div className="text-center relative z-10 space-y-4 px-6">
         <div className="mb-6 flex justify-center">
-          <img src="/logo-white.png" alt="QOYOD قيود" width={180} />
+          <img src="/logo-white.png" alt="AMWALI أموالي" width={180} />
         </div>
 
         <h1 className="text-xl font-bold" style={{ color: "#F4F6F8", fontFamily: "Tajawal, sans-serif" }}>

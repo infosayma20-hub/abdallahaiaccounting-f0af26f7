@@ -18,11 +18,11 @@ export function FinixLogo({ variant = 'full', size = 'md', className = '' }: Qoy
   }
 
   if (variant === 'white') {
-    return <img src="/logo-white.png" alt="QOYOD قيود" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
+    return <img src="/logo-white.png" alt="AMWALI أموالي" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
   }
 
   // full
-  return <img src="/logo-full.svg" alt="QOYOD قيود" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
+  return <img src="/logo-full.svg" alt="AMWALI أموالي" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
 }
 
 // Also export as QoyodLogo for new code
