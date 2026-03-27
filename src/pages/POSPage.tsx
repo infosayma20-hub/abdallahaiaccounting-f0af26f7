@@ -1410,9 +1410,22 @@ const POSPage = () => {
   // Filter categories by current cash box restrictions
   const visiblePosCategories = useMemo(() => {
     const currentBoxId = session?.cash_box_id;
+    
+    // Check if current box is targeted by any restricted category
+    const boxIsTargeted = currentBoxId && posCategories.some(
+      cat => cat.restricted_cash_box_ids?.length && cat.restricted_cash_box_ids.includes(currentBoxId)
+    );
+    
     return posCategories.filter(cat => {
-      if (!cat.restricted_cash_box_ids || cat.restricted_cash_box_ids.length === 0) return true;
-      return currentBoxId ? cat.restricted_cash_box_ids.includes(currentBoxId) : false;
+      const hasRestriction = cat.restricted_cash_box_ids && cat.restricted_cash_box_ids.length > 0;
+      
+      if (boxIsTargeted) {
+        // This box is targeted: show ONLY categories that explicitly include it
+        return hasRestriction && currentBoxId ? cat.restricted_cash_box_ids!.includes(currentBoxId) : false;
+      } else {
+        // This box is NOT targeted: show only unrestricted categories
+        return !hasRestriction;
+      }
     });
   }, [posCategories, session?.cash_box_id]);
 
