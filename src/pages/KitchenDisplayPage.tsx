@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2 } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2, ArrowRightFromLine } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { printThermalContent } from "@/lib/thermal-print";
 import { dispatchPrintJob } from "@/lib/pos-print";
 
@@ -43,6 +44,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function KitchenDisplayPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stations, setStations] = useState<Station[]>([]);
   const [selectedStation, setSelectedStation] = useState<string>("all");
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -61,10 +63,15 @@ export default function KitchenDisplayPage() {
 
   const loadTickets = useCallback(async () => {
     if (!user) return;
+    // Filter to today's tickets only
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     let query = supabase
       .from("kitchen_tickets")
       .select("*")
       .in("status", ["pending", "preparing", "ready"])
+      .gte("created_at", todayStart.toISOString())
       .order("created_at", { ascending: true });
 
     if (selectedStation !== "all") {
@@ -224,6 +231,9 @@ export default function KitchenDisplayPage() {
     <div className="min-h-screen bg-[#0f172a] text-white" dir="rtl">
       {/* Top Bar */}
       <div className="bg-[#1e293b] border-b border-white/10 px-4 py-3 flex items-center gap-4 sticky top-0 z-10">
+        <Button variant="ghost" size="icon" className="text-white/60 hover:text-white" onClick={() => navigate("/pos")}>
+          <ArrowRightFromLine className="h-5 w-5" />
+        </Button>
         <ChefHat className="h-6 w-6 text-amber-400" />
         <h1 className="text-lg font-bold">شاشة المطبخ</h1>
 
@@ -258,14 +268,14 @@ export default function KitchenDisplayPage() {
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-3 gap-4 p-4 h-[calc(100vh-60px)]">
+      <div className="grid grid-cols-3 gap-0 h-[calc(100vh-60px)]">
         {/* Pending Column */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-3 px-2">
+        <div className="flex flex-col bg-[#0f172a] min-h-full">
+          <div className="flex items-center gap-2 py-3 px-4 sticky top-0 bg-[#0f172a] z-[5]">
             <div className="w-3 h-3 rounded-full bg-amber-500 animate-pulse" />
             <h2 className="font-bold text-amber-300">جديد ({pendingTickets.length})</h2>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {pendingTickets.map(t => (
               <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
             ))}
@@ -273,12 +283,12 @@ export default function KitchenDisplayPage() {
         </div>
 
         {/* Preparing Column */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-3 px-2">
+        <div className="flex flex-col bg-[#0f172a] min-h-full border-x border-white/5">
+          <div className="flex items-center gap-2 py-3 px-4 sticky top-0 bg-[#0f172a] z-[5]">
             <div className="w-3 h-3 rounded-full bg-blue-500" />
             <h2 className="font-bold text-blue-300">قيد التحضير ({preparingTickets.length})</h2>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {preparingTickets.map(t => (
               <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
             ))}
@@ -286,12 +296,12 @@ export default function KitchenDisplayPage() {
         </div>
 
         {/* Ready Column */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-3 px-2">
+        <div className="flex flex-col bg-[#0f172a] min-h-full">
+          <div className="flex items-center gap-2 py-3 px-4 sticky top-0 bg-[#0f172a] z-[5]">
             <div className="w-3 h-3 rounded-full bg-green-500" />
             <h2 className="font-bold text-green-300">جاهز ({readyTickets.length})</h2>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-3 px-3 pb-4">
             {readyTickets.map(t => (
               <TicketCard key={t.id} ticket={t} stations={stations} onStatusChange={updateStatus} onPrint={printTicket} getElapsed={getElapsed} />
             ))}
