@@ -38,10 +38,28 @@ interface Props {
   onAcceptOrder: (order: CallCenterOrder) => void;
 }
 
-// Notification sound
+// Notification sound — preload AudioContext on first user interaction
+let audioCtx: AudioContext | null = null;
+
+const ensureAudioCtx = () => {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+  return audioCtx;
+};
+
+// Preload on first click anywhere
+if (typeof window !== "undefined") {
+  const preload = () => { ensureAudioCtx(); window.removeEventListener("click", preload); };
+  window.addEventListener("click", preload, { once: true });
+}
+
 const playNotificationSound = () => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = ensureAudioCtx();
     const playTone = (freq: number, start: number, duration: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -54,9 +72,9 @@ const playNotificationSound = () => {
       osc.start(ctx.currentTime + start);
       osc.stop(ctx.currentTime + start + duration);
     };
-    playTone(880, 0, 0.25);
-    playTone(1100, 0.3, 0.25);
-    playTone(1320, 0.6, 0.3);
+    playTone(880, 0, 0.15);
+    playTone(1100, 0.18, 0.15);
+    playTone(1320, 0.36, 0.2);
   } catch (e) {
     // Fallback: do nothing if AudioContext unavailable
   }
