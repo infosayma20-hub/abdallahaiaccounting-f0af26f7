@@ -161,11 +161,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         }}
       >
         <div className={cn(
-          "w-[36px] h-[36px] rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all",
+          "flex items-center justify-center flex-shrink-0 transition-all",
+          collapsed ? "w-[28px] h-[28px] rounded-lg" : "w-[36px] h-[36px] rounded-[10px]",
           disabled ? "bg-white/5" : isHighlighted ? `${item.bgColor || "bg-primary/10"}` : "bg-white/5"
         )}>
           <item.icon className={cn(
-            "h-[18px] w-[18px] transition-colors",
+            "transition-colors",
+            collapsed ? "h-[16px] w-[16px]" : "h-[18px] w-[18px]",
             disabled ? "text-white/30" : isHighlighted ? (item.color || "text-primary") : ""
           )} style={!disabled && !isHighlighted ? { color: "rgba(255,255,255,0.4)" } : undefined} />
         </div>
