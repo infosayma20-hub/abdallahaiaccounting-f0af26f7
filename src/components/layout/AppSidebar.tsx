@@ -435,7 +435,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
               >
-                <PanelLeftOpen className="h-5 w-5" strokeWidth={1.8} />
+                <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
@@ -448,7 +448,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
           >
-            <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
+            <PanelLeftOpen className="h-5 w-5" strokeWidth={1.8} />
             <span>طي القائمة</span>
           </button>
         )}
