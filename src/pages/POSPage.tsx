@@ -4546,6 +4546,7 @@ const POSPage = () => {
                       type="number"
                       value={tenderedAmount}
                       onChange={(e) => { setTenderedAmount(e.target.value); setManualChangeAmount(null); }}
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
                       placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
                       autoFocus
                       className="w-full text-center text-[18px] font-semibold tabular-nums focus:outline-none transition-colors"
