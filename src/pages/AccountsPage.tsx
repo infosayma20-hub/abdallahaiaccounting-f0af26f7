@@ -431,15 +431,18 @@ const AccountsPage = () => {
 
         {/* Action buttons toolbar */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold">
+          <Button onClick={() => navigate("/accounts/new")} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold">
             <Plus className="h-3.5 w-3.5" />
             إضافة حساب
           </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5">
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5"
+            onClick={() => exportAccountsToExcel(accounts)}>
             <FileSpreadsheet className="h-3.5 w-3.5" />
             تصدير الحسابات
           </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5">
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5"
+            onClick={() => setShowImportModal(true)}>
+            <Upload className="h-3.5 w-3.5" />
             استيراد الحسابات
           </Button>
           <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
