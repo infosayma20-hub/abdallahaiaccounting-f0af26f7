@@ -360,38 +360,47 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* ═══ Navigation ═══ */}
       <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin" style={{ scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
-        {navigationSections.map((section, sectionIdx) => (
-          <div key={section.sectionTitle || "top"}>
-            {/* Section separator */}
-            {sectionIdx > 0 && (
-              <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
-            )}
-            {!collapsed && section.sectionTitle && (
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "rgba(255,255,255,0.35)",
-                  letterSpacing: "0.04em",
-                  padding: "16px 16px 6px",
-                  margin: 0,
-                }}
-              >
-                {section.sectionTitle}
-              </p>
-            )}
-            {collapsed && section.sectionTitle && (
-              <div style={{ height: 1, background: SEPARATOR, margin: "8px 4px" }} />
-            )}
-            <div>
-              {[...section.items].sort((a, b) => {
-                const aD = isItemDisabled(a) ? 1 : 0;
-                const bD = isItemDisabled(b) ? 1 : 0;
-                return aD - bD;
-              }).map(renderNavItem)}
+        {/* Enabled items per section */}
+        {navigationSections.map((section, sectionIdx) => {
+          const enabledItems = section.items.filter(item => !isItemDisabled(item));
+          if (enabledItems.length === 0 && sectionIdx > 0) return null;
+          return (
+            <div key={section.sectionTitle || "top"}>
+              {sectionIdx > 0 && enabledItems.length > 0 && (
+                <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
+              )}
+              {!collapsed && section.sectionTitle && enabledItems.length > 0 && (
+                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em", padding: "16px 16px 6px", margin: 0 }}>
+                  {section.sectionTitle}
+                </p>
+              )}
+              {collapsed && section.sectionTitle && enabledItems.length > 0 && (
+                <div style={{ height: 1, background: SEPARATOR, margin: "8px 4px" }} />
+              )}
+              <div>{enabledItems.map(renderNavItem)}</div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+
+        {/* Disabled/locked items at the very end */}
+        {(() => {
+          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => isItemDisabled(item));
+          if (disabledItems.length === 0) return null;
+          return (
+            <div>
+              <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
+              {!collapsed && (
+                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.25)", letterSpacing: "0.04em", padding: "16px 16px 6px", margin: 0 }}>
+                  غير مفعّل
+                </p>
+              )}
+              {collapsed && (
+                <div style={{ height: 1, background: SEPARATOR, margin: "8px 4px" }} />
+              )}
+              <div>{disabledItems.map(renderNavItem)}</div>
+            </div>
+          );
+        })()}
       </nav>
 
       {/* ═══ Footer ═══ */}
