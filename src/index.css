@@ -619,10 +619,8 @@ html {
 .finix-clean-screen {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  position: fixed;
-  inset: 0;
-  z-index: 50;
+  height: 100%;
+  width: 100%;
   background: #F4F6F8;
   overflow: hidden;
   overscroll-behavior: none;
