@@ -5441,7 +5441,7 @@ const POSPage = () => {
           <DialogFooter className="flex gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>إلغاء</Button>
             <Button
-              onClick={handleQuickAddCustomer}
+              onClick={() => handleQuickAddCustomer()}
               disabled={!newCustomerName.trim() || savingCustomer}
               className="gap-2"
             >
