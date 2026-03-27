@@ -3567,17 +3567,19 @@ const POSPage = () => {
                 strategy={horizontalListSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div className="flex flex-wrap gap-1.5 items-center">
+                <div className="flex flex-wrap gap-1.5 items-stretch">
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border min-w-[68px] px-2 py-1.5 transition-all ${
                       selectedCategory === "الكل"
-                        ? "bg-foreground text-background shadow-sm"
-                        : "bg-card text-muted-foreground hover:text-foreground border border-border"
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground hover:shadow-sm"
                     }`}
                   >
-                    الكل ({categoriesWithCounts.all})
+                    <LayoutGrid className="h-4 w-4 shrink-0" />
+                    <span className="text-[10px] font-semibold leading-tight">الكل</span>
+                    <span className="text-[9px] opacity-70 leading-none">({categoriesWithCounts.all})</span>
                   </button>
 
                   {categoriesWithCounts.categories.map((cat) => (
