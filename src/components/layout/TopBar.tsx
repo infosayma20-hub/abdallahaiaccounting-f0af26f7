@@ -329,8 +329,8 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
       <div className="h-full flex items-center gap-4 px-4 sm:px-6">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={onMenuClick} className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors">
-              <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
+            <button onClick={onMenuClick} className="lg:hidden flex items-center justify-center transition-colors" style={{ width: 36, height: 36, borderRadius: 8 }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+              <Menu className="h-5 w-5" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
@@ -356,7 +356,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
-          <div className="w-px h-6 bg-border mx-1.5 hidden sm:block" />
+          <div className="w-px h-5 mx-1.5 hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
       </div>
