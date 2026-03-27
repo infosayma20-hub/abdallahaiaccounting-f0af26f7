@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +106,16 @@ const CurrencyManagementPage = () => {
   }, [foreignCurrencies, rates, today]);
 
   const missingTodayRates = foreignCurrencies.filter((c: any) => !todayRates[c.id]?.today && c.is_active);
+
+  // Auto-fetch rates when page loads and today's rates are missing
+  const autoFetchedRef = useRef(false);
+  useEffect(() => {
+    if (autoFetchedRef.current || fetchRatesMutation.isPending) return;
+    if (foreignCurrencies.length > 0 && missingTodayRates.length > 0 && rates.length >= 0) {
+      autoFetchedRef.current = true;
+      fetchRatesMutation.mutate();
+    }
+  }, [foreignCurrencies, missingTodayRates, rates]);
 
   // Chart data
   const chartData = useMemo(() => {
