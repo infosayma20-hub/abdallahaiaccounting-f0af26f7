@@ -3231,8 +3231,7 @@ const POSPage = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setNewCustomerName(customerSearch || "");
-                      setTimeout(() => handleQuickAddCustomer(), 0);
+                      handleQuickAddCustomer(customerSearch || "");
                     }}
                     disabled={savingCustomer}
                     className="h-6 px-2 rounded bg-primary text-primary-foreground text-[10px] font-medium hover:bg-primary/90 transition shrink-0 flex items-center gap-1"
