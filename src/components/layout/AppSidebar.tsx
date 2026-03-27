@@ -28,9 +28,9 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-const SIDEBAR_BG = "#1b2b4b";
+const SIDEBAR_BG = "#0D1B2E";
 const GOLD = "#4A9EE8";
-const SEPARATOR = "rgba(255,255,255,0.06)";
+const SEPARATOR = "rgba(255,255,255,0.08)";
 const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
 
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
@@ -126,36 +126,38 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           }
         }}
         className={cn(
-          "w-full flex items-center rounded-[10px] transition-all duration-150 group relative",
-          collapsed ? "justify-center px-2 py-2.5" : "px-4 py-2.5 gap-3",
+          "w-full flex items-center rounded-lg transition-all duration-150 group relative",
+          collapsed ? "justify-center px-2 py-2.5" : "gap-3",
           disabled && "opacity-40 cursor-not-allowed",
         )}
         style={{
           margin: "2px 8px",
           width: "calc(100% - 16px)",
+          padding: collapsed ? undefined : "10px 12px",
           fontSize: 14,
           fontWeight: isHighlighted && !disabled ? 500 : 400,
           color: disabled
             ? "rgba(255,255,255,0.35)"
             : isHighlighted
               ? "#FFFFFF"
-              : "rgba(255,255,255,0.75)",
+              : "rgba(255,255,255,0.6)",
           background: disabled
             ? "transparent"
             : isHighlighted
-              ? "rgba(255,255,255,0.08)"
+              ? "rgba(255,255,255,0.12)"
               : "transparent",
           borderRight: isHighlighted && !disabled ? "3px solid #FFFFFF" : "3px solid transparent",
+          borderRadius: 8,
         }}
         onMouseEnter={(e) => {
           if (disabled || isHighlighted) return;
           e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-          e.currentTarget.style.color = "#FFFFFF";
+          e.currentTarget.style.color = "rgba(255,255,255,0.9)";
         }}
         onMouseLeave={(e) => {
           if (disabled || isHighlighted) return;
           e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+          e.currentTarget.style.color = "rgba(255,255,255,0.6)";
         }}
       >
         <div className={cn(
@@ -164,8 +166,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         )}>
           <item.icon className={cn(
             "h-[18px] w-[18px] transition-colors",
-            disabled ? "text-white/30" : isHighlighted ? (item.color || "text-primary") : "text-white/70"
-          )} />
+            disabled ? "text-white/30" : isHighlighted ? (item.color || "text-primary") : ""
+          )} style={!disabled && !isHighlighted ? { color: "rgba(255,255,255,0.4)" } : undefined} />
         </div>
         {!collapsed && (
           <>
@@ -181,8 +183,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             {disabled && !locked && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown
-                className={cn("h-3.5 w-3.5 transition-transform duration-200")}
-                style={{ opacity: 0.4, transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
+                className="h-3.5 w-3.5 transition-transform duration-200"
+                style={{ color: "rgba(255,255,255,0.3)", transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
               />
             )}
           </>
@@ -239,10 +241,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                         className="w-full flex items-center gap-2 text-right transition-all duration-150"
                         style={{
                           padding: "8px 16px 8px 16px",
-                          paddingRight: 44,
+                          paddingRight: 28,
                           fontSize: 13,
                           fontWeight: 400,
-                          color: childActive ? "#FFFFFF" : "rgba(255,255,255,0.65)",
+                          color: childActive ? "#FFFFFF" : "rgba(255,255,255,0.55)",
                           background: childActive ? "rgba(74,158,232,0.1)" : "transparent",
                           borderRadius: 8,
                           margin: "1px 8px",
@@ -251,14 +253,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                         onMouseEnter={(e) => {
                           if (childActive) return;
                           e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                          e.currentTarget.style.color = "rgba(255,255,255,0.9)";
+                          e.currentTarget.style.color = "rgba(255,255,255,0.8)";
                           const dot = e.currentTarget.querySelector<HTMLSpanElement>('[data-dot]');
                           if (dot) dot.style.background = GOLD;
                         }}
                         onMouseLeave={(e) => {
                           if (childActive) return;
                           e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                          e.currentTarget.style.color = "rgba(255,255,255,0.55)";
                           const dot = e.currentTarget.querySelector<HTMLSpanElement>('[data-dot]');
                           if (dot) dot.style.background = "rgba(255,255,255,0.25)";
                         }}
@@ -359,7 +361,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </div>
 
       {/* ═══ Navigation ═══ */}
-      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin" style={{ scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+      <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
         {/* Enabled items per section */}
         {navigationSections.map((section, sectionIdx) => {
           const enabledItems = section.items.filter(item => !isItemDisabled(item));
@@ -370,7 +372,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
               )}
               {!collapsed && section.sectionTitle && enabledItems.length > 0 && (
-                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em", padding: "16px 16px 6px", margin: 0 }}>
+                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.3)", padding: "16px 12px 6px", margin: 0 }}>
                   {section.sectionTitle}
                 </p>
               )}
@@ -404,19 +406,19 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </nav>
 
       {/* ═══ Footer ═══ */}
-      <div style={{ borderTop: `1px solid ${SEPARATOR_HEADER}`, padding: "12px 16px" }}>
+      <div style={{ borderTop: `1px solid ${SEPARATOR}`, padding: 8 }}>
         {/* Logout */}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => { supabase.auth.signOut(); navigate("/auth"); }}
-                className="w-full flex items-center justify-center py-2 rounded-[10px] transition-all duration-150"
-                style={{ color: "#FF6B6B" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+                className="w-full flex items-center justify-center py-2 rounded-lg transition-all duration-150"
+                style={{ color: "#f87171" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
-                <LogOut className="h-5 w-5" strokeWidth={1.8} />
+                <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>تسجيل الخروج</p></TooltipContent>
@@ -424,12 +426,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ) : (
           <button
             onClick={() => { supabase.auth.signOut(); navigate("/auth"); }}
-            className="w-full flex items-center gap-3 py-2 px-3 rounded-[10px] transition-all duration-150"
-            style={{ fontSize: 13, color: "#FF6B6B" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+            className="w-full flex items-center gap-3 rounded-lg transition-all duration-150"
+            style={{ fontSize: 14, color: "#f87171", padding: "10px 12px", borderRadius: 8 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            <LogOut className="h-5 w-5" strokeWidth={1.8} />
+            <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
             <span>تسجيل الخروج</span>
           </button>
         )}
@@ -440,12 +442,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             <TooltipTrigger asChild>
               <button
                 onClick={onToggle}
-                className="hidden lg:flex w-full items-center justify-center py-2 rounded-[10px] transition-all duration-150 mt-1"
-                style={{ color: "rgba(255,255,255,0.45)" }}
+                className="hidden lg:flex w-full items-center justify-center py-2 rounded-lg transition-all duration-150 mt-1"
+                style={{ color: "rgba(255,255,255,0.4)" }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
               >
-                <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
+                <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
@@ -453,12 +455,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ) : (
           <button
             onClick={onToggle}
-            className="hidden lg:flex w-full items-center gap-3 py-2 px-3 rounded-[10px] transition-all duration-150 mt-1"
-            style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}
+            className="hidden lg:flex w-full items-center gap-3 rounded-lg transition-all duration-150 mt-1"
+            style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", padding: "10px 12px", borderRadius: 8 }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
           >
-            <PanelLeftOpen className="h-5 w-5" strokeWidth={1.8} />
+            <PanelLeftOpen className="h-[18px] w-[18px]" strokeWidth={1.8} />
             <span>طي القائمة</span>
           </button>
         )}
@@ -504,7 +506,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <aside
         className={cn("hidden lg:flex flex-col flex-shrink-0 transition-all duration-300")}
         style={{
-          width: collapsed ? 68 : 260,
+          width: collapsed ? 60 : 280,
           background: SIDEBAR_BG,
           borderLeft: `1px solid ${SEPARATOR}`,
         }}
