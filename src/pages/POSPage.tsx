@@ -1912,9 +1912,9 @@ const POSPage = () => {
     setChangingPassword(false);
   };
 
-  // Save order to table (draft - no payment)
+  // Save order as draft (no payment)
   const handleSaveToTable = async () => {
-    if (!userId || !session || cart.length === 0 || !activeOrder.tableId || !company) return;
+    if (!userId || !session || cart.length === 0 || !company) return;
     setSavingToTable(true);
     try {
       // Check if there's already an open order for this table
@@ -3113,8 +3113,8 @@ const POSPage = () => {
         setShowInvoiceHistory(true);
         e.preventDefault();
       }
-      // F12 = Pay
-      if (e.key === "F12" && cart.length > 0) {
+      // F12 = Pay (not for call center)
+      if (e.key === "F12" && cart.length > 0 && !isCallCenter) {
         setShowPayment(true);
         e.preventDefault();
         return;
@@ -3125,8 +3125,8 @@ const POSPage = () => {
         e.preventDefault();
         return;
       }
-      // F10 = Save order (not for call center)
-      if (e.key === "F10" && cart.length > 0 && !isCallCenter) {
+      // F10 = Save order
+      if (e.key === "F10" && cart.length > 0) {
         handleSaveToTable();
         e.preventDefault();
         return;
@@ -4273,22 +4273,24 @@ const POSPage = () => {
 
             {/* Action Buttons */}
             <div className="px-3 pb-3 space-y-2">
-              {/* Pay button */}
-              <motion.button
-                whileTap={{ scale: 0.99 }}
-                className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
-                style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a'; }}
-                onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#166534'; }}
-                onMouseUp={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
-                disabled={cart.length === 0 || !session}
-                onClick={() => setShowPayment(true)}
-              >
-                F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
-              </motion.button>
+              {/* Pay button - hidden for call center */}
+              {!isCallCenter && (
+                <motion.button
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+                  style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', transition: 'all 0.15s ease' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a'; }}
+                  onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#166534'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
+                  disabled={cart.length === 0 || !session}
+                  onClick={() => setShowPayment(true)}
+                >
+                  F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
+                </motion.button>
+              )}
 
-              {/* Three action buttons */}
+              {/* Action buttons */}
               <div className="flex gap-2">
                 <button
                   onClick={handleSaveToTable}
@@ -4298,14 +4300,16 @@ const POSPage = () => {
                 >
                   F10 حفظ
                 </button>
-                <button
-                  onClick={handleSendToKitchen}
-                  disabled={cart.length === 0}
-                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
-                >
-                  F9 طباعة
-                </button>
+                {!isCallCenter && (
+                  <button
+                    onClick={handleSendToKitchen}
+                    disabled={cart.length === 0}
+                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  >
+                    F9 طباعة
+                  </button>
+                )}
                 {(isAdmin || isCallCenter) && (
                   <button
                     onClick={() => setShowCallCenterDispatch(true)}
@@ -4318,8 +4322,8 @@ const POSPage = () => {
                 )}
               </div>
 
-              {/* Call Center extras */}
-              {cart.length > 0 && activeOrder.callCenterOrderId && (
+              {/* Quick save+print - only for non-call-center when accepting call center orders */}
+              {!isCallCenter && cart.length > 0 && activeOrder.callCenterOrderId && (
                 <button
                   onClick={handleQuickSaveAndPrint}
                   disabled={quickProcessing || processing || !session}
