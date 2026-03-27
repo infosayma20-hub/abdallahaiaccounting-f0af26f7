@@ -384,7 +384,7 @@ export const exportToPDF = (
   const win = window.open(url, "_blank");
   if (win) {
     win.onload = () => {
-      setTimeout(() => win.print(), 500);
+      /* view only — no browser print */
     };
   }
 };

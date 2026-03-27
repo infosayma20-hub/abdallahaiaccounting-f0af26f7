@@ -217,7 +217,7 @@ export default function FinancialClaimModal({ open, onOpenChange, project, userI
       </div>
     </div></body></html>`);
     w.document.close();
-    setTimeout(() => w.print(), 500);
+    /* view only — no browser print */
   };
 
   const sendWhatsApp = (claim: Claim) => {

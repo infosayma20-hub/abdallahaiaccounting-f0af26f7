@@ -483,5 +483,5 @@ export function openPrintWindow(html: string) {
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
-  if (win) win.onload = () => setTimeout(() => win.print(), 500);
+  if (win) win.onload = () => { /* view only */ };
 }

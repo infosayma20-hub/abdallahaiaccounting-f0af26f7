@@ -53,7 +53,7 @@ export default function ContractPreviewPage() {
     printWindow.document.write(printRef.current.innerHTML);
     printWindow.document.write("</body></html>");
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+    /* view only — no browser print */
   };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">جاري التحميل...</div>;

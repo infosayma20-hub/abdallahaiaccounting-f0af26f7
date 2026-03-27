@@ -594,7 +594,7 @@ const InvoicesPage = () => {
         root.render(
           <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
         );
-        setTimeout(() => win.print(), 600);
+        /* view only — no browser print */
       }
     }, 200);
   };

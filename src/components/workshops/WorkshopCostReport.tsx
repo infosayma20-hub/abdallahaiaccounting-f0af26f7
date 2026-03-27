@@ -82,7 +82,7 @@ export default function WorkshopCostReport({ open, onOpenChange, workshopName, c
       .profit{color:${profit >= 0 ? '#16a34a' : '#dc2626'};font-size:24px;font-weight:bold}</style></head>
       <body>${printRef.current.innerHTML}</body></html>`);
     w.document.close();
-    w.print();
+    /* view only — no browser print */
   };
 
   return (
