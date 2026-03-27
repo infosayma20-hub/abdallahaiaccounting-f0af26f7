@@ -229,14 +229,17 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     id: cat.id,
     disabled: !isSortMode,
   });
-  const catConfig = getCatConfig(cat.name);
-  const CatIcon = catConfig.icon;
-  const style: React.CSSProperties = {
+  const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    borderTopColor: isActive ? cat.color : "#5B9BD5",
-    cursor: isSortMode ? "grab" : "pointer",
+    backgroundColor: isActive ? cat.color : cat.color + "18",
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "60",
+    color: isActive ? "#fff" : undefined,
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)`,
+    borderStyle: isSortMode ? "dashed" as const : "solid" as const,
+    borderWidth: "1.5px",
+    cursor: isSortMode ? "grab" as const : "pointer" as const,
   };
   return (
     <button
@@ -244,21 +247,14 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-lg border border-border/60 border-t-[3px] select-none transition-all min-w-[72px] h-[52px] px-2 gap-0.5 ${
-        isActive
-          ? "bg-primary/10 border-primary/30 shadow-md"
-          : "bg-card hover:shadow-md hover:-translate-y-0.5"
-      } ${isSortMode ? "ring-1 ring-amber-400/50 border-dashed" : ""}`}
+      className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border select-none ${
+        isSortMode ? "ring-1 ring-amber-400/50" : ""
+      }`}
       style={style}
     >
-      {isSortMode && <GripVertical className="h-3 w-3 opacity-60" />}
-      <CatIcon className="h-4 w-4" style={{ color: isActive ? cat.color : cat.color + "99" }} />
-      <span className={`text-[10px] font-semibold leading-tight text-center line-clamp-1 ${
-        isActive ? "text-foreground" : "text-muted-foreground"
-      }`}>
-        {cat.name}
-      </span>
-      {cat.count > 0 && <span className="text-[8px] text-muted-foreground/70">({cat.count})</span>}
+      {isSortMode && <GripVertical className="h-3 w-3 inline-block ml-1 opacity-60" />}
+      {cat.name}
+      {cat.count > 0 && <span className="mr-1 opacity-75">({cat.count})</span>}
     </button>
   );
 };
@@ -3496,8 +3492,8 @@ const POSPage = () => {
             onNewTable={() => navigate("/pos/floor-plan/edit")}
           />
 
-          {/* ── Category Cards ── */}
-          <div className="px-2 py-2 border-b-[3px] border-[#5B9BD5]/40 bg-muted/20 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
+          {/* ── Compact Category Chips — max 2 rows ── */}
+          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
             {isSortMode && (
               <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
@@ -3515,19 +3511,17 @@ const POSPage = () => {
                 strategy={horizontalListSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div className="flex flex-wrap gap-2 items-stretch">
+                <div className="flex flex-wrap gap-1.5 items-center">
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`flex flex-col items-center justify-center rounded-lg border border-t-[3px] min-w-[72px] h-[52px] px-2 gap-0.5 transition-all ${
+                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
                       selectedCategory === "الكل"
-                        ? "bg-primary/10 border-primary/30 border-t-primary shadow-md"
-                        : "bg-card border-border/60 border-t-[#5B9BD5] hover:shadow-md hover:-translate-y-0.5"
+                        ? "bg-foreground text-background shadow-sm"
+                        : "bg-card text-muted-foreground hover:text-foreground border border-border"
                     }`}
                   >
-                    <LayoutGrid className="h-4 w-4" style={{ color: selectedCategory === "الكل" ? "hsl(var(--primary))" : "#5B9BD5" }} />
-                    <span className={`text-[10px] font-semibold ${selectedCategory === "الكل" ? "text-foreground" : "text-muted-foreground"}`}>الكل</span>
-                    <span className="text-[8px] text-muted-foreground/70">({categoriesWithCounts.all})</span>
+                    الكل ({categoriesWithCounts.all})
                   </button>
 
                   {categoriesWithCounts.categories.map((cat) => (
@@ -3544,15 +3538,13 @@ const POSPage = () => {
                   {categoriesWithCounts.uncategorized > 0 && (
                     <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center rounded-lg border border-t-[3px] min-w-[72px] h-[52px] px-2 gap-0.5 transition-all ${
+                      className={`h-7 px-3 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-primary/10 border-primary/30 border-t-primary shadow-md"
-                          : "bg-card border-border/60 border-t-[#5B9BD5] hover:shadow-md hover:-translate-y-0.5"
+                          ? "bg-muted-foreground text-background border-muted-foreground"
+                          : "bg-card text-muted-foreground border-border"
                       }`}
                     >
-                      <Package className="h-4 w-4" style={{ color: selectedCategory === "__uncategorized__" ? "hsl(var(--primary))" : "#6B7280" }} />
-                      <span className={`text-[10px] font-semibold ${selectedCategory === "__uncategorized__" ? "text-foreground" : "text-muted-foreground"}`}>أخرى</span>
-                      <span className="text-[8px] text-muted-foreground/70">({categoriesWithCounts.uncategorized})</span>
+                      أخرى ({categoriesWithCounts.uncategorized})
                     </button>
                   )}
 
@@ -3783,7 +3775,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[340px] lg:w-[380px] flex flex-col bg-muted/30 border-r-[3px] border-[#5B9BD5]/40 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
+        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
           {/* Order Tabs — compact h-8 */}
           <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
             <button
