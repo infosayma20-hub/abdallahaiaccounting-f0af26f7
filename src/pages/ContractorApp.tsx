@@ -325,7 +325,8 @@ export default function ContractorApp() {
   if (view === "projects") {
     return (
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6" dir="rtl">
-        <PageHeader title="محاسب المشاريع والمقاولات" breadcrumb={["الرئيسية", "محاسب المشاريع والمقاولات"]} />
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <PageHeader title="محاسب المشاريع والمقاولات" breadcrumb={["الرئيسية", "محاسب المشاريع والمقاولات"]} />
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setView("reports")}>
               <BarChart3 className="h-4 w-4 ml-1" /> التقارير
