@@ -38,10 +38,28 @@ interface Props {
   onAcceptOrder: (order: CallCenterOrder) => void;
 }
 
-// Notification sound
+// Notification sound — preload AudioContext on first user interaction
+let audioCtx: AudioContext | null = null;
+
+const ensureAudioCtx = () => {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+  return audioCtx;
+};
+
+// Preload on first click anywhere
+if (typeof window !== "undefined") {
+  const preload = () => { ensureAudioCtx(); window.removeEventListener("click", preload); };
+  window.addEventListener("click", preload, { once: true });
+}
+
 const playNotificationSound = () => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = ensureAudioCtx();
     const playTone = (freq: number, start: number, duration: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -54,9 +72,9 @@ const playNotificationSound = () => {
       osc.start(ctx.currentTime + start);
       osc.stop(ctx.currentTime + start + duration);
     };
-    playTone(880, 0, 0.25);
-    playTone(1100, 0.3, 0.25);
-    playTone(1320, 0.6, 0.3);
+    playTone(880, 0, 0.15);
+    playTone(1100, 0.18, 0.15);
+    playTone(1320, 0.36, 0.2);
   } catch (e) {
     // Fallback: do nothing if AudioContext unavailable
   }
@@ -197,13 +215,13 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
       {/* Bell button in top bar */}
       <button
         onClick={() => setOpen(true)}
-        className="relative h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
+        className="relative h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group overflow-visible"
         style={{ border: "1px solid rgba(255,255,255,0.15)" }}
         title="فواتير معلقة"
       >
         <Bell className={`h-4 w-4 ${pendingCount > 0 ? "text-amber-400 animate-pulse" : "text-white/70 group-hover:text-white"}`} />
         {pendingCount > 0 && (
-          <span className="absolute -top-1.5 -left-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-bounce">
+          <span className="absolute -top-2 -left-2 min-w-[20px] h-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg z-50" style={{ animation: "none" }}>
             {pendingCount}
           </span>
         )}
