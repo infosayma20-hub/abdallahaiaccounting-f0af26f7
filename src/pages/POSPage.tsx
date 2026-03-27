@@ -246,7 +246,7 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border select-none ${
+      className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border select-none ${
         isSortMode ? "ring-1 ring-amber-400/50" : ""
       }`}
       style={style}
