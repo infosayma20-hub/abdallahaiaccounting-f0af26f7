@@ -3541,15 +3541,20 @@ const POSPage = () => {
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
-                      selectedCategory === "الكل"
-                        ? "text-white shadow-md"
-                        : "bg-white text-[#475569] hover:bg-[#eff6ff] hover:text-[#1e40af]"
-                    }`}
+                    className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
                     style={{
                       minWidth: 80, height: 40, padding: "4px 14px",
-                      border: selectedCategory === "الكل" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
-                      background: selectedCategory === "الكل" ? '#0D1B2E' : undefined,
+                      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+                      border: selectedCategory === "الكل"
+                        ? `1.5px solid ${posDarkMode ? 'white' : '#0D1B2E'}`
+                        : `1.5px solid ${posDarkMode ? 'rgba(255,255,255,0.1)' : '#dbeafe'}`,
+                      background: selectedCategory === "الكل"
+                        ? (posDarkMode ? 'white' : '#0D1B2E')
+                        : (posDarkMode ? 'rgba(255,255,255,0.06)' : 'white'),
+                      color: selectedCategory === "الكل"
+                        ? (posDarkMode ? '#0D1B2E' : 'white')
+                        : (posDarkMode ? 'rgba(255,255,255,0.7)' : '#475569'),
+                      boxShadow: selectedCategory === "الكل" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
                     }}
                   >
                     <span className="leading-tight">الكل</span>
@@ -3557,28 +3562,34 @@ const POSPage = () => {
                   </button>
 
                   {categoriesWithCounts.categories.map((cat) => (
-                    <SortableCategoryChip
+                     <SortableCategoryChip
                       key={cat.id}
                       cat={cat}
                       isActive={selectedCategory === cat.name}
                       isSortMode={isSortMode}
                       isDragging={dragActiveId === cat.id}
                       onClick={() => !isSortMode && setSelectedCategory(cat.name)}
+                      posDark={posDarkMode}
                     />
                   ))}
 
                   {categoriesWithCounts.uncategorized > 0 && (
                   <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
-                        selectedCategory === "__uncategorized__"
-                          ? "text-white shadow-md"
-                          : "bg-white text-[#475569]"
-                      }`}
+                      className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
                       style={{
                         minWidth: 80, height: 40, padding: "4px 14px",
-                        border: selectedCategory === "__uncategorized__" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
-                        background: selectedCategory === "__uncategorized__" ? '#0D1B2E' : undefined,
+                        transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+                        border: selectedCategory === "__uncategorized__"
+                          ? `1.5px solid ${posDarkMode ? 'white' : '#0D1B2E'}`
+                          : `1.5px solid ${posDarkMode ? 'rgba(255,255,255,0.1)' : '#dbeafe'}`,
+                        background: selectedCategory === "__uncategorized__"
+                          ? (posDarkMode ? 'white' : '#0D1B2E')
+                          : (posDarkMode ? 'rgba(255,255,255,0.06)' : 'white'),
+                        color: selectedCategory === "__uncategorized__"
+                          ? (posDarkMode ? '#0D1B2E' : 'white')
+                          : (posDarkMode ? 'rgba(255,255,255,0.7)' : '#475569'),
+                        boxShadow: selectedCategory === "__uncategorized__" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
                       }}
                     >
                       <span className="leading-tight">أخرى</span>
