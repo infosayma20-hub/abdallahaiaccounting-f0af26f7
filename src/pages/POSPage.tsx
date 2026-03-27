@@ -3767,7 +3767,7 @@ const POSPage = () => {
                                   : cardSize === "S" 
                                     ? "text-[12px]" 
                                     : "text-[14px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: '#1e293b', fontWeight: 500 }}>
+                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
                                 {product.name}
                               </p>
 
@@ -3783,7 +3783,7 @@ const POSPage = () => {
                                 isFewProducts
                                   ? "text-sm"
                                   : cardSize === "S" ? "text-[11px]" : "text-[14px]"
-                              }`} style={{ color: '#1e40af', fontWeight: 600 }} dir="ltr">
+                              }`} style={{ color: posDarkMode ? '#93c5fd' : '#1e40af', fontWeight: 600 }} dir="ltr">
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
                             </div>
