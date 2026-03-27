@@ -18,10 +18,6 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList,
-  Wine, GlassWater, Milk, Citrus, CupSoda, IceCreamCone, Cake, Pizza, Sandwich, Beef,
-  LeafyGreen, Droplets, Flame, Baby, Snowflake, Crown, Droplet, Puzzle, Drumstick, Bird,
-  Users, Layers,
-  type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -222,60 +218,6 @@ function getCatConfig(category: string) {
 }
 
 
-// ── Category Icon Map ──
-const CATEGORY_ICON_MAP: Record<string, string> = {
-  "الكل": "LayoutGrid",
-  "مشروبات": "Wine",
-  "مشروبات باردة": "GlassWater",
-  "مشروبات ساخنة": "Coffee",
-  "ميلك شيك": "Milk",
-  "موهيتو": "Citrus",
-  "سموذي": "CupSoda",
-  "عصائر طبيعية": "Apple",
-  "بوظة": "IceCreamCone",
-  "حلويات": "Cake",
-  "بيتزا": "Pizza",
-  "سندويشات": "Sandwich",
-  "برغر": "Beef",
-  "السلطات": "LeafyGreen",
-  "صوصات": "Droplets",
-  "بطاطا": "Flame",
-  "الإضافات": "PlusCircle",
-  "الطلب من المطبخ": "ChefHat",
-  "وجبات الأطفال": "Baby",
-  "عروض": "Percent",
-  "عروض الشتاء": "Snowflake",
-  "رمضان 2026": "Moon",
-  "عرض الدفى الملكي": "Crown",
-  "جبنة سائلة": "Droplet",
-  "اضافة قطع": "Puzzle",
-};
-
-const getCategoryIcon = (name: string): LucideIcon => {
-  const iconName = CATEGORY_ICON_MAP[name];
-  const iconMap: Record<string, LucideIcon> = {
-    LayoutGrid, Wine, GlassWater, Coffee, Milk, Citrus, CupSoda, Apple,
-    IceCreamCone, Cake, Pizza, Sandwich, Beef, LeafyGreen, Droplets, Flame,
-    PlusCircle, ChefHat, Baby, Percent, Snowflake, Moon, Crown, Droplet, Puzzle,
-  };
-  if (iconName && iconMap[iconName]) return iconMap[iconName];
-  // Keyword-based fallback
-  const lower = name.toLowerCase();
-  if (lower.includes("مشروب")) return Wine;
-  if (lower.includes("عصير")) return Apple;
-  if (lower.includes("وجب") || lower.includes("اريزكو")) return UtensilsCrossed;
-  if (lower.includes("كرسبي") || lower.includes("كريسبي")) return Drumstick;
-  if (lower.includes("بروست")) return Drumstick;
-  if (lower.includes("اجنح")) return Bird;
-  if (lower.includes("عرض") || lower.includes("عروض")) return Percent;
-  if (lower.includes("عائل")) return Users;
-  if (lower.includes("فرد")) return User;
-  if (lower.includes("جوسي")) return Flame;
-  if (lower.includes("كرنش")) return Layers;
-  if (lower.includes("مسحب")) return Layers;
-  return UtensilsCrossed;
-};
-
 const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
   cat: { id: string; name: string; color: string; count: number };
   isActive: boolean;
@@ -287,11 +229,16 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     id: cat.id,
     disabled: !isSortMode,
   });
-  const Icon = getCategoryIcon(cat.name);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
+    backgroundColor: isActive ? cat.color : cat.color + "18",
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "60",
+    color: isActive ? "#fff" : undefined,
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)`,
+    borderStyle: isSortMode ? "dashed" as const : "solid" as const,
+    borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
   };
   return (
@@ -300,17 +247,14 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border select-none transition-all min-w-[68px] px-2 py-1.5 ${
-        isActive
-          ? "bg-primary text-primary-foreground border-primary shadow-md"
-          : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground hover:shadow-sm"
-      } ${isSortMode ? "ring-1 ring-amber-400/50 border-dashed border-primary" : ""}`}
+      className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border select-none ${
+        isSortMode ? "ring-1 ring-amber-400/50" : ""
+      }`}
       style={style}
     >
-      {isSortMode && <GripVertical className="h-3 w-3 opacity-60" />}
-      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-foreground" : ""}`} style={{ color: isActive ? undefined : cat.color }} />
-      <span className="text-[10px] font-semibold leading-tight text-center whitespace-nowrap">{cat.name}</span>
-      {cat.count > 0 && <span className="text-[9px] opacity-70 leading-none">({cat.count})</span>}
+      {isSortMode && <GripVertical className="h-3 w-3 inline-block ml-1 opacity-60" />}
+      {cat.name}
+      {cat.count > 0 && <span className="mr-1 opacity-75">({cat.count})</span>}
     </button>
   );
 };
@@ -1576,39 +1520,6 @@ const POSPage = () => {
     }
     return filtered;
   }, [products, selectedCategory, searchQuery, posCategories]);
-
-  // Group products by category for section view
-  const groupedByCategory = useMemo(() => {
-    const hiddenCatIds = new Set(
-      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.id)
-    );
-    const hiddenCatNames = new Set(
-      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.name)
-    );
-    let allProducts = products.filter(p => {
-      if (!p.is_pos_available) return false;
-      if (p.pos_category_id && hiddenCatIds.has(p.pos_category_id)) return false;
-      if (!p.pos_category_id && p.category && hiddenCatNames.has(p.category)) return false;
-      return true;
-    });
-    if (searchQuery) {
-      allProducts = allProducts.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.barcode));
-    }
-    const groups: { cat: { id: string; name: string; color: string }; products: typeof allProducts }[] = [];
-    for (const cat of categoriesWithCounts.categories) {
-      const catProducts = allProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name);
-      if (catProducts.length > 0) {
-        groups.push({ cat, products: catProducts });
-      }
-    }
-    const uncatProducts = allProducts.filter(p => 
-      !p.pos_category_id && !visiblePosCategories.some(c => c.name === p.category)
-    );
-    if (uncatProducts.length > 0) {
-      groups.push({ cat: { id: "__uncategorized__", name: "أخرى", color: "#6B7280" }, products: uncatProducts });
-    }
-    return groups;
-  }, [products, posCategories, visiblePosCategories, categoriesWithCounts.categories, searchQuery]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
@@ -3581,221 +3492,285 @@ const POSPage = () => {
             onNewTable={() => navigate("/pos/floor-plan/edit")}
           />
 
-          {/* ── Action buttons (sort mode + add) ── */}
-          {isSortMode && (
-            <div className="px-3 py-1.5 border-b border-border/70 bg-muted/20 shrink-0">
-              <div className="flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
+          {/* ── Compact Category Chips — max 2 rows ── */}
+          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
+            {isSortMode && (
+              <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
                 <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات</span>
               </div>
-            </div>
-          )}
-
-          {/* ── Admin action bar ── */}
-          {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
-            <div className="px-3 py-1.5 border-b border-border/70 bg-muted/20 shrink-0 flex items-center gap-2">
-              <button
-                onClick={() => setShowCategoryManager(true)}
-                className="h-7 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+            )}
+            <DndContext
+              sensors={dndSensors}
+              collisionDetection={closestCenter}
+              onDragStart={(e: DragStartEvent) => setDragActiveId(String(e.active.id))}
+              onDragEnd={handleCategoryDragEnd}
+            >
+              <SortableContext
+                items={categoriesWithCounts.categories.map(c => c.id)}
+                strategy={horizontalListSortingStrategy}
+                disabled={!isSortMode}
               >
-                + تصنيف
-              </button>
-              <button
-                onClick={() => setShowAddProduct(true)}
-                className="h-7 px-3 rounded-lg text-[10px] font-medium whitespace-nowrap border border-dashed border-primary/30 text-primary hover:bg-primary/10 transition-all"
-              >
-                ⊕ منتج
-              </button>
-            </div>
-          )}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {/* All */}
+                  <button
+                    onClick={() => !isSortMode && setSelectedCategory("الكل")}
+                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+                      selectedCategory === "الكل"
+                        ? "bg-foreground text-background shadow-sm"
+                        : "bg-card text-muted-foreground hover:text-foreground border border-border"
+                    }`}
+                  >
+                    الكل ({categoriesWithCounts.all})
+                  </button>
 
-          {/* ── Products by Category — Reports-style sections ── */}
+                  {categoriesWithCounts.categories.map((cat) => (
+                    <SortableCategoryChip
+                      key={cat.id}
+                      cat={cat}
+                      isActive={selectedCategory === cat.name}
+                      isSortMode={isSortMode}
+                      isDragging={dragActiveId === cat.id}
+                      onClick={() => !isSortMode && setSelectedCategory(cat.name)}
+                    />
+                  ))}
+
+                  {categoriesWithCounts.uncategorized > 0 && (
+                    <button
+                      onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
+                      className={`h-7 px-3 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${
+                        selectedCategory === "__uncategorized__"
+                          ? "bg-muted-foreground text-background border-muted-foreground"
+                          : "bg-card text-muted-foreground border-border"
+                      }`}
+                    >
+                      أخرى ({categoriesWithCounts.uncategorized})
+                    </button>
+                  )}
+
+                  {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
+                    <>
+                      <button
+                        onClick={() => setShowCategoryManager(true)}
+                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
+                      >
+                        + تصنيف
+                      </button>
+                      <button
+                        onClick={() => setShowAddProduct(true)}
+                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        ⊕ منتج
+                      </button>
+                    </>
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+
+
+          {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
-             <div dir="rtl" className="p-3 space-y-4">
-              {groupedByCategory.length > 0 ? (
-                groupedByCategory.map(({ cat, products: catProducts }) => {
-                  const CatSectionIcon = getCategoryIcon(cat.name);
-                  return (
-                    <div key={cat.id} className="space-y-2">
-                      {/* Section Header — compact row */}
-                      <div className="flex items-center gap-2 py-1.5 px-2 border-b border-border/60">
-                        <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: cat.color + '14', border: `1px solid ${cat.color}30` }}
-                        >
-                          <CatSectionIcon className="h-4 w-4" style={{ color: cat.color }} />
-                        </div>
-                        <h3 className="text-sm font-bold text-foreground flex-1">{cat.name}</h3>
-                        <span className="text-[11px] text-muted-foreground">({catProducts.length})</span>
-                      </div>
+            <DndContext
+              sensors={dndSensors}
+              collisionDetection={closestCenter}
+              onDragStart={(e: DragStartEvent) => setDragActiveId(String(e.active.id))}
+              onDragEnd={handleProductDragEnd}
+            >
+              <SortableContext
+                items={filteredProducts.map(p => p.id)}
+                strategy={rectSortingStrategy}
+                disabled={!isSortMode}
+              >
+                <div dir="rtl" className={`p-2 grid ${
+                  filteredProducts.length <= 10 && filteredProducts.length > 0
+                    ? filteredProducts.length <= 3
+                      ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3"
+                      : filteredProducts.length <= 6
+                        ? "grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+                        : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2"
+                    : cardSize === "S" 
+                      ? "grid-cols-6 sm:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-11 gap-1.5" 
+                      : cardSize === "M" 
+                        ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9 gap-1.5" 
+                        : "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2"
+                }`}>
+                  {filteredProducts.map((product) => {
+                    const productColor = getProductCatColor(product);
+                    const catConfig = getCatConfig(product.category);
+                    const CatIcon = catConfig.icon;
+                    const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
+                    const qtyInCart = cartQtyMap[product.id] || 0;
+                    const isFewProducts = filteredProducts.length <= 10;
 
-                      {/* Products Grid */}
-                      <div className={`grid ${
-                        cardSize === "S" 
-                          ? "grid-cols-6 sm:grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-11 gap-1.5" 
-                          : cardSize === "M" 
-                            ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9 gap-1.5" 
-                            : "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2"
-                      }`}>
-                        {catProducts.map((product) => {
-                          const productColor = cat.color;
-                          const catConfig = getCatConfig(product.category);
-                          const CatIcon = catConfig.icon;
-                          const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
-                          const qtyInCart = cartQtyMap[product.id] || 0;
+                    return (
+                      <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
+                        {({ isDragging, style, ref, listeners, attributes }) => {
+                          const hasAddons = !!(productModifierMap[product.id]?.length);
+                          const isAddonOpen = openAddonProductId === product.id;
+                          const addonGroups = hasAddons ? modifierGroups.filter(g => productModifierMap[product.id]?.includes(g.id)) : [];
 
                           return (
-                            <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
-                              {({ isDragging, style, ref, listeners, attributes }) => {
-                                const hasAddons = !!(productModifierMap[product.id]?.length);
-                                const isAddonOpen = openAddonProductId === product.id;
-                                const addonGroups = hasAddons ? modifierGroups.filter(g => productModifierMap[product.id]?.includes(g.id)) : [];
+                          <div
+                            ref={ref}
+                            {...attributes}
+                            {...listeners}
+                            data-addon-card={isAddonOpen ? "true" : undefined}
+                            onClick={() => !isSortMode && addToCart(product)}
+                            className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
+                              cardSize === "S" ? "rounded-lg" : "rounded-xl"
+                            } ${isSortMode 
+                              ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
+                              : isAddonOpen
+                                ? "border-primary bg-accent shadow-lg"
+                                : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
+                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
+                            style={{
+                              ...style,
+                              borderBottomWidth: cardSize === "S" ? "2px" : "3px",
+                              borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
+                              zIndex: isAddonOpen ? 10 : "auto",
+                            }}
+                          >
+                            {/* Sort mode grip icon */}
+                            {isSortMode && (
+                              <div className="absolute top-0.5 right-0.5 z-10">
+                                <GripVertical className="h-3 w-3 text-amber-500/70" />
+                              </div>
+                            )}
 
-                                return (
-                                <div
-                                  ref={ref}
-                                  {...attributes}
-                                  {...listeners}
-                                  data-addon-card={isAddonOpen ? "true" : undefined}
-                                  onClick={() => !isSortMode && addToCart(product)}
-                                  className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
-                                    cardSize === "S" ? "rounded-lg" : "rounded-xl"
-                                  } ${isSortMode 
-                                    ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
-                                    : isAddonOpen
-                                      ? "border-primary bg-accent shadow-lg"
-                                      : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
-                                  } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
-                                  style={{
-                                    ...style,
-                                    borderBottomWidth: cardSize === "S" ? "2px" : "3px",
-                                    borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
-                                    zIndex: isAddonOpen ? 10 : "auto",
-                                  }}
-                                >
-                                  {isSortMode && (
-                                    <div className="absolute top-0.5 right-0.5 z-10">
-                                      <GripVertical className="h-3 w-3 text-amber-500/70" />
+                            {/* Cart qty badge */}
+                            {qtyInCart > 0 && !isSortMode && (
+                              <div
+                                className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
+                                  cardSize === "S" 
+                                    ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
+                                    : "min-w-[22px] h-[22px] text-[11px] px-1"
+                                }`}
+                              >
+                                {qtyInCart}
+                              </div>
+                            )}
+
+                            {/* Delete product button */}
+                            {!isSortMode && (isAdmin || posPerms.delete_products) && (
+                              <button
+                                className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
+                                title="حذف المنتج"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+
+                            {/* Low stock indicator */}
+                            {isLowStock && !isSortMode && (
+                              <div className={`absolute ${(isAdmin || posPerms.delete_products) ? "top-7" : "top-1"} right-1 z-10`}>
+                                <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                              </div>
+                            )}
+
+                            {/* Product visual */}
+                            <div className={
+                              cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
+                            }>
+                              {/* Icon/Image - hidden in S size */}
+                              {cardSize !== "S" && (
+                                product.image_url ? (
+                                  <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
+                                    cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                                  }`}>
+                                    <img
+                                      src={product.image_url}
+                                      alt={product.name}
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                      }}
+                                    />
+                                    <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
+                                      <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
                                     </div>
-                                  )}
-
-                                  {qtyInCart > 0 && !isSortMode && (
-                                    <div
-                                      className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
-                                        cardSize === "S" 
-                                          ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
-                                          : "min-w-[22px] h-[22px] text-[11px] px-1"
-                                      }`}
-                                    >
-                                      {qtyInCart}
-                                    </div>
-                                  )}
-
-                                  {!isSortMode && (isAdmin || posPerms.delete_products) && (
-                                    <button
-                                      className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
-                                      title="حذف المنتج"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  )}
-
-                                  {isLowStock && !isSortMode && (
-                                    <div className={`absolute ${(isAdmin || posPerms.delete_products) ? "top-7" : "top-1"} right-1 z-10`}>
-                                      <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                                    </div>
-                                  )}
-
-                                  <div className={
-                                    cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
-                                  }>
-                                    {cardSize !== "S" && (
-                                      product.image_url ? (
-                                        <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
-                                          cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
-                                        }`}>
-                                          <img
-                                            src={product.image_url}
-                                            alt={product.name}
-                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                            onError={(e) => {
-                                              (e.target as HTMLImageElement).style.display = 'none';
-                                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                            }}
-                                          />
-                                          <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
-                                            <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div
-                                          className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
-                                            cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
-                                          }`}
-                                          style={{ backgroundColor: productColor + "10" }}
-                                        >
-                                          <CatIcon 
-                                            className={`transition-transform duration-200 group-hover:scale-110 ${
-                                              cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
-                                            }`} 
-                                            style={{ color: productColor + "80" }} 
-                                          />
-                                        </div>
-                                      )
-                                    )}
-
-                                    <p className={`font-semibold text-foreground leading-tight mb-0.5 break-words ${
-                                      cardSize === "S" ? "text-[12px]" : "text-[12px]"
-                                    }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
-                                      {product.name}
-                                    </p>
-
-                                    {cardSize !== "S" && hasAddons && (
-                                      <p className="text-[9px] text-muted-foreground mb-0.5">
-                                        {addonGroups.length} إضافة متاحة
-                                      </p>
-                                    )}
-
-                                    <p className={`font-bold text-primary tabular-nums ${
-                                      cardSize === "S" ? "text-[11px]" : "text-[12px]"
-                                    }`}>
-                                      ₪{product.sell_price.toFixed(2)}
-                                    </p>
                                   </div>
+                                ) : (
+                                  <div
+                                    className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
+                                      cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                                    }`}
+                                    style={{ backgroundColor: productColor + "10" }}
+                                  >
+                                    <CatIcon 
+                                      className={`transition-transform duration-200 group-hover:scale-110 ${
+                                        cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
+                                      }`} 
+                                      style={{ color: productColor + "80" }} 
+                                    />
+                                  </div>
+                                )
+                              )}
 
-                                  <AnimatePresence>
-                                    {isAddonOpen && addonGroups.length > 0 && (
-                                      <InlineAddonPanel
-                                        product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
-                                        groups={addonGroups}
-                                        onConfirm={(data) => {
-                                          addToCartDirect(product, data.modifiers, data.note, data.quantity);
-                                          setOpenAddonProductId(null);
-                                          toast.success(`✓ أضيف للطلب — ${product.name}`);
-                                        }}
-                                        onClose={() => setOpenAddonProductId(null)}
-                                      />
-                                    )}
-                                  </AnimatePresence>
-                                </div>
-                                );
-                              }}
-                            </SortableProductCard>
+                              {/* Name */}
+                              <p className={`font-semibold text-foreground leading-tight mb-0.5 break-words ${
+                                isFewProducts
+                                  ? "text-[13px] font-bold"
+                                  : cardSize === "S" 
+                                    ? "text-[12px]" 
+                                    : "text-[12px]"
+                              }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
+                                {product.name}
+                              </p>
+
+                              {/* Addon hint */}
+                              {cardSize !== "S" && hasAddons && (
+                                <p className="text-[9px] text-muted-foreground mb-0.5">
+                                  {addonGroups.length} إضافة متاحة
+                                </p>
+                              )}
+
+                              {/* Price */}
+                              <p className={`font-bold text-primary tabular-nums ${
+                                isFewProducts
+                                  ? "text-sm"
+                                  : cardSize === "S" ? "text-[11px]" : "text-[12px]"
+                              }`}>
+                                ₪{product.sell_price.toFixed(2)}
+                              </p>
+                            </div>
+
+                            {/* Inline Addon Panel */}
+                            <AnimatePresence>
+                              {isAddonOpen && addonGroups.length > 0 && (
+                                <InlineAddonPanel
+                                  product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
+                                  groups={addonGroups}
+                                  onConfirm={(data) => {
+                                    addToCartDirect(product, data.modifiers, data.note, data.quantity);
+                                    setOpenAddonProductId(null);
+                                    toast.success(`✓ أضيف للطلب — ${product.name}`);
+                                  }}
+                                  onClose={() => setOpenAddonProductId(null)}
+                                />
+                              )}
+                            </AnimatePresence>
+                          </div>
                           );
-                        })}
-                      </div>
+                        }}
+                      </SortableProductCard>
+                    );
+                  })}
+
+                  {filteredProducts.length === 0 && (
+                    <div className="col-span-full py-20 text-center text-muted-foreground">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
+                      <p className="text-xs text-muted-foreground/60">لا توجد منتجات في هذا التصنيف</p>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="py-20 text-center text-muted-foreground">
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
-                  <p className="text-xs text-muted-foreground/60">لا توجد منتجات</p>
+                  )}
                 </div>
-              )}
-            </div>
+              </SortableContext>
+            </DndContext>
           </ScrollArea>
         </div>
 
