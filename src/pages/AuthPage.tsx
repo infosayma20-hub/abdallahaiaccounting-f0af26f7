@@ -191,7 +191,7 @@ const AuthPage = () => {
         className="w-full flex items-center justify-between px-12 shrink-0" dir="rtl"
         style={{ background: '#0D1B2E', borderBottom: 'none', height: 56 }}
       >
-        <img src="/logos/amwali-mark-white.png" alt="AMWALI" className="h-8 w-auto object-contain" />
+        <img src={amwaliMarkWhiteNavy} alt="AMWALI" className="h-10 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <button
             className="px-6 py-2 rounded-lg text-sm transition-all"
