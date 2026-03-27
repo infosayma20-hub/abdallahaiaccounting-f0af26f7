@@ -220,11 +220,11 @@ const MonthlyPayrollInputPage = () => {
       const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
       const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
 
-      // Get employee accounts (1180+) to map account_code -> employee
+      // Get employee accounts (2180+) to map account_code -> employee
       const { data: empAccounts } = await supabase
         .from("accounts")
         .select("account_code, account_name")
-        .like("parent_code", "1180")
+        .eq("parent_code", "2180")
         .eq("is_active", true);
 
       // Get transactions on employee accounts during the period

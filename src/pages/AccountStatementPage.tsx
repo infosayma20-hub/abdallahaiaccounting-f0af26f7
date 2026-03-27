@@ -124,7 +124,7 @@ type DetailLevel = "summary" | "total" | "lineItems";
 const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
   { key: "customers", label: "الزبائن", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
   { key: "suppliers", label: "الموردين", icon: Truck, color: "text-amber-500", accountCode: "2110", type: "مورد" },
-  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "1180", type: "موظف" },
+  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "2180", type: "موظف" },
   { key: "accounts", label: "الحسابات", icon: LayoutGrid, color: "text-purple-500", accountCode: "", type: "account" },
 ];
 

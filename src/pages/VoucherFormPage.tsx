@@ -716,7 +716,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         let txDescription = notes || `سند صرف إلى ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`;
         let txContactId = selectedContact?.id || null;
 
-        // Employee payment: find their account under 1180
+         // Employee payment: find their account under 2180
         if (isEmployeePayment && selectedEmployee) {
           const categoryLabel = empCategory === "أخرى" ? empCategoryCustom : empCategory;
           const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
@@ -728,7 +728,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .from("accounts")
             .select("account_code")
             .eq("user_id", user.id)
-            .like("parent_code", "1180")
+            .eq("parent_code", "2180")
             .like("account_name", `%${selectedEmployee.full_name}%`)
             .limit(1)
             .single();
@@ -740,17 +740,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               .from("accounts")
               .select("account_code")
               .eq("user_id", user.id)
-              .like("parent_code", "1180")
+              .eq("parent_code", "2180")
               .order("account_code", { ascending: false })
               .limit(1)
               .single();
-            const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "1181";
+            const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "21801";
             await supabase.from("accounts").insert({
               user_id: user.id,
               account_code: nextCode,
               account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
-              account_type: "asset",
-              parent_code: "1180",
+              account_type: "التزامات",
+              parent_code: "2180",
               is_system: false,
             });
             debitAccountCode = nextCode;

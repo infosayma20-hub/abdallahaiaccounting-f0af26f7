@@ -2420,24 +2420,24 @@ const POSPage = () => {
         if (existingAcc) {
           employeeAccountCode = existingAcc.account_code;
         } else {
-          // Find next available code under 1180
-          const { data: siblingAccs } = await supabase
-            .from("accounts")
-            .select("account_code")
-            .eq("user_id", dataOwnerId)
-            .like("account_code", "118%")
-            .order("account_code", { ascending: false })
-            .limit(1);
-          const lastCode = siblingAccs?.[0]?.account_code;
-          const nextCode = lastCode ? String(Number(lastCode) + 1) : "1181";
-          const { error: createErr } = await supabase.from("accounts").insert({
-            user_id: dataOwnerId,
-            account_code: nextCode,
-            account_name: empAccName,
-            account_type: "أصول",
-            parent_code: "1180",
-            is_system: false,
-          });
+           // Find next available code under 2180
+           const { data: siblingAccs } = await supabase
+             .from("accounts")
+             .select("account_code")
+             .eq("user_id", dataOwnerId)
+             .eq("parent_code", "2180")
+             .order("account_code", { ascending: false })
+             .limit(1);
+           const lastCode = siblingAccs?.[0]?.account_code;
+           const nextCode = lastCode ? String(Number(lastCode) + 1) : "21801";
+           const { error: createErr } = await supabase.from("accounts").insert({
+             user_id: dataOwnerId,
+             account_code: nextCode,
+             account_name: empAccName,
+             account_type: "التزامات",
+             parent_code: "2180",
+             is_system: false,
+           });
           if (!createErr) {
             employeeAccountCode = nextCode;
             // Update local state
