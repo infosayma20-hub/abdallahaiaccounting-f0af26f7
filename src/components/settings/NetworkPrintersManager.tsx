@@ -207,11 +207,30 @@ export default function NetworkPrintersManager() {
           }
         }, 5000);
       } else {
-        // For standard ESC/POS, try HTTP or show instructions
-        toast.info(
-          `لطباعة ESC/POS المباشرة، يلزم تثبيت برنامج الطباعة الوسيط (Print Agent) على الشبكة المحلية. IP: ${printer.ip_address}:${printer.port}`,
-          { duration: 8000 }
-        );
+        // Send test via Print Bridge
+        try {
+          const res = await fetch("http://192.168.1.65:3001/print", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: printer.printer_type === "receipt" ? "receipt" : "kitchen",
+              order: {
+                orderNumber: "TEST",
+                branchName: "اختبار طباعة",
+                items: [{ id: "1", name: `اختبار ${printer.name}`, quantity: 1, price: 0 }],
+                total: 0,
+              },
+            }),
+            signal: AbortSignal.timeout(5000),
+          });
+          if (res.ok) {
+            toast.success(`✅ تم إرسال اختبار ${printer.name} عبر Bridge`);
+          } else {
+            toast.error(`❌ فشل اختبار ${printer.name}`);
+          }
+        } catch {
+          toast.error("❌ Print Bridge غير متصل على 192.168.1.65:3001");
+        }
         setTesting(null);
       }
     } catch {
