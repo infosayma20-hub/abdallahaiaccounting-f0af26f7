@@ -54,7 +54,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     has_tasks: false,
   }), [settings]);
 
+  const hiddenApps: string[] = useMemo(() => {
+    return (settings as any)?.hidden_apps || [];
+  }, [settings]);
+
+  const isItemHidden = (item: NavItem) => hiddenApps.includes(item.id);
+
   const isItemDisabled = (item: NavItem) => {
+    if (isItemHidden(item)) return true;
     if (!item.enableSetting) return false;
     if (isTrial) return false;
     return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
@@ -93,6 +100,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   };
 
   const renderNavItem = (item: NavItem) => {
+    const locked = isItemHidden(item);
     const disabled = isItemDisabled(item);
     const active = !disabled && isActive(item.path);
     const groupActive = !disabled && isGroupActive(item);
@@ -154,7 +162,15 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         {!collapsed && (
           <>
             <span className="flex-1 text-right whitespace-nowrap">{item.label}</span>
-            {disabled && <Lock className="h-3 w-3 opacity-60" />}
+            {locked && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Lock className="h-3 w-3 opacity-60 text-amber-400" />
+                </TooltipTrigger>
+                <TooltipContent side="left"><p>🔒 غير متاح — تواصل مع الإدارة</p></TooltipContent>
+              </Tooltip>
+            )}
+            {disabled && !locked && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown
                 className={cn("h-3.5 w-3.5 transition-transform duration-200")}
