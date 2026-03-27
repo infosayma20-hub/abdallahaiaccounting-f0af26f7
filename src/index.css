@@ -330,6 +330,85 @@
   font-weight: 500 !important;
 }
 
+/* POS dark navy order panel */
+.pos-order-panel {
+  background: #0D1B2E !important;
+  color: rgba(255, 255, 255, 0.9);
+}
+.pos-order-panel .text-foreground,
+.pos-order-panel .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.pos-order-panel .text-muted-foreground\/60,
+.pos-order-panel .text-muted-foreground\/50 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.pos-order-panel .border-border,
+.pos-order-panel .border-border\/70,
+.pos-order-panel .border-border\/60 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.pos-order-panel .bg-muted\/60,
+.pos-order-panel .bg-muted\/40,
+.pos-order-panel .bg-muted\/30 {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+.pos-order-panel .bg-card,
+.pos-order-panel .bg-primary\/5 {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.pos-order-panel .hover\:bg-muted\/40:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+.pos-order-panel .hover\:bg-muted:hover,
+.pos-order-panel .hover\:bg-muted\/60:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.pos-order-panel .text-primary {
+  color: #93c5fd !important;
+}
+.pos-order-panel .bg-primary\/15,
+.pos-order-panel .bg-primary\/10 {
+  background: rgba(59, 130, 246, 0.2) !important;
+}
+.pos-order-panel .border-primary\/30,
+.pos-order-panel .border-primary\/20 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+.pos-order-panel .ring-primary\/20 {
+  --tw-ring-color: rgba(59, 130, 246, 0.2) !important;
+}
+.pos-order-panel .text-destructive,
+.pos-order-panel .text-destructive\/70 {
+  color: #fca5a5 !important;
+}
+.pos-order-panel input,
+.pos-order-panel input::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.pos-order-panel input {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.pos-order-panel .tabular-nums {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+/* Categories styling */
+.pos-categories-bar {
+  background: white;
+  border-bottom: 1.5px solid #dbeafe;
+}
+.pos-product-card {
+  background: white;
+  border: 1.5px solid #dbeafe;
+  border-radius: 10px;
+  transition: all 0.15s;
+}
+.pos-product-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px #eff6ff;
+}
+
   .font-en {
     font-family: 'Montserrat', sans-serif;
   }
