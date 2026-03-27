@@ -276,7 +276,7 @@ const AppLogo = () => {
       onClick={() => navigate("/apps")}
       className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-secondary/60 transition-all duration-150 flex-shrink-0 cursor-pointer"
     >
-      <img src="/logos/amwali-mark-navy.png" alt="أموالي" className="w-8 h-8 object-contain" />
+      <img src="/logos/amwali-mark-navy.png" alt="أموالي" className="w-11 h-11 object-contain" />
     </button>
   );
 };
