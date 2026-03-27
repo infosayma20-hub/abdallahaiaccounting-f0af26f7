@@ -4006,141 +4006,82 @@ const POSPage = () => {
             </div>
           </ScrollArea>
 
-          {/* Bottom area - Customer + Note + Totals + Actions */}
-          <div className="border-t border-white/10 shrink-0" style={{ background: 'rgba(255,255,255,0.03)' }}>
-            {/* Order Type + Notes row */}
-            {(
-              <div className="px-2 pt-1 pb-1 space-y-1">
-                {/* Order note - always visible as input */}
+          {/* Footer */}
+          <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            {/* Delivery address */}
+            {activeOrder.orderType === "delivery" && (
+              <div className="px-3 pt-2">
                 <Input
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  placeholder="📝 ملاحظة على الفاتورة..."
-                  className="h-6 text-[10px] bg-muted/30 border-dashed border-border"
+                  value={activeOrder.deliveryAddress}
+                  onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
+                  placeholder="📍 عنوان التوصيل..."
+                  className="h-7 text-[11px]"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
                 />
+              </div>
+            )}
 
-                {/* Order type row */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  {/* Table Picker */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowTablePicker(!showTablePicker)}
-                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all text-[10px] ${
-                        activeOrder.tableId
-                          ? "bg-primary/15 text-primary border border-primary/30 font-bold"
-                          : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      <span className="text-[9px]">🍽️</span>
-                      {activeOrder.tableName || "طاولة"}
-                      <ChevronDown className="h-2 w-2" />
-                    </button>
-                    {showTablePicker && (
-                      <div className="absolute top-full right-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px] max-h-[250px] overflow-y-auto">
-                        {availableTables.length === 0 && (
-                          <p className="text-[11px] text-muted-foreground p-2 text-center">جاري التحميل...</p>
-                        )}
-                        {activeOrder.tableId && (
-                          <button
-                            onClick={() => {
-                              updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
-                              setShowTablePicker(false);
-                            }}
-                            className="w-full text-right text-xs px-3 py-2 rounded-md hover:bg-destructive/10 text-destructive flex items-center gap-2"
-                          >
-                            <X className="h-3 w-3" />
-                            إلغاء الطاولة
-                          </button>
-                        )}
-                        {availableTables.map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => {
-                              updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
-                              setShowTablePicker(false);
-                            }}
-                            className={`w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2 ${
-                              t.id === activeOrder.tableId
-                                ? "bg-primary/15 text-primary font-bold"
-                                : t.status === "occupied"
-                                ? "text-destructive/70 hover:bg-destructive/5"
-                                : "hover:bg-muted/60"
-                            }`}
-                          >
-                            <span>{t.name}</span>
-                            {t.status === "occupied" && <span className="text-[10px]">مشغولة</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Takeaway + Delivery */}
-                  {(["takeaway", "delivery"] as const).map(type => {
-                    const isActive = activeOrder.orderType === type && !activeOrder.tableId;
-                    const labels: Record<string, { label: string; icon: string }> = {
-                      takeaway: { label: "استلام", icon: "🛍️" },
-                      delivery: { label: "توصيل", icon: "🚚" },
-                    };
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }))}
-                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all text-[10px] ${
-                          isActive
-                            ? "bg-primary/15 text-primary border border-primary/30 font-bold"
-                            : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                        }`}
-                      >
-                        <span className="text-[9px]">{labels[type].icon}</span>
-                        {labels[type].label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Customer phone display */}
-                {activeOrder.customerPhone && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-0.5">
-                    <Phone className="h-2.5 w-2.5 shrink-0" />
-                    <span className="font-mono">{activeOrder.customerPhone}</span>
-                  </div>
+            {/* Table picker dropdown */}
+            {showTablePicker && (
+              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
+                {availableTables.length === 0 && (
+                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
                 )}
-
-                {/* Delivery address input */}
-                {activeOrder.orderType === "delivery" && (
-                  <Input
-                    value={activeOrder.deliveryAddress}
-                    onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
-                    placeholder="📍 عنوان التوصيل..."
-                    className="h-6 text-[10px] bg-amber-50 dark:bg-amber-950/20 border-amber-300/50"
-                    autoFocus={!activeOrder.deliveryAddress}
-                  />
+                {activeOrder.tableId && (
+                  <button
+                    onClick={() => {
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
+                      setShowTablePicker(false);
+                    }}
+                    className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
+                    style={{ color: '#fca5a5' }}
+                  >
+                    <X className="h-3 w-3" />
+                    إلغاء الطاولة
+                  </button>
                 )}
+                {availableTables.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
+                      setShowTablePicker(false);
+                    }}
+                    className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
+                    style={{
+                      color: t.id === activeOrder.tableId ? '#93c5fd' : t.status === "occupied" ? '#fca5a5' : 'rgba(255,255,255,0.7)',
+                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.15)' : 'transparent',
+                    }}
+                  >
+                    <span>{t.name}</span>
+                    {t.status === "occupied" && <span className="text-[10px]">مشغولة</span>}
+                  </button>
+                ))}
               </div>
             )}
 
             {/* Totals */}
-            <div className="px-2 py-1.5 space-y-0.5 border-t border-white/10">
+            <div className="px-3 py-3">
               {cartTotals.tax > 0 && (
-                <div className="flex justify-between text-[10px] text-muted-foreground">
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   <span>الضريبة</span>
                   <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
                 </div>
               )}
               {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-[10px] text-destructive/70">
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#fca5a5' }}>
                   <span>الخصم</span>
                   <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between items-baseline">
-                <span className="text-xs text-muted-foreground">الإجمالي</span>
+                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>الإجمالي</span>
                 <motion.span
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className="text-xl font-bold text-white tabular-nums"
+                  className="text-[20px] font-bold tabular-nums"
+                  style={{ color: 'white' }}
                 >
                   ₪{cartTotals.total.toFixed(2)}
                 </motion.span>
@@ -4148,121 +4089,85 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="px-1.5 pt-0 pb-1.5 space-y-1">
-              {/* Top row: Kitchen + Save */}
-              {cart.length > 0 && !isCallCenter && (
-                <div className="flex gap-1">
+            <div className="px-3 pb-3 space-y-2">
+              {/* Pay button */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                style={{ backgroundColor: '#111827', color: 'white' }}
+                disabled={cart.length === 0 || !session}
+                onClick={() => setShowPayment(true)}
+              >
+                F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
+              </motion.button>
+
+              {/* Three action buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveToTable}
+                  disabled={savingToTable || cart.length === 0}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                >
+                  F10 حفظ
+                </button>
+                <button
+                  onClick={handleSendToKitchen}
+                  disabled={cart.length === 0}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                >
+                  F9 طباعة
+                </button>
+                {(isAdmin || isCallCenter) && (
                   <button
-                    onClick={handleSendToKitchen}
-                    className="flex-1 h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
+                    onClick={() => setShowCallCenterDispatch(true)}
+                    disabled={!session || cart.length === 0}
+                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
-                    🖨️ طباعة
-                    <span className="text-[8px] bg-amber-500/20 rounded px-0.5 font-mono">F9</span>
+                    تحويل
                   </button>
-                  <button
-                    onClick={handleSaveToTable}
-                    disabled={savingToTable}
-                    className="flex-1 h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
-                  >
-                    💾 حفظ
-                    <span className="text-[8px] bg-sky-500/20 rounded px-0.5 font-mono">F10</span>
-                  </button>
-                </div>
-              )}
-              {/* Quick Save & Print for Call Center orders */}
+                )}
+              </div>
+
+              {/* Call Center extras */}
               {cart.length > 0 && activeOrder.callCenterOrderId && (
                 <button
                   onClick={handleQuickSaveAndPrint}
                   disabled={quickProcessing || processing || !session}
-                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
+                  className="w-full h-10 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
                   style={{ backgroundColor: "#7C3AED" }}
                 >
                   {quickProcessing ? (
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Printer className="h-2.5 w-2.5" />
+                      <Printer className="h-3 w-3" />
                       حفظ وطباعة
-                      <Badge variant="outline" className="text-[8px] border-white/30 text-white px-0.5 py-0 h-3.5">
-                        {activeOrder.callCenterPaymentMethod === "cash" ? "💵" : "💳"}
-                      </Badge>
                     </>
                   )}
                 </button>
               )}
-              {/* Call Center Dispatch Button */}
-               {cart.length > 0 && (isAdmin || isCallCenter) && (
-                <button
-                  onClick={() => setShowCallCenterDispatch(true)}
-                  disabled={!session}
-                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 border border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-500/20 transition-all disabled:opacity-40"
-                >
-                  <Send className="h-2.5 w-2.5" />
-                  تحويل للفرع
-                  <span className="text-[8px] bg-orange-500/20 rounded px-0.5 font-mono">F2</span>
-                </button>
-              )}
-              {/* Dispatched Orders Log for Call Center */}
               {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 border border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all relative"
+                  className="w-full h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 >
-                  <ClipboardList className="h-2.5 w-2.5" />
+                  <ClipboardList className="h-3 w-3" />
                   سجل المحوّلة
                   {pendingDispatchCount > 0 && (
-                    <Badge className="text-[8px] px-0.5 py-0 h-3.5 bg-amber-500 text-white animate-pulse">
+                    <Badge className="text-[8px] px-1 py-0 h-4 bg-amber-500 text-white animate-pulse">
                       {pendingDispatchCount}
                     </Badge>
                   )}
                 </button>
               )}
-              {/* Bottom row: Delete + Pay */}
-              <div className="flex gap-1">
-                <button
-                  disabled={cart.length === 0}
-                  onClick={async () => {
-                    const tableId = activeOrder.tableId;
-                    setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
-                    setCustomerDataDiscount(null);
-                    setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: o.tableName ? o.tableName : `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch("");
-                    if (tableId) {
-                      const { data: existingOrder } = await supabase
-                        .from("pos_orders")
-                        .select("id")
-                        .eq("table_id", tableId)
-                        .in("state", ["draft", "open"] as any)
-                        .maybeSingle();
-                      if (existingOrder) {
-                        await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
-                        await supabase.from("pos_orders").update({ state: "cancelled" } as any).eq("id", existingOrder.id);
-                      }
-                      await supabase.from("restaurant_tables").update({
-                        status: "available", current_order_id: null, current_guests: 0, occupied_at: null,
-                      }).eq("id", tableId);
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null }));
-                      toast.success("تم إفراغ الطاولة وإرجاعها فارغة");
-                    }
-                  }}
-                  className="h-7 w-7 rounded flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-                
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className="flex-1 h-7 rounded text-[11px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
-                  style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
-                  disabled={cart.length === 0 || !session}
-                  onClick={() => setShowPayment(true)}
-                >
-                  <span className="text-[9px] bg-white/20 rounded px-0.5 font-mono">F12</span>
-                  دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
-                  <Printer className="h-3 w-3 opacity-70" />
-                </motion.button>
-              </div>
             </div>
           </div>
+        </div>
+      </div>
         </div>
       </div>
 
