@@ -116,11 +116,14 @@ const CallCenterDispatchDialog = ({
 
   const checkBranchSessions = async (branchList: Branch[]) => {
     // Check which branches have active POS sessions (cashiers online)
-    const { data: activeSessions } = await supabase
+    console.log("[Dispatch] Checking sessions for owner:", dataOwnerId);
+    const { data: activeSessions, error: sessErr } = await supabase
       .from("pos_sessions" as any)
       .select("cash_box_id")
       .eq("user_id", dataOwnerId)
       .eq("state", "open");
+
+    console.log("[Dispatch] Active sessions:", activeSessions, "Error:", sessErr);
 
     if (!activeSessions || activeSessions.length === 0) {
       setBranchSessions({});
@@ -128,6 +131,7 @@ const CallCenterDispatchDialog = ({
     }
 
     const boxIds = activeSessions.map((s: any) => s.cash_box_id).filter(Boolean);
+    console.log("[Dispatch] Box IDs with sessions:", boxIds);
     if (boxIds.length === 0) {
       setBranchSessions({});
       return;
@@ -139,19 +143,28 @@ const CallCenterDispatchDialog = ({
       .select("id, name, branch_id")
       .in("id", boxIds);
 
+    console.log("[Dispatch] Boxes:", boxes);
+    console.log("[Dispatch] Branch list:", branchList);
+
     const counts: Record<string, number> = {};
     for (const box of (boxes || [])) {
       const branchId = (box as any).branch_id;
       if (branchId) {
         counts[branchId] = (counts[branchId] || 0) + 1;
       } else if (box.name) {
-        // Fallback: name matching
-        const matched = branchList.find(br => box.name.includes(br.name) || br.name.includes(box.name.split(/\s+/)[0]));
+        // Fallback: flexible name matching
+        const boxNameNorm = box.name.replace(/\s+/g, ' ').trim();
+        const matched = branchList.find(br => {
+          const brNameNorm = br.name.replace(/\s+/g, ' ').trim();
+          return boxNameNorm.includes(brNameNorm) || brNameNorm.includes(boxNameNorm);
+        });
+        console.log("[Dispatch] Name match for", box.name, "→", matched?.name || "NO MATCH");
         if (matched) {
           counts[matched.id] = (counts[matched.id] || 0) + 1;
         }
       }
     }
+    console.log("[Dispatch] Final counts:", counts);
     setBranchSessions(counts);
   };
 
