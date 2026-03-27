@@ -3175,7 +3175,7 @@ const POSPage = () => {
               setShowContactDropdown(true);
               searchPosCustomers(val);
             }}
-            onFocus={() => setShowContactDropdown(true)}
+            onFocus={(e) => { setShowContactDropdown(true); e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
             placeholder="الزبون..."
             className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
             style={{
@@ -3183,7 +3183,6 @@ const POSPage = () => {
               border: "1px solid rgba(255,255,255,0.12)",
               color: "white",
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
             onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; setShowContactDropdown(false); }}
           />
           {(customerSearch || customerName) && (
