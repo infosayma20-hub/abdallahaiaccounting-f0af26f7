@@ -1998,7 +1998,7 @@ const POSPage = () => {
     let printedCount = 0;
     for (const [stationId, group] of Object.entries(stationGroups)) {
       const bridgeKitchenOrder: BridgePrintOrder = {
-        orderNumber: tickets[0]?.order_number || "---",
+        orderNumber: activeOrder.orderNumber || "---",
         branchName: group.stationName || "المطبخ",
         cashier: cashierName,
         tableNumber: tableName,
