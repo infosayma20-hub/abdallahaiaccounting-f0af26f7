@@ -193,29 +193,6 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               </Tooltip>
             ) : navButton}
           </div>
-          {/* Quick-add "+" button */}
-          {!collapsed && !disabled && quickAdd && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleNavigate(quickAdd.path); }}
-                  className="flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{
-                    width: 20, height: 20,
-                    color: "rgba(255,255,255,0.35)",
-                    background: "transparent",
-                    borderRadius: 4,
-                    marginLeft: 4,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
-                >
-                  <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="left"><p>{quickAdd.label}</p></TooltipContent>
-            </Tooltip>
-          )}
         </div>
 
         {/* Sub-items with animation */}
