@@ -3203,10 +3203,10 @@ const POSPage = () => {
                         setCustomerSearch("");
                         setShowContactDropdown(false);
                       }}
-                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2"
+                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2 text-foreground"
                     >
-                      <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span>{contact.contact_name}</span>
+                      <User className="h-3 w-3 text-foreground/50 shrink-0" />
+                      <span className="font-medium">{contact.contact_name}</span>
                     </button>
                   ))}
                 </>
