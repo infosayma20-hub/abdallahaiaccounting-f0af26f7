@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import amwaliLogoFull from "@/assets/amwali-logo-full.png";
+import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -213,7 +214,7 @@ const AuthPage = () => {
         >
           {/* Giant transparent logo watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.06 }}>
-            <img src="/logos/amwali-mark-white.png" alt="" className="w-[85%] h-auto object-contain" />
+            <img src={amwaliMarkWhiteNavy} alt="" className="w-[85%] h-auto object-contain" />
           </div>
 
           {/* Content — vertically centered to align with right panel heading */}
