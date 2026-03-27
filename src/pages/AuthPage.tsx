@@ -186,7 +186,7 @@ const AuthPage = () => {
     <div className="h-screen flex flex-col" dir="ltr">
       {/* Top Nav — white with subtle border */}
       <nav
-        className="w-full flex items-center justify-between px-8 shrink-0" dir="rtl"
+        className="w-full flex items-center justify-center gap-48 px-8 shrink-0" dir="rtl"
         style={{ background: '#0D1B2E', borderBottom: 'none', height: 52 }}
       >
         <img src="/logos/amwali-mark-white.png" alt="AMWALI" className="h-10 w-auto object-contain" />
