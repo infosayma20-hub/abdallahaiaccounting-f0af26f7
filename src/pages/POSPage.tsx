@@ -3148,18 +3148,9 @@ const POSPage = () => {
         {/* Connection status */}
         <div className="flex items-center gap-1 shrink-0 text-[10px]">
           {offlineMode.isOnline ? (
-            <>
-              <Wifi className="h-3 w-3 text-green-400" />
-              <span className="text-green-400 font-medium">متصل</span>
-            </>
+            <Wifi className="h-3 w-3 text-green-400" />
           ) : (
-            <>
-              <WifiOff className="h-3 w-3 text-red-400" />
-              <span className="text-red-400 font-medium">غير متصل</span>
-            </>
-          )}
-          {offlineMode.lastSyncAt && (
-            <span className="text-white/40 hidden sm:inline">• آخر مزامنة: {offlineMode.lastSyncAt}</span>
+            <WifiOff className="h-3 w-3 text-red-400" />
           )}
         </div>
 
@@ -3466,15 +3457,7 @@ const POSPage = () => {
         )}
       </header>
 
-      {/* ══════ OFFLINE STATUS BAR ══════ */}
-      <OfflineStatusBar
-        isOnline={offlineMode.isOnline}
-        pendingCount={offlineMode.pendingCount}
-        lastSyncAt={offlineMode.lastSyncAt}
-        isSyncing={offlineMode.isSyncing}
-        syncProgress={offlineMode.syncProgress}
-        onForceSync={offlineMode.syncPendingQueue}
-      />
+      {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
