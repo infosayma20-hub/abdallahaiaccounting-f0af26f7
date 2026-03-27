@@ -107,6 +107,16 @@ const CurrencyManagementPage = () => {
 
   const missingTodayRates = foreignCurrencies.filter((c: any) => !todayRates[c.id]?.today && c.is_active);
 
+  // Auto-fetch rates when page loads and today's rates are missing
+  const autoFetchedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (autoFetchedRef.current || fetchRatesMutation.isPending) return;
+    if (foreignCurrencies.length > 0 && missingTodayRates.length > 0 && rates.length >= 0) {
+      autoFetchedRef.current = true;
+      fetchRatesMutation.mutate();
+    }
+  }, [foreignCurrencies, missingTodayRates, rates]);
+
   // Chart data
   const chartData = useMemo(() => {
     if (!chartCurrency) return [];
