@@ -3201,7 +3201,7 @@ const POSPage = () => {
               border: "1px solid rgba(255,255,255,0.12)",
               color: "white",
             }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; setShowContactDropdown(false); }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; const rt = e.relatedTarget as HTMLElement | null; if (rt?.closest?.('.pos-customer-dropdown')) return; setShowContactDropdown(false); }}
           />
           {(customerSearch || customerName) && (
             <button
