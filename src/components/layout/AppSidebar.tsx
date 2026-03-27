@@ -100,6 +100,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   };
 
   const renderNavItem = (item: NavItem) => {
+    const locked = isItemHidden(item);
     const disabled = isItemDisabled(item);
     const active = !disabled && isActive(item.path);
     const groupActive = !disabled && isGroupActive(item);
