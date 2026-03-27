@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,6 +48,11 @@ interface Account {
   account_type: string;
   is_system: boolean | null;
   parent_code: string | null;
+  description_ar?: string | null;
+  sub_group_label?: string | null;
+  display_order?: number | null;
+  is_system_protected?: boolean | null;
+  system_role?: string | null;
 }
 
 // Calculate depth based on parent_code chain
@@ -71,7 +77,6 @@ function buildOrderedTree(accounts: Account[]): Account[] {
   const byCode = new Map<string, Account>();
   accounts.forEach(a => byCode.set(a.account_code, a));
   
-  // Group children by parent — treat self-referencing parent_code as root
   const childrenOf = new Map<string, Account[]>();
   const roots: Account[] = [];
   
@@ -85,12 +90,10 @@ function buildOrderedTree(accounts: Account[]): Account[] {
     }
   });
   
-  // Sort each group
   const sort = (arr: Account[]) => arr.sort((a, b) => a.account_code.localeCompare(b.account_code));
   sort(roots);
   childrenOf.forEach(children => sort(children));
   
-  // DFS flatten
   const result: Account[] = [];
   const walk = (node: Account) => {
     result.push(node);
@@ -106,6 +109,8 @@ const arabicTypeMap: Record<string, string> = {
   "مصاريف": "Expenses",
   "مصروفات": "Expenses",
   "أصول": "Asset",
+  "asset": "Asset",
+  "Asset": "Asset",
   "التزامات": "Liability",
   "خصوم": "Liability",
   "حقوق ملكية": "Owner's Equity",
@@ -151,14 +156,14 @@ const typeLabels: Record<string, string> = {
   "Expenses": "المصروفات",
 };
 
-const typeColors: Record<string, string> = {
-  "Asset": "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  "Liability": "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-  "Owner's Equity": "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  "Equity": "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  "Revenue": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  "Purchases": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  "Expenses": "bg-red-500/10 text-red-600 dark:text-red-400",
+const typeBadgeStyles: Record<string, string> = {
+  "Asset": "bg-blue-50 text-blue-700 border border-blue-200",
+  "Liability": "bg-red-50 text-red-700 border border-red-200",
+  "Owner's Equity": "bg-purple-50 text-purple-700 border border-purple-200",
+  "Equity": "bg-purple-50 text-purple-700 border border-purple-200",
+  "Revenue": "bg-green-50 text-green-700 border border-green-200",
+  "Purchases": "bg-amber-50 text-amber-700 border border-amber-200",
+  "Expenses": "bg-pink-50 text-pink-700 border border-pink-200",
 };
 
 const naturalBalance: Record<string, string> = {
@@ -170,7 +175,6 @@ const naturalBalance: Record<string, string> = {
   "Purchases": "مدين",
   "Expenses": "مدين",
 };
-
 
 const filterTabs = [
   { value: "all", label: "الكل" },
@@ -256,19 +260,26 @@ const AccountsPage = () => {
     init();
   }, [user]);
 
-  const handleDeleteAccount = useCallback(async (acc: any) => {
+  const handleDeleteAccount = useCallback(async (acc: Account) => {
     if (!user) return;
+    if (acc.is_system_protected) {
+      toast({ 
+        title: "⚠️ حساب محمي", 
+        description: `لا يمكن حذف "${acc.account_name}" — هذا الحساب مرتبط بقيود محاسبية تلقائية.`,
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
     if (acc.is_system) {
       toast({ title: "لا يمكن حذف حساب نظامي", variant: "destructive" });
       return;
     }
-    // Check if account has children
     const hasChildren = accounts.some(a => a.parent_code === acc.account_code);
     if (hasChildren) {
       toast({ title: "لا يمكن الحذف", description: "هذا الحساب يحتوي على حسابات فرعية", variant: "destructive" });
       return;
     }
-    // Check if account has transactions
     const { count } = await supabase
       .from("transactions")
       .select("id", { count: "exact", head: true })
@@ -297,7 +308,6 @@ const AccountsPage = () => {
     }
   }, [user, accounts, toast]);
 
-
   const toggleGroup = useCallback((code: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
@@ -320,13 +330,11 @@ const AccountsPage = () => {
     | { type: 'account'; account: Account; level: number; isGroup: boolean; hasChildren: boolean; isCollapsed: boolean }
     | { type: 'subcategory'; label: string; count: number; parentType: string };
 
-  // Build tree with subcategory headers
   const treeRows = useMemo(() => {
     const rows: TreeRow[] = [];
     const accountsByCode = new Map<string, Account>();
     filteredAccounts.forEach(a => accountsByCode.set(a.account_code, a));
 
-    // Group by normalized type
     const byType: Record<string, Account[]> = {};
     filteredAccounts.forEach(acc => {
       const t = normalizeType(acc.account_type);
@@ -336,7 +344,6 @@ const AccountsPage = () => {
 
     const orderedTypes = typeOrder.filter(t => byType[t]?.length);
 
-    // Check if an account or any ancestor is collapsed
     const isHiddenByCollapse = (acc: Account): boolean => {
       let current = acc;
       while (current.parent_code && current.parent_code !== current.account_code) {
@@ -352,7 +359,6 @@ const AccountsPage = () => {
       const typeAccs = byType[type];
       const subs = subCategories[type];
 
-      // Type header
       const typeHeaderAcc: Account = {
         id: `type-${type}`,
         account_code: '',
@@ -367,7 +373,6 @@ const AccountsPage = () => {
       if (isTypeCollapsed) return;
 
       const addAccountRows = (accs: Account[]) => {
-        // Order by parent_code tree
         const ordered = buildOrderedTree(accs);
         ordered.forEach(acc => {
           if (isHiddenByCollapse(acc)) return;
@@ -376,7 +381,7 @@ const AccountsPage = () => {
           rows.push({
             type: 'account',
             account: acc,
-            level: depth + 1, // +1 because level 0 is the type header
+            level: depth + 1,
             isGroup: hasKids,
             hasChildren: hasKids,
             isCollapsed: collapsedGroups.has(acc.account_code),
@@ -415,6 +420,7 @@ const AccountsPage = () => {
   }, [accounts]);
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-[hsl(210,20%,98%)] dark:bg-background" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
         <PageHeader title="شجرة الحسابات" breadcrumb={["المحاسبة", "شجرة الحسابات"]} />
@@ -523,11 +529,12 @@ const AccountsPage = () => {
         {!loading && !error && accounts.length > 0 && (
           <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] bg-[hsl(210,20%,97%)] dark:bg-muted/30 border-b border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-[11px] font-bold text-[hsl(210,10%,42%)] dark:text-muted-foreground uppercase tracking-wide">
+            <div className="grid grid-cols-[80px_1fr_100px_70px_minmax(120px,1fr)] sm:grid-cols-[100px_1fr_110px_80px_minmax(140px,1fr)_80px] bg-[hsl(210,20%,97%)] dark:bg-muted/30 border-b border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-[11px] font-bold text-[hsl(210,10%,42%)] dark:text-muted-foreground uppercase tracking-wide">
               <span>رمز الحساب</span>
               <span>اسم الحساب</span>
               <span className="hidden sm:block">النوع</span>
-              <span>الرصيد الطبيعي</span>
+              <span>الطبيعة</span>
+              <span>الوصف</span>
               <span className="hidden sm:block text-center">إجراءات</span>
             </div>
 
@@ -537,17 +544,13 @@ const AccountsPage = () => {
                 // Subcategory separator row
                 if (row.type === 'subcategory') {
                   return (
-                    <div key={`sub-${row.label}-${idx}`} className="grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-1.5 items-center bg-[hsl(210,20%,98%)] dark:bg-muted/10">
-                      <span />
-                      <div className="flex items-center gap-2" style={{ paddingRight: 20 }}>
-                        <div className="h-px flex-1 max-w-[40px] bg-[hsl(210,14%,85%)] dark:bg-border" />
-                        <span className="text-[10px] font-bold text-[hsl(210,10%,50%)] dark:text-muted-foreground tracking-wide">{row.label}</span>
-                        <span className="text-[10px] text-[hsl(210,10%,60%)] dark:text-muted-foreground">({row.count})</span>
-                        <div className="h-px flex-1 bg-[hsl(210,14%,85%)] dark:bg-border" />
-                      </div>
-                      <span />
-                      <span />
-                      <span className="hidden sm:block" />
+                    <div key={`sub-${row.label}-${idx}`} className="flex items-center gap-3 px-4 py-2 my-0 bg-[hsl(210,20%,98%)] dark:bg-muted/10">
+                      <div className="h-px flex-1 max-w-[60px] bg-[hsl(210,14%,85%)]/30 dark:bg-border/30" />
+                      <span className="text-[10px] font-medium text-[hsl(210,10%,50%)] dark:text-muted-foreground tracking-wide">
+                        {row.label}
+                      </span>
+                      <span className="text-[10px] text-[hsl(210,10%,65%)] dark:text-muted-foreground/60">({row.count})</span>
+                      <div className="h-px flex-1 bg-[hsl(210,14%,85%)]/30 dark:bg-border/30" />
                     </div>
                   );
                 }
@@ -555,12 +558,13 @@ const AccountsPage = () => {
                 const { account: acc, level, isGroup, hasChildren, isCollapsed } = row;
                 const nType = normalizeType(acc.account_type);
                 const isVirtualTypeHeader = acc.id.startsWith('type-');
+                const isProtected = acc.is_system_protected;
 
                 return (
                 <div
                     key={acc.id}
                     className={cn(
-                      "grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-2 text-sm transition-colors items-center group",
+                      "grid grid-cols-[80px_1fr_100px_70px_minmax(120px,1fr)] sm:grid-cols-[100px_1fr_110px_80px_minmax(140px,1fr)_80px] px-3 py-2 text-sm transition-colors items-center group",
                       level === 0 && "bg-[hsl(210,20%,96%)] dark:bg-muted/20 border-t-2 border-[hsl(210,14%,85%)] dark:border-border",
                       isGroup && level >= 1 && "bg-[hsl(210,20%,98.5%)] dark:bg-muted/10",
                       !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
@@ -604,6 +608,16 @@ const AccountsPage = () => {
                       )}>
                         {acc.account_name}
                       </span>
+                      {isProtected && !isVirtualTypeHeader && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Lock className="w-3 h-3 text-amber-500 shrink-0 mr-1" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            حساب محمي — مرتبط بقيود تلقائية
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {isVirtualTypeHeader && (
                         <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground font-medium mr-1">
                           ({typeCounts[nType] || 0})
@@ -611,10 +625,10 @@ const AccountsPage = () => {
                       )}
                     </div>
 
-                    {/* Type */}
+                    {/* Type Badge */}
                     <div className="hidden sm:flex items-center">
                       {!isVirtualTypeHeader && (
-                        <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeColors[nType] || "bg-muted text-muted-foreground")}>
+                        <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeBadgeStyles[nType] || "bg-muted text-muted-foreground")}>
                           {typeLabels[nType] || nType}
                         </span>
                       )}
@@ -630,6 +644,26 @@ const AccountsPage = () => {
                     )}>
                       {isVirtualTypeHeader ? '' : (naturalBalance[nType] || "—")}
                     </span>
+
+                    {/* Description */}
+                    <div className="min-w-0">
+                      {!isVirtualTypeHeader && acc.description_ar ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
+                              {acc.description_ar}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-[300px] text-right" dir="rtl">
+                            {acc.description_ar}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-[11px] text-[hsl(210,10%,70%)]">
+                          {isVirtualTypeHeader ? '' : '—'}
+                        </span>
+                      )}
+                    </div>
 
                     {/* Row Actions (hover) */}
                     {!isVirtualTypeHeader && (
@@ -652,7 +686,7 @@ const AccountsPage = () => {
                         >
                           <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
-                        {!acc.is_system && (
+                        {!acc.is_system && !isProtected ? (
                           <button 
                             className="p-1 rounded hover:bg-destructive/10 transition-colors" 
                             title="حذف الحساب"
@@ -660,6 +694,15 @@ const AccountsPage = () => {
                           >
                             <Trash2 className="h-3.5 w-3.5 text-destructive/60 hover:text-destructive" />
                           </button>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="p-1 opacity-30 cursor-not-allowed">
+                                <Lock className="h-3.5 w-3.5 text-amber-500" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">محمي</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     )}
@@ -736,6 +779,7 @@ const AccountsPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 };
 
