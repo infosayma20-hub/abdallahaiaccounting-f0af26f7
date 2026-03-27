@@ -768,7 +768,7 @@ export default function WorkshopsPage() {
                       return `<tr><td>${c.cost_date}</td><td>${catInfo.icon} ${catInfo.label}</td><td>${c.description || "—"}</td><td class="text-red">${c.amount.toLocaleString()} ₪</td><td>${c.supplier_name || "—"}</td></tr>`;
                     }).join("")}
                     </tbody></table>` : ""}
-                  <script>setTimeout(() => window.print(), 500);</script>
+                  <!-- view only -->
                   </body></html>
                 `);
                 printWin.document.close();

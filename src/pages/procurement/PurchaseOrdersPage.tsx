@@ -82,7 +82,7 @@ const PurchaseOrdersPage = () => {
     printWindow.document.write(`<div style="display:flex;justify-content:space-between;margin-top:60px"><div><div style="border-bottom:1px solid #000;width:150px;margin-bottom:5px"></div><p style="font-size:11px">توقيع مسؤول المشتريات</p></div><div><div style="border-bottom:1px solid #000;width:150px;margin-bottom:5px"></div><p style="font-size:11px">توقيع المورد</p></div></div>`);
     printWindow.document.write(`</body></html>`);
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 300);
+    /* view only — no browser print */
   };
 
   const handleWhatsApp = async (order: any) => {

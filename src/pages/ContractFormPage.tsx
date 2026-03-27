@@ -134,7 +134,7 @@ export default function ContractFormPage() {
     printWindow.document.write(printRef.current.innerHTML);
     printWindow.document.write("</body></html>");
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+    /* view only — no browser print */
   };
 
   const previewData: ContractData = {
