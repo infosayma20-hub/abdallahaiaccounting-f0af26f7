@@ -1162,7 +1162,6 @@ const POSPage = () => {
 
     pendingDeleteRef.current = { id: productId, timer };
   };
-  };
 
   const handleSaveNewProduct = async () => {
     if (!userId || !dataOwnerId || !(isAdmin || posPerms.manage_products_categories) || !newProduct.name.trim() || savingProduct) return;
