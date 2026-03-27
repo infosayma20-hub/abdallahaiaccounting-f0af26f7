@@ -1515,7 +1515,7 @@ const AccountStatementPage = () => {
         <div className="bg-muted/30 rounded-lg p-2.5 space-y-1">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-muted-foreground">الرصيد الإجمالي:</span>
-            <span className={cn("font-bold tabular-nums", totalBalance > 0 ? "text-red-600" : totalBalance < 0 ? "text-emerald-600" : "text-foreground")}>
+            <span className={cn("font-bold tabular-nums", isAccountsTab ? "text-foreground" : totalBalance > 0 ? "text-red-600" : totalBalance < 0 ? "text-emerald-600" : "text-foreground")}>
               {fmtAmount(totalBalance)}
             </span>
           </div>
