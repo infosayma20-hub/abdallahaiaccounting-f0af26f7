@@ -6,8 +6,8 @@ import { Printer, Mail, CheckCircle, Send, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
-import { printThermalContent } from "@/lib/thermal-print";
-import { loadPrinters, findPrintersForJob, printToDevice } from "@/lib/pos-print";
+import { sendToBridge } from "@/lib/print-bridge-client";
+import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface ReceiptModifier {
   group_name: string;
@@ -105,45 +105,36 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
   const autoPrintDone = useRef(false);
 
   const doPrint = useCallback(async () => {
-    const content = receiptRef.current;
-    if (!content) return;
-
-    const htmlContent = content.innerHTML;
-
-    // Try network printers first (skips browser dialog entirely)
-    try {
-      const printers = await loadPrinters();
-      
-      if (printers.length > 0) {
-        // First try printers with "receipt" category
-        let targetPrinters = findPrintersForJob(printers, { category: "receipt", content: htmlContent });
-        
-        // If no receipt-specific printer, try the default or first active printer
-        if (targetPrinters.length === 0) {
-          const defaultPrinter = printers.find(p => p.is_default);
-          targetPrinters = defaultPrinter ? [defaultPrinter] : [printers[0]];
-        }
-
-        const results = await Promise.allSettled(
-          targetPrinters.map(p => printToDevice(p, { category: "receipt", content: htmlContent }))
-        );
-        const anySuccess = results.some(r => r.status === "fulfilled" && r.value === true);
-        if (anySuccess) {
-          return; // Network print succeeded — no browser dialog
-        }
-      }
-    } catch (err) {
-      console.error("Network print attempt failed:", err);
-    }
-
-    // Fallback: browser print (only if no network printer worked)
-    printThermalContent(htmlContent, {
-      title: "إيصال بيع",
-      paperWidthMm: 80,
-      contentWidthMm: 72,
-      extraStyles: receiptPrintStyles,
+    if (!data) return;
+    // Build bridge order from receipt data
+    const bridgeOrder: PrintOrder = {
+      orderNumber: data.displayNumber || data.orderNumber,
+      queueNumber: data.queueNumber,
+      branchName: data.companyName || "مطعم الملكي",
+      cashier: data.cashierName,
+      tableNumber: data.tableName,
+      orderType: data.orderType,
+      items: data.items.map(item => ({
+        id: item.name,
+        name: item.name,
+        quantity: item.qty,
+        price: item.unit_price,
+        note: item.note || undefined,
+        modifiers: item.modifiers?.map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
+      })),
+      subtotal: data.subtotal,
+      discount: data.discount,
+      total: data.total,
+      paymentMethod: data.paymentMethod,
+      currency: data.currency,
+      tenderedAmount: data.tenderedAmount,
+      change: data.change,
+      orderNote: data.orderNote,
+    };
+    sendToBridge("receipt", bridgeOrder).catch(() => {
+      console.warn("Print bridge unavailable");
     });
-  }, []);
+  }, [data]);
 
   // Auto-print when dialog opens
   useEffect(() => {
