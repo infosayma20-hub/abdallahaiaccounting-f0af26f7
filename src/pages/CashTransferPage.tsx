@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, ArrowLeftRight, Check, MoveRight } from "lucide-react";
+import { ArrowRight, Loader2, ArrowLeftRight, Check, MoveLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -278,7 +278,7 @@ const CashTransferPage = () => {
 
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center">
-                <MoveRight className="h-6 w-6 text-primary animate-pulse" />
+                <MoveLeft className="h-6 w-6 text-primary animate-pulse" />
               </div>
               {amountNum > 0 && <Badge className="text-xs font-mono" style={{ background: "#4A9EE8" }}>{currencySymbol}{fmt(amountNum)}</Badge>}
             </div>
