@@ -97,12 +97,12 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Top-right ornament */}
           <div style={{
             position: "absolute", top: "-20px", right: "-20px", width: "120px", height: "120px",
-            borderRadius: "50%", border: "1px solid rgba(201,168,76,0.08)",
+            borderRadius: "50%", border: "1px solid rgba(74,158,232,0.08)",
             zIndex: 0, pointerEvents: "none",
           }} />
           <div style={{
             position: "absolute", top: "0px", right: "0px", width: "80px", height: "80px",
-            borderRadius: "50%", border: "1px solid rgba(201,168,76,0.06)",
+            borderRadius: "50%", border: "1px solid rgba(74,158,232,0.06)",
             zIndex: 0, pointerEvents: "none",
           }} />
           {/* Bottom-left ornament */}
@@ -119,7 +119,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Subtle diamond pattern - top */}
           <div style={{
             position: "absolute", top: "68px", left: "0", right: "0", height: "1px",
-            background: "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(201,168,76,0.08) 18px, rgba(201,168,76,0.08) 20px)",
+            background: "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(74,158,232,0.08) 18px, rgba(74,158,232,0.08) 20px)",
             zIndex: 0, pointerEvents: "none",
           }} />
           {/* Subtle diamond pattern - bottom */}
@@ -164,7 +164,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                 justifyContent: "center",
                 fontSize: "22px",
                 fontWeight: 800,
-                color: "#C9A84C",
+                color: "#4A9EE8",
               }}
             >
               {(settings.company_name || "Q").charAt(0)}
@@ -210,7 +210,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       )}
 
       {/* ━━━ GOLD ACCENT ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
 
       {/* ━━━ LEGAL & REGISTRATION STRIP ━━━ */}
       <div
@@ -291,7 +291,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     textAlign: i >= 2 ? "center" : "right",
                     fontWeight: 700,
                     fontSize: "9px",
-                    borderBottom: "2px solid #C9A84C",
+                    borderBottom: "2px solid #4A9EE8",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -376,7 +376,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             }}
           >
             <span>الإجمالي النهائي</span>
-            <span style={{ color: "#C9A84C", fontSize: "13px", fontFeatureSettings: "'tnum'" }}>{fmtAmount(grandTotal)}</span>
+            <span style={{ color: "#4A9EE8", fontSize: "13px", fontFeatureSettings: "'tnum'" }}>{fmtAmount(grandTotal)}</span>
           </div>
           {/* Paid / Remaining */}
           {invoice.paidAmount > 0 && (
@@ -465,7 +465,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         }}
       >
         <span>طُبع بتاريخ: {fmtToday}</span>
-        <span style={{ color: "#C9A84C", fontWeight: 600 }}>QOYOD قيود</span>
+        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>QOYOD قيود</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

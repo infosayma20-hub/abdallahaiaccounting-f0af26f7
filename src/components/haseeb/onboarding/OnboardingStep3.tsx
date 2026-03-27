@@ -5,7 +5,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 
 // Simple confetti particles
 const Confetti = () => {
-  const colors = ["#C9A84C", "#E8D5A3", "#1B3A5C", "#16A34A", "#7C3AED", "#006D8F"];
+  const colors = ["#4A9EE8", "#7BB8F0", "#1B3A5C", "#16A34A", "#7C3AED", "#006D8F"];
   const particles = Array.from({ length: 24 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,

@@ -177,7 +177,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
           transform: "translateX(-50%)",
           fontFamily: "Tajawal, sans-serif",
           fontSize: 13,
-          color: "#C9A84C",
+          color: "#4A9EE8",
           letterSpacing: 1,
         }}
       >

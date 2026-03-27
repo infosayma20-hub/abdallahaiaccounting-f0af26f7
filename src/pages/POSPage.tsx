@@ -3155,7 +3155,7 @@ const POSPage = () => {
           {session && session.total_orders > 0 && (
             <span
               className="absolute -top-1 -left-1 rounded-full px-1 py-px text-[9px] font-bold"
-              style={{ background: "#C9A84C", color: "#0A2342" }}
+              style={{ background: "#4A9EE8", color: "#0A2342" }}
             >
               {session.total_orders}
             </span>
@@ -3235,35 +3235,35 @@ const POSPage = () => {
               onClick={() => setShowOpsDropdown(v => !v)}
               onBlur={() => setTimeout(() => setShowOpsDropdown(false), 150)}
               className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
-              style={{ border: "1px solid rgba(201,168,76,0.4)" }}
+              style={{ border: "1px solid rgba(74,158,232,0.4)" }}
               title="عمليات"
             >
-              <MoreHorizontal className="h-4 w-4" style={{ color: "#C9A84C" }} />
+              <MoreHorizontal className="h-4 w-4" style={{ color: "#4A9EE8" }} />
               <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">عمليات</span>
             </button>
             {showOpsDropdown && (
               <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
                 {(isAdmin || posPerms.can_add_inventory) && (
                   <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
-                    <Package className="h-4 w-4" style={{ color: "#C9A84C" }} /> إدخال بضاعة
+                    <Package className="h-4 w-4" style={{ color: "#4A9EE8" }} /> إدخال بضاعة
                   </button>
                 )}
                 {(isAdmin || posPerms.can_record_purchases) && (
                   <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
-                    <ShoppingBag className="h-4 w-4" style={{ color: "#C9A84C" }} /> تسجيل مشتريات
+                    <ShoppingBag className="h-4 w-4" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
                   </button>
                 )}
                 {(isAdmin || posPerms.can_record_expenses) && (
                   <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
-                    <Receipt className="h-4 w-4" style={{ color: "#C9A84C" }} /> صرف مصروف
+                    <Receipt className="h-4 w-4" style={{ color: "#4A9EE8" }} /> صرف مصروف
                   </button>
                 )}
                 <div className="border-t border-gray-200 my-1" />
                 <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { navigate("/pos-customers"); setShowOpsDropdown(false); }}>
-                  <UserCheck className="h-4 w-4" style={{ color: "#C9A84C" }} /> قاعدة بيانات الزبائن
+                  <UserCheck className="h-4 w-4" style={{ color: "#4A9EE8" }} /> قاعدة بيانات الزبائن
                 </button>
                 <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
-                  <RefreshCw className="h-4 w-4" style={{ color: "#C9A84C" }} /> سجل المزامنة
+                  <RefreshCw className="h-4 w-4" style={{ color: "#4A9EE8" }} /> سجل المزامنة
                   {offlineMode.pendingCount > 0 && (
                     <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
                   )}

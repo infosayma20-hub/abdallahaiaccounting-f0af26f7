@@ -23,7 +23,7 @@ const iconMap: Record<string, any> = {
 };
 
 const ICON_OPTIONS = ["wheat", "egg", "beef", "droplets", "sparkles", "cup-soda", "package", "utensils", "spray-can", "shirt"];
-const COLOR_OPTIONS = ["#C9A84C", "#FFFFFF", "#E74C3C", "#E67E22", "#9B59B6", "#3498DB", "#27AE60", "#1ABC9C", "#2ECC71", "#95A5A6"];
+const COLOR_OPTIONS = ["#4A9EE8", "#FFFFFF", "#E74C3C", "#E67E22", "#9B59B6", "#3498DB", "#27AE60", "#1ABC9C", "#2ECC71", "#95A5A6"];
 const DEFAULT_UNITS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
 const CUSTOM_UNITS_KEY = "po-custom-units";
 function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getItem(CUSTOM_UNITS_KEY) || "[]"); } catch { return []; } }
@@ -104,7 +104,7 @@ const PurchaseOrderCreatePage = () => {
   const [itemOpen, setItemOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", category_id: "", unit: "كيلو", default_price: 0, notes: "" });
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: "", icon: "package", color: "#C9A84C" });
+  const [newCategory, setNewCategory] = useState({ name: "", icon: "package", color: "#4A9EE8" });
   const [savingDialog, setSavingDialog] = useState(false);
 
   // Edit item dialog
@@ -258,7 +258,7 @@ const PurchaseOrderCreatePage = () => {
     setSavingDialog(true);
     const ok = await categoriesCrud.create({ name: newCategory.name, icon: newCategory.icon, color: newCategory.color });
     setSavingDialog(false);
-    if (ok) { setCategoryOpen(false); setNewCategory({ name: "", icon: "package", color: "#C9A84C" }); }
+    if (ok) { setCategoryOpen(false); setNewCategory({ name: "", icon: "package", color: "#4A9EE8" }); }
   };
 
   // Edit existing item

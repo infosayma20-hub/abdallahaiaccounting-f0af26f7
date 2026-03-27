@@ -942,10 +942,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
           <thead>
             <tr style="background:#1B3A5C;">
-              <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">رقم الشيك</th>
-              <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">تاريخ الاستحقاق</th>
-              <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">اسم البنك</th>
-              <th style="padding:6px 10px;color:#C9A84C;text-align:left;font-weight:600;">المبلغ</th>
+              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">رقم الشيك</th>
+              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">تاريخ الاستحقاق</th>
+              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">اسم البنك</th>
+              <th style="padding:6px 10px;color:#4A9EE8;text-align:left;font-weight:600;">المبلغ</th>
             </tr>
           </thead>
           <tbody>
@@ -999,11 +999,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- HEADER -->
   <div style="background:linear-gradient(135deg,#0D1B2A 0%,#1B3A5C 100%);padding:20px 28px;display:flex;justify-content:space-between;align-items:center;">
     <div>
-      <div style="font-size:18px;font-weight:700;color:#C9A84C;">${settings.company_name || "QOYOD"}</div>
+      <div style="font-size:18px;font-weight:700;color:#4A9EE8;">${settings.company_name || "QOYOD"}</div>
       <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:2px;">${settings.address || ""}</div>
     </div>
     <div style="text-align:left;">
-      <div style="background:#C9A84C;color:#0D1B2A;padding:4px 12px;border-radius:4px;font-size:10px;font-weight:700;">${typeBadge}</div>
+      <div style="background:#4A9EE8;color:#0D1B2A;padding:4px 12px;border-radius:4px;font-size:10px;font-weight:700;">${typeBadge}</div>
       <div style="font-size:11px;color:#fff;margin-top:4px;">${savedReceiptNumber || refNumber || ""}</div>
     </div>
   </div>
@@ -1043,12 +1043,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     <table style="width:100%;border-collapse:collapse;font-size:11px;">
       <thead>
         <tr style="background:#0D1B2A;">
-          <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">التاريخ</th>
-          <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">رقم المستند</th>
-          <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">البيان</th>
-          <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">النوع</th>
-          <th style="padding:6px 10px;color:#C9A84C;text-align:left;font-weight:600;">مدين</th>
-          <th style="padding:6px 10px;color:#C9A84C;text-align:left;font-weight:600;">دائن</th>
+          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">التاريخ</th>
+          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">رقم المستند</th>
+          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">البيان</th>
+          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">النوع</th>
+          <th style="padding:6px 10px;color:#4A9EE8;text-align:left;font-weight:600;">مدين</th>
+          <th style="padding:6px 10px;color:#4A9EE8;text-align:left;font-weight:600;">دائن</th>
         </tr>
       </thead>
       <tbody>${tableBody}</tbody>
@@ -1074,7 +1074,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- FOOTER -->
   <div style="background:#f7f8fa;border-top:1px solid #edf0f4;padding:10px 28px;display:flex;justify-content:space-between;align-items:center;">
     <div style="font-size:9px;color:#aaa;">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
-    <div style="font-size:9px;color:#C9A84C;font-weight:600;">QOYOD ERP Software</div>
+    <div style="font-size:9px;color:#4A9EE8;font-weight:600;">QOYOD ERP Software</div>
   </div>
 </div>
 </body>

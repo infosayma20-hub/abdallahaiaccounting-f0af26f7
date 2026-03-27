@@ -47,7 +47,7 @@ interface SortableReportTableProps {
   rowClassName?: (row: any, index: number) => string;
 }
 
-const GOLD = "#C9A84C";
+const GOLD = "#4A9EE8";
 const NAVY_HEADER = "#0A2342";
 const NAVY_FILTER = "#071829";
 
@@ -386,7 +386,7 @@ export default function SortableReportTable({
                       fontSize: 11,
                       fontWeight: 600,
                       color: "white",
-                      background: isSorted ? `rgba(201,168,76,0.2)` : NAVY_HEADER,
+                      background: isSorted ? `rgba(74,158,232,0.2)` : NAVY_HEADER,
                       cursor: sortable ? "pointer" : "default",
                       userSelect: "none",
                       borderBottom: isSorted ? `2px solid ${GOLD}` : hasFilter ? "2px solid #00B4D8" : "1px solid rgba(255,255,255,0.08)",
@@ -437,12 +437,12 @@ export default function SortableReportTable({
                           className="w-full text-[11px] px-2 py-1 rounded outline-none"
                           style={{
                             background: "rgba(255,255,255,0.08)",
-                            border: `1px solid rgba(201,168,76,0.3)`,
+                            border: `1px solid rgba(74,158,232,0.3)`,
                             color: "white",
                             minWidth: 60,
                           }}
                           onFocus={e => { e.target.style.borderColor = GOLD; e.target.style.background = "rgba(255,255,255,0.12)"; }}
-                          onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.3)"; e.target.style.background = "rgba(255,255,255,0.08)"; }}
+                          onBlur={e => { e.target.style.borderColor = "rgba(74,158,232,0.3)"; e.target.style.background = "rgba(255,255,255,0.08)"; }}
                         />
                       )}
 
@@ -454,9 +454,9 @@ export default function SortableReportTable({
                             defaultValue={filters[col.key]?.min || ""}
                             onChange={e => setFilterDebounced(col.key, { ...(filters[col.key] || {}), min: e.target.value })}
                             className="w-1/2 text-[10px] px-1.5 py-1 rounded outline-none"
-                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(201,168,76,0.3)`, color: "white" }}
+                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(74,158,232,0.3)`, color: "white" }}
                             onFocus={e => { e.target.style.borderColor = GOLD; }}
-                            onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.3)"; }}
+                            onBlur={e => { e.target.style.borderColor = "rgba(74,158,232,0.3)"; }}
                           />
                           <input
                             type="number"
@@ -464,9 +464,9 @@ export default function SortableReportTable({
                             defaultValue={filters[col.key]?.max || ""}
                             onChange={e => setFilterDebounced(col.key, { ...(filters[col.key] || {}), max: e.target.value })}
                             className="w-1/2 text-[10px] px-1.5 py-1 rounded outline-none"
-                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(201,168,76,0.3)`, color: "white" }}
+                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(74,158,232,0.3)`, color: "white" }}
                             onFocus={e => { e.target.style.borderColor = GOLD; }}
-                            onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.3)"; }}
+                            onBlur={e => { e.target.style.borderColor = "rgba(74,158,232,0.3)"; }}
                           />
                         </div>
                       )}
@@ -478,14 +478,14 @@ export default function SortableReportTable({
                             defaultValue={filters[col.key]?.from || ""}
                             onChange={e => setFilters(prev => ({ ...prev, [col.key]: { ...(prev[col.key] || {}), from: e.target.value } }))}
                             className="w-1/2 text-[10px] px-1 py-1 rounded outline-none"
-                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(201,168,76,0.3)`, color: "white" }}
+                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(74,158,232,0.3)`, color: "white" }}
                           />
                           <input
                             type="date"
                             defaultValue={filters[col.key]?.to || ""}
                             onChange={e => setFilters(prev => ({ ...prev, [col.key]: { ...(prev[col.key] || {}), to: e.target.value } }))}
                             className="w-1/2 text-[10px] px-1 py-1 rounded outline-none"
-                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(201,168,76,0.3)`, color: "white" }}
+                            style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(74,158,232,0.3)`, color: "white" }}
                           />
                         </div>
                       )}
@@ -495,7 +495,7 @@ export default function SortableReportTable({
                           value={filters[col.key] || "__all__"}
                           onChange={e => setFilters(prev => ({ ...prev, [col.key]: e.target.value }))}
                           className="w-full text-[11px] px-1.5 py-1 rounded outline-none cursor-pointer"
-                          style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(201,168,76,0.3)`, color: "white" }}
+                          style={{ background: "rgba(255,255,255,0.08)", border: `1px solid rgba(74,158,232,0.3)`, color: "white" }}
                         >
                           <option value="__all__" style={{ background: NAVY_FILTER }}>الكل</option>
                           {(col.filterOptions || []).map(opt => (

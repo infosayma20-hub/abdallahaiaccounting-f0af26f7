@@ -2180,7 +2180,7 @@ export default function SuperAdminDashboard() {
           <div className="flex items-center gap-3">
             <img src="/q-icon.svg" alt="قيود" className="w-8 h-8 sm:w-9 sm:h-9" />
             <h1 className="text-base sm:text-lg font-bold hidden sm:block" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>QOYOD</h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342" }}>
+            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold" style={{ background: "#4A9EE8", color: "#0A2342" }}>
               Super Admin
             </span>
           </div>
@@ -2241,7 +2241,7 @@ export default function SuperAdminDashboard() {
             {stats && (
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <KPICard icon={Users} label="إجمالي الشركات" value={stats.total_users} sub={`+${stats.new_users_today} اليوم`} color="bg-[#00B4D8]/20 text-[#00B4D8]" accentColor="#00B4D8" />
-                <KPICard icon={ShoppingCart} label="المستخدمون النشطون" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-[#C9A84C]/20 text-[#C9A84C]" accentColor="#C9A84C" />
+                <KPICard icon={ShoppingCart} label="المستخدمون النشطون" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-[#4A9EE8]/20 text-[#4A9EE8]" accentColor="#4A9EE8" />
                 <KPICard icon={DollarSign} label="القيود اليوم" value={`₪${stats.today_revenue.toLocaleString()}`} sub={`${stats.today_transactions} عملية`} color="bg-[#16A34A]/20 text-[#16A34A]" accentColor="#16A34A" />
                 <KPICard icon={Database} label="تنبيهات النظام" value={stats.total_accounts} sub={`${stats.total_contacts} جهة اتصال`} color="bg-[#DC2626]/20 text-[#DC2626]" accentColor="#DC2626" />
               </div>
@@ -2315,9 +2315,9 @@ export default function SuperAdminDashboard() {
                         </div>
                         {portalMems.map(pm => (
                           <div key={`portal-m-${pm.id}`} className="p-3 flex items-center gap-2"
-                            style={{ borderBottom: "1px solid var(--sa-divider)", borderRight: "3px solid rgba(201,168,76,0.25)" }}>
+                            style={{ borderBottom: "1px solid var(--sa-divider)", borderRight: "3px solid rgba(74,158,232,0.25)" }}>
                             <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
-                              style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>{pm.full_name?.[0] || '?'}</div>
+                              style={{ background: "rgba(74,158,232,0.15)", color: "#4A9EE8" }}>{pm.full_name?.[0] || '?'}</div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[13px] truncate" style={{ color: "var(--sa-text-secondary)" }}>{pm.full_name}</span>
@@ -2375,7 +2375,7 @@ export default function SuperAdminDashboard() {
                                 <tr key={`portal-${pm.id}`}
                                   style={{
                                     borderBottom: "1px solid var(--sa-divider)",
-                                    borderRight: "3px solid rgba(201,168,76,0.25)",
+                                    borderRight: "3px solid rgba(74,158,232,0.25)",
                                   }}
                                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
                                   onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
@@ -2383,7 +2383,7 @@ export default function SuperAdminDashboard() {
                                   <td className="px-4 py-2.5" style={{ paddingRight: 40 }}>
                                     <div className="flex items-center gap-2">
                                       <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold"
-                                        style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>
+                                        style={{ background: "rgba(74,158,232,0.15)", color: "#4A9EE8" }}>
                                         {pm.full_name?.[0] || '?'}
                                       </div>
                                       <div>

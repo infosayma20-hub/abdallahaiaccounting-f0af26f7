@@ -17,7 +17,7 @@ const FinixRightPanel = ({ data, cfoMode }: Props) => {
     { icon: "🏦", label: "رصيد البنك", value: data.bank, color: "#0A2342", trend: "مستقر" },
     { icon: "📈", label: "مبيعات اليوم", value: data.salesToday, color: "#16A34A", trend: data.salesToday > 0 ? "نشط" : "لا مبيعات" },
     { icon: "💳", label: "ذمم مستحقة اليوم", value: data.receivables, color: "#DC2626", trend: data.receivables > 0 ? "متابعة" : "لا ذمم" },
-    { icon: "📦", label: "قيمة المخزون", value: data.inventoryValue, color: "#C9A84C", trend: "محدّث" },
+    { icon: "📦", label: "قيمة المخزون", value: data.inventoryValue, color: "#4A9EE8", trend: "محدّث" },
   ];
 
   const predictions = [
@@ -131,8 +131,8 @@ const FinixRightPanel = ({ data, cfoMode }: Props) => {
       {/* Section D: CFO Mode */}
       {cfoMode && (
         <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, #0A2342, #071829)" }}>
-          <p className="text-xs font-bold mb-3" style={{ color: "#C9A84C" }}>👔 وضع المدير المالي</p>
-          <p className="text-[11px] mb-3" style={{ color: "#C9A84C" }}>📋 ملخص اليوم</p>
+          <p className="text-xs font-bold mb-3" style={{ color: "#4A9EE8" }}>👔 وضع المدير المالي</p>
+          <p className="text-[11px] mb-3" style={{ color: "#4A9EE8" }}>📋 ملخص اليوم</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "الإيرادات", value: data.totalSales, color: "#16A34A" },
@@ -146,8 +146,8 @@ const FinixRightPanel = ({ data, cfoMode }: Props) => {
               </div>
             ))}
           </div>
-          <div className="mt-3 p-2.5 rounded-lg" style={{ border: "1px solid #C9A84C30" }}>
-            <p className="text-[10px]" style={{ color: "#C9A84C" }}>
+          <div className="mt-3 p-2.5 rounded-lg" style={{ border: "1px solid #4A9EE830" }}>
+            <p className="text-[10px]" style={{ color: "#4A9EE8" }}>
               💡 {data.netProfit > 0 ? "أداء إيجابي — ركّز على التحصيل" : "راجع المصروفات لتحسين الربحية"}
             </p>
           </div>

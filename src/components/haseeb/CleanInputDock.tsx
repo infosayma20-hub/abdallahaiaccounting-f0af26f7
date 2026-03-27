@@ -257,7 +257,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         <div className="flex items-center justify-center gap-[2px] h-14 w-full px-4">
           {audioLevels.map((level, i) => (
             <div key={i} className="w-[3px] rounded-full transition-all duration-75"
-              style={{ height: `${level}px`, background: "linear-gradient(to top, #006D8F, #00B4D8, #C9A84C)", opacity: 0.8 + (level / 48) * 0.2 }} />
+              style={{ height: `${level}px`, background: "linear-gradient(to top, #006D8F, #00B4D8, #4A9EE8)", opacity: 0.8 + (level / 48) * 0.2 }} />
           ))}
         </div>
         <div className="flex items-center justify-between px-4 pb-1">
@@ -281,7 +281,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
     return (
       <div className="flex-shrink-0 bg-white border-t border-[#F1F5F9]" style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))" }}>
         <div className="h-1 w-full overflow-hidden">
-          <div className="h-full animate-pulse" style={{ background: "linear-gradient(90deg, transparent, #00B4D8, #C9A84C, transparent)", backgroundSize: "200% 100%" }} />
+          <div className="h-full animate-pulse" style={{ background: "linear-gradient(90deg, transparent, #00B4D8, #4A9EE8, transparent)", backgroundSize: "200% 100%" }} />
         </div>
         <div className="flex items-center justify-center gap-2 py-4">
           <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "#00B4D8", borderTopColor: "transparent" }} />
@@ -336,7 +336,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
               {/* Products */}
               {mentionProducts.length > 0 && (
                 <>
-                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm" style={{ color: "#C9A84C" }}>
+                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm" style={{ color: "#4A9EE8" }}>
                     <Package className="h-3 w-3" /> أصناف ومنتجات
                   </div>
                   {mentionProducts.map(item => (

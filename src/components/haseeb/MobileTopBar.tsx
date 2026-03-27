@@ -36,7 +36,7 @@ const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
               onClick={onShowRadar}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full"
               style={{
-                background: "rgba(201,168,76,0.2)",
+                background: "rgba(74,158,232,0.2)",
                 border: "1px solid hsl(var(--finix-gold))",
               }}
             >

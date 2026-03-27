@@ -29,7 +29,7 @@ interface SidebarProps {
 }
 
 const SIDEBAR_BG = "#1b2b4b";
-const GOLD = "#C9A84C";
+const GOLD = "#4A9EE8";
 const SEPARATOR = "rgba(255,255,255,0.06)";
 const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
 
@@ -242,7 +242,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                           fontSize: 13,
                           fontWeight: 400,
                           color: childActive ? "#FFFFFF" : "rgba(255,255,255,0.65)",
-                          background: childActive ? "rgba(201,168,76,0.1)" : "transparent",
+                          background: childActive ? "rgba(74,158,232,0.1)" : "transparent",
                           borderRadius: 8,
                           margin: "1px 8px",
                           width: "calc(100% - 16px)",

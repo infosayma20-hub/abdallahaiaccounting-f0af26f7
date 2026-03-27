@@ -259,7 +259,7 @@ const CashTransferPage = () => {
       </div>
 
       {/* Transfer Form Card */}
-      <Card className="overflow-hidden" style={{ borderTop: "4px solid #C9A84C" }}>
+      <Card className="overflow-hidden" style={{ borderTop: "4px solid #4A9EE8" }}>
         <CardContent className="p-6 md:p-8 space-y-6">
           {/* Visual Diagram */}
           <div className="flex items-center justify-center gap-4 py-4">
@@ -288,7 +288,7 @@ const CashTransferPage = () => {
               <div className="flex items-center">
                 <MoveRight className="h-6 w-6 text-primary animate-pulse" />
               </div>
-              {amountNum > 0 && <Badge className="text-xs font-mono" style={{ background: "#C9A84C" }}>{currencySymbol}{fmt(amountNum)}</Badge>}
+              {amountNum > 0 && <Badge className="text-xs font-mono" style={{ background: "#4A9EE8" }}>{currencySymbol}{fmt(amountNum)}</Badge>}
             </div>
 
             <div className={`flex-1 max-w-[200px] p-4 rounded-xl border-2 text-center transition-all ${toBox ? "border-emerald-200 bg-emerald-50/50" : "border-dashed border-muted"}`}>
@@ -447,7 +447,7 @@ const CashTransferPage = () => {
           {/* Submit */}
           <Button
             className="w-full h-12 text-base gap-2"
-            style={{ background: "linear-gradient(135deg, #C9A84C, #A88B2E)" }}
+            style={{ background: "linear-gradient(135deg, #4A9EE8, #3A8BD6)" }}
             disabled={saving || !fromBoxId || !toBoxId || amountNum <= 0 || exceeds || fromBoxId === toBoxId}
             onClick={handleTransfer}
           >

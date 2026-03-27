@@ -173,7 +173,7 @@ const ReportPrintLayout = ({
               width: "52px", height: "52px", borderRadius: "8px",
               background: "rgba(255,255,255,0.15)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "20px", fontWeight: 800, color: "#C9A84C",
+              fontSize: "20px", fontWeight: 800, color: "#4A9EE8",
             }}>
               {company.name?.charAt(0) || "C"}
             </div>
@@ -199,7 +199,7 @@ const ReportPrintLayout = ({
       </div>
 
       {/* ━━━ GOLD ACCENT LINE ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
       <div style={{ padding: "14px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
@@ -336,7 +336,7 @@ const ReportPrintLayout = ({
         position: "absolute", bottom: 0, left: 0, right: 0,
       }}>
         <span>طُبع بتاريخ: {fmtDateSlash(today)}</span>
-        <span style={{ color: "#C9A84C", fontWeight: 600 }}>نظام عبدالله AI للمحاسبة</span>
+        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>نظام عبدالله AI للمحاسبة</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>
@@ -393,12 +393,12 @@ body{background:#fff;color:#1f2937;font-size:11px;line-height:1.5}
 .page{width:210mm;min-height:297mm;margin:0 auto;position:relative}
 .header-bar{background:linear-gradient(135deg,#1B3A5C 0%,#0F2640 100%);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center}
 .header-bar .company{display:flex;align-items:center;gap:14px}
-.header-bar .logo{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#C9A84C}
+.header-bar .logo{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#4A9EE8}
 .header-bar .logo img{width:52px;height:52px;border-radius:8px;object-fit:contain;background:#fff;padding:3px}
 .header-bar h2{font-size:16px;font-weight:700}.header-bar .sub{font-size:10px;opacity:0.8;margin-top:2px}
 .header-bar .title{text-align:left}.header-bar .title h1{font-size:18px;font-weight:700}
 .header-bar .title p{font-size:10px;opacity:0.8;font-family:'Segoe UI',sans-serif}
-.gold-line{height:3px;background:linear-gradient(90deg,#C9A84C,#E8D48B,#C9A84C)}
+.gold-line{height:3px;background:linear-gradient(90deg,#4A9EE8,#7BB8F0,#4A9EE8)}
 .info{padding:14px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #E5E7EB;font-size:10px}
 .info .report-title{font-size:16px;font-weight:700;color:#1B3A5C}
 .info .period{font-size:11px;color:#6B7280;margin-top:4px}
@@ -409,7 +409,7 @@ body{background:#fff;color:#1f2937;font-size:11px;line-height:1.5}
 .sbox .val{font-size:14px;font-weight:700;font-feature-settings:'tnum'}
 table{width:100%;border-collapse:collapse;font-size:10px;margin:0 28px;width:calc(100% - 56px)}
 thead tr{background:#1B3A5C;color:#fff}
-thead th{padding:8px;font-weight:700;border-bottom:2px solid #C9A84C;text-align:right}
+thead th{padding:8px;font-weight:700;border-bottom:2px solid #4A9EE8;text-align:right}
 tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6}
 .zebra{background:#FAFBFC}
 .totals-row{background:#1B3A5C;color:#fff;font-weight:700}
@@ -423,7 +423,7 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6}
 .sig-box .line{width:160px;height:60px;border:1px dashed #D1D5DB;border-radius:6px;margin:0 auto 6px}
 .sig-box .lbl{font-size:8px;color:#9CA3AF}
 .bottom-bar{background:#1B3A5C;color:rgba(255,255,255,0.7);padding:8px 28px;display:flex;justify-content:space-between;font-size:9px;position:absolute;bottom:0;left:0;right:0}
-.bottom-bar .brand{color:#C9A84C;font-weight:600}
+.bottom-bar .brand{color:#4A9EE8;font-weight:600}
 @media print{body{margin:0;padding:0}.page{width:100%!important}}
 </style></head><body>
 <div class="page">

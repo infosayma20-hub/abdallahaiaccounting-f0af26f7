@@ -60,7 +60,7 @@ const CleanTopBar = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={onShowHelp} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors" aria-label="مساعدة">
-              <HelpCircle className="h-4 w-4" style={{ color: "#C9A84C" }} />
+              <HelpCircle className="h-4 w-4" style={{ color: "#4A9EE8" }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>دليل الأوامر</p></TooltipContent>
@@ -153,7 +153,7 @@ const CleanTopBar = ({
                   >
                     <span className="text-sm">{item.icon}</span>
                     <span>{item.label}</span>
-                    {item.active && <span className="mr-auto text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C20", color: "#C9A84C" }}>مفعّل</span>}
+                    {item.active && <span className="mr-auto text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "#4A9EE820", color: "#4A9EE8" }}>مفعّل</span>}
                   </button>
                 ))}
               </div>

@@ -214,7 +214,7 @@ export default function LoansPage() {
       </div>
     </div>
   </div>
-  <div style="height:3px;background:#C9A84C"></div>
+  <div style="height:3px;background:#4A9EE8"></div>
 
   <!-- META -->
   <div style="display:flex;justify-content:space-between;padding:14px 28px;font-size:11px;color:#6B7280;border-bottom:1px solid #eee">
@@ -296,7 +296,7 @@ export default function LoansPage() {
   <!-- FOOTER -->
   <div style="background:#f7f8fa;padding:10px 28px;display:flex;justify-content:space-between;font-size:10px;color:#6B7280;border-top:1px solid #eee;margin-top:20px">
     <span>طُبع بتاريخ ${dateStr}</span>
-    <span style="color:#C9A84C;font-weight:600">${companyName}</span>
+    <span style="color:#4A9EE8;font-weight:600">${companyName}</span>
     <span>صفحة 1</span>
   </div>
 </body>
@@ -367,7 +367,7 @@ export default function LoansPage() {
       <div><div style="font-size:15px;font-weight:700">${companyName}</div></div>
     </div>
   </div>
-  <div style="height:3px;background:#C9A84C"></div>
+  <div style="height:3px;background:#4A9EE8"></div>
 
   <!-- META -->
   <div style="display:flex;justify-content:space-between;padding:14px 28px;font-size:11px;color:#6B7280;border-bottom:1px solid #eee">
@@ -451,7 +451,7 @@ export default function LoansPage() {
   <!-- FOOTER -->
   <div style="background:#f7f8fa;padding:10px 28px;display:flex;justify-content:space-between;font-size:10px;color:#6B7280;border-top:1px solid #eee;margin-top:20px">
     <span>طُبع بتاريخ ${dateStr}</span>
-    <span style="color:#C9A84C;font-weight:600">${companyName}</span>
+    <span style="color:#4A9EE8;font-weight:600">${companyName}</span>
     <span>قرض حسن - ${loan.employees?.full_name || ""}</span>
   </div>
 </body>

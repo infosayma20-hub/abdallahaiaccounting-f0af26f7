@@ -141,7 +141,7 @@ const TransactionsPrintView = ({
                 justifyContent: "center",
                 fontSize: "20px",
                 fontWeight: 800,
-                color: "#C9A84C",
+                color: "#4A9EE8",
               }}
             >
               {company.name?.charAt(0) || "C"}
@@ -166,7 +166,7 @@ const TransactionsPrintView = ({
       </div>
 
       {/* ━━━ GOLD ACCENT LINE ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
       <div style={{ padding: "10px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
@@ -262,7 +262,7 @@ const TransactionsPrintView = ({
                     textAlign: i >= 7 ? "left" : "right",
                     fontWeight: 700,
                     fontSize: "8px",
-                    borderBottom: "2px solid #C9A84C",
+                    borderBottom: "2px solid #4A9EE8",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -424,7 +424,7 @@ const TransactionsPrintView = ({
         }}
       >
         <span>طُبع بتاريخ: {fmtDateSlash(today)}</span>
-        <span style={{ color: "#C9A84C", fontWeight: 600 }}>نظام عبدالله AI للمحاسبة</span>
+        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>نظام عبدالله AI للمحاسبة</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

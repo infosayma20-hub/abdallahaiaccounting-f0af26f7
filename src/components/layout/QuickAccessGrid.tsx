@@ -125,18 +125,18 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
                 border: "0.5px solid rgba(255,255,255,0.1)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(201,168,76,0.12)";
-                e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)";
+                e.currentTarget.style.background = "rgba(74,158,232,0.12)";
+                e.currentTarget.style.borderColor = "rgba(74,158,232,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "rgba(255,255,255,0.05)";
                 e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
               }}
             >
-              <item.icon className="h-4 w-4 text-sidebar-foreground/70 group-hover:text-[#C9A84C] transition-colors" strokeWidth={1.6} />
+              <item.icon className="h-4 w-4 text-sidebar-foreground/70 group-hover:text-[#4A9EE8] transition-colors" strokeWidth={1.6} />
               <span className="text-[11px] text-white/90 leading-tight text-center">{item.label}</span>
               {item.shortcut && (
-                <span className="text-[9px] font-mono leading-none" style={{ color: "#C9A84C" }}>
+                <span className="text-[9px] font-mono leading-none" style={{ color: "#4A9EE8" }}>
                   {item.shortcut}
                 </span>
               )}

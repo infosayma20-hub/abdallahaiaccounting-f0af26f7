@@ -125,7 +125,7 @@ const PaymentModal = ({ plan, billingCycle, onClose, onSuccess }: PaymentModalPr
               <div className="bg-gray-50 rounded-2xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-bold text-[#0A2342]">{plan.name_ar}</span>
-                  <span className="text-sm bg-[#C9A84C]/10 text-[#C9A84C] px-3 py-1 rounded-full font-bold">
+                  <span className="text-sm bg-[#4A9EE8]/10 text-[#4A9EE8] px-3 py-1 rounded-full font-bold">
                     {billingCycle === "annual" ? "سنوي" : "شهري"}
                   </span>
                 </div>

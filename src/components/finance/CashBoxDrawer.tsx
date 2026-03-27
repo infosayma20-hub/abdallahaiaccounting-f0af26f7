@@ -335,7 +335,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
 
           {/* Accounting Link */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold" style={{ color: "#C9A84C" }}>الحساب المحاسبي</h3>
+            <h3 className="text-xs font-bold" style={{ color: "#4A9EE8" }}>الحساب المحاسبي</h3>
             {!editBox && (
               <div className="flex items-center gap-3">
                 <Switch checked={autoCreateAccount} onCheckedChange={setAutoCreateAccount} />

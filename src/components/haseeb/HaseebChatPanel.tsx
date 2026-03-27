@@ -263,7 +263,7 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
           <div className="flex items-center justify-center h-full">
             <div className="max-w-lg w-full">
               {/* Welcome card */}
-              <div className="bg-white rounded-2xl p-8 shadow-lg" style={{ borderTop: "4px solid #C9A84C" }}>
+              <div className="bg-white rounded-2xl p-8 shadow-lg" style={{ borderTop: "4px solid #4A9EE8" }}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ background: "#0A2342" }}>
                     {userName.charAt(0)}
@@ -363,7 +363,7 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                   </p>
                 </div>
                 {msg.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 mr-2" style={{ background: "linear-gradient(135deg, #C9A84C, #E8D5A3)" }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 mr-2" style={{ background: "linear-gradient(135deg, #4A9EE8, #7BB8F0)" }}>
                     ✦
                   </div>
                 )}
