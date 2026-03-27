@@ -197,7 +197,7 @@ const QUICK_ITEMS = [
   { label: "صناديق", icon: Banknote, shortcut: "Alt+S", path: "/finance/cash-boxes" },
   { label: "المخزون", icon: Package, shortcut: "Alt+I", path: "/inventory" },
   { label: "الشيكات", icon: CreditCard, shortcut: "Alt+Q", path: "/finance/cheques" },
-  { label: "نقطة البيع", icon: ShoppingCart, shortcut: "", path: "/pos" },
+  { label: "نقطة البيع", icon: ShoppingCart, shortcut: "Alt+P", path: "/pos" },
   { label: "ميزان المراجعة", icon: TrendingUp, shortcut: "Alt+T", path: "/trial-balance" },
 ];
 
@@ -208,28 +208,59 @@ const QuickAccessButton = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className={cn(
-          "w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150",
-          open ? "bg-accent/15 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-        )}>
-          <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        <button
+          className="flex items-center justify-center transition-all duration-150 flex-shrink-0"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: open ? "rgba(201,168,76,0.25)" : "rgba(201,168,76,0.15)",
+          }}
+          onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = "rgba(201,168,76,0.25)"; }}
+          onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "rgba(201,168,76,0.15)"; }}
+        >
+          <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "#C9A84C" }} />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-[340px] p-2 rounded-xl" dir="rtl">
-        <p className="text-[11px] font-bold text-muted-foreground px-2 pb-1.5 flex items-center gap-1.5">
-          <img src="/q-icon-navy.png" alt="قيود" className="h-3.5 w-3.5 object-contain" />
-          وصول سريع
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        dir="rtl"
+        className="p-0"
+        style={{
+          width: 480,
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          borderRadius: 12,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          padding: 16,
+        }}
+      >
+        <p style={{ fontSize: 13, fontWeight: 600, color: "#1B3A5C", marginBottom: 12 }}>
+          ⚡ وصول سريع
         </p>
         <div className="grid grid-cols-2 gap-1">
           {QUICK_ITEMS.map((item) => (
             <button
               key={item.path}
               onClick={() => { navigate(item.path); setOpen(false); }}
-              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-right hover:bg-secondary transition-colors group"
+              className="flex items-center gap-2.5 text-right transition-colors group"
+              style={{ padding: "10px 12px", borderRadius: 8 }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#F8F9FA"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
-              <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors flex-shrink-0" strokeWidth={1.6} />
-              <span className="text-[11px] font-medium text-foreground flex-1 whitespace-nowrap">{item.label}</span>
-              <kbd className="text-[9px] font-mono text-accent/70 bg-accent/10 rounded px-1 py-0.5 flex-shrink-0">{item.shortcut}</kbd>
+              <item.icon className="flex-shrink-0" style={{ width: 18, height: 18, color: "#1B3A5C" }} strokeWidth={1.6} />
+              <span className="flex-1 whitespace-nowrap" style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{item.label}</span>
+              {item.shortcut && (
+                <kbd style={{
+                  fontSize: 11,
+                  fontFamily: "monospace",
+                  background: "#F3F4F6",
+                  color: "#6B7280",
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                }} className="flex-shrink-0">{item.shortcut}</kbd>
+              )}
             </button>
           ))}
         </div>
