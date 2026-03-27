@@ -38,14 +38,20 @@ const IconButton = ({
       <button
         onClick={onClick}
         className={cn(
-          "relative w-9 h-9 rounded-lg flex items-center justify-center",
-          "text-muted-foreground hover:text-foreground hover:bg-secondary",
+          "relative flex items-center justify-center",
           "transition-all duration-150 cursor-pointer",
           className
         )}
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
       >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2 ring-background" />}
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
+        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent" style={{ boxShadow: "0 0 0 2px #0D1B2E" }} />}
       </button>
     </TooltipTrigger>
     {title && <TooltipContent side="bottom"><p>{title}</p></TooltipContent>}
@@ -110,24 +116,31 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => { (acc[r.type] = acc[r.type] || []).push(r); return acc; }, {});
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-[560px]">
-      <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none z-10" strokeWidth={2} />
-      {loading && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10"><div className="h-4 w-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" /></div>}
-      {query && !loading && <button onClick={() => { setQuery(""); setResults([]); }} className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
+    <div ref={containerRef} className="relative w-full max-w-[340px]">
+      <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10" strokeWidth={2} style={{ color: "rgba(255,255,255,0.4)" }} />
+      {loading && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10"><div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /></div>}
+      {query && !loading && <button onClick={() => { setQuery(""); setResults([]); }} className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 hover:text-white" style={{ color: "rgba(255,255,255,0.5)" }}><X className="h-4 w-4" /></button>}
       <input
         ref={inputRef}
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder="ابحث عن معاملة، عميل، مورد، حساب..."
-        className={cn(
-          "w-full h-11 pr-10 pl-10 rounded-xl",
-          "bg-white border-2 border-[#5B9BD5]/40",
-          "text-sm text-foreground placeholder:text-muted-foreground/60",
-          "focus:outline-none focus:border-[#1B3A5C] focus:ring-[3px] focus:ring-[#5B9BD5]/20 focus:bg-white",
-          "transition-all duration-150 shadow-sm"
-        )}
+        placeholder="ابحث عن معاملة، عميل..."
+        style={{
+          width: "100%",
+          height: 36,
+          paddingRight: 40,
+          paddingLeft: 40,
+          borderRadius: 8,
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          color: "#fff",
+          fontSize: 13,
+          outline: "none",
+        }}
+        onFocusCapture={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; }}
+        onBlurCapture={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
       />
       {showResults && query.trim().length > 0 && (
         <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-[420px] overflow-y-auto">
@@ -164,13 +177,16 @@ const ProfileDropdown = ({
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <button className={cn("flex items-center gap-2 h-9 px-2.5 rounded-lg", "bg-secondary hover:bg-secondary/80", "transition-all duration-150 cursor-pointer", "border border-transparent hover:border-border")}>
-        <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
+      <button className="flex items-center gap-2 h-9 px-2.5 rounded-lg transition-all duration-150 cursor-pointer" style={{ background: "rgba(255,255,255,0.08)" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+      >
+        <span className="text-[13px] font-medium hidden md:block max-w-[140px] truncate" style={{ color: "rgba(255,255,255,0.9)" }}>{displayName}</span>
         {avatarUrl ? (
-          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-accent/30" />
+          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-white/20" />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+            <span className="text-[11px] font-bold text-white leading-none">{initials}</span>
           </div>
         )}
       </button>
@@ -309,12 +325,12 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
-    <header className="sticky top-0 z-40 bg-card border-b border-border" style={{ height: 60, boxShadow: "0 1px 4px rgba(13,27,42,0.06)" }}>
+    <header className="sticky top-0 z-40" style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
       <div className="h-full flex items-center gap-4 px-4 sm:px-6">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={onMenuClick} className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors">
-              <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
+            <button onClick={onMenuClick} className="lg:hidden flex items-center justify-center transition-colors" style={{ width: 36, height: 36, borderRadius: 8 }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+              <Menu className="h-5 w-5" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
@@ -340,7 +356,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
-          <div className="w-px h-6 bg-border mx-1.5 hidden sm:block" />
+          <div className="w-px h-5 mx-1.5 hidden sm:block" style={{ background: "rgba(255,255,255,0.15)" }} />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
       </div>
