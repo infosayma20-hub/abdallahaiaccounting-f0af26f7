@@ -145,8 +145,12 @@ const CallCenterDispatchDialog = ({
       if (branchId) {
         counts[branchId] = (counts[branchId] || 0) + 1;
       } else if (box.name) {
-        // Fallback: name matching
-        const matched = branchList.find(br => box.name.includes(br.name) || br.name.includes(box.name.split(/\s+/)[0]));
+        // Fallback: flexible name matching - normalize and check if branch name appears in box name
+        const boxNameNorm = box.name.replace(/\s+/g, ' ').trim();
+        const matched = branchList.find(br => {
+          const brNameNorm = br.name.replace(/\s+/g, ' ').trim();
+          return boxNameNorm.includes(brNameNorm) || brNameNorm.includes(boxNameNorm);
+        });
         if (matched) {
           counts[matched.id] = (counts[matched.id] || 0) + 1;
         }
