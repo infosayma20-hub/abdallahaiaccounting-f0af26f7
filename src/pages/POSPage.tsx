@@ -3213,7 +3213,7 @@ const POSPage = () => {
             </button>
           )}
           {showContactDropdown && (customerSearch || "").length > 0 && (
-            <div className="absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+            <div className="pos-customer-dropdown absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto" onMouseDown={e => e.preventDefault()}>
               {posCustomerResults.length > 0 && (
                 <>
                   <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
