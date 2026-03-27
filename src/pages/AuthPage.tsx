@@ -254,7 +254,7 @@ const AuthPage = () => {
 
             {/* Logo — large */}
             <div className="text-center mb-10">
-              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-20 mx-auto object-contain" />
+              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-32 mx-auto object-contain" />
             </div>
 
             {/* Header — thin font */}
