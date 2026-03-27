@@ -188,7 +188,7 @@ const AuthPage = () => {
         className="w-full flex items-center justify-between px-6 py-3 z-50"
         style={{ background: '#1B3A5C' }}
       >
-        <img src="/logo-white.png" alt="AMWALI" className="h-8 object-contain" />
+        <img src="/logos/amwali-white.jpg" alt="AMWALI" className="h-8 object-contain" />
         <div className="flex items-center gap-3">
           <button
             className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
@@ -215,7 +215,7 @@ const AuthPage = () => {
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
             <div className="text-center space-y-8 max-w-sm">
               <div className="flex flex-col items-center gap-4">
-                <img src="/logo-white.png" alt="AMWALI أموالي" width={200} />
+                <img src="/logos/amwali-white.jpg" alt="AMWALI أموالي" width={200} />
               </div>
 
               <div className="space-y-3 mt-8" dir="rtl">
@@ -264,7 +264,7 @@ const AuthPage = () => {
           <div className="w-full max-w-sm space-y-5">
             {/* Logo */}
             <div className="flex flex-col items-center gap-3 mb-2">
-              <img src="/q-logo-navy.png" alt="AMWALI" className="w-20 h-20 object-contain" />
+              <img src="/logos/amwali-mark-navy.png" alt="AMWALI" className="w-20 h-20 object-contain" />
               <h2 className="text-2xl font-bold" style={{ color: '#1B3A5C', fontFamily: 'Tajawal' }}>
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
