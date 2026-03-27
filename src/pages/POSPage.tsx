@@ -4035,21 +4035,30 @@ const POSPage = () => {
           <div className="border-t border-border bg-card shrink-0">
             {/* Order Type + Notes row */}
             {(
-              <div className="px-2 pt-1.5 pb-1 space-y-1">
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  {/* Table Picker (replaces dine_in) */}
+              <div className="px-2 pt-1 pb-1 space-y-1">
+                {/* Order note - always visible as input */}
+                <Input
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
+                  placeholder="📝 ملاحظة على الفاتورة..."
+                  className="h-6 text-[10px] bg-muted/30 border-dashed border-border"
+                />
+
+                {/* Order type row */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  {/* Table Picker */}
                   <div className="relative">
                     <button
                       onClick={() => setShowTablePicker(!showTablePicker)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all text-[11px] ${
+                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all text-[10px] ${
                         activeOrder.tableId
                           ? "bg-primary/15 text-primary border border-primary/30 font-bold"
                           : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
                       }`}
                     >
-                      <span className="text-[10px]">🍽️</span>
+                      <span className="text-[9px]">🍽️</span>
                       {activeOrder.tableName || "طاولة"}
-                      <ChevronDown className="h-2.5 w-2.5" />
+                      <ChevronDown className="h-2 w-2" />
                     </button>
                     {showTablePicker && (
                       <div className="absolute top-full right-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px] max-h-[250px] overflow-y-auto">
@@ -4102,39 +4111,23 @@ const POSPage = () => {
                       <button
                         key={type}
                         onClick={() => updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }))}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all text-[11px] ${
+                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all text-[10px] ${
                           isActive
                             ? "bg-primary/15 text-primary border border-primary/30 font-bold"
                             : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
                         }`}
                       >
-                        <span className="text-[10px]">{labels[type].icon}</span>
+                        <span className="text-[9px]">{labels[type].icon}</span>
                         {labels[type].label}
                       </button>
                     );
                   })}
-
-                  {/* Spacer */}
-                  <div className="flex-1" />
-
-                  {/* Notes button */}
-                  <button
-                    onClick={() => setShowOrderNoteInput(!showOrderNoteInput)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors text-[11px] ${
-                      showOrderNoteInput || orderNote
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <StickyNote className="h-2.5 w-2.5" />
-                    {orderNote ? "📝" : "ملاحظات"}
-                  </button>
                 </div>
 
                 {/* Customer phone display */}
                 {activeOrder.customerPhone && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2 py-1">
-                    <Phone className="h-3 w-3 shrink-0" />
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-0.5">
+                    <Phone className="h-2.5 w-2.5 shrink-0" />
                     <span className="font-mono">{activeOrder.customerPhone}</span>
                   </div>
                 )}
@@ -4145,19 +4138,8 @@ const POSPage = () => {
                     value={activeOrder.deliveryAddress}
                     onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
                     placeholder="📍 عنوان التوصيل..."
-                    className="h-8 text-xs bg-amber-50 dark:bg-amber-950/20 border-amber-300/50"
+                    className="h-6 text-[10px] bg-amber-50 dark:bg-amber-950/20 border-amber-300/50"
                     autoFocus={!activeOrder.deliveryAddress}
-                  />
-                )}
-
-                {/* Order note input */}
-                {showOrderNoteInput && (
-                  <Input
-                    value={orderNote}
-                    onChange={(e) => setOrderNote(e.target.value)}
-                    placeholder="ملاحظة على الفاتورة..."
-                    className="h-8 text-xs bg-muted/30 border-dashed"
-                    autoFocus
                   />
                 )}
               </div>
@@ -4191,24 +4173,24 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="px-2 pt-0 pb-2 space-y-1.5">
+            <div className="px-1.5 pt-0 pb-1.5 space-y-1">
               {/* Top row: Kitchen + Save */}
               {cart.length > 0 && !isCallCenter && (
-                <div className="flex gap-1.5">
+                <div className="flex gap-1">
                   <button
                     onClick={handleSendToKitchen}
-                    className="flex-1 h-8 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
+                    className="flex-1 h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
                   >
-                    🖨️ الطابعة
-                    <span className="text-[9px] bg-amber-500/20 rounded px-1 py-0.5 font-mono">F9</span>
+                    🖨️ طباعة
+                    <span className="text-[8px] bg-amber-500/20 rounded px-0.5 font-mono">F9</span>
                   </button>
                   <button
                     onClick={handleSaveToTable}
                     disabled={savingToTable}
-                    className="flex-1 h-8 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
+                    className="flex-1 h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
                   >
-                    💾 {savingToTable ? "حفظ..." : "حفظ"}
-                    <span className="text-[9px] bg-sky-500/20 rounded px-1 py-0.5 font-mono">F10</span>
+                    💾 حفظ
+                    <span className="text-[8px] bg-sky-500/20 rounded px-0.5 font-mono">F10</span>
                   </button>
                 </div>
               )}
@@ -4217,17 +4199,17 @@ const POSPage = () => {
                 <button
                   onClick={handleQuickSaveAndPrint}
                   disabled={quickProcessing || processing || !session}
-                  className="w-full h-8 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 text-white transition-all disabled:opacity-40"
+                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
                   style={{ backgroundColor: "#7C3AED" }}
                 >
                   {quickProcessing ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Printer className="h-3 w-3" />
+                      <Printer className="h-2.5 w-2.5" />
                       حفظ وطباعة
-                      <Badge variant="outline" className="text-[9px] border-white/30 text-white px-1 py-0 h-4">
-                        {activeOrder.callCenterPaymentMethod === "cash" ? "💵 نقدي" : "💳 فيزا"}
+                      <Badge variant="outline" className="text-[8px] border-white/30 text-white px-0.5 py-0 h-3.5">
+                        {activeOrder.callCenterPaymentMethod === "cash" ? "💵" : "💳"}
                       </Badge>
                     </>
                   )}
@@ -4238,30 +4220,30 @@ const POSPage = () => {
                 <button
                   onClick={() => setShowCallCenterDispatch(true)}
                   disabled={!session}
-                  className="w-full h-8 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 border border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-500/20 transition-all disabled:opacity-40"
+                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 border border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-500/20 transition-all disabled:opacity-40"
                 >
-                  <Send className="h-3 w-3" />
+                  <Send className="h-2.5 w-2.5" />
                   تحويل للفرع
-                  <span className="text-[9px] bg-orange-500/20 rounded px-1 py-0.5 font-mono">F2</span>
+                  <span className="text-[8px] bg-orange-500/20 rounded px-0.5 font-mono">F2</span>
                 </button>
               )}
               {/* Dispatched Orders Log for Call Center */}
               {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-8 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 border border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all relative"
+                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 border border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all relative"
                 >
-                  <ClipboardList className="h-3 w-3" />
+                  <ClipboardList className="h-2.5 w-2.5" />
                   سجل المحوّلة
                   {pendingDispatchCount > 0 && (
-                    <Badge className="text-[9px] px-1 py-0 h-4 bg-amber-500 text-white animate-pulse">
-                      {pendingDispatchCount} قيد القبول
+                    <Badge className="text-[8px] px-0.5 py-0 h-3.5 bg-amber-500 text-white animate-pulse">
+                      {pendingDispatchCount}
                     </Badge>
                   )}
                 </button>
               )}
               {/* Bottom row: Delete + Pay */}
-              <div className="flex gap-1.5">
+              <div className="flex gap-1">
                 <button
                   disabled={cart.length === 0}
                   onClick={async () => {
@@ -4287,21 +4269,21 @@ const POSPage = () => {
                       toast.success("تم إفراغ الطاولة وإرجاعها فارغة");
                     }
                   }}
-                  className="h-9 w-9 rounded-lg flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                  className="h-7 w-7 rounded flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3 w-3" />
                 </button>
                 
                 <motion.button
                   whileTap={{ scale: 0.97 }}
-                  className="flex-1 h-9 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1.5 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                  className="flex-1 h-7 rounded text-[11px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
                   style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
                   disabled={cart.length === 0 || !session}
                   onClick={() => setShowPayment(true)}
                 >
-                  <span className="text-[10px] bg-white/20 rounded px-1 py-0.5 font-mono">F12</span>
+                  <span className="text-[9px] bg-white/20 rounded px-0.5 font-mono">F12</span>
                   دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
-                  <Printer className="h-4 w-4 opacity-70" />
+                  <Printer className="h-3 w-3 opacity-70" />
                 </motion.button>
               </div>
             </div>
