@@ -1,4 +1,5 @@
 import { useState } from "react";
+import amwaliMarkNavy from "@/assets/amwali-mark-navy.png";
 import { useNavigate } from "react-router-dom";
 import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -101,7 +102,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
         {/* Header */}
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-1.5">
-            <img src="/logos/amwali-mark-white.png" alt="أموالي" className="h-3.5 w-3.5 object-contain" />
+            <img src={amwaliMarkNavy} alt="أموالي" className="h-4 w-4 object-contain" />
             <span className="text-[11px] font-bold text-sidebar-foreground">وصول سريع</span>
           </div>
           <button
