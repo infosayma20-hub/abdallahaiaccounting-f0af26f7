@@ -162,7 +162,15 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         {!collapsed && (
           <>
             <span className="flex-1 text-right whitespace-nowrap">{item.label}</span>
-            {disabled && <Lock className="h-3 w-3 opacity-60" />}
+            {locked && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Lock className="h-3 w-3 opacity-60 text-amber-400" />
+                </TooltipTrigger>
+                <TooltipContent side="left"><p>🔒 غير متاح — تواصل مع الإدارة</p></TooltipContent>
+              </Tooltip>
+            )}
+            {disabled && !locked && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown
                 className={cn("h-3.5 w-3.5 transition-transform duration-200")}
