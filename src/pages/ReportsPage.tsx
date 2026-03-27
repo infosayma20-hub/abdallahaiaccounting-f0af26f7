@@ -35,7 +35,7 @@ const sections: ReportSection[] = [
     id: "financial",
     label: "المالية",
     icon: DollarSign,
-    color: "#C9A84C",
+    color: "#4A9EE8",
     reports: [
       { slug: "trial-balance", label: "ميزان المراجعة", description: "جميع الحسابات مع أرصدة المدين والدائن", icon: Scale, path: "/trial-balance", available: true },
       { slug: "balance-sheet", label: "الميزانية العمومية", description: "الأصول والالتزامات وحقوق الملكية", icon: Landmark, path: "/balance-sheet", available: true },

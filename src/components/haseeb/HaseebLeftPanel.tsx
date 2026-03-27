@@ -19,7 +19,7 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
   const spokes = [
     { label: "نسبة التداول", value: Math.min(100, Math.round(((data.cash + data.bank) / Math.max(data.payables, 1)) * 50)), color: "#00B4D8" },
     { label: "هامش الربح", value: data.totalSales > 0 ? Math.round((data.netProfit / data.totalSales) * 100) : 0, color: "#16A34A" },
-    { label: "كفاءة التحصيل", value: data.totalSales > 0 ? Math.max(0, 100 - Math.round((data.receivables / data.totalSales) * 100)) : 100, color: "#C9A84C" },
+    { label: "كفاءة التحصيل", value: data.totalSales > 0 ? Math.max(0, 100 - Math.round((data.receivables / data.totalSales) * 100)) : 100, color: "#4A9EE8" },
     { label: "تغطية النقدية", value: data.totalExpenses > 0 ? Math.min(100, Math.round(((data.cash + data.bank) / (data.totalExpenses / 12)) * 100)) : 100, color: "#D97706" },
   ];
 
@@ -34,7 +34,7 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
     <div className="p-4 space-y-5" style={{ minHeight: '100%' }}>
       {/* Section A: Financial Radar */}
       <div>
-        <h3 className="text-xs font-bold mb-3" style={{ color: "#C9A84C", letterSpacing: 1 }}>البوصلة المالية</h3>
+        <h3 className="text-xs font-bold mb-3" style={{ color: "#4A9EE8", letterSpacing: 1 }}>البوصلة المالية</h3>
         <div className="flex justify-center">
           <svg width="180" height="120" viewBox="0 0 180 120">
             {/* Gauge arcs */}
@@ -46,10 +46,10 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
               x1="90" y1="100"
               x2={90 + 55 * Math.cos((needleAngle * Math.PI) / 180)}
               y2={100 + 55 * Math.sin((needleAngle * Math.PI) / 180)}
-              stroke="#C9A84C" strokeWidth="2.5" strokeLinecap="round"
+              stroke="#4A9EE8" strokeWidth="2.5" strokeLinecap="round"
               style={{ transition: 'all 1.5s ease-out' }}
             />
-            <circle cx="90" cy="100" r="4" fill="#C9A84C" />
+            <circle cx="90" cy="100" r="4" fill="#4A9EE8" />
           </svg>
         </div>
         <div className="text-center -mt-2">
@@ -74,7 +74,7 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
       {/* Section B: Anomaly Alerts */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-bold" style={{ color: "#C9A84C" }}>تنبيهات حارس الحسابات 🚨</h3>
+          <h3 className="text-xs font-bold" style={{ color: "#4A9EE8" }}>تنبيهات حارس الحسابات 🚨</h3>
         </div>
         {data.receivables > data.totalSales * 0.5 ? (
           <div className="rounded-lg p-2.5 mb-1.5" style={{ background: "rgba(220,38,38,0.08)", borderRight: "3px solid #DC2626" }}>
@@ -93,7 +93,7 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
 
       {/* Section C: Quick Stats */}
       <div>
-        <h3 className="text-xs font-bold mb-2" style={{ color: "#C9A84C" }}>إحصائيات سريعة</h3>
+        <h3 className="text-xs font-bold mb-2" style={{ color: "#4A9EE8" }}>إحصائيات سريعة</h3>
         <div className="grid grid-cols-2 gap-2">
           {quickStats.map(s => (
             <div key={s.label} className="rounded-lg p-2.5" style={{ background: "rgba(255,255,255,0.04)" }}>
@@ -113,7 +113,7 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
       {/* CFO Section */}
       {cfoMode && (
         <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, #0A2342, #071829)" }}>
-          <p className="text-xs font-bold mb-3" style={{ color: "#C9A84C" }}>👔 ملخص المدير المالي</p>
+          <p className="text-xs font-bold mb-3" style={{ color: "#4A9EE8" }}>👔 ملخص المدير المالي</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "الإيرادات", value: data.totalSales, color: "#16A34A" },
@@ -127,8 +127,8 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
               </div>
             ))}
           </div>
-          <div className="mt-3 rounded-lg p-2.5" style={{ border: "1px solid #C9A84C30" }}>
-            <p className="text-[10px]" style={{ color: "#C9A84C" }}>
+          <div className="mt-3 rounded-lg p-2.5" style={{ border: "1px solid #4A9EE830" }}>
+            <p className="text-[10px]" style={{ color: "#4A9EE8" }}>
               💡 {data.receivables > 0 ? `لديك ذمم مستحقة بقيمة ${fmt(data.receivables)} — تابع التحصيل` : "أداء مالي ممتاز — استمر!"}
             </p>
           </div>

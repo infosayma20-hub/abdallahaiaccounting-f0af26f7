@@ -256,7 +256,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       [`<td colspan="4" style="text-align:right;font-weight:700;background:#1B3A5C;color:#fff">الإجمالي</td>`,
        `<td style="background:#1B3A5C;color:#fff;font-weight:700">${totalDebit.toLocaleString()}</td>`,
        `<td style="background:#1B3A5C;color:#fff;font-weight:700">${totalCredit.toLocaleString()}</td>`,
-       `<td style="background:#1B3A5C;color:#C9A84C;font-weight:800">${Math.abs(finalBalance).toLocaleString()} ${balanceDir}</td>`
+       `<td style="background:#1B3A5C;color:#4A9EE8;font-weight:800">${Math.abs(finalBalance).toLocaleString()} ${balanceDir}</td>`
       ].map(c => c), // raw HTML cells handled via totals
     ];
 

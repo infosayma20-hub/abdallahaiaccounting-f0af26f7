@@ -219,7 +219,7 @@ const QuickAccessButton = () => {
           onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = "rgba(201,168,76,0.25)"; }}
           onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "rgba(201,168,76,0.15)"; }}
         >
-          <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "#C9A84C" }} />
+          <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "#4A9EE8" }} />
         </button>
       </PopoverTrigger>
       <PopoverContent

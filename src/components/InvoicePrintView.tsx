@@ -164,7 +164,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                 justifyContent: "center",
                 fontSize: "22px",
                 fontWeight: 800,
-                color: "#C9A84C",
+                color: "#4A9EE8",
               }}
             >
               {(settings.company_name || "Q").charAt(0)}
@@ -210,7 +210,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       )}
 
       {/* ━━━ GOLD ACCENT ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #E8D48B, #4A9EE8)" }} />
 
       {/* ━━━ LEGAL & REGISTRATION STRIP ━━━ */}
       <div
@@ -291,7 +291,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     textAlign: i >= 2 ? "center" : "right",
                     fontWeight: 700,
                     fontSize: "9px",
-                    borderBottom: "2px solid #C9A84C",
+                    borderBottom: "2px solid #4A9EE8",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -376,7 +376,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             }}
           >
             <span>الإجمالي النهائي</span>
-            <span style={{ color: "#C9A84C", fontSize: "13px", fontFeatureSettings: "'tnum'" }}>{fmtAmount(grandTotal)}</span>
+            <span style={{ color: "#4A9EE8", fontSize: "13px", fontFeatureSettings: "'tnum'" }}>{fmtAmount(grandTotal)}</span>
           </div>
           {/* Paid / Remaining */}
           {invoice.paidAmount > 0 && (
@@ -465,7 +465,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         }}
       >
         <span>طُبع بتاريخ: {fmtToday}</span>
-        <span style={{ color: "#C9A84C", fontWeight: 600 }}>QOYOD قيود</span>
+        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>QOYOD قيود</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

@@ -352,7 +352,7 @@ const StatementPrintView = ({
                 width: "52px", height: "52px", borderRadius: "8px",
                 background: "rgba(255,255,255,0.15)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "20px", fontWeight: 800, color: "#C9A84C",
+                fontSize: "20px", fontWeight: 800, color: "#4A9EE8",
               }}
             >
               {company.name?.charAt(0) || "C"}
@@ -377,7 +377,7 @@ const StatementPrintView = ({
       </div>
 
       {/* ━━━ GOLD ACCENT LINE ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #E8D48B, #4A9EE8)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
       <div style={{ padding: "10px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
@@ -474,7 +474,7 @@ const StatementPrintView = ({
                     padding: "5px 4px",
                     textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
                     fontWeight: 700, fontSize: "9px",
-                    borderBottom: "2px solid #C9A84C",
+                    borderBottom: "2px solid #4A9EE8",
                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   }}
                 >
@@ -541,10 +541,10 @@ const StatementPrintView = ({
                 if (col.key === "credit") return <td key={col.key} style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalCredit)}</td>;
                 if (col.key === "balance") return (
                   <td key={col.key} style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>
-                    <span style={{ color: "#C9A84C", fontWeight: 800, fontSize: "11px" }}>
+                    <span style={{ color: "#4A9EE8", fontWeight: 800, fontSize: "11px" }}>
                       {fmtAmount(closingBalance)}
                     </span>
-                    <span style={{ fontSize: "8px", marginRight: "3px", color: "#C9A84C" }}>
+                    <span style={{ fontSize: "8px", marginRight: "3px", color: "#4A9EE8" }}>
                       {isDebit ? "مدين (عليه)" : "دائن (له)"}
                     </span>
                   </td>
@@ -683,7 +683,7 @@ const StatementPrintView = ({
         }}
       >
         <span>طُبع بتاريخ: {fmtDateSlash(today)}</span>
-        <span style={{ color: "#C9A84C", fontWeight: 600 }}>{company.name || "QOYOD قيود"}</span>
+        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>{company.name || "QOYOD قيود"}</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>

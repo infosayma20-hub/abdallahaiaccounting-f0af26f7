@@ -196,7 +196,7 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
           onClick={() => handleSend()}
           disabled={isLoading || !input.trim()}
           className="px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-40"
-          style={{ background: "#C9A84C", color: "#1B3A5C" }}
+          style={{ background: "#4A9EE8", color: "#1B3A5C" }}
         >
           <Send className="h-4 w-4" />
         </button>
@@ -250,7 +250,7 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
               {[0, 1, 2].map(i => (
                 <motion.span
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-[#C9A84C]"
+                  className="w-1.5 h-1.5 rounded-full bg-[#4A9EE8]"
                   animate={{ y: [0, -6, 0] }}
                   transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
                 />
@@ -347,7 +347,7 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
                     transition={{ delay: i * 0.1 }}
                     className="flex items-start gap-2 text-[11px] text-slate-600 bg-slate-50 rounded-xl px-3 py-2"
                   >
-                    <span className="text-[#C9A84C] mt-0.5">•</span>
+                    <span className="text-[#4A9EE8] mt-0.5">•</span>
                     {tip}
                   </motion.div>
                 ))}
@@ -368,7 +368,7 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
         <button
           onClick={onNext}
           className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #C9A84C, #E8D5A3)", color: "#1B3A5C" }}
+          style={{ background: "linear-gradient(135deg, #4A9EE8, #E8D5A3)", color: "#1B3A5C" }}
         >
           التالي ←
         </button>

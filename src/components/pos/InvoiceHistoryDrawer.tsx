@@ -704,9 +704,9 @@ export default function InvoiceHistoryDrawer({
                 className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
                 style={{
                   fontFamily: "Tajawal, sans-serif",
-                  background: statusFilter === f.key ? "#C9A84C20" : "transparent",
-                  color: statusFilter === f.key ? "#C9A84C" : "#94A3B8",
-                  border: statusFilter === f.key ? "1px solid #C9A84C" : "1px solid transparent",
+                  background: statusFilter === f.key ? "#4A9EE820" : "transparent",
+                  color: statusFilter === f.key ? "#4A9EE8" : "#94A3B8",
+                  border: statusFilter === f.key ? "1px solid #4A9EE8" : "1px solid transparent",
                 }}
               >
                 {f.label}
@@ -805,7 +805,7 @@ export default function InvoiceHistoryDrawer({
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
-                            style={{ background: "#C9A84C20", color: "#C9A84C" }}
+                            style={{ background: "#4A9EE820", color: "#4A9EE8" }}
                           >
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
@@ -988,7 +988,7 @@ export default function InvoiceHistoryDrawer({
                     <Button
                       size="sm"
                       className="gap-1.5 text-xs"
-                      style={{ background: "#C9A84C", color: "#0A2342" }}
+                      style={{ background: "#4A9EE8", color: "#0A2342" }}
                       onClick={() => initiateRecall(selectedOrder)}
                     >
                       <Lock className="h-3 w-3" />
@@ -1042,24 +1042,24 @@ export default function InvoiceHistoryDrawer({
           </DialogHeader>
           <div className="space-y-2 py-2">
             {RECALL_REASONS.map(r => (
-              <label key={r} className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors hover:bg-gray-50" style={{ border: recallReason === r ? "2px solid #C9A84C" : "1px solid #E2E8F0" }}>
+              <label key={r} className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors hover:bg-gray-50" style={{ border: recallReason === r ? "2px solid #4A9EE8" : "1px solid #E2E8F0" }}>
                 <input
                   type="radio"
                   name="recallReason"
                   checked={recallReason === r}
                   onChange={() => setRecallReason(r)}
-                  className="accent-[#C9A84C]"
+                  className="accent-[#4A9EE8]"
                 />
                 <span className="text-sm">{r}</span>
               </label>
             ))}
-            <label className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors hover:bg-gray-50" style={{ border: recallReason === "أخرى" ? "2px solid #C9A84C" : "1px solid #E2E8F0" }}>
+            <label className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors hover:bg-gray-50" style={{ border: recallReason === "أخرى" ? "2px solid #4A9EE8" : "1px solid #E2E8F0" }}>
               <input
                 type="radio"
                 name="recallReason"
                 checked={recallReason === "أخرى"}
                 onChange={() => setRecallReason("أخرى")}
-                className="accent-[#C9A84C]"
+                className="accent-[#4A9EE8]"
               />
               <span className="text-sm">أخرى</span>
             </label>
@@ -1076,7 +1076,7 @@ export default function InvoiceHistoryDrawer({
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => { setShowReasonDialog(false); setRecallingOrder(null); setPendingApprovedBy(null); }}>إلغاء</Button>
-            <Button size="sm" style={{ background: "#C9A84C", color: "#0A2342" }} onClick={handleReasonConfirm}>تأكيد التعديل</Button>
+            <Button size="sm" style={{ background: "#4A9EE8", color: "#0A2342" }} onClick={handleReasonConfirm}>تأكيد التعديل</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

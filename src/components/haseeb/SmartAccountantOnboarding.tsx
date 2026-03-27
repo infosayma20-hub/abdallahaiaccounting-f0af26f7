@@ -47,7 +47,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
       <div className="relative h-1 bg-slate-100">
         <motion.div
           className="absolute inset-y-0 right-0 rounded-full"
-          style={{ background: "linear-gradient(90deg, #C9A84C, #E8D5A3)" }}
+          style={{ background: "linear-gradient(90deg, #4A9EE8, #E8D5A3)" }}
           animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         />
@@ -69,7 +69,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
             <motion.div
               key={i}
               className="h-2 rounded-full transition-colors"
-              style={{ background: i <= step ? "#C9A84C" : "#CBD5E1" }}
+              style={{ background: i <= step ? "#4A9EE8" : "#CBD5E1" }}
               animate={{ width: i === step ? 24 : 8 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             />

@@ -29,7 +29,7 @@ interface SidebarProps {
 }
 
 const SIDEBAR_BG = "#1b2b4b";
-const GOLD = "#C9A84C";
+const GOLD = "#4A9EE8";
 const SEPARATOR = "rgba(255,255,255,0.06)";
 const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
 

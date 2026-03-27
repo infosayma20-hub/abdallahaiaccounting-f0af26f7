@@ -25,7 +25,7 @@ const iconOptions = [
   { name: "leaf", Icon: Leaf }, { name: "fish", Icon: Fish }, { name: "apple", Icon: Apple }, { name: "layers", Icon: Layers },
 ];
 
-const presetColors = ["#C9A84C","#FFFFFF","#E74C3C","#E67E22","#9B59B6","#3498DB","#27AE60","#1ABC9C","#2ECC71","#95A5A6"];
+const presetColors = ["#4A9EE8","#FFFFFF","#E74C3C","#E67E22","#9B59B6","#3498DB","#27AE60","#1ABC9C","#2ECC71","#95A5A6"];
 const commonUnits = ["كيلو","كرتون","علبة","رول","لتر","قطعة","شوال","رزمة","عدد","جالون","سطل","دفتر","عبوة","ألف حبة"];
 
 // ══════════ SUPPLIERS TAB ══════════
@@ -140,14 +140,14 @@ function CategoriesTab() {
   const { categories, create, update, remove, moveItemsAndDelete } = useCategoriesCrud();
   const { items } = useItemsCrud();
   const [editCat, setEditCat] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", color: "#C9A84C", icon: "package" });
+  const [form, setForm] = useState({ name: "", color: "#4A9EE8", icon: "package" });
   const [deleteDialog, setDeleteDialog] = useState<any>(null);
   const [targetCatId, setTargetCatId] = useState("");
 
   const catItemCount = (catId: string) => items.filter(i => i.category_id === catId).length;
 
-  const openNew = () => { setEditCat("new"); setForm({ name: "", color: "#C9A84C", icon: "package" }); };
-  const openEdit = (c: any) => { setEditCat(c); setForm({ name: c.name, color: c.color || "#C9A84C", icon: c.icon || "package" }); };
+  const openNew = () => { setEditCat("new"); setForm({ name: "", color: "#4A9EE8", icon: "package" }); };
+  const openEdit = (c: any) => { setEditCat(c); setForm({ name: c.name, color: c.color || "#4A9EE8", icon: c.icon || "package" }); };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;

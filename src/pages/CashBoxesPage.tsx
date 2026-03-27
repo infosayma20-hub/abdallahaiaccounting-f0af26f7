@@ -234,7 +234,7 @@ const CashBoxesPage = () => {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: "إجمالي السيولة النقدية", value: `₪${fmt(totalBalance)}`, sub: "مجموع أرصدة كل الصناديق", icon: "💰", color: "#C9A84C" },
+          { label: "إجمالي السيولة النقدية", value: `₪${fmt(totalBalance)}`, sub: "مجموع أرصدة كل الصناديق", icon: "💰", color: "#4A9EE8" },
           { label: "الصندوق الرئيسي", value: `₪${fmt(mainBalance)}`, sub: mainBoxes[0]?.name || "غير معرّف", icon: "🏛️", color: "#0A2342" },
           { label: "صناديق الفروع", value: `₪${fmt(branchBalance)}`, sub: `${branchBoxes.length} صندوق فرع نشط`, icon: "🏪", color: "#059669" },
           { label: "صناديق نقاط البيع", value: `₪${fmt(posBalance)}`, sub: `${posBoxes.length} صندوق POS نشط`, icon: "🖥️", color: "#7C3AED" },

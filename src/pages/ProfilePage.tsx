@@ -341,7 +341,7 @@ const ProfilePage = () => {
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-12" dir="rtl">
       {/* Page Header Banner */}
-      <div className="w-full" style={{ borderTop: "3px solid #C9A84C" }}>
+      <div className="w-full" style={{ borderTop: "3px solid #4A9EE8" }}>
         <div className="w-full px-6 py-4" style={{ backgroundColor: "#1B3A5C" }}>
           <h1 className="text-right text-white" style={{ fontFamily: "Tajawal, sans-serif", fontSize: "22px", fontWeight: 500 }}>
             تعديل الملف الشخصي

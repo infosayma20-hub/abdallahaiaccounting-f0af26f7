@@ -8,7 +8,7 @@ const CAPABILITIES = [
     title: "تسجيل عمليات",
     example: "قبضت من سالم 300 شيكل",
     result: "← سند قبض ₪300 + قيد تلقائي",
-    color: "#C9A84C",
+    color: "#4A9EE8",
     emoji: "⚡",
   },
   {
@@ -174,7 +174,7 @@ const OnboardingStep1 = ({ userName, onNext }: Props) => {
             onClick={onNext}
             className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
             style={{
-              background: "linear-gradient(135deg, #C9A84C, #E8D5A3)",
+              background: "linear-gradient(135deg, #4A9EE8, #E8D5A3)",
               color: "#1B3A5C",
             }}
           >

@@ -133,10 +133,10 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
                 e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
               }}
             >
-              <item.icon className="h-4 w-4 text-sidebar-foreground/70 group-hover:text-[#C9A84C] transition-colors" strokeWidth={1.6} />
+              <item.icon className="h-4 w-4 text-sidebar-foreground/70 group-hover:text-[#4A9EE8] transition-colors" strokeWidth={1.6} />
               <span className="text-[11px] text-white/90 leading-tight text-center">{item.label}</span>
               {item.shortcut && (
-                <span className="text-[9px] font-mono leading-none" style={{ color: "#C9A84C" }}>
+                <span className="text-[9px] font-mono leading-none" style={{ color: "#4A9EE8" }}>
                   {item.shortcut}
                 </span>
               )}

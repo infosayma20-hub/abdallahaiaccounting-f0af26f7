@@ -135,7 +135,7 @@ export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo
     { label: "عدد الفواتير", value: count.toString(), color: "#0070F2" },
     { label: "متوسط قيمة الفاتورة", value: fmtAmt(avgTicket), color: "#6366F1" },
     { label: "معدل النمو", value: `${growth.toFixed(1)}%`, color: growth >= 0 ? "#059669" : "#DC2626" },
-    { label: "أعلى يوم مبيعات", value: bestDay ? `${bestDay[0]}: ${fmtAmt(bestDay[1])}` : "-", color: "#C9A84C" },
+    { label: "أعلى يوم مبيعات", value: bestDay ? `${bestDay[0]}: ${fmtAmt(bestDay[1])}` : "-", color: "#4A9EE8" },
     { label: "مبيعات الفترة السابقة", value: fmtAmt(prevTotal), color: "#8B9BB4" },
   ]);
 }
@@ -194,8 +194,8 @@ export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: s
   const netMargin = revenue > 0 ? ((revenue - cogs - expenses) / revenue * 100) : 0;
   setData([
     { label: "إجمالي الإيرادات", value: fmtAmt(revenue), color: "#059669" },
-    { label: "هامش الربح الإجمالي", value: `${grossMargin.toFixed(1)}%`, color: grossMargin >= 30 ? "#059669" : grossMargin >= 15 ? "#C9A84C" : "#DC2626" },
-    { label: "هامش الربح الصافي", value: `${netMargin.toFixed(1)}%`, color: netMargin >= 10 ? "#059669" : netMargin >= 5 ? "#C9A84C" : "#DC2626" },
+    { label: "هامش الربح الإجمالي", value: `${grossMargin.toFixed(1)}%`, color: grossMargin >= 30 ? "#059669" : grossMargin >= 15 ? "#4A9EE8" : "#DC2626" },
+    { label: "هامش الربح الصافي", value: `${netMargin.toFixed(1)}%`, color: netMargin >= 10 ? "#059669" : netMargin >= 5 ? "#4A9EE8" : "#DC2626" },
     { label: "صافي الربح", value: fmtAmt(revenue - cogs - expenses), color: revenue - cogs - expenses >= 0 ? "#059669" : "#DC2626" },
     { label: "تكلفة المبيعات", value: fmtAmt(cogs), color: "#6366F1" },
     { label: "المصروفات التشغيلية", value: fmtAmt(expenses), color: "#DC2626" },

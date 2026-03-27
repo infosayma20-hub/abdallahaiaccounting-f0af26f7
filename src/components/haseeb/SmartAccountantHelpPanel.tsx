@@ -10,7 +10,7 @@ interface Props {
 const Section = ({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) => (
   <div className="space-y-3">
     <div className="flex items-center gap-2">
-      <Icon className="h-4 w-4" style={{ color: "#C9A84C" }} />
+      <Icon className="h-4 w-4" style={{ color: "#4A9EE8" }} />
       <h3 className="text-sm font-bold" style={{ color: "#0A2342" }}>{title}</h3>
     </div>
     <div className="h-px" style={{ background: "#E2E8F0" }} />

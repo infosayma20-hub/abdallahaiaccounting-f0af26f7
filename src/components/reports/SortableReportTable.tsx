@@ -47,7 +47,7 @@ interface SortableReportTableProps {
   rowClassName?: (row: any, index: number) => string;
 }
 
-const GOLD = "#C9A84C";
+const GOLD = "#4A9EE8";
 const NAVY_HEADER = "#0A2342";
 const NAVY_FILTER = "#071829";
 

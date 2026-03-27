@@ -74,7 +74,7 @@ const CommandsSheet = ({ open, onClose, onSelect }: Props) => {
     : [];
 
   const sectionHeaderStyle = {
-    color: "#C9A84C",
+    color: "#4A9EE8",
     fontFamily: "Tajawal, sans-serif",
     letterSpacing: "1px",
   };

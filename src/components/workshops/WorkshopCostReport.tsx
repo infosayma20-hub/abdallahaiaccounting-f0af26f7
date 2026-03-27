@@ -78,7 +78,7 @@ export default function WorkshopCostReport({ open, onOpenChange, workshopName, c
       <style>body{font-family:Tajawal,Arial,sans-serif;padding:40px;color:#1B3A5C}
       table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:8px 12px;border:1px solid #ddd;text-align:right}
       th{background:#1B3A5C;color:#fff}.total-row{font-weight:bold;background:#f9f9f9}
-      h1{color:#1B3A5C;border-bottom:3px solid #C9A84C;padding-bottom:8px}
+      h1{color:#1B3A5C;border-bottom:3px solid #4A9EE8;padding-bottom:8px}
       .profit{color:${profit >= 0 ? '#16a34a' : '#dc2626'};font-size:24px;font-weight:bold}</style></head>
       <body>${printRef.current.innerHTML}</body></html>`);
     w.document.close();
