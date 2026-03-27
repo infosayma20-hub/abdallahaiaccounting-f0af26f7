@@ -4083,15 +4083,11 @@ const POSPage = () => {
                 {availableTables.map(t => (
                   <button
                     key={t.id}
-                    onClick={() => {
+                    onClick={async () => {
                       if (t.status === "occupied") {
-                        // Find the existing order for this table and switch to it
-                        const existingOrderIndex = orders.findIndex(o => o.tableId === t.id);
-                        if (existingOrderIndex !== -1) {
-                          setActiveOrderIndex(existingOrderIndex);
-                          setShowTablePicker(false);
-                          return;
-                        }
+                        await loadTableOrder(t.id, t.name);
+                        setShowTablePicker(false);
+                        return;
                       }
                       updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
                       setShowTablePicker(false);
