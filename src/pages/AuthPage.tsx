@@ -193,7 +193,7 @@ const AuthPage = () => {
         <div className="flex items-center gap-3">
           <button
             className="px-5 py-2 rounded-lg text-sm transition-all"
-            style={{ background: '#0D1B2E', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em' }}
+            style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1px solid rgba(255,255,255,0.4)' }}
             onClick={() => setMode("signup")}
             onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
