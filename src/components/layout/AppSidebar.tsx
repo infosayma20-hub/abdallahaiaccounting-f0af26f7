@@ -131,9 +131,9 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           disabled && "opacity-40 cursor-not-allowed",
         )}
         style={{
-          margin: "2px 8px",
-          width: "calc(100% - 16px)",
-          padding: collapsed ? undefined : "10px 12px",
+          margin: collapsed ? "2px 4px" : "2px 8px",
+          width: collapsed ? "calc(100% - 8px)" : "calc(100% - 16px)",
+          padding: collapsed ? "8px 0" : "10px 12px",
           fontSize: 14,
           fontWeight: isHighlighted && !disabled ? 500 : 400,
           color: disabled
