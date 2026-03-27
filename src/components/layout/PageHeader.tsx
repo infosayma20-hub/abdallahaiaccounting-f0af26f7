@@ -1,5 +1,5 @@
 /**
- * PageHeader — Qoyod-style navy banner for page titles.
+ * PageHeader — Qoyod-style full-width navy banner for page titles.
  * Breadcrumbs are right-aligned and clickable for navigation.
  */
 import { useNavigate } from "react-router-dom";
@@ -48,44 +48,51 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   return (
     <div className="mb-6">
       {breadcrumb && breadcrumb.length > 0 && (
-        <div className="text-[13px] text-muted-foreground mb-2 flex items-center gap-1 justify-end flex-wrap" dir="rtl">
+        <div className="mb-3 flex items-center gap-1 justify-end flex-wrap" dir="rtl"
+          style={{ fontSize: 13 }}
+        >
           {breadcrumb.map((item, i) => {
             const isLast = i === breadcrumb.length - 1;
             const hasRoute = !isLast && breadcrumbRoutes[item];
             return (
               <span key={i} className="flex items-center gap-1">
-                {i > 0 && <span className="mx-1 text-muted-foreground/40">/</span>}
+                {i > 0 && <span className="mx-1" style={{ color: "#9CA3AF" }}>/</span>}
                 {hasRoute ? (
                   <button
                     onClick={() => handleCrumbClick(item)}
-                    className="hover:text-primary hover:underline transition-colors cursor-pointer"
+                    className="hover:underline transition-colors cursor-pointer"
+                    style={{ color: "#6B7280" }}
                   >
                     {item}
                   </button>
                 ) : (
-                  <span className={isLast ? "text-foreground font-medium" : ""}>{item}</span>
+                  <span style={{ color: isLast ? "#1B3A5C" : "#6B7280", fontWeight: isLast ? 500 : 400 }}>
+                    {item}
+                  </span>
                 )}
               </span>
             );
           })}
         </div>
       )}
-      <div className="w-full rounded-xl overflow-hidden" style={{ borderTop: "3px solid #5B9BD5" }}>
-        <div
-          className="w-full px-6 py-4"
-          style={{ backgroundColor: "#1B3A5C" }}
+      <div
+        className="w-full"
+        style={{
+          backgroundColor: "#1B3A5C",
+          padding: "18px 24px",
+        }}
+      >
+        <h1
+          className="text-right"
+          style={{
+            fontFamily: "Tajawal, sans-serif",
+            fontSize: 22,
+            fontWeight: 500,
+            color: "#FFFFFF",
+          }}
         >
-          <h1
-            className="text-right text-white"
-            style={{
-              fontFamily: "Tajawal, sans-serif",
-              fontSize: "22px",
-              fontWeight: 500,
-            }}
-          >
-            {title}
-          </h1>
-        </div>
+          {title}
+        </h1>
       </div>
     </div>
   );
