@@ -3008,14 +3008,14 @@ const POSPage = () => {
         e.preventDefault();
         return;
       }
-      // F9 = Send to printer
-      if (e.key === "F9" && cart.length > 0) {
+      // F9 = Send to printer (not for call center)
+      if (e.key === "F9" && cart.length > 0 && !isCallCenter) {
         handleSendToKitchen();
         e.preventDefault();
         return;
       }
-      // F10 = Save order
-      if (e.key === "F10" && cart.length > 0) {
+      // F10 = Save order (not for call center)
+      if (e.key === "F10" && cart.length > 0 && !isCallCenter) {
         handleSaveToTable();
         e.preventDefault();
         return;
