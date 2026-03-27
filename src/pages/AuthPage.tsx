@@ -156,20 +156,21 @@ const AuthPage = () => {
   };
 
   const inputStyle = {
-    background: '#F3F7FB',
-    border: '1.5px solid #E5E7EB',
-    color: '#1B3A5C',
+    background: '#F7F8FA',
+    border: '1px solid #E8EDF2',
+    color: '#0D1B2E',
+    fontWeight: 300 as const,
   };
 
   const inputFocusHandlers = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#1B3A5C';
-      e.target.style.background = '#EEF4FB';
-      e.target.style.boxShadow = '0 0 0 3px rgba(27,58,92,0.08)';
+      e.target.style.borderColor = '#0D1B2E';
+      e.target.style.background = '#FFFFFF';
+      e.target.style.boxShadow = '0 0 0 3px rgba(13,27,46,0.06)';
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.target.style.borderColor = '#E5E7EB';
-      e.target.style.background = '#F3F7FB';
+      e.target.style.borderColor = '#E8EDF2';
+      e.target.style.background = '#F7F8FA';
       e.target.style.boxShadow = 'none';
     },
   };
@@ -183,19 +184,19 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col" dir="ltr">
-      {/* Top Nav */}
+      {/* Top Nav — white with subtle border */}
       <nav
-        className="w-full flex items-center justify-between px-6 py-3 z-50"
-        style={{ background: '#1B3A5C' }}
+        className="w-full flex items-center justify-between px-8 shrink-0"
+        style={{ background: '#FFFFFF', borderBottom: '1px solid #E8EDF2', height: 52 }}
       >
-        <img src="/logos/amwali-white.jpg" alt="AMWALI" className="h-8 object-contain" />
+        <img src="/logos/amwali-mark-navy.png" alt="AMWALI" className="h-7 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <button
-            className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
-            style={{ background: '#FFFFFF', color: '#1B3A5C' }}
+            className="px-5 py-2 rounded-lg text-sm transition-all"
+            style={{ background: '#0D1B2E', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em' }}
             onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = '#EEF4FB'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
           >
             ابدأ مجاناً الآن
           </button>
@@ -203,82 +204,65 @@ const AuthPage = () => {
       </nav>
 
       <div className="flex-1 flex flex-row">
-        {/* LEFT — Brand panel (desktop) */}
+        {/* LEFT — Navy brand panel */}
         <div
-          className="hidden lg:flex lg:w-[46%] relative overflow-hidden"
-          style={{ background: 'linear-gradient(160deg, #1B3A5C 0%, #1E4976 40%, #2A6396 100%)' }}
+          className="hidden lg:flex lg:w-[45%] flex-col justify-between relative overflow-hidden px-14 py-16"
+          style={{ background: '#0D1B2E' }}
+          dir="rtl"
         >
-          <Suspense fallback={null}>
-            <FinancialCanvas />
-          </Suspense>
-
-          {/* Large transparent logo watermark */}
-          <div className="absolute inset-0 flex items-center justify-center z-[1] pointer-events-none">
-            <img
-              src="/logos/amwali-mark-white.png"
-              alt=""
-              className="w-[340px] h-[340px] object-contain"
-              style={{ opacity: 0.08 }}
-            />
+          {/* Giant transparent logo watermark */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.06 }}>
+            <img src="/logos/amwali-mark-white.png" alt="" className="w-[85%] h-auto object-contain" />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
-            <div className="text-center space-y-8 max-w-sm">
-              <div className="flex flex-col items-center gap-4">
-                <img src="/logos/amwali-white.jpg" alt="AMWALI أموالي" width={200} />
-              </div>
+          {/* Content */}
+          <div className="relative z-10">
+            <img src="/logos/amwali-white.jpg" alt="AMWALI" className="w-44 mb-14 object-contain" />
 
-              <div className="space-y-3 mt-8" dir="rtl">
-                {features.map(feat => (
-                  <div key={feat} className="flex items-center gap-3 justify-start">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(74,144,217,0.25)' }}
-                    >
-                      <Check className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <span className="text-sm text-white/80 font-medium" style={{ fontFamily: 'Tajawal' }}>
-                      {feat}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
+              أعمالك في
+              <br />
+              <span style={{ fontWeight: 500 }}>أبهى صورها</span>
+            </h1>
 
-              <p
-                className="text-xl font-bold mt-10"
-                style={{ color: '#4A90D9', fontFamily: 'Tajawal' }}
-              >
-                أعمالك في أبهى صورها
-              </p>
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, fontWeight: 300, marginBottom: 48, fontFamily: 'Tajawal' }}>
+              نظام إدارة أعمال متكامل للشركات العربية
+            </p>
+
+            <div className="space-y-3.5">
+              {features.map(feat => (
+                <div key={feat} className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'rgba(255,255,255,0.4)' }} />
+                  <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
+                    {feat}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Trust badge */}
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10">
-            <div
-              className="flex items-center gap-2 px-4 py-2 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}
-            >
-              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(74,144,217,0.3)' }}>
-                <Check className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-xs text-white/70" style={{ fontFamily: 'Tajawal' }}>
-                تثق به آلاف المنشآت في المنطقة العربية
-              </span>
-            </div>
+          <div className="relative z-10">
+            <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>
+              AMWALI ERP SOFTWARE
+            </p>
           </div>
         </div>
 
-        {/* RIGHT — Form panel */}
-        <div className="flex-1 flex items-center justify-center px-4 py-8" style={{ background: '#FFFFFF' }} dir="rtl">
-          <div className="w-full max-w-sm space-y-5">
-            {/* Logo */}
-            <div className="flex flex-col items-center gap-4 mb-2">
-              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="w-36 h-auto object-contain" />
-              <h2 className="text-3xl font-light tracking-wide" style={{ color: '#1B3A5C', fontFamily: 'Tajawal' }}>
+        {/* RIGHT — White form panel */}
+        <div className="flex-1 flex flex-col items-center justify-center px-8 py-12" style={{ background: '#FFFFFF' }} dir="rtl">
+          <div className="w-full max-w-[380px]">
+
+            {/* Logo — large */}
+            <div className="text-center mb-10">
+              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-20 mx-auto object-contain" />
+            </div>
+
+            {/* Header — thin font */}
+            <div className="text-center mb-8">
+              <h2 style={{ color: '#0D1B2E', fontSize: 28, fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 6, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? "مرحباً بك" : mode === "signup" ? "أنشئ حسابك مجاناً" : "استعادة كلمة المرور"}
               </h2>
-              <p className="text-sm font-light" style={{ color: '#6B7280', fontFamily: 'Tajawal' }}>
+              <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300, fontFamily: 'Tajawal' }}>
                 {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "تحتاج أقل من دقيقتين • لا تحتاج لبطاقة ائتمان" : "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة"}
               </p>
             </div>
@@ -288,10 +272,12 @@ const AuthPage = () => {
               <button
                 onClick={handleBiometricSignIn}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold transition-all"
-                style={{ border: '1.5px solid #E5E7EB', background: '#FFFFFF', color: '#1B3A5C' }}
+                className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-3"
+                style={{ border: '1px solid #E8EDF2', background: '#FFFFFF', color: '#0D1B2E', fontWeight: 400 }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0D1B2E'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8EDF2'; }}
               >
-                <ScanFace className="h-5 w-5" style={{ color: '#4A90D9' }} />
+                <ScanFace className="h-5 w-5" style={{ color: '#0D1B2E' }} />
                 تسجيل الدخول بـ Face ID
               </button>
             )}
@@ -301,12 +287,12 @@ const AuthPage = () => {
               <button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold transition-all"
-                style={{ border: '1.5px solid #E5E7EB', background: '#FFFFFF', color: '#1B3A5C', fontFamily: 'Tajawal' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#1B3A5C'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                className="w-full flex items-center justify-center gap-3 h-11 rounded-xl text-sm transition-all mb-5"
+                style={{ border: '1px solid #E8EDF2', background: '#FFFFFF', color: '#0D1B2E', fontWeight: 400, fontFamily: 'Tajawal' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0D1B2E'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8EDF2'; }}
               >
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -318,22 +304,20 @@ const AuthPage = () => {
 
             {/* Divider */}
             {mode !== "forgot" && (
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px" style={{ background: '#E5E7EB' }} />
-                <span className="text-xs" style={{ color: '#6B7280' }}>
-                  {mode === "signup" ? "أو أنشئ حساب بالبريد الإلكتروني" : "أو استخدم بريدك الإلكتروني"}
-                </span>
-                <div className="flex-1 h-px" style={{ background: '#E5E7EB' }} />
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
+                <span style={{ color: '#B0BAC4', fontSize: 12, fontWeight: 300 }}>أو</span>
+                <div className="flex-1 h-px" style={{ background: '#E8EDF2' }} />
               </div>
             )}
 
             {/* Form */}
-            <form onSubmit={handleEmailAuth} className="space-y-4">
+            <form onSubmit={handleEmailAuth} className="space-y-3.5">
               {/* Email */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: '#1B3A5C' }}>البريد الإلكتروني</label>
+                <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>البريد الإلكتروني</label>
                 <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#6B7280' }} />
+                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
                   <input
                     type="email"
                     placeholder="example@email.com"
@@ -352,20 +336,22 @@ const AuthPage = () => {
               {mode !== "forgot" && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium" style={{ color: '#1B3A5C' }}>كلمة المرور</label>
+                    <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>كلمة المرور</label>
                     {mode === "login" && (
                       <button
                         type="button"
                         onClick={() => setMode("forgot")}
-                        className="text-xs transition-colors"
-                        style={{ color: '#4A90D9' }}
+                        className="transition-colors"
+                        style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#0D1B2E'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = '#8896A4'; }}
                       >
                         نسيت كلمة المرور؟
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#6B7280' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "signup" ? "6 أحرف على الأقل" : "••••••••"}
@@ -382,7 +368,7 @@ const AuthPage = () => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#6B7280' }}
+                      style={{ color: '#B0BAC4' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -393,9 +379,9 @@ const AuthPage = () => {
               {/* Confirm password */}
               {mode === "signup" && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium" style={{ color: '#1B3A5C' }}>تأكيد كلمة المرور</label>
+                  <label style={{ color: '#8896A4', fontSize: 12, fontWeight: 300 }}>تأكيد كلمة المرور</label>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#6B7280' }} />
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#B0BAC4' }} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="تأكيد كلمة المرور"
@@ -412,7 +398,7 @@ const AuthPage = () => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#6B7280' }}
+                      style={{ color: '#B0BAC4' }}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -422,38 +408,38 @@ const AuthPage = () => {
 
               {/* Terms */}
               {mode === "signup" && (
-                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: '#6B7280' }}>
+                <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: '#8896A4', fontWeight: 300 }}>
                   <input
                     type="checkbox"
                     checked={agreedToTerms}
                     onChange={e => setAgreedToTerms(e.target.checked)}
                     className="mt-0.5 h-4 w-4 rounded"
-                    style={{ accentColor: '#1B3A5C' }}
+                    style={{ accentColor: '#0D1B2E' }}
                   />
                   <span>
                     أوافق على{" "}
-                    <Link to="/terms" style={{ color: '#4A90D9' }} className="hover:underline">الشروط</Link>
+                    <Link to="/terms" style={{ color: '#0D1B2E' }} className="hover:underline">الشروط</Link>
                     {" "}و{" "}
-                    <Link to="/privacy" style={{ color: '#4A90D9' }} className="hover:underline">سياسة الخصوصية</Link>
+                    <Link to="/privacy" style={{ color: '#0D1B2E' }} className="hover:underline">سياسة الخصوصية</Link>
                   </span>
                 </label>
               )}
 
-              {/* Submit */}
+              {/* Submit — solid navy, no gradient */}
               <button
                 type="submit"
                 disabled={loading || (mode === "signup" && !agreedToTerms)}
-                className="w-full h-12 rounded-xl text-base font-bold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 mt-1"
                 style={{
-                  background: 'linear-gradient(135deg, #1B3A5C 0%, #2A6396 100%)',
-                  boxShadow: '0 4px 14px rgba(27,58,92,0.25)',
+                  background: '#0D1B2E',
+                  color: '#FFFFFF',
+                  fontWeight: 400,
+                  letterSpacing: '0.02em',
+                  boxShadow: '0 2px 12px rgba(13,27,46,0.20)',
+                  fontFamily: 'Tajawal',
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #1E4976 0%, #4A90D9 100%)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #1B3A5C 0%, #2A6396 100%)';
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة"}
@@ -461,36 +447,36 @@ const AuthPage = () => {
             </form>
 
             {/* Links */}
-            <div className="text-center space-y-3">
+            <div className="text-center space-y-3 mt-5">
               {mode === "login" && (
                 <div
                   className="flex items-center justify-between rounded-xl px-4 py-3"
-                  style={{ background: '#EEF4FB' }}
+                  style={{ background: '#F7F8FA', border: '1px solid #E8EDF2' }}
                 >
                   <div className="text-right">
-                    <p className="text-xs font-semibold" style={{ color: '#1B3A5C' }}>تجربة مجانية 14 يوم</p>
-                    <p className="text-[11px]" style={{ color: '#6B7280' }}>لم تسجل بعد؟ جرب AMWALI مجاناً</p>
+                    <p style={{ color: '#0D1B2E', fontSize: 13, fontWeight: 400 }}>تجربة مجانية 14 يوم</p>
+                    <p style={{ color: '#8896A4', fontSize: 11, fontWeight: 300 }}>لم تسجل بعد؟ جرب أموالي مجاناً</p>
                   </div>
                   <button
                     onClick={() => setMode("signup")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all"
-                    style={{ background: '#1B3A5C' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#2A6396'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#1B3A5C'; }}
+                    className="px-4 py-2 rounded-lg text-xs transition-all whitespace-nowrap"
+                    style={{ background: '#0D1B2E', color: '#FFFFFF', fontWeight: 400 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
                   >
                     ابدأ تجربتك ←
                   </button>
                 </div>
               )}
               {mode === "signup" && (
-                <p className="text-sm" style={{ color: '#6B7280' }}>
+                <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
                   لديك حساب؟{" "}
-                  <button onClick={() => setMode("login")} className="font-semibold hover:underline" style={{ color: '#4A90D9' }}>تسجيل الدخول</button>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>تسجيل الدخول</button>
                 </p>
               )}
               {mode === "forgot" && (
-                <p className="text-sm" style={{ color: '#6B7280' }}>
-                  <button onClick={() => setMode("login")} className="font-semibold hover:underline" style={{ color: '#4A90D9' }}>العودة لتسجيل الدخول</button>
+                <p style={{ color: '#8896A4', fontSize: 14, fontWeight: 300 }}>
+                  <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>العودة لتسجيل الدخول</button>
                 </p>
               )}
             </div>
