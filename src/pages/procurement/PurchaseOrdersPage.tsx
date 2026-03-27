@@ -11,7 +11,7 @@ import { Plus, Search, Send, X, FileText, Printer, Eye, Download, Share2, Copy, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProcurementOrders, useSuppliers, useBranches, type ProcurementOrderItem } from "@/hooks/useProcurement";
 import { useNavigate } from "react-router-dom";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProcurementPrintView, generateWhatsAppText } from "@/components/procurement/ProcurementPrintView";
 import { toast } from "@/hooks/use-toast";
@@ -98,13 +98,10 @@ const PurchaseOrdersPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-4" dir="rtl">
+      <PageHeader title="سجل الطلبيات" breadcrumb={["المشتريات", "الطلبيات"]} />
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <h1 className="text-xl font-bold text-foreground">سجل الطلبيات</h1>
-          <Badge variant="secondary">{orders.length}</Badge>
-        </div>
-        <Button className="bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => navigate("/procurement/orders/new")}>
+        <Badge variant="secondary">{orders.length}</Badge>
+        <Button style={{ background: "#1B3A5C" }} className="text-white hover:opacity-90" onClick={() => navigate("/procurement/orders/new")}>
           <Plus className="h-4 w-4 ml-1" />طلب جديد
         </Button>
       </div>

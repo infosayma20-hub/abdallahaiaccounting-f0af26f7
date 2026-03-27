@@ -1234,19 +1234,23 @@ const InvoicesPage = () => {
       {/* Summary KPIs */}
       {invoices.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-primary/5 border border-primary/10 p-3 text-center">
-            <Receipt className="h-4 w-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold text-primary tabular-nums">₪{salesTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-primary/70">فواتير المبيعات</p>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
+            <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: "#F0F4F8" }}>
+              <Receipt className="h-[18px] w-[18px]" style={{ color: "#1B3A5C" }} />
+            </div>
+            <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: "#1B3A5C" }}>₪{salesTotal.toLocaleString()}</p>
+            <p style={{ fontSize: 12, color: "#6B7280" }}>فواتير المبيعات</p>
           </div>
-          <div className="rounded-2xl bg-destructive/5 border border-destructive/10 p-3 text-center">
-            <ShoppingCart className="h-4 w-4 text-destructive mx-auto mb-1" />
-            <p className="text-lg font-bold text-destructive tabular-nums">₪{purchaseTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-destructive/70">فواتير المشتريات</p>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
+            <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: "#F0F4F8" }}>
+              <ShoppingCart className="h-[18px] w-[18px]" style={{ color: "#1B3A5C" }} />
+            </div>
+            <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: purchaseTotal > 0 ? "#EF4444" : "#1B3A5C" }}>₪{purchaseTotal.toLocaleString()}</p>
+            <p style={{ fontSize: 12, color: "#6B7280" }}>فواتير المشتريات</p>
           </div>
-          <div className="rounded-2xl bg-muted/50 border border-border/30 p-3 text-center">
-            <p className="text-lg font-bold text-foreground tabular-nums">₪{netTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">صافي الحركة</p>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
+            <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: "#1B3A5C" }}>₪{netTotal.toLocaleString()}</p>
+            <p style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>صافي الحركة</p>
           </div>
         </div>
       )}
