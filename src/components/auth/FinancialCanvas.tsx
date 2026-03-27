@@ -56,7 +56,6 @@ const FinancialCanvas = () => {
     resize();
     window.addEventListener("resize", resize);
 
-    // Nodes
     const nodes: Node[] = Array.from({ length: 25 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
@@ -67,10 +66,8 @@ const FinancialCanvas = () => {
       phase: Math.random() * Math.PI * 2,
     }));
 
-    // Labels
     const labels: FloatingLabel[] = Array.from({ length: 6 }, () => createLabel(w, h));
 
-    // Particles
     const particles: Particle[] = Array.from({ length: 50 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
@@ -79,16 +76,18 @@ const FinancialCanvas = () => {
       radius: Math.random() * 1 + 0.5,
     }));
 
-    // Chart curves
     let gridOffset = 0;
     let chartPhase = 0;
+
+    // Blue-white color for canvas elements
+    const ACCENT = "74, 144, 217"; // #4A90D9
 
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
 
-      // Layer 2: Perspective grid
+      // Grid
       gridOffset = (gridOffset + 0.15) % 40;
-      ctx.strokeStyle = "rgba(232, 160, 32, 0.08)";
+      ctx.strokeStyle = `rgba(${ACCENT}, 0.06)`;
       ctx.lineWidth = 0.5;
       const gridSpacing = 40;
       for (let i = -gridSpacing; i < w + gridSpacing; i += gridSpacing) {
@@ -100,8 +99,8 @@ const FinancialCanvas = () => {
       for (let j = 0; j < h; j += gridSpacing) {
         const yy = (j + gridOffset) % h;
         const scale = 0.5 + (yy / h) * 0.5;
-        ctx.globalAlpha = scale * 0.15;
-        ctx.strokeStyle = "rgba(232, 160, 32, 1)";
+        ctx.globalAlpha = scale * 0.12;
+        ctx.strokeStyle = `rgba(${ACCENT}, 1)`;
         ctx.beginPath();
         ctx.moveTo(0, yy);
         ctx.lineTo(w, yy);
@@ -109,7 +108,7 @@ const FinancialCanvas = () => {
       }
       ctx.globalAlpha = 1;
 
-      // Layer 3: Node connections
+      // Connections
       const connectionDist = 120;
       ctx.lineWidth = 0.5;
       for (let i = 0; i < nodes.length; i++) {
@@ -118,8 +117,8 @@ const FinancialCanvas = () => {
           const dy = nodes[i].y - nodes[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < connectionDist) {
-            const alpha = (1 - dist / connectionDist) * 0.2;
-            ctx.strokeStyle = `rgba(232, 160, 32, ${alpha})`;
+            const alpha = (1 - dist / connectionDist) * 0.15;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -128,7 +127,7 @@ const FinancialCanvas = () => {
         }
       }
 
-      // Layer 3: Nodes
+      // Nodes
       for (const n of nodes) {
         n.x += n.vx;
         n.y += n.vy;
@@ -139,26 +138,24 @@ const FinancialCanvas = () => {
         if (n.x < -10) n.x = w + 10;
         if (n.x > w + 10) n.x = -10;
 
-        // Glow
         const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.radius * 4);
-        grad.addColorStop(0, `rgba(232, 160, 32, ${n.opacity * pulse})`);
-        grad.addColorStop(1, "rgba(232, 160, 32, 0)");
+        grad.addColorStop(0, `rgba(255, 255, 255, ${n.opacity * pulse * 0.6})`);
+        grad.addColorStop(1, "rgba(255, 255, 255, 0)");
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius * 4, 0, Math.PI * 2);
         ctx.fill();
 
-        // Core
-        ctx.fillStyle = `rgba(232, 160, 32, ${n.opacity * pulse})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${n.opacity * pulse * 0.7})`;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Layer 4: Chart lines
+      // Chart lines
       chartPhase += 0.005;
       for (let c = 0; c < 3; c++) {
-        ctx.strokeStyle = `rgba(232, 160, 32, ${0.15 + c * 0.05})`;
+        ctx.strokeStyle = `rgba(${ACCENT}, ${0.12 + c * 0.04})`;
         ctx.lineWidth = 1.5 - c * 0.3;
         ctx.beginPath();
         const baseY = h * (0.5 + c * 0.12);
@@ -173,7 +170,7 @@ const FinancialCanvas = () => {
         ctx.stroke();
       }
 
-      // Layer 5: Floating labels
+      // Labels
       ctx.font = "12px 'Tajawal', sans-serif";
       ctx.textAlign = "center";
       for (let i = 0; i < labels.length; i++) {
@@ -194,11 +191,11 @@ const FinancialCanvas = () => {
           continue;
         }
 
-        ctx.fillStyle = `rgba(232, 160, 32, ${l.opacity * 0.45})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${l.opacity * 0.35})`;
         ctx.fillText(l.text, l.x, l.y);
       }
 
-      // Layer 6: Dust particles
+      // Dust particles
       for (const p of particles) {
         p.y += p.vy;
         if (p.y < -5) { p.y = h + 5; p.x = Math.random() * w; }
