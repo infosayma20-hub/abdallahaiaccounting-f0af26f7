@@ -1303,7 +1303,7 @@ const AccountStatementPage = () => {
 
   const handlePrintStatement = useCallback(() => {
     // No browser print dialog — use PDF export
-    handleExportPDF();
+    /* no browser print — use PDF export */
   }, []);
 
   // ─── EXPORT (XLSX/SheetJS) ───
