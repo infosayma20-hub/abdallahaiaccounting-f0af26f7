@@ -7,7 +7,6 @@ import { exportAccountsToExcel } from "@/lib/accountsExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +41,6 @@ const EditAccountForm = ({ account, onSave, onCancel }: { account: { account_nam
   );
 };
 import { cn, multiWordMatchAny } from "@/lib/utils";
-import AddAccountDialog from "@/components/AddAccountDialog";
 
 interface Account {
   id: string;
