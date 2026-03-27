@@ -217,18 +217,18 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
-        id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "accounting", icon: Landmark,
+        id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "assets", icon: Landmark,
         color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true,
         keywords: ["أصول", "استهلاك", "ثابتة"],
       },
       {
-        id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "accounting", icon: Building2,
+        id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "contractor", icon: Building2,
         color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true,
         enableSetting: "has_contractor",
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
-        id: "workshops", label: "إدارة الورشات والمناجر", description: "إدارة ورشات العمل والمناجر وتتبع تكاليف كل ورشة", module: "accounting", icon: Building2,
+        id: "workshops", label: "إدارة الورشات والمناجر", description: "إدارة ورشات العمل والمناجر وتتبع تكاليف كل ورشة", module: "workshops", icon: Building2,
         color: "text-amber-700", bgColor: "bg-amber-600/10", path: "/workshops",
         enableSetting: "has_workshops",
         keywords: ["ورشة", "ورشات", "منجرة", "مناجر", "مطبخ", "خشب", "نجار"],

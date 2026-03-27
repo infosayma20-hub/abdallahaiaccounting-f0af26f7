@@ -3,6 +3,7 @@ import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
   Monitor, Puzzle, LayoutGrid, Sparkles, FileCheck, UserCog, ClipboardList, Plane,
+  Building2, Wrench,
 } from "lucide-react";
 
 interface ModuleIconProps {
@@ -36,6 +37,8 @@ const moduleColors: Record<string, { accent: string; bg: string; gradient?: stri
   import:      { accent: "#0891B2", bg: "rgba(8,145,178,0.12)", gradient: "linear-gradient(135deg, #0891B2, #06B6D4)" },
   currency:    { accent: "#006D8F", bg: "rgba(0,109,143,0.12)", gradient: "linear-gradient(135deg, #006D8F, #0891B2)" },
   assets:      { accent: "#C9A84C", bg: "rgba(201,168,76,0.12)", gradient: "linear-gradient(135deg, #C9A84C, #E8C860)" },
+  contractor:  { accent: "#EA580C", bg: "rgba(234,88,12,0.12)", gradient: "linear-gradient(135deg, #EA580C, #F97316)" },
+  workshops:   { accent: "#EA580C", bg: "rgba(234,88,12,0.12)", gradient: "linear-gradient(135deg, #EA580C, #F97316)" },
   customization: { accent: "#006D8F", bg: "rgba(0,109,143,0.12)", gradient: "linear-gradient(135deg, #006D8F, #0891B2)" },
   reps:        { accent: "#EA580C", bg: "rgba(234,88,12,0.12)", gradient: "linear-gradient(135deg, #EA580C, #F97316)" },
   tasks:       { accent: "#1B3A5C", bg: "rgba(27,58,92,0.12)", gradient: "linear-gradient(135deg, #1B3A5C, #2D5A8E)" },
@@ -71,6 +74,8 @@ const moduleIcons: Record<string, React.ElementType> = {
   import: FileSpreadsheet,
   currency: ArrowLeftRight,
   assets: Landmark,
+  contractor: Building2,
+  workshops: Wrench,
   customization: Puzzle,
   tasks: ClipboardList,
   travel: Plane,
