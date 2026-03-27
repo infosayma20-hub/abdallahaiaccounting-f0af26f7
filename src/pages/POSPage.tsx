@@ -3727,18 +3727,17 @@ const POSPage = () => {
 
         {/* ── RIGHT: Order Panel ── */}
         <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
-          {/* Order Tabs */}
-          <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            {/* View all orders button */}
+          {/* Order Tabs — compact h-8 */}
+          <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
             <button
               onClick={() => setShowAllOrders(true)}
-              className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-11 px-2.5 flex-shrink-0"
+              className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-8 px-2 flex-shrink-0"
               title="عرض جميع الطلبات"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">طلبات</span>
+              <LayoutGrid className="w-3 h-3" />
+              <span className="text-[10px] font-medium">طلبات</span>
             </button>
-            <div className="w-px h-5 bg-border flex-shrink-0" />
+            <div className="w-px h-4 bg-border flex-shrink-0" />
 
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
@@ -3747,18 +3746,16 @@ const POSPage = () => {
                 <button
                   key={order.id}
                   onClick={() => setActiveOrderIndex(idx)}
-                  className={`group relative flex items-center gap-1.5 px-3 h-11 text-xs font-medium whitespace-nowrap transition-all border-b-2 ${
+                  className={`group relative flex items-center gap-1 px-2 h-8 text-[11px] font-medium whitespace-nowrap transition-all border-b-2 ${
                     isActive
                       ? "border-primary text-primary bg-primary/5"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <ShoppingCart className="h-3 w-3" />
-                  <span>{order.customerName || order.name}</span>
-                  {order.orderType === "delivery" && <span className="text-[10px]">🚚</span>}
-                  {order.orderType === "takeaway" && <span className="text-[10px]">🛍️</span>}
+                  <span className="max-w-[80px] truncate">{order.customerName || order.name}</span>
                   {itemCount > 0 && (
-                    <span className={`text-[10px] font-bold rounded-full px-1.5 py-0 ${
+                    <span className={`text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
                       isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
                     }`}>
                       {itemCount}
@@ -3767,9 +3764,9 @@ const POSPage = () => {
                   {orders.length > 1 && (
                     <span
                       onClick={(e) => { e.stopPropagation(); removeOrder(idx); }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-destructive transition-all mr-0.5"
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-destructive transition-all"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-2.5 w-2.5" />
                     </span>
                   )}
                 </button>
@@ -3782,10 +3779,10 @@ const POSPage = () => {
                 setOrders(prev => [...prev, newOrder]);
                 setActiveOrderIndex(orders.length);
               }}
-              className="h-11 px-2.5 flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-colors shrink-0"
+              className="h-8 px-2 flex items-center justify-center text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
               title="طلب جديد"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3" />
             </button>
           </div>
 
