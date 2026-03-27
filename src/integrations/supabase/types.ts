@@ -6283,6 +6283,7 @@ export type Database = {
           is_active: boolean
           name: string
           parent_id: string | null
+          restricted_cash_box_ids: string[] | null
           sort_order: number | null
           updated_at: string
           user_id: string
@@ -6295,6 +6296,7 @@ export type Database = {
           is_active?: boolean
           name: string
           parent_id?: string | null
+          restricted_cash_box_ids?: string[] | null
           sort_order?: number | null
           updated_at?: string
           user_id: string
@@ -6307,6 +6309,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           parent_id?: string | null
+          restricted_cash_box_ids?: string[] | null
           sort_order?: number | null
           updated_at?: string
           user_id?: string
