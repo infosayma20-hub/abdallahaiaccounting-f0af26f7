@@ -29,7 +29,7 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "1150", name: "شيكات واردة", type: "أصول", parent: null },
   { code: "1160", name: "المصاريف المدفوعة مقدماً", type: "أصول", parent: null },
   { code: "1170", name: "التأمينات المدفوعة", type: "أصول", parent: null },
-  { code: "1180", name: "ذمم موظفين", type: "أصول", parent: null },
+  { code: "2180", name: "ذمم موظفين", type: "التزامات", parent: "2100" },
 
   // ═══════════ الأصول غير المتداولة (12xx) ═══════════
   { code: "1210", name: "مركبات", type: "أصول", parent: null },
