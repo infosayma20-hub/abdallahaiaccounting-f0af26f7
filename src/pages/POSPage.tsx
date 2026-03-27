@@ -4069,6 +4069,15 @@ const POSPage = () => {
                   <button
                     key={t.id}
                     onClick={() => {
+                      if (t.status === "occupied") {
+                        // Find the existing order for this table and switch to it
+                        const existingOrderIndex = orders.findIndex(o => o.tableId === t.id);
+                        if (existingOrderIndex !== -1) {
+                          setActiveOrderIndex(existingOrderIndex);
+                          setShowTablePicker(false);
+                          return;
+                        }
+                      }
                       updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
                       setShowTablePicker(false);
                     }}
