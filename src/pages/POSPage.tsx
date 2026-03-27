@@ -3596,13 +3596,15 @@ const POSPage = () => {
                   {categoriesWithCounts.uncategorized > 0 && (
                     <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`h-7 px-3 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${
+                      className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border min-w-[68px] px-2 py-1.5 transition-all ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground"
-                          : "bg-card text-muted-foreground border-border"
+                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
+                          : "bg-card text-muted-foreground border-border hover:shadow-sm"
                       }`}
                     >
-                      أخرى ({categoriesWithCounts.uncategorized})
+                      <Package className="h-4 w-4 shrink-0" />
+                      <span className="text-[10px] font-semibold leading-tight">أخرى</span>
+                      <span className="text-[9px] opacity-70 leading-none">({categoriesWithCounts.uncategorized})</span>
                     </button>
                   )}
 
@@ -3610,15 +3612,17 @@ const POSPage = () => {
                     <>
                       <button
                         onClick={() => setShowCategoryManager(true)}
-                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
+                        className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-border min-w-[68px] px-2 py-1.5 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
                       >
-                        + تصنيف
+                        <PlusCircle className="h-4 w-4 shrink-0" />
+                        <span className="text-[10px] font-medium leading-tight">تصنيف</span>
                       </button>
                       <button
                         onClick={() => setShowAddProduct(true)}
-                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-primary/30 text-primary hover:bg-primary/10"
+                        className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-primary/30 min-w-[68px] px-2 py-1.5 text-primary hover:bg-primary/10 transition-all"
                       >
-                        ⊕ منتج
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="text-[10px] font-medium leading-tight">منتج</span>
                       </button>
                     </>
                   )}
