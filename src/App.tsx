@@ -21,6 +21,7 @@ const VoiceInput = lazy(() => import("./pages/VoiceInput"));
 const ProfitLoss = lazy(() => import("./pages/ProfitLoss"));
 const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const AccountsPage = lazy(() => import("./pages/AccountsPage"));
+const AccountFormPage = lazy(() => import("./pages/AccountFormPage"));
 const ContactsPage = lazy(() => import("./pages/ContactsPage"));
 const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
 const ContactPoliciesPage = lazy(() => import("./pages/ContactPoliciesPage"));
