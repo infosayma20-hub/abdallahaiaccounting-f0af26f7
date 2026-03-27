@@ -97,6 +97,7 @@ interface InvoiceHistoryDrawerProps {
   printInvoices?: boolean;
   resendInvoice?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
+  onLoadDraftToCart?: (items: CartItem[], orderId: string) => void;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -123,7 +124,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart, onLoadDraftToCart,
 }: InvoiceHistoryDrawerProps) {
   // Use specific flags if provided, otherwise fall back to general flag
   const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
@@ -914,6 +915,34 @@ export default function InvoiceHistoryDrawer({
 
               {/* Action buttons */}
               <div className="flex items-center gap-2 pt-4 border-t mt-3" style={{ borderColor: "#E2E8F0" }}>
+                {selectedOrder.state === "draft" && onLoadDraftToCart && (
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    style={{ background: "#16A34A", color: "white" }}
+                    onClick={() => {
+                      const items: CartItem[] = orderLines.map(line => ({
+                        id: crypto.randomUUID(),
+                        product_id: line.product_id || null,
+                        name: line.product_name,
+                        qty: line.qty,
+                        unit_price: line.unit_price,
+                        cost_price: 0,
+                        discount_pct: 0,
+                        tax_rate: 0,
+                        unit: "قطعة",
+                        total: line.total,
+                        note: "",
+                      }));
+                      onLoadDraftToCart(items, selectedOrder.id);
+                      setSelectedOrder(null);
+                      onClose();
+                      toast.success("تم تحميل الطلب المعلق للسلة — يمكنك الدفع الآن");
+                    }}
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" /> تحميل للسلة والدفع
+                  </Button>
+                )}
                 {printInvoices && (
                 <Button
                   variant="outline"

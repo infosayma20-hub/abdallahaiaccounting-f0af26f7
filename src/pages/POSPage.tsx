@@ -5482,6 +5482,10 @@ const POSPage = () => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });
             }}
+            onLoadDraftToCart={(items, orderId) => {
+              setCart(items);
+              setShowInvoiceHistory(false);
+            }}
           />
         )}
       </AnimatePresence>
