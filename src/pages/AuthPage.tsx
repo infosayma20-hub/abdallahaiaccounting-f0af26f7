@@ -183,7 +183,7 @@ const AuthPage = () => {
   ];
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden" dir="ltr">
+    <div className="h-screen flex flex-col" dir="ltr">
       {/* Top Nav — white with subtle border */}
       <nav
         className="w-full flex items-center justify-between px-8 shrink-0"
@@ -249,7 +249,7 @@ const AuthPage = () => {
         </div>
 
         {/* RIGHT — White form panel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-8 py-6 overflow-auto" style={{ background: '#FFFFFF' }} dir="rtl">
+        <div className="flex-1 flex flex-col items-center justify-start px-8 py-4 overflow-y-auto" style={{ background: '#FFFFFF' }} dir="rtl">
           <div className="w-full max-w-[380px]">
 
             {/* Logo — large */}
