@@ -3506,12 +3506,14 @@ const POSPage = () => {
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
-                      selectedCategory === "الكل"
-                        ? "bg-foreground text-background shadow-md border-foreground"
-                        : "bg-card text-muted-foreground hover:text-foreground border-border"
-                    }`}
-                    style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
+                    className="flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03]"
+                    style={{
+                      minWidth: 80, height: 48, padding: "4px 10px",
+                      background: selectedCategory === "الكل" ? "#fff" : "rgba(255,255,255,0.1)",
+                      color: selectedCategory === "الكل" ? "#0A2342" : "rgba(255,255,255,0.85)",
+                      borderColor: selectedCategory === "الكل" ? "#fff" : "rgba(255,255,255,0.2)",
+                      boxShadow: selectedCategory === "الكل" ? "0 3px 12px rgba(0,0,0,0.3)" : "none",
+                    }}
                   >
                     <span className="leading-tight">الكل</span>
                     <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
@@ -3531,12 +3533,13 @@ const POSPage = () => {
                   {categoriesWithCounts.uncategorized > 0 && (
                   <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
-                        selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
-                          : "bg-card text-muted-foreground border-border"
-                      }`}
-                      style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
+                      className="flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03]"
+                      style={{
+                        minWidth: 80, height: 48, padding: "4px 10px",
+                        background: selectedCategory === "__uncategorized__" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.08)",
+                        color: selectedCategory === "__uncategorized__" ? "#0A2342" : "rgba(255,255,255,0.7)",
+                        borderColor: selectedCategory === "__uncategorized__" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.15)",
+                      }}
                     >
                       <span className="leading-tight">أخرى</span>
                       <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.uncategorized})</span>
