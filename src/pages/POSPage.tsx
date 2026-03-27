@@ -3611,24 +3611,22 @@ const POSPage = () => {
 
           {/* ── Products by Category — Reports-style sections ── */}
           <ScrollArea className="flex-1">
-            <div dir="rtl" className="p-4 space-y-8">
+             <div dir="rtl" className="p-3 space-y-4">
               {groupedByCategory.length > 0 ? (
                 groupedByCategory.map(({ cat, products: catProducts }) => {
                   const CatSectionIcon = getCategoryIcon(cat.name);
                   return (
-                    <div key={cat.id} className="space-y-3">
-                      {/* Section Header — like reports */}
-                      <div className="flex flex-col items-center text-center gap-2 pb-1">
+                    <div key={cat.id} className="space-y-2">
+                      {/* Section Header — compact row */}
+                      <div className="flex items-center gap-2 py-1.5 px-2 border-b border-border/60">
                         <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center"
-                          style={{ backgroundColor: cat.color + '14', border: `1.5px solid ${cat.color}30` }}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: cat.color + '14', border: `1px solid ${cat.color}30` }}
                         >
-                          <CatSectionIcon className="h-5 w-5" style={{ color: cat.color }} />
+                          <CatSectionIcon className="h-4 w-4" style={{ color: cat.color }} />
                         </div>
-                        <h3 className="text-sm font-bold text-foreground">
-                          {cat.name}
-                          <span className="text-xs font-normal text-muted-foreground mr-1.5">({catProducts.length})</span>
-                        </h3>
+                        <h3 className="text-sm font-bold text-foreground flex-1">{cat.name}</h3>
+                        <span className="text-[11px] text-muted-foreground">({catProducts.length})</span>
                       </div>
 
                       {/* Products Grid */}
