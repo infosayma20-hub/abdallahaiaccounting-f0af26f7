@@ -303,7 +303,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                   style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
                 />
               ) : (
-                <img src="/logo-white.png" alt="أموالي" width={36} height={36} />
+                <img src="/logos/amwali-mark-white.png" alt="أموالي" width={36} height={36} />
               )}
             </button>
             <div className="min-w-0">
@@ -344,7 +344,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
               />
             ) : (
-              <img src="/logo-white.png" alt="أموالي" width={32} height={32} />
+              <img src="/logos/amwali-mark-white.png" alt="أموالي" width={32} height={32} />
             )}
           </button>
         )}

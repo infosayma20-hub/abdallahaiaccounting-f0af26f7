@@ -22,7 +22,7 @@ const NotFound = () => {
             fontFamily: "Montserrat, sans-serif",
             fontWeight: 800,
             fontSize: "clamp(120px, 20vw, 240px)",
-            color: "rgba(232,160,32,0.1)",
+            color: "rgba(74,144,217,0.1)",
           }}
         >
           404
@@ -32,7 +32,7 @@ const NotFound = () => {
       {/* Content */}
       <div className="text-center relative z-10 space-y-4 px-6">
         <div className="mb-6 flex justify-center">
-          <img src="/logo-white.png" alt="AMWALI أموالي" width={180} />
+          <img src="/logos/amwali-white.jpg" alt="AMWALI أموالي" width={180} />
         </div>
 
         <h1 className="text-xl font-bold" style={{ color: "#F4F6F8", fontFamily: "Tajawal, sans-serif" }}>
@@ -46,8 +46,8 @@ const NotFound = () => {
           href="/"
           className="inline-flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-bold transition-all hover:brightness-110 hover:-translate-y-0.5"
           style={{
-            background: "#E8A020",
-            color: "#0D1B2A",
+            background: "#1B3A5C",
+            color: "#FFFFFF",
           }}
         >
           العودة للرئيسية
