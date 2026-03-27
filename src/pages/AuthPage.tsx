@@ -183,13 +183,13 @@ const AuthPage = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col" dir="ltr">
+    <div className="h-screen flex flex-col overflow-hidden" dir="ltr">
       {/* Top Nav — white with subtle border */}
       <nav
         className="w-full flex items-center justify-between px-8 shrink-0"
         style={{ background: '#0D1B2E', borderBottom: 'none', height: 52 }}
       >
-        <img src="/logos/amwali-mark-white.png" alt="AMWALI" className="h-7 w-auto object-contain" />
+        <img src="/logos/amwali-mark-white.png" alt="AMWALI" className="h-10 w-auto object-contain" />
         <div className="flex items-center gap-3">
           <button
             className="px-5 py-2 rounded-lg text-sm transition-all"
@@ -249,12 +249,12 @@ const AuthPage = () => {
         </div>
 
         {/* RIGHT — White form panel */}
-        <div className="flex-1 flex flex-col items-center justify-center px-8 py-12" style={{ background: '#FFFFFF' }} dir="rtl">
+        <div className="flex-1 flex flex-col items-center justify-center px-8 py-6 overflow-auto" style={{ background: '#FFFFFF' }} dir="rtl">
           <div className="w-full max-w-[380px]">
 
             {/* Logo — large */}
-            <div className="text-center mb-4">
-              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-40 mx-auto object-contain" />
+            <div className="text-center mb-3">
+              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-48 mx-auto object-contain" />
             </div>
 
             {/* Header — thin font */}
