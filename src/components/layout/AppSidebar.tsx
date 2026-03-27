@@ -28,9 +28,9 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-const SIDEBAR_BG = "#1b2b4b";
+const SIDEBAR_BG = "#0D1B2E";
 const GOLD = "#4A9EE8";
-const SEPARATOR = "rgba(255,255,255,0.06)";
+const SEPARATOR = "rgba(255,255,255,0.08)";
 const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
 
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
@@ -126,36 +126,38 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           }
         }}
         className={cn(
-          "w-full flex items-center rounded-[10px] transition-all duration-150 group relative",
-          collapsed ? "justify-center px-2 py-2.5" : "px-4 py-2.5 gap-3",
+          "w-full flex items-center rounded-lg transition-all duration-150 group relative",
+          collapsed ? "justify-center px-2 py-2.5" : "gap-3",
           disabled && "opacity-40 cursor-not-allowed",
         )}
         style={{
           margin: "2px 8px",
           width: "calc(100% - 16px)",
+          padding: collapsed ? undefined : "10px 12px",
           fontSize: 14,
           fontWeight: isHighlighted && !disabled ? 500 : 400,
           color: disabled
             ? "rgba(255,255,255,0.35)"
             : isHighlighted
               ? "#FFFFFF"
-              : "rgba(255,255,255,0.75)",
+              : "rgba(255,255,255,0.6)",
           background: disabled
             ? "transparent"
             : isHighlighted
-              ? "rgba(255,255,255,0.08)"
+              ? "rgba(255,255,255,0.12)"
               : "transparent",
           borderRight: isHighlighted && !disabled ? "3px solid #FFFFFF" : "3px solid transparent",
+          borderRadius: 8,
         }}
         onMouseEnter={(e) => {
           if (disabled || isHighlighted) return;
           e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-          e.currentTarget.style.color = "#FFFFFF";
+          e.currentTarget.style.color = "rgba(255,255,255,0.9)";
         }}
         onMouseLeave={(e) => {
           if (disabled || isHighlighted) return;
           e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+          e.currentTarget.style.color = "rgba(255,255,255,0.6)";
         }}
       >
         <div className={cn(
