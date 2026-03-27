@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_categories ADD COLUMN IF NOT EXISTS restricted_cash_box_ids text[] DEFAULT NULL;
