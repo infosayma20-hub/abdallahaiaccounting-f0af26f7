@@ -131,11 +131,16 @@ export type Database = {
           account_name: string
           account_type: string
           created_at: string
+          description_ar: string | null
+          display_order: number | null
           id: string
           is_active: boolean | null
           is_system: boolean | null
+          is_system_protected: boolean | null
           notes: string | null
           parent_code: string | null
+          sub_group_label: string | null
+          system_role: string | null
           updated_at: string
           user_id: string
         }
@@ -144,11 +149,16 @@ export type Database = {
           account_name: string
           account_type?: string
           created_at?: string
+          description_ar?: string | null
+          display_order?: number | null
           id?: string
           is_active?: boolean | null
           is_system?: boolean | null
+          is_system_protected?: boolean | null
           notes?: string | null
           parent_code?: string | null
+          sub_group_label?: string | null
+          system_role?: string | null
           updated_at?: string
           user_id: string
         }
@@ -157,11 +167,16 @@ export type Database = {
           account_name?: string
           account_type?: string
           created_at?: string
+          description_ar?: string | null
+          display_order?: number | null
           id?: string
           is_active?: boolean | null
           is_system?: boolean | null
+          is_system_protected?: boolean | null
           notes?: string | null
           parent_code?: string | null
+          sub_group_label?: string | null
+          system_role?: string | null
           updated_at?: string
           user_id?: string
         }
