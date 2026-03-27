@@ -3184,9 +3184,9 @@ const POSPage = () => {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                          <span className="font-semibold truncate text-[11px]">{pc.name || "بدون اسم"}</span>
+                          <span className="font-semibold truncate text-[11px] text-foreground">{pc.name || "بدون اسم"}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{pc.total_visits || 0} زيارة</span>
+                        <span className="text-[10px] text-foreground/60 shrink-0">{pc.total_visits || 0} زيارة</span>
                       </div>
                     </button>
                   ))}
@@ -3203,10 +3203,10 @@ const POSPage = () => {
                         setCustomerSearch("");
                         setShowContactDropdown(false);
                       }}
-                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2"
+                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2 text-foreground"
                     >
-                      <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span>{contact.contact_name}</span>
+                      <User className="h-3 w-3 text-foreground/50 shrink-0" />
+                      <span className="font-medium">{contact.contact_name}</span>
                     </button>
                   ))}
                 </>
