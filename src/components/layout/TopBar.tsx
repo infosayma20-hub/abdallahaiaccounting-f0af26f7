@@ -197,7 +197,7 @@ const QUICK_ITEMS = [
   { label: "صناديق", icon: Banknote, shortcut: "Alt+S", path: "/finance/cash-boxes" },
   { label: "المخزون", icon: Package, shortcut: "Alt+I", path: "/inventory" },
   { label: "الشيكات", icon: CreditCard, shortcut: "Alt+Q", path: "/finance/cheques" },
-  { label: "نقطة البيع", icon: ShoppingCart, shortcut: "", path: "/pos" },
+  { label: "نقطة البيع", icon: ShoppingCart, shortcut: "Alt+P", path: "/pos" },
   { label: "ميزان المراجعة", icon: TrendingUp, shortcut: "Alt+T", path: "/trial-balance" },
 ];
 
