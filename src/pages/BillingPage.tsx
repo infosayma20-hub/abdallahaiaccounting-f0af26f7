@@ -67,12 +67,13 @@ const BillingPage = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12" dir="rtl">
       {/* Page Header */}
-      <div className="w-full" style={{ borderTop: "3px solid #4A9EE8" }}>
-        <div className="w-full px-6 py-4" style={{ backgroundColor: "#1B3A5C" }}>
-          <h1 className="text-right text-white" style={{ fontFamily: "Tajawal, sans-serif", fontSize: "22px", fontWeight: 500 }}>
-            إعدادات الاشتراكات
-          </h1>
-        </div>
+      <div
+        className="w-full flex items-center"
+        style={{ backgroundColor: "#1B3A5C", borderRadius: 12, padding: "10px 20px", height: 44 }}
+      >
+        <h1 className="text-right text-white" style={{ fontFamily: "Tajawal, sans-serif", fontSize: 18, fontWeight: 500 }}>
+          إعدادات الاشتراكات
+        </h1>
       </div>
 
       {/* Current Plan Card */}
