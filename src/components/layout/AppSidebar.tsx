@@ -183,8 +183,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             {disabled && !locked && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown
-                className={cn("h-3.5 w-3.5 transition-transform duration-200")}
-                style={{ opacity: 0.4, transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
+                className="h-3.5 w-3.5 transition-transform duration-200"
+                style={{ color: "rgba(255,255,255,0.3)", transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
               />
             )}
           </>
@@ -241,10 +241,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                         className="w-full flex items-center gap-2 text-right transition-all duration-150"
                         style={{
                           padding: "8px 16px 8px 16px",
-                          paddingRight: 44,
+                          paddingRight: 28,
                           fontSize: 13,
                           fontWeight: 400,
-                          color: childActive ? "#FFFFFF" : "rgba(255,255,255,0.65)",
+                          color: childActive ? "#FFFFFF" : "rgba(255,255,255,0.55)",
                           background: childActive ? "rgba(74,158,232,0.1)" : "transparent",
                           borderRadius: 8,
                           margin: "1px 8px",
@@ -253,14 +253,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                         onMouseEnter={(e) => {
                           if (childActive) return;
                           e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                          e.currentTarget.style.color = "rgba(255,255,255,0.9)";
+                          e.currentTarget.style.color = "rgba(255,255,255,0.8)";
                           const dot = e.currentTarget.querySelector<HTMLSpanElement>('[data-dot]');
                           if (dot) dot.style.background = GOLD;
                         }}
                         onMouseLeave={(e) => {
                           if (childActive) return;
                           e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                          e.currentTarget.style.color = "rgba(255,255,255,0.55)";
                           const dot = e.currentTarget.querySelector<HTMLSpanElement>('[data-dot]');
                           if (dot) dot.style.background = "rgba(255,255,255,0.25)";
                         }}
