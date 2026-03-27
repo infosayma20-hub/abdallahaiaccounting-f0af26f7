@@ -312,7 +312,7 @@ const JournalNewPage = () => {
     }
   };
 
-  const handlePrint = () => { window.print(); };
+  const handlePrint = () => { /* no browser print */ };
 
   if (saved) {
     return (

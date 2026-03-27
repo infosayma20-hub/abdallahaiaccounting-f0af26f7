@@ -327,7 +327,7 @@ const PeriodicReportsPage = () => {
     toast.success("تم حذف التقرير");
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => { /* no browser print */ };
 
   const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
