@@ -2106,8 +2106,23 @@ const POSPage = () => {
     // Find or create order tab for this table
     const existingTabIdx = orders.findIndex(o => o.tableId === tableId);
     if (existingTabIdx >= 0) {
+      setOrders(prev => prev.map((o, i) => i === existingTabIdx ? {
+        ...o,
+        name: order.customer_name || tableName,
+        cart: cartItems,
+        customerName: order.customer_name || "",
+        customerId: (order as any).customer_id || null,
+        posCustomerId: (order as any).pos_customer_id || null,
+        orderDiscount: Number(order.discount_amount) || 0,
+        orderDiscountType: "fixed",
+        tableId,
+        tableName,
+        guestCount: (order as any).guest_count || 1,
+        guestName: (order as any).guest_name || "",
+        orderType: (order as any).order_type || "dine_in",
+        deliveryAddress: (order as any).delivery_address || "",
+      } : o));
       setActiveOrderIndex(existingTabIdx);
-      updateActiveOrder(o => ({ ...o, cart: cartItems }));
     } else {
       const newOrder: OrderTab = {
         id: crypto.randomUUID(),
