@@ -18,6 +18,10 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList,
+  Wine, GlassWater, Milk, Citrus, CupSoda, IceCreamCone, Cake, Pizza, Sandwich, Beef,
+  LeafyGreen, Droplets, Flame, Baby, Snowflake, Crown, Droplet, Puzzle, Drumstick, Bird,
+  Users, Layers,
+  type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -218,6 +222,60 @@ function getCatConfig(category: string) {
 }
 
 
+// ── Category Icon Map ──
+const CATEGORY_ICON_MAP: Record<string, string> = {
+  "الكل": "LayoutGrid",
+  "مشروبات": "Wine",
+  "مشروبات باردة": "GlassWater",
+  "مشروبات ساخنة": "Coffee",
+  "ميلك شيك": "Milk",
+  "موهيتو": "Citrus",
+  "سموذي": "CupSoda",
+  "عصائر طبيعية": "Apple",
+  "بوظة": "IceCreamCone",
+  "حلويات": "Cake",
+  "بيتزا": "Pizza",
+  "سندويشات": "Sandwich",
+  "برغر": "Beef",
+  "السلطات": "LeafyGreen",
+  "صوصات": "Droplets",
+  "بطاطا": "Flame",
+  "الإضافات": "PlusCircle",
+  "الطلب من المطبخ": "ChefHat",
+  "وجبات الأطفال": "Baby",
+  "عروض": "Percent",
+  "عروض الشتاء": "Snowflake",
+  "رمضان 2026": "Moon",
+  "عرض الدفى الملكي": "Crown",
+  "جبنة سائلة": "Droplet",
+  "اضافة قطع": "Puzzle",
+};
+
+const getCategoryIcon = (name: string): LucideIcon => {
+  const iconName = CATEGORY_ICON_MAP[name];
+  const iconMap: Record<string, LucideIcon> = {
+    LayoutGrid, Wine, GlassWater, Coffee, Milk, Citrus, CupSoda, Apple,
+    IceCreamCone, Cake, Pizza, Sandwich, Beef, LeafyGreen, Droplets, Flame,
+    PlusCircle, ChefHat, Baby, Percent, Snowflake, Moon, Crown, Droplet, Puzzle,
+  };
+  if (iconName && iconMap[iconName]) return iconMap[iconName];
+  // Keyword-based fallback
+  const lower = name.toLowerCase();
+  if (lower.includes("مشروب")) return Wine;
+  if (lower.includes("عصير")) return Apple;
+  if (lower.includes("وجب") || lower.includes("اريزكو")) return UtensilsCrossed;
+  if (lower.includes("كرسبي") || lower.includes("كريسبي")) return Drumstick;
+  if (lower.includes("بروست")) return Drumstick;
+  if (lower.includes("اجنح")) return Bird;
+  if (lower.includes("عرض") || lower.includes("عروض")) return Percent;
+  if (lower.includes("عائل")) return Users;
+  if (lower.includes("فرد")) return User;
+  if (lower.includes("جوسي")) return Flame;
+  if (lower.includes("كرنش")) return Layers;
+  if (lower.includes("مسحب")) return Layers;
+  return UtensilsCrossed;
+};
+
 const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
   cat: { id: string; name: string; color: string; count: number };
   isActive: boolean;
@@ -229,16 +287,11 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     id: cat.id,
     disabled: !isSortMode,
   });
+  const Icon = getCategoryIcon(cat.name);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    backgroundColor: isActive ? cat.color : cat.color + "18",
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "60",
-    color: isActive ? "#fff" : undefined,
-    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)`,
-    borderStyle: isSortMode ? "dashed" as const : "solid" as const,
-    borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
   };
   return (
@@ -247,14 +300,17 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border select-none ${
-        isSortMode ? "ring-1 ring-amber-400/50" : ""
-      }`}
+      className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border select-none transition-all min-w-[68px] px-2 py-1.5 ${
+        isActive
+          ? "bg-primary text-primary-foreground border-primary shadow-md"
+          : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground hover:shadow-sm"
+      } ${isSortMode ? "ring-1 ring-amber-400/50 border-dashed border-primary" : ""}`}
       style={style}
     >
-      {isSortMode && <GripVertical className="h-3 w-3 inline-block ml-1 opacity-60" />}
-      {cat.name}
-      {cat.count > 0 && <span className="mr-1 opacity-75">({cat.count})</span>}
+      {isSortMode && <GripVertical className="h-3 w-3 opacity-60" />}
+      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-foreground" : ""}`} style={{ color: isActive ? undefined : cat.color }} />
+      <span className="text-[10px] font-semibold leading-tight text-center whitespace-nowrap">{cat.name}</span>
+      {cat.count > 0 && <span className="text-[9px] opacity-70 leading-none">({cat.count})</span>}
     </button>
   );
 };
@@ -3511,17 +3567,19 @@ const POSPage = () => {
                 strategy={horizontalListSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div className="flex flex-wrap gap-1.5 items-center">
+                <div className="flex flex-wrap gap-1.5 items-stretch">
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border min-w-[68px] px-2 py-1.5 transition-all ${
                       selectedCategory === "الكل"
-                        ? "bg-foreground text-background shadow-sm"
-                        : "bg-card text-muted-foreground hover:text-foreground border border-border"
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground hover:shadow-sm"
                     }`}
                   >
-                    الكل ({categoriesWithCounts.all})
+                    <LayoutGrid className="h-4 w-4 shrink-0" />
+                    <span className="text-[10px] font-semibold leading-tight">الكل</span>
+                    <span className="text-[9px] opacity-70 leading-none">({categoriesWithCounts.all})</span>
                   </button>
 
                   {categoriesWithCounts.categories.map((cat) => (
@@ -3538,13 +3596,15 @@ const POSPage = () => {
                   {categoriesWithCounts.uncategorized > 0 && (
                     <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`h-7 px-3 rounded-full text-[11px] font-medium whitespace-nowrap transition-all border ${
+                      className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border min-w-[68px] px-2 py-1.5 transition-all ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground"
-                          : "bg-card text-muted-foreground border-border"
+                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
+                          : "bg-card text-muted-foreground border-border hover:shadow-sm"
                       }`}
                     >
-                      أخرى ({categoriesWithCounts.uncategorized})
+                      <Package className="h-4 w-4 shrink-0" />
+                      <span className="text-[10px] font-semibold leading-tight">أخرى</span>
+                      <span className="text-[9px] opacity-70 leading-none">({categoriesWithCounts.uncategorized})</span>
                     </button>
                   )}
 
@@ -3552,15 +3612,17 @@ const POSPage = () => {
                     <>
                       <button
                         onClick={() => setShowCategoryManager(true)}
-                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
+                        className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-border min-w-[68px] px-2 py-1.5 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
                       >
-                        + تصنيف
+                        <PlusCircle className="h-4 w-4 shrink-0" />
+                        <span className="text-[10px] font-medium leading-tight">تصنيف</span>
                       </button>
                       <button
                         onClick={() => setShowAddProduct(true)}
-                        className="h-7 px-2 rounded-full text-[10px] font-medium whitespace-nowrap border border-dashed border-primary/30 text-primary hover:bg-primary/10"
+                        className="flex flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-primary/30 min-w-[68px] px-2 py-1.5 text-primary hover:bg-primary/10 transition-all"
                       >
-                        ⊕ منتج
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="text-[10px] font-medium leading-tight">منتج</span>
                       </button>
                     </>
                   )}
