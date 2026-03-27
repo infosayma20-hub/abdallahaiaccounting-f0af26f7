@@ -97,6 +97,7 @@ interface InvoiceHistoryDrawerProps {
   printInvoices?: boolean;
   resendInvoice?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
+  onLoadDraftToCart?: (items: CartItem[], orderId: string) => void;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
