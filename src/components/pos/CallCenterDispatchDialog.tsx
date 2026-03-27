@@ -116,7 +116,8 @@ const CallCenterDispatchDialog = ({
 
   const checkBranchSessions = async (branchList: Branch[]) => {
     // Check which branches have active POS sessions (cashiers online)
-    const { data: activeSessions } = await supabase
+    console.log("[Dispatch] Checking sessions for owner:", dataOwnerId);
+    const { data: activeSessions, error: sessErr } = await supabase
       .from("pos_sessions" as any)
       .select("cash_box_id")
       .eq("user_id", dataOwnerId)
