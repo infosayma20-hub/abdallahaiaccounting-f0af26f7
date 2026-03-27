@@ -3484,7 +3484,7 @@ const POSPage = () => {
           {/* Table Selector Bar removed — using dropdown only */}
 
           {/* ── Category Cards Section ── */}
-          <div className="px-2 py-2 border-b border-border/50 overflow-y-auto shrink-0" style={{ maxHeight: 'none', background: 'linear-gradient(180deg, hsl(var(--muted)/0.35) 0%, hsl(var(--muted)/0.15) 100%)' }}>
+          <div className="px-2 py-2 border-b overflow-y-auto shrink-0" style={{ maxHeight: 'none', background: 'linear-gradient(180deg, #0A2342 0%, #132D4F 100%)', borderColor: 'rgba(91,155,213,0.3)' }}>
             {isSortMode && (
               <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
@@ -3566,7 +3566,7 @@ const POSPage = () => {
 
 
           {/* ── Products Grid ── */}
-          <ScrollArea className="flex-1" style={{ background: 'hsl(var(--background))' }}>
+          <ScrollArea className="flex-1" style={{ background: '#F0F4F8' }}>
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
@@ -3770,7 +3770,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[340px] lg:w-[380px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]" style={{ background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)/0.2) 100%)' }}>
+        <div className="w-[340px] lg:w-[380px] flex flex-col border-r-2 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.06)]" style={{ background: 'linear-gradient(180deg, #E8EEF4 0%, #F5F7FA 100%)', borderColor: 'rgba(91,155,213,0.25)' }}>
           {/* Order Tabs — compact h-8 */}
           <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
             <button
