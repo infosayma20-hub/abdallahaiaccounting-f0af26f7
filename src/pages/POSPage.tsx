@@ -3222,7 +3222,14 @@ const POSPage = () => {
             </button>
           )}
           {showContactDropdown && (customerSearch || "").length > 0 && (
-            <div className="pos-customer-dropdown absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto" onMouseDown={e => e.preventDefault()}>
+            <div
+              className="pos-customer-dropdown absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto"
+              onMouseDown={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest("input, button, textarea, [role='button']")) return;
+                e.preventDefault();
+              }}
+            >
               {posCustomerResults.length > 0 && (
                 <>
                   <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
@@ -3276,9 +3283,12 @@ const POSPage = () => {
                 <div className="flex items-center gap-1.5">
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    autoComplete="off"
                     placeholder="رقم الهاتف (اختياري)"
                     value={newCustomerPhone}
-                    onChange={e => setNewCustomerPhone(e.target.value)}
+                    onChange={e => setNewCustomerPhone(e.target.value.replace(/\D/g, ""))}
+                    onMouseDown={e => e.stopPropagation()}
                     onClick={e => e.stopPropagation()}
                     onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddCustomer(customerSearch || ""); } }}
                     className="flex-1 h-6 rounded border border-border bg-background px-2 text-[11px] text-foreground focus:outline-none focus:border-primary/50 min-w-0"
