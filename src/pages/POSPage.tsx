@@ -3169,12 +3169,15 @@ const POSPage = () => {
           ) : (
             <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
+          {company?.logo_url ? (
+            <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
+          ) : (
+            <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+              <User className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
+            </div>
+          )}
           <span className="text-[13px] font-medium whitespace-nowrap shrink-0" style={{ color: "white" }}>
-            {(company?.name || "شركة مطاعم الدج").slice(0, 20)}
-            <span style={{ color: "rgba(255,255,255,0.4)", margin: "0 6px" }}>|</span>
-            <span style={{ color: "rgba(255,255,255,0.6)" }}>
-              {session ? session.cashier_name : "malaky broast"}
-            </span>
+            {session ? session.cashier_name : (company?.name || "").slice(0, 20)}
           </span>
         </div>
 
