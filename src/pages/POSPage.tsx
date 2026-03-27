@@ -112,17 +112,16 @@ interface POSCustomer {
   total_spent: number | null;
 }
 
-const POSThemeToggle = () => {
-  const { theme, toggleTheme } = useTheme();
+const POSThemeToggle = ({ darkMode, onToggle }: { darkMode: boolean; onToggle: () => void }) => {
   return (
     <button
-      onClick={toggleTheme}
+      onClick={onToggle}
       className="h-8 w-8 rounded-lg flex items-center justify-center bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all group relative"
-      title={theme === "dark" ? "وضع فاتح" : "وضع داكن"}
+      title={darkMode ? "الوضع النهاري" : "الوضع الليلي"}
     >
-      {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
       <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-        {theme === "dark" ? "وضع فاتح" : "وضع داكن"}
+        {darkMode ? "الوضع النهاري" : "الوضع الليلي"}
       </span>
     </button>
   );
@@ -218,12 +217,13 @@ function getCatConfig(category: string) {
 }
 
 
-const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
+const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick, posDark }: {
   cat: { id: string; name: string; color: string; count: number };
   isActive: boolean;
   isSortMode: boolean;
   isDragging: boolean;
   onClick: () => void;
+  posDark?: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: cat.id,
@@ -236,13 +236,14 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
   };
   const cardStyle: React.CSSProperties = {
     ...style,
-    backgroundColor: isActive ? '#0D1B2E' : 'white',
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? '#0D1B2E' : '#dbeafe',
-    color: isActive ? "#fff" : '#475569',
+    backgroundColor: isActive ? (posDark ? 'white' : '#0D1B2E') : (posDark ? 'rgba(255,255,255,0.06)' : 'white'),
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? (posDark ? 'white' : '#0D1B2E') : (posDark ? 'rgba(255,255,255,0.1)' : '#dbeafe'),
+    color: isActive ? (posDark ? '#0D1B2E' : "#fff") : (posDark ? 'rgba(255,255,255,0.7)' : '#475569'),
     boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
     borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
+    transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
   };
   return (
     <button
@@ -250,9 +251,9 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all border select-none ${
+      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap border select-none ${
         isSortMode ? "ring-1 ring-amber-400/50" : ""
-      }`}
+      } ${!isActive && !posDark ? "hover:bg-[#eff6ff] hover:border-[#93c5fd]" : ""} ${!isActive && posDark ? "hover:bg-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.2)] hover:text-white" : ""}`}
       style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
@@ -313,6 +314,14 @@ const POSPage = () => {
   const [cardSize, setCardSize] = useState<"S" | "M" | "L">(() => {
     return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "M";
   });
+  const [posDarkMode, setPosDarkMode] = useState(() => localStorage.getItem("pos-theme") === "dark");
+  const togglePosDark = useCallback(() => {
+    setPosDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem("pos-theme", next ? "dark" : "light");
+      return next;
+    });
+  }, []);
 
   // Employee account payment
   const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[]>([]);
@@ -3433,7 +3442,7 @@ const POSPage = () => {
         {/* ── Left Section: Theme + Size + Sort + Close ── */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Theme toggle */}
-          <POSThemeToggle />
+          <POSThemeToggle darkMode={posDarkMode} onToggle={togglePosDark} />
 
           {/* Card size selector pills */}
           <div className="flex items-center gap-0 rounded-lg p-0.5 shrink-0" style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -3505,7 +3514,7 @@ const POSPage = () => {
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
         {/* ── LEFT: Products ── */}
-        <div className="flex-1 flex flex-col min-w-0" style={{ background: '#f1f5f9' }}>
+        <div className={`flex-1 flex flex-col min-w-0 ${posDarkMode ? 'pos-dark' : 'pos-light'}`} style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
 
           {/* Table Selector Bar removed — using dropdown only */}
 
@@ -3532,15 +3541,20 @@ const POSPage = () => {
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
-                      selectedCategory === "الكل"
-                        ? "text-white shadow-md"
-                        : "bg-white text-[#475569] hover:bg-[#eff6ff] hover:text-[#1e40af]"
-                    }`}
+                    className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
                     style={{
                       minWidth: 80, height: 40, padding: "4px 14px",
-                      border: selectedCategory === "الكل" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
-                      background: selectedCategory === "الكل" ? '#0D1B2E' : undefined,
+                      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+                      border: selectedCategory === "الكل"
+                        ? `1.5px solid ${posDarkMode ? 'white' : '#0D1B2E'}`
+                        : `1.5px solid ${posDarkMode ? 'rgba(255,255,255,0.1)' : '#dbeafe'}`,
+                      background: selectedCategory === "الكل"
+                        ? (posDarkMode ? 'white' : '#0D1B2E')
+                        : (posDarkMode ? 'rgba(255,255,255,0.06)' : 'white'),
+                      color: selectedCategory === "الكل"
+                        ? (posDarkMode ? '#0D1B2E' : 'white')
+                        : (posDarkMode ? 'rgba(255,255,255,0.7)' : '#475569'),
+                      boxShadow: selectedCategory === "الكل" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
                     }}
                   >
                     <span className="leading-tight">الكل</span>
@@ -3548,28 +3562,34 @@ const POSPage = () => {
                   </button>
 
                   {categoriesWithCounts.categories.map((cat) => (
-                    <SortableCategoryChip
+                     <SortableCategoryChip
                       key={cat.id}
                       cat={cat}
                       isActive={selectedCategory === cat.name}
                       isSortMode={isSortMode}
                       isDragging={dragActiveId === cat.id}
                       onClick={() => !isSortMode && setSelectedCategory(cat.name)}
+                      posDark={posDarkMode}
                     />
                   ))}
 
                   {categoriesWithCounts.uncategorized > 0 && (
                   <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
-                        selectedCategory === "__uncategorized__"
-                          ? "text-white shadow-md"
-                          : "bg-white text-[#475569]"
-                      }`}
+                      className="flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap select-none"
                       style={{
                         minWidth: 80, height: 40, padding: "4px 14px",
-                        border: selectedCategory === "__uncategorized__" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
-                        background: selectedCategory === "__uncategorized__" ? '#0D1B2E' : undefined,
+                        transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+                        border: selectedCategory === "__uncategorized__"
+                          ? `1.5px solid ${posDarkMode ? 'white' : '#0D1B2E'}`
+                          : `1.5px solid ${posDarkMode ? 'rgba(255,255,255,0.1)' : '#dbeafe'}`,
+                        background: selectedCategory === "__uncategorized__"
+                          ? (posDarkMode ? 'white' : '#0D1B2E')
+                          : (posDarkMode ? 'rgba(255,255,255,0.06)' : 'white'),
+                        color: selectedCategory === "__uncategorized__"
+                          ? (posDarkMode ? '#0D1B2E' : 'white')
+                          : (posDarkMode ? 'rgba(255,255,255,0.7)' : '#475569'),
+                        boxShadow: selectedCategory === "__uncategorized__" ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
                       }}
                     >
                       <span className="leading-tight">أخرى</span>
@@ -3600,7 +3620,7 @@ const POSPage = () => {
 
 
           {/* ── Products Grid ── */}
-          <ScrollArea className="flex-1" style={{ background: '#f1f5f9' }}>
+          <ScrollArea className="flex-1" style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
@@ -3747,7 +3767,7 @@ const POSPage = () => {
                                   : cardSize === "S" 
                                     ? "text-[12px]" 
                                     : "text-[14px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: '#1e293b', fontWeight: 500 }}>
+                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: posDarkMode ? 'white' : '#1e293b', fontWeight: 500 }}>
                                 {product.name}
                               </p>
 
@@ -3763,7 +3783,7 @@ const POSPage = () => {
                                 isFewProducts
                                   ? "text-sm"
                                   : cardSize === "S" ? "text-[11px]" : "text-[14px]"
-                              }`} style={{ color: '#1e40af', fontWeight: 600 }} dir="ltr">
+                              }`} style={{ color: posDarkMode ? '#93c5fd' : '#1e40af', fontWeight: 600 }} dir="ltr">
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
                             </div>
