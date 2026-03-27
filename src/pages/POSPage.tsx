@@ -236,10 +236,10 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
   };
   const cardStyle: React.CSSProperties = {
     ...style,
-    backgroundColor: isActive ? cat.color : cat.color + "12",
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "40",
-    color: isActive ? "#fff" : undefined,
-    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 3px 12px ${cat.color}35` : `0 1px 4px rgba(0,0,0,0.06)`,
+    backgroundColor: isActive ? '#0D1B2E' : 'white',
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? '#0D1B2E' : '#dbeafe',
+    color: isActive ? "#fff" : '#475569',
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
     borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
@@ -250,10 +250,10 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border select-none ${
-        isSortMode ? "ring-1 ring-amber-400/50" : "hover:scale-[1.03]"
+      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all border select-none ${
+        isSortMode ? "ring-1 ring-amber-400/50" : ""
       }`}
-      style={{ ...cardStyle, minWidth: 80, height: 48, padding: "4px 10px" }}
+      style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
       <span className="leading-tight text-center">{cat.name}</span>
