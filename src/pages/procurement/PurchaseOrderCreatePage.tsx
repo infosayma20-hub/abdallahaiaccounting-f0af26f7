@@ -333,7 +333,7 @@ const PurchaseOrderCreatePage = () => {
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => handleSave(false)} disabled={saving}>
               <Save className="h-3.5 w-3.5 ml-1" />مسودة
             </Button>
-            <Button size="sm" className="h-8 text-xs bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => handleSave(true)} disabled={saving}>
+            <Button size="sm" className="h-8 text-xs text-white" style={{ background: "#1B3A5C" }} onClick={() => handleSave(true)} disabled={saving}>
               <Send className="h-3.5 w-3.5 ml-1" />إرسال
             </Button>
           </div>
