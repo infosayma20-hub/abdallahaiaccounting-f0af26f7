@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -199,36 +200,26 @@ const CashBoxesPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/finance/receipts")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>إدارة الصناديق</h1>
-            <p className="text-xs text-muted-foreground">تعريف وإدارة جميع صناديق الشركة</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => setExchangeOpen(true)}>
-            <ArrowLeftRight className="h-3.5 w-3.5" /> صرف عملة
+      <PageHeader title="إدارة الصناديق" breadcrumb={["المالية", "الصناديق"]} />
+      
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" style={{ borderColor: "#93C5FD", color: "#1D4ED8" }} onClick={() => setExchangeOpen(true)}>
+          <ArrowLeftRight className="h-3.5 w-3.5" /> صرف عملة
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" style={{ borderColor: "#86EFAC", color: "#166534" }} onClick={() => setDepositOpen(true)}>
+          <ArrowUpFromLine className="h-3.5 w-3.5" /> إيداع بنكي
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" style={{ borderColor: "#C4B5FD", color: "#6D28D9" }} onClick={() => navigate("/finance/cash-boxes/transfer")}>
+          <ArrowLeftRight className="h-3.5 w-3.5" /> تحويل بين الصناديق
+        </Button>
+        {pettyBoxes.length > 0 && (
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" style={{ borderColor: "#FCD34D", color: "#92400E" }} onClick={() => setReplenishOpen(true)}>
+            <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => setDepositOpen(true)}>
-            <ArrowUpFromLine className="h-3.5 w-3.5" /> إيداع بنكي
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-purple-300 text-purple-700 hover:bg-purple-50" onClick={() => navigate("/finance/cash-boxes/transfer")}>
-            <ArrowLeftRight className="h-3.5 w-3.5" /> تحويل بين الصناديق
-          </Button>
-          {pettyBoxes.length > 0 && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setReplenishOpen(true)}>
-              <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
-            </Button>
-          )}
-          <Button size="sm" className="gap-2" style={{ background: "#0A2342" }} onClick={() => openAdd("branch")}>
-            <Plus className="h-4 w-4" /> صندوق جديد
-          </Button>
-        </div>
+        )}
+        <Button size="sm" className="gap-2 q-btn-primary" onClick={() => openAdd("branch")}>
+          <Plus className="h-4 w-4" /> صندوق جديد
+        </Button>
       </div>
 
       {/* KPI Strip */}
