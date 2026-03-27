@@ -406,19 +406,19 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </nav>
 
       {/* ═══ Footer ═══ */}
-      <div style={{ borderTop: `1px solid ${SEPARATOR_HEADER}`, padding: "12px 16px" }}>
+      <div style={{ borderTop: `1px solid ${SEPARATOR}`, padding: 8 }}>
         {/* Logout */}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => { supabase.auth.signOut(); navigate("/auth"); }}
-                className="w-full flex items-center justify-center py-2 rounded-[10px] transition-all duration-150"
-                style={{ color: "#FF6B6B" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+                className="w-full flex items-center justify-center py-2 rounded-lg transition-all duration-150"
+                style={{ color: "#f87171" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
-                <LogOut className="h-5 w-5" strokeWidth={1.8} />
+                <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>تسجيل الخروج</p></TooltipContent>
@@ -426,12 +426,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ) : (
           <button
             onClick={() => { supabase.auth.signOut(); navigate("/auth"); }}
-            className="w-full flex items-center gap-3 py-2 px-3 rounded-[10px] transition-all duration-150"
-            style={{ fontSize: 13, color: "#FF6B6B" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+            className="w-full flex items-center gap-3 rounded-lg transition-all duration-150"
+            style={{ fontSize: 14, color: "#f87171", padding: "10px 12px", borderRadius: 8 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            <LogOut className="h-5 w-5" strokeWidth={1.8} />
+            <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
             <span>تسجيل الخروج</span>
           </button>
         )}
@@ -442,12 +442,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             <TooltipTrigger asChild>
               <button
                 onClick={onToggle}
-                className="hidden lg:flex w-full items-center justify-center py-2 rounded-[10px] transition-all duration-150 mt-1"
-                style={{ color: "rgba(255,255,255,0.45)" }}
+                className="hidden lg:flex w-full items-center justify-center py-2 rounded-lg transition-all duration-150 mt-1"
+                style={{ color: "rgba(255,255,255,0.4)" }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
               >
-                <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
+                <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
@@ -455,12 +455,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ) : (
           <button
             onClick={onToggle}
-            className="hidden lg:flex w-full items-center gap-3 py-2 px-3 rounded-[10px] transition-all duration-150 mt-1"
-            style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}
+            className="hidden lg:flex w-full items-center gap-3 rounded-lg transition-all duration-150 mt-1"
+            style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", padding: "10px 12px", borderRadius: 8 }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
           >
-            <PanelLeftOpen className="h-5 w-5" strokeWidth={1.8} />
+            <PanelLeftOpen className="h-[18px] w-[18px]" strokeWidth={1.8} />
             <span>طي القائمة</span>
           </button>
         )}
