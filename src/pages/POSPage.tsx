@@ -3135,45 +3135,37 @@ const POSPage = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
-      {/* ══════ COMPACT TOP BAR — 36px ══════ */}
-      <header className="flex items-center px-2 gap-1.5 shrink-0 text-white overflow-visible" style={{ height: 36, background: "#0A2342" }}>
-        {/* Back */}
-        <button
-          onClick={() => navigate("/apps", { replace: true })}
-          className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/10 transition-colors shrink-0"
-        >
-          <ArrowRight className="h-3.5 w-3.5" />
-        </button>
-
-        {/* Connection status */}
-        <div className="flex items-center gap-1 shrink-0 text-[10px]">
+      {/* ══════ TOP BAR — 52px dark navy ══════ */}
+      <header
+        className="flex items-center px-3 gap-2 shrink-0 text-white overflow-visible"
+        style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+      >
+        {/* ── Right Section: Branch Info ── */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => navigate("/apps", { replace: true })}
+            className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
+            title="رجوع"
+          >
+            <ArrowRight className="h-[18px] w-[18px]" style={{ color: "rgba(255,255,255,0.6)" }} />
+          </button>
           {offlineMode.isOnline ? (
-            <Wifi className="h-3 w-3 text-green-400" />
+            <Wifi className="h-[18px] w-[18px] text-white shrink-0" />
           ) : (
-            <WifiOff className="h-3 w-3 text-red-400" />
+            <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
+          <span className="text-[13px] font-medium whitespace-nowrap shrink-0" style={{ color: "white" }}>
+            {(company?.name || "شركة مطاعم الدج").slice(0, 20)}
+            <span style={{ color: "rgba(255,255,255,0.4)", margin: "0 6px" }}>|</span>
+            <span style={{ color: "rgba(255,255,255,0.6)" }}>
+              {session ? session.cashier_name : "malaky broast"}
+            </span>
+          </span>
         </div>
 
-        {/* Company + Cashier name — compact */}
-        <span className="text-[11px] font-medium whitespace-nowrap shrink-0 text-white/80 max-w-[160px] truncate">
-          {(company?.name || "AMWALI").slice(0, 15)} {session ? `| ${session.cashier_name}` : ""}
-        </span>
-
-        {/* Search — integrated in top bar */}
-        <div className="relative flex-1 min-w-0 max-w-[240px]">
-          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40 pointer-events-none" />
-          <input
-            ref={searchRef}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث..."
-            className="w-full h-[22px] rounded px-2 pr-7 text-[11px] bg-white/10 text-white placeholder:text-white/40 border border-white/15 focus:outline-none focus:border-white/40"
-          />
-        </div>
-
-        {/* Customer — integrated in top bar */}
-        <div className="relative w-[160px] shrink-0">
-          <User className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40 pointer-events-none" />
+        {/* ── Center-Right: Customer Search ── */}
+        <div className="relative w-[220px] shrink-0">
+          <User className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
           <input
             value={customerSearch || customerName}
             onChange={(e) => {
@@ -3183,16 +3175,23 @@ const POSPage = () => {
               setShowContactDropdown(true);
               searchPosCustomers(val);
             }}
-            onFocus={() => setShowContactDropdown(true)}
+            onFocus={(e) => { setShowContactDropdown(true); e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
             placeholder="الزبون..."
-            className="w-full h-[22px] rounded px-2 pr-7 text-[11px] bg-white/10 text-white placeholder:text-white/40 border border-white/15 focus:outline-none focus:border-white/40"
+            className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "white",
+            }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; setShowContactDropdown(false); }}
           />
           {(customerSearch || customerName) && (
             <button
               onClick={() => { setCustomerSearch(""); setCustomerName("", null, "", null); }}
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+              className="absolute left-2 top-1/2 -translate-y-1/2 hover:text-white transition-colors"
+              style={{ color: "rgba(255,255,255,0.4)" }}
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
           {showContactDropdown && (customerSearch || "").length > 0 && (
@@ -3241,7 +3240,7 @@ const POSPage = () => {
                   ))}
                 </>
               )}
-              {/* Inline add new customer with phone */}
+              {/* Inline add new customer */}
               <div className="border-t border-border px-3 py-2 bg-muted/20">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <PlusCircle className="h-3 w-3 text-primary shrink-0" />
@@ -3259,10 +3258,7 @@ const POSPage = () => {
                     dir="ltr"
                   />
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuickAddCustomer(customerSearch || "");
-                    }}
+                    onClick={(e) => { e.stopPropagation(); handleQuickAddCustomer(customerSearch || ""); }}
                     disabled={savingCustomer}
                     className="h-6 px-2 rounded bg-primary text-primary-foreground text-[10px] font-medium hover:bg-primary/90 transition shrink-0 flex items-center gap-1"
                   >
@@ -3275,186 +3271,215 @@ const POSPage = () => {
           )}
         </div>
 
+        {/* ── Center: Search Bar ── */}
+        <div className="relative flex-1 min-w-0 max-w-[260px]">
+          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
+          <input
+            ref={searchRef}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث..."
+            className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "white",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+          />
+        </div>
+
+        {/* ── Center-Left: Icon Buttons ── */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Invoice History */}
+          {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
+            <button
+              onClick={() => setShowInvoiceHistory(true)}
+              className="relative h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all"
+              title="سجل الفواتير"
+            >
+              <FileText className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+              {session && session.total_orders > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: "#dc2626" }} />
+              )}
+            </button>
+          )}
+
+          {/* Notifications / Pending Orders */}
+          <PendingOrdersPanel
+            dataOwnerId={dataOwnerId || ""}
+            branchId={detectedBranchId}
+            sessionId={session?.id || null}
+            enabled={!!session && !isCallCenter}
+            onAcceptOrder={(order) => {
+              orderCounter.current += 1;
+              const newOrder = createNewOrder(orderCounter.current);
+              newOrder.customerName = order.customer_name || "";
+              newOrder.customerPhone = order.customer_phone || "";
+              newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+              newOrder.deliveryAddress = order.delivery_address || "";
+              newOrder.callCenterOrderId = order.id;
+              newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+              newOrder.callCenterSourceApp = order.source_app || null;
+              newOrder.orderNote = [
+                order.source_app ? `مصدر: ${order.source_app}` : "",
+                order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
+                order.order_note || "",
+              ].filter(Boolean).join(" | ");
+              newOrder.cart = (order.items || []).map((item: any, i: number) => ({
+                id: crypto.randomUUID(),
+                product_id: item.product_id || null,
+                name: item.name,
+                qty: item.qty,
+                unit_price: item.unit_price,
+                cost_price: 0,
+                discount_pct: 0,
+                tax_rate: 0,
+                unit: "قطعة",
+                total: item.total || item.unit_price * item.qty,
+                note: item.note || "",
+              }));
+              newOrder.name = `📞 ${order.customer_name}`;
+              setOrders(prev => [...prev, newOrder]);
+              setActiveOrderIndex(orders.length);
+            }}
+          />
+
+          {/* Kitchen */}
+          <button onClick={() => navigate("/pos/kitchen")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="المطبخ">
+            <ChefHat className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+          </button>
+
+          {/* Tables */}
+          <button onClick={() => navigate("/pos/floor-plan")} className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0" title="الطاولات">
+            <UtensilsCrossed className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+          </button>
+
+          {/* Tools dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowOpsDropdown(v => !v)}
+              onBlur={() => setTimeout(() => setShowOpsDropdown(false), 200)}
+              className="h-9 w-9 rounded-lg flex items-center justify-center hover:bg-white/[0.08] transition-all shrink-0"
+              title="أدوات"
+            >
+              <MoreHorizontal className="h-5 w-5" style={{ color: "rgba(255,255,255,0.7)" }} />
+            </button>
+            {showOpsDropdown && (
+              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
+                {session && (isAdmin || posPerms.can_add_inventory) && (
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
+                    <Package className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> إدخال بضاعة
+                  </button>
+                )}
+                {session && (isAdmin || posPerms.can_record_purchases) && (
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
+                    <ShoppingBag className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
+                  </button>
+                )}
+                {session && (isAdmin || posPerms.can_record_expenses) && (
+                  <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                    <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
+                  </button>
+                )}
+                <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos-customers"); setShowOpsDropdown(false); }}>
+                  <UserCheck className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> قاعدة بيانات الزبائن
+                </button>
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
+                  <RefreshCw className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> سجل المزامنة
+                  {offlineMode.pendingCount > 0 && (
+                    <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
+                  )}
+                </button>
+                <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => setShowShortcutsGuide(true)}>
+                  <Keyboard className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> اختصارات لوحة المفاتيح
+                </button>
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => {
+                  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                  else document.exitFullscreen();
+                  setShowOpsDropdown(false);
+                }}>
+                  <Monitor className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> ملء الشاشة (F11)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Spacer ── */}
         <div className="flex-1 min-w-0" />
 
-        {/* Invoice History */}
-        {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
-        <button
-          onClick={() => setShowInvoiceHistory(true)}
-          className="relative h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0"
-          title="سجل الفواتير"
-        >
-          <FileText className="h-3.5 w-3.5 text-white/70 hover:text-white" />
-          {session && session.total_orders > 0 && (
-            <span className="absolute -top-0.5 -left-0.5 rounded-full px-1 py-px text-[8px] font-bold" style={{ background: "#4A9EE8", color: "#0A2342" }}>
-              {session.total_orders}
-            </span>
-          )}
-        </button>
-        )}
+        {/* ── Left Section: Theme + Size + Sort + Close ── */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Theme toggle */}
+          <POSThemeToggle />
 
-        {/* Pending Call Center Orders */}
-        <PendingOrdersPanel
-          dataOwnerId={dataOwnerId || ""}
-          branchId={detectedBranchId}
-          sessionId={session?.id || null}
-          enabled={!!session && !isCallCenter}
-          onAcceptOrder={(order) => {
-            orderCounter.current += 1;
-            const newOrder = createNewOrder(orderCounter.current);
-            newOrder.customerName = order.customer_name || "";
-            newOrder.customerPhone = order.customer_phone || "";
-            newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
-            newOrder.deliveryAddress = order.delivery_address || "";
-            newOrder.callCenterOrderId = order.id;
-            newOrder.callCenterPaymentMethod = order.payment_method || "cash";
-            newOrder.callCenterSourceApp = order.source_app || null;
-            newOrder.orderNote = [
-              order.source_app ? `مصدر: ${order.source_app}` : "",
-              order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
-              order.order_note || "",
-            ].filter(Boolean).join(" | ");
-            newOrder.cart = (order.items || []).map((item: any, i: number) => ({
-              id: crypto.randomUUID(),
-              product_id: item.product_id || null,
-              name: item.name,
-              qty: item.qty,
-              unit_price: item.unit_price,
-              cost_price: 0,
-              discount_pct: 0,
-              tax_rate: 0,
-              unit: "قطعة",
-              total: item.total || item.unit_price * item.qty,
-              note: item.note || "",
-            }));
-            newOrder.name = `📞 ${order.customer_name}`;
-            setOrders(prev => [...prev, newOrder]);
-            setActiveOrderIndex(orders.length);
-          }}
-        />
+          {/* Card size selector pills */}
+          <div className="flex items-center gap-0 rounded-lg p-0.5 shrink-0" style={{ background: "rgba(255,255,255,0.06)" }}>
+            {(["L", "M", "S"] as const).map(size => (
+              <button
+                key={size}
+                onClick={() => {
+                  setCardSize(size);
+                  localStorage.setItem("pos-card-size", size);
+                  if (userId) {
+                    supabase.from("pos_user_preferences").upsert({
+                      auth_user_id: userId,
+                      preference_key: "card_size",
+                      preference_value: { size },
+                      updated_at: new Date().toISOString(),
+                    } as any, { onConflict: "auth_user_id,preference_key" });
+                  }
+                }}
+                className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  cardSize === size
+                    ? "text-white"
+                    : ""
+                }`}
+                style={{
+                  background: cardSize === size ? "rgba(255,255,255,0.2)" : "transparent",
+                  color: cardSize === size ? "white" : "rgba(255,255,255,0.4)",
+                }}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
 
-        {/* Kitchen */}
-        <button onClick={() => navigate("/pos/kitchen")} className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0" title="المطبخ">
-          <ChefHat className="h-3.5 w-3.5 text-white/70" />
-        </button>
-
-        {/* Tables */}
-        <button onClick={() => navigate("/pos/floor-plan")} className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0" title="الطاولات">
-          <UtensilsCrossed className="h-3.5 w-3.5 text-white/70" />
-        </button>
-
-        {/* Tools dropdown — consolidated */}
-        <div className="relative">
+          {/* Sort mode */}
           <button
-            onClick={() => setShowOpsDropdown(v => !v)}
-            onBlur={() => setTimeout(() => setShowOpsDropdown(false), 200)}
-            className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0"
-            title="أدوات"
+            onClick={() => setIsSortMode(!isSortMode)}
+            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all shrink-0"
+            style={{
+              background: isSortMode ? "#f59e0b" : "rgba(255,255,255,0.08)",
+              color: isSortMode ? "white" : "rgba(255,255,255,0.7)",
+            }}
           >
-            <MoreHorizontal className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} />
+            <GripVertical className="h-3.5 w-3.5" />
+            {isSortMode ? "✅" : "ترتيب"}
           </button>
-          {showOpsDropdown && (
-            <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
-              {session && (isAdmin || posPerms.can_add_inventory) && (
-                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
-                  <Package className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> إدخال بضاعة
-                </button>
-              )}
-              {session && (isAdmin || posPerms.can_record_purchases) && (
-                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
-                  <ShoppingBag className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
-                </button>
-              )}
-              {session && (isAdmin || posPerms.can_record_expenses) && (
-                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
-                  <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
-                </button>
-              )}
-              <div className="border-t border-gray-200 my-1" />
-              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos-customers"); setShowOpsDropdown(false); }}>
-                <UserCheck className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> قاعدة بيانات الزبائن
-              </button>
-              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
-                <RefreshCw className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> سجل المزامنة
-                {offlineMode.pendingCount > 0 && (
-                  <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
-                )}
-              </button>
-              <div className="border-t border-gray-200 my-1" />
-              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => setShowShortcutsGuide(true)}>
-                <Keyboard className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> اختصارات لوحة المفاتيح
-              </button>
-              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => {
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-                else document.exitFullscreen();
-                setShowOpsDropdown(false);
-              }}>
-                <Monitor className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> ملء الشاشة (F11)
-              </button>
-            </div>
-          )}
-        </div>
 
-        {/* Theme toggle — compact */}
-        <POSThemeToggle />
-
-        {/* Card size toggle — compact */}
-        <div className="flex items-center gap-0 bg-white/10 rounded p-0.5 shrink-0">
-          {(["S", "M", "L"] as const).map(size => (
+          {/* Close shift */}
+          {(isAdmin || posPerms.can_close_register) && (
             <button
-              key={size}
               onClick={() => {
-                setCardSize(size);
-                localStorage.setItem("pos-card-size", size);
-                if (userId) {
-                  supabase.from("pos_user_preferences").upsert({
-                    auth_user_id: userId,
-                    preference_key: "card_size",
-                    preference_value: { size },
-                    updated_at: new Date().toISOString(),
-                  } as any, { onConflict: "auth_user_id,preference_key" });
+                if (session?.cash_box_id === null) {
+                  handleCallCenterCloseShift();
+                } else {
+                  setShowCloseShift(true);
                 }
               }}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all ${
-                cardSize === size
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-white/50 hover:text-white/80"
-              }`}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all shrink-0"
+              style={{ background: "#dc2626", color: "white" }}
             >
-              {size}
+              <X className="h-3.5 w-3.5" />
+              إغلاق
             </button>
-          ))}
+          )}
         </div>
-
-        {/* Sort mode — compact */}
-        <button
-          onClick={() => setIsSortMode(!isSortMode)}
-          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all shrink-0 ${
-            isSortMode
-              ? "bg-amber-500 text-white shadow-md"
-              : "bg-white/10 text-white/60 hover:text-white/90"
-          }`}
-        >
-          <GripVertical className="h-3 w-3" />
-          {isSortMode ? "✅" : "ترتيب"}
-        </button>
-
-        {/* Close shift — compact */}
-        {(isAdmin || posPerms.can_close_register) && (
-        <button
-          onClick={() => {
-            if (session?.cash_box_id === null) {
-              handleCallCenterCloseShift();
-            } else {
-              setShowCloseShift(true);
-            }
-          }}
-          className="flex items-center gap-1 px-2 py-1 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-[10px] font-medium shrink-0"
-        >
-          <X className="h-3 w-3" />
-          إغلاق
-        </button>
-        )}
       </header>
 
       {/* ══════ OFFLINE STATUS BAR — hidden, data kept in sync log ══════ */}
