@@ -173,6 +173,7 @@ interface POSCategory {
   color: string;
   display_order: number;
   is_active: boolean;
+  restricted_cash_box_ids?: string[] | null;
 }
 
 interface Session {
