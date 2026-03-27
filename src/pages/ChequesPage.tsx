@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -702,35 +703,19 @@ const ChequesPage = () => {
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Banknote className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">إدارة الشيكات</h1>
-              <p className="text-xs text-muted-foreground">{filtered.length} شيك من أصل {cheques.length}</p>
-            </div>
-          </div>
-        </div>
+      <PageHeader title="إدارة الشيكات" breadcrumb={["المالية", "الشيكات"]} />
+      
+      {/* Action buttons */}
+      {cheques.length > 0 && (
         <div className="flex items-center gap-2">
-          {cheques.length > 0 && (
-            <>
-              <Button variant="outline" className="gap-1.5 rounded-xl text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => openAddDialog('وارد')}>
-                <ArrowDownCircle className="h-4 w-4" /> تسجيل شيك وارد
-              </Button>
-              <Button variant="outline" className="gap-1.5 rounded-xl text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => openAddDialog('صادر')}>
-                <ArrowUpCircle className="h-4 w-4" /> تسجيل شيك صادر
-              </Button>
-            </>
-          )}
+          <Button variant="outline" className="gap-1.5 rounded-lg" style={{ color: "#166534", borderColor: "#BBF7D0" }} onClick={() => openAddDialog('وارد')}>
+            <ArrowDownCircle className="h-4 w-4" /> تسجيل شيك وارد
+          </Button>
+          <Button variant="outline" className="gap-1.5 rounded-lg" style={{ color: "#EF4444", borderColor: "#FECACA" }} onClick={() => openAddDialog('صادر')}>
+            <ArrowUpCircle className="h-4 w-4" /> تسجيل شيك صادر
+          </Button>
         </div>
-      </div>
+      )}
 
       {/* Add Cheque Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

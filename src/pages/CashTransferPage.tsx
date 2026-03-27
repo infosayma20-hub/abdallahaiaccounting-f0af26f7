@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Loader2, ArrowLeftRight, Check, MoveRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -247,16 +248,7 @@ const CashTransferPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate("/finance/cash-boxes")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-          <ArrowRight className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>تحويل بين الصناديق</h1>
-          <p className="text-xs text-muted-foreground">نقل الأموال بين صناديق الشركة مع ترحيل محاسبي تلقائي</p>
-        </div>
-      </div>
+      <PageHeader title="تحويل بين الصناديق" breadcrumb={["المالية", "الصناديق", "تحويل بين الصناديق"]} />
 
       {/* Transfer Form Card */}
       <Card className="overflow-hidden" style={{ borderTop: "4px solid #4A9EE8" }}>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -301,19 +302,12 @@ const CurrencyManagementPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-5" dir="rtl">
-      {/* Header */}
+      <PageHeader title="إدارة العملات وأسعار الصرف" breadcrumb={["المالية", "إدارة العملات"]} />
+      
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              💱 إدارة العملات وأسعار الصرف
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              العملة الأساسية: <Badge variant="default" className="mr-1">🇮🇱 ₪ ILS</Badge>
-            </p>
-          </div>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          العملة الأساسية: <Badge variant="default" className="mr-1">🇮🇱 ₪ ILS</Badge>
+        </p>
         <div className="flex gap-2 flex-wrap">
           <Button onClick={() => fetchRatesMutation.mutate()} disabled={fetchRatesMutation.isPending} variant="outline">
             <RefreshCw className={`h-4 w-4 ml-2 ${fetchRatesMutation.isPending ? 'animate-spin' : ''}`} />
