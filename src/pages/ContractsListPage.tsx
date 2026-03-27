@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -67,10 +68,7 @@ export default function ContractsListPage() {
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">📋 إدارة العقود</h1>
-          <p className="text-muted-foreground text-sm">إنشاء ومتابعة عقود المشاريع والمقاولات</p>
-        </div>
+        <PageHeader title="إدارة العقود" breadcrumb={["الرئيسية", "إدارة العقود"]} />
         <Button onClick={() => navigate("/contracts/new")}>
           <Plus className="h-4 w-4 ml-1" /> عقد جديد
         </Button>

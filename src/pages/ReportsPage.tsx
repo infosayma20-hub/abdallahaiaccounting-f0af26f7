@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   Search, Star, ChevronDown, ChevronUp,
   Scale, BarChart3, Landmark, FileText, Users, Package, Receipt,
@@ -272,9 +273,7 @@ const ReportsPage = () => {
   return (
     <div className="space-y-8 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التقارير</h1>
-      </div>
+      <PageHeader title="التقارير" breadcrumb={["الرئيسية", "التقارير"]} />
 
       {/* Search & Stats */}
       <div className="flex items-center gap-4 flex-wrap">

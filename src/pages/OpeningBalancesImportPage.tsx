@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -536,19 +537,7 @@ const OpeningBalancesImportPage = () => {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => window.history.length > 1 ? window.history.back() : navigate("/apps")}
-          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          title="رجوع"
-        >
-          <ArrowRight className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold">استيراد الأرصدة الافتتاحية</h1>
-          <p className="text-sm text-muted-foreground mt-1">نقل بياناتك من النظام القديم بسهولة</p>
-        </div>
-      </div>
+      <PageHeader title="استيراد الأرصدة الافتتاحية" breadcrumb={["المحاسبة", "استيراد الأرصدة الافتتاحية"]} />
 
       {/* Stepper */}
       <div className="flex items-center gap-2">

@@ -122,11 +122,11 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         onFocus={() => setShowResults(true)}
         placeholder="ابحث عن معاملة، عميل، مورد، حساب..."
         className={cn(
-          "w-full h-10 pr-10 pl-10 rounded-lg",
-          "bg-secondary border border-border",
-          "text-sm text-foreground placeholder:text-muted-foreground/50",
-          "focus:outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 focus:bg-background",
-          "transition-all duration-150"
+          "w-full h-11 pr-10 pl-10 rounded-xl",
+          "bg-white border-2 border-[#5B9BD5]/40",
+          "text-sm text-foreground placeholder:text-muted-foreground/60",
+          "focus:outline-none focus:border-[#1B3A5C] focus:ring-[3px] focus:ring-[#5B9BD5]/20 focus:bg-white",
+          "transition-all duration-150 shadow-sm"
         )}
       />
       {showResults && query.trim().length > 0 && (

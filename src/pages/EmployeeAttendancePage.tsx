@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,14 +255,8 @@ export default function EmployeeAttendancePage() {
   return (
     <div className="space-y-6 p-4 max-w-4xl mx-auto" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold">نظام الحضور والانصراف</h1>
-            <p className="text-muted-foreground text-sm">مرحباً، {employee.full_name}</p>
-          </div>
-        </div>
+      <PageHeader title="نظام الحضور والانصراف" breadcrumb={["الموارد البشرية", "الحضور والانصراف"]} />
+      <div className="flex items-center justify-end">
         <div className="text-left">
           <div className="text-3xl font-bold tabular-nums text-primary">
             {format(currentTime, "HH:mm:ss")}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -74,13 +75,7 @@ const SalesRepresentativesPage = () => {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">إدارة المندوبين</h1>
-            <p className="text-sm text-muted-foreground">عمولات المبيعات والتحصيل</p>
-          </div>
-        </div>
+        <PageHeader title="إدارة المندوبين" breadcrumb={["المبيعات", "إدارة المندوبين"]} />
         <Button onClick={() => { setForm({ full_name: "", phone: "", email: "", region: "", sales_commission_rate: 0, collection_commission_rate: 0, linked_account_name: "", notes: "", is_active: true }); setEditingId(null); setShowForm(true); }} className="gap-2"><Plus className="h-4 w-4" /> إضافة مندوب</Button>
       </div>
 

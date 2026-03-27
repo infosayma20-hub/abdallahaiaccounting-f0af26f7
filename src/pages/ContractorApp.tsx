@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -326,10 +327,7 @@ export default function ContractorApp() {
     return (
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6" dir="rtl">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">🏗️ محاسب المشاريع والمقاولات</h1>
-            <p className="text-muted-foreground text-sm">إدارة مشاريع المقاولات والحركات المالية</p>
-          </div>
+          <PageHeader title="محاسب المشاريع والمقاولات" breadcrumb={["الرئيسية", "محاسب المشاريع والمقاولات"]} />
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setView("reports")}>
               <BarChart3 className="h-4 w-4 ml-1" /> التقارير

@@ -112,12 +112,12 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           }
         }}
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-200 group relative",
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-normal transition-all duration-200 group relative",
           disabled
             ? "opacity-40 cursor-not-allowed"
             : active || groupActive
-              ? "text-sidebar-primary font-semibold bg-sidebar-primary/[0.12]"
-              : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-white/[0.04]",
+              ? "text-white font-medium bg-sidebar-primary/[0.15]"
+              : "text-white/80 hover:text-white hover:bg-white/[0.06]",
           collapsed && "justify-center px-2"
         )}
         style={
@@ -192,8 +192,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                       key={child.path + child.label}
                       onClick={() => handleNavigate(child.path)}
                       className={cn(
-                        "w-full text-right px-3 py-1.5 rounded-lg text-[12px] transition-all",
-                        childActive ? "text-sidebar-primary font-medium" : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
+                        "w-full text-right px-3 py-1.5 rounded-lg text-[13px] transition-all",
+                        childActive ? "text-sidebar-primary font-medium" : "text-white/60 hover:text-white"
                       )}
                       style={childActive ? { background: "rgba(232,160,32,0.08)" } : undefined}
                     >
@@ -244,7 +244,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         {navigationSections.map((section) => (
           <div key={section.sectionTitle || "top"}>
             {!collapsed && section.sectionTitle && (
-              <p className="text-[9.5px] font-semibold text-sidebar-foreground/30 uppercase tracking-[0.15em] px-3 mb-1.5">{section.sectionTitle}</p>
+              <p className="text-[10px] font-medium text-white/30 uppercase tracking-[0.15em] px-3 mb-1.5">{section.sectionTitle}</p>
             )}
             {collapsed && section.sectionTitle && <div className="h-px mx-1 mb-2" style={{ background: "#1E3A5F" }} />}
             <div className="space-y-0.5">
