@@ -76,10 +76,11 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
         </div>
       )}
       <div
-        className="w-full flex items-center justify-between"
+        className="w-full flex items-center justify-between overflow-hidden"
         style={{
           backgroundColor: "#1B3A5C",
           borderRadius: 12,
+          borderTop: "3px solid #5B9BD5",
           padding: "10px 20px",
           height: 44,
           margin: "0 0 16px 0",
