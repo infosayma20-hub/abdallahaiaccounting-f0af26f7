@@ -104,7 +104,7 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
       <div
         className={cn(
           sizeConfig.container,
-          "rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+          "rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200",
           className
         )}
         style={{
@@ -126,7 +126,7 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
     <div
       className={cn(
         sizeConfig.container,
-        "rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+        "rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200",
         className
       )}
       style={{
