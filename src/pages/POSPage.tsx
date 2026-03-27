@@ -3451,7 +3451,7 @@ const POSPage = () => {
           />
 
           {/* ── Compact Category Chips — max 2 rows ── */}
-          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-hidden" style={{ maxHeight: isSortMode ? 'none' : '52px' }}>
+          <div className="px-2 py-1.5 border-b border-border/70 bg-muted/20 overflow-hidden" style={{ maxHeight: isSortMode ? 'none' : '80px' }}>
             {isSortMode && (
               <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
