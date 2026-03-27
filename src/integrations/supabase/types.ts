@@ -11056,6 +11056,14 @@ export type Database = {
         Args: { p_new_password: string; p_user_id: string }
         Returns: boolean
       }
+      move_account: {
+        Args: {
+          p_account_id: string
+          p_new_parent_code: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       reject_procurement_request: {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json
