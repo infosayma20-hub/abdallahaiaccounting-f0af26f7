@@ -4587,6 +4587,21 @@ const POSPage = () => {
                   </div>
                 </div>
 
+                {/* Amount input — moved above exchange rate */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground text-left">
+                    المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})
+                  </p>
+                  <Input
+                    type="number"
+                    value={tenderedAmount}
+                    onChange={(e) => { setTenderedAmount(e.target.value); setManualChangeAmount(null); }}
+                    placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                    className="text-xl h-14 text-center font-bold tabular-nums"
+                    autoFocus
+                  />
+                </div>
+
                 {/* Exchange rate info - enhanced */}
                 {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
                   <div className="space-y-2 p-3 rounded-xl bg-muted/50 border border-border">
@@ -4670,21 +4685,6 @@ const POSPage = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Amount input */}
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground text-left">
-                    المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})
-                  </p>
-                  <Input
-                    type="number"
-                    value={tenderedAmount}
-                    onChange={(e) => { setTenderedAmount(e.target.value); setManualChangeAmount(null); }}
-                    placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
-                    className="text-xl h-14 text-center font-bold tabular-nums"
-                    autoFocus
-                  />
-                </div>
 
                 {/* Change calculation */}
                 {(() => {
