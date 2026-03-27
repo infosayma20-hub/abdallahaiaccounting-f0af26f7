@@ -186,21 +186,19 @@ const AuthPage = () => {
     <div className="h-screen flex flex-col" dir="ltr">
       {/* Top Nav — white with subtle border */}
       <nav
-        className="w-full flex items-center justify-between px-8 shrink-0"
+        className="w-full flex items-center justify-between px-8 shrink-0" dir="rtl"
         style={{ background: '#0D1B2E', borderBottom: 'none', height: 52 }}
       >
         <img src="/logos/amwali-mark-white.png" alt="AMWALI" className="h-10 w-auto object-contain" />
-        <div className="flex items-center gap-3">
-          <button
-            className="px-5 py-2 rounded-lg text-sm transition-all"
-            style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1px solid rgba(255,255,255,0.4)' }}
-            onClick={() => setMode("signup")}
-            onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#0D1B2E'; }}
-          >
-            ابدأ مجاناً الآن
-          </button>
-        </div>
+        <button
+          className="px-5 py-2 rounded-lg text-sm transition-all"
+          style={{ background: 'transparent', color: '#FFFFFF', fontWeight: 400, letterSpacing: '0.01em', border: '1px solid rgba(255,255,255,0.4)' }}
+          onClick={() => setMode("signup")}
+          onMouseEnter={e => { e.currentTarget.style.background = '#1B3A5C'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          ابدأ مجاناً الآن
+        </button>
       </nav>
 
       <div className="flex-1 flex flex-row">
