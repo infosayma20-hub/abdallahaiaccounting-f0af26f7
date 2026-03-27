@@ -1407,8 +1407,28 @@ const POSPage = () => {
     setNewCustomerAddress("");
   };
 
+  // Filter categories by current cash box restrictions
+  const visiblePosCategories = useMemo(() => {
+    const currentBoxId = session?.cash_box_id;
+    return posCategories.filter(cat => {
+      if (!cat.restricted_cash_box_ids || cat.restricted_cash_box_ids.length === 0) return true;
+      return currentBoxId ? cat.restricted_cash_box_ids.includes(currentBoxId) : false;
+    });
+  }, [posCategories, session?.cash_box_id]);
+
   const categoriesWithCounts = useMemo(() => {
-    const posProducts = products.filter(p => p.is_pos_available);
+    const hiddenCatIds = new Set(
+      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.id)
+    );
+    const hiddenCatNames = new Set(
+      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.name)
+    );
+    const posProducts = products.filter(p => {
+      if (!p.is_pos_available) return false;
+      if (p.pos_category_id && hiddenCatIds.has(p.pos_category_id)) return false;
+      if (!p.pos_category_id && p.category && hiddenCatNames.has(p.category)) return false;
+      return true;
+    });
     const totalCount = posProducts.length;
 
     const productCategoryNames = Array.from(
@@ -1420,7 +1440,7 @@ const POSPage = () => {
     );
 
     const missingCategoryRows = productCategoryNames
-      .filter((name) => !posCategories.some((c) => c.name === name))
+      .filter((name) => !visiblePosCategories.some((c) => c.name === name))
       .map((name) => ({
         id: `legacy-${name}`,
         name,
@@ -1429,7 +1449,7 @@ const POSPage = () => {
         is_active: true,
       }));
 
-    const mergedCategories = [...posCategories, ...missingCategoryRows];
+    const mergedCategories = [...visiblePosCategories, ...missingCategoryRows];
 
     const catCounts: { id: string; name: string; color: string; count: number }[] = mergedCategories.map(cat => ({
       id: cat.id,
@@ -1443,16 +1463,27 @@ const POSPage = () => {
     ).length;
 
     return { all: totalCount, categories: catCounts, uncategorized };
-  }, [products, posCategories]);
+  }, [products, posCategories, visiblePosCategories]);
 
   const filteredProducts = useMemo(() => {
-    let filtered = products.filter((p) => p.is_pos_available);
+    const hiddenCatIds = new Set(
+      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.id)
+    );
+    const hiddenCatNames = new Set(
+      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.name)
+    );
+    let filtered = products.filter((p) => {
+      if (!p.is_pos_available) return false;
+      if (p.pos_category_id && hiddenCatIds.has(p.pos_category_id)) return false;
+      if (!p.pos_category_id && p.category && hiddenCatNames.has(p.category)) return false;
+      return true;
+    });
     if (selectedCategory === "__uncategorized__") {
       filtered = filtered.filter(p => 
-        !p.pos_category_id && !posCategories.some(c => c.name === p.category)
+        !p.pos_category_id && !visiblePosCategories.some(c => c.name === p.category)
       );
     } else if (selectedCategory !== "الكل") {
-      const cat = posCategories.find(c => c.name === selectedCategory);
+      const cat = visiblePosCategories.find(c => c.name === selectedCategory);
       filtered = filtered.filter((p) => 
         p.pos_category_id === cat?.id || p.category === selectedCategory
       );
@@ -1465,10 +1496,10 @@ const POSPage = () => {
     // When "الكل" is selected, sort products grouped by category order
     if (selectedCategory === "الكل" && !searchQuery) {
       const catOrderMap = new Map<string, number>();
-      posCategories.forEach((c, i) => catOrderMap.set(c.id, i));
+      visiblePosCategories.forEach((c, i) => catOrderMap.set(c.id, i));
       filtered.sort((a, b) => {
-        const aCatId = a.pos_category_id || posCategories.find(c => c.name === a.category)?.id || "";
-        const bCatId = b.pos_category_id || posCategories.find(c => c.name === b.category)?.id || "";
+        const aCatId = a.pos_category_id || visiblePosCategories.find(c => c.name === a.category)?.id || "";
+        const bCatId = b.pos_category_id || visiblePosCategories.find(c => c.name === b.category)?.id || "";
         const aOrder = catOrderMap.get(aCatId) ?? 9999;
         const bOrder = catOrderMap.get(bCatId) ?? 9999;
         return aOrder - bOrder;
