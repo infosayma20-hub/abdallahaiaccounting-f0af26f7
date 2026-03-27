@@ -860,6 +860,9 @@ export default function InvoiceHistoryDrawer({
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الزبون</span>
                   {selectedOrder.customer_name || "زبون نقدي"}
+                  {selectedOrder.contacts?.phone && (
+                    <span className="block font-mono text-[10px] mt-0.5" dir="ltr" style={{ color: "#475569" }}>{selectedOrder.contacts.phone}</span>
+                  )}
                 </div>
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
