@@ -49,12 +49,12 @@ export const navigationSections: NavSection[] = [
         color: "text-primary", bgColor: "bg-primary/10", path: "/apps", isDirect: true, keywords: ["تطبيقات"],
       },
       {
-        id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", module: "dashboard", icon: BarChart3,
-        color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
+        id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", module: "dashboard", icon: LayoutGrid,
+        color: "text-blue-600", bgColor: "bg-blue-500/10", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
       },
       {
-        id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Calculator,
-        color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant", isDirect: true,
+        id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Sparkles,
+        color: "text-purple-600", bgColor: "bg-purple-500/10", path: "/smart-accountant", isDirect: true,
         keywords: ["محاسب", "ذكاء", "تحليل", "ai"],
       },
     ],
