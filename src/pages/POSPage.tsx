@@ -1577,7 +1577,40 @@ const POSPage = () => {
     return filtered;
   }, [products, selectedCategory, searchQuery, posCategories]);
 
-  const getProductCatColor = useCallback((product: Product) => {
+  // Group products by category for section view
+  const groupedByCategory = useMemo(() => {
+    const hiddenCatIds = new Set(
+      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.id)
+    );
+    const hiddenCatNames = new Set(
+      posCategories.filter(c => !visiblePosCategories.includes(c)).map(c => c.name)
+    );
+    let allProducts = products.filter(p => {
+      if (!p.is_pos_available) return false;
+      if (p.pos_category_id && hiddenCatIds.has(p.pos_category_id)) return false;
+      if (!p.pos_category_id && p.category && hiddenCatNames.has(p.category)) return false;
+      return true;
+    });
+    if (searchQuery) {
+      allProducts = allProducts.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.barcode));
+    }
+    const groups: { cat: { id: string; name: string; color: string }; products: typeof allProducts }[] = [];
+    for (const cat of categoriesWithCounts.categories) {
+      const catProducts = allProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name);
+      if (catProducts.length > 0) {
+        groups.push({ cat, products: catProducts });
+      }
+    }
+    const uncatProducts = allProducts.filter(p => 
+      !p.pos_category_id && !visiblePosCategories.some(c => c.name === p.category)
+    );
+    if (uncatProducts.length > 0) {
+      groups.push({ cat: { id: "__uncategorized__", name: "أخرى", color: "#6B7280" }, products: uncatProducts });
+    }
+    return groups;
+  }, [products, posCategories, visiblePosCategories, categoriesWithCounts.categories, searchQuery]);
+
+
     if (product.pos_category_id) {
       const cat = posCategories.find(c => c.id === product.pos_category_id);
       if (cat) return cat.color;
