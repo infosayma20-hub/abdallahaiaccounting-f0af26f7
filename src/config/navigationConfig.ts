@@ -284,24 +284,8 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", module: "reports", icon: BarChart3,
-        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
+        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports", isDirect: true,
         keywords: ["تقارير", "تحليل"],
-        groups: [
-          {
-            groupLabel: "القوائم المالية",
-            children: [
-              { label: "قائمة الدخل", path: "/profit-loss" },
-              { label: "المركز المالي", path: "/balance-sheet" },
-            ],
-          },
-          {
-            groupLabel: "الدفاتر والتحليل",
-            children: [
-              { label: "ميزان المراجعة", path: "/trial-balance" },
-              { label: "مركز التقارير", path: "/reports" },
-            ],
-          },
-        ],
       },
     ],
   },
