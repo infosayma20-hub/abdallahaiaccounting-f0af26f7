@@ -43,7 +43,7 @@ const moduleColors: Record<string, { accent: string; bg: string; gradient?: stri
 };
 
 const sizes = {
-  sm: { container: "w-8 h-8", icon: 16 },
+  sm: { container: "w-9 h-9", icon: 18 },
   md: { container: "w-10 h-10", icon: 20 },
   lg: { container: "w-12 h-12", icon: 24 },
 };
