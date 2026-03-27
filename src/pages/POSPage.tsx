@@ -3440,7 +3440,7 @@ const POSPage = () => {
         {/* ── Left Section: Theme + Size + Sort + Close ── */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Theme toggle */}
-          <POSThemeToggle />
+          <POSThemeToggle darkMode={posDarkMode} onToggle={togglePosDark} />
 
           {/* Card size selector pills */}
           <div className="flex items-center gap-0 rounded-lg p-0.5 shrink-0" style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -3512,7 +3512,7 @@ const POSPage = () => {
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
         {/* ── LEFT: Products ── */}
-        <div className="flex-1 flex flex-col min-w-0" style={{ background: '#f1f5f9' }}>
+        <div className={`flex-1 flex flex-col min-w-0 ${posDarkMode ? 'pos-dark' : 'pos-light'}`} style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
 
           {/* Table Selector Bar removed — using dropdown only */}
 
@@ -3607,7 +3607,7 @@ const POSPage = () => {
 
 
           {/* ── Products Grid ── */}
-          <ScrollArea className="flex-1" style={{ background: '#f1f5f9' }}>
+          <ScrollArea className="flex-1" style={{ background: posDarkMode ? '#0a1628' : '#f1f5f9', transition: 'background-color 0.2s ease' }}>
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
