@@ -725,61 +725,28 @@ const AccountsPage = () => {
         )}
       </div>
 
-      {/* Add Account Dialog */}
-      <AddAccountDialog
-        open={showAddDialog}
-        onOpenChange={(open) => { setShowAddDialog(open); if (!open) setAddSubParentCode(null); }}
-        accounts={accounts}
-        
-        onAdd={async (data) => {
-          if (!user) return false;
-          try {
-            const { error } = await supabase.from('accounts').insert({
-              user_id: user.id,
-              account_code: data.account_code,
-              account_name: data.account_name,
-              account_type: data.account_type,
-              parent_code: data.parent_code,
-              notes: data.notes,
-            });
-            if (error) throw error;
-            toast({ title: "تم إضافة الحساب بنجاح ✅" });
-            setAddSubParentCode(null);
-            fetchAccounts();
-            return true;
-          } catch (err: any) {
-            toast({ title: "خطأ", description: err.message, variant: "destructive" });
-            return false;
-          }
-        }}
-      />
+      {/* Move Account Modal */}
+      {user && (
+        <MoveAccountModal
+          account={moveModalAccount}
+          allAccounts={accounts}
+          isOpen={!!moveModalAccount}
+          onClose={() => setMoveModalAccount(null)}
+          onSuccess={fetchAccounts}
+          userId={user.id}
+        />
+      )}
 
-      {/* Edit Account Dialog */}
-      <Dialog open={!!editingAccount} onOpenChange={(o) => !o && setEditingAccount(null)}>
-        <DialogContent className="max-w-sm" dir="rtl">
-          <DialogHeader><DialogTitle>تعديل الحساب</DialogTitle></DialogHeader>
-          {editingAccount && (
-            <EditAccountForm
-              account={editingAccount}
-              onSave={async (name, notes) => {
-                if (!user || !editingAccount) return;
-                const { error } = await supabase.from('accounts').update({
-                  account_name: name,
-                  notes: notes || null,
-                }).eq('id', editingAccount.id);
-                if (error) {
-                  toast({ title: "خطأ", description: error.message, variant: "destructive" });
-                } else {
-                  toast({ title: "تم تعديل الحساب بنجاح ✅" });
-                  setEditingAccount(null);
-                  fetchAccounts();
-                }
-              }}
-              onCancel={() => setEditingAccount(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Import Accounts Modal */}
+      {user && (
+        <ImportAccountsModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onSuccess={fetchAccounts}
+          existingAccounts={accounts}
+          userId={user.id}
+        />
+      )}
     </div>
     </TooltipProvider>
   );
