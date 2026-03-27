@@ -19,7 +19,6 @@ const quickAddRoutes: Record<string, { label: string; path: string }> = {
 };
 
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { FinixLogo } from "@/components/ui/FinixLogo";
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 
 interface SidebarProps {
@@ -28,6 +27,11 @@ interface SidebarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
+
+const SIDEBAR_BG = "#0F2A44";
+const GOLD = "#C9A84C";
+const SEPARATOR = "rgba(255,255,255,0.06)";
+const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
 
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
   const location = useLocation();
@@ -92,8 +96,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     const disabled = isItemDisabled(item);
     const active = !disabled && isActive(item.path);
     const groupActive = !disabled && isGroupActive(item);
+    const isHighlighted = active || groupActive;
     const expanded = openItem === item.label;
     const hasChildren = !item.isDirect && item.groups && item.groups.length > 0;
+    const quickAdd = quickAddRoutes[item.id];
 
     const navButton = (
       <button
@@ -112,48 +118,57 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           }
         }}
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-normal transition-all duration-200 group relative",
-          disabled
-            ? "opacity-40 cursor-not-allowed"
-            : active || groupActive
-              ? "text-white font-medium bg-sidebar-primary/[0.15]"
-              : "text-white/80 hover:text-white hover:bg-white/[0.06]",
-          collapsed && "justify-center px-2"
+          "w-full flex items-center rounded-[10px] transition-all duration-150 group relative",
+          collapsed ? "justify-center px-2 py-2.5" : "px-4 py-2.5 gap-3",
+          disabled && "opacity-40 cursor-not-allowed",
         )}
-        style={
-          !disabled && (active || groupActive)
-            ? { borderRight: "3px solid #E8A020" }
-            : undefined
-        }
+        style={{
+          margin: "2px 8px",
+          width: "calc(100% - 16px)",
+          fontSize: 14,
+          fontWeight: isHighlighted && !disabled ? 500 : 400,
+          color: disabled
+            ? "rgba(255,255,255,0.35)"
+            : isHighlighted
+              ? "#FFFFFF"
+              : "rgba(255,255,255,0.75)",
+          background: disabled
+            ? "transparent"
+            : isHighlighted
+              ? `rgba(201,168,76,0.15)`
+              : "transparent",
+          borderRight: isHighlighted && !disabled ? `3px solid ${GOLD}` : "3px solid transparent",
+        }}
+        onMouseEnter={(e) => {
+          if (disabled || isHighlighted) return;
+          e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+          e.currentTarget.style.color = "#FFFFFF";
+        }}
+        onMouseLeave={(e) => {
+          if (disabled || isHighlighted) return;
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+        }}
       >
-        <ModuleIcon module={item.module} size="sm" active={!disabled && (active || !!groupActive)} />
+        <ModuleIcon module={item.module} size="sm" active={!disabled && !!isHighlighted} />
         {!collapsed && (
           <>
             <span className="flex-1 text-right whitespace-nowrap">{item.label}</span>
             {disabled && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
-              <ChevronDown className={cn("h-3.5 w-3.5 opacity-40 transition-transform duration-200", expanded && "rotate-180")} />
+              <ChevronDown
+                className={cn("h-3.5 w-3.5 transition-transform duration-200")}
+                style={{ opacity: 0.4, transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
+              />
             )}
           </>
         )}
       </button>
     );
 
-    const quickAdd = quickAddRoutes[item.id];
-
     return (
-      <div
-        key={item.id}
-        ref={(el) => {
-          if (el && hasChildren && expanded) {
-            setTimeout(() => {
-              const button = el.querySelector("button");
-              if (button) button.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 50);
-          }
-        }}
-      >
-        <div className="flex items-center gap-0.5">
+      <div key={item.id}>
+        <div className="flex items-center">
           <div className="flex-1 min-w-0">
             {collapsed ? (
               <Tooltip>
@@ -168,7 +183,16 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               <TooltipTrigger asChild>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleNavigate(quickAdd.path); }}
-                  className="w-6 h-6 rounded-md flex items-center justify-center text-sidebar-foreground/40 hover:text-sidebar-primary hover:bg-sidebar-primary/15 transition-all flex-shrink-0"
+                  className="flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{
+                    width: 20, height: 20,
+                    color: "rgba(255,255,255,0.35)",
+                    background: "transparent",
+                    borderRadius: 4,
+                    marginLeft: 4,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
                 >
                   <Plus className="h-3.5 w-3.5" strokeWidth={2} />
                 </button>
@@ -178,31 +202,83 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           )}
         </div>
 
-        {!disabled && hasChildren && expanded && !collapsed && (
-          <div className="mr-5 mt-0.5 space-y-1 pr-3" style={{ borderRight: "1px solid #1E3A5F" }}>
-            {item.groups!.map((group) => (
-              <div key={group.groupLabel || "default"}>
-                {group.groupLabel && (
-                  <p className="text-[10px] font-semibold text-sidebar-foreground/30 px-3 pt-2 pb-0.5">{group.groupLabel}</p>
-                )}
-                {group.children.map((child) => {
-                  const childActive = isActive(child.path);
-                  return (
-                    <button
-                      key={child.path + child.label}
-                      onClick={() => handleNavigate(child.path)}
-                      className={cn(
-                        "w-full text-right px-3 py-1.5 rounded-lg text-[13px] transition-all",
-                        childActive ? "text-sidebar-primary font-medium" : "text-white/60 hover:text-white"
-                      )}
-                      style={childActive ? { background: "rgba(232,160,32,0.08)" } : undefined}
+        {/* Sub-items with animation */}
+        {!disabled && hasChildren && !collapsed && (
+          <div
+            style={{
+              overflow: "hidden",
+              maxHeight: expanded ? 1000 : 0,
+              opacity: expanded ? 1 : 0,
+              transition: "max-height 0.2s ease, opacity 0.15s ease",
+            }}
+          >
+            <div style={{ paddingTop: 2 }}>
+              {item.groups!.map((group) => (
+                <div key={group.groupLabel || "default"}>
+                  {group.groupLabel && (
+                    <p
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "rgba(255,255,255,0.35)",
+                        letterSpacing: "0.04em",
+                        padding: "16px 16px 6px",
+                        margin: 0,
+                      }}
                     >
-                      {child.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+                      {group.groupLabel}
+                    </p>
+                  )}
+                  {group.children.map((child) => {
+                    const childActive = isActive(child.path);
+                    return (
+                      <button
+                        key={child.path + child.label}
+                        onClick={() => handleNavigate(child.path)}
+                        className="w-full flex items-center gap-2 text-right transition-all duration-150"
+                        style={{
+                          padding: "8px 16px 8px 16px",
+                          paddingRight: 44,
+                          fontSize: 13,
+                          fontWeight: 400,
+                          color: childActive ? "#FFFFFF" : "rgba(255,255,255,0.65)",
+                          background: childActive ? "rgba(201,168,76,0.1)" : "transparent",
+                          borderRadius: 8,
+                          margin: "1px 8px",
+                          width: "calc(100% - 16px)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (childActive) return;
+                          e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                          e.currentTarget.style.color = "rgba(255,255,255,0.9)";
+                          const dot = e.currentTarget.querySelector<HTMLSpanElement>('[data-dot]');
+                          if (dot) dot.style.background = GOLD;
+                        }}
+                        onMouseLeave={(e) => {
+                          if (childActive) return;
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "rgba(255,255,255,0.65)";
+                          const dot = e.currentTarget.querySelector<HTMLSpanElement>('[data-dot]');
+                          if (dot) dot.style.background = "rgba(255,255,255,0.25)";
+                        }}
+                      >
+                        <span
+                          data-dot
+                          className="flex-shrink-0 rounded-full"
+                          style={{
+                            width: 4,
+                            height: 4,
+                            background: childActive ? GOLD : "rgba(255,255,255,0.25)",
+                            transition: "background 0.15s ease",
+                          }}
+                        />
+                        <span className="flex-1">{child.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -210,27 +286,70 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full">
-      {/* Logo / Brand */}
-      <div className={cn("h-16 flex items-center px-4 flex-shrink-0 border-b", collapsed && "justify-center px-2")} style={{ borderColor: "#1E3A5F" }}>
+    <div className="flex flex-col h-full" style={{ background: SIDEBAR_BG }}>
+      {/* ═══ Header ═══ */}
+      <div
+        className={cn("flex items-center flex-shrink-0", collapsed ? "justify-center px-2" : "px-4")}
+        style={{
+          padding: collapsed ? "16px 8px" : "20px 16px",
+          borderBottom: `1px solid ${SEPARATOR_HEADER}`,
+        }}
+      >
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
-            <button onClick={() => navigate("/profile")} className="flex-shrink-0 rounded-[10px] hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="الملف الشخصي">
+            <button
+              onClick={() => navigate("/profile")}
+              className="flex-shrink-0 rounded-[10px] hover:ring-2 hover:ring-white/20 transition-all cursor-pointer"
+              title="الملف الشخصي"
+            >
               {company.logo_url ? (
-                <img src={company.logo_url} alt={company.name} className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
+                <img
+                  src={company.logo_url}
+                  alt={company.name}
+                  className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1"
+                  style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+                />
               ) : (
-                <img src="/logo-white.png" alt="قيود" width={32} height={32} />
+                <img src="/logo-white.png" alt="قيود" width={36} height={36} />
               )}
             </button>
             <div className="min-w-0">
-              <h1 className="text-[13px] leading-tight font-bold text-white line-clamp-2" style={{ fontFamily: "Tajawal, sans-serif" }}>{company.name || "QOYOD"}</h1>
-              <p className="text-[10px] text-sidebar-foreground leading-none truncate">{company.industry || "نظام إدارة الأعمال"}</p>
+              <h1
+                className="leading-tight line-clamp-2"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#FFFFFF",
+                  fontFamily: "Tajawal, sans-serif",
+                }}
+              >
+                {company.name || "QOYOD"}
+              </h1>
+              <p
+                className="leading-none truncate"
+                style={{
+                  fontSize: 11,
+                  color: "rgba(255,255,255,0.45)",
+                  marginTop: 2,
+                }}
+              >
+                {company.industry || "نظام إدارة الأعمال"}
+              </p>
             </div>
           </div>
         ) : (
-          <button onClick={() => navigate("/profile")} className="rounded-lg hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="الملف الشخصي">
+          <button
+            onClick={() => navigate("/profile")}
+            className="rounded-[10px] hover:ring-2 hover:ring-white/20 transition-all cursor-pointer"
+            title="الملف الشخصي"
+          >
             {company.logo_url ? (
-              <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
+              <img
+                src={company.logo_url}
+                alt={company.name}
+                className="w-9 h-9 rounded-[10px] object-contain bg-white p-0.5"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+              />
             ) : (
               <img src="/logo-white.png" alt="قيود" width={32} height={32} />
             )}
@@ -238,16 +357,32 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         )}
       </div>
 
-
-      {/* Navigation Sections */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4 scrollbar-thin">
-        {navigationSections.map((section) => (
+      {/* ═══ Navigation ═══ */}
+      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin" style={{ scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+        {navigationSections.map((section, sectionIdx) => (
           <div key={section.sectionTitle || "top"}>
-            {!collapsed && section.sectionTitle && (
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-[0.15em] px-3 mb-1.5">{section.sectionTitle}</p>
+            {/* Section separator */}
+            {sectionIdx > 0 && (
+              <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
             )}
-            {collapsed && section.sectionTitle && <div className="h-px mx-1 mb-2" style={{ background: "#1E3A5F" }} />}
-            <div className="space-y-0.5">
+            {!collapsed && section.sectionTitle && (
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "rgba(255,255,255,0.35)",
+                  letterSpacing: "0.04em",
+                  padding: "16px 16px 6px",
+                  margin: 0,
+                }}
+              >
+                {section.sectionTitle}
+              </p>
+            )}
+            {collapsed && section.sectionTitle && (
+              <div style={{ height: 1, background: SEPARATOR, margin: "8px 4px" }} />
+            )}
+            <div>
               {[...section.items].sort((a, b) => {
                 const aD = isItemDisabled(a) ? 1 : 0;
                 const bD = isItemDisabled(b) ? 1 : 0;
@@ -258,20 +393,32 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ))}
       </nav>
 
-      {/* Bottom — collapse toggle */}
-      <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #1E3A5F" }}>
-        {/* Logout button */}
+      {/* ═══ Footer ═══ */}
+      <div style={{ borderTop: `1px solid ${SEPARATOR_HEADER}`, padding: "12px 16px" }}>
+        {/* Logout */}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={() => { supabase.auth.signOut(); navigate("/auth"); }} className="w-full flex items-center justify-center px-3 py-2 rounded-lg text-[13px] text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all">
+              <button
+                onClick={() => { supabase.auth.signOut(); navigate("/auth"); }}
+                className="w-full flex items-center justify-center py-2 rounded-[10px] transition-all duration-150"
+                style={{ color: "#FF6B6B" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
                 <LogOut className="h-5 w-5" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>تسجيل الخروج</p></TooltipContent>
           </Tooltip>
         ) : (
-          <button onClick={() => { supabase.auth.signOut(); navigate("/auth"); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all">
+          <button
+            onClick={() => { supabase.auth.signOut(); navigate("/auth"); }}
+            className="w-full flex items-center gap-3 py-2 px-3 rounded-[10px] transition-all duration-150"
+            style={{ fontSize: 13, color: "#FF6B6B" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
             <LogOut className="h-5 w-5" strokeWidth={1.8} />
             <span>تسجيل الخروج</span>
           </button>
@@ -281,22 +428,29 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={onToggle} className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all justify-center">
-                <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex w-full items-center justify-center py-2 rounded-[10px] transition-all duration-150 mt-1"
+                style={{ color: "rgba(255,255,255,0.45)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <PanelLeftOpen className="h-5 w-5" strokeWidth={1.8} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
           </Tooltip>
         ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button onClick={onToggle} className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all">
-                <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
-                <span>طي القائمة</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left"><p>طي القائمة</p></TooltipContent>
-          </Tooltip>
+          <button
+            onClick={onToggle}
+            className="hidden lg:flex w-full items-center gap-3 py-2 px-3 rounded-[10px] transition-all duration-150 mt-1"
+            style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
+          >
+            <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
+            <span>طي القائمة</span>
+          </button>
         )}
       </div>
     </div>
@@ -304,11 +458,30 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   return (
     <>
-      {mobileOpen && <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden" onClick={onMobileClose} />}
-      <aside className={cn("fixed inset-y-0 right-0 z-50 w-[280px] bg-sidebar transform transition-transform duration-300 lg:hidden")} style={{ transform: mobileOpen ? "translateX(0)" : "translateX(100%)" }}>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden" onClick={onMobileClose} />
+      )}
+
+      {/* Mobile sidebar */}
+      <aside
+        className="fixed inset-y-0 right-0 z-50 lg:hidden"
+        style={{
+          width: 280,
+          background: SIDEBAR_BG,
+          transform: mobileOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.3s ease",
+        }}
+      >
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={onMobileClose} className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground hover:text-white transition-colors">
+            <button
+              onClick={onMobileClose}
+              className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+              style={{ color: "rgba(255,255,255,0.45)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+            >
               <X className="h-4 w-4" />
             </button>
           </TooltipTrigger>
@@ -316,7 +489,16 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         </Tooltip>
         {sidebarContent}
       </aside>
-      <aside className={cn("hidden lg:flex flex-col bg-sidebar flex-shrink-0 transition-all duration-300", collapsed ? "w-[68px]" : "w-[240px]")} style={{ borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
+
+      {/* Desktop sidebar */}
+      <aside
+        className={cn("hidden lg:flex flex-col flex-shrink-0 transition-all duration-300")}
+        style={{
+          width: collapsed ? 68 : 260,
+          background: SIDEBAR_BG,
+          borderLeft: `1px solid ${SEPARATOR}`,
+        }}
+      >
         {sidebarContent}
       </aside>
     </>

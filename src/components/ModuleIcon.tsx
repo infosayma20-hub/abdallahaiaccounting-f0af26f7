@@ -43,7 +43,7 @@ const moduleColors: Record<string, { accent: string; bg: string; gradient?: stri
 };
 
 const sizes = {
-  sm: { container: "w-8 h-8", icon: 16 },
+  sm: { container: "w-9 h-9", icon: 18 },
   md: { container: "w-10 h-10", icon: 20 },
   lg: { container: "w-12 h-12", icon: 24 },
 };
@@ -104,7 +104,7 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
       <div
         className={cn(
           sizeConfig.container,
-          "rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+          "rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200",
           className
         )}
         style={{
@@ -126,7 +126,7 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
     <div
       className={cn(
         sizeConfig.container,
-        "rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+        "rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-200",
         className
       )}
       style={{
