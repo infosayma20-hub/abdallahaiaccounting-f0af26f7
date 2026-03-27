@@ -3829,37 +3829,52 @@ const POSPage = () => {
             onRemoveOrder={(idx) => removeOrder(idx)}
           />
 
-          {/* Cart Header */}
-          <div className="h-10 px-3 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              {activeOrder.tableName && (
-                <span className="text-xs font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
-                  <UtensilsCrossed className="h-3 w-3" />
-                  {activeOrder.tableName}{activeOrder.customerName ? ` - ${activeOrder.customerName}` : ""}
-                </span>
-              )}
-              {!activeOrder.tableName && activeOrder.customerName ? (
-                <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {activeOrder.customerName}
-                </span>
-              ) : !activeOrder.tableName ? (
-                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
-              ) : null}
-              {activeOrder.orderType !== "dine_in" && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                  activeOrder.orderType === "delivery" 
-                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" 
-                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400"
-                }`}>
-                  {activeOrder.orderType === "delivery" ? "🚚 توصيل" : "🛍️ استلام"}
-                </span>
-              )}
-            </div>
+          {/* Order Type Pills */}
+          <div className="flex items-center gap-2 px-3 pb-2 shrink-0">
+            {(["takeaway", "delivery", "dine_in"] as const).map(type => {
+              const isActive = type === "dine_in" ? !!activeOrder.tableId : (activeOrder.orderType === type && !activeOrder.tableId);
+              const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    if (type === "dine_in") {
+                      setShowTablePicker(!showTablePicker);
+                    } else {
+                      updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }));
+                    }
+                  }}
+                  className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
+                  style={isActive
+                    ? { background: '#1d4ed8', color: 'white' }
+                    : { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }
+                  }
+                >
+                  {labels[type]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Customer info */}
+          <div className="px-3 pb-1 shrink-0">
+            {activeOrder.customerName && (
+              <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1">
+                <User className="h-3 w-3" />
+                <span>{activeOrder.customerName}</span>
+              </div>
+            )}
+            {activeOrder.tableName && (
+              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#93c5fd' }}>
+                <UtensilsCrossed className="h-3 w-3" />
+                <span>{activeOrder.tableName}</span>
+              </div>
+            )}
             {cart.length > 0 && (
               <button
                 onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch(""); }}
-                className="text-[11px] text-destructive/70 hover:text-destructive transition-colors flex items-center gap-1"
+                className="text-[11px] transition-colors flex items-center gap-1"
+                style={{ color: '#fca5a5' }}
               >
                 <Trash2 className="h-3 w-3" />
                 إفراغ
