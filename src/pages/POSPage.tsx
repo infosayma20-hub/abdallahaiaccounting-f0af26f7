@@ -4082,11 +4082,11 @@ const POSPage = () => {
                         <div className="flex items-center justify-between">
                           {(isAdmin || posPerms.can_edit_prices) ? (
                             <div
-                              className="flex items-center h-[32px] rounded-lg overflow-hidden transition-all"
+                              className="flex items-center h-[28px] rounded-md overflow-hidden transition-all"
                               style={{
                                 background: 'rgba(255,255,255,0.08)',
-                                border: '1.5px solid rgba(255,255,255,0.15)',
-                                minWidth: '85px',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                width: '70px',
                               }}
                             >
                               <span className="shrink-0 pl-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>₪</span>
