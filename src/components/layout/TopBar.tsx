@@ -51,7 +51,7 @@ const IconButton = ({
         onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
       >
         <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "rgba(255,255,255,0.6)" }} />
-        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2" style={{ ringColor: "#0D1B2E" }} />}
+        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent" style={{ boxShadow: "0 0 0 2px #0D1B2E" }} />}
       </button>
     </TooltipTrigger>
     {title && <TooltipContent side="bottom"><p>{title}</p></TooltipContent>}
