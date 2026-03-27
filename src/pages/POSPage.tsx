@@ -2544,6 +2544,26 @@ const POSPage = () => {
         }
       }
 
+      // Update pos_customer visits and spending
+      const posCustomerId = activeOrder.posCustomerId || (customerDataDiscount?.customerId);
+      if (posCustomerId) {
+        const { data: pcData } = await supabase
+          .from("pos_customers")
+          .select("total_visits, total_spent")
+          .eq("id", posCustomerId)
+          .single();
+        if (pcData) {
+          await supabase
+            .from("pos_customers")
+            .update({
+              total_visits: ((pcData as any).total_visits || 0) + 1,
+              total_spent: ((pcData as any).total_spent || 0) + effectiveTotal,
+              last_visit: new Date().toISOString(),
+            } as any)
+            .eq("id", posCustomerId);
+        }
+      }
+
       loadProducts();
 
       // Fetch display_number and queue_number from the created order
