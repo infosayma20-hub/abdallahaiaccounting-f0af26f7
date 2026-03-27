@@ -3933,60 +3933,26 @@ const POSPage = () => {
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
-                        </div>
-                              {(isAdmin || posPerms.can_remove_cart_items) && (
-                              <button
-                                className="p-0.5 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
-                                onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <input
-                                type="number"
-                                value={item.unit_price}
-                                onChange={(e) => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, Number(e.target.value))); }}
-                                onClick={(e) => e.stopPropagation()}
-                                disabled={!isAdmin && !posPerms.can_edit_prices}
-                                className="w-14 text-[11px] tabular-nums bg-transparent border-b border-dashed border-border text-muted-foreground outline-none focus:border-primary/40 py-0 px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                min={0}
-                                step={0.01}
-                              />
-                              <span className="text-[10px] text-muted-foreground/50">₪</span>
-                              {item.discount_pct > 0 && (
-                                <span className="text-[10px] text-destructive/70 font-medium">-{item.discount_pct}%</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Qty + total */}
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="flex items-center bg-muted/60 rounded-lg overflow-hidden">
+                        {/* Price + Qty row */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                          <div className="flex items-center gap-0">
                             <button
-                              className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-8 text-center text-xs font-bold tabular-nums">{item.qty}</span>
+                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: 'white' }}>{item.qty}</span>
                             <button
-                              className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
                             >
                               <Plus className="h-3 w-3" />
                             </button>
                           </div>
-                          <motion.span
-                            key={item.total}
-                            initial={{ scale: 1.1, color: "hsl(var(--primary))" }}
-                            animate={{ scale: 1, color: "hsl(var(--foreground))" }}
-                            className="text-sm font-bold tabular-nums"
-                          >
-                            ₪{item.total.toFixed(2)}
-                          </motion.span>
                         </div>
 
                         {/* Modifier sub-items */}
