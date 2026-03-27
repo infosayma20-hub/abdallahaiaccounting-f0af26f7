@@ -217,12 +217,13 @@ function getCatConfig(category: string) {
 }
 
 
-const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
+const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick, posDark }: {
   cat: { id: string; name: string; color: string; count: number };
   isActive: boolean;
   isSortMode: boolean;
   isDragging: boolean;
   onClick: () => void;
+  posDark?: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: cat.id,
@@ -235,13 +236,14 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
   };
   const cardStyle: React.CSSProperties = {
     ...style,
-    backgroundColor: isActive ? '#0D1B2E' : 'white',
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? '#0D1B2E' : '#dbeafe',
-    color: isActive ? "#fff" : '#475569',
+    backgroundColor: isActive ? (posDark ? 'white' : '#0D1B2E') : (posDark ? 'rgba(255,255,255,0.06)' : 'white'),
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? (posDark ? 'white' : '#0D1B2E') : (posDark ? 'rgba(255,255,255,0.1)' : '#dbeafe'),
+    color: isActive ? (posDark ? '#0D1B2E' : "#fff") : (posDark ? 'rgba(255,255,255,0.7)' : '#475569'),
     boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
     borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
+    transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
   };
   return (
     <button
@@ -249,9 +251,9 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all border select-none ${
+      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap border select-none ${
         isSortMode ? "ring-1 ring-amber-400/50" : ""
-      }`}
+      } ${!isActive && !posDark ? "hover:bg-[#eff6ff] hover:border-[#93c5fd]" : ""} ${!isActive && posDark ? "hover:bg-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.2)] hover:text-white" : ""}`}
       style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
