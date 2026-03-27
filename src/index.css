@@ -47,15 +47,15 @@
 
     --radius: 0.625rem;
 
-    /* Sidebar - FINIX dark navy */
-    --sidebar-background: 213 50% 11%;   /* #0D1B2A */
+    /* Sidebar - deeper navy #0F2A44 */
+    --sidebar-background: 210 63% 16%;   /* #0F2A44 */
     --sidebar-foreground: 210 12% 59%;   /* #8A96A3 */
-    --sidebar-primary: 37 81% 52%;       /* gold */
+    --sidebar-primary: 43 55% 48%;       /* #C9A84C gold */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 213 48% 17%;       /* #1E3A5F */
     --sidebar-accent-foreground: 210 15% 90%;
     --sidebar-border: 213 48% 17%;       /* #1E3A5F */
-    --sidebar-ring: 37 81% 52%;
+    --sidebar-ring: 43 55% 48%;
 
     /* FINIX brand tokens */
     --finix-gold: 37 81% 52%;            /* #E8A020 */
