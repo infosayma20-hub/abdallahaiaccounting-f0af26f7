@@ -236,10 +236,10 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
   };
   const cardStyle: React.CSSProperties = {
     ...style,
-    backgroundColor: isActive ? cat.color : cat.color + "12",
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "40",
-    color: isActive ? "#fff" : undefined,
-    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 3px 12px ${cat.color}35` : `0 1px 4px rgba(0,0,0,0.06)`,
+    backgroundColor: isActive ? '#0D1B2E' : 'white',
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? '#0D1B2E' : '#dbeafe',
+    color: isActive ? "#fff" : '#475569',
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? '0 2px 8px rgba(13,27,46,0.25)' : 'none',
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
     borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
@@ -250,10 +250,10 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
       {...attributes}
       {...(isSortMode ? listeners : {})}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border select-none ${
-        isSortMode ? "ring-1 ring-amber-400/50" : "hover:scale-[1.03]"
+      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all border select-none ${
+        isSortMode ? "ring-1 ring-amber-400/50" : ""
       }`}
-      style={{ ...cardStyle, minWidth: 80, height: 48, padding: "4px 10px" }}
+      style={{ ...cardStyle, minWidth: 80, height: 40, padding: "4px 14px" }}
     >
       {isSortMode && <GripVertical className="h-3 w-3 opacity-60 mb-0.5" />}
       <span className="leading-tight text-center">{cat.name}</span>
@@ -3462,12 +3462,12 @@ const POSPage = () => {
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
         {/* ── LEFT: Products ── */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[hsl(var(--background))]">
+        <div className="flex-1 flex flex-col min-w-0" style={{ background: '#f1f5f9' }}>
 
           {/* Table Selector Bar removed — using dropdown only */}
 
           {/* ── Category Cards Section ── */}
-          <div className="px-2 py-2 border-b border-border/50 overflow-y-auto shrink-0" style={{ maxHeight: 'none', background: 'linear-gradient(180deg, hsl(var(--muted)/0.35) 0%, hsl(var(--muted)/0.15) 100%)' }}>
+          <div className="pos-categories-bar px-3 py-2.5 overflow-y-auto shrink-0" style={{ maxHeight: 'none' }}>
             {isSortMode && (
               <div className="mb-1 flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px]">
                 <GripVertical className="h-3 w-3" />
@@ -3489,12 +3489,16 @@ const POSPage = () => {
                   {/* All */}
                   <button
                     onClick={() => !isSortMode && setSelectedCategory("الكل")}
-                    className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
+                    className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
                       selectedCategory === "الكل"
-                        ? "bg-foreground text-background shadow-md border-foreground"
-                        : "bg-card text-muted-foreground hover:text-foreground border-border"
+                        ? "text-white shadow-md"
+                        : "bg-white text-[#475569] hover:bg-[#eff6ff] hover:text-[#1e40af]"
                     }`}
-                    style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
+                    style={{
+                      minWidth: 80, height: 40, padding: "4px 14px",
+                      border: selectedCategory === "الكل" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
+                      background: selectedCategory === "الكل" ? '#0D1B2E' : undefined,
+                    }}
                   >
                     <span className="leading-tight">الكل</span>
                     <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.all})</span>
@@ -3514,12 +3518,16 @@ const POSPage = () => {
                   {categoriesWithCounts.uncategorized > 0 && (
                   <button
                       onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
-                      className={`flex flex-col items-center justify-center rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border-[1.5px] select-none hover:scale-[1.03] ${
+                      className={`flex flex-col items-center justify-center rounded-full text-[12px] whitespace-nowrap transition-all select-none ${
                         selectedCategory === "__uncategorized__"
-                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
-                          : "bg-card text-muted-foreground border-border"
+                          ? "text-white shadow-md"
+                          : "bg-white text-[#475569]"
                       }`}
-                      style={{ minWidth: 80, height: 48, padding: "4px 10px" }}
+                      style={{
+                        minWidth: 80, height: 40, padding: "4px 14px",
+                        border: selectedCategory === "__uncategorized__" ? '1.5px solid #0D1B2E' : '1.5px solid #dbeafe',
+                        background: selectedCategory === "__uncategorized__" ? '#0D1B2E' : undefined,
+                      }}
                     >
                       <span className="leading-tight">أخرى</span>
                       <span className="text-[9px] opacity-70 mt-0.5">({categoriesWithCounts.uncategorized})</span>
@@ -3549,7 +3557,7 @@ const POSPage = () => {
 
 
           {/* ── Products Grid ── */}
-          <ScrollArea className="flex-1" style={{ background: 'hsl(var(--background))' }}>
+          <ScrollArea className="flex-1" style={{ background: '#f1f5f9' }}>
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
@@ -3596,13 +3604,13 @@ const POSPage = () => {
                             {...listeners}
                             data-addon-card={isAddonOpen ? "true" : undefined}
                             onClick={() => !isSortMode && addToCart(product)}
-                            className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
-                              cardSize === "S" ? "rounded-lg" : "rounded-xl"
+                            className={`pos-product-card relative overflow-visible text-center transition-all group select-none ${
+                              cardSize === "S" ? "rounded-lg" : ""
                             } ${isSortMode 
-                              ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
+                              ? "border-dashed !border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
                               : isAddonOpen
-                                ? "border-primary bg-accent shadow-lg"
-                                : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
+                                ? "!border-[#3b82f6] !shadow-[0_0_0_3px_#eff6ff]"
+                                : "cursor-pointer hover:!border-[#3b82f6] hover:!shadow-[0_0_0_3px_#eff6ff]"
                             } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
                             style={{
                               ...style,
@@ -3690,13 +3698,13 @@ const POSPage = () => {
                               )}
 
                               {/* Name */}
-                              <p className={`font-semibold text-foreground leading-tight mb-0.5 break-words ${
+                              <p className={`leading-tight mb-0.5 break-words ${
                                 isFewProducts
-                                  ? "text-[13px] font-bold"
+                                  ? "text-[14px]"
                                   : cardSize === "S" 
                                     ? "text-[12px]" 
-                                    : "text-[12px]"
-                              }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
+                                    : "text-[14px]"
+                              }`} dir="rtl" style={{ unicodeBidi: "plaintext", color: '#1e293b', fontWeight: 500 }}>
                                 {product.name}
                               </p>
 
@@ -3708,11 +3716,11 @@ const POSPage = () => {
                               )}
 
                               {/* Price */}
-                              <p className={`font-bold text-primary tabular-nums ${
+                              <p className={`tabular-nums ${
                                 isFewProducts
                                   ? "text-sm"
-                                  : cardSize === "S" ? "text-[11px]" : "text-[12px]"
-                              }`}>
+                                  : cardSize === "S" ? "text-[11px]" : "text-[14px]"
+                              }`} style={{ color: '#1e40af', fontWeight: 600 }} dir="ltr">
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
                             </div>
@@ -3753,9 +3761,9 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[270px] lg:w-[310px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]" style={{ background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)/0.2) 100%)' }}>
+        <div className="pos-order-panel w-[270px] lg:w-[310px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.15)]">
           {/* Order Tabs — compact h-8 */}
-          <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
+          <div className="flex items-center border-b border-white/10 shrink-0 overflow-x-auto h-8">
             <button
               onClick={() => setShowAllOrders(true)}
               className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-8 px-2 flex-shrink-0"
@@ -3775,15 +3783,15 @@ const POSPage = () => {
                   onClick={() => setActiveOrderIndex(idx)}
                   className={`group relative flex items-center gap-1 px-2 h-8 text-[11px] font-medium whitespace-nowrap transition-all border-b-2 ${
                     isActive
-                      ? "border-primary text-primary bg-primary/5"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      ? "border-white text-white bg-white/10"
+                      : "border-transparent text-white/50 hover:text-white/80"
                   }`}
                 >
                   <ShoppingCart className="h-3 w-3" />
                   <span className="max-w-[80px] truncate">{order.customerName || order.name}</span>
                   {itemCount > 0 && (
                     <span className={`text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
-                      isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/60"
                     }`}>
                       {itemCount}
                     </span>
@@ -4032,7 +4040,7 @@ const POSPage = () => {
           </ScrollArea>
 
           {/* Bottom area - Customer + Note + Totals + Actions */}
-          <div className="border-t border-border bg-card shrink-0">
+          <div className="border-t border-white/10 shrink-0" style={{ background: 'rgba(255,255,255,0.03)' }}>
             {/* Order Type + Notes row */}
             {(
               <div className="px-2 pt-1 pb-1 space-y-1">
@@ -4146,7 +4154,7 @@ const POSPage = () => {
             )}
 
             {/* Totals */}
-            <div className="px-2 py-1.5 space-y-0.5 border-t border-border/60 shadow-[0_-1px_3px_rgba(0,0,0,0.04)]">
+            <div className="px-2 py-1.5 space-y-0.5 border-t border-white/10">
               {cartTotals.tax > 0 && (
                 <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>الضريبة</span>
@@ -4165,7 +4173,7 @@ const POSPage = () => {
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className="text-xl font-bold text-primary tabular-nums"
+                  className="text-xl font-bold text-white tabular-nums"
                 >
                   ₪{cartTotals.total.toFixed(2)}
                 </motion.span>
