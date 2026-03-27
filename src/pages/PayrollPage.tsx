@@ -147,17 +147,17 @@ const PayrollPage = () => {
           .eq("payroll_month", selectedMonth)
           .eq("payroll_year", selectedYear)
           .eq("status", "pending"),
-        // 4. Transactions on employee accounts (1180+)
+        // 4. Transactions on employee accounts (2180+)
         supabase.from("transactions")
           .select("debit_account_code, credit_account_code, amount, description")
           .gte("transaction_date", startDate)
           .lte("transaction_date", endDate)
-          .or("debit_account_code.like.118%,credit_account_code.like.118%")
+          .or("debit_account_code.like.218%,credit_account_code.like.218%")
           .eq("is_deleted", false),
         // 5. Employee account mappings
         supabase.from("accounts")
           .select("account_code, account_name")
-          .like("parent_code", "1180")
+          .eq("parent_code", "2180")
           .eq("is_active", true),
         // 6. Payment vouchers to employees
         supabase.from("vouchers")
