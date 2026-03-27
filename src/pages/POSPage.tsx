@@ -3761,19 +3761,9 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[270px] lg:w-[310px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.15)]">
-          {/* Order Tabs — compact h-8 */}
-          <div className="flex items-center border-b border-white/10 shrink-0 overflow-x-auto h-8">
-            <button
-              onClick={() => setShowAllOrders(true)}
-              className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-8 px-2 flex-shrink-0"
-              title="عرض جميع الطلبات"
-            >
-              <LayoutGrid className="w-3 h-3" />
-              <span className="text-[10px] font-medium">طلبات</span>
-            </button>
-            <div className="w-px h-4 bg-border flex-shrink-0" />
-
+        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+          {/* Order Tabs */}
+          <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0">
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
               const itemCount = order.cart.reduce((s, i) => s + i.qty, 0);
@@ -3781,17 +3771,17 @@ const POSPage = () => {
                 <button
                   key={order.id}
                   onClick={() => setActiveOrderIndex(idx)}
-                  className={`group relative flex items-center gap-1 px-2 h-8 text-[11px] font-medium whitespace-nowrap transition-all border-b-2 ${
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all ${
                     isActive
-                      ? "border-white text-white bg-white/10"
-                      : "border-transparent text-white/50 hover:text-white/80"
+                      ? "text-[#0D1B2E]"
+                      : "text-white/50 hover:text-white/70"
                   }`}
+                  style={isActive ? { background: 'white' } : {}}
                 >
-                  <ShoppingCart className="h-3 w-3" />
-                  <span className="max-w-[80px] truncate">{order.customerName || order.name}</span>
+                  <span>{order.customerName || order.name}</span>
                   {itemCount > 0 && (
-                    <span className={`text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
-                      isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/60"
+                    <span className={`text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
+                      isActive ? "bg-[#0D1B2E]/10 text-[#0D1B2E]" : "bg-white/10 text-white/50"
                     }`}>
                       {itemCount}
                     </span>
@@ -3799,7 +3789,7 @@ const POSPage = () => {
                   {orders.length > 1 && (
                     <span
                       onClick={(e) => { e.stopPropagation(); removeOrder(idx); }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-destructive transition-all"
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"
                     >
                       <X className="h-2.5 w-2.5" />
                     </span>
@@ -3814,10 +3804,11 @@ const POSPage = () => {
                 setOrders(prev => [...prev, newOrder]);
                 setActiveOrderIndex(orders.length);
               }}
-              className="h-8 px-2 flex items-center justify-center text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
+              className="h-8 w-8 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors shrink-0 rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.08)' }}
               title="طلب جديد"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
 
