@@ -3604,13 +3604,13 @@ const POSPage = () => {
                             {...listeners}
                             data-addon-card={isAddonOpen ? "true" : undefined}
                             onClick={() => !isSortMode && addToCart(product)}
-                            className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
-                              cardSize === "S" ? "rounded-lg" : "rounded-xl"
+                            className={`pos-product-card relative overflow-visible text-center transition-all group select-none ${
+                              cardSize === "S" ? "rounded-lg" : ""
                             } ${isSortMode 
-                              ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
+                              ? "border-dashed !border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
                               : isAddonOpen
-                                ? "border-primary bg-accent shadow-lg"
-                                : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
+                                ? "!border-[#3b82f6] !shadow-[0_0_0_3px_#eff6ff]"
+                                : "cursor-pointer hover:!border-[#3b82f6] hover:!shadow-[0_0_0_3px_#eff6ff]"
                             } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
                             style={{
                               ...style,
