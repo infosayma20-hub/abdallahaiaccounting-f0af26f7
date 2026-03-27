@@ -1103,21 +1103,64 @@ const POSPage = () => {
 
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<{ id: string; name: string } | null>(null);
+  const pendingDeleteRef = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   const handleDeleteProduct = async (productId: string) => {
     if (!dataOwnerId || !(isAdmin || posPerms.delete_products)) return;
     setDeletingProductId(productId);
-    try {
-      const { error } = await supabase.from("products").delete().eq("id", productId).eq("user_id", dataOwnerId);
-      if (error) { toast.error("خطأ في الحذف: " + error.message); return; }
-      setProducts(prev => prev.filter(p => p.id !== productId));
-      toast.success("تم حذف المنتج بنجاح");
-      setConfirmDeleteProduct(null);
-    } catch {
-      toast.error("حدث خطأ أثناء الحذف");
-    } finally {
-      setDeletingProductId(null);
+
+    // Find the product to keep a copy for undo
+    const deletedProduct = products.find(p => p.id === productId);
+    if (!deletedProduct) { setDeletingProductId(null); return; }
+
+    // Remove from UI immediately
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    setConfirmDeleteProduct(null);
+    setDeletingProductId(null);
+
+    // Cancel any previous pending delete
+    if (pendingDeleteRef.current) {
+      clearTimeout(pendingDeleteRef.current.timer);
+      pendingDeleteRef.current = null;
     }
+
+    // Show undo toast for 10 seconds
+    const toastId = toast(`تم حذف "${deletedProduct.name}"`, {
+      duration: 10000,
+      action: {
+        label: "↩ تراجع",
+        onClick: () => {
+          // Cancel the pending DB delete
+          if (pendingDeleteRef.current?.id === productId) {
+            clearTimeout(pendingDeleteRef.current.timer);
+            pendingDeleteRef.current = null;
+          }
+          // Restore the product in UI
+          setProducts(prev => {
+            if (prev.some(p => p.id === productId)) return prev;
+            return [...prev, deletedProduct];
+          });
+          toast.success(`تم استعادة "${deletedProduct.name}" ✓`);
+        },
+      },
+    });
+
+    // Schedule actual DB delete after 10 seconds
+    const timer = setTimeout(async () => {
+      try {
+        await supabase.from("products").delete().eq("id", productId).eq("user_id", dataOwnerId);
+      } catch {
+        // If DB delete fails, restore in UI
+        setProducts(prev => {
+          if (prev.some(p => p.id === productId)) return prev;
+          return [...prev, deletedProduct];
+        });
+        toast.error("فشل حذف المنتج من قاعدة البيانات");
+      }
+      pendingDeleteRef.current = null;
+    }, 10000);
+
+    pendingDeleteRef.current = { id: productId, timer };
   };
 
   const handleSaveNewProduct = async () => {
@@ -5465,7 +5508,7 @@ const POSPage = () => {
           <p className="text-sm text-muted-foreground py-2">
             هل أنت متأكد من حذف "{confirmDeleteProduct?.name}"؟
             <br />
-            <span className="text-destructive text-xs">لا يمكن التراجع عن هذا الإجراء.</span>
+            <span className="text-muted-foreground text-xs">يمكنك التراجع خلال 10 ثوانٍ بعد الحذف.</span>
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProduct(null)}>إلغاء</Button>
