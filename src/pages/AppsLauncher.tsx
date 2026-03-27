@@ -8,7 +8,6 @@ import { useSubscription } from "@/hooks/useSubscription";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import { supabase } from "@/integrations/supabase/client";
-import ModuleIcon from "@/components/ModuleIcon";
 
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -62,13 +61,17 @@ const AppCard = ({
         onClick={handleClick}
         className={`w-full flex flex-col items-center gap-2 p-4 pb-3 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
       >
-        <div className="flex items-center justify-center">
+        <div
+          className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center transition-all duration-300 border ${
+            isDisabledOrLocked
+              ? "bg-muted/40 border-border/20"
+              : `${app.bgColor || "bg-primary/8"} border-border/40 group-hover:scale-110 group-hover:shadow-md`
+          }`}
+        >
           {isLocked ? (
-            <div className="w-[48px] h-[48px] rounded-xl flex items-center justify-center bg-muted/40 border border-border/20">
-              <Lock className="h-5 w-5 text-muted-foreground/40" />
-            </div>
+            <Lock className="h-5 w-5 text-muted-foreground/40" />
           ) : (
-            <ModuleIcon module={app.module} size="md" />
+            <app.icon className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
         </div>
 
