@@ -334,7 +334,7 @@ const PeriodicReportsPage = () => {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-[1200px] mx-auto pb-10 print:pb-0" dir="rtl">
       <div className="print:hidden">
-        <PageHeader title="التقارير الدورية" subtitle="قوالب تقارير جاهزة تُولّد تلقائياً حسب الفترة" breadcrumb={["التقارير", "التقارير الدورية"]} />
+        <PageHeader title="التقارير الدورية" breadcrumb={["التقارير", "التقارير الدورية"]} />
       </div>
 
       {/* Tabs: Generator / Archive */}
