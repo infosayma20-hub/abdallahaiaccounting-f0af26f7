@@ -28,6 +28,7 @@ interface InvoiceOrder {
   state: string;
   customer_name: string | null;
   customer_id: string | null;
+  contacts?: { phone: string | null } | null;
   session_id: string;
   is_return: boolean;
   recall_status: string | null;
