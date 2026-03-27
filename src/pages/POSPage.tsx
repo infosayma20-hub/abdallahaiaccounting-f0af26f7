@@ -3770,7 +3770,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[340px] lg:w-[380px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]" style={{ background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)/0.2) 100%)' }}>
+        <div className="w-[300px] lg:w-[340px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]" style={{ background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)/0.2) 100%)' }}>
           {/* Order Tabs — compact h-8 */}
           <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto h-8">
             <button
