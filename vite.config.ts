@@ -29,11 +29,11 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
       },
       manifest: {
-        name: "عبدالله AI للمحاسبة",
-        short_name: "عبدالله AI",
-        description: "تطبيق محاسبة ذكي مدعوم بالذكاء الاصطناعي",
-        theme_color: "#0D1B2A",
-        background_color: "#0D1B2A",
+        name: "AMWALI | أموالي",
+        short_name: "أموالي",
+        description: "AMWALI أموالي — نظام ERP متكامل للمحاسبة وإدارة الأعمال",
+        theme_color: "#0D1B2E",
+        background_color: "#0D1B2E",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
@@ -42,17 +42,17 @@ export default defineConfig(({ mode }) => ({
         lang: "ar",
         icons: [
           {
-            src: "/pwa-192x192.png",
+            src: "/icon-192.png",
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/icon-512.png",
             sizes: "512x512",
             type: "image/png",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
