@@ -361,7 +361,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </div>
 
       {/* ═══ Navigation ═══ */}
-      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin" style={{ scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+      <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
         {/* Enabled items per section */}
         {navigationSections.map((section, sectionIdx) => {
           const enabledItems = section.items.filter(item => !isItemDisabled(item));
@@ -372,7 +372,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 <div style={{ height: 1, background: SEPARATOR, margin: "8px 16px" }} />
               )}
               {!collapsed && section.sectionTitle && enabledItems.length > 0 && (
-                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em", padding: "16px 16px 6px", margin: 0 }}>
+                <p style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.3)", padding: "16px 12px 6px", margin: 0 }}>
                   {section.sectionTitle}
                 </p>
               )}
