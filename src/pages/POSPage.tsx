@@ -3761,19 +3761,9 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[270px] lg:w-[310px] flex flex-col border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.15)]">
-          {/* Order Tabs — compact h-8 */}
-          <div className="flex items-center border-b border-white/10 shrink-0 overflow-x-auto h-8">
-            <button
-              onClick={() => setShowAllOrders(true)}
-              className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-8 px-2 flex-shrink-0"
-              title="عرض جميع الطلبات"
-            >
-              <LayoutGrid className="w-3 h-3" />
-              <span className="text-[10px] font-medium">طلبات</span>
-            </button>
-            <div className="w-px h-4 bg-border flex-shrink-0" />
-
+        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+          {/* Order Tabs */}
+          <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0">
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
               const itemCount = order.cart.reduce((s, i) => s + i.qty, 0);
@@ -3781,17 +3771,17 @@ const POSPage = () => {
                 <button
                   key={order.id}
                   onClick={() => setActiveOrderIndex(idx)}
-                  className={`group relative flex items-center gap-1 px-2 h-8 text-[11px] font-medium whitespace-nowrap transition-all border-b-2 ${
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all ${
                     isActive
-                      ? "border-white text-white bg-white/10"
-                      : "border-transparent text-white/50 hover:text-white/80"
+                      ? "text-[#0D1B2E]"
+                      : "text-white/50 hover:text-white/70"
                   }`}
+                  style={isActive ? { background: 'white' } : {}}
                 >
-                  <ShoppingCart className="h-3 w-3" />
-                  <span className="max-w-[80px] truncate">{order.customerName || order.name}</span>
+                  <span>{order.customerName || order.name}</span>
                   {itemCount > 0 && (
-                    <span className={`text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
-                      isActive ? "bg-white/20 text-white" : "bg-white/10 text-white/60"
+                    <span className={`text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
+                      isActive ? "bg-[#0D1B2E]/10 text-[#0D1B2E]" : "bg-white/10 text-white/50"
                     }`}>
                       {itemCount}
                     </span>
@@ -3799,7 +3789,7 @@ const POSPage = () => {
                   {orders.length > 1 && (
                     <span
                       onClick={(e) => { e.stopPropagation(); removeOrder(idx); }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-destructive transition-all"
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"
                     >
                       <X className="h-2.5 w-2.5" />
                     </span>
@@ -3814,10 +3804,11 @@ const POSPage = () => {
                 setOrders(prev => [...prev, newOrder]);
                 setActiveOrderIndex(orders.length);
               }}
-              className="h-8 px-2 flex items-center justify-center text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
+              className="h-8 w-8 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors shrink-0 rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.08)' }}
               title="طلب جديد"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
 
@@ -3838,37 +3829,52 @@ const POSPage = () => {
             onRemoveOrder={(idx) => removeOrder(idx)}
           />
 
-          {/* Cart Header */}
-          <div className="h-10 px-3 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              {activeOrder.tableName && (
-                <span className="text-xs font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
-                  <UtensilsCrossed className="h-3 w-3" />
-                  {activeOrder.tableName}{activeOrder.customerName ? ` - ${activeOrder.customerName}` : ""}
-                </span>
-              )}
-              {!activeOrder.tableName && activeOrder.customerName ? (
-                <span className="text-xs font-medium text-foreground flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {activeOrder.customerName}
-                </span>
-              ) : !activeOrder.tableName ? (
-                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
-              ) : null}
-              {activeOrder.orderType !== "dine_in" && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                  activeOrder.orderType === "delivery" 
-                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" 
-                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400"
-                }`}>
-                  {activeOrder.orderType === "delivery" ? "🚚 توصيل" : "🛍️ استلام"}
-                </span>
-              )}
-            </div>
+          {/* Order Type Pills */}
+          <div className="flex items-center gap-2 px-3 pb-2 shrink-0">
+            {(["takeaway", "delivery", "dine_in"] as const).map(type => {
+              const isActive = type === "dine_in" ? !!activeOrder.tableId : (activeOrder.orderType === type && !activeOrder.tableId);
+              const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    if (type === "dine_in") {
+                      setShowTablePicker(!showTablePicker);
+                    } else {
+                      updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }));
+                    }
+                  }}
+                  className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
+                  style={isActive
+                    ? { background: '#1d4ed8', color: 'white' }
+                    : { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }
+                  }
+                >
+                  {labels[type]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Customer info */}
+          <div className="px-3 pb-1 shrink-0">
+            {activeOrder.customerName && (
+              <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1">
+                <User className="h-3 w-3" />
+                <span>{activeOrder.customerName}</span>
+              </div>
+            )}
+            {activeOrder.tableName && (
+              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#93c5fd' }}>
+                <UtensilsCrossed className="h-3 w-3" />
+                <span>{activeOrder.tableName}</span>
+              </div>
+            )}
             {cart.length > 0 && (
               <button
                 onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch(""); }}
-                className="text-[11px] text-destructive/70 hover:text-destructive transition-colors flex items-center gap-1"
+                className="text-[11px] transition-colors flex items-center gap-1"
+                style={{ color: '#fca5a5' }}
               >
                 <Trash2 className="h-3 w-3" />
                 إفراغ
@@ -3892,14 +3898,14 @@ const POSPage = () => {
 
           {/* Cart Items */}
           <ScrollArea className="flex-1">
-            <div className="p-2">
+            <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
-                  <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground/15" />
-                  <p className="text-sm font-medium text-muted-foreground/60">ابدأ بإضافة المنتجات</p>
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>ابدأ بإضافة المنتجات</p>
                 </div>
               ) : (
-                <div className="space-y-0.5">
+                <div>
                   {cart.map((item, index) => {
                     const product = products.find(p => p.id === item.product_id);
                     const catConfig = product ? getCatConfig(product.category) : DEFAULT_CAT_CONFIG;
@@ -3911,82 +3917,43 @@ const POSPage = () => {
                         initial={{ opacity: 0, x: -16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2 }}
-                        className={`p-2.5 rounded-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-primary/5 ring-1 ring-primary/20"
-                            : "hover:bg-muted/40"
-                        }`}
+                        className="py-3 cursor-pointer transition-all"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
                         onClick={() => setSelectedCartIndex(isSelected ? null : index)}
                       >
-                        <div className="flex items-start gap-2.5">
-                          {/* Thumbnail */}
-                          <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: catConfig.color + "12" }}>
-                            {product?.image_url ? (
-                              <img src={product.image_url} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <CatIcon className="h-4 w-4" style={{ color: catConfig.color + "80" }} />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-1">
-                              <p className="text-[13px] font-semibold text-foreground truncate leading-tight">{item.name}</p>
-                              {(isAdmin || posPerms.can_remove_cart_items) && (
-                              <button
-                                className="p-0.5 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
-                                onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <input
-                                type="number"
-                                value={item.unit_price}
-                                onChange={(e) => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, Number(e.target.value))); }}
-                                onClick={(e) => e.stopPropagation()}
-                                disabled={!isAdmin && !posPerms.can_edit_prices}
-                                className="w-14 text-[11px] tabular-nums bg-transparent border-b border-dashed border-border text-muted-foreground outline-none focus:border-primary/40 py-0 px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                min={0}
-                                step={0.01}
-                              />
-                              <span className="text-[10px] text-muted-foreground/50">₪</span>
-                              {item.discount_pct > 0 && (
-                                <span className="text-[10px] text-destructive/70 font-medium">-{item.discount_pct}%</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Qty + total */}
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="flex items-center bg-muted/60 rounded-lg overflow-hidden">
+                        {/* Item name + remove */}
+                        <div className="flex items-start justify-between gap-1 mb-1.5">
+                          <p className="text-[14px] font-medium truncate leading-tight" style={{ color: 'white' }}>{item.name}</p>
+                          {(isAdmin || posPerms.can_remove_cart_items) && (
                             <button
-                              className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                              className="p-0.5 transition-colors shrink-0"
+                              style={{ color: 'rgba(255,255,255,0.3)' }}
+                              onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        {/* Price + Qty row */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                          <div className="flex items-center gap-0">
+                            <button
+                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-8 text-center text-xs font-bold tabular-nums">{item.qty}</span>
+                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: 'white' }}>{item.qty}</span>
                             <button
-                              className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                              className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
                             >
                               <Plus className="h-3 w-3" />
                             </button>
                           </div>
-                          <motion.span
-                            key={item.total}
-                            initial={{ scale: 1.1, color: "hsl(var(--primary))" }}
-                            animate={{ scale: 1, color: "hsl(var(--foreground))" }}
-                            className="text-sm font-bold tabular-nums"
-                          >
-                            ₪{item.total.toFixed(2)}
-                          </motion.span>
                         </div>
 
                         {/* Modifier sub-items */}
@@ -4039,141 +4006,82 @@ const POSPage = () => {
             </div>
           </ScrollArea>
 
-          {/* Bottom area - Customer + Note + Totals + Actions */}
-          <div className="border-t border-white/10 shrink-0" style={{ background: 'rgba(255,255,255,0.03)' }}>
-            {/* Order Type + Notes row */}
-            {(
-              <div className="px-2 pt-1 pb-1 space-y-1">
-                {/* Order note - always visible as input */}
+          {/* Footer */}
+          <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            {/* Delivery address */}
+            {activeOrder.orderType === "delivery" && (
+              <div className="px-3 pt-2">
                 <Input
-                  value={orderNote}
-                  onChange={(e) => setOrderNote(e.target.value)}
-                  placeholder="📝 ملاحظة على الفاتورة..."
-                  className="h-6 text-[10px] bg-muted/30 border-dashed border-border"
+                  value={activeOrder.deliveryAddress}
+                  onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
+                  placeholder="📍 عنوان التوصيل..."
+                  className="h-7 text-[11px]"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
                 />
+              </div>
+            )}
 
-                {/* Order type row */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  {/* Table Picker */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowTablePicker(!showTablePicker)}
-                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all text-[10px] ${
-                        activeOrder.tableId
-                          ? "bg-primary/15 text-primary border border-primary/30 font-bold"
-                          : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      <span className="text-[9px]">🍽️</span>
-                      {activeOrder.tableName || "طاولة"}
-                      <ChevronDown className="h-2 w-2" />
-                    </button>
-                    {showTablePicker && (
-                      <div className="absolute top-full right-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px] max-h-[250px] overflow-y-auto">
-                        {availableTables.length === 0 && (
-                          <p className="text-[11px] text-muted-foreground p-2 text-center">جاري التحميل...</p>
-                        )}
-                        {activeOrder.tableId && (
-                          <button
-                            onClick={() => {
-                              updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
-                              setShowTablePicker(false);
-                            }}
-                            className="w-full text-right text-xs px-3 py-2 rounded-md hover:bg-destructive/10 text-destructive flex items-center gap-2"
-                          >
-                            <X className="h-3 w-3" />
-                            إلغاء الطاولة
-                          </button>
-                        )}
-                        {availableTables.map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => {
-                              updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
-                              setShowTablePicker(false);
-                            }}
-                            className={`w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2 ${
-                              t.id === activeOrder.tableId
-                                ? "bg-primary/15 text-primary font-bold"
-                                : t.status === "occupied"
-                                ? "text-destructive/70 hover:bg-destructive/5"
-                                : "hover:bg-muted/60"
-                            }`}
-                          >
-                            <span>{t.name}</span>
-                            {t.status === "occupied" && <span className="text-[10px]">مشغولة</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Takeaway + Delivery */}
-                  {(["takeaway", "delivery"] as const).map(type => {
-                    const isActive = activeOrder.orderType === type && !activeOrder.tableId;
-                    const labels: Record<string, { label: string; icon: string }> = {
-                      takeaway: { label: "استلام", icon: "🛍️" },
-                      delivery: { label: "توصيل", icon: "🚚" },
-                    };
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }))}
-                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all text-[10px] ${
-                          isActive
-                            ? "bg-primary/15 text-primary border border-primary/30 font-bold"
-                            : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
-                        }`}
-                      >
-                        <span className="text-[9px]">{labels[type].icon}</span>
-                        {labels[type].label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Customer phone display */}
-                {activeOrder.customerPhone && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 rounded px-2 py-0.5">
-                    <Phone className="h-2.5 w-2.5 shrink-0" />
-                    <span className="font-mono">{activeOrder.customerPhone}</span>
-                  </div>
+            {/* Table picker dropdown */}
+            {showTablePicker && (
+              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
+                {availableTables.length === 0 && (
+                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
                 )}
-
-                {/* Delivery address input */}
-                {activeOrder.orderType === "delivery" && (
-                  <Input
-                    value={activeOrder.deliveryAddress}
-                    onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
-                    placeholder="📍 عنوان التوصيل..."
-                    className="h-6 text-[10px] bg-amber-50 dark:bg-amber-950/20 border-amber-300/50"
-                    autoFocus={!activeOrder.deliveryAddress}
-                  />
+                {activeOrder.tableId && (
+                  <button
+                    onClick={() => {
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
+                      setShowTablePicker(false);
+                    }}
+                    className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
+                    style={{ color: '#fca5a5' }}
+                  >
+                    <X className="h-3 w-3" />
+                    إلغاء الطاولة
+                  </button>
                 )}
+                {availableTables.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
+                      setShowTablePicker(false);
+                    }}
+                    className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
+                    style={{
+                      color: t.id === activeOrder.tableId ? '#93c5fd' : t.status === "occupied" ? '#fca5a5' : 'rgba(255,255,255,0.7)',
+                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.15)' : 'transparent',
+                    }}
+                  >
+                    <span>{t.name}</span>
+                    {t.status === "occupied" && <span className="text-[10px]">مشغولة</span>}
+                  </button>
+                ))}
               </div>
             )}
 
             {/* Totals */}
-            <div className="px-2 py-1.5 space-y-0.5 border-t border-white/10">
+            <div className="px-3 py-3">
               {cartTotals.tax > 0 && (
-                <div className="flex justify-between text-[10px] text-muted-foreground">
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   <span>الضريبة</span>
                   <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
                 </div>
               )}
               {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-[10px] text-destructive/70">
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#fca5a5' }}>
                   <span>الخصم</span>
                   <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between items-baseline">
-                <span className="text-xs text-muted-foreground">الإجمالي</span>
+                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>الإجمالي</span>
                 <motion.span
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className="text-xl font-bold text-white tabular-nums"
+                  className="text-[20px] font-bold tabular-nums"
+                  style={{ color: 'white' }}
                 >
                   ₪{cartTotals.total.toFixed(2)}
                 </motion.span>
@@ -4181,119 +4089,81 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="px-1.5 pt-0 pb-1.5 space-y-1">
-              {/* Top row: Kitchen + Save */}
-              {cart.length > 0 && !isCallCenter && (
-                <div className="flex gap-1">
+            <div className="px-3 pb-3 space-y-2">
+              {/* Pay button */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                style={{ backgroundColor: '#111827', color: 'white' }}
+                disabled={cart.length === 0 || !session}
+                onClick={() => setShowPayment(true)}
+              >
+                F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
+              </motion.button>
+
+              {/* Three action buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveToTable}
+                  disabled={savingToTable || cart.length === 0}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                >
+                  F10 حفظ
+                </button>
+                <button
+                  onClick={handleSendToKitchen}
+                  disabled={cart.length === 0}
+                  className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                >
+                  F9 طباعة
+                </button>
+                {(isAdmin || isCallCenter) && (
                   <button
-                    onClick={handleSendToKitchen}
-                    className="flex-1 h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
+                    onClick={() => setShowCallCenterDispatch(true)}
+                    disabled={!session || cart.length === 0}
+                    className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                   >
-                    🖨️ طباعة
-                    <span className="text-[8px] bg-amber-500/20 rounded px-0.5 font-mono">F9</span>
+                    تحويل
                   </button>
-                  <button
-                    onClick={handleSaveToTable}
-                    disabled={savingToTable}
-                    className="flex-1 h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
-                  >
-                    💾 حفظ
-                    <span className="text-[8px] bg-sky-500/20 rounded px-0.5 font-mono">F10</span>
-                  </button>
-                </div>
-              )}
-              {/* Quick Save & Print for Call Center orders */}
+                )}
+              </div>
+
+              {/* Call Center extras */}
               {cart.length > 0 && activeOrder.callCenterOrderId && (
                 <button
                   onClick={handleQuickSaveAndPrint}
                   disabled={quickProcessing || processing || !session}
-                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
+                  className="w-full h-10 rounded-lg text-[12px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40"
                   style={{ backgroundColor: "#7C3AED" }}
                 >
                   {quickProcessing ? (
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Printer className="h-2.5 w-2.5" />
+                      <Printer className="h-3 w-3" />
                       حفظ وطباعة
-                      <Badge variant="outline" className="text-[8px] border-white/30 text-white px-0.5 py-0 h-3.5">
-                        {activeOrder.callCenterPaymentMethod === "cash" ? "💵" : "💳"}
-                      </Badge>
                     </>
                   )}
                 </button>
               )}
-              {/* Call Center Dispatch Button */}
-               {cart.length > 0 && (isAdmin || isCallCenter) && (
-                <button
-                  onClick={() => setShowCallCenterDispatch(true)}
-                  disabled={!session}
-                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 border border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-500/20 transition-all disabled:opacity-40"
-                >
-                  <Send className="h-2.5 w-2.5" />
-                  تحويل للفرع
-                  <span className="text-[8px] bg-orange-500/20 rounded px-0.5 font-mono">F2</span>
-                </button>
-              )}
-              {/* Dispatched Orders Log for Call Center */}
               {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-6 rounded text-[10px] font-bold flex items-center justify-center gap-1 border border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all relative"
+                  className="w-full h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
                 >
-                  <ClipboardList className="h-2.5 w-2.5" />
+                  <ClipboardList className="h-3 w-3" />
                   سجل المحوّلة
                   {pendingDispatchCount > 0 && (
-                    <Badge className="text-[8px] px-0.5 py-0 h-3.5 bg-amber-500 text-white animate-pulse">
+                    <Badge className="text-[8px] px-1 py-0 h-4 bg-amber-500 text-white animate-pulse">
                       {pendingDispatchCount}
                     </Badge>
                   )}
                 </button>
               )}
-              {/* Bottom row: Delete + Pay */}
-              <div className="flex gap-1">
-                <button
-                  disabled={cart.length === 0}
-                  onClick={async () => {
-                    const tableId = activeOrder.tableId;
-                    setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
-                    setCustomerDataDiscount(null);
-                    setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: o.tableName ? o.tableName : `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch("");
-                    if (tableId) {
-                      const { data: existingOrder } = await supabase
-                        .from("pos_orders")
-                        .select("id")
-                        .eq("table_id", tableId)
-                        .in("state", ["draft", "open"] as any)
-                        .maybeSingle();
-                      if (existingOrder) {
-                        await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
-                        await supabase.from("pos_orders").update({ state: "cancelled" } as any).eq("id", existingOrder.id);
-                      }
-                      await supabase.from("restaurant_tables").update({
-                        status: "available", current_order_id: null, current_guests: 0, occupied_at: null,
-                      }).eq("id", tableId);
-                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null }));
-                      toast.success("تم إفراغ الطاولة وإرجاعها فارغة");
-                    }
-                  }}
-                  className="h-7 w-7 rounded flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-                
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className="flex-1 h-7 rounded text-[11px] font-bold flex items-center justify-center gap-1 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
-                  style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
-                  disabled={cart.length === 0 || !session}
-                  onClick={() => setShowPayment(true)}
-                >
-                  <span className="text-[9px] bg-white/20 rounded px-0.5 font-mono">F12</span>
-                  دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
-                  <Printer className="h-3 w-3 opacity-70" />
-                </motion.button>
-              </div>
             </div>
           </div>
         </div>
