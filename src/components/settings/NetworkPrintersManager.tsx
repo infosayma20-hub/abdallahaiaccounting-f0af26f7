@@ -213,7 +213,7 @@ export default function NetworkPrintersManager() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              type: printer.printer_key === "receipt" ? "receipt" : "kitchen",
+              type: printer.printer_type === "receipt" ? "receipt" : "kitchen",
               order: {
                 orderNumber: "TEST",
                 branchName: "اختبار طباعة",
