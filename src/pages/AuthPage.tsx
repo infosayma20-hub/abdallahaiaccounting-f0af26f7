@@ -253,8 +253,8 @@ const AuthPage = () => {
           <div className="w-full max-w-[380px]">
 
             {/* Logo — large */}
-            <div className="text-center mb-10">
-              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-32 mx-auto object-contain" />
+            <div className="text-center mb-4">
+              <img src="/logos/amwali-navy.jpg" alt="AMWALI" className="h-40 mx-auto object-contain" />
             </div>
 
             {/* Header — thin font */}
