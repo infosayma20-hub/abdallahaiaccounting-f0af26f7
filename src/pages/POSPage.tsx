@@ -1368,8 +1368,9 @@ const POSPage = () => {
     setPosCustomerResults((data as POSCustomer[]) || []);
   }, [dataOwnerId]);
 
-  const handleQuickAddCustomer = async () => {
-    if (!newCustomerName.trim() || !dataOwnerId) return;
+  const handleQuickAddCustomer = async (overrideName?: string) => {
+    const nameToUse = overrideName || newCustomerName;
+    if (!nameToUse.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
     try {
       // Save only to pos_customers (separate from main contacts)
@@ -1377,7 +1378,7 @@ const POSPage = () => {
         .from("pos_customers")
         .insert({
           user_id: dataOwnerId,
-          name: newCustomerName.trim(),
+          name: nameToUse.trim(),
           whatsapp: newCustomerPhone.trim() || null,
           address: newCustomerAddress.trim() || null,
           total_visits: 0,
@@ -3210,17 +3211,36 @@ const POSPage = () => {
                   ))}
                 </>
               )}
-              <button
-                onClick={() => {
-                  setNewCustomerName(customerSearch || "");
-                  setShowQuickAddCustomer(true);
-                  setShowContactDropdown(false);
-                }}
-                className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
-              >
-                <PlusCircle className="h-3 w-3 shrink-0" />
-                <span>إضافة زبون جديد</span>
-              </button>
+              {/* Inline add new customer with phone */}
+              <div className="border-t border-border px-3 py-2 bg-muted/20">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <PlusCircle className="h-3 w-3 text-primary shrink-0" />
+                  <span className="text-[11px] font-medium text-primary">إضافة "{customerSearch}" كزبون جديد</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="tel"
+                    placeholder="رقم الهاتف (اختياري)"
+                    value={newCustomerPhone}
+                    onChange={e => setNewCustomerPhone(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddCustomer(customerSearch || ""); } }}
+                    className="flex-1 h-6 rounded border border-border bg-background px-2 text-[11px] focus:outline-none focus:border-primary/50 min-w-0"
+                    dir="ltr"
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleQuickAddCustomer(customerSearch || "");
+                    }}
+                    disabled={savingCustomer}
+                    className="h-6 px-2 rounded bg-primary text-primary-foreground text-[10px] font-medium hover:bg-primary/90 transition shrink-0 flex items-center gap-1"
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                    حفظ
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -5420,7 +5440,7 @@ const POSPage = () => {
           <DialogFooter className="flex gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>إلغاء</Button>
             <Button
-              onClick={handleQuickAddCustomer}
+              onClick={() => handleQuickAddCustomer()}
               disabled={!newCustomerName.trim() || savingCustomer}
               className="gap-2"
             >
