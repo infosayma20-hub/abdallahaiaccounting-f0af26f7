@@ -54,7 +54,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     has_tasks: false,
   }), [settings]);
 
+  const hiddenApps: string[] = useMemo(() => {
+    return (settings as any)?.hidden_apps || [];
+  }, [settings]);
+
+  const isItemHidden = (item: NavItem) => hiddenApps.includes(item.id);
+
   const isItemDisabled = (item: NavItem) => {
+    if (isItemHidden(item)) return true;
     if (!item.enableSetting) return false;
     if (isTrial) return false;
     return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
