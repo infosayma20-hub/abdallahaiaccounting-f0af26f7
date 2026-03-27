@@ -101,7 +101,7 @@ export function printThermalContent(bodyHtml: string, options: ThermalPrintOptio
     window.setTimeout(() => {
       printWindow.print();
       window.setTimeout(cleanup, cleanupDelayMs);
-    }, 250);
+    }, 80);
   };
 
   iframe.onload = triggerPrint;
@@ -116,5 +116,5 @@ export function printThermalContent(bodyHtml: string, options: ThermalPrintOptio
   iframeDoc.write(html);
   iframeDoc.close();
 
-  window.setTimeout(triggerPrint, 800);
+  window.setTimeout(triggerPrint, 300);
 }
