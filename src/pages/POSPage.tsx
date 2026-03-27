@@ -4126,9 +4126,13 @@ const POSPage = () => {
             <div className="px-3 pb-3 space-y-2">
               {/* Pay button */}
               <motion.button
-                whileTap={{ scale: 0.97 }}
-                className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:pointer-events-none"
-                style={{ backgroundColor: '#111827', color: 'white' }}
+                whileTap={{ scale: 0.99 }}
+                className="w-full h-[48px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+                style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a'; }}
+                onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#166534'; }}
+                onMouseUp={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
                 disabled={cart.length === 0 || !session}
                 onClick={() => setShowPayment(true)}
               >
