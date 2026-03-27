@@ -280,7 +280,7 @@ const AppLogo = () => {
       {company.logo_url ? (
         <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ border: "1px solid hsl(var(--border))" }} />
       ) : (
-        <img src="/q-icon-navy.png" alt="قيود" className="w-8 h-8 object-contain" />
+        <img src="/q-icon-navy.png" alt="أموالي" className="w-8 h-8 object-contain" />
       )}
     </button>
   );

@@ -181,7 +181,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
           letterSpacing: 1,
         }}
       >
-        AMWALI | قيود
+        AMWALI | أموالي
       </p>
     </div>
   );

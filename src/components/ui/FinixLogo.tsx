@@ -14,7 +14,7 @@ export function FinixLogo({ variant = 'full', size = 'md', className = '' }: Qoy
   const s = sizes[size];
 
   if (variant === 'icon') {
-    return <img src="/logo-full.svg" alt="قيود" width={s.width} height={s.width} className={className} style={{ display: 'inline-block' }} />;
+    return <img src="/logo-full.svg" alt="أموالي" width={s.width} height={s.width} className={className} style={{ display: 'inline-block' }} />;
   }
 
   if (variant === 'white') {

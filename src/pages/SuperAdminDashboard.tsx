@@ -2178,7 +2178,7 @@ export default function SuperAdminDashboard() {
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/q-icon.svg" alt="قيود" className="w-8 h-8 sm:w-9 sm:h-9" />
+            <img src="/q-icon.svg" alt="أموالي" className="w-8 h-8 sm:w-9 sm:h-9" />
             <h1 className="text-base sm:text-lg font-bold hidden sm:block" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>AMWALI</h1>
             <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold" style={{ background: "#4A9EE8", color: "#0A2342" }}>
               Super Admin

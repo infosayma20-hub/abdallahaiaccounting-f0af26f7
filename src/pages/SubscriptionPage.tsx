@@ -341,7 +341,7 @@ const SubscriptionPage = () => {
 
         {/* Addons Section */}
         <div className="space-y-5">
-          <h2 className="text-2xl font-medium text-center text-foreground">إضافات قيود</h2>
+          <h2 className="text-2xl font-medium text-center text-foreground">إضافات أموالي</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {addonsConfig.map((addon) => {
               const count = addonCounts[addon.key] || 0;
@@ -409,7 +409,7 @@ const SubscriptionPage = () => {
         <div className="space-y-5 pt-6">
           <div className="text-center">
             <h2 className="text-2xl font-medium text-foreground">الأسئلة الأكثر شيوعاً</h2>
-            <p className="text-sm text-muted-foreground mt-1">كل ما تريد معرفته حول مزايا الاشتراك في قيود</p>
+            <p className="text-sm text-muted-foreground mt-1">كل ما تريد معرفته حول مزايا الاشتراك في أموالي</p>
           </div>
 
           <div className="max-w-3xl mx-auto space-y-3">

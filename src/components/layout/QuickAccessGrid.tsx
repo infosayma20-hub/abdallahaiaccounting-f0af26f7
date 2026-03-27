@@ -101,7 +101,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
         {/* Header */}
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-1.5">
-            <img src="/logo-icon-white.svg" alt="قيود" className="h-3.5 w-3.5 object-contain" />
+            <img src="/logo-icon-white.svg" alt="أموالي" className="h-3.5 w-3.5 object-contain" />
             <span className="text-[11px] font-bold text-sidebar-foreground">وصول سريع</span>
           </div>
           <button
