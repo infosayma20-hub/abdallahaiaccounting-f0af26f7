@@ -251,28 +251,32 @@ export default function POSCustomerDatabasePage() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
-      <div className="border-b border-border bg-card px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                قاعدة بيانات زبائن نقطة البيع
-              </h1>
-              <p className="text-xs text-muted-foreground">{customers.length} زبون مسجل</p>
+      {/* Header Banner */}
+      <div className="bg-gradient-to-l from-primary/10 via-primary/5 to-transparent border-b border-border">
+        <div className="px-4 sm:px-6 py-4 sm:py-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-bold text-foreground">قاعدة بيانات زبائن نقطة البيع</h1>
+                  <p className="text-xs text-muted-foreground mt-0.5">{customers.length} زبون مسجل</p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
-              <Download className="h-3.5 w-3.5" /> تصدير Excel
-            </Button>
-            <Button size="sm" onClick={() => setShowAdd(true)} className="gap-1.5">
-              <PlusCircle className="h-3.5 w-3.5" /> إضافة زبون
-            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5 flex-1 sm:flex-none">
+                <Download className="h-3.5 w-3.5" /> تصدير Excel
+              </Button>
+              <Button size="sm" onClick={() => setShowAdd(true)} className="gap-1.5 flex-1 sm:flex-none">
+                <PlusCircle className="h-3.5 w-3.5" /> إضافة زبون
+              </Button>
+            </div>
           </div>
         </div>
       </div>
