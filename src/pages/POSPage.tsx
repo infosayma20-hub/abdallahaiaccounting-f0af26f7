@@ -3915,7 +3915,15 @@ const POSPage = () => {
             )}
             {cart.length > 0 && (
               <button
-                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch(""); }}
+                onClick={async () => {
+                  const tId = activeOrder.tableId;
+                  setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); setCustomerSearch("");
+                  updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", tableId: null, tableName: null, guestCount: 1, guestName: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` }));
+                  if (tId) {
+                    await supabase.from("restaurant_tables").update({ status: "available" } as any).eq("id", tId);
+                    setAvailableTables(prev => prev.map(t => t.id === tId ? { ...t, status: "available" } : t));
+                  }
+                }}
                 className="text-[11px] transition-colors flex items-center gap-1"
                 style={{ color: '#fca5a5' }}
               >
