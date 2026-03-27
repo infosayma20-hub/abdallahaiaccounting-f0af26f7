@@ -3933,6 +3933,7 @@ const POSPage = () => {
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
+                        </div>
                         {/* Price + Qty row */}
                         <div className="flex items-center justify-between">
                           <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
