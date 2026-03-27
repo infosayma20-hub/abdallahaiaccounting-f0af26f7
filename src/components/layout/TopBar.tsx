@@ -214,10 +214,10 @@ const QuickAccessButton = () => {
             width: 36,
             height: 36,
             borderRadius: 10,
-            background: open ? "rgba(201,168,76,0.25)" : "rgba(201,168,76,0.15)",
+            background: open ? "rgba(74,158,232,0.25)" : "rgba(74,158,232,0.15)",
           }}
-          onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = "rgba(201,168,76,0.25)"; }}
-          onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "rgba(201,168,76,0.15)"; }}
+          onMouseEnter={(e) => { if (!open) e.currentTarget.style.background = "rgba(74,158,232,0.25)"; }}
+          onMouseLeave={(e) => { if (!open) e.currentTarget.style.background = "rgba(74,158,232,0.15)"; }}
         >
           <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} style={{ color: "#4A9EE8" }} />
         </button>

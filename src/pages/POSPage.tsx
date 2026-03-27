@@ -3235,7 +3235,7 @@ const POSPage = () => {
               onClick={() => setShowOpsDropdown(v => !v)}
               onBlur={() => setTimeout(() => setShowOpsDropdown(false), 150)}
               className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
-              style={{ border: "1px solid rgba(201,168,76,0.4)" }}
+              style={{ border: "1px solid rgba(74,158,232,0.4)" }}
               title="عمليات"
             >
               <MoreHorizontal className="h-4 w-4" style={{ color: "#4A9EE8" }} />

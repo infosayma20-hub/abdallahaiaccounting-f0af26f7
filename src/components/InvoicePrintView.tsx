@@ -97,12 +97,12 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Top-right ornament */}
           <div style={{
             position: "absolute", top: "-20px", right: "-20px", width: "120px", height: "120px",
-            borderRadius: "50%", border: "1px solid rgba(201,168,76,0.08)",
+            borderRadius: "50%", border: "1px solid rgba(74,158,232,0.08)",
             zIndex: 0, pointerEvents: "none",
           }} />
           <div style={{
             position: "absolute", top: "0px", right: "0px", width: "80px", height: "80px",
-            borderRadius: "50%", border: "1px solid rgba(201,168,76,0.06)",
+            borderRadius: "50%", border: "1px solid rgba(74,158,232,0.06)",
             zIndex: 0, pointerEvents: "none",
           }} />
           {/* Bottom-left ornament */}
@@ -119,7 +119,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Subtle diamond pattern - top */}
           <div style={{
             position: "absolute", top: "68px", left: "0", right: "0", height: "1px",
-            background: "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(201,168,76,0.08) 18px, rgba(201,168,76,0.08) 20px)",
+            background: "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(74,158,232,0.08) 18px, rgba(74,158,232,0.08) 20px)",
             zIndex: 0, pointerEvents: "none",
           }} />
           {/* Subtle diamond pattern - bottom */}

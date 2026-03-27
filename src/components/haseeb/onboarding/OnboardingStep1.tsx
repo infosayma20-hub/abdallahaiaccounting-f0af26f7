@@ -60,7 +60,7 @@ const OnboardingStep1 = ({ userName, onNext }: Props) => {
           className="absolute inset-0 opacity-10"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 20% 50%, rgba(201,168,76,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(201,168,76,0.2) 0%, transparent 40%)",
+              "radial-gradient(circle at 20% 50%, rgba(74,158,232,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(74,158,232,0.2) 0%, transparent 40%)",
           }}
         />
 

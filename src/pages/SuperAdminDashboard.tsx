@@ -2315,9 +2315,9 @@ export default function SuperAdminDashboard() {
                         </div>
                         {portalMems.map(pm => (
                           <div key={`portal-m-${pm.id}`} className="p-3 flex items-center gap-2"
-                            style={{ borderBottom: "1px solid var(--sa-divider)", borderRight: "3px solid rgba(201,168,76,0.25)" }}>
+                            style={{ borderBottom: "1px solid var(--sa-divider)", borderRight: "3px solid rgba(74,158,232,0.25)" }}>
                             <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
-                              style={{ background: "rgba(201,168,76,0.15)", color: "#4A9EE8" }}>{pm.full_name?.[0] || '?'}</div>
+                              style={{ background: "rgba(74,158,232,0.15)", color: "#4A9EE8" }}>{pm.full_name?.[0] || '?'}</div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[13px] truncate" style={{ color: "var(--sa-text-secondary)" }}>{pm.full_name}</span>
@@ -2375,7 +2375,7 @@ export default function SuperAdminDashboard() {
                                 <tr key={`portal-${pm.id}`}
                                   style={{
                                     borderBottom: "1px solid var(--sa-divider)",
-                                    borderRight: "3px solid rgba(201,168,76,0.25)",
+                                    borderRight: "3px solid rgba(74,158,232,0.25)",
                                   }}
                                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
                                   onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
@@ -2383,7 +2383,7 @@ export default function SuperAdminDashboard() {
                                   <td className="px-4 py-2.5" style={{ paddingRight: 40 }}>
                                     <div className="flex items-center gap-2">
                                       <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold"
-                                        style={{ background: "rgba(201,168,76,0.15)", color: "#4A9EE8" }}>
+                                        style={{ background: "rgba(74,158,232,0.15)", color: "#4A9EE8" }}>
                                         {pm.full_name?.[0] || '?'}
                                       </div>
                                       <div>

@@ -125,8 +125,8 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
                 border: "0.5px solid rgba(255,255,255,0.1)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(201,168,76,0.12)";
-                e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)";
+                e.currentTarget.style.background = "rgba(74,158,232,0.12)";
+                e.currentTarget.style.borderColor = "rgba(74,158,232,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "rgba(255,255,255,0.05)";

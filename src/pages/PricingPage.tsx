@@ -284,7 +284,7 @@ const PricingPage = () => {
                         isCurrent
                           ? "bg-gray-100 text-gray-400 cursor-default"
                           : isPro
-                          ? "bg-gradient-to-r from-[#4A9EE8] to-[#B8972E] text-white shadow-[0_4px_15px_rgba(201,168,76,0.4)] hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(201,168,76,0.5)]"
+                          ? "bg-gradient-to-r from-[#4A9EE8] to-[#B8972E] text-white shadow-[0_4px_15px_rgba(74,158,232,0.4)] hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(74,158,232,0.5)]"
                           : "border-2 border-[#0A2342] text-[#0A2342] hover:bg-[#0A2342] hover:text-white"
                       }`}
                     >

@@ -263,7 +263,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 rounded-xl p-2.5" style={{ background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.3)" }}>
+                <div className="mt-3 rounded-xl p-2.5" style={{ background: "rgba(74,158,232,0.15)", border: "1px solid rgba(74,158,232,0.3)" }}>
                   <p className="text-xs" style={{ color: "hsl(var(--finix-gold))" }}>
                     💡 {data.receivables > 0 ? `ذمم مستحقة ${fmt(data.receivables)} — تابع التحصيل` : "أداء مالي ممتاز!"}
                   </p>
