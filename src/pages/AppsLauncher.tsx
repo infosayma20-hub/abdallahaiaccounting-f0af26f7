@@ -10,7 +10,7 @@ import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
+
 
 import { getAppSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 import { multiWordMatchAny } from "@/lib/utils";
