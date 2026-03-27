@@ -49,12 +49,12 @@ const AppCard = ({
       transition={{ delay: index * 0.035, duration: 0.35, ease: "easeOut" }}
       className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${
         isLocked
-          ? "border border-border/20 bg-muted/10 opacity-40 cursor-not-allowed"
+          ? "border border-border/30 bg-muted/20 opacity-40 cursor-not-allowed"
           : disabled
-          ? "border border-border/20 bg-muted/10 opacity-50 grayscale cursor-not-allowed"
+          ? "border border-border/30 bg-muted/20 opacity-50 grayscale cursor-not-allowed"
           : isExpanded
-          ? "border-2 border-primary/30 bg-card shadow-lg"
-          : "border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/20 hover:-translate-y-1 transition-transform"
+          ? "border-2 border-primary/30 bg-white shadow-lg"
+          : "border border-border/60 bg-white shadow-sm hover:shadow-xl hover:border-primary/25 hover:-translate-y-1 transition-transform"
       }`}
     >
       <button
@@ -227,7 +227,7 @@ const AppsLauncher = () => {
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
   return (
-    <div className="min-h-full bg-background" dir="rtl">
+    <div className="min-h-full" style={{ background: '#F5F6F8' }} dir="rtl">
       
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* Title */}
