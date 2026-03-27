@@ -28,7 +28,7 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-const SIDEBAR_BG = "#0F2A44";
+const SIDEBAR_BG = "#1B3A5C";
 const GOLD = "#C9A84C";
 const SEPARATOR = "rgba(255,255,255,0.06)";
 const SEPARATOR_HEADER = "rgba(255,255,255,0.08)";
