@@ -4168,8 +4168,6 @@ const POSPage = () => {
           </div>
         </div>
       </div>
-        </div>
-      </div>
 
       {/* ══════ MODALS ══════ */}
 
