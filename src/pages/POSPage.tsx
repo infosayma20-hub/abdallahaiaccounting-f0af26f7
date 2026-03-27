@@ -3101,66 +3101,137 @@ const POSPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pos-container" dir="rtl">
-      {/* ══════ TOP BAR ══════ */}
-      <header className="flex items-center px-3 gap-2 shrink-0 text-white" style={{ height: 56, background: "#0A2342" }}>
+    <div className="h-screen flex flex-col overflow-hidden pos-container" dir="rtl" data-pos-layout>
+      {/* ══════ COMPACT TOP BAR — 36px ══════ */}
+      <header className="flex items-center px-2 gap-1.5 shrink-0 text-white" style={{ height: 36, background: "#0A2342" }}>
         {/* Back */}
         <button
           onClick={() => navigate("/apps", { replace: true })}
-          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+          className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/10 transition-colors shrink-0"
         >
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-3.5 w-3.5" />
         </button>
 
-        {/* Company Name */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(232,160,32,0.15)" }}>
-          <span className="text-xs font-semibold">{company?.name || "QOYOD"}</span>
+        {/* Connection dot */}
+        <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" title={`متصل${offlineMode.lastSyncAt ? ` • آخر مزامنة: ${offlineMode.lastSyncAt}` : ""}`} />
+
+        {/* Company + Cashier name — compact */}
+        <span className="text-[11px] font-medium whitespace-nowrap shrink-0 text-white/80 max-w-[160px] truncate">
+          {(company?.name || "QOYOD").slice(0, 15)} {session ? `| ${session.cashier_name}` : ""}
+        </span>
+
+        {/* Search — integrated in top bar */}
+        <div className="relative flex-1 min-w-0 max-w-[240px]">
+          <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40 pointer-events-none" />
+          <input
+            ref={searchRef}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث..."
+            className="w-full h-[22px] rounded px-2 pr-7 text-[11px] bg-white/10 text-white placeholder:text-white/40 border border-white/15 focus:outline-none focus:border-white/40"
+          />
         </div>
 
-        {terminal && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white/70 text-xs" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <Monitor className="h-3 w-3" />
-            <span>{posDisplayName}</span>
-          </div>
-        )}
-
-        <div className="w-px h-5 mx-1" style={{ background: "rgba(255,255,255,0.1)" }} />
-
-        {session && (
-          <div className="flex items-center gap-3 text-xs text-white/60">
-            <div className="flex items-center gap-1">
-              <User className="h-3 w-3" />
-              <span>{session.cashier_name}</span>
+        {/* Customer — integrated in top bar */}
+        <div className="relative w-[160px] shrink-0">
+          <User className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40 pointer-events-none" />
+          <input
+            value={customerSearch || customerName}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCustomerSearch(val);
+              setCustomerName(val, null, "", null);
+              setShowContactDropdown(true);
+              searchPosCustomers(val);
+            }}
+            onFocus={() => setShowContactDropdown(true)}
+            placeholder="الزبون..."
+            className="w-full h-[22px] rounded px-2 pr-7 text-[11px] bg-white/10 text-white placeholder:text-white/40 border border-white/15 focus:outline-none focus:border-white/40"
+          />
+          {(customerSearch || customerName) && (
+            <button
+              onClick={() => { setCustomerSearch(""); setCustomerName("", null, "", null); }}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          {showContactDropdown && (customerSearch || "").length > 0 && (
+            <div className="absolute z-50 w-[280px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+              {posCustomerResults.length > 0 && (
+                <>
+                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
+                  {posCustomerResults.map((pc) => (
+                    <button
+                      key={pc.id}
+                      onClick={() => {
+                        setCustomerName(pc.name || "", null, pc.whatsapp || "", pc.id);
+                        if (pc.address) updateActiveOrder(o => ({ ...o, deliveryAddress: pc.address || "" }));
+                        setCustomerSearch("");
+                        setShowContactDropdown(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
+                          <span className="font-semibold truncate text-[11px]">{pc.name || "بدون اسم"}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{pc.total_visits || 0} زيارة</span>
+                      </div>
+                    </button>
+                  ))}
+                </>
+              )}
+              {filteredContacts.length > 0 && (
+                <>
+                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">جهات الاتصال</p>
+                  {filteredContacts.map((contact) => (
+                    <button
+                      key={contact.id}
+                      onClick={() => {
+                        setCustomerName(contact.contact_name, contact.id);
+                        setCustomerSearch("");
+                        setShowContactDropdown(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-muted/50 transition flex items-center gap-2"
+                    >
+                      <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span>{contact.contact_name}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              <button
+                onClick={() => {
+                  setNewCustomerName(customerSearch || "");
+                  setShowQuickAddCustomer(true);
+                  setShowContactDropdown(false);
+                }}
+                className="w-full px-3 py-1.5 text-[11px] text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
+              >
+                <PlusCircle className="h-3 w-3 shrink-0" />
+                <span>إضافة زبون جديد</span>
+              </button>
             </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              <span>{new Date(session.opened_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 min-w-0" />
 
-
-
-        {/* Invoice History - icon only */}
+        {/* Invoice History */}
         {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
         <button
           onClick={() => setShowInvoiceHistory(true)}
-          className="relative h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
-          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
+          className="relative h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0"
           title="سجل الفواتير"
         >
-          <FileText className="h-4 w-4 text-white/70 group-hover:text-white" />
+          <FileText className="h-3.5 w-3.5 text-white/70 hover:text-white" />
           {session && session.total_orders > 0 && (
-            <span
-              className="absolute -top-1 -left-1 rounded-full px-1 py-px text-[9px] font-bold"
-              style={{ background: "#4A9EE8", color: "#0A2342" }}
-            >
+            <span className="absolute -top-0.5 -left-0.5 rounded-full px-1 py-px text-[8px] font-bold" style={{ background: "#4A9EE8", color: "#0A2342" }}>
               {session.total_orders}
             </span>
           )}
-          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">سجل الفواتير</span>
         </button>
         )}
 
@@ -3171,7 +3242,6 @@ const POSPage = () => {
           sessionId={session?.id || null}
           enabled={!!session && !isCallCenter}
           onAcceptOrder={(order) => {
-            // Create new order tab with call center order data
             orderCounter.current += 1;
             const newOrder = createNewOrder(orderCounter.current);
             newOrder.customerName = order.customer_name || "";
@@ -3186,7 +3256,6 @@ const POSPage = () => {
               order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
               order.order_note || "",
             ].filter(Boolean).join(" | ");
-            // Add items to cart
             newOrder.cart = (order.items || []).map((item: any, i: number) => ({
               id: crypto.randomUUID(),
               product_id: item.product_id || null,
@@ -3206,97 +3275,79 @@ const POSPage = () => {
           }}
         />
 
-        {/* Kitchen Display - icon only */}
-        <button
-          onClick={() => navigate("/pos/kitchen")}
-          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
-          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
-          title="شاشة المطبخ"
-        >
-          <ChefHat className="h-4 w-4 text-white/70 group-hover:text-white" />
-          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">المطبخ</span>
+        {/* Kitchen */}
+        <button onClick={() => navigate("/pos/kitchen")} className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0" title="المطبخ">
+          <ChefHat className="h-3.5 w-3.5 text-white/70" />
         </button>
 
-        {/* Tables - icon only */}
-        <button
-          onClick={() => navigate("/pos/floor-plan")}
-          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
-          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
-          title="الطاولات"
-        >
-          <UtensilsCrossed className="h-4 w-4 text-white/70 group-hover:text-white" />
-          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">الطاولات</span>
+        {/* Tables */}
+        <button onClick={() => navigate("/pos/floor-plan")} className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0" title="الطاولات">
+          <UtensilsCrossed className="h-3.5 w-3.5 text-white/70" />
         </button>
 
-        {/* Financial Operations - icon only */}
-        {session && (isAdmin || posPerms.can_add_inventory || posPerms.can_record_purchases || posPerms.can_record_expenses) && (
-          <div className="relative">
-            <button
-              onClick={() => setShowOpsDropdown(v => !v)}
-              onBlur={() => setTimeout(() => setShowOpsDropdown(false), 150)}
-              className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
-              style={{ border: "1px solid rgba(74,158,232,0.4)" }}
-              title="عمليات"
-            >
-              <MoreHorizontal className="h-4 w-4" style={{ color: "#4A9EE8" }} />
-              <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">عمليات</span>
-            </button>
-            {showOpsDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
-                {(isAdmin || posPerms.can_add_inventory) && (
-                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
-                    <Package className="h-4 w-4" style={{ color: "#4A9EE8" }} /> إدخال بضاعة
-                  </button>
-                )}
-                {(isAdmin || posPerms.can_record_purchases) && (
-                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
-                    <ShoppingBag className="h-4 w-4" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
-                  </button>
-                )}
-                {(isAdmin || posPerms.can_record_expenses) && (
-                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
-                    <Receipt className="h-4 w-4" style={{ color: "#4A9EE8" }} /> صرف مصروف
-                  </button>
-                )}
-                <div className="border-t border-gray-200 my-1" />
-                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { navigate("/pos-customers"); setShowOpsDropdown(false); }}>
-                  <UserCheck className="h-4 w-4" style={{ color: "#4A9EE8" }} /> قاعدة بيانات الزبائن
+        {/* Tools dropdown — consolidated */}
+        <div className="relative">
+          <button
+            onClick={() => setShowOpsDropdown(v => !v)}
+            onBlur={() => setTimeout(() => setShowOpsDropdown(false), 200)}
+            className="h-6 w-6 rounded flex items-center justify-center hover:bg-white/15 transition-all shrink-0"
+            title="أدوات"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} />
+          </button>
+          {showOpsDropdown && (
+            <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
+              {session && (isAdmin || posPerms.can_add_inventory) && (
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
+                  <Package className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> إدخال بضاعة
                 </button>
-                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
-                  <RefreshCw className="h-4 w-4" style={{ color: "#4A9EE8" }} /> سجل المزامنة
-                  {offlineMode.pendingCount > 0 && (
-                    <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
-                  )}
+              )}
+              {session && (isAdmin || posPerms.can_record_purchases) && (
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
+                  <ShoppingBag className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> تسجيل مشتريات
                 </button>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+              {session && (isAdmin || posPerms.can_record_expenses) && (
+                <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                  <Receipt className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> صرف مصروف
+                </button>
+              )}
+              <div className="border-t border-gray-200 my-1" />
+              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { navigate("/pos-customers"); setShowOpsDropdown(false); }}>
+                <UserCheck className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> قاعدة بيانات الزبائن
+              </button>
+              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
+                <RefreshCw className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> سجل المزامنة
+                {offlineMode.pendingCount > 0 && (
+                  <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
+                )}
+              </button>
+              <div className="border-t border-gray-200 my-1" />
+              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => setShowShortcutsGuide(true)}>
+                <Keyboard className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> اختصارات لوحة المفاتيح
+              </button>
+              <button className="w-full text-right px-4 py-2 text-xs flex items-center gap-2 hover:bg-gray-100 transition-colors" onClick={() => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                else document.exitFullscreen();
+                setShowOpsDropdown(false);
+              }}>
+                <Monitor className="h-3.5 w-3.5" style={{ color: "#4A9EE8" }} /> ملء الشاشة (F11)
+              </button>
+            </div>
+          )}
+        </div>
 
-        <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
-
-        {/* Shortcuts guide */}
-        <button
-          onClick={() => setShowShortcutsGuide(true)}
-          className="h-8 w-8 rounded-lg flex items-center justify-center bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all group relative"
-          title="دليل الاختصارات"
-        >
-          <Keyboard className="h-4 w-4" />
-          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">اختصارات</span>
-        </button>
-
-        {/* Theme toggle */}
+        {/* Theme toggle — compact */}
         <POSThemeToggle />
 
-        {/* Card size toggle */}
-        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5">
+        {/* Card size toggle — compact */}
+        <div className="flex items-center gap-0 bg-white/10 rounded p-0.5 shrink-0">
           {(["S", "M", "L"] as const).map(size => (
             <button
               key={size}
               onClick={() => {
                 setCardSize(size);
                 localStorage.setItem("pos-card-size", size);
-                // Save per-user preference to DB
                 if (userId) {
                   supabase.from("pos_user_preferences").upsert({
                     auth_user_id: userId,
@@ -3306,34 +3357,31 @@ const POSPage = () => {
                   } as any, { onConflict: "auth_user_id,preference_key" });
                 }
               }}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all ${
                 cardSize === size
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/10"
+                  : "text-white/50 hover:text-white/80"
               }`}
-              title={size === "S" ? "بطاقات صغيرة" : size === "M" ? "بطاقات متوسطة" : "بطاقات كبيرة"}
             >
               {size}
             </button>
           ))}
         </div>
 
-        {/* Sort mode toggle - per user */}
+        {/* Sort mode — compact */}
         <button
           onClick={() => setIsSortMode(!isSortMode)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all shrink-0 ${
             isSortMode
               ? "bg-amber-500 text-white shadow-md"
-              : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
+              : "bg-white/10 text-white/60 hover:text-white/90"
           }`}
         >
           <GripVertical className="h-3 w-3" />
-          {isSortMode ? "✅ تم" : "ترتيب"}
+          {isSortMode ? "✅" : "ترتيب"}
         </button>
 
-        <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
-
-        {/* Close shift */}
+        {/* Close shift — compact */}
         {(isAdmin || posPerms.can_close_register) && (
         <button
           onClick={() => {
@@ -3343,10 +3391,10 @@ const POSPage = () => {
               setShowCloseShift(true);
             }
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
+          className="flex items-center gap-1 px-2 py-1 rounded bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-[10px] font-medium shrink-0"
         >
           <X className="h-3 w-3" />
-          {session?.cash_box_id === null ? "تسجيل الخروج" : "إغلاق الوردية"}
+          إغلاق
         </button>
         )}
       </header>
