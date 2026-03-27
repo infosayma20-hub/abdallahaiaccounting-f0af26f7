@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import { multiWordMatchAny } from "@/lib/utils";
+import { sendToBridge } from "@/lib/print-bridge-client";
 
 // ── Types ──
 interface InvoiceOrder {
