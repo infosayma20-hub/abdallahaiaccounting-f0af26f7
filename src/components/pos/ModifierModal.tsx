@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, Check, Minus, Plus } from "lucide-react";
+import { X, Minus, Plus } from "lucide-react";
 
 interface ModifierOption {
   id: string;
@@ -59,7 +59,7 @@ function ModifierGroupSection({
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-medium" style={{ color: 'white' }}>{group.name}</h4>
+          <h4 className="text-[14px] font-medium" style={{ color: 'white' }}>{group.name}</h4>
           <span
             className="text-[11px] px-2.5 py-0.5 rounded-full font-medium"
             style={group.is_required
@@ -70,7 +70,7 @@ function ModifierGroupSection({
             {group.is_required ? "مطلوب" : "اختياري"}
           </span>
         </div>
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
           {group.selection_type === "single"
             ? "اختر واحداً"
             : `اختر حتى ${group.max_select}`}
@@ -86,29 +86,36 @@ function ModifierGroupSection({
               <button
                 key={opt.id}
                 onClick={() => onToggle(opt.id)}
-                className="relative flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-[10px] text-sm text-center transition-all"
+                className="relative flex items-center justify-center gap-2 py-3 px-2.5 rounded-[10px] text-[13px] text-center transition-all"
                 style={{
-                  background: isSelected ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.06)',
+                  background: isSelected ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.06)',
                   border: isSelected ? '1.5px solid #3b82f6' : '1.5px solid rgba(255,255,255,0.1)',
                   color: 'white',
                 }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                  }
+                }}
               >
-                {/* Label */}
-                <span className="text-[14px]">{opt.name}</span>
-
-                {/* Color dot */}
+                <span>{opt.name}</span>
                 {opt.color && (
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: opt.color }}
                   />
                 )}
-
-                {/* Price pill */}
                 {opt.extra_price !== 0 && (
                   <span
-                    className="text-[11px] px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}
+                    className="text-[11px] px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
                   >
                     {opt.extra_price > 0 ? "+" : ""}₪{Math.abs(opt.extra_price).toFixed(0)}
                   </span>
@@ -141,16 +148,10 @@ export default function ModifierModal({
     setSelected((prev) => {
       const current = prev[group.id] || [];
       if (group.selection_type === "single") {
-        return {
-          ...prev,
-          [group.id]: current.includes(optId) ? [] : [optId],
-        };
+        return { ...prev, [group.id]: current.includes(optId) ? [] : [optId] };
       }
       if (current.includes(optId)) {
-        return {
-          ...prev,
-          [group.id]: current.filter((id) => id !== optId),
-        };
+        return { ...prev, [group.id]: current.filter((id) => id !== optId) };
       }
       if (current.length >= group.max_select) return prev;
       return { ...prev, [group.id]: [...current, optId] };
@@ -161,13 +162,10 @@ export default function ModifierModal({
     return Object.entries(selected).reduce((sum, [groupId, optIds]) => {
       const group = groups.find((g) => g.id === groupId);
       if (!group) return sum;
-      return (
-        sum +
-        optIds.reduce((s, optId) => {
-          const opt = group.options.find((o) => o.id === optId);
-          return s + (opt?.extra_price || 0);
-        }, 0)
-      );
+      return sum + optIds.reduce((s, optId) => {
+        const opt = group.options.find((o) => o.id === optId);
+        return s + (opt?.extra_price || 0);
+      }, 0);
     }, 0);
   }, [selected, groups]);
 
@@ -175,9 +173,7 @@ export default function ModifierModal({
 
   const isValid = groups
     .filter((g) => g.is_required)
-    .every(
-      (g) => (selected[g.id]?.length || 0) >= Math.max(1, g.min_select)
-    );
+    .every((g) => (selected[g.id]?.length || 0) >= Math.max(1, g.min_select));
 
   const handleConfirm = () => {
     const modifiers: SelectedModifier[] = [];
@@ -202,7 +198,7 @@ export default function ModifierModal({
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-[60] p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+      style={{ background: 'rgba(0,0,0,0.7)' }}
       dir="rtl"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -210,40 +206,45 @@ export default function ModifierModal({
         className="w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
         style={{
           background: '#0D1B2E',
-          borderRadius: '12px',
-          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '14px',
+          border: '1px solid rgba(255,255,255,0.12)',
           minWidth: '420px',
           maxWidth: '480px',
         }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+          className="flex items-center justify-between px-4 shrink-0"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px' }}
         >
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: 'white' }}>
+          <div className="flex items-center gap-3">
+            <h3 className="text-[15px] font-semibold" style={{ color: 'white' }}>
               {product.name}
             </h3>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
               اختر الإضافات
-            </p>
+            </span>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
             style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <div
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          style={{ background: '#112240', borderRadius: '0 0 14px 14px' }}
+        >
           {groups.map((group, idx) => (
             <div key={group.id}>
               {idx > 0 && (
-                <div className="mb-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} />
+                <div className="mb-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '14px 0' }} />
               )}
               <ModifierGroupSection
                 group={group}
@@ -253,69 +254,78 @@ export default function ModifierModal({
             </div>
           ))}
 
-          {/* Divider before note */}
           {groups.length > 0 && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} />
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '14px 0' }} />
           )}
 
           {/* Note */}
-          <div>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="ملاحظة خاصة (اختياري)..."
-              rows={2}
-              className="w-full px-3 py-2.5 text-sm resize-none outline-none"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '8px',
-                color: 'white',
-              }}
-            />
-          </div>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="ملاحظة خاصة (اختياري)..."
+            rows={2}
+            className="w-full text-[13px] resize-none outline-none transition-colors"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: 'white',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          />
         </div>
 
         {/* Footer */}
         <div
-          className="px-5 py-4 flex items-center gap-3 shrink-0"
+          className="flex items-center gap-2.5 shrink-0"
           style={{
             borderTop: '1px solid rgba(255,255,255,0.1)',
             background: 'rgba(0,0,0,0.2)',
+            padding: '12px 16px',
           }}
         >
-          {/* Add to order button */}
           <button
             onClick={handleConfirm}
             disabled={!isValid}
-            className="flex-1 h-[44px] rounded-lg text-[14px] font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40"
-            style={{ background: '#1d4ed8', color: 'white' }}
+            className="flex-1 h-[44px] rounded-lg text-[14px] font-semibold flex items-center justify-center gap-2 transition-all"
+            style={{
+              background: isValid ? '#1d4ed8' : 'rgba(255,255,255,0.08)',
+              color: isValid ? 'white' : 'rgba(255,255,255,0.3)',
+              cursor: isValid ? 'pointer' : 'not-allowed',
+            }}
+            onMouseEnter={(e) => { if (isValid) e.currentTarget.style.background = '#1e40af'; }}
+            onMouseLeave={(e) => { if (isValid) e.currentTarget.style.background = '#1d4ed8'; }}
           >
             <span>إضافة للطلب</span>
             <span className="tabular-nums">₪{totalPrice.toFixed(2)}</span>
           </button>
 
-          {/* Quantity control */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setQuantity((q) => q + 1)}
-              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors"
-              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
+              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors text-[18px]"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4.5 h-4.5" />
             </button>
             <span
-              className="w-8 text-center text-[16px] font-bold tabular-nums"
+              className="min-w-[32px] text-center text-[16px] font-semibold tabular-nums"
               style={{ color: 'white' }}
             >
               {quantity}
             </span>
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors"
-              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
+              className="w-9 h-9 rounded-md flex items-center justify-center transition-colors text-[18px]"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-4.5 h-4.5" />
             </button>
           </div>
         </div>
