@@ -18,6 +18,10 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
   FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList,
+  Wine, GlassWater, Milk, Citrus, CupSoda, IceCreamCone, Cake, Pizza, Sandwich, Beef,
+  LeafyGreen, Droplets, Flame, Baby, Snowflake, Crown, Droplet, Puzzle, Drumstick, Bird,
+  Users, Layers,
+  type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
