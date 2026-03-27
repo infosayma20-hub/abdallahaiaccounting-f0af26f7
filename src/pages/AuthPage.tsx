@@ -215,10 +215,8 @@ const AuthPage = () => {
             <img src="/logos/amwali-mark-white.png" alt="" className="w-[85%] h-auto object-contain" />
           </div>
 
-          {/* Content */}
-          <div className="relative z-10">
-            <img src="/logos/amwali-full-white.png" alt="AMWALI" className="h-28 mb-14 object-contain" />
-
+          {/* Content — vertically centered to align with right panel heading */}
+          <div className="relative z-10 flex-1 flex flex-col justify-center">
             <h1 style={{ color: '#FFFFFF', fontSize: 42, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16, fontFamily: 'Tajawal' }}>
               أعمالك في
               <br />
