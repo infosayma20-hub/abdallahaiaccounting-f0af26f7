@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureTravelAccounts, createBookingJournalEntry } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
@@ -123,10 +123,13 @@ const getDefaultItems = (serviceType: string): CostItem[] => {
 
 export default function TravelBookingFormPage() {
   const { user } = useAuth();
+  const { id: editId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(editId ? 2 : 1);
   const [contacts, setContacts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [isEditMode] = useState(!!editId);
+  const [editBookingNumber, setEditBookingNumber] = useState("");
 
   // Step 1
   const [serviceType, setServiceType] = useState("");
