@@ -337,6 +337,16 @@ export default function TravelBookingFormPage() {
 
   const handleSave = async () => {
     if (!user || !serviceType) return;
+    // Validations
+    if (!customerName.trim()) { toast({ title: "يرجى إدخال اسم العميل", variant: "destructive" }); setStep(2); return; }
+    if (!destination.trim()) { toast({ title: "يرجى إدخال الوجهة", variant: "destructive" }); setStep(2); return; }
+    if (returnDate && travelDate && returnDate <= travelDate) { toast({ title: "تاريخ العودة يجب أن يكون بعد تاريخ السفر", variant: "destructive" }); setStep(2); return; }
+    if (payNow && parseFloat(payAmount || "0") > totalPriceILS) { toast({ title: "المبلغ المدفوع لا يمكن أن يتجاوز سعر البيع", variant: "destructive" }); return; }
+    // Check passport expiry for passengers
+    const expiredPax = passengers.filter(p => p.full_name.trim() && p.passport_expiry && new Date(p.passport_expiry) <= new Date());
+    if (expiredPax.length > 0) {
+      if (!confirm(`تنبيه: ${expiredPax.length} مسافر بجواز منتهي الصلاحية. هل تريد المتابعة؟`)) { setStep(4); return; }
+    }
     setSaving(true);
     try {
       const payAmt = payNow ? parseFloat(payAmount || "0") : 0;
