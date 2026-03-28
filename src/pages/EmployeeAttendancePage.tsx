@@ -488,9 +488,8 @@ export default function EmployeeAttendancePage() {
           )}
         </CardContent>
       </Card>
-          </div>
-        </CardContent>
-      </Card>
+
+
 
       {/* Tabs */}
       <Tabs defaultValue="history" className="w-full">
