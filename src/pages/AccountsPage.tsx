@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info, ArrowUpDown, Upload } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
 import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
 import { exportAccountsToExcel } from "@/lib/accountsExport";
@@ -284,13 +284,31 @@ const AccountsPage = () => {
     }
   }, [user, accounts, toast]);
 
-  const toggleGroup = useCallback((code: string) => {
-    setCollapsedGroups(prev => {
+  const toggleGroup = useCallback((code: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpanded(prev => {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code); else next.add(code);
       return next;
     });
   }, []);
+
+  const allParentCodes = useMemo(() => {
+    const parents = new Set<string>();
+    // Add virtual type headers
+    const types = new Set(accounts.map(a => normalizeType(a.account_type)));
+    types.forEach(t => parents.add(`type-${t}`));
+    // Add accounts that have children
+    accounts.forEach(a => {
+      if (accounts.some(c => c.parent_code === a.account_code && c.account_code !== a.account_code)) {
+        parents.add(a.account_code);
+      }
+    });
+    return parents;
+  }, [accounts]);
+
+  const expandAll = useCallback(() => setExpanded(new Set(allParentCodes)), [allParentCodes]);
+  const collapseAll = useCallback(() => setExpanded(new Set()), []);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
