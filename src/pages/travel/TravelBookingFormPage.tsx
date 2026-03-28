@@ -337,6 +337,16 @@ export default function TravelBookingFormPage() {
 
   const handleSave = async () => {
     if (!user || !serviceType) return;
+    // Validations
+    if (!customerName.trim()) { toast({ title: "يرجى إدخال اسم العميل", variant: "destructive" }); setStep(2); return; }
+    if (!destination.trim()) { toast({ title: "يرجى إدخال الوجهة", variant: "destructive" }); setStep(2); return; }
+    if (returnDate && travelDate && returnDate <= travelDate) { toast({ title: "تاريخ العودة يجب أن يكون بعد تاريخ السفر", variant: "destructive" }); setStep(2); return; }
+    if (payNow && parseFloat(payAmount || "0") > totalPriceILS) { toast({ title: "المبلغ المدفوع لا يمكن أن يتجاوز سعر البيع", variant: "destructive" }); return; }
+    // Check passport expiry for passengers
+    const expiredPax = passengers.filter(p => p.full_name.trim() && p.passport_expiry && new Date(p.passport_expiry) <= new Date());
+    if (expiredPax.length > 0) {
+      if (!confirm(`تنبيه: ${expiredPax.length} مسافر بجواز منتهي الصلاحية. هل تريد المتابعة؟`)) { setStep(4); return; }
+    }
     setSaving(true);
     try {
       const payAmt = payNow ? parseFloat(payAmount || "0") : 0;
@@ -604,9 +614,22 @@ export default function TravelBookingFormPage() {
 
             <div className="col-span-2"><Label>ملاحظات</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات إضافية..." rows={2} /></div>
           </div>
+          {/* Validation warnings */}
+          {returnDate && travelDate && returnDate <= travelDate && (
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-950/20 text-xs text-red-600">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>تاريخ العودة يجب أن يكون بعد تاريخ السفر</span>
+            </div>
+          )}
+
           <div className="flex justify-between pt-2">
             <Button variant="outline" onClick={() => setStep(1)}><ArrowRight className="w-4 h-4 ml-1" /> السابق</Button>
-            <Button onClick={() => setStep(3)} style={{ background: "#0D1B2E" }} className="text-white"><ArrowLeft className="w-4 h-4 ml-1" /> التالي</Button>
+            <Button onClick={() => {
+              if (!customerName.trim()) { toast({ title: "يرجى إدخال اسم العميل", variant: "destructive" }); return; }
+              if (!destination.trim()) { toast({ title: "يرجى إدخال الوجهة", variant: "destructive" }); return; }
+              if (returnDate && travelDate && returnDate <= travelDate) { toast({ title: "تاريخ العودة يجب أن يكون بعد تاريخ السفر", variant: "destructive" }); return; }
+              setStep(3);
+            }} style={{ background: "#0D1B2E" }} className="text-white"><ArrowLeft className="w-4 h-4 ml-1" /> التالي</Button>
           </div>
         </Card>
       )}
@@ -814,7 +837,17 @@ export default function TravelBookingFormPage() {
           {payNow && (
             <div className="space-y-4 p-4 rounded-lg border">
               <div className="grid grid-cols-2 gap-4">
-                <div><Label>المبلغ المدفوع *</Label><Input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} placeholder={totalPriceILS.toString()} /></div>
+                <div>
+                  <Label>المبلغ المدفوع *</Label>
+                  <Input type="number" value={payAmount} onChange={e => {
+                    const v = parseFloat(e.target.value || "0");
+                    if (v > totalPriceILS) { setPayAmount(String(totalPriceILS)); return; }
+                    setPayAmount(e.target.value);
+                  }} placeholder={totalPriceILS.toString()} />
+                  {parseFloat(payAmount || "0") > totalPriceILS && (
+                    <p className="text-xs text-destructive mt-1">المبلغ لا يمكن أن يتجاوز ₪{totalPriceILS.toLocaleString()}</p>
+                  )}
+                </div>
                 <div>
                   <Label>طريقة الدفع</Label>
                   <Select value={payMethod} onValueChange={setPayMethod}>
