@@ -403,6 +403,15 @@ const InvoiceCreatePage = () => {
           transferBank: "",
         }));
 
+        // Load attachments and terms from edit data
+        if (data.attachments) {
+          try {
+            const parsed = typeof data.attachments === 'string' ? JSON.parse(data.attachments) : data.attachments;
+            setAttachments(Array.isArray(parsed) ? parsed : []);
+          } catch { setAttachments([]); }
+        }
+        if (data.terms) setInvoiceTerms(data.terms);
+
         setContactSearch(data.contact_name || "");
       } catch (err: any) {
         console.error("Load invoice for edit failed:", err);
