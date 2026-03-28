@@ -672,7 +672,18 @@ const AccountsPage = () => {
 
                     {/* Description */}
                     <div className="min-w-0">
-                      {!isVirtualTypeHeader && acc.description_ar ? (
+                      {isVirtualTypeHeader && GROUP_DESC[nType] ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
+                              {GROUP_DESC[nType]}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-[300px] text-right" dir="rtl">
+                            {GROUP_DESC[nType]}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : !isVirtualTypeHeader && acc.description_ar ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
