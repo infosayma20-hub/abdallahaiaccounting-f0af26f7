@@ -214,6 +214,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
           }}>
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> تحديث
           </button>
+        </div>
       </div>
 
       {/* Date Presets */}
