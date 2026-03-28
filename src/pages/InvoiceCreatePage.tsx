@@ -1341,6 +1341,126 @@ const InvoiceCreatePage = () => {
         </CardContent>
       </Card>
 
+      {/* ─── SECTION 5: Terms & Conditions (Collapsible) ─── */}
+      <Collapsible open={termsOpen} onOpenChange={setTermsOpen}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <FileCheck className="h-4 w-4 text-primary" /> الشروط والأحكام
+                  <span className="text-[9px] text-muted-foreground/60 font-normal">(تظهر في PDF)</span>
+                </CardTitle>
+                {termsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-5 pb-5 pt-3">
+              <Textarea
+                placeholder="أدخل الشروط والأحكام..."
+                value={invoiceTerms}
+                onChange={e => setInvoiceTerms(e.target.value)}
+                className="rounded-xl text-sm min-h-[80px] resize-none"
+                rows={4}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1.5">القيمة الافتراضية يمكن تخصيصها من إعدادات الشركة</p>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ─── SECTION 6: Attachments (Collapsible) ─── */}
+      <Collapsible open={attachmentsOpen} onOpenChange={setAttachmentsOpen}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Paperclip className="h-4 w-4 text-primary" /> المرفقات
+                  {attachments.length > 0 && <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{attachments.length}</Badge>}
+                </CardTitle>
+                {attachmentsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-5 pb-5 pt-3 space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files || !user) return;
+                  const maxFiles = 5;
+                  const maxSize = 10 * 1024 * 1024; // 10MB
+
+                  if (attachments.length + files.length > maxFiles) {
+                    toast({ title: `الحد الأقصى ${maxFiles} ملفات`, variant: "destructive" });
+                    return;
+                  }
+
+                  setUploadingFile(true);
+                  const newAttachments = [...attachments];
+
+                  for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (file.size > maxSize) {
+                      toast({ title: `${file.name} أكبر من 10MB`, variant: "destructive" });
+                      continue;
+                    }
+                    const filePath = `${user.id}/${Date.now()}-${file.name}`;
+                    const { error } = await supabase.storage.from("invoice-attachments").upload(filePath, file);
+                    if (error) {
+                      toast({ title: `فشل رفع ${file.name}`, variant: "destructive" });
+                      continue;
+                    }
+                    const { data: urlData } = supabase.storage.from("invoice-attachments").getPublicUrl(filePath);
+                    newAttachments.push({
+                      name: file.name,
+                      url: urlData.publicUrl,
+                      size: file.size,
+                      type: file.type,
+                      uploaded_at: new Date().toISOString(),
+                    });
+                  }
+
+                  setAttachments(newAttachments);
+                  setUploadingFile(false);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+              />
+
+              <Button variant="outline" size="sm" className="rounded-xl gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile || attachments.length >= 5}>
+                {uploadingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                رفع ملف
+              </Button>
+              <p className="text-[10px] text-muted-foreground">PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB للملف</p>
+
+              {attachments.length > 0 && (
+                <div className="space-y-1.5">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-xs font-medium truncate">{att.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{(att.size / 1024).toFixed(0)} KB</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive/60 hover:text-destructive shrink-0" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-50">
         <div className="max-w-5xl mx-auto flex gap-2">
