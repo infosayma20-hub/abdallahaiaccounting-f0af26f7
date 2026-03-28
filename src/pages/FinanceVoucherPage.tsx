@@ -527,9 +527,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
               </tbody>
               <tfoot>
                 <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                  <td colSpan={5} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
+                  <td colSpan={7} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
                   <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, v) => s + v.amount_display, 0).toLocaleString()}</td>
-                  <td className="px-3 py-3" />
+                  <td colSpan={2} className="px-3 py-3" />
                 </tr>
               </tfoot>
             </table>
