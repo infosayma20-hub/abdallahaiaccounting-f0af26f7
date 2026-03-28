@@ -11,7 +11,7 @@ interface SetupRequest {
 }
 
 // شجرة الحسابات الافتراضية الكاملة من Airtable
-const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: string | null }[] = [
+const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: string | null; is_contra?: boolean; nature?: string }[] = [
   // ═══════════ الأصول المتداولة (11xx) ═══════════
   { code: "1110", name: "الصندوق", type: "أصول", parent: null },
   { code: "1111", name: "صندوق الدولار", type: "أصول", parent: "1110" },
