@@ -162,12 +162,16 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     setLoading(true);
 
     if (isReceipt) {
-      // Receipts are stored in receipt_vouchers table
-      const [rvRes, cRes] = await Promise.all([
+      const [rvRes, cRes, linksRes] = await Promise.all([
         supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+        supabase.from("payment_invoice_links").select("payment_id, allocated_amount"),
       ]);
-      // Map receipt_vouchers fields to unified format
+      // Build allocated map
+      const allocMap = new Map<string, number>();
+      for (const link of (linksRes.data || [])) {
+        allocMap.set(link.payment_id, (allocMap.get(link.payment_id) || 0) + (link.allocated_amount || 0));
+      }
       const mapped = (rvRes.data || []).map((rv: any) => ({
         ...rv,
         ref_number: rv.receipt_number,
@@ -175,17 +179,21 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         amount_ils: rv.amount,
         amount: rv.amount,
         type: "receipt",
-        // payment_method is already in Arabic in receipt_vouchers
+        account_code: rv.deposit_account_code || "—",
+        allocated_total: allocMap.get(rv.id) || 0,
       }));
       setVouchers(mapped);
       setContacts(cRes.data || []);
     } else {
-      // Payments are stored in vouchers table
       const [vRes, cRes] = await Promise.all([
         supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
       ]);
-      setVouchers(vRes.data || []);
+      setVouchers((vRes.data || []).map((v: any) => ({
+        ...v,
+        account_code: "—",
+        allocated_total: 0,
+      })));
       setContacts(cRes.data || []);
     }
 
