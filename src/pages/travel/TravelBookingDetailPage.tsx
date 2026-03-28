@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { ArrowRight, Printer, Upload, X, FileText, AlertTriangle, Ban, CheckCircle } from "lucide-react";
+import { ArrowRight, Printer, Upload, X, FileText, AlertTriangle, Ban, CheckCircle, Edit } from "lucide-react";
 
 const SERVICE_LABELS: Record<string, string> = {
   hajj: "🕋 حج", umrah: "🕌 عمرة", flight: "✈️ تذاكر طيران", hotel: "🏨 فنادق",
@@ -188,6 +188,9 @@ export default function TravelBookingDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="w-4 h-4 ml-1" /> طباعة</Button>
+          {booking.status !== "cancelled" && (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/travel/bookings/${id}/edit`)}><Edit className="w-4 h-4 ml-1" /> تعديل</Button>
+          )}
           {booking.status !== "completed" && booking.status !== "cancelled" && (
             <Button variant="outline" size="sm" onClick={handleMarkCompleted} className="text-green-600 border-green-200 hover:bg-green-50">
               <CheckCircle className="w-4 h-4 ml-1" /> مكتمل
