@@ -539,6 +539,49 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   const selectOldestFirst = () => selectAll();
 
+  // Auto-allocate effect
+  useEffect(() => {
+    if (autoAllocate && amountNum > 0 && invoices.length > 0) {
+      selectAll();
+    }
+  }, [autoAllocate, amount]);
+
+  // File upload handler
+  const handleFileUpload = useCallback(async (files: FileList | File[]) => {
+    if (!user) return;
+    const fileArray = Array.from(files);
+    if (attachments.length + fileArray.length > 5) {
+      toast.error("الحد الأقصى 5 ملفات");
+      return;
+    }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    for (const file of fileArray) {
+      if (file.size > 10 * 1024 * 1024) { toast.error(`الملف ${file.name} أكبر من 10MB`); continue; }
+      if (!allowedTypes.includes(file.type)) { toast.error(`نوع الملف ${file.name} غير مدعوم`); continue; }
+      setUploadingFile(true);
+      try {
+        const filePath = `${user.id}/${Date.now()}-${file.name}`;
+        const { error } = await supabase.storage.from("voucher-attachments").upload(filePath, file);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from("voucher-attachments").getPublicUrl(filePath);
+        setAttachments(prev => [...prev, {
+          name: file.name,
+          url: urlData.publicUrl || filePath,
+          size: file.size,
+          type: file.type,
+          uploaded_at: new Date().toISOString(),
+        }]);
+      } catch (err: any) {
+        toast.error(`فشل رفع ${file.name}: ${err.message}`);
+      }
+      setUploadingFile(false);
+    }
+  }, [user, attachments.length]);
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const clearSelection = () => {
     setInvoices(prev => prev.map(inv => ({ ...inv, selected: false, allocatedAmount: 0 })));
   };
