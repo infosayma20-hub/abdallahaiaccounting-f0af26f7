@@ -92,7 +92,13 @@ export default function PortalAttendanceTab({ theme }: Props) {
       const { data } = await supabase.functions.invoke('malaki-data', {
         body: { action: 'attendance', dateFrom, dateTo },
       });
-      if (data?.employees) setEmployees(data.employees);
+      if (data?.employees) {
+        setEmployees(data.employees);
+        // Cache employee names for realtime notifications
+        data.employees.forEach((emp: EmployeeAtt) => {
+          employeeCacheRef.current.set(emp.id, emp.full_name);
+        });
+      }
       if (data?.summary) setSummary(data.summary);
     } catch (e) {
       console.error('Portal attendance error:', e);
@@ -107,6 +113,51 @@ export default function PortalAttendanceTab({ theme }: Props) {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [dateFrom, dateTo]);
+
+  // Realtime subscription for attendance events
+  useEffect(() => {
+    const channel = supabase
+      .channel('portal-attendance-events')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'attendance_events' },
+        (payload) => {
+          const evt = payload.new as any;
+          const empName = employeeCacheRef.current.get(evt.employee_id) || 'موظف';
+          const isCheckIn = evt.event_type === 'check_in';
+          const time = format(new Date(evt.event_time), 'hh:mm a');
+          const msg = isCheckIn
+            ? `📥 ${empName} سجّل دخول الساعة ${time}`
+            : `📤 ${empName} سجّل خروج الساعة ${time}`;
+
+          // In-app toast notification
+          toast(msg, {
+            icon: isCheckIn ? '🟢' : '🟠',
+            duration: 5000,
+          });
+
+          // Play notification sound
+          if (notifAudioRef.current) {
+            notifAudioRef.current.play().catch(() => {});
+          }
+
+          // Browser push notification
+          if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('حضور الموظفين - أموالي', {
+              body: msg,
+              icon: '/favicon.ico',
+              tag: `att-${evt.id}`,
+            });
+          }
+
+          // Auto-refresh data
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [notificationsEnabled]);
 
   const d = theme === 'dark';
   const t = {
