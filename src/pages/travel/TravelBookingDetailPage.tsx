@@ -185,7 +185,7 @@ export default function TravelBookingDetailPage() {
                 <div><span className="text-muted-foreground">الوجهة:</span><p>{booking.destination || "—"}</p></div>
                 <div><span className="text-muted-foreground">تاريخ السفر:</span><p>{booking.travel_date || "—"}</p></div>
                 <div><span className="text-muted-foreground">تاريخ العودة:</span><p>{booking.return_date || "—"}</p></div>
-                <div><span className="text-muted-foreground">المورد:</span><p>{booking.supplier?.name || "—"}</p></div>
+                <div><span className="text-muted-foreground">المورد:</span><p>{booking.supplier_name || "—"}</p></div>
                 <div><span className="text-muted-foreground">PNR:</span><p className="font-mono">{booking.supplier_ref || "—"}</p></div>
                 <div><span className="text-muted-foreground">عدد المسافرين:</span><p>{booking.pax_count}</p></div>
               </div>
