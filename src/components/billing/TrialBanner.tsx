@@ -32,7 +32,7 @@ const TrialBanner = () => {
 
   if (isTrial && daysLeft > 7) {
     return (
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-2.5 text-sm text-white" style={{ background: "linear-gradient(135deg, #0D1B2A, #1E3A5F)", fontFamily: "Tajawal" }} dir="rtl">
+      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm text-white flex-shrink-0" style={{ background: "linear-gradient(135deg, #0D1B2A, #1E3A5F)", fontFamily: "Tajawal" }} dir="rtl">
         <span>🎁 أنت في الفترة التجريبية المجانية — متبقي {daysLeft} يوماً</span>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/pricing")} className="px-4 py-1 rounded-full text-xs font-bold hover:brightness-110 transition-all" style={{ background: "#E8A020", color: "#0D1B2A" }}>
@@ -48,7 +48,7 @@ const TrialBanner = () => {
 
   if (isTrial && daysLeft > 0 && daysLeft <= 7) {
     return (
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-amber-500" style={{ background: "#FEF9C3", fontFamily: "Tajawal" }} dir="rtl">
+      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-amber-500 flex-shrink-0" style={{ background: "#FEF9C3", fontFamily: "Tajawal" }} dir="rtl">
         <span className="text-amber-800 font-medium">⏰ تنتهي تجربتك المجانية خلال {daysLeft} أيام! اشترك الآن للاستمرار بدون انقطاع</span>
         <button onClick={() => navigate("/pricing")} className="bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-amber-600">اشترك الآن</button>
       </div>
@@ -57,7 +57,7 @@ const TrialBanner = () => {
 
   if (isExpired || status === "expired") {
     return (
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-3 text-sm border-b-2 border-red-500 animate-pulse" style={{ background: "#FEE2E2", fontFamily: "Tajawal" }} dir="rtl">
+      <div className="z-40 flex items-center justify-between px-6 py-3 text-sm border-b-2 border-red-500 animate-pulse flex-shrink-0" style={{ background: "#FEE2E2", fontFamily: "Tajawal" }} dir="rtl">
         <span className="text-red-800 font-bold">❌ انتهت فترتك التجريبية — اشترك لاستعادة الوصول الكامل</span>
         <button onClick={() => navigate("/pricing")} className="bg-red-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-red-600">اشترك الآن</button>
       </div>
@@ -66,7 +66,7 @@ const TrialBanner = () => {
 
   if (status === "past_due" || status === "grace" || status === "grace_period") {
     return (
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-orange-500" style={{ background: "#FFF7ED", fontFamily: "Tajawal" }} dir="rtl">
+      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-orange-500 flex-shrink-0" style={{ background: "#FFF7ED", fontFamily: "Tajawal" }} dir="rtl">
         <span className="text-orange-800 font-medium">⚠️ يوجد دفع متأخر — يرجى تحديث طريقة الدفع</span>
         <button onClick={() => navigate("/subscription")} className="bg-orange-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-orange-600">تحديث الدفع</button>
       </div>
