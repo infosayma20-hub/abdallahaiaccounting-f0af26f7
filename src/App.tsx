@@ -138,6 +138,7 @@ const TravelPackagesPage = lazy(() => import("./pages/travel/TravelPackagesPage"
 const TravelReportsPage = lazy(() => import("./pages/travel/TravelReportsPage"));
 const TravelBookingDetailPage = lazy(() => import("./pages/travel/TravelBookingDetailPage"));
 const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPrintPage"));
+const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 
 const queryClient = new QueryClient();
@@ -393,6 +394,7 @@ const App = () => (
                       <Route path="/travel/suppliers" element={<TravelSuppliersPage />} />
                       <Route path="/travel/packages" element={<TravelPackagesPage />} />
                       <Route path="/travel/reports" element={<TravelReportsPage />} />
+                      <Route path="/travel/settings" element={<TravelSettingsPage />} />
                       <Route path="/contracts" element={<ContractsListPage />} />
                       <Route path="/contracts/new" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
