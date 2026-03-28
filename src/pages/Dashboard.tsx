@@ -52,7 +52,7 @@ const Dashboard = () => {
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showPasskeyOnboarding, setShowPasskeyOnboarding] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // showOnboarding removed — handled by AppsLauncher
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
