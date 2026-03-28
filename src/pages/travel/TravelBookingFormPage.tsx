@@ -98,12 +98,49 @@ export default function TravelBookingFormPage() {
     }
   };
 
-  const addPassenger = () => setPassengers([...passengers, { full_name: "", passport_number: "", nationality: "", date_of_birth: "", gender: "", ticket_number: "" }]);
+  const newPassenger = (): Passenger => ({ full_name: "", passport_number: "", passport_expiry: "", passport_image_url: "", passport_image_file: null, nationality: "", date_of_birth: "", gender: "", ticket_number: "" });
+  const addPassenger = () => setPassengers([...passengers, newPassenger()]);
   const removePassenger = (i: number) => setPassengers(passengers.filter((_, idx) => idx !== i));
-  const updatePassenger = (i: number, field: keyof Passenger, value: string) => {
+  const updatePassenger = (i: number, field: keyof Passenger, value: any) => {
     const updated = [...passengers];
-    updated[i][field] = value;
+    (updated[i] as any)[field] = value;
     setPassengers(updated);
+  };
+
+  const handlePassportUpload = (i: number, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "خطأ", description: "حجم الملف يجب أن لا يتجاوز 5MB", variant: "destructive" });
+      return;
+    }
+    const updated = [...passengers];
+    updated[i].passport_image_file = file;
+    updated[i].passport_image_url = URL.createObjectURL(file);
+    setPassengers(updated);
+  };
+
+  const removePassportImage = (i: number) => {
+    const updated = [...passengers];
+    updated[i].passport_image_file = null;
+    updated[i].passport_image_url = "";
+    setPassengers(updated);
+  };
+
+  const isPassportExpiringWithin6Months = (dateStr: string) => {
+    if (!dateStr) return false;
+    const expiry = new Date(dateStr);
+    const sixMonths = new Date();
+    sixMonths.setMonth(sixMonths.getMonth() + 6);
+    return expiry <= sixMonths && expiry > new Date();
+  };
+
+  const isPassportExpired = (dateStr: string) => {
+    if (!dateStr) return false;
+    return new Date(dateStr) <= new Date();
+  };
+
+  const isPassportNumberValid = (num: string) => {
+    if (!num) return true;
+    return /^[a-zA-Z0-9]{6,12}$/.test(num);
   };
 
   const handleSave = async () => {
