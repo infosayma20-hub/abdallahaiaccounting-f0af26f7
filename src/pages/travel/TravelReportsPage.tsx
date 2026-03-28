@@ -146,8 +146,7 @@ export default function TravelReportsPage() {
                       <td className="py-2.5 px-2">₪{d.paid.toLocaleString()}</td>
                       <td className="py-2.5 px-2 font-medium" style={{ color: d.balance > 0 ? "#DC2626" : "#16A34A" }}>₪{d.balance.toLocaleString()}</td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </Card>
