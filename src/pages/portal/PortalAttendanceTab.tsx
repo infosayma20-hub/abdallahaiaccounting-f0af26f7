@@ -452,7 +452,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
                               <th style={{ padding: '6px 4px', textAlign: 'right', color: t.textMuted, fontWeight: 600 }}>التاريخ</th>
                               <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>دخول</th>
                               <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
-                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>ساعات</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>استراحة</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>صافي</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -472,6 +474,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
                                 </td>
                                 <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 600 }}>
                                   {r.hours != null ? r.hours.toFixed(1) : '—'}
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: '#f97316', fontSize: 10 }}>
+                                  {r.total_break_minutes > 0 ? `${r.total_break_minutes} د` : '—'}
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: t.accent, fontWeight: 700 }}>
+                                  {r.net_work_minutes != null ? (r.net_work_minutes / 60).toFixed(1) : (r.hours != null ? r.hours.toFixed(1) : '—')}
                                 </td>
                               </tr>
                             ))}
