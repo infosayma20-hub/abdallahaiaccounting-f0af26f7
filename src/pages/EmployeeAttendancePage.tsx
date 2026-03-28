@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay } from "@/lib/utils";
 import {
   Clock, LogIn, LogOut, MapPin, QrCode, Calendar, AlertTriangle,
-  CheckCircle2, XCircle, Timer, FileText, Send, Loader2
+  CheckCircle2, XCircle, Timer, FileText, Send, Loader2, Coffee, Undo2
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -30,6 +30,16 @@ type AttendanceDay = {
   status: string;
   branch_id: string | null;
   notes: string | null;
+  total_break_minutes?: number;
+  net_work_minutes?: number;
+};
+
+type BreakRecord = {
+  id: string;
+  break_out: string;
+  break_in: string | null;
+  reason: string;
+  duration_minutes: number | null;
 };
 
 type CorrectionRequest = {
@@ -55,18 +65,22 @@ export default function EmployeeAttendancePage() {
   const { user } = useAuth();
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
+  const [todayBreaks, setTodayBreaks] = useState<BreakRecord[]>([]);
   const [history, setHistory] = useState<AttendanceDay[]>([]);
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [qrInput, setQrInput] = useState("");
-  const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | "break_out" | "break_in" | null>(null);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const [correctionForm, setCorrectionForm] = useState({ date: "", type: "missing_checkout", reason: "" });
   const [employee, setEmployee] = useState<{ id: string; full_name: string; branch_id: string | null } | null>(null);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showBreakSheet, setShowBreakSheet] = useState(false);
+  const [breakReason, setBreakReason] = useState("استراحة");
+  const [breakElapsed, setBreakElapsed] = useState(0);
 
   // Live clock
   useEffect(() => {
