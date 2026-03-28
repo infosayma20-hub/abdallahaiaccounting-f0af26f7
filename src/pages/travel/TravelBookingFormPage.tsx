@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureTravelAccounts, createBookingJournalEntry } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -370,20 +371,16 @@ export default function TravelBookingFormPage() {
         });
       }
 
-      // Journal entry
-      const debitCode = payAmt >= sell ? (payMethod === "bank_transfer" ? "1120" : payMethod === "check" ? "1150" : "1110") : "1130";
-      await supabase.from("transactions").insert({
-        user_id: user.id,
-        transaction_date: new Date().toISOString().split("T")[0],
-        description: `حجز سياحي - ${booking.booking_number} - ${customerName || ""}`,
-        debit_account_code: debitCode,
-        credit_account_code: "4100",
-        amount: sell,
-        currency: "شيكل",
-        transaction_type: "travel_booking",
-        reference: booking.booking_number,
-        payment_method: payAmt > 0 ? (payMethod === "cash" ? "نقدي" : payMethod === "bank_transfer" ? "بنك" : payMethod) : "آجل",
-        idempotency_key: `TRVBOOK-${booking.id}`,
+      // Ensure travel accounts exist and create journal entry
+      await ensureTravelAccounts(user.id);
+      await createBookingJournalEntry({
+        userId: user.id,
+        bookingNumber: booking.booking_number,
+        customerName: customerName || "",
+        serviceType,
+        sellingPrice: sell,
+        amountPaid: payAmt,
+        paymentMethod: payMethod,
       });
 
       toast({ title: `✅ تم إنشاء الحجز ${booking.booking_number}` });
