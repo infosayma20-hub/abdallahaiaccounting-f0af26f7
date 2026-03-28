@@ -417,31 +417,123 @@ export default function TravelBookingFormPage() {
             <h2 className="font-semibold">المسافرون</h2>
             <Button variant="outline" size="sm" onClick={addPassenger}><Plus className="w-3 h-3 ml-1" /> إضافة مسافر</Button>
           </div>
-          {passengers.map((p, i) => (
-            <div key={i} className="p-3 rounded-lg border space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">مسافر {i + 1}</span>
-                {passengers.length > 1 && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePassenger(i)}><Trash2 className="w-3 h-3 text-red-500" /></Button>}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">الاسم الكامل *</Label><Input value={p.full_name} onChange={e => updatePassenger(i, "full_name", e.target.value)} /></div>
-                <div><Label className="text-xs">رقم الجواز</Label><Input value={p.passport_number} onChange={e => updatePassenger(i, "passport_number", e.target.value)} /></div>
-                <div><Label className="text-xs">الجنسية</Label><Input value={p.nationality} onChange={e => updatePassenger(i, "nationality", e.target.value)} /></div>
-                <div><Label className="text-xs">تاريخ الميلاد</Label><Input type="date" value={p.date_of_birth} onChange={e => updatePassenger(i, "date_of_birth", e.target.value)} /></div>
-                <div>
-                  <Label className="text-xs">الجنس</Label>
-                  <Select value={p.gender} onValueChange={v => updatePassenger(i, "gender", v)}>
-                    <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">ذكر</SelectItem>
-                      <SelectItem value="female">أنثى</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label className="text-xs">رقم التذكرة</Label><Input value={p.ticket_number} onChange={e => updatePassenger(i, "ticket_number", e.target.value)} /></div>
-              </div>
-            </div>
-          ))}
+          <Accordion type="multiple" defaultValue={passengers.map((_, i) => `passenger-${i}`)}>
+            {passengers.map((p, i) => (
+              <AccordionItem key={i} value={`passenger-${i}`}>
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                  <div className="flex items-center justify-between w-full pl-2">
+                    <span>مسافر {i + 1}{p.full_name ? ` — ${p.full_name}` : ""}</span>
+                    {passengers.length > 1 && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 mr-2" onClick={(e) => { e.stopPropagation(); removePassenger(i); }}>
+                        <Trash2 className="w-3 h-3 text-red-500" />
+                      </Button>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-2">
+                  {/* Basic info */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label className="text-xs">الاسم الكامل *</Label><Input value={p.full_name} onChange={e => updatePassenger(i, "full_name", e.target.value)} /></div>
+                    <div><Label className="text-xs">الجنسية</Label><Input value={p.nationality} onChange={e => updatePassenger(i, "nationality", e.target.value)} /></div>
+                    <div><Label className="text-xs">تاريخ الميلاد</Label><Input type="date" value={p.date_of_birth} onChange={e => updatePassenger(i, "date_of_birth", e.target.value)} /></div>
+                    <div>
+                      <Label className="text-xs">الجنس</Label>
+                      <Select value={p.gender} onValueChange={v => updatePassenger(i, "gender", v)}>
+                        <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">ذكر</SelectItem>
+                          <SelectItem value="female">أنثى</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label className="text-xs">رقم التذكرة</Label><Input value={p.ticket_number} onChange={e => updatePassenger(i, "ticket_number", e.target.value)} /></div>
+                  </div>
+
+                  {/* Passport section */}
+                  <div className="p-4 rounded-lg border border-dashed space-y-3" style={{ borderColor: "rgba(27,58,92,0.3)" }}>
+                    <h4 className="text-sm font-semibold" style={{ color: "#1B3A5C" }}>🛂 بيانات الجواز — المسافر {i + 1}</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">رقم جواز السفر</Label>
+                        <Input
+                          value={p.passport_number}
+                          onChange={e => updatePassenger(i, "passport_number", e.target.value)}
+                          placeholder="مثال: A12345678"
+                        />
+                        {p.passport_number && !isPassportNumberValid(p.passport_number) && (
+                          <p className="text-xs text-destructive mt-1">يجب أن يكون أحرف وأرقام فقط، بين 6–12 خانة</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs">تاريخ انتهاء الجواز</Label>
+                        <Input
+                          type="date"
+                          value={p.passport_expiry}
+                          onChange={e => updatePassenger(i, "passport_expiry", e.target.value)}
+                        />
+                        {isPassportExpired(p.passport_expiry) && (
+                          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> الجواز منتهي الصلاحية
+                          </p>
+                        )}
+                        {isPassportExpiringWithin6Months(p.passport_expiry) && (
+                          <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "#E67E22" }}>
+                            <AlertTriangle className="w-3 h-3" /> تنبيه: الجواز قارب على الانتهاء
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Passport image upload */}
+                    <div>
+                      <Label className="text-xs">صورة جواز السفر</Label>
+                      {p.passport_image_url ? (
+                        <div className="relative mt-2 inline-block">
+                          {p.passport_image_file?.type === "application/pdf" ? (
+                            <div className="w-32 h-20 rounded-lg border flex items-center justify-center bg-muted text-xs text-muted-foreground">📄 PDF</div>
+                          ) : (
+                            <img src={p.passport_image_url} alt="صورة الجواز" className="w-32 h-20 object-cover rounded-lg border" />
+                          )}
+                          <button
+                            onClick={() => removePassportImage(i)}
+                            className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center text-xs"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="mt-2 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/30"
+                          style={{ borderColor: "rgba(27,58,92,0.25)" }}
+                          onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                          onDrop={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) handlePassportUpload(i, file);
+                          }}
+                          onClick={() => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = "image/jpeg,image/png,application/pdf";
+                            input.onchange = (ev) => {
+                              const file = (ev.target as HTMLInputElement).files?.[0];
+                              if (file) handlePassportUpload(i, file);
+                            };
+                            input.click();
+                          }}
+                        >
+                          <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">اسحب الصورة هنا أو اضغط للرفع</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">JPG, PNG, PDF — حد أقصى 5MB</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
           <div className="flex justify-between pt-2">
             <Button variant="outline" onClick={() => setStep(3)}><ArrowRight className="w-4 h-4 ml-1" /> السابق</Button>
             <Button onClick={() => setStep(5)} style={{ background: "#1B3A5C" }} className="text-white"><ArrowLeft className="w-4 h-4 ml-1" /> التالي</Button>
