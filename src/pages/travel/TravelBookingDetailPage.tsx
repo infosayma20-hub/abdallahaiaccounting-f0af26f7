@@ -64,7 +64,7 @@ export default function TravelBookingDetailPage() {
 
   const fetchAll = async () => {
     const [bRes, iRes, pRes, pmRes, dRes] = await Promise.all([
-      supabase.from("travel_bookings").select("*, supplier:travel_suppliers(name)").eq("id", id).single(),
+      supabase.from("travel_bookings").select("*").eq("id", id).single(),
       supabase.from("travel_booking_items").select("*").eq("booking_id", id).order("sort_order"),
       supabase.from("travel_booking_passengers").select("*").eq("booking_id", id).order("passenger_index"),
       supabase.from("travel_booking_payments").select("*").eq("booking_id", id).order("payment_date", { ascending: false }),
