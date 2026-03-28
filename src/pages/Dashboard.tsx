@@ -99,11 +99,7 @@ const Dashboard = () => {
     if (!done && browserSupportsWebAuthn()) setShowPasskeyOnboarding(true);
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const done = localStorage.getItem("onboarding_completed");
-    if (!done) setShowOnboarding(true);
-  }, [user]);
+  // Legacy onboarding removed — handled by AppsLauncher
 
   useEffect(() => {
     if (!user) return;
@@ -914,9 +910,7 @@ const Dashboard = () => {
         <SetupWizard userId={user.id} onComplete={() => { setShowSetupWizard(false); setProfileData(prev => prev ? { ...prev, setup_completed: true } : prev); }} />
       )}
       {showPasskeyOnboarding && <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />}
-      {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
-        <OnboardingFlow onComplete={() => setShowOnboarding(false)} onFocusInput={() => { const input = document.querySelector<HTMLInputElement>("#smart-input-bar input"); input?.focus(); }} />
-      )}
+      {/* Legacy OnboardingFlow removed — handled by AppsLauncher */}
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
       <JournalEntryPopup
         open={showJournalEntry}

@@ -44,10 +44,9 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-background overflow-y-auto" dir="rtl">
       {/* Progress bar */}
-      <div className="relative h-1 bg-slate-100">
+      <div className="relative h-1 bg-muted">
         <motion.div
-          className="absolute inset-y-0 right-0 rounded-full"
-          style={{ background: "linear-gradient(90deg, #4A9EE8, #7BB8F0)" }}
+          className="absolute inset-y-0 right-0 rounded-full bg-primary"
           animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         />
@@ -58,7 +57,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
         {/* Skip button */}
         <button
           onClick={onSkip}
-          className="text-xs px-3 py-1.5 rounded-full transition-all hover:bg-slate-100 text-slate-500 border border-slate-200"
+          className="text-xs px-3 py-1.5 rounded-full transition-all hover:bg-muted text-muted-foreground border border-border"
         >
           تخطّي
         </button>
@@ -69,7 +68,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
             <motion.div
               key={i}
               className="h-2 rounded-full transition-colors"
-              style={{ background: i <= step ? "#4A9EE8" : "#CBD5E1" }}
+              style={{ background: i <= step ? "hsl(var(--primary))" : "hsl(var(--muted))" }}
               animate={{ width: i === step ? 24 : 8 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             />
@@ -77,7 +76,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
         </div>
 
         {/* Step indicator */}
-        <span className="text-[11px] text-slate-400 min-w-[40px] text-left">
+        <span className="text-[11px] text-muted-foreground min-w-[40px] text-left">
           {step + 1}/{TOTAL_STEPS}
         </span>
       </div>
