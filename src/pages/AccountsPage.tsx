@@ -171,7 +171,7 @@ const AccountsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
   const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
