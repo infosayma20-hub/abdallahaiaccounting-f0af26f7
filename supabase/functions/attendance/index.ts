@@ -119,23 +119,39 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 3. Validate QR token dynamically using HMAC
+      // 3. Validate QR token using HMAC
       const branchSecret = branch.secret_key;
       const rotationMinutes = branch.qr_rotation_minutes || 240;
       
-      async function computeToken(brId: string, tw: number, sk: string): Promise<string> {
+      async function computeHMAC(message: string, sk: string): Promise<string> {
         const encoder = new TextEncoder();
-        const data = `${brId}:${tw}`;
         const key = await crypto.subtle.importKey("raw", encoder.encode(sk), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-        const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+        const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
         return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
       }
+
+      let tokenValid = false;
+
+      // Check if branch uses static QR mode
+      const { data: branchFull } = await supabase
+        .from("branches")
+        .select("qr_mode")
+        .eq("id", branch_id)
+        .single();
+
+      if (branchFull?.qr_mode === 'static') {
+        // Static mode: token = HMAC(branchId:static, secret)
+        const staticToken = await computeHMAC(`${branch_id}:static`, branchSecret);
+        tokenValid = qr_token === staticToken;
+      } else {
+        // Rotating mode: check current and previous time windows
+        const currentWindow = Math.floor(Date.now() / (rotationMinutes * 60 * 1000));
+        const currentToken = await computeHMAC(`${branch_id}:${currentWindow}`, branchSecret);
+        const prevToken = await computeHMAC(`${branch_id}:${currentWindow - 1}`, branchSecret);
+        tokenValid = qr_token === currentToken || qr_token === prevToken;
+      }
       
-      const currentWindow = Math.floor(Date.now() / (rotationMinutes * 60 * 1000));
-      const currentToken = await computeToken(branch_id, currentWindow, branchSecret);
-      const prevToken = await computeToken(branch_id, currentWindow - 1, branchSecret);
-      
-      if (qr_token !== currentToken && qr_token !== prevToken) {
+      if (!tokenValid) {
         return new Response(JSON.stringify({ error: "رمز QR غير صالح أو منتهي الصلاحية" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
