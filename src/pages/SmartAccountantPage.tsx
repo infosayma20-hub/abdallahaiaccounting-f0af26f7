@@ -180,7 +180,7 @@ const SmartAccountantPage = () => {
 
   // Single-column clean layout for both mobile and desktop
   return (
-    <div className="finix-clean-screen" dir="rtl">
+    <div className="finix-clean-screen relative" dir="rtl">
       {/* Onboarding Overlay */}
       {showOnboarding && (
         <SmartAccountantOnboarding
