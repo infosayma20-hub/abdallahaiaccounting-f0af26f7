@@ -9851,6 +9851,8 @@ export type Database = {
           id: string
           nationality: string | null
           notes: string | null
+          passport_expiry: string | null
+          passport_image_url: string | null
           passport_number: string | null
           ticket_number: string | null
         }
@@ -9862,6 +9864,8 @@ export type Database = {
           id?: string
           nationality?: string | null
           notes?: string | null
+          passport_expiry?: string | null
+          passport_image_url?: string | null
           passport_number?: string | null
           ticket_number?: string | null
         }
@@ -9873,6 +9877,8 @@ export type Database = {
           id?: string
           nationality?: string | null
           notes?: string | null
+          passport_expiry?: string | null
+          passport_image_url?: string | null
           passport_number?: string | null
           ticket_number?: string | null
         }
