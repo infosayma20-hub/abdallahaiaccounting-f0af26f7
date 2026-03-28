@@ -575,7 +575,7 @@ Deno.serve(async (req) => {
       // Fetch attendance for date range
       let attQuery = supabase
         .from("attendance_days")
-        .select("employee_id, attendance_date, first_check_in, last_check_out, total_hours, status, overtime_hours")
+        .select("employee_id, attendance_date, first_check_in, last_check_out, total_hours, status, overtime_hours, total_break_minutes, net_work_minutes")
         .in("employee_id", empIds);
 
       if (dateFrom) attQuery = attQuery.gte("attendance_date", dateFrom);
