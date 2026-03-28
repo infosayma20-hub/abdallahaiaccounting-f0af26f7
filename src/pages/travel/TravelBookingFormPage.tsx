@@ -374,19 +374,55 @@ export default function TravelBookingFormPage() {
         <Card className="p-6 space-y-4">
           <h2 className="font-semibold">تفاصيل الحجز</h2>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            {/* Customer search with inline quick-add */}
+            <div className="col-span-2" ref={customerRef}>
               <Label>العميل</Label>
-              <Select value={customerId} onValueChange={handleSelectContact}>
-                <SelectTrigger><SelectValue placeholder="اختر عميلاً" /></SelectTrigger>
-                <SelectContent>
-                  {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  value={customerSearch}
+                  onChange={e => {
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerDropdown(true);
+                    if (!e.target.value.trim()) { setCustomerId(""); setCustomerName(""); setCustomerPhone(""); }
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  placeholder="ابحث عن عميل أو أدخل اسم جديد..."
+                />
+                {showCustomerDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredCustomers.map(c => (
+                      <button key={c.id} onClick={() => handleSelectContact(c)}
+                        className="w-full text-right px-3 py-2 hover:bg-muted/50 flex items-center justify-between text-sm">
+                        <span>{c.contact_name}</span>
+                        {c.phone && <span className="text-xs text-muted-foreground">{c.phone}</span>}
+                      </button>
+                    ))}
+                    {customerSearch.trim() && !customers.find(c => c.contact_name === customerSearch.trim()) && (
+                      <div className="border-t p-2 space-y-2">
+                        <p className="text-xs text-muted-foreground">عميل جديد: <strong>{customerSearch}</strong></p>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            value={newCustomerPhone}
+                            onChange={e => setNewCustomerPhone(e.target.value)}
+                            placeholder="رقم الهاتف (اختياري)"
+                            className="h-8 text-xs flex-1"
+                            onKeyDown={e => e.key === "Enter" && handleQuickAddCustomer()}
+                          />
+                          <Button size="sm" className="h-8 text-xs" disabled={savingCustomer} onClick={handleQuickAddCustomer}
+                            style={{ background: "#1B3A5C" }}>
+                            {savingCustomer ? "..." : "➕ حفظ"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {filteredCustomers.length === 0 && !customerSearch.trim() && (
+                      <p className="text-xs text-muted-foreground p-3 text-center">لا يوجد عملاء</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <Label>اسم العميل</Label>
-              <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="أو أدخل الاسم يدوياً" />
-            </div>
+
             <div>
               <Label>هاتف العميل</Label>
               <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
@@ -411,15 +447,45 @@ export default function TravelBookingFormPage() {
               <Label>تاريخ العودة</Label>
               <Input type="date" value={returnDate} onChange={e => setReturnDate(e.target.value)} />
             </div>
-            <div>
+
+            {/* Supplier search with inline quick-add */}
+            <div ref={supplierRef2}>
               <Label>المورد</Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger><SelectValue placeholder="اختر مورداً" /></SelectTrigger>
-                <SelectContent>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  value={supplierSearch}
+                  onChange={e => {
+                    setSupplierSearch(e.target.value);
+                    setShowSupplierDropdown(true);
+                    if (!e.target.value.trim()) { setSupplierId(""); setSupplierName(""); }
+                  }}
+                  onFocus={() => setShowSupplierDropdown(true)}
+                  placeholder="ابحث عن مورد أو أدخل اسم جديد..."
+                />
+                {showSupplierDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredSuppliers.map(c => (
+                      <button key={c.id} onClick={() => handleSelectSupplier(c)}
+                        className="w-full text-right px-3 py-2 hover:bg-muted/50 text-sm">
+                        {c.contact_name}
+                      </button>
+                    ))}
+                    {supplierSearch.trim() && !suppliers.find(c => c.contact_name === supplierSearch.trim()) && (
+                      <div className="border-t p-2">
+                        <Button size="sm" className="h-8 text-xs w-full" disabled={savingSupplier} onClick={handleQuickAddSupplier}
+                          style={{ background: "#1B3A5C" }}>
+                          {savingSupplier ? "..." : `➕ إضافة "${supplierSearch}" كمورد`}
+                        </Button>
+                      </div>
+                    )}
+                    {filteredSuppliers.length === 0 && !supplierSearch.trim() && (
+                      <p className="text-xs text-muted-foreground p-3 text-center">لا يوجد موردين</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
+
             <div>
               <Label>رقم الحجز عند المورد</Label>
               <Input value={supplierRef} onChange={e => setSupplierRef(e.target.value)} placeholder="PNR / Confirmation #" />
