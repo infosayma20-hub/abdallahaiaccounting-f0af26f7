@@ -1001,13 +1001,32 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
-          {/* Auto-filled contact details */}
+          {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
-            <div className="bg-muted/30 rounded-xl p-3 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
-              {selectedContact.address && <div><span className="text-muted-foreground">العنوان:</span> <span className="font-medium">{selectedContact.address}</span></div>}
-              {selectedContact.phone && <div><span className="text-muted-foreground">الهاتف:</span> <span className="font-medium">{selectedContact.phone}</span></div>}
-              {selectedContact.email && <div><span className="text-muted-foreground">الإيميل:</span> <span className="font-medium">{selectedContact.email}</span></div>}
-              {selectedContact.tax_number && <div><span className="text-muted-foreground">الرقم الضريبي:</span> <span className="font-medium">{selectedContact.tax_number}</span></div>}
+            <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الهاتف</label>
+                  <Input value={customerOverrides.phone} onChange={e => setCustomerOverrides(p => ({ ...p, phone: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">البريد الإلكتروني</label>
+                  <Input value={customerOverrides.email} onChange={e => setCustomerOverrides(p => ({ ...p, email: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الرقم الضريبي</label>
+                  <Input value={customerOverrides.tax_number} onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">العنوان</label>
+                  <Input value={customerOverrides.address} onChange={e => setCustomerOverrides(p => ({ ...p, address: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" />
+                </div>
+              </div>
+              {(!customerOverrides.phone && !customerOverrides.email && !customerOverrides.tax_number && !customerOverrides.address) && (
+                <a href={`/contacts`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline">
+                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل
+                </a>
+              )}
             </div>
           )}
 
