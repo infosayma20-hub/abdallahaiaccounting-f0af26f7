@@ -940,14 +940,14 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                   initial={{ scale: 0 }}
                   animate={{ scale: [0, 1.3, 1] }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
-                  className="w-24 h-24 rounded-full bg-primary/10 mx-auto flex items-center justify-center"
+                  className="mx-auto flex items-center justify-center"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                   >
-                    <img src={amwaliMarkNavy} alt="AMWALI" className="h-12 w-12 object-contain" />
+                    <img src={amwaliMarkNavy} alt="AMWALI" className="h-20 w-20 object-contain" />
                   </motion.div>
                 </motion.div>
                 {/* Decorative circles */}
