@@ -9842,45 +9842,207 @@ export type Database = {
           },
         ]
       }
+      travel_booking_documents: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          document_type: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          document_type?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          document_type?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_booking_documents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "travel_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      travel_booking_items: {
+        Row: {
+          booking_id: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          city: string | null
+          created_at: string | null
+          currency_id: string | null
+          description: string
+          exchange_rate: number | null
+          id: string
+          item_type: string
+          nights: number | null
+          notes: string | null
+          quantity: number | null
+          sort_order: number | null
+          supplier_contact_id: string | null
+          total_cost: number | null
+          total_price: number | null
+          unit_cost: number | null
+          unit_price: number | null
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          city?: string | null
+          created_at?: string | null
+          currency_id?: string | null
+          description?: string
+          exchange_rate?: number | null
+          id?: string
+          item_type?: string
+          nights?: number | null
+          notes?: string | null
+          quantity?: number | null
+          sort_order?: number | null
+          supplier_contact_id?: string | null
+          total_cost?: number | null
+          total_price?: number | null
+          unit_cost?: number | null
+          unit_price?: number | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          city?: string | null
+          created_at?: string | null
+          currency_id?: string | null
+          description?: string
+          exchange_rate?: number | null
+          id?: string
+          item_type?: string
+          nights?: number | null
+          notes?: string | null
+          quantity?: number | null
+          sort_order?: number | null
+          supplier_contact_id?: string | null
+          total_cost?: number | null
+          total_price?: number | null
+          unit_cost?: number | null
+          unit_price?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_booking_items_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "travel_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_booking_items_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_booking_items_supplier_contact_id_fkey"
+            columns: ["supplier_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travel_booking_passengers: {
         Row: {
           booking_id: string | null
           date_of_birth: string | null
+          email: string | null
           full_name: string
+          full_name_en: string | null
           gender: string | null
           id: string
+          mahram_name: string | null
+          national_id: string | null
           nationality: string | null
           notes: string | null
+          passenger_index: number | null
           passport_expiry: string | null
           passport_image_url: string | null
+          passport_issue_date: string | null
           passport_number: string | null
+          phone: string | null
+          room_type: string | null
           ticket_number: string | null
+          user_id: string | null
         }
         Insert: {
           booking_id?: string | null
           date_of_birth?: string | null
+          email?: string | null
           full_name: string
+          full_name_en?: string | null
           gender?: string | null
           id?: string
+          mahram_name?: string | null
+          national_id?: string | null
           nationality?: string | null
           notes?: string | null
+          passenger_index?: number | null
           passport_expiry?: string | null
           passport_image_url?: string | null
+          passport_issue_date?: string | null
           passport_number?: string | null
+          phone?: string | null
+          room_type?: string | null
           ticket_number?: string | null
+          user_id?: string | null
         }
         Update: {
           booking_id?: string | null
           date_of_birth?: string | null
+          email?: string | null
           full_name?: string
+          full_name_en?: string | null
           gender?: string | null
           id?: string
+          mahram_name?: string | null
+          national_id?: string | null
           nationality?: string | null
           notes?: string | null
+          passenger_index?: number | null
           passport_expiry?: string | null
           passport_image_url?: string | null
+          passport_issue_date?: string | null
           passport_number?: string | null
+          phone?: string | null
+          room_type?: string | null
           ticket_number?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -9894,54 +10056,69 @@ export type Database = {
       }
       travel_booking_payments: {
         Row: {
+          account_id: string | null
           amount: number
           amount_ils: number | null
+          bank_name: string | null
           booking_id: string | null
           cash_box_id: string | null
           created_at: string | null
           currency: string | null
           exchange_rate: number | null
           id: string
+          journal_entry_id: string | null
           linked_transaction_id: string | null
           notes: string | null
           payment_date: string | null
+          payment_direction: string | null
           payment_method: string | null
           receipt_number: string | null
           received_by: string | null
+          reference_number: string | null
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           amount_ils?: number | null
+          bank_name?: string | null
           booking_id?: string | null
           cash_box_id?: string | null
           created_at?: string | null
           currency?: string | null
           exchange_rate?: number | null
           id?: string
+          journal_entry_id?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           payment_date?: string | null
+          payment_direction?: string | null
           payment_method?: string | null
           receipt_number?: string | null
           received_by?: string | null
+          reference_number?: string | null
           user_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           amount_ils?: number | null
+          bank_name?: string | null
           booking_id?: string | null
           cash_box_id?: string | null
           created_at?: string | null
           currency?: string | null
           exchange_rate?: number | null
           id?: string
+          journal_entry_id?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           payment_date?: string | null
+          payment_direction?: string | null
           payment_method?: string | null
           receipt_number?: string | null
           received_by?: string | null
+          reference_number?: string | null
           user_id?: string
         }
         Relationships: [
@@ -9963,29 +10140,34 @@ export type Database = {
           commission_amount: number | null
           commission_rate: number | null
           commission_type: string | null
+          contact_id: string | null
           cost_currency: string | null
           cost_exchange_rate: number | null
           cost_price: number
           cost_price_ils: number | null
           created_at: string | null
           created_by: string | null
+          currency_id: string | null
           customer_id: string | null
           customer_name: string | null
           customer_phone: string | null
           destination: string | null
           id: string
           internal_notes: string | null
+          journal_entry_id: string | null
           linked_transaction_id: string | null
           notes: string | null
           origin: string | null
           pax_count: number | null
           payment_status: string | null
+          profit_margin: number | null
           refund_amount: number | null
           return_date: string | null
           selling_currency: string | null
           selling_price: number
           service_type: string
           status: string | null
+          supplier_contact_id: string | null
           supplier_id: string | null
           supplier_paid: boolean | null
           supplier_paid_date: string | null
@@ -10002,29 +10184,34 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           commission_type?: string | null
+          contact_id?: string | null
           cost_currency?: string | null
           cost_exchange_rate?: number | null
           cost_price?: number
           cost_price_ils?: number | null
           created_at?: string | null
           created_by?: string | null
+          currency_id?: string | null
           customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           destination?: string | null
           id?: string
           internal_notes?: string | null
+          journal_entry_id?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           origin?: string | null
           pax_count?: number | null
           payment_status?: string | null
+          profit_margin?: number | null
           refund_amount?: number | null
           return_date?: string | null
           selling_currency?: string | null
           selling_price?: number
           service_type: string
           status?: string | null
+          supplier_contact_id?: string | null
           supplier_id?: string | null
           supplier_paid?: boolean | null
           supplier_paid_date?: string | null
@@ -10041,29 +10228,34 @@ export type Database = {
           commission_amount?: number | null
           commission_rate?: number | null
           commission_type?: string | null
+          contact_id?: string | null
           cost_currency?: string | null
           cost_exchange_rate?: number | null
           cost_price?: number
           cost_price_ils?: number | null
           created_at?: string | null
           created_by?: string | null
+          currency_id?: string | null
           customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           destination?: string | null
           id?: string
           internal_notes?: string | null
+          journal_entry_id?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           origin?: string | null
           pax_count?: number | null
           payment_status?: string | null
+          profit_margin?: number | null
           refund_amount?: number | null
           return_date?: string | null
           selling_currency?: string | null
           selling_price?: number
           service_type?: string
           status?: string | null
+          supplier_contact_id?: string | null
           supplier_id?: string | null
           supplier_paid?: boolean | null
           supplier_paid_date?: string | null
@@ -10074,8 +10266,29 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "travel_bookings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_bookings_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "travel_bookings_customer_id_fkey"
             columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_bookings_supplier_contact_id_fkey"
+            columns: ["supplier_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
@@ -10088,6 +10301,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      travel_currencies: {
+        Row: {
+          currency_code: string
+          currency_name_ar: string
+          exchange_rate: number | null
+          id: string
+          is_default: boolean | null
+          symbol: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          currency_code: string
+          currency_name_ar: string
+          exchange_rate?: number | null
+          id?: string
+          is_default?: boolean | null
+          symbol?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          currency_code?: string
+          currency_name_ar?: string
+          exchange_rate?: number | null
+          id?: string
+          is_default?: boolean | null
+          symbol?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       travel_packages: {
         Row: {
