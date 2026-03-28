@@ -8165,9 +8165,13 @@ export type Database = {
           category: string
           color: string | null
           created_at: string
+          description: string | null
           id: string
           image_url: string | null
           is_pos_available: boolean | null
+          is_pos_product: boolean | null
+          is_purchased: boolean | null
+          is_sold: boolean | null
           is_weighted: boolean | null
           kitchen_station_id: string | null
           min_quantity: number
@@ -8175,11 +8179,14 @@ export type Database = {
           notes: string | null
           pos_category_id: string | null
           pos_sort_order: number | null
+          purchase_account_code: string | null
           quantity: number
+          sales_account_code: string | null
           sell_price: number
           sku: string | null
           sort_order: number | null
           tax_rate: number | null
+          terms: string | null
           unit: string
           updated_at: string
           user_id: string
@@ -8190,9 +8197,13 @@ export type Database = {
           category?: string
           color?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           image_url?: string | null
           is_pos_available?: boolean | null
+          is_pos_product?: boolean | null
+          is_purchased?: boolean | null
+          is_sold?: boolean | null
           is_weighted?: boolean | null
           kitchen_station_id?: string | null
           min_quantity?: number
@@ -8200,11 +8211,14 @@ export type Database = {
           notes?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          purchase_account_code?: string | null
           quantity?: number
+          sales_account_code?: string | null
           sell_price?: number
           sku?: string | null
           sort_order?: number | null
           tax_rate?: number | null
+          terms?: string | null
           unit?: string
           updated_at?: string
           user_id: string
@@ -8215,9 +8229,13 @@ export type Database = {
           category?: string
           color?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           image_url?: string | null
           is_pos_available?: boolean | null
+          is_pos_product?: boolean | null
+          is_purchased?: boolean | null
+          is_sold?: boolean | null
           is_weighted?: boolean | null
           kitchen_station_id?: string | null
           min_quantity?: number
@@ -8225,11 +8243,14 @@ export type Database = {
           notes?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          purchase_account_code?: string | null
           quantity?: number
+          sales_account_code?: string | null
           sell_price?: number
           sku?: string | null
           sort_order?: number | null
           tax_rate?: number | null
+          terms?: string | null
           unit?: string
           updated_at?: string
           user_id?: string

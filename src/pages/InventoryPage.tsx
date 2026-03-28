@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat } from "lucide-react";
+import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat, Camera, ScanLine } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +26,21 @@ interface Product {
   notes: string | null;
   created_at: string;
   kitchen_station_id: string | null;
+  barcode: string | null;
+  tax_rate: number | null;
+  is_sold: boolean;
+  is_purchased: boolean;
+  is_pos_product: boolean;
+  sales_account_code: string | null;
+  purchase_account_code: string | null;
+  description: string | null;
+  terms: string | null;
+}
+
+interface AccountOption {
+  account_code: string;
+  account_name: string;
+  account_type: string;
 }
 
 interface KitchenStation {
@@ -107,7 +123,17 @@ const InventoryPage = () => {
     name: "", category: "بضاعة عامة", skuPrefix: "GEN",
     buy_price: "", sell_price: "", quantity: "", min_quantity: "",
     unit: "قطعة", notes: "", kitchen_station_id: "" as string,
+    barcode: "", tax_rate: "0", custom_tax_rate: "",
+    is_sold: true, is_purchased: true, is_pos_product: false,
+    sales_account_code: "4100", purchase_account_code: "5110",
+    description: "", terms: "",
   });
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const barcodeVideoRef = useRef<HTMLVideoElement>(null);
+  const barcodeStreamRef = useRef<MediaStream | null>(null);
+
+  const TAX_OPTIONS = ["0", "5", "7.5", "10", "16", "17", "أخرى"];
 
   const generateSKU = (prefix: string) => {
     const existingWithPrefix = products.filter(p => p.sku?.startsWith(prefix + "-"));
@@ -145,22 +171,89 @@ const InventoryPage = () => {
     setKitchenStations((data as KitchenStation[]) || []);
   }, [user]);
 
-  useEffect(() => { fetchProducts(); fetchStations(); }, [user]);
+  const fetchAccounts = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("accounts")
+      .select("account_code, account_name, account_type")
+      .eq("user_id", user.id)
+      .in("account_type", ["إيرادات", "مصاريف", "أصول"])
+      .eq("is_active", true)
+      .order("account_code");
+    setAccounts((data as AccountOption[]) || []);
+  }, [user]);
+
+  useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "" });
     setEditMode(false);
     setSelectedProduct(null);
+    stopBarcodeScanner();
+  };
+
+  const startBarcodeScanner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      barcodeStreamRef.current = stream;
+      setShowBarcodeScanner(true);
+      setTimeout(() => {
+        if (barcodeVideoRef.current) {
+          barcodeVideoRef.current.srcObject = stream;
+          barcodeVideoRef.current.play();
+        }
+      }, 100);
+      if ('BarcodeDetector' in window) {
+        const detector = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
+        const scanLoop = async () => {
+          if (!barcodeVideoRef.current || !barcodeStreamRef.current) return;
+          try {
+            const barcodes = await detector.detect(barcodeVideoRef.current);
+            if (barcodes.length > 0) {
+              setForm(p => ({ ...p, barcode: barcodes[0].rawValue }));
+              stopBarcodeScanner();
+              toast({ title: "تم مسح الباركود ✅" });
+              return;
+            }
+          } catch {}
+          if (barcodeStreamRef.current) requestAnimationFrame(scanLoop);
+        };
+        requestAnimationFrame(scanLoop);
+      } else {
+        toast({ title: "المتصفح لا يدعم مسح الباركود", description: "يرجى إدخاله يدوياً", variant: "destructive" });
+        stopBarcodeScanner();
+      }
+    } catch {
+      toast({ title: "لا يمكن الوصول للكاميرا", variant: "destructive" });
+    }
+  };
+
+  const stopBarcodeScanner = () => {
+    barcodeStreamRef.current?.getTracks().forEach(t => t.stop());
+    barcodeStreamRef.current = null;
+    setShowBarcodeScanner(false);
   };
 
   const openEdit = (product: Product) => {
     const prefix = product.sku?.split("-")[0] || getCategoryPrefix(product.category);
+    const taxStr = String(product.tax_rate || 0);
+    const isCustomTax = !["0", "5", "7.5", "10", "16", "17"].includes(taxStr);
     setForm({
       name: product.name, category: product.category, skuPrefix: prefix,
       buy_price: String(product.buy_price), sell_price: String(product.sell_price),
       quantity: String(product.quantity), min_quantity: String(product.min_quantity),
       unit: product.unit, notes: product.notes || "",
       kitchen_station_id: product.kitchen_station_id || "",
+      barcode: product.barcode || "",
+      tax_rate: isCustomTax ? "أخرى" : taxStr,
+      custom_tax_rate: isCustomTax ? taxStr : "",
+      is_sold: product.is_sold ?? true,
+      is_purchased: product.is_purchased ?? true,
+      is_pos_product: product.is_pos_product ?? false,
+      sales_account_code: product.sales_account_code || "4100",
+      purchase_account_code: product.purchase_account_code || "5110",
+      description: product.description || "",
+      terms: product.terms || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
@@ -174,6 +267,7 @@ const InventoryPage = () => {
     }
     setSaving(true);
     const autoSKU = editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix);
+    const taxRate = form.tax_rate === "أخرى" ? parseFloat(form.custom_tax_rate) || 0 : parseFloat(form.tax_rate) || 0;
     const payload: any = {
       user_id: user.id, name: form.name.trim(), category: form.category as any,
       sku: autoSKU, buy_price: parseFloat(form.buy_price) || 0,
@@ -181,6 +275,15 @@ const InventoryPage = () => {
       min_quantity: parseFloat(form.min_quantity) || 0, unit: form.unit,
       notes: form.notes.trim() || null,
       kitchen_station_id: form.kitchen_station_id || null,
+      barcode: form.barcode.trim() || null,
+      tax_rate: taxRate,
+      is_sold: form.is_sold,
+      is_purchased: form.is_purchased,
+      is_pos_product: form.is_pos_product,
+      sales_account_code: form.is_sold ? (form.sales_account_code || null) : null,
+      purchase_account_code: form.is_purchased ? (form.purchase_account_code || null) : null,
+      description: form.description.trim() || null,
+      terms: form.terms.trim() || null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
@@ -277,7 +380,7 @@ const InventoryPage = () => {
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
     else if (stockFilter === "نفد") data = data.filter(p => stockStatus(p) === "نفد");
     if (searchQuery) {
-      data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category));
+      data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode));
     }
     return data;
   }, [products, filterCategory, stockFilter, searchQuery]);
@@ -677,21 +780,49 @@ const InventoryPage = () => {
               </div>
             </div>
 
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU) - تلقائي</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="العائلة"
-                  value={form.skuPrefix}
-                  onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))}
-                  className="rounded-xl w-24 text-center font-mono" dir="ltr" maxLength={5}
-                />
-                <div className="flex-1 h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center px-3 text-sm text-muted-foreground font-mono" dir="ltr">
-                  {editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix)}
+            {/* SKU + Barcode */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU) - تلقائي</label>
+                <div className="flex gap-1.5">
+                  <Input
+                    placeholder="العائلة"
+                    value={form.skuPrefix}
+                    onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))}
+                    className="rounded-xl w-16 text-center font-mono text-xs" dir="ltr" maxLength={5}
+                  />
+                  <div className="flex-1 h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center px-2 text-xs text-muted-foreground font-mono" dir="ltr">
+                    {editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix)}
+                  </div>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">غيّر العائلة (مثل GEN, RAW, PKG) للتحكم بأنواع المخزون</p>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الباركود</label>
+                <div className="flex gap-1.5">
+                  <Input
+                    placeholder="أدخل الباركود"
+                    value={form.barcode}
+                    onChange={e => setForm(p => ({ ...p, barcode: e.target.value }))}
+                    className="rounded-xl flex-1 font-mono text-xs" dir="ltr"
+                  />
+                  <Button type="button" size="sm" variant="outline" className="rounded-xl px-2.5 shrink-0" onClick={startBarcodeScanner} title="مسح بالكاميرا">
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                </div>
+                {showBarcodeScanner && (
+                  <div className="mt-2 relative rounded-xl overflow-hidden border border-border">
+                    <video ref={barcodeVideoRef} className="w-full h-32 object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <ScanLine className="h-8 w-8 text-primary animate-pulse" />
+                    </div>
+                    <Button type="button" size="sm" variant="destructive" className="absolute top-1 left-1 h-6 w-6 p-0 rounded-full" onClick={stopBarcodeScanner}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
+            <p className="text-[10px] text-muted-foreground -mt-2">غيّر العائلة (مثل GEN, RAW, PKG) للتحكم بأنواع المخزون</p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -715,9 +846,83 @@ const InventoryPage = () => {
               </div>
             </div>
 
+            {/* Tax Rate */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">نسبة الضريبة %</label>
+              <div className="flex gap-2">
+                <Select value={form.tax_rate} onValueChange={v => setForm(p => ({ ...p, tax_rate: v, custom_tax_rate: v === "أخرى" ? p.custom_tax_rate : "" }))}>
+                  <SelectTrigger className="rounded-xl flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TAX_OPTIONS.map(t => <SelectItem key={t} value={t}>{t === "أخرى" ? "أخرى (يدوي)" : `${t}%`}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {form.tax_rate === "أخرى" && (
+                  <Input type="number" placeholder="%" value={form.custom_tax_rate} onChange={e => setForm(p => ({ ...p, custom_tax_rate: e.target.value }))} className="rounded-xl w-24" dir="ltr" min="0" max="100" step="0.5" />
+                )}
+              </div>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="flex flex-wrap gap-4 py-2 border-y border-border/50">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_sold} onCheckedChange={v => setForm(p => ({ ...p, is_sold: !!v }))} />
+                يُباع
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_purchased} onCheckedChange={v => setForm(p => ({ ...p, is_purchased: !!v }))} />
+                يُشترى
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_pos_product} onCheckedChange={v => setForm(p => ({ ...p, is_pos_product: !!v }))} />
+                منتج نقاط البيع
+              </label>
+            </div>
+
+            {/* Sales Account */}
+            {form.is_sold && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">حساب المبيعات</label>
+                <Select value={form.sales_account_code} onValueChange={v => setForm(p => ({ ...p, sales_account_code: v }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر حساب الإيرادات" /></SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    {accounts.filter(a => a.account_type === "إيرادات").map(a => (
+                      <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Purchase Account */}
+            {form.is_purchased && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">حساب المشتريات</label>
+                <Select value={form.purchase_account_code} onValueChange={v => setForm(p => ({ ...p, purchase_account_code: v }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر حساب المصاريف" /></SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    {accounts.filter(a => a.account_type === "مصاريف" || a.account_type === "أصول").map(a => (
+                      <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Description */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">وصف المنتج</label>
+              <Textarea placeholder="وصف تفصيلي للمنتج أو الخدمة..." value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="rounded-xl min-h-[60px] resize-none" rows={2} />
+            </div>
+
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Input placeholder="اختياري" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="rounded-xl" />
+            </div>
+
+            {/* Terms */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الشروط والأحكام</label>
+              <Textarea placeholder="اختياري..." value={form.terms} onChange={e => setForm(p => ({ ...p, terms: e.target.value }))} className="rounded-xl min-h-[50px] resize-none" rows={2} />
             </div>
 
             {kitchenStations.length > 0 && (
