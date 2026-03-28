@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureTravelAccounts, createBookingJournalEntry } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
@@ -123,10 +123,13 @@ const getDefaultItems = (serviceType: string): CostItem[] => {
 
 export default function TravelBookingFormPage() {
   const { user } = useAuth();
+  const { id: editId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(editId ? 2 : 1);
   const [contacts, setContacts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [isEditMode] = useState(!!editId);
+  const [editBookingNumber, setEditBookingNumber] = useState("");
 
   // Step 1
   const [serviceType, setServiceType] = useState("");
@@ -176,6 +179,77 @@ export default function TravelBookingFormPage() {
   }, [user]);
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
+
+  // Load existing booking for edit mode
+  useEffect(() => {
+    if (!editId || !user) return;
+    const loadBooking = async () => {
+      const [bRes, iRes, pRes] = await Promise.all([
+        supabase.from("travel_bookings").select("*").eq("id", editId).single(),
+        supabase.from("travel_booking_items").select("*").eq("booking_id", editId).order("sort_order"),
+        supabase.from("travel_booking_passengers").select("*").eq("booking_id", editId).order("passenger_index"),
+      ]);
+      if (bRes.data) {
+        const b = bRes.data as any;
+        setEditBookingNumber(b.booking_number || "");
+        setServiceType(b.service_type || "");
+        setCustomerId(b.customer_id || b.contact_id || "");
+        setCustomerName(b.customer_name || "");
+        setCustomerSearch(b.customer_name || "");
+        setCustomerPhone(b.customer_phone || "");
+        setDestination(b.destination || "");
+        setOrigin(b.origin || "فلسطين");
+        setTravelDate(b.travel_date || "");
+        setReturnDate(b.return_date || "");
+        setSupplierId(b.supplier_contact_id || b.supplier_id || "");
+        setSupplierRef(b.supplier_ref || "");
+        setPaxCount(b.pax_count || 1);
+        setCurrency(b.cost_currency || "ILS");
+        setExchangeRate(String(b.cost_exchange_rate || 1));
+        setNotes(b.notes || "");
+      }
+      if (iRes.data && iRes.data.length > 0) {
+        setItems(iRes.data.map((it: any) => ({
+          item_type: it.item_type || "other",
+          description: it.description || "",
+          city: it.city || "",
+          supplier_contact_id: it.supplier_contact_id || "",
+          check_in_date: it.check_in_date || "",
+          check_out_date: it.check_out_date || "",
+          nights: it.nights || 0,
+          quantity: it.quantity || 1,
+          unit_cost: it.unit_cost || 0,
+          unit_price: it.unit_price || 0,
+        })));
+      }
+      if (pRes.data && pRes.data.length > 0) {
+        setPassengers(pRes.data.map((p: any) => ({
+          full_name: p.full_name || "",
+          full_name_en: p.full_name_en || "",
+          passport_number: p.passport_number || "",
+          passport_issue_date: p.passport_issue_date || "",
+          passport_expiry: p.passport_expiry || "",
+          passport_image_url: p.passport_image_url || "",
+          passport_image_file: null,
+          nationality: p.nationality || "",
+          date_of_birth: p.date_of_birth || "",
+          gender: p.gender || "",
+          national_id: p.national_id || "",
+          phone: p.phone || "",
+          email: p.email || "",
+          mahram_name: p.mahram_name || "",
+          room_type: p.room_type || "",
+        })));
+      }
+      // Fetch supplier name
+      const sid = bRes.data?.supplier_contact_id || bRes.data?.supplier_id;
+      if (sid) {
+        const { data: sc } = await supabase.from("contacts").select("contact_name").eq("id", sid).single();
+        if (sc) setSupplierSearch(sc.contact_name);
+      }
+    };
+    loadBooking();
+  }, [editId, user]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -270,7 +344,7 @@ export default function TravelBookingFormPage() {
       const cost = totalCostILS;
       const paymentStatus = payAmt >= sell ? "paid" : payAmt > 0 ? "partial" : "unpaid";
 
-      const { data: booking, error } = await supabase.from("travel_bookings").insert({
+      const bookingData = {
         user_id: user.id,
         contact_id: customerId || null,
         customer_id: customerId || null,
@@ -287,17 +361,39 @@ export default function TravelBookingFormPage() {
         cost_price_ils: cost,
         selling_price: sell,
         selling_currency: currency,
-        amount_paid: payAmt,
-        payment_status: paymentStatus,
         supplier_id: supplierId || null,
         supplier_contact_id: supplierId || null,
         supplier_ref: supplierRef || null,
         notes: notes || null,
-        created_by: user.id,
-        status: "confirmed",
-      } as any).select().single();
+      } as any;
 
-      if (error) throw error;
+      let booking: any;
+
+      if (isEditMode && editId) {
+        // UPDATE existing booking
+        const { data, error } = await supabase.from("travel_bookings")
+          .update(bookingData)
+          .eq("id", editId)
+          .select().single();
+        if (error) throw error;
+        booking = data;
+
+        // Replace items
+        await supabase.from("travel_booking_items").delete().eq("booking_id", editId);
+        // Replace passengers
+        await supabase.from("travel_booking_passengers").delete().eq("booking_id", editId);
+      } else {
+        // INSERT new booking
+        bookingData.amount_paid = payAmt;
+        bookingData.payment_status = paymentStatus;
+        bookingData.created_by = user.id;
+        bookingData.status = "confirmed";
+        const { data, error } = await supabase.from("travel_bookings")
+          .insert(bookingData)
+          .select().single();
+        if (error) throw error;
+        booking = data;
+      }
 
       // Save cost items
       if (items.length > 0) {
@@ -326,11 +422,11 @@ export default function TravelBookingFormPage() {
         const pRows = [];
         for (let idx = 0; idx < validPassengers.length; idx++) {
           const p = validPassengers[idx];
-          let imageUrl: string | null = null;
+          let imageUrl: string | null = p.passport_image_url || null;
           if (p.passport_image_file) {
             const ext = p.passport_image_file.name.split(".").pop() || "jpg";
             const path = `travel/${user.id}/${booking.id}/passport_${idx}.${ext}`;
-            const { error: upErr } = await supabase.storage.from("travel-documents").upload(path, p.passport_image_file);
+            const { error: upErr } = await supabase.storage.from("travel-documents").upload(path, p.passport_image_file, { upsert: true });
             if (!upErr) { const { data: u } = supabase.storage.from("travel-documents").getPublicUrl(path); imageUrl = u?.publicUrl || null; }
           }
           pRows.push({
@@ -356,35 +452,37 @@ export default function TravelBookingFormPage() {
         await supabase.from("travel_booking_passengers").insert(pRows);
       }
 
-      // Payment record
-      if (payAmt > 0) {
-        await supabase.from("travel_booking_payments").insert({
-          user_id: user.id,
-          booking_id: booking.id,
-          amount: payAmt,
-          amount_ils: payAmt,
-          payment_method: payMethod,
-          payment_direction: "received",
-          payment_date: payDate,
-          reference_number: payRefNumber || null,
-          bank_name: payBankName || null,
+      if (!isEditMode) {
+        // Payment record (only for new bookings)
+        if (payAmt > 0) {
+          await supabase.from("travel_booking_payments").insert({
+            user_id: user.id,
+            booking_id: booking.id,
+            amount: payAmt,
+            amount_ils: payAmt,
+            payment_method: payMethod,
+            payment_direction: "received",
+            payment_date: payDate,
+            reference_number: payRefNumber || null,
+            bank_name: payBankName || null,
+          });
+        }
+
+        // Ensure travel accounts exist and create journal entry
+        await ensureTravelAccounts(user.id);
+        await createBookingJournalEntry({
+          userId: user.id,
+          bookingNumber: booking.booking_number,
+          customerName: customerName || "",
+          serviceType,
+          sellingPrice: sell,
+          amountPaid: payAmt,
+          paymentMethod: payMethod,
         });
       }
 
-      // Ensure travel accounts exist and create journal entry
-      await ensureTravelAccounts(user.id);
-      await createBookingJournalEntry({
-        userId: user.id,
-        bookingNumber: booking.booking_number,
-        customerName: customerName || "",
-        serviceType,
-        sellingPrice: sell,
-        amountPaid: payAmt,
-        paymentMethod: payMethod,
-      });
-
-      toast({ title: `✅ تم إنشاء الحجز ${booking.booking_number}` });
-      navigate("/travel/bookings");
+      toast({ title: isEditMode ? `✅ تم تحديث الحجز ${booking.booking_number}` : `✅ تم إنشاء الحجز ${booking.booking_number}` });
+      navigate(isEditMode ? `/travel/bookings/${editId}` : "/travel/bookings");
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -396,7 +494,7 @@ export default function TravelBookingFormPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
-      <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>✈️ حجز جديد</h1>
+      <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>{isEditMode ? `✏️ تعديل الحجز ${editBookingNumber}` : "✈️ حجز جديد"}</h1>
 
       {/* Steps indicator */}
       <div className="flex items-center gap-1 text-xs flex-wrap">

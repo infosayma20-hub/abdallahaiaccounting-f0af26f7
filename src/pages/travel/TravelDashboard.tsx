@@ -20,18 +20,13 @@ export default function TravelDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const [bRes, sRes] = await Promise.all([
-        supabase.from("travel_bookings").select("*").order("created_at", { ascending: false }),
-        supabase.from("travel_suppliers").select("*"),
-      ]);
-      if (bRes.data) setBookings(bRes.data);
-      if (sRes.data) setSuppliers(sRes.data);
+      const { data } = await supabase.from("travel_bookings").select("*").order("created_at", { ascending: false });
+      if (data) setBookings(data);
       setLoading(false);
     };
     fetch();
@@ -46,8 +41,7 @@ export default function TravelDashboard() {
   const totalPaidMonth = monthBookings.reduce((s, b) => s + (b.amount_paid || 0), 0);
   const totalProfitMonth = monthBookings.reduce((s, b) => s + ((b.selling_price || 0) - (b.cost_price_ils || 0)), 0);
 
-  const overdueBookings = bookings.filter(b => b.payment_status !== "paid" && b.status !== "cancelled" && b.selling_price - b.amount_paid > 0);
-  const unpaidSuppliers = suppliers.filter(s => (s.balance || 0) > 0);
+  const overdueBookings = bookings.filter(b => b.payment_status !== "paid" && b.status !== "cancelled" && (b.selling_price || 0) - (b.amount_paid || 0) > 0);
 
   // Service breakdown
   const serviceBreakdown: Record<string, number> = {};
@@ -147,15 +141,6 @@ export default function TravelDashboard() {
                 </div>
               </div>
             )}
-            {unpaidSuppliers.length > 0 && (
-              <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20">
-                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">مدفوعات مستحقة للموردين</p>
-                  <p className="text-xs text-amber-600 dark:text-amber-300">{unpaidSuppliers.length} موردين بهم رصيد مستحق</p>
-                </div>
-              </div>
-            )}
             {totalProfitMonth > 0 && (
               <div className="flex items-start gap-2 p-2 rounded-lg bg-green-50 dark:bg-green-950/20">
                 <TrendingUp className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
@@ -165,7 +150,7 @@ export default function TravelDashboard() {
                 </div>
               </div>
             )}
-            {overdueBookings.length === 0 && unpaidSuppliers.length === 0 && totalProfitMonth === 0 && (
+            {overdueBookings.length === 0 && totalProfitMonth === 0 && (
               <p className="text-xs text-muted-foreground text-center py-4">لا توجد تنبيهات حالياً</p>
             )}
           </div>
@@ -220,12 +205,13 @@ export default function TravelDashboard() {
       </Card>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: "الحجوزات", icon: "✈️", path: "/travel/bookings" },
           { label: "الموردون", icon: "🤝", path: "/travel/suppliers" },
           { label: "الباقات", icon: "📦", path: "/travel/packages" },
           { label: "التقارير", icon: "📊", path: "/travel/reports" },
+          { label: "الإعدادات", icon: "⚙️", path: "/travel/settings" },
         ].map(link => (
           <Card key={link.path} className="p-4 cursor-pointer hover:shadow-md transition-shadow text-center" onClick={() => navigate(link.path)}>
             <span className="text-2xl">{link.icon}</span>
