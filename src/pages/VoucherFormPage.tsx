@@ -1696,6 +1696,53 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </Card>
       )}
 
+      {/* Attachments */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <button
+            type="button"
+            onClick={() => dropZoneRef.current?.classList.toggle("hidden")}
+            className="flex items-center gap-2 text-sm font-bold text-foreground w-full"
+          >
+            <Paperclip className="h-4 w-4 text-primary" />
+            المرفقات ({attachments.length})
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground mr-auto" />
+          </button>
+          <div ref={dropZoneRef}>
+            <div
+              className="border-2 border-dashed border-border/50 rounded-xl p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
+              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("border-primary/60", "bg-primary/5"); }}
+              onDragLeave={e => { e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); }}
+              onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); handleFileUpload(e.dataTransfer.files); }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">اسحب الملفات هنا أو انقر للرفع</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB</p>
+            </div>
+            <input ref={fileInputRef} type="file" className="hidden" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx"
+              onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ""; }} />
+            {uploadingFile && <p className="text-xs text-primary mt-2 animate-pulse">جاري الرفع...</p>}
+            {attachments.length > 0 && (
+              <div className="space-y-1.5 mt-3">
+                {attachments.map((att, i) => (
+                  <div key={i} className="flex items-center justify-between bg-secondary/30 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-medium text-foreground">{att.name}</span>
+                      <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                    <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Notes */}
       <Card>
         <CardContent className="p-5">
