@@ -195,14 +195,25 @@ export default function PortalAttendanceTab({ theme }: Props) {
             {format(clock, 'EEEE d MMMM', { locale: ar })}
           </span>
         </div>
-        <button onClick={fetchData} style={{
-          background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
-          borderRadius: 8, padding: '5px 12px', color: t.accent, fontSize: 11,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-          fontFamily: 'Tajawal, sans-serif',
-        }}>
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> تحديث
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : enableNotifications} style={{
+            background: notificationsEnabled ? 'rgba(34,197,94,0.1)' : 'rgba(42,123,155,0.1)',
+            border: `1px solid ${notificationsEnabled ? 'rgba(34,197,94,0.3)' : 'rgba(42,123,155,0.25)'}`,
+            borderRadius: 8, padding: '5px 10px', color: notificationsEnabled ? t.green : t.accent, fontSize: 11,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+            fontFamily: 'Tajawal, sans-serif',
+          }}>
+            {notificationsEnabled ? <Bell size={12} /> : <BellOff size={12} />}
+            {notificationsEnabled ? 'إشعارات ✓' : 'تفعيل الإشعارات'}
+          </button>
+          <button onClick={fetchData} style={{
+            background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
+            borderRadius: 8, padding: '5px 12px', color: t.accent, fontSize: 11,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+            fontFamily: 'Tajawal, sans-serif',
+          }}>
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> تحديث
+          </button>
       </div>
 
       {/* Date Presets */}
