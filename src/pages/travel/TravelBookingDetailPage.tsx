@@ -188,6 +188,16 @@ export default function TravelBookingDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="w-4 h-4 ml-1" /> طباعة</Button>
+          {booking.status !== "completed" && booking.status !== "cancelled" && (
+            <Button variant="outline" size="sm" onClick={handleMarkCompleted} className="text-green-600 border-green-200 hover:bg-green-50">
+              <CheckCircle className="w-4 h-4 ml-1" /> مكتمل
+            </Button>
+          )}
+          {booking.status !== "cancelled" && (
+            <Button variant="outline" size="sm" onClick={handleCancel} className="text-destructive border-destructive/20 hover:bg-destructive/5">
+              <Ban className="w-4 h-4 ml-1" /> إلغاء الحجز
+            </Button>
+          )}
         </div>
       </div>
 
