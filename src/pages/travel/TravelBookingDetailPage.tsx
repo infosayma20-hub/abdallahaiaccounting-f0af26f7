@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createPaymentJournalEntry, reverseCancellationEntries } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { ArrowRight, Printer, Upload, X, FileText, AlertTriangle } from "lucide-react";
+import { ArrowRight, Printer, Upload, X, FileText, AlertTriangle, Ban, CheckCircle } from "lucide-react";
 
 const SERVICE_LABELS: Record<string, string> = {
   hajj: "🕋 حج", umrah: "🕌 عمرة", flight: "✈️ تذاكر طيران", hotel: "🏨 فنادق",
