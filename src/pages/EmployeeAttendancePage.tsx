@@ -675,6 +675,43 @@ export default function EmployeeAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Break Reason Bottom Sheet */}
+      <Dialog open={showBreakSheet} onOpenChange={setShowBreakSheet}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coffee className="h-5 w-5 text-orange-500" />
+              مغادرة مؤقتة
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">اختر سبب المغادرة (اختياري):</p>
+            <div className="grid grid-cols-2 gap-2">
+              {["استراحة", "صلاة", "شخصي", "أخرى"].map(r => (
+                <Button
+                  key={r}
+                  variant={breakReason === r ? "default" : "outline"}
+                  className={`h-12 rounded-xl ${breakReason === r ? "" : "border-orange-200 text-orange-600 hover:bg-orange-50"}`}
+                  onClick={() => setBreakReason(r)}
+                >
+                  {r === "استراحة" && "☕ "}
+                  {r === "صلاة" && "🕌 "}
+                  {r === "شخصي" && "👤 "}
+                  {r === "أخرى" && "📝 "}
+                  {r}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={confirmBreakOut} className="w-full gap-2 bg-orange-500 hover:bg-orange-600">
+              <Coffee className="h-4 w-4" />
+              تأكيد المغادرة المؤقتة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
