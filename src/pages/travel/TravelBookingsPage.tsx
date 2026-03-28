@@ -155,7 +155,7 @@ export default function TravelBookingsPage() {
                   <td className="py-2.5 px-2">
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/travel/bookings/${b.id}`)}><Eye className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/travel/bookings/${b.id}`)}><Edit className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/travel/bookings/${b.id}/edit`)}><Edit className="w-3.5 h-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/travel/bookings/${b.id}/print`)}><Printer className="w-3.5 h-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(b.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
                     </div>

@@ -494,7 +494,7 @@ export default function TravelBookingFormPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
-      <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>✈️ حجز جديد</h1>
+      <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>{isEditMode ? `✏️ تعديل الحجز ${editBookingNumber}` : "✈️ حجز جديد"}</h1>
 
       {/* Steps indicator */}
       <div className="flex items-center gap-1 text-xs flex-wrap">
