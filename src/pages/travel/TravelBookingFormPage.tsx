@@ -41,7 +41,6 @@ export default function TravelBookingFormPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [contacts, setContacts] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Step 1
@@ -56,8 +55,20 @@ export default function TravelBookingFormPage() {
   const [travelDate, setTravelDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [supplierName, setSupplierName] = useState("");
   const [supplierRef, setSupplierRef] = useState("");
   const [paxCount, setPaxCount] = useState(1);
+
+  // Inline quick-add
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingSupplier, setSavingSupplier] = useState(false);
+  const customerRef = useRef<HTMLDivElement>(null);
+  const supplierRef2 = useRef<HTMLDivElement>(null);
 
   // Step 3
   const [costPrice, setCostPrice] = useState("");
@@ -74,27 +85,100 @@ export default function TravelBookingFormPage() {
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
 
-  useEffect(() => {
+  const fetchContacts = useCallback(async () => {
     if (!user) return;
-    Promise.all([
-      supabase.from("contacts").select("id, contact_name, phone").order("contact_name"),
-      supabase.from("travel_suppliers").select("id, name, type, currency, commission_rate").eq("is_active", true),
-    ]).then(([cRes, sRes]) => {
-      if (cRes.data) setContacts(cRes.data);
-      if (sRes.data) setSuppliers(sRes.data);
-    });
+    const { data } = await supabase.from("contacts").select("id, contact_name, phone, contact_type").eq("is_archived", false).order("contact_name");
+    if (data) setContacts(data);
   }, [user]);
+
+  useEffect(() => { fetchContacts(); }, [fetchContacts]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (customerRef.current && !customerRef.current.contains(e.target as Node)) setShowCustomerDropdown(false);
+      if (supplierRef2.current && !supplierRef2.current.contains(e.target as Node)) setShowSupplierDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const costIls = parseFloat(costPrice || "0") * parseFloat(costExchangeRate || "1");
   const profit = parseFloat(sellingPrice || "0") - costIls;
   const profitMargin = parseFloat(sellingPrice || "0") > 0 ? (profit / parseFloat(sellingPrice || "1")) * 100 : 0;
 
-  const handleSelectContact = (id: string) => {
-    setCustomerId(id);
-    const c = contacts.find(c => c.id === id);
-    if (c) {
-      setCustomerName(c.contact_name);
-      setCustomerPhone(c.phone || "");
+  const customers = contacts.filter(c => c.contact_type === "عميل" || c.contact_type === "both");
+  const suppliers = contacts.filter(c => c.contact_type === "مورد" || c.contact_type === "both");
+
+  const filteredCustomers = customerSearch.trim()
+    ? customers.filter(c => c.contact_name.includes(customerSearch))
+    : customers;
+
+  const filteredSuppliers = supplierSearch.trim()
+    ? suppliers.filter(c => c.contact_name.includes(supplierSearch))
+    : suppliers;
+
+  const handleSelectContact = (c: any) => {
+    setCustomerId(c.id);
+    setCustomerName(c.contact_name);
+    setCustomerPhone(c.phone || "");
+    setCustomerSearch(c.contact_name);
+    setShowCustomerDropdown(false);
+  };
+
+  const handleSelectSupplier = (c: any) => {
+    setSupplierId(c.id);
+    setSupplierName(c.contact_name);
+    setSupplierSearch(c.contact_name);
+    setShowSupplierDropdown(false);
+  };
+
+  const handleQuickAddCustomer = async () => {
+    if (!user || !customerSearch.trim()) return;
+    setSavingCustomer(true);
+    try {
+      const { data, error } = await supabase.from("contacts").upsert({
+        user_id: user.id,
+        contact_name: customerSearch.trim(),
+        contact_type: "عميل",
+        phone: newCustomerPhone || null,
+      }, { onConflict: "user_id,contact_name" }).select().single();
+      if (error) throw error;
+      await fetchContacts();
+      setCustomerId(data.id);
+      setCustomerName(data.contact_name);
+      setCustomerPhone(data.phone || "");
+      setCustomerSearch(data.contact_name);
+      setNewCustomerPhone("");
+      setShowCustomerDropdown(false);
+      toast({ title: "✅ تم إضافة العميل" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
+  const handleQuickAddSupplier = async () => {
+    if (!user || !supplierSearch.trim()) return;
+    setSavingSupplier(true);
+    try {
+      const { data, error } = await supabase.from("contacts").upsert({
+        user_id: user.id,
+        contact_name: supplierSearch.trim(),
+        contact_type: "مورد",
+      }, { onConflict: "user_id,contact_name" }).select().single();
+      if (error) throw error;
+      await fetchContacts();
+      setSupplierId(data.id);
+      setSupplierName(data.contact_name);
+      setSupplierSearch(data.contact_name);
+      setShowSupplierDropdown(false);
+      toast({ title: "✅ تم إضافة المورد" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingSupplier(false);
     }
   };
 
@@ -290,19 +374,55 @@ export default function TravelBookingFormPage() {
         <Card className="p-6 space-y-4">
           <h2 className="font-semibold">تفاصيل الحجز</h2>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            {/* Customer search with inline quick-add */}
+            <div className="col-span-2" ref={customerRef}>
               <Label>العميل</Label>
-              <Select value={customerId} onValueChange={handleSelectContact}>
-                <SelectTrigger><SelectValue placeholder="اختر عميلاً" /></SelectTrigger>
-                <SelectContent>
-                  {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  value={customerSearch}
+                  onChange={e => {
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerDropdown(true);
+                    if (!e.target.value.trim()) { setCustomerId(""); setCustomerName(""); setCustomerPhone(""); }
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  placeholder="ابحث عن عميل أو أدخل اسم جديد..."
+                />
+                {showCustomerDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredCustomers.map(c => (
+                      <button key={c.id} onClick={() => handleSelectContact(c)}
+                        className="w-full text-right px-3 py-2 hover:bg-muted/50 flex items-center justify-between text-sm">
+                        <span>{c.contact_name}</span>
+                        {c.phone && <span className="text-xs text-muted-foreground">{c.phone}</span>}
+                      </button>
+                    ))}
+                    {customerSearch.trim() && !customers.find(c => c.contact_name === customerSearch.trim()) && (
+                      <div className="border-t p-2 space-y-2">
+                        <p className="text-xs text-muted-foreground">عميل جديد: <strong>{customerSearch}</strong></p>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            value={newCustomerPhone}
+                            onChange={e => setNewCustomerPhone(e.target.value)}
+                            placeholder="رقم الهاتف (اختياري)"
+                            className="h-8 text-xs flex-1"
+                            onKeyDown={e => e.key === "Enter" && handleQuickAddCustomer()}
+                          />
+                          <Button size="sm" className="h-8 text-xs" disabled={savingCustomer} onClick={handleQuickAddCustomer}
+                            style={{ background: "#1B3A5C" }}>
+                            {savingCustomer ? "..." : "➕ حفظ"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {filteredCustomers.length === 0 && !customerSearch.trim() && (
+                      <p className="text-xs text-muted-foreground p-3 text-center">لا يوجد عملاء</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <Label>اسم العميل</Label>
-              <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="أو أدخل الاسم يدوياً" />
-            </div>
+
             <div>
               <Label>هاتف العميل</Label>
               <Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
@@ -327,15 +447,45 @@ export default function TravelBookingFormPage() {
               <Label>تاريخ العودة</Label>
               <Input type="date" value={returnDate} onChange={e => setReturnDate(e.target.value)} />
             </div>
-            <div>
+
+            {/* Supplier search with inline quick-add */}
+            <div ref={supplierRef2}>
               <Label>المورد</Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger><SelectValue placeholder="اختر مورداً" /></SelectTrigger>
-                <SelectContent>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  value={supplierSearch}
+                  onChange={e => {
+                    setSupplierSearch(e.target.value);
+                    setShowSupplierDropdown(true);
+                    if (!e.target.value.trim()) { setSupplierId(""); setSupplierName(""); }
+                  }}
+                  onFocus={() => setShowSupplierDropdown(true)}
+                  placeholder="ابحث عن مورد أو أدخل اسم جديد..."
+                />
+                {showSupplierDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredSuppliers.map(c => (
+                      <button key={c.id} onClick={() => handleSelectSupplier(c)}
+                        className="w-full text-right px-3 py-2 hover:bg-muted/50 text-sm">
+                        {c.contact_name}
+                      </button>
+                    ))}
+                    {supplierSearch.trim() && !suppliers.find(c => c.contact_name === supplierSearch.trim()) && (
+                      <div className="border-t p-2">
+                        <Button size="sm" className="h-8 text-xs w-full" disabled={savingSupplier} onClick={handleQuickAddSupplier}
+                          style={{ background: "#1B3A5C" }}>
+                          {savingSupplier ? "..." : `➕ إضافة "${supplierSearch}" كمورد`}
+                        </Button>
+                      </div>
+                    )}
+                    {filteredSuppliers.length === 0 && !supplierSearch.trim() && (
+                      <p className="text-xs text-muted-foreground p-3 text-center">لا يوجد موردين</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
+
             <div>
               <Label>رقم الحجز عند المورد</Label>
               <Input value={supplierRef} onChange={e => setSupplierRef(e.target.value)} placeholder="PNR / Confirmation #" />
