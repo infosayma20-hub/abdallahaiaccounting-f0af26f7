@@ -53,7 +53,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   return (
     <div>
       {breadcrumb && breadcrumb.length > 0 && (
-        <div className="mb-3 flex items-center gap-1 justify-end flex-wrap" dir="rtl"
+        <div className="mb-3 flex items-center gap-1 justify-start flex-wrap" dir="rtl"
           style={{ fontSize: 13 }}
         >
           {breadcrumb.map((item, i) => {
