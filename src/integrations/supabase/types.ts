@@ -135,8 +135,10 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean | null
+          is_contra: boolean | null
           is_system: boolean | null
           is_system_protected: boolean | null
+          nature: string | null
           notes: string | null
           parent_code: string | null
           sub_group_label: string | null
@@ -153,8 +155,10 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean | null
+          is_contra?: boolean | null
           is_system?: boolean | null
           is_system_protected?: boolean | null
+          nature?: string | null
           notes?: string | null
           parent_code?: string | null
           sub_group_label?: string | null
@@ -171,8 +175,10 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean | null
+          is_contra?: boolean | null
           is_system?: boolean | null
           is_system_protected?: boolean | null
+          nature?: string | null
           notes?: string | null
           parent_code?: string | null
           sub_group_label?: string | null

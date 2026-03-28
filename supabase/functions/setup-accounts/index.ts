@@ -11,7 +11,7 @@ interface SetupRequest {
 }
 
 // شجرة الحسابات الافتراضية الكاملة من Airtable
-const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: string | null }[] = [
+const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: string | null; is_contra?: boolean; nature?: string }[] = [
   // ═══════════ الأصول المتداولة (11xx) ═══════════
   { code: "1110", name: "الصندوق", type: "أصول", parent: null },
   { code: "1111", name: "صندوق الدولار", type: "أصول", parent: "1110" },
@@ -59,17 +59,17 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "3500", name: "المسحوبات الشخصية", type: "حقوق ملكية", parent: null },
 
   // ═══════════ الإيرادات (4xxx) ═══════════
-  { code: "4100", name: "إيرادات مبيعات", type: "إيرادات", parent: null },
-  { code: "4200", name: "إيرادات خدمات", type: "إيرادات", parent: null },
-  { code: "4300", name: "إيرادات أخرى", type: "إيرادات", parent: null },
-  { code: "4310", name: "إيرادات متنوعة", type: "إيرادات", parent: "4300" },
-  { code: "4320", name: "إيرادات الإيجار", type: "إيرادات", parent: "4300" },
-  { code: "4330", name: "إيرادات الفوائد", type: "إيرادات", parent: "4300" },
-  { code: "4340", name: "أرباح بيع الأصول", type: "إيرادات", parent: "4300" },
-  { code: "4350", name: "خصومات مكتسبة", type: "إيرادات", parent: "4300" },
-  { code: "4360", name: "إيرادات رواتب وأجور", type: "إيرادات", parent: "4300" },
-  { code: "4400", name: "مردودات مبيعات", type: "إيرادات", parent: null },
-  { code: "4500", name: "مردودات مشتريات", type: "إيرادات", parent: null },
+  { code: "4100", name: "إيرادات مبيعات", type: "إيرادات", parent: null, is_contra: false, nature: "credit" },
+  { code: "4200", name: "إيرادات خدمات", type: "إيرادات", parent: null, is_contra: false, nature: "credit" },
+  { code: "4300", name: "إيرادات أخرى", type: "إيرادات", parent: null, is_contra: false, nature: "credit" },
+  { code: "4310", name: "إيرادات متنوعة", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4320", name: "إيرادات الإيجار", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4330", name: "إيرادات الفوائد", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4340", name: "أرباح بيع الأصول", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4360", name: "إيرادات رواتب وأجور", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  // ── حسابات مقابلة للإيرادات (Contra Revenue) ──
+  { code: "4400", name: "مردودات ومسموحات مبيعات", type: "إيرادات", parent: null, is_contra: true, nature: "debit" },
+  { code: "4500", name: "خصم المبيعات المسموح به", type: "إيرادات", parent: null, is_contra: true, nature: "debit" },
 
   // ═══════════ تكلفة المبيعات والمشتريات (51xx) ═══════════
   { code: "5100", name: "تكلفة البضاعة المباعة", type: "مشتريات", parent: null },
@@ -87,21 +87,16 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "5280", name: "تأمين شحن", type: "مشتريات", parent: "5200" },
   { code: "5290", name: "تكاليف أخرى", type: "مشتريات", parent: "5200" },
 
-  // ═══════════ المصروفات التشغيلية (53xx-59xx) ═══════════
+  // ── حسابات مقابلة للمشتريات (Contra Purchases) ──
+  { code: "5300", name: "مردودات ومسموحات مشتريات", type: "مشتريات", parent: "5100", is_contra: true, nature: "credit" },
+  { code: "5400", name: "خصم المشتريات المكتسب", type: "مشتريات", parent: "5100", is_contra: true, nature: "credit" },
+
+  // ═══════════ المصروفات التشغيلية (55xx-59xx) ═══════════
   { code: "5150", name: "رواتب وأجور", type: "مصاريف", parent: null },
-  { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
-
-  // ═══════════ تكاليف الورشات (535x) ═══════════
-  { code: "5350", name: "تكاليف الورشات", type: "مصاريف", parent: null },
-  { code: "5351", name: "مواد خام (خشب)", type: "مصاريف", parent: "5350" },
-  { code: "5352", name: "دهان ومواد تشطيب", type: "مصاريف", parent: "5350" },
-  { code: "5353", name: "أجور عمال الورشات", type: "مصاريف", parent: "5350" },
-  { code: "5354", name: "نقل وتوصيل ورشات", type: "مصاريف", parent: "5350" },
-  { code: "5359", name: "تكاليف ورشات أخرى", type: "مصاريف", parent: "5350" },
-
-  { code: "5400", name: "مصروف كهرباء", type: "مصاريف", parent: "5500" },
-  { code: "5410", name: "مصروف غاز", type: "مصاريف", parent: "5500" },
   { code: "5500", name: "مصروفات إدارية وعمومية", type: "مصاريف", parent: null },
+  { code: "5501", name: "مصروف إيجار", type: "مصاريف", parent: "5500" },
+  { code: "5502", name: "مصروف كهرباء", type: "مصاريف", parent: "5500" },
+  { code: "5503", name: "مصروف غاز", type: "مصاريف", parent: "5500" },
   { code: "5510", name: "مصاريف الصيانة", type: "مصاريف", parent: "5500" },
   { code: "5520", name: "مصاريف الضيافة", type: "مصاريف", parent: "5500" },
   { code: "5530", name: "مصاريف التنقل والمواصلات", type: "مصاريف", parent: "5500" },
@@ -159,6 +154,10 @@ serve(async (req) => {
       parent_code: a.parent,
       is_system: true,
       is_active: true,
+      is_contra: a.is_contra || false,
+      nature: a.nature || (
+        ['أصول', 'مصاريف', 'مشتريات'].includes(a.type) ? 'debit' : 'credit'
+      ),
     }));
 
     let inserted = 0;
