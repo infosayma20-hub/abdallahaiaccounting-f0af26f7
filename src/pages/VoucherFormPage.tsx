@@ -855,7 +855,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             notes,
             status: asDraft ? "draft" : "posted",
             linked_transaction_id: txId,
-          })
+            attachments: attachments.length > 0 ? attachments : [],
+            auto_allocate: autoAllocate,
+          } as any)
           .select("id, receipt_number")
           .single();
 
