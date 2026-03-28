@@ -586,11 +586,9 @@ const AccountsPage = () => {
                       !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
                       !isGroup && idx % 2 !== 0 && "bg-[hsl(210,20%,99.5%)] dark:bg-card",
                       !isVirtualTypeHeader && "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5",
-                      (isVirtualTypeHeader || hasChildren) && "cursor-pointer"
                     )}
                     onClick={() => {
                       if (isVirtualTypeHeader) toggleGroup(acc.id);
-                      else if (hasChildren) toggleGroup(acc.account_code);
                     }}
                     onMouseEnter={() => !isVirtualTypeHeader && setHoveredRow(acc.id)}
                     onMouseLeave={() => setHoveredRow(null)}
@@ -607,10 +605,13 @@ const AccountsPage = () => {
                     >
                       {isGroup && hasChildren && (
                         <button
-                          onClick={() => toggleGroup(isVirtualTypeHeader ? acc.id : acc.account_code)}
+                          onClick={(e) => toggleGroup(isVirtualTypeHeader ? acc.id : acc.account_code, e)}
                           className="p-0.5 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors shrink-0"
                         >
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground transition-transform", isCollapsed && "-rotate-90 rtl:rotate-90")} />
+                          {isCollapsed
+                            ? <ChevronLeft className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                            : <ChevronDown className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                          }
                         </button>
                       )}
                       {!isGroup && level >= 2 && (
