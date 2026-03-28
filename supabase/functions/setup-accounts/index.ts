@@ -158,6 +158,7 @@ serve(async (req) => {
       nature: a.nature || (
         ['أصول', 'مصاريف', 'مشتريات'].includes(a.type) ? 'debit' : 'credit'
       ),
+      description_ar: a.desc || null,
     }));
 
     let inserted = 0;

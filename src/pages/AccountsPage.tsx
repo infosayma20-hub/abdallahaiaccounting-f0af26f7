@@ -611,11 +611,6 @@ const AccountsPage = () => {
                           <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeBadgeStyles[nType] || "bg-muted text-muted-foreground")}>
                             {typeLabels[nType] || nType}
                           </span>
-                          {acc.is_contra && (
-                            <span className="inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800">
-                              عكسي
-                            </span>
-                          )}
                         </>
                       )}
                     </div>
