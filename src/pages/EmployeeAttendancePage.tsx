@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay } from "@/lib/utils";
 import {
   Clock, LogIn, LogOut, MapPin, QrCode, Calendar, AlertTriangle,
-  CheckCircle2, XCircle, Timer, FileText, Send, Loader2
+  CheckCircle2, XCircle, Timer, FileText, Send, Loader2, Coffee, Undo2
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -30,6 +30,16 @@ type AttendanceDay = {
   status: string;
   branch_id: string | null;
   notes: string | null;
+  total_break_minutes?: number;
+  net_work_minutes?: number;
+};
+
+type BreakRecord = {
+  id: string;
+  break_out: string;
+  break_in: string | null;
+  reason: string;
+  duration_minutes: number | null;
 };
 
 type CorrectionRequest = {
@@ -55,24 +65,38 @@ export default function EmployeeAttendancePage() {
   const { user } = useAuth();
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
+  const [todayBreaks, setTodayBreaks] = useState<BreakRecord[]>([]);
   const [history, setHistory] = useState<AttendanceDay[]>([]);
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [qrInput, setQrInput] = useState("");
-  const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | "break_out" | "break_in" | null>(null);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const [correctionForm, setCorrectionForm] = useState({ date: "", type: "missing_checkout", reason: "" });
   const [employee, setEmployee] = useState<{ id: string; full_name: string; branch_id: string | null } | null>(null);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showBreakSheet, setShowBreakSheet] = useState(false);
+  const [breakReason, setBreakReason] = useState("استراحة");
+  const [breakElapsed, setBreakElapsed] = useState(0);
 
-  // Live clock
+  // Live clock + break timer
   useEffect(() => {
-    const t = setInterval(() => setCurrentTime(new Date()), 1000);
+    const t = setInterval(() => {
+      setCurrentTime(new Date());
+      // Update break elapsed time
+      const openBreak = todayBreaks.find(b => !b.break_in);
+      if (openBreak) {
+        const elapsed = Math.round((Date.now() - new Date(openBreak.break_out).getTime()) / 60000);
+        setBreakElapsed(elapsed);
+      } else {
+        setBreakElapsed(0);
+      }
+    }, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [todayBreaks]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -115,6 +139,26 @@ export default function EmployeeAttendancePage() {
         .order("event_time", { ascending: true });
       setTodayEvents(eventsData || []);
 
+      // Today's breaks
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      try {
+        const breaksResp = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/attendance?action=breaks`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+          }
+        );
+        const breaksData = await breaksResp.json();
+        setTodayBreaks(Array.isArray(breaksData) ? breaksData : []);
+      } catch {
+        setTodayBreaks([]);
+      }
+
       // History (last 30 days)
       const { data: histData } = await supabase
         .from("attendance_days")
@@ -140,8 +184,19 @@ export default function EmployeeAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleAttendanceAction = (action: "checkin" | "checkout") => {
+  const handleAttendanceAction = (action: "checkin" | "checkout" | "break_out" | "break_in") => {
     setPendingAction(action);
+    setShowQRDialog(true);
+    setQrInput("");
+  };
+
+  const handleBreakRequest = () => {
+    setShowBreakSheet(true);
+  };
+
+  const confirmBreakOut = () => {
+    setShowBreakSheet(false);
+    setPendingAction("break_out");
     setShowQRDialog(true);
     setQrInput("");
   };
@@ -177,10 +232,28 @@ export default function EmployeeAttendancePage() {
         return;
       }
 
-      const endpoint = pendingAction === "checkin" ? "checkin" : "checkout";
+      const actionMap: Record<string, string> = {
+        checkin: "checkin",
+        checkout: "checkout",
+        break_out: "break_out",
+        break_in: "break_in",
+      };
+      const endpoint = actionMap[pendingAction] || pendingAction;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
+
+      const bodyPayload: any = {
+        action: endpoint,
+        branch_id: branchId,
+        qr_token: token,
+        latitude: lat,
+        longitude: lng,
+        device_info: navigator.userAgent.substring(0, 100),
+      };
+      if (pendingAction === "break_out") {
+        bodyPayload.reason = breakReason;
+      }
 
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/attendance`,
@@ -191,14 +264,7 @@ export default function EmployeeAttendancePage() {
             Authorization: `Bearer ${accessToken}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({
-            action: endpoint,
-            branch_id: branchId,
-            qr_token: token,
-            latitude: lat,
-            longitude: lng,
-            device_info: navigator.userAgent.substring(0, 100),
-          }),
+          body: JSON.stringify(bodyPayload),
         }
       );
 
@@ -260,10 +326,13 @@ export default function EmployeeAttendancePage() {
 
   // Multi check-in/out: determine state from last event
   const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
-  const canCheckIn = !lastEvent || lastEvent.event_type === "check_out";
-  const canCheckOut = !!lastEvent && lastEvent.event_type === "check_in";
+  const isOnBreak = todayBreaks.some(b => !b.break_in);
+  const canCheckIn = !isOnBreak && (!lastEvent || lastEvent.event_type === "check_out");
+  const canCheckOut = !isOnBreak && !!lastEvent && lastEvent.event_type === "check_in";
+  const canBreakOut = !isOnBreak && !!lastEvent && lastEvent.event_type === "check_in";
   const sessionCount = todayEvents.filter(e => e.event_type === "check_in").length;
   const todayStatus = todayRecord ? statusMap[todayRecord.status] || statusMap.absent : statusMap.absent;
+  const totalBreakMinutes = todayRecord?.total_break_minutes || todayBreaks.filter(b => b.duration_minutes).reduce((s, b) => s + (b.duration_minutes || 0), 0);
 
   const incompleteCount = history.filter(d => d.status === "incomplete").length;
 
@@ -292,18 +361,32 @@ export default function EmployeeAttendancePage() {
               </div>
               <div>
                 <h3 className="font-bold text-lg">حالة اليوم</h3>
-                <Badge className={`${todayStatus.color} mt-1`}>
-                  {todayStatus.icon}
-                  <span className="mr-1">{todayStatus.label}</span>
-                </Badge>
+                {isOnBreak ? (
+                  <Badge className="bg-orange-500/10 text-orange-600 border-orange-200 mt-1">
+                    <Coffee className="h-4 w-4" />
+                    <span className="mr-1">مغادرة مؤقتة ({breakElapsed} دقيقة)</span>
+                  </Badge>
+                ) : (
+                  <Badge className={`${todayStatus.color} mt-1`}>
+                    {todayStatus.icon}
+                    <span className="mr-1">{todayStatus.label}</span>
+                  </Badge>
+                )}
               </div>
             </div>
-            {todayRecord?.total_hours ? (
-              <div className="text-left">
-                <span className="text-3xl font-bold tabular-nums">{todayRecord.total_hours.toFixed(1)}</span>
-                <span className="text-sm text-muted-foreground mr-1">ساعة</span>
-              </div>
-            ) : null}
+            <div className="text-left">
+              {todayRecord?.total_hours ? (
+                <div>
+                  <span className="text-3xl font-bold tabular-nums">{todayRecord.total_hours.toFixed(1)}</span>
+                  <span className="text-sm text-muted-foreground mr-1">ساعة</span>
+                </div>
+              ) : null}
+              {totalBreakMinutes > 0 && (
+                <div className="text-xs text-orange-500 mt-1">
+                  استراحات: {totalBreakMinutes} دقيقة
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -317,7 +400,7 @@ export default function EmployeeAttendancePage() {
               </div>
             </div>
             <div className="bg-muted/50 rounded-xl p-3 text-center">
-              <LogOut className="h-4 w-4 mx-auto mb-1 text-red-500" />
+              <LogOut className="h-4 w-4 mx-auto mb-1 text-destructive" />
               <div className="text-xs text-muted-foreground">وقت الخروج</div>
               <div className="font-bold">
                 {todayRecord?.last_check_out
@@ -327,30 +410,86 @@ export default function EmployeeAttendancePage() {
             </div>
           </div>
 
+          {/* Break Timer Banner */}
+          {isOnBreak && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-center">
+              <Coffee className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-orange-600 tabular-nums">{breakElapsed} دقيقة</div>
+              <div className="text-sm text-orange-500">منذ المغادرة المؤقتة</div>
+              <Button
+                size="lg"
+                className="mt-3 w-full h-14 text-base rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => handleAttendanceAction("break_in")}
+              >
+                <Undo2 className="h-5 w-5" />
+                ↩️ عودة للعمل
+              </Button>
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              size="lg"
-              className="h-14 text-base rounded-xl gap-2"
-              disabled={!canCheckIn}
-              onClick={() => handleAttendanceAction("checkin")}
-            >
-              <LogIn className="h-5 w-5" />
-              تسجيل دخول
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 text-base rounded-xl gap-2 border-red-200 text-red-600 hover:bg-red-50"
-              disabled={!canCheckOut}
-              onClick={() => handleAttendanceAction("checkout")}
-            >
-              <LogOut className="h-5 w-5" />
-              تسجيل خروج
-            </Button>
-          </div>
+          {!isOnBreak && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  size="lg"
+                  className="h-14 text-base rounded-xl gap-2"
+                  disabled={!canCheckIn}
+                  onClick={() => handleAttendanceAction("checkin")}
+                >
+                  <LogIn className="h-5 w-5" />
+                  تسجيل دخول
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 text-base rounded-xl gap-2 border-destructive/30 text-destructive hover:bg-destructive/5"
+                  disabled={!canCheckOut}
+                  onClick={() => handleAttendanceAction("checkout")}
+                >
+                  <LogOut className="h-5 w-5" />
+                  تسجيل خروج نهائي
+                </Button>
+              </div>
+              {canBreakOut && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full h-12 text-base rounded-xl gap-2 border-orange-200 text-orange-600 hover:bg-orange-50"
+                  onClick={handleBreakRequest}
+                >
+                  <Coffee className="h-5 w-5" />
+                  🚶 مغادرة مؤقتة
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Today's breaks summary */}
+          {todayBreaks.length > 0 && (
+            <div className="mt-4 pt-3 border-t">
+              <div className="text-xs font-semibold text-muted-foreground mb-2">استراحات اليوم ({todayBreaks.length})</div>
+              <div className="space-y-1">
+                {todayBreaks.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg px-3 py-1.5">
+                    <span className="text-muted-foreground">{b.reason || "استراحة"}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{format(new Date(b.break_out), "hh:mm a")}</span>
+                      <span>←</span>
+                      <span>{b.break_in ? format(new Date(b.break_in), "hh:mm a") : "مفتوح"}</span>
+                      {b.duration_minutes != null && (
+                        <Badge variant="outline" className="text-[10px] px-1.5">{b.duration_minutes} د</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+
 
       {/* Tabs */}
       <Tabs defaultValue="history" className="w-full">
@@ -487,7 +626,7 @@ export default function EmployeeAttendancePage() {
           <DialogFooter>
             <Button onClick={processAttendance} disabled={checkingIn || !qrInput.trim()} className="w-full gap-2">
               {checkingIn && <Loader2 className="h-4 w-4 animate-spin" />}
-              {pendingAction === "checkin" ? "تأكيد الدخول" : "تأكيد الخروج"}
+              {pendingAction === "checkin" ? "تأكيد الدخول" : pendingAction === "checkout" ? "تأكيد الخروج" : pendingAction === "break_out" ? "تأكيد المغادرة المؤقتة" : "تأكيد العودة"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -533,6 +672,43 @@ export default function EmployeeAttendancePage() {
           </div>
           <DialogFooter>
             <Button onClick={submitCorrection} className="w-full">إرسال الطلب</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Break Reason Bottom Sheet */}
+      <Dialog open={showBreakSheet} onOpenChange={setShowBreakSheet}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coffee className="h-5 w-5 text-orange-500" />
+              مغادرة مؤقتة
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">اختر سبب المغادرة (اختياري):</p>
+            <div className="grid grid-cols-2 gap-2">
+              {["استراحة", "صلاة", "شخصي", "أخرى"].map(r => (
+                <Button
+                  key={r}
+                  variant={breakReason === r ? "default" : "outline"}
+                  className={`h-12 rounded-xl ${breakReason === r ? "" : "border-orange-200 text-orange-600 hover:bg-orange-50"}`}
+                  onClick={() => setBreakReason(r)}
+                >
+                  {r === "استراحة" && "☕ "}
+                  {r === "صلاة" && "🕌 "}
+                  {r === "شخصي" && "👤 "}
+                  {r === "أخرى" && "📝 "}
+                  {r}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={confirmBreakOut} className="w-full gap-2 bg-orange-500 hover:bg-orange-600">
+              <Coffee className="h-4 w-4" />
+              تأكيد المغادرة المؤقتة
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

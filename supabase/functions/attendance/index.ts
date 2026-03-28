@@ -70,12 +70,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /attendance/checkin or /attendance/checkout
+    // GET /attendance/breaks — get today's breaks
+    if (req.method === "GET" && (action === "breaks" || path === "breaks")) {
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .eq("is_active", true)
+        .single();
+      if (!employee) {
+        return new Response(JSON.stringify({ error: "لم يتم العثور على سجل الموظف" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const today = new Date().toISOString().split("T")[0];
+      const { data: breaks } = await supabase
+        .from("attendance_breaks")
+        .select("*")
+        .eq("employee_id", employee.id)
+        .gte("break_out", `${today}T00:00:00`)
+        .lte("break_out", `${today}T23:59:59`)
+        .order("break_out", { ascending: true });
+      return new Response(JSON.stringify(breaks || []), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // POST /attendance/checkin or /attendance/checkout or /attendance/break_out or /attendance/break_in
     if (req.method === "POST") {
       const body = await req.json();
-      const { branch_id, qr_token, latitude, longitude, device_info } = body;
+      const { branch_id, qr_token, latitude, longitude, device_info, reason } = body;
       const bodyAction = body.action || path;
-      if (bodyAction !== "checkin" && bodyAction !== "checkout") {
+      
+      const validActions = ["checkin", "checkout", "break_out", "break_in"];
+      if (!validActions.includes(bodyAction)) {
         return new Response(JSON.stringify({ error: "مسار غير موجود" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -159,7 +187,6 @@ Deno.serve(async (req) => {
       }
 
       const today = new Date().toISOString().split("T")[0];
-      const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
 
       // 5. Get today's events to determine current state
       const { data: todayEvents } = await supabase
@@ -174,7 +201,128 @@ Deno.serve(async (req) => {
       const events = todayEvents || [];
       const lastEvent = events.length > 0 ? events[events.length - 1] : null;
 
-      // Validate sequence: check_in must follow check_out (or be first), check_out must follow check_in
+      // Check for open break
+      const { data: openBreak } = await supabase
+        .from("attendance_breaks")
+        .select("id, break_out")
+        .eq("employee_id", employee.id)
+        .is("break_in", null)
+        .gte("break_out", `${today}T00:00:00`)
+        .lte("break_out", `${today}T23:59:59`)
+        .single();
+
+      const isOnBreak = !!openBreak;
+
+      // ─── Handle break_out (مغادرة مؤقتة) ───
+      if (bodyAction === "break_out") {
+        // Must be checked in and NOT on break
+        if (!lastEvent || lastEvent.event_type === "check_out") {
+          return new Response(JSON.stringify({ error: "لا يمكن المغادرة المؤقتة بدون تسجيل دخول" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (isOnBreak) {
+          return new Response(JSON.stringify({ error: "لديك مغادرة مؤقتة مفتوحة بالفعل. سجّل العودة أولاً" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get attendance_day_id
+        const { data: dayRecord } = await supabase
+          .from("attendance_days")
+          .select("id")
+          .eq("employee_id", employee.id)
+          .eq("attendance_date", today)
+          .single();
+
+        const now = new Date().toISOString();
+        const { error: breakErr } = await supabase.from("attendance_breaks").insert({
+          attendance_day_id: dayRecord?.id || null,
+          employee_id: employee.id,
+          auth_user_id: user.id,
+          branch_id,
+          break_out: now,
+          reason: reason || "استراحة",
+        });
+        if (breakErr) throw breakErr;
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `تم تسجيل المغادرة المؤقتة ✅ (${reason || 'استراحة'})`,
+          action: "break_out",
+          time: now,
+          branch: branch.name,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // ─── Handle break_in (عودة من المغادرة) ───
+      if (bodyAction === "break_in") {
+        if (!isOnBreak) {
+          return new Response(JSON.stringify({ error: "لا يوجد مغادرة مؤقتة مفتوحة" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const now = new Date();
+        const breakOutTime = new Date(openBreak!.break_out);
+        const durationMinutes = Math.round((now.getTime() - breakOutTime.getTime()) / 60000);
+
+        // Update the break record
+        const { error: updateErr } = await supabase
+          .from("attendance_breaks")
+          .update({
+            break_in: now.toISOString(),
+            duration_minutes: durationMinutes,
+          })
+          .eq("id", openBreak!.id);
+        if (updateErr) throw updateErr;
+
+        // Recalculate total break minutes for today
+        const { data: allBreaks } = await supabase
+          .from("attendance_breaks")
+          .select("duration_minutes")
+          .eq("employee_id", employee.id)
+          .gte("break_out", `${today}T00:00:00`)
+          .lte("break_out", `${today}T23:59:59`)
+          .not("break_in", "is", null);
+
+        const totalBreakMinutes = (allBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
+
+        // Update attendance_days
+        const { data: dayRecord } = await supabase
+          .from("attendance_days")
+          .select("id, total_hours")
+          .eq("employee_id", employee.id)
+          .eq("attendance_date", today)
+          .single();
+
+        if (dayRecord) {
+          const totalWorkMinutes = (dayRecord.total_hours || 0) * 60;
+          const netWorkMinutes = Math.max(0, totalWorkMinutes - totalBreakMinutes);
+          await supabase
+            .from("attendance_days")
+            .update({
+              total_break_minutes: totalBreakMinutes,
+              net_work_minutes: netWorkMinutes,
+            })
+            .eq("id", dayRecord.id);
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `تم تسجيل العودة ✅ (${durationMinutes} دقيقة استراحة)`,
+          action: "break_in",
+          time: now.toISOString(),
+          duration_minutes: durationMinutes,
+          total_break_minutes: totalBreakMinutes,
+          branch: branch.name,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // ─── Original checkin/checkout logic ───
+      const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
+
+      // Validate sequence
       if (eventType === "check_in") {
         if (lastEvent && lastEvent.event_type === "check_in") {
           return new Response(
@@ -187,6 +335,13 @@ Deno.serve(async (req) => {
         if (!lastEvent || lastEvent.event_type === "check_out") {
           return new Response(
             JSON.stringify({ error: "لا يوجد بصمة دخول مفتوحة" }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Cannot checkout while on break
+        if (isOnBreak) {
+          return new Response(
+            JSON.stringify({ error: "لا يمكن تسجيل الخروج أثناء المغادرة المؤقتة. سجّل العودة أولاً" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -210,7 +365,6 @@ Deno.serve(async (req) => {
       if (eventErr) throw eventErr;
 
       // 7. Recalculate attendance_days from all events
-      // Re-fetch all events after insert
       const { data: allEvents } = await supabase
         .from("attendance_events")
         .select("event_type, event_time")
@@ -236,11 +390,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // If currently checked in (open session), add elapsed time
-      if (sessionStart && !lastCheckOut) {
-        // Don't add open session to total_hours yet
-      }
-
       const overtime = Math.max(0, totalHours - 8);
       const currentlyIn = evts[evts.length - 1]?.event_type === "check_in";
 
@@ -249,6 +398,17 @@ Deno.serve(async (req) => {
       let dayStatus = "present";
       if (hour >= 9) dayStatus = "late";
       if (!currentlyIn && lastCheckOut) dayStatus = totalHours > 0 ? (hour >= 9 ? "late" : "present") : "incomplete";
+
+      // Get break minutes
+      const { data: dayBreaks } = await supabase
+        .from("attendance_breaks")
+        .select("duration_minutes")
+        .eq("employee_id", employee.id)
+        .gte("break_out", `${today}T00:00:00`)
+        .lte("break_out", `${today}T23:59:59`)
+        .not("break_in", "is", null);
+      const totalBreakMinutes = (dayBreaks || []).reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
+      const netWorkMinutes = Math.max(0, Math.round(totalHours * 60) - totalBreakMinutes);
 
       await supabase.from("attendance_days").upsert(
         {
@@ -261,6 +421,8 @@ Deno.serve(async (req) => {
           total_hours: Math.round(totalHours * 100) / 100,
           overtime_hours: Math.round(overtime * 100) / 100,
           status: dayStatus,
+          total_break_minutes: totalBreakMinutes,
+          net_work_minutes: netWorkMinutes,
         },
         { onConflict: "employee_id,attendance_date" }
       );
@@ -278,6 +440,8 @@ Deno.serve(async (req) => {
           branch: branch.name,
           session_count: sessionCount,
           total_hours: Math.round(totalHours * 100) / 100,
+          net_work_minutes: netWorkMinutes,
+          total_break_minutes: totalBreakMinutes,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

@@ -22,7 +22,13 @@ interface EmployeeAtt {
   total_days: number;
   total_hours: number;
   total_overtime: number;
-  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string }[];
+  total_break_minutes: number;
+  net_work_minutes: number | null;
+  break_count: number;
+  is_on_break: boolean;
+  current_break_reason: string | null;
+  breaks: { break_out: string; break_in: string | null; reason: string; duration_minutes: number | null }[];
+  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
 }
 
 interface Summary {
@@ -313,8 +319,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
           </div>
         ) : (
           employees.map(emp => {
-            const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : t.red;
-            const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : 'غائب ❌';
+            const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : emp.status === 'on_break' ? '#f97316' : t.red;
+            const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : emp.status === 'on_break' ? `استراحة ☕ ${emp.current_break_reason || ''}` : 'غائب ❌';
             const isExpanded = expandedId === emp.id;
 
             return (
@@ -390,7 +396,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
                   <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${t.border}` }}>
                     {/* Summary stats */}
                     <div style={{
-                      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+                      display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8,
                       marginTop: 10, marginBottom: 10,
                     }}>
                       <div style={{ textAlign: 'center', padding: 8, background: `${t.accent}08`, borderRadius: 8 }}>
@@ -405,7 +411,37 @@ export default function PortalAttendanceTab({ theme }: Props) {
                         <div style={{ fontSize: 16, fontWeight: 700, color: t.amber }}>{emp.total_overtime}</div>
                         <div style={{ fontSize: 9, color: t.textMuted }}>ساعات إضافية</div>
                       </div>
+                      <div style={{ textAlign: 'center', padding: 8, background: '#f9731608', borderRadius: 8 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#f97316' }}>{emp.total_break_minutes || 0}</div>
+                        <div style={{ fontSize: 9, color: t.textMuted }}>دقائق استراحة</div>
+                      </div>
                     </div>
+
+                    {/* Today's breaks */}
+                    {emp.breaks && emp.breaks.length > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: t.textMuted, marginBottom: 4 }}>
+                          ☕ المغادرات المؤقتة ({emp.breaks.length})
+                        </div>
+                        {emp.breaks.map((b, i) => (
+                          <div key={i} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '4px 8px', background: `${t.border}`, borderRadius: 6, marginBottom: 2,
+                            fontSize: 10,
+                          }}>
+                            <span style={{ color: t.text }}>{b.reason || 'استراحة'}</span>
+                            <div style={{ display: 'flex', gap: 8, color: t.textMuted }}>
+                              <span>{format(new Date(b.break_out), 'hh:mm a')}</span>
+                              <span>←</span>
+                              <span>{b.break_in ? format(new Date(b.break_in), 'hh:mm a') : '🔴 مفتوح'}</span>
+                              {b.duration_minutes != null && (
+                                <span style={{ fontWeight: 700, color: '#f97316' }}>{b.duration_minutes} د</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Records table */}
                     {emp.records.length > 0 && (
@@ -416,7 +452,9 @@ export default function PortalAttendanceTab({ theme }: Props) {
                               <th style={{ padding: '6px 4px', textAlign: 'right', color: t.textMuted, fontWeight: 600 }}>التاريخ</th>
                               <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>دخول</th>
                               <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
-                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>ساعات</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>إجمالي</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>استراحة</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>صافي</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -436,6 +474,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
                                 </td>
                                 <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 600 }}>
                                   {r.hours != null ? r.hours.toFixed(1) : '—'}
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: '#f97316', fontSize: 10 }}>
+                                  {r.total_break_minutes > 0 ? `${r.total_break_minutes} د` : '—'}
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: t.accent, fontWeight: 700 }}>
+                                  {r.net_work_minutes != null ? (r.net_work_minutes / 60).toFixed(1) : (r.hours != null ? r.hours.toFixed(1) : '—')}
                                 </td>
                               </tr>
                             ))}
