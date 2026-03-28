@@ -33,6 +33,7 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
 interface Props {
   employeeName: string;
   todayRecord: AttendanceDay | null;
+  todayEvents?: { event_type: string; event_time: string }[];
   history: AttendanceDay[];
   onScanTap: () => void;
   onNavigate: (tab: string) => void;
@@ -40,7 +41,7 @@ interface Props {
   onOpenPOS?: () => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, history, onScanTap, onNavigate, isCashier, onOpenPOS }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS }: Props) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -48,9 +49,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
     return () => clearInterval(t);
   }, []);
 
-  const canCheckIn = !todayRecord || !todayRecord.first_check_in;
-  const canCheckOut = todayRecord?.first_check_in && !todayRecord?.last_check_out;
-  const dayComplete = todayRecord?.first_check_in && todayRecord?.last_check_out;
+  // Multi check-in/out: use events to determine current state
+  const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
+  const canCheckIn = !lastEvent || lastEvent.event_type === "check_out";
+  const canCheckOut = !!lastEvent && lastEvent.event_type === "check_in";
+  const dayComplete = todayRecord?.total_hours && todayRecord.total_hours > 0 && canCheckIn && todayEvents.length >= 2;
   const status = todayRecord ? statusMap[todayRecord.status] || null : null;
 
   const elapsed = useMemo(() => {

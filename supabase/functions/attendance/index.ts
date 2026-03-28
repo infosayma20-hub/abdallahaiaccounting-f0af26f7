@@ -74,7 +74,6 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const body = await req.json();
       const { branch_id, qr_token, latitude, longitude, device_info } = body;
-      // Support action from body or URL path
       const bodyAction = body.action || path;
       if (bodyAction !== "checkin" && bodyAction !== "checkout") {
         return new Response(JSON.stringify({ error: "مسار غير موجود" }), {
@@ -89,10 +88,10 @@ Deno.serve(async (req) => {
         );
       }
 
-      // 1. Validate branch - only select needed fields (secret_key is needed server-side for HMAC)
+      // 1. Validate branch
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes")
+        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -102,7 +101,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2. Geofencing check (skip if geolocation failed - lat/lng are 0)
+      // 2. Geofencing check
       if (latitude !== 0 || longitude !== 0) {
         const dist = haversineDistance(latitude, longitude, branch.latitude, branch.longitude);
         if (dist > branch.radius_meters) {
@@ -111,8 +110,6 @@ Deno.serve(async (req) => {
               error: `أنت خارج نطاق الفرع (${Math.round(dist)}م بعيد، الحد الأقصى ${branch.radius_meters}م)`,
               distance: Math.round(dist),
               max_radius: branch.radius_meters,
-              your_location: { latitude, longitude },
-              branch_location: { latitude: branch.latitude, longitude: branch.longitude },
             }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -132,19 +129,10 @@ Deno.serve(async (req) => {
 
       let tokenValid = false;
 
-      // Check if branch uses static QR mode
-      const { data: branchFull } = await supabase
-        .from("branches")
-        .select("qr_mode")
-        .eq("id", branch_id)
-        .single();
-
-      if (branchFull?.qr_mode === 'static') {
-        // Static mode: token = HMAC(branchId:static, secret)
+      if (branch.qr_mode === 'static') {
         const staticToken = await computeHMAC(`${branch_id}:static`, branchSecret);
         tokenValid = qr_token === staticToken;
       } else {
-        // Rotating mode: check current and previous time windows
         const currentWindow = Math.floor(Date.now() / (rotationMinutes * 60 * 1000));
         const currentToken = await computeHMAC(`${branch_id}:${currentWindow}`, branchSecret);
         const prevToken = await computeHMAC(`${branch_id}:${currentWindow - 1}`, branchSecret);
@@ -160,7 +148,7 @@ Deno.serve(async (req) => {
       // 4. Get employee record
       const { data: employee, error: empErr } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id")
+        .select("id, full_name, branch_id, user_id")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -173,47 +161,32 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
       const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
 
-      // 5. Prevent duplicate check-in without check-out
-      if (eventType === "check_in") {
-        const { data: existingDay } = await supabase
-          .from("attendance_days")
-          .select("id, status, first_check_in, last_check_out")
-          .eq("employee_id", employee.id)
-          .eq("attendance_date", today)
-          .single();
+      // 5. Get today's events to determine current state
+      const { data: todayEvents } = await supabase
+        .from("attendance_events")
+        .select("event_type, event_time")
+        .eq("employee_id", employee.id)
+        .gte("event_time", `${today}T00:00:00`)
+        .lte("event_time", `${today}T23:59:59`)
+        .eq("status", "valid")
+        .order("event_time", { ascending: true });
 
-        if (existingDay && existingDay.first_check_in && !existingDay.last_check_out) {
+      const events = todayEvents || [];
+      const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+
+      // Validate sequence: check_in must follow check_out (or be first), check_out must follow check_in
+      if (eventType === "check_in") {
+        if (lastEvent && lastEvent.event_type === "check_in") {
           return new Response(
             JSON.stringify({ error: "لديك بصمة دخول مسجلة بدون خروج. سجّل خروجك أولاً" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        if (existingDay && existingDay.last_check_out) {
+      } else {
+        // check_out
+        if (!lastEvent || lastEvent.event_type === "check_out") {
           return new Response(
-            JSON.stringify({ error: "تم تسجيل حضورك وانصرافك لهذا اليوم بالفعل" }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      // 6. Check-out requires existing check-in
-      if (eventType === "check_out") {
-        const { data: existingDay } = await supabase
-          .from("attendance_days")
-          .select("id, first_check_in, last_check_out")
-          .eq("employee_id", employee.id)
-          .eq("attendance_date", today)
-          .single();
-
-        if (!existingDay || !existingDay.first_check_in) {
-          return new Response(
-            JSON.stringify({ error: "لا يوجد بصمة دخول لهذا اليوم" }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (existingDay.last_check_out) {
-          return new Response(
-            JSON.stringify({ error: "تم تسجيل الانصراف لهذا اليوم بالفعل" }),
+            JSON.stringify({ error: "لا يوجد بصمة دخول مفتوحة" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -221,7 +194,7 @@ Deno.serve(async (req) => {
 
       const now = new Date().toISOString();
 
-      // 7. Insert attendance event
+      // 6. Insert attendance event
       const { error: eventErr } = await supabase.from("attendance_events").insert({
         employee_id: employee.id,
         auth_user_id: user.id,
@@ -236,56 +209,75 @@ Deno.serve(async (req) => {
       });
       if (eventErr) throw eventErr;
 
-      // 8. Upsert attendance day
-      if (eventType === "check_in") {
-        // Determine if late (after 9:00 AM)
-        const hour = new Date().getHours();
-        const isLate = hour >= 9;
+      // 7. Recalculate attendance_days from all events
+      // Re-fetch all events after insert
+      const { data: allEvents } = await supabase
+        .from("attendance_events")
+        .select("event_type, event_time")
+        .eq("employee_id", employee.id)
+        .gte("event_time", `${today}T00:00:00`)
+        .lte("event_time", `${today}T23:59:59`)
+        .eq("status", "valid")
+        .order("event_time", { ascending: true });
 
-        await supabase.from("attendance_days").upsert(
-          {
-            employee_id: employee.id,
-            auth_user_id: user.id,
-            branch_id,
-            attendance_date: today,
-            first_check_in: now,
-            status: isLate ? "late" : "present",
-          },
-          { onConflict: "employee_id,attendance_date" }
-        );
-      } else {
-        // Check-out: update existing day
-        const { data: dayRecord } = await supabase
-          .from("attendance_days")
-          .select("first_check_in")
-          .eq("employee_id", employee.id)
-          .eq("attendance_date", today)
-          .single();
+      const evts = allEvents || [];
+      const firstCheckIn = evts.find(e => e.event_type === "check_in")?.event_time || null;
+      const lastCheckOut = [...evts].reverse().find(e => e.event_type === "check_out")?.event_time || null;
 
-        let totalHours = 0;
-        if (dayRecord?.first_check_in) {
-          totalHours = (new Date(now).getTime() - new Date(dayRecord.first_check_in).getTime()) / 3600000;
+      // Calculate total hours from paired sessions
+      let totalHours = 0;
+      let sessionStart: string | null = null;
+      for (const evt of evts) {
+        if (evt.event_type === "check_in") {
+          sessionStart = evt.event_time;
+        } else if (evt.event_type === "check_out" && sessionStart) {
+          totalHours += (new Date(evt.event_time).getTime() - new Date(sessionStart).getTime()) / 3600000;
+          sessionStart = null;
         }
-        const overtime = Math.max(0, totalHours - 8);
-
-        await supabase
-          .from("attendance_days")
-          .update({
-            last_check_out: now,
-            total_hours: Math.round(totalHours * 100) / 100,
-            overtime_hours: Math.round(overtime * 100) / 100,
-          })
-          .eq("employee_id", employee.id)
-          .eq("attendance_date", today);
       }
+
+      // If currently checked in (open session), add elapsed time
+      if (sessionStart && !lastCheckOut) {
+        // Don't add open session to total_hours yet
+      }
+
+      const overtime = Math.max(0, totalHours - 8);
+      const currentlyIn = evts[evts.length - 1]?.event_type === "check_in";
+
+      // Determine status
+      const hour = new Date(firstCheckIn || now).getHours();
+      let dayStatus = "present";
+      if (hour >= 9) dayStatus = "late";
+      if (!currentlyIn && lastCheckOut) dayStatus = totalHours > 0 ? (hour >= 9 ? "late" : "present") : "incomplete";
+
+      await supabase.from("attendance_days").upsert(
+        {
+          employee_id: employee.id,
+          auth_user_id: user.id,
+          branch_id,
+          attendance_date: today,
+          first_check_in: firstCheckIn,
+          last_check_out: lastCheckOut,
+          total_hours: Math.round(totalHours * 100) / 100,
+          overtime_hours: Math.round(overtime * 100) / 100,
+          status: dayStatus,
+        },
+        { onConflict: "employee_id,attendance_date" }
+      );
+
+      const sessionCount = evts.filter(e => e.event_type === "check_in").length;
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: eventType === "check_in" ? "تم تسجيل الدخول بنجاح ✅" : "تم تسجيل الخروج بنجاح ✅",
+          message: eventType === "check_in"
+            ? `تم تسجيل الدخول بنجاح ✅ (الجلسة ${sessionCount})`
+            : `تم تسجيل الخروج بنجاح ✅`,
           event_type: eventType,
           time: now,
           branch: branch.name,
+          session_count: sessionCount,
+          total_hours: Math.round(totalHours * 100) / 100,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

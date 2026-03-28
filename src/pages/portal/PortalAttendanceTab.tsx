@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Props {
   theme: 'light' | 'dark';
@@ -43,10 +44,33 @@ export default function PortalAttendanceTab({ theme }: Props) {
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const notifAudioRef = useRef<HTMLAudioElement | null>(null);
+  const employeeCacheRef = useRef<Map<string, string>>(new Map());
 
+  // Notification sound
   useEffect(() => {
-    const t = setInterval(() => setClock(new Date()), 1000);
-    return () => clearInterval(t);
+    notifAudioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbsGczIz2LzN3LdzsaK4DI3NB+OBksh8nd0H84GSuIyt7Qfzkhb3R2goWDgoOFiIuOkZOWmZyen6GjpqirrrCztba5u76/wcTFyMrLzc/Q0tTW19nb3N3f4OLj5ebn6err7O3u8PHy8/T19vf4+fr7/P3+');
+  }, []);
+
+  // Request browser notification permission
+  const enableNotifications = useCallback(async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        toast.success('تم تفعيل الإشعارات بنجاح');
+      } else {
+        toast.error('تم رفض إذن الإشعارات');
+      }
+    }
+  }, []);
+
+  // Check if notifications already granted
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
   }, []);
 
   const applyPreset = (p: DatePreset) => {
@@ -68,7 +92,13 @@ export default function PortalAttendanceTab({ theme }: Props) {
       const { data } = await supabase.functions.invoke('malaki-data', {
         body: { action: 'attendance', dateFrom, dateTo },
       });
-      if (data?.employees) setEmployees(data.employees);
+      if (data?.employees) {
+        setEmployees(data.employees);
+        // Cache employee names for realtime notifications
+        data.employees.forEach((emp: EmployeeAtt) => {
+          employeeCacheRef.current.set(emp.id, emp.full_name);
+        });
+      }
       if (data?.summary) setSummary(data.summary);
     } catch (e) {
       console.error('Portal attendance error:', e);
@@ -83,6 +113,56 @@ export default function PortalAttendanceTab({ theme }: Props) {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [dateFrom, dateTo]);
+
+  // Realtime subscription for attendance events
+  useEffect(() => {
+    const channel = supabase
+      .channel('portal-attendance-events')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'attendance_events' },
+        (payload) => {
+          const evt = payload.new as any;
+          const empName = employeeCacheRef.current.get(evt.employee_id) || 'موظف';
+          const isCheckIn = evt.event_type === 'check_in';
+          const time = format(new Date(evt.event_time), 'hh:mm a');
+          const msg = isCheckIn
+            ? `📥 ${empName} سجّل دخول الساعة ${time}`
+            : `📤 ${empName} سجّل خروج الساعة ${time}`;
+
+          // In-app toast notification
+          toast(msg, {
+            icon: isCheckIn ? '🟢' : '🟠',
+            duration: 5000,
+          });
+
+          // Play notification sound
+          if (notifAudioRef.current) {
+            notifAudioRef.current.play().catch(() => {});
+          }
+
+          // Browser push notification
+          if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('حضور الموظفين - أموالي', {
+              body: msg,
+              icon: '/favicon.ico',
+              tag: `att-${evt.id}`,
+            });
+          }
+
+          // Auto-refresh data
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const d = theme === 'dark';
   const t = {
@@ -115,14 +195,26 @@ export default function PortalAttendanceTab({ theme }: Props) {
             {format(clock, 'EEEE d MMMM', { locale: ar })}
           </span>
         </div>
-        <button onClick={fetchData} style={{
-          background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
-          borderRadius: 8, padding: '5px 12px', color: t.accent, fontSize: 11,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-          fontFamily: 'Tajawal, sans-serif',
-        }}>
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> تحديث
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : enableNotifications} style={{
+            background: notificationsEnabled ? 'rgba(34,197,94,0.1)' : 'rgba(42,123,155,0.1)',
+            border: `1px solid ${notificationsEnabled ? 'rgba(34,197,94,0.3)' : 'rgba(42,123,155,0.25)'}`,
+            borderRadius: 8, padding: '5px 10px', color: notificationsEnabled ? t.green : t.accent, fontSize: 11,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+            fontFamily: 'Tajawal, sans-serif',
+          }}>
+            {notificationsEnabled ? <Bell size={12} /> : <BellOff size={12} />}
+            {notificationsEnabled ? 'إشعارات ✓' : 'تفعيل الإشعارات'}
+          </button>
+          <button onClick={fetchData} style={{
+            background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
+            borderRadius: 8, padding: '5px 12px', color: t.accent, fontSize: 11,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+            fontFamily: 'Tajawal, sans-serif',
+          }}>
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> تحديث
+          </button>
+        </div>
       </div>
 
       {/* Date Presets */}

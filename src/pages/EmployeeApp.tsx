@@ -57,6 +57,7 @@ export default function EmployeeApp() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
+  const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
   const [history, setHistory] = useState<AttendanceDay[]>([]);
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,15 +93,19 @@ export default function EmployeeApp() {
 
       const today = new Date().toISOString().split("T")[0];
 
-      const [todayRes, histRes, corrRes] = await Promise.all([
+      const [todayRes, histRes, corrRes, eventsRes] = await Promise.all([
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).eq("attendance_date", today).single(),
         supabase.from("attendance_days").select("*").eq("employee_id", emp.id).order("attendance_date", { ascending: false }).limit(60),
         supabase.from("correction_requests").select("*").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("attendance_events").select("event_type, event_time").eq("employee_id", emp.id)
+          .gte("event_time", `${today}T00:00:00`).lte("event_time", `${today}T23:59:59`)
+          .eq("status", "valid").order("event_time", { ascending: true }),
       ]);
 
       setTodayRecord(todayRes.data);
       setHistory(histRes.data || []);
       setCorrections(corrRes.data || []);
+      setTodayEvents(eventsRes.data || []);
     } catch (e) {
       console.error(e);
     }
@@ -111,7 +116,8 @@ export default function EmployeeApp() {
 
   const handleNavigate = (tab: Tab) => {
     if (tab === "scan") {
-      const canCheckOut = todayRecord?.first_check_in && !todayRecord?.last_check_out;
+      const lastEvt = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
+      const canCheckOut = lastEvt?.event_type === "check_in";
       setScanAction(canCheckOut ? "checkout" : "checkin");
       setScanOpen(true);
     } else {
@@ -159,6 +165,7 @@ export default function EmployeeApp() {
           <EmployeeHomeTab
             employeeName={employee.full_name}
             todayRecord={todayRecord}
+            todayEvents={todayEvents}
             history={history}
             onScanTap={() => handleNavigate("scan")}
             onNavigate={(tab) => setActiveTab(tab as Tab)}

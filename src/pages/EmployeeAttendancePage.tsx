@@ -54,6 +54,7 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
 export default function EmployeeAttendancePage() {
   const { user } = useAuth();
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
+  const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
   const [history, setHistory] = useState<AttendanceDay[]>([]);
   const [corrections, setCorrections] = useState<CorrectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,17 @@ export default function EmployeeAttendancePage() {
         .eq("attendance_date", today)
         .single();
       setTodayRecord(todayData);
+
+      // Today's events for determining current state
+      const { data: eventsData } = await supabase
+        .from("attendance_events")
+        .select("event_type, event_time")
+        .eq("employee_id", emp.id)
+        .gte("event_time", `${today}T00:00:00`)
+        .lte("event_time", `${today}T23:59:59`)
+        .eq("status", "valid")
+        .order("event_time", { ascending: true });
+      setTodayEvents(eventsData || []);
 
       // History (last 30 days)
       const { data: histData } = await supabase
@@ -246,8 +258,11 @@ export default function EmployeeAttendancePage() {
     );
   }
 
-  const canCheckIn = !todayRecord || (!todayRecord.first_check_in);
-  const canCheckOut = todayRecord?.first_check_in && !todayRecord?.last_check_out;
+  // Multi check-in/out: determine state from last event
+  const lastEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
+  const canCheckIn = !lastEvent || lastEvent.event_type === "check_out";
+  const canCheckOut = !!lastEvent && lastEvent.event_type === "check_in";
+  const sessionCount = todayEvents.filter(e => e.event_type === "check_in").length;
   const todayStatus = todayRecord ? statusMap[todayRecord.status] || statusMap.absent : statusMap.absent;
 
   const incompleteCount = history.filter(d => d.status === "incomplete").length;
