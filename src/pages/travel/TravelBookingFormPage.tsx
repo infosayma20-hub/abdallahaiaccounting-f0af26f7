@@ -180,6 +180,77 @@ export default function TravelBookingFormPage() {
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
+  // Load existing booking for edit mode
+  useEffect(() => {
+    if (!editId || !user) return;
+    const loadBooking = async () => {
+      const [bRes, iRes, pRes] = await Promise.all([
+        supabase.from("travel_bookings").select("*").eq("id", editId).single(),
+        supabase.from("travel_booking_items").select("*").eq("booking_id", editId).order("sort_order"),
+        supabase.from("travel_booking_passengers").select("*").eq("booking_id", editId).order("passenger_index"),
+      ]);
+      if (bRes.data) {
+        const b = bRes.data as any;
+        setEditBookingNumber(b.booking_number || "");
+        setServiceType(b.service_type || "");
+        setCustomerId(b.customer_id || b.contact_id || "");
+        setCustomerName(b.customer_name || "");
+        setCustomerSearch(b.customer_name || "");
+        setCustomerPhone(b.customer_phone || "");
+        setDestination(b.destination || "");
+        setOrigin(b.origin || "فلسطين");
+        setTravelDate(b.travel_date || "");
+        setReturnDate(b.return_date || "");
+        setSupplierId(b.supplier_contact_id || b.supplier_id || "");
+        setSupplierRef(b.supplier_ref || "");
+        setPaxCount(b.pax_count || 1);
+        setCurrency(b.cost_currency || "ILS");
+        setExchangeRate(String(b.cost_exchange_rate || 1));
+        setNotes(b.notes || "");
+      }
+      if (iRes.data && iRes.data.length > 0) {
+        setItems(iRes.data.map((it: any) => ({
+          item_type: it.item_type || "other",
+          description: it.description || "",
+          city: it.city || "",
+          supplier_contact_id: it.supplier_contact_id || "",
+          check_in_date: it.check_in_date || "",
+          check_out_date: it.check_out_date || "",
+          nights: it.nights || 0,
+          quantity: it.quantity || 1,
+          unit_cost: it.unit_cost || 0,
+          unit_price: it.unit_price || 0,
+        })));
+      }
+      if (pRes.data && pRes.data.length > 0) {
+        setPassengers(pRes.data.map((p: any) => ({
+          full_name: p.full_name || "",
+          full_name_en: p.full_name_en || "",
+          passport_number: p.passport_number || "",
+          passport_issue_date: p.passport_issue_date || "",
+          passport_expiry: p.passport_expiry || "",
+          passport_image_url: p.passport_image_url || "",
+          passport_image_file: null,
+          nationality: p.nationality || "",
+          date_of_birth: p.date_of_birth || "",
+          gender: p.gender || "",
+          national_id: p.national_id || "",
+          phone: p.phone || "",
+          email: p.email || "",
+          mahram_name: p.mahram_name || "",
+          room_type: p.room_type || "",
+        })));
+      }
+      // Fetch supplier name
+      const sid = bRes.data?.supplier_contact_id || bRes.data?.supplier_id;
+      if (sid) {
+        const { data: sc } = await supabase.from("contacts").select("contact_name").eq("id", sid).single();
+        if (sc) setSupplierSearch(sc.contact_name);
+      }
+    };
+    loadBooking();
+  }, [editId, user]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (custRef.current && !custRef.current.contains(e.target as Node)) setShowCustomerDD(false);
