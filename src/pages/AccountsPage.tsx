@@ -132,6 +132,16 @@ const typeLabels: Record<string, string> = {
   "Expenses": "المصروفات",
 };
 
+const GROUP_DESC: Record<string, string> = {
+  "Asset": "أصل مادي ملموس اكتسبت المنشأة الحق فيه نتيجة لأحداث حدثت في الماضي له القدرة بتزويد المنشأة بمنافع في المستقبل",
+  "Liability": "ديون أو إلتزامات المالية على المنشأة والتي تنشأ خلال عملياتها التشغيلية ويتم سدادها عن طريق منافع المنشأة الاقتصادية من أموال أو سلع أو خدمات",
+  "Owner's Equity": "هي الأموال التي يتم إرجاعها للمساهمين عند تصفية جميع أصول المنشأة وسداد جميع التزاماتها",
+  "Equity": "هي الأموال التي يتم إرجاعها للمساهمين عند تصفية جميع أصول المنشأة وسداد جميع التزاماتها",
+  "Revenue": "هي مقدار زيادة الأصول أو نقص الالتزامات أو كليهما معاً خلال مدة زمنية معينة نتيجة إنتاج السلع أو بيعها",
+  "Purchases": "تكلفة شراء البضاعة والمواد المخصصة للبيع أو التشغيل خلال الفترة المحاسبية",
+  "Expenses": "هو انقضاء أصل أو تحمل التزام أو كلاهما معاً خلال مدة زمنية معينة نتيجة إنتاج السلع أو بيعها",
+};
+
 const typeBadgeStyles: Record<string, string> = {
   "Asset": "bg-blue-50 text-blue-700 border border-blue-200",
   "Liability": "bg-red-50 text-red-700 border border-red-200",
@@ -437,6 +447,15 @@ const AccountsPage = () => {
           </Button>
           <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </Button>
+          <div className="h-5 w-px bg-border mx-1" />
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={expandAll}>
+            <ChevronsUpDown className="h-3.5 w-3.5" />
+            توسيع الكل
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={collapseAll}>
+            <ChevronsDownUp className="h-3.5 w-3.5" />
+            ضم الكل
           </Button>
         </div>
       </div>
