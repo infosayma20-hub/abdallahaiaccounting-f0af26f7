@@ -7,8 +7,9 @@ import { useNavigate } from "react-router-dom";
 /** Map Arabic breadcrumb labels → routes */
 const breadcrumbRoutes: Record<string, string> = {
   "الرئيسية": "/dashboard",
-  "المحاسبة": "/accounts",
+  "المحاسبة": "/finance",
   "المبيعات": "/invoices",
+  "المشتريات": "/purchase-invoices",
   "المالية": "/finance",
   "التقارير": "/reports",
   "شجرة الحسابات": "/accounts",
@@ -30,6 +31,10 @@ const breadcrumbRoutes: Record<string, string> = {
   "قائمة الدخل": "/profit-loss",
   "قائمة المركز المالي": "/balance-sheet",
   "ميزان المراجعة": "/trial-balance",
+  "الصناديق": "/cash-boxes",
+  "الحسابات البنكية": "/bank-accounts",
+  "الشيكات": "/cheques",
+  "الطلبيات": "/orders",
 };
 
 interface PageHeaderProps {
