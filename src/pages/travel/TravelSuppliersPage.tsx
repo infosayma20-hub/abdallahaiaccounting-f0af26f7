@@ -8,20 +8,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, DollarSign } from "lucide-react";
+import { Plus, Edit, Search, Phone, Mail, Globe } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-const TYPE_LABELS: Record<string, string> = {
-  airline: "شركة طيران", hotel: "فندق", visa_agency: "وكالة تأشيرات",
-  ground_operator: "مشغل أرضي", other: "أخرى",
+const SUPPLIER_SUBTYPES: Record<string, string> = {
+  airline: "شركة طيران",
+  hotel_chain: "سلسلة فنادق",
+  ground_operator: "مشغل أرضي",
+  visa_agency: "وكالة تأشيرات",
+  insurance_company: "شركة تأمين",
+  transport: "شركة نقل",
+  general: "مورد عام",
 };
 
 export default function TravelSuppliersPage() {
   const { user } = useAuth();
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", type: "airline", country: "", currency: "ILS", commission_rate: "0", payment_terms: "prepaid", contact_name: "", contact_phone: "", contact_email: "", notes: "" });
+  const [form, setForm] = useState({
+    contact_name: "", phone: "", email: "", country: "",
+    sub_type: "general", notes: "",
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -29,146 +38,149 @@ export default function TravelSuppliersPage() {
   }, [user]);
 
   const fetchSuppliers = async () => {
-    const { data } = await supabase.from("travel_suppliers").select("*").order("name");
+    const { data } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("contact_type", "supplier")
+      .order("contact_name");
     if (data) setSuppliers(data);
   };
 
   const handleSave = async () => {
-    if (!user || !form.name) return;
-    const payload = {
+    if (!user || !form.contact_name) return;
+    const payload: any = {
       user_id: user.id,
-      name: form.name,
-      type: form.type,
+      contact_type: "supplier",
+      contact_name: form.contact_name,
+      phone: form.phone || null,
+      email: form.email || null,
       country: form.country || null,
-      currency: form.currency,
-      commission_rate: parseFloat(form.commission_rate) || 0,
-      payment_terms: form.payment_terms || null,
-      contact_name: form.contact_name || null,
-      contact_phone: form.contact_phone || null,
-      contact_email: form.contact_email || null,
       notes: form.notes || null,
     };
 
     if (editing) {
-      await supabase.from("travel_suppliers").update(payload).eq("id", editing.id);
+      await supabase.from("contacts").update(payload).eq("id", editing.id);
       toast({ title: "تم تحديث المورد ✅" });
     } else {
-      await supabase.from("travel_suppliers").insert(payload);
+      await supabase.from("contacts").insert(payload);
       toast({ title: "تم إضافة المورد ✅" });
     }
     setShowAdd(false);
     setEditing(null);
-    setForm({ name: "", type: "airline", country: "", currency: "ILS", commission_rate: "0", payment_terms: "prepaid", contact_name: "", contact_phone: "", contact_email: "", notes: "" });
+    resetForm();
     fetchSuppliers();
   };
 
   const openEdit = (s: any) => {
     setEditing(s);
     setForm({
-      name: s.name, type: s.type || "airline", country: s.country || "",
-      currency: s.currency || "ILS", commission_rate: String(s.commission_rate || 0),
-      payment_terms: s.payment_terms || "prepaid",
-      contact_name: s.contact_name || "", contact_phone: s.contact_phone || "",
-      contact_email: s.contact_email || "", notes: s.notes || "",
+      contact_name: s.contact_name || "",
+      phone: s.phone || "",
+      email: s.email || "",
+      country: s.country || "",
+      sub_type: "general",
+      notes: s.notes || "",
     });
     setShowAdd(true);
   };
 
+  const resetForm = () => setForm({
+    contact_name: "", phone: "", email: "", country: "",
+    sub_type: "general", notes: "",
+  });
+
+  const filtered = suppliers.filter(s =>
+    !search || s.contact_name?.toLowerCase().includes(search.toLowerCase()) ||
+    s.phone?.includes(search) || s.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold" style={{ color: "#1B3A5C" }}>🤝 الموردون</h1>
-        <Button onClick={() => { setEditing(null); setForm({ name: "", type: "airline", country: "", currency: "ILS", commission_rate: "0", payment_terms: "prepaid", contact_name: "", contact_phone: "", contact_email: "", notes: "" }); setShowAdd(true); }} style={{ background: "#1B3A5C" }} className="text-white">
+        <Button onClick={() => { setEditing(null); resetForm(); setShowAdd(true); }} style={{ background: "#1B3A5C" }} className="text-white">
           <Plus className="w-4 h-4 ml-1" /> مورد جديد
         </Button>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input placeholder="بحث بالاسم أو الهاتف..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {suppliers.map(s => (
+        {filtered.map(s => (
           <Card key={s.id} className="p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-semibold">{s.name}</h3>
-                <Badge variant="outline" className="text-[10px] mt-1">{TYPE_LABELS[s.type] || s.type}</Badge>
+                <h3 className="font-semibold">{s.contact_name}</h3>
+                <Badge variant="outline" className="text-[10px] mt-1">مورد سفر</Badge>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}><Edit className="w-3.5 h-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}>
+                <Edit className="w-3.5 h-3.5" />
+              </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <div>البلد: {s.country || "—"}</div>
-              <div>العملة: {s.currency}</div>
-              <div>العمولة: {s.commission_rate}%</div>
-              <div>الدفع: {s.payment_terms === "prepaid" ? "مسبق" : s.payment_terms === "credit_30" ? "30 يوم" : s.payment_terms === "credit_60" ? "60 يوم" : s.payment_terms || "—"}</div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              {s.phone && (
+                <div className="flex items-center gap-1.5">
+                  <Phone className="w-3 h-3" /> {s.phone}
+                </div>
+              )}
+              {s.email && (
+                <div className="flex items-center gap-1.5">
+                  <Mail className="w-3 h-3" /> {s.email}
+                </div>
+              )}
+              {s.country && (
+                <div className="flex items-center gap-1.5">
+                  <Globe className="w-3 h-3" /> {s.country}
+                </div>
+              )}
             </div>
-            {s.contact_name && <p className="text-xs">👤 {s.contact_name} {s.contact_phone ? `| ${s.contact_phone}` : ""}</p>}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <span className="text-xs text-muted-foreground">الرصيد المستحق</span>
-              <span className="font-bold text-sm" style={{ color: (s.balance || 0) > 0 ? "#DC2626" : "#16A34A" }}>
-                ₪{(s.balance || 0).toLocaleString()}
-              </span>
-            </div>
+            {s.notes && <p className="text-xs text-muted-foreground border-t pt-2">{s.notes}</p>}
           </Card>
         ))}
       </div>
 
-      {suppliers.length === 0 && (
+      {filtered.length === 0 && (
         <Card className="p-12 text-center">
-          <p className="text-muted-foreground">لا يوجد موردون بعد — أضف أول مورد!</p>
+          <p className="text-muted-foreground">
+            {search ? "لا توجد نتائج للبحث" : "لا يوجد موردون بعد — أضف أول مورد!"}
+          </p>
         </Card>
       )}
 
-      {/* Add/Edit Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editing ? "تعديل المورد" : "مورد جديد"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div><Label>اسم المورد *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>النوع</Label>
-                <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>البلد</Label><Input value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} /></div>
+            <div>
+              <Label>اسم المورد *</Label>
+              <Input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} placeholder="مثال: شركة الطيران الأردنية" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>العملة</Label>
-                <Select value={form.currency} onValueChange={v => setForm({ ...form, currency: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ILS">₪ شيكل</SelectItem>
-                    <SelectItem value="USD">$ دولار</SelectItem>
-                    <SelectItem value="JOD">د.أ دينار</SelectItem>
-                    <SelectItem value="EUR">€ يورو</SelectItem>
-                    <SelectItem value="TRY">₺ ليرة تركية</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>الهاتف</Label>
+                <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+970..." />
               </div>
-              <div><Label>نسبة العمولة %</Label><Input type="number" value={form.commission_rate} onChange={e => setForm({ ...form, commission_rate: e.target.value })} /></div>
+              <div>
+                <Label>البريد الإلكتروني</Label>
+                <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+              </div>
             </div>
             <div>
-              <Label>شروط الدفع</Label>
-              <Select value={form.payment_terms} onValueChange={v => setForm({ ...form, payment_terms: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prepaid">دفع مسبق</SelectItem>
-                  <SelectItem value="credit_30">آجل 30 يوم</SelectItem>
-                  <SelectItem value="credit_60">آجل 60 يوم</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>البلد</Label>
+              <Input value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="الأردن، تركيا..." />
             </div>
-            <div><Label>اسم جهة الاتصال</Label><Input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>الهاتف</Label><Input value={form.contact_phone} onChange={e => setForm({ ...form, contact_phone: e.target.value })} /></div>
-              <div><Label>البريد</Label><Input value={form.contact_email} onChange={e => setForm({ ...form, contact_email: e.target.value })} /></div>
+            <div>
+              <Label>ملاحظات</Label>
+              <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <Button onClick={handleSave} className="w-full text-white" style={{ background: "#1B3A5C" }}>{editing ? "تحديث" : "إضافة"}</Button>
+            <Button onClick={handleSave} className="w-full text-white" style={{ background: "#1B3A5C" }}>
+              {editing ? "تحديث" : "إضافة"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
