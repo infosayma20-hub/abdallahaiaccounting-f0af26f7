@@ -281,6 +281,27 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const PAYMENT_METHODS = ["نقدي", "بنك", "شيك", "تحويل"];
 
+  const exportToExcel = () => {
+    import("xlsx").then(XLSX => {
+      const rows = filtered.map(v => ({
+        "رقم السند": v.ref_number || "",
+        "التاريخ": v.date || "",
+        "الجهة": v.contact_name || "",
+        "البيان": v.description || v.notes || "",
+        "طريقة الدفع": v.payment_label || "",
+        "الحساب": v.account_code || "",
+        "المبلغ": v.amount_display || 0,
+        "غير مخصص": v.unallocated || 0,
+        "الحالة": v.status_label || "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31));
+      XLSX.writeFile(wb, `${title}-${new Date().toISOString().split("T")[0]}.xlsx`);
+    });
+  };
+
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title={title} breadcrumb={["المالية", title]} />
