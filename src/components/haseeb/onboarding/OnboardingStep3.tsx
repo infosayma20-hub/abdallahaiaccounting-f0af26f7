@@ -69,7 +69,7 @@ const OnboardingStep3 = ({ onComplete, onBack }: Props) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[70vh] px-6 py-10 bg-white relative">
+    <div className="flex flex-col items-center justify-center h-full min-h-[70vh] px-6 py-10 bg-background relative">
       {showConfetti && <Confetti />}
 
       {/* Big Icon */}

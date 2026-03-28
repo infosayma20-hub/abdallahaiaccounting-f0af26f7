@@ -154,7 +154,7 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
   };
 
   return (
-    <div className="flex flex-col h-full px-5 py-6 bg-white">
+    <div className="flex flex-col h-full px-5 py-6 bg-background">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
