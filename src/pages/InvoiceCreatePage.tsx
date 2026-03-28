@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
-  ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip
+  ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
+  Upload, X, ExternalLink, FileCheck, ChevronUp
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import PageHeader from "@/components/layout/PageHeader";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
