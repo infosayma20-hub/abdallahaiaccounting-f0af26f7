@@ -477,7 +477,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                       <td className="px-3 py-3 text-sm font-medium text-foreground">{v.contact_name}</td>
                       <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.description || v.notes || "—"}</td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">{v.payment_label}</td>
+                      <td className="px-3 py-3 text-xs font-mono text-muted-foreground">{v.account_code}</td>
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">₪{v.amount_display.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-xs tabular-nums">
+                        {v.unallocated > 0 ? (
+                          <span className="text-amber-600 font-semibold">₪{v.unallocated.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[v.status_label] || "bg-muted text-muted-foreground"}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status_label] || "bg-muted-foreground"}`} />
