@@ -136,6 +136,8 @@ const TravelBookingFormPage = lazy(() => import("./pages/travel/TravelBookingFor
 const TravelSuppliersPage = lazy(() => import("./pages/travel/TravelSuppliersPage"));
 const TravelPackagesPage = lazy(() => import("./pages/travel/TravelPackagesPage"));
 const TravelReportsPage = lazy(() => import("./pages/travel/TravelReportsPage"));
+const TravelBookingDetailPage = lazy(() => import("./pages/travel/TravelBookingDetailPage"));
+const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPrintPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 
 const queryClient = new QueryClient();
@@ -385,6 +387,9 @@ const App = () => (
                       <Route path="/travel" element={<TravelDashboard />} />
                       <Route path="/travel/bookings" element={<TravelBookingsPage />} />
                       <Route path="/travel/bookings/new" element={<TravelBookingFormPage />} />
+                      <Route path="/travel/bookings/:id" element={<TravelBookingDetailPage />} />
+                      <Route path="/travel/bookings/:id/edit" element={<TravelBookingFormPage />} />
+                      <Route path="/travel/bookings/:id/print" element={<TravelBookingPrintPage />} />
                       <Route path="/travel/suppliers" element={<TravelSuppliersPage />} />
                       <Route path="/travel/packages" element={<TravelPackagesPage />} />
                       <Route path="/travel/reports" element={<TravelReportsPage />} />
