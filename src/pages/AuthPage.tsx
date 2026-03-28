@@ -324,6 +324,9 @@ const AuthPage = () => {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
+                    onInvalid={e => (e.target as HTMLInputElement).setCustomValidity(' ')}
+                    onInput={e => (e.target as HTMLInputElement).setCustomValidity('')}
                     className="w-full h-11 rounded-xl px-4 pr-10 text-sm outline-none transition-all"
                     style={inputStyle}
                     dir="ltr"
