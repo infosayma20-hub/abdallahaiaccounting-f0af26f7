@@ -319,8 +319,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
           </div>
         ) : (
           employees.map(emp => {
-            const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : t.red;
-            const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : 'غائب ❌';
+            const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : emp.status === 'on_break' ? '#f97316' : t.red;
+            const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : emp.status === 'on_break' ? `استراحة ☕ ${emp.current_break_reason || ''}` : 'غائب ❌';
             const isExpanded = expandedId === emp.id;
 
             return (
