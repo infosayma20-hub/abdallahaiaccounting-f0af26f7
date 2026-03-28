@@ -306,14 +306,21 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title={title} breadcrumb={["المالية", title]} />
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-xs text-muted-foreground">{isReceipt ? "إدارة سندات القبض والمقبوضات" : "إدارة سندات الصرف والمدفوعات"}</p>
-        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
-          if (isReceipt) { navigate("/finance/receipt/new"); }
-          else { navigate("/finance/payment/new"); }
-        }}>
-          <Plus className="h-4 w-4" /> {newTitle}
-        </Button>
+        <div className="flex items-center gap-2">
+          {filtered.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={exportToExcel}>
+              <Download className="h-3.5 w-3.5" /> تصدير Excel
+            </Button>
+          )}
+          <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
+            if (isReceipt) { navigate("/finance/receipt/new"); }
+            else { navigate("/finance/payment/new"); }
+          }}>
+            <Plus className="h-4 w-4" /> {newTitle}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
