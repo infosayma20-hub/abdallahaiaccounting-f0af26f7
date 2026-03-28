@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat } from "lucide-react";
+import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat, Camera, ScanLine } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +26,21 @@ interface Product {
   notes: string | null;
   created_at: string;
   kitchen_station_id: string | null;
+  barcode: string | null;
+  tax_rate: number | null;
+  is_sold: boolean;
+  is_purchased: boolean;
+  is_pos_product: boolean;
+  sales_account_code: string | null;
+  purchase_account_code: string | null;
+  description: string | null;
+  terms: string | null;
+}
+
+interface AccountOption {
+  account_code: string;
+  account_name: string;
+  account_type: string;
 }
 
 interface KitchenStation {
@@ -107,7 +123,17 @@ const InventoryPage = () => {
     name: "", category: "بضاعة عامة", skuPrefix: "GEN",
     buy_price: "", sell_price: "", quantity: "", min_quantity: "",
     unit: "قطعة", notes: "", kitchen_station_id: "" as string,
+    barcode: "", tax_rate: "0", custom_tax_rate: "",
+    is_sold: true, is_purchased: true, is_pos_product: false,
+    sales_account_code: "4100", purchase_account_code: "5110",
+    description: "", terms: "",
   });
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const barcodeVideoRef = useRef<HTMLVideoElement>(null);
+  const barcodeStreamRef = useRef<MediaStream | null>(null);
+
+  const TAX_OPTIONS = ["0", "5", "7.5", "10", "16", "17", "أخرى"];
 
   const generateSKU = (prefix: string) => {
     const existingWithPrefix = products.filter(p => p.sku?.startsWith(prefix + "-"));
@@ -145,22 +171,89 @@ const InventoryPage = () => {
     setKitchenStations((data as KitchenStation[]) || []);
   }, [user]);
 
-  useEffect(() => { fetchProducts(); fetchStations(); }, [user]);
+  const fetchAccounts = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("accounts")
+      .select("account_code, account_name, account_type")
+      .eq("user_id", user.id)
+      .in("account_type", ["إيرادات", "مصاريف", "أصول"])
+      .eq("is_active", true)
+      .order("account_code");
+    setAccounts((data as AccountOption[]) || []);
+  }, [user]);
+
+  useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "" });
     setEditMode(false);
     setSelectedProduct(null);
+    stopBarcodeScanner();
+  };
+
+  const startBarcodeScanner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      barcodeStreamRef.current = stream;
+      setShowBarcodeScanner(true);
+      setTimeout(() => {
+        if (barcodeVideoRef.current) {
+          barcodeVideoRef.current.srcObject = stream;
+          barcodeVideoRef.current.play();
+        }
+      }, 100);
+      if ('BarcodeDetector' in window) {
+        const detector = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
+        const scanLoop = async () => {
+          if (!barcodeVideoRef.current || !barcodeStreamRef.current) return;
+          try {
+            const barcodes = await detector.detect(barcodeVideoRef.current);
+            if (barcodes.length > 0) {
+              setForm(p => ({ ...p, barcode: barcodes[0].rawValue }));
+              stopBarcodeScanner();
+              toast({ title: "تم مسح الباركود ✅" });
+              return;
+            }
+          } catch {}
+          if (barcodeStreamRef.current) requestAnimationFrame(scanLoop);
+        };
+        requestAnimationFrame(scanLoop);
+      } else {
+        toast({ title: "المتصفح لا يدعم مسح الباركود", description: "يرجى إدخاله يدوياً", variant: "destructive" });
+        stopBarcodeScanner();
+      }
+    } catch {
+      toast({ title: "لا يمكن الوصول للكاميرا", variant: "destructive" });
+    }
+  };
+
+  const stopBarcodeScanner = () => {
+    barcodeStreamRef.current?.getTracks().forEach(t => t.stop());
+    barcodeStreamRef.current = null;
+    setShowBarcodeScanner(false);
   };
 
   const openEdit = (product: Product) => {
     const prefix = product.sku?.split("-")[0] || getCategoryPrefix(product.category);
+    const taxStr = String(product.tax_rate || 0);
+    const isCustomTax = !["0", "5", "7.5", "10", "16", "17"].includes(taxStr);
     setForm({
       name: product.name, category: product.category, skuPrefix: prefix,
       buy_price: String(product.buy_price), sell_price: String(product.sell_price),
       quantity: String(product.quantity), min_quantity: String(product.min_quantity),
       unit: product.unit, notes: product.notes || "",
       kitchen_station_id: product.kitchen_station_id || "",
+      barcode: product.barcode || "",
+      tax_rate: isCustomTax ? "أخرى" : taxStr,
+      custom_tax_rate: isCustomTax ? taxStr : "",
+      is_sold: product.is_sold ?? true,
+      is_purchased: product.is_purchased ?? true,
+      is_pos_product: product.is_pos_product ?? false,
+      sales_account_code: product.sales_account_code || "4100",
+      purchase_account_code: product.purchase_account_code || "5110",
+      description: product.description || "",
+      terms: product.terms || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
@@ -174,6 +267,7 @@ const InventoryPage = () => {
     }
     setSaving(true);
     const autoSKU = editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix);
+    const taxRate = form.tax_rate === "أخرى" ? parseFloat(form.custom_tax_rate) || 0 : parseFloat(form.tax_rate) || 0;
     const payload: any = {
       user_id: user.id, name: form.name.trim(), category: form.category as any,
       sku: autoSKU, buy_price: parseFloat(form.buy_price) || 0,
@@ -181,6 +275,15 @@ const InventoryPage = () => {
       min_quantity: parseFloat(form.min_quantity) || 0, unit: form.unit,
       notes: form.notes.trim() || null,
       kitchen_station_id: form.kitchen_station_id || null,
+      barcode: form.barcode.trim() || null,
+      tax_rate: taxRate,
+      is_sold: form.is_sold,
+      is_purchased: form.is_purchased,
+      is_pos_product: form.is_pos_product,
+      sales_account_code: form.is_sold ? (form.sales_account_code || null) : null,
+      purchase_account_code: form.is_purchased ? (form.purchase_account_code || null) : null,
+      description: form.description.trim() || null,
+      terms: form.terms.trim() || null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
