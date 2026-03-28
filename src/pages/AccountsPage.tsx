@@ -669,27 +669,13 @@ const AccountsPage = () => {
                     {/* Description */}
                     <div className="min-w-0">
                       {isVirtualTypeHeader && GROUP_DESC[nType] ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
-                              {GROUP_DESC[nType]}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs max-w-[300px] text-right" dir="rtl">
-                            {GROUP_DESC[nType]}
-                          </TooltipContent>
-                        </Tooltip>
+                        <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground whitespace-normal break-words leading-5 block">
+                          {GROUP_DESC[nType]}
+                        </span>
                       ) : !isVirtualTypeHeader && acc.description_ar ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
-                              {acc.description_ar}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs max-w-[300px] text-right" dir="rtl">
-                            {acc.description_ar}
-                          </TooltipContent>
-                        </Tooltip>
+                        <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground whitespace-normal break-words leading-5 block">
+                          {acc.description_ar}
+                        </span>
                       ) : (
                         <span className="text-[11px] text-[hsl(210,10%,70%)]">
                           {isVirtualTypeHeader ? '' : '—'}
