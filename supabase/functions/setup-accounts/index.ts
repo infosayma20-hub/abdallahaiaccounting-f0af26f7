@@ -59,17 +59,17 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "3500", name: "المسحوبات الشخصية", type: "حقوق ملكية", parent: null },
 
   // ═══════════ الإيرادات (4xxx) ═══════════
-  { code: "4100", name: "إيرادات مبيعات", type: "إيرادات", parent: null },
-  { code: "4200", name: "إيرادات خدمات", type: "إيرادات", parent: null },
-  { code: "4300", name: "إيرادات أخرى", type: "إيرادات", parent: null },
-  { code: "4310", name: "إيرادات متنوعة", type: "إيرادات", parent: "4300" },
-  { code: "4320", name: "إيرادات الإيجار", type: "إيرادات", parent: "4300" },
-  { code: "4330", name: "إيرادات الفوائد", type: "إيرادات", parent: "4300" },
-  { code: "4340", name: "أرباح بيع الأصول", type: "إيرادات", parent: "4300" },
-  { code: "4350", name: "خصومات مكتسبة", type: "إيرادات", parent: "4300" },
-  { code: "4360", name: "إيرادات رواتب وأجور", type: "إيرادات", parent: "4300" },
-  { code: "4400", name: "مردودات مبيعات", type: "إيرادات", parent: null },
-  { code: "4500", name: "مردودات مشتريات", type: "إيرادات", parent: null },
+  { code: "4100", name: "إيرادات مبيعات", type: "إيرادات", parent: null, is_contra: false, nature: "credit" },
+  { code: "4200", name: "إيرادات خدمات", type: "إيرادات", parent: null, is_contra: false, nature: "credit" },
+  { code: "4300", name: "إيرادات أخرى", type: "إيرادات", parent: null, is_contra: false, nature: "credit" },
+  { code: "4310", name: "إيرادات متنوعة", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4320", name: "إيرادات الإيجار", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4330", name: "إيرادات الفوائد", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4340", name: "أرباح بيع الأصول", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  { code: "4360", name: "إيرادات رواتب وأجور", type: "إيرادات", parent: "4300", is_contra: false, nature: "credit" },
+  // ── حسابات مقابلة للإيرادات (Contra Revenue) ──
+  { code: "4400", name: "مردودات ومسموحات مبيعات", type: "إيرادات", parent: null, is_contra: true, nature: "debit" },
+  { code: "4500", name: "خصم المبيعات المسموح به", type: "إيرادات", parent: null, is_contra: true, nature: "debit" },
 
   // ═══════════ تكلفة المبيعات والمشتريات (51xx) ═══════════
   { code: "5100", name: "تكلفة البضاعة المباعة", type: "مشتريات", parent: null },
