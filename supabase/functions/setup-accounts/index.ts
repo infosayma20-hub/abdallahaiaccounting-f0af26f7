@@ -156,23 +156,7 @@ serve(async (req) => {
       });
     }
 
-    // Check if user already has accounts
-    const { count } = await supabaseAdmin
-      .from('accounts')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    if (count && count > 0) {
-      return new Response(JSON.stringify({
-        success: true,
-        message: "شجرة الحسابات موجودة بالفعل",
-        created: 0,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Insert all default accounts for this user
+    // Upsert all default accounts (skip duplicates gracefully)
     const accountsToInsert = DEFAULT_ACCOUNTS.map(a => ({
       user_id: userId,
       account_code: a.code,
@@ -186,7 +170,10 @@ serve(async (req) => {
     let inserted = 0;
     for (let i = 0; i < accountsToInsert.length; i += 50) {
       const batch = accountsToInsert.slice(i, i + 50);
-      const { data, error } = await supabaseAdmin.from('accounts').insert(batch).select('id');
+      const { data, error } = await supabaseAdmin
+        .from('accounts')
+        .upsert(batch, { onConflict: 'user_id,account_code', ignoreDuplicates: true })
+        .select('id');
       if (error) {
         console.error(`Batch error at ${i}:`, error);
       } else {
