@@ -205,12 +205,13 @@ export default function TravelDashboard() {
       </Card>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: "الحجوزات", icon: "✈️", path: "/travel/bookings" },
           { label: "الموردون", icon: "🤝", path: "/travel/suppliers" },
           { label: "الباقات", icon: "📦", path: "/travel/packages" },
           { label: "التقارير", icon: "📊", path: "/travel/reports" },
+          { label: "الإعدادات", icon: "⚙️", path: "/travel/settings" },
         ].map(link => (
           <Card key={link.path} className="p-4 cursor-pointer hover:shadow-md transition-shadow text-center" onClick={() => navigate(link.path)}>
             <span className="text-2xl">{link.icon}</span>
