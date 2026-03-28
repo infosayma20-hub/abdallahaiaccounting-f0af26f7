@@ -105,21 +105,42 @@ export default function TravelBookingDetailPage() {
     });
     await supabase.from("travel_bookings").update({ amount_paid: newPaid, payment_status: newStatus }).eq("id", booking.id);
 
-    // Journal entry
-    const debitCode = payMethod === "bank_transfer" ? "1120" : payMethod === "check" ? "1150" : "1110";
-    await supabase.from("transactions").insert({
-      user_id: user.id,
-      transaction_date: new Date().toISOString().split("T")[0],
-      description: `دفعة حجز سياحي - ${booking.booking_number} - ${booking.customer_name || ""}`,
-      debit_account_code: debitCode, credit_account_code: "1130",
-      amount: amt, currency: "شيكل", transaction_type: "travel_payment",
-      reference: booking.booking_number,
-      payment_method: payMethod === "cash" ? "نقدي" : payMethod === "bank_transfer" ? "بنك" : payMethod,
-      idempotency_key: `TRVPAY-${booking.id}-${Date.now()}`,
+    // Journal entry via service
+    await createPaymentJournalEntry({
+      userId: user.id,
+      bookingNumber: booking.booking_number,
+      customerName: booking.customer_name || "",
+      amount: amt,
+      paymentMethod: payMethod,
+      bookingId: booking.id,
     });
 
     toast({ title: "✅ تم تسجيل الدفعة" });
     setPayAmount(""); setPayRef(""); setPayBankName("");
+    fetchAll();
+  };
+
+  const handleCancel = async () => {
+    if (!booking || !user) return;
+    if (!confirm("هل أنت متأكد من إلغاء هذا الحجز؟ سيتم عكس جميع القيود المحاسبية.")) return;
+
+    await supabase.from("travel_bookings").update({ status: "cancelled", payment_status: "refunded" }).eq("id", booking.id);
+
+    // Reverse all journal entries
+    await reverseCancellationEntries({
+      userId: user.id,
+      bookingNumber: booking.booking_number,
+      customerName: booking.customer_name || "",
+    });
+
+    toast({ title: "تم إلغاء الحجز وعكس القيود المحاسبية" });
+    fetchAll();
+  };
+
+  const handleMarkCompleted = async () => {
+    if (!booking) return;
+    await supabase.from("travel_bookings").update({ status: "completed" }).eq("id", booking.id);
+    toast({ title: "✅ تم تحديث الحالة إلى مكتمل" });
     fetchAll();
   };
 
