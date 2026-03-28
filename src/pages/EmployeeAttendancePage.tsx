@@ -139,6 +139,26 @@ export default function EmployeeAttendancePage() {
         .order("event_time", { ascending: true });
       setTodayEvents(eventsData || []);
 
+      // Today's breaks
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      try {
+        const breaksResp = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/attendance?action=breaks`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+          }
+        );
+        const breaksData = await breaksResp.json();
+        setTodayBreaks(Array.isArray(breaksData) ? breaksData : []);
+      } catch {
+        setTodayBreaks([]);
+      }
+
       // History (last 30 days)
       const { data: histData } = await supabase
         .from("attendance_days")
