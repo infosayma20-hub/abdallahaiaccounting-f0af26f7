@@ -63,8 +63,10 @@ export default function TravelSettingsPage() {
     if (!user) return;
     setSavingCurrencies(true);
     try {
-      const rows = DEFAULT_CURRENCIES.map(c => ({ ...c, tenant_id: user.id }));
-      await supabase.from("travel_currencies").upsert(rows, { onConflict: "tenant_id,currency_code" });
+      const rows = DEFAULT_CURRENCIES.map(c => ({ ...c, user_id: user.id }));
+      for (const row of rows) {
+        await supabase.from("travel_currencies").upsert(row as any);
+      }
       toast({ title: "✅ تم تهيئة العملات" });
       fetchData();
     } catch (err: any) {
