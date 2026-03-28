@@ -644,31 +644,27 @@ const AccountsPage = () => {
 
                     {/* Type Badge */}
                     <div className="hidden sm:flex items-center gap-1">
-                      {!isVirtualTypeHeader && (
-                        <>
-                          <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeBadgeStyles[nType] || "bg-muted text-muted-foreground")}>
-                            {typeLabels[nType] || nType}
-                          </span>
-                        </>
-                      )}
+                      <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeBadgeStyles[nType] || "bg-muted text-muted-foreground")}>
+                        {typeLabels[nType] || nType}
+                      </span>
                     </div>
 
                     {/* Natural Balance */}
-                    {(() => {
-                      const actualNature = acc.nature || (naturalBalance[nType] === "مدين" ? "debit" : "credit");
-                      const isDebit = actualNature === "debit";
-                      return (
-                        <span className={cn(
-                          "text-[11px] font-medium",
-                          isVirtualTypeHeader && "hidden",
-                          isDebit
-                            ? "text-[hsl(142,71%,40%)] dark:text-green-400"
-                            : "text-[hsl(0,72%,51%)] dark:text-red-400"
-                        )}>
-                          {isVirtualTypeHeader ? '' : (isDebit ? "مدين" : "دائن")}
-                        </span>
-                      );
-                    })()}
+                    <span className={cn(
+                      "text-[11px] font-medium",
+                      isVirtualTypeHeader
+                        ? "text-[hsl(210,10%,50%)] dark:text-muted-foreground"
+                        : (acc.nature === "debit" || (!acc.nature && naturalBalance[nType] === "مدين"))
+                          ? "text-[hsl(142,71%,40%)] dark:text-green-400"
+                          : "text-[hsl(0,72%,51%)] dark:text-red-400"
+                    )}>
+                      {isVirtualTypeHeader
+                        ? naturalBalance[nType] || ''
+                        : (acc.nature === "debit" || (!acc.nature && naturalBalance[nType] === "مدين"))
+                          ? "مدين"
+                          : "دائن"
+                      }
+                    </span>
 
                     {/* Description */}
                     <div className="min-w-0">
