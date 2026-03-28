@@ -899,6 +899,81 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_breaks: {
+        Row: {
+          attendance_day_id: string | null
+          auth_user_id: string
+          branch_id: string | null
+          break_in: string | null
+          break_out: string
+          created_at: string | null
+          duration_minutes: number | null
+          employee_id: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          attendance_day_id?: string | null
+          auth_user_id: string
+          branch_id?: string | null
+          break_in?: string | null
+          break_out?: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          employee_id: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          attendance_day_id?: string | null
+          auth_user_id?: string
+          branch_id?: string | null
+          break_in?: string | null
+          break_out?: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          employee_id?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_breaks_attendance_day_id_fkey"
+            columns: ["attendance_day_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_breaks_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_breaks_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_breaks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_breaks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_days: {
         Row: {
           attendance_date: string
@@ -910,9 +985,11 @@ export type Database = {
           id: string
           is_manually_adjusted: boolean | null
           last_check_out: string | null
+          net_work_minutes: number | null
           notes: string | null
           overtime_hours: number | null
           status: string
+          total_break_minutes: number | null
           total_hours: number | null
           updated_at: string
         }
@@ -926,9 +1003,11 @@ export type Database = {
           id?: string
           is_manually_adjusted?: boolean | null
           last_check_out?: string | null
+          net_work_minutes?: number | null
           notes?: string | null
           overtime_hours?: number | null
           status?: string
+          total_break_minutes?: number | null
           total_hours?: number | null
           updated_at?: string
         }
@@ -942,9 +1021,11 @@ export type Database = {
           id?: string
           is_manually_adjusted?: boolean | null
           last_check_out?: string | null
+          net_work_minutes?: number | null
           notes?: string | null
           overtime_hours?: number | null
           status?: string
+          total_break_minutes?: number | null
           total_hours?: number | null
           updated_at?: string
         }
