@@ -1000,11 +1000,21 @@ const POSPage = () => {
             .eq("user_id", dataOwnerId)
             .eq("type", "pos")
             .eq("is_active", true);
-          const boxesWithCallCenter = [
-            ...(boxes || []),
-            { id: "__call_center__", name: "كول سنتر", type: "call_center" },
-          ];
-          setCashBoxes(boxesWithCallCenter);
+          
+          // Only add call center option if not hidden for this tenant
+          const { data: csHidden } = await supabase
+            .from("company_settings" as any)
+            .select("hidden_apps")
+            .eq("user_id", dataOwnerId)
+            .maybeSingle();
+          const hiddenApps: string[] = (csHidden as any)?.hidden_apps || [];
+          const callCenterHidden = hiddenApps.includes("call_center") || hiddenApps.includes("callcenter");
+          
+          const boxList = [...(boxes || [])];
+          if (!callCenterHidden) {
+            boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
+          }
+          setCashBoxes(boxList);
           // Auto-select from device binding (localStorage)
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
           if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
