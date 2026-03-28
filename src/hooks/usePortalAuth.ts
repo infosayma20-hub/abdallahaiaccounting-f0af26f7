@@ -12,6 +12,7 @@ export interface PortalUser {
   can_see_liquidity: boolean;
   can_see_all_branches: boolean;
   allowed_branch_ids: string[] | null;
+  user_id: string;
 }
 
 export function usePortalAuth() {
@@ -54,6 +55,7 @@ export function usePortalAuth() {
             can_see_liquidity: data.can_see_liquidity ?? true,
             can_see_all_branches: data.can_see_all_branches ?? true,
             allowed_branch_ids: data.allowed_branch_ids,
+            user_id: data.user_id,
           });
         }
       } catch {

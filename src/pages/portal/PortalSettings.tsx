@@ -35,13 +35,13 @@ export default function PortalSettings() {
     }
   }, [authLoading, user, navigate]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { if (user) loadData(); }, [user]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [usersRes, settingsRes] = await Promise.all([
-        supabase.functions.invoke('malaki-auth', { body: { action: 'list_users' } }),
+        supabase.functions.invoke('malaki-auth', { body: { action: 'list_users', user_id: user?.user_id } }),
         supabase.functions.invoke('malaki-data', { body: { action: 'get_settings' } }),
       ]);
       if (usersRes.data?.users) setUsers(usersRes.data.users);
@@ -80,7 +80,7 @@ export default function PortalSettings() {
     if (!newUser.username || !newUser.password || !newUser.full_name) return;
     try {
       const { data } = await supabase.functions.invoke('malaki-auth', {
-        body: { action: 'create_user', ...newUser },
+        body: { action: 'create_user', ...newUser, user_id: user?.user_id },
       });
       if (data?.success) {
         setCreatedCredentials({ ...newUser });
@@ -108,7 +108,7 @@ export default function PortalSettings() {
   if (authLoading || loading) {
     return (
       <div style={{
-        minHeight: '100vh', background: '#0A0A0A', color: 'white',
+        minHeight: '100vh', background: '#F5F5F5', color: '#333',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <Loader2 size={32} className="animate-spin" style={{ color: GOLD }} />
@@ -118,22 +118,24 @@ export default function PortalSettings() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', height: 44,
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: '#fff',
+    border: '1px solid #ddd',
     borderRadius: 10, padding: '0 14px',
-    color: 'white', fontSize: 14,
+    color: '#333', fontSize: 14,
     fontFamily: 'Tajawal, sans-serif', outline: 'none',
   };
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#0A0A0A', color: 'white',
+      minHeight: '100vh', background: '#F5F5F5', color: '#333',
       fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
     }}>
+      {/* Header */}
       <div style={{
-        height: 56, background: 'linear-gradient(135deg, #0A0A0A, #1A0A00)',
-        borderBottom: '1px solid rgba(212,160,23,0.2)',
+        height: 56, background: '#fff',
+        borderBottom: '1px solid #e0e0e0',
         padding: '0 20px', display: 'flex', alignItems: 'center', gap: 12,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}>
         <button onClick={() => navigate('/portal/dashboard')} style={{
           background: 'none', border: 'none', color: GOLD, cursor: 'pointer',
@@ -142,17 +144,18 @@ export default function PortalSettings() {
         }}>
           <ArrowRight size={18} /> رجوع
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700 }}>⚙️ إعدادات بوابة الإدارة</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>⚙️ إعدادات بوابة الإدارة</span>
       </div>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
         {/* Link account */}
         <div style={{
-          background: '#111', borderRadius: 14, padding: 20,
-          border: '1px solid rgba(212,160,23,0.2)', marginBottom: 20,
+          background: '#fff', borderRadius: 14, padding: 20,
+          border: '1px solid #e0c97a', marginBottom: 20,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginBottom: 12 }}>🔗 ربط حساب AMWALI</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
             أدخل معرف المستخدم (User ID) لحساب AMWALI الذي ترغب في عرض بياناته
           </div>
           <input value={linkedUserId} onChange={e => setLinkedUserId(e.target.value)}
@@ -163,19 +166,20 @@ export default function PortalSettings() {
 
         {/* Exchange rates */}
         <div style={{
-          background: '#111', borderRadius: 14, padding: 20,
-          border: '1px solid rgba(255,255,255,0.06)', marginBottom: 20,
+          background: '#fff', borderRadius: 14, padding: 20,
+          border: '1px solid #e8e8e8', marginBottom: 20,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>💱 أسعار الصرف</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>💱 أسعار الصرف</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4, display: 'block' }}>
+              <label style={{ fontSize: 12, color: '#888', marginBottom: 4, display: 'block' }}>
                 🇯🇴 سعر الدينار (بالشيكل)
               </label>
               <input value={rateJod} onChange={e => setRateJod(e.target.value)} type="number" step="0.01" style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4, display: 'block' }}>
+              <label style={{ fontSize: 12, color: '#888', marginBottom: 4, display: 'block' }}>
                 🇺🇸 سعر الدولار (بالشيكل)
               </label>
               <input value={rateUsd} onChange={e => setRateUsd(e.target.value)} type="number" step="0.01" style={inputStyle} />
@@ -198,15 +202,16 @@ export default function PortalSettings() {
 
         {/* User management */}
         <div style={{
-          background: '#111', borderRadius: 14, padding: 20,
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: '#fff', borderRadius: 14, padding: 20,
+          border: '1px solid #e8e8e8',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>👥 إدارة المستخدمين</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>👥 إدارة المستخدمين</div>
             <button onClick={() => setShowAddUser(true)} style={{
-              background: 'rgba(212,160,23,0.15)', border: '1px solid rgba(212,160,23,0.3)',
+              background: 'rgba(212,160,23,0.12)', border: '1px solid rgba(212,160,23,0.3)',
               borderRadius: 8, padding: '6px 14px', color: GOLD, fontSize: 12, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Tajawal, sans-serif',
             }}>
@@ -216,8 +221,8 @@ export default function PortalSettings() {
 
           {showAddUser && (
             <div style={{
-              background: 'rgba(255,255,255,0.04)', borderRadius: 10,
-              padding: 16, marginBottom: 16, border: '1px solid rgba(212,160,23,0.2)',
+              background: '#fafafa', borderRadius: 10,
+              padding: 16, marginBottom: 16, border: '1px solid #e0c97a',
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <input value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
@@ -241,8 +246,8 @@ export default function PortalSettings() {
                   border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 13,
                 }}>إنشاء</button>
                 <button onClick={() => setShowAddUser(false)} style={{
-                  padding: '8px 20px', borderRadius: 8, background: 'rgba(255,255,255,0.1)',
-                  border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 13,
+                  padding: '8px 20px', borderRadius: 8, background: '#eee',
+                  border: 'none', color: '#666', cursor: 'pointer', fontSize: 13,
                 }}>إلغاء</button>
               </div>
             </div>
@@ -250,16 +255,16 @@ export default function PortalSettings() {
 
           {createdCredentials && (
             <div style={{
-              background: 'rgba(34,197,94,0.08)', borderRadius: 12,
+              background: '#f0fdf4', borderRadius: 12,
               padding: 18, marginBottom: 16,
-              border: '1px solid rgba(34,197,94,0.3)',
+              border: '1px solid #86efac',
               position: 'relative',
             }}>
               <button onClick={() => setCreatedCredentials(null)} style={{
                 position: 'absolute', top: 8, left: 8, background: 'none', border: 'none',
-                color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 18, lineHeight: 1,
+                color: '#999', cursor: 'pointer', fontSize: 18, lineHeight: 1,
               }}>✕</button>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#22C55E', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', marginBottom: 12 }}>
                 ✅ تم إنشاء الحساب بنجاح — احفظ هذه البيانات
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -271,19 +276,19 @@ export default function PortalSettings() {
                     { label: 'كلمة المرور', value: createdCredentials.password, mono: true },
                     { label: 'الدور', value: createdCredentials.role === 'owner' ? 'مالك' : createdCredentials.role === 'manager' ? 'مدير' : 'مشاهد' },
                   ].map(row => (
-                    <tr key={row.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <td style={{ padding: '8px 12px', fontSize: 12, color: 'rgba(255,255,255,0.5)', width: 120 }}>{row.label}</td>
+                    <tr key={row.label} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '8px 12px', fontSize: 12, color: '#888', width: 120 }}>{row.label}</td>
                       <td style={{
                         padding: '8px 12px', fontSize: 14, fontWeight: 600,
                         fontFamily: row.mono ? 'JetBrains Mono, monospace' : 'Tajawal, sans-serif',
-                        color: 'white', letterSpacing: row.mono ? 1 : 0,
+                        color: '#1a1a1a', letterSpacing: row.mono ? 1 : 0,
                         userSelect: 'all',
                       }}>{row.value}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+              <div style={{ marginTop: 10, fontSize: 11, color: '#aaa' }}>
                 💡 انسخ هذه البيانات الآن — لن تظهر كلمة المرور مرة أخرى
               </div>
             </div>
@@ -292,30 +297,30 @@ export default function PortalSettings() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <tr style={{ borderBottom: '2px solid #e8e8e8', background: '#fafafa' }}>
                   {['المستخدم', 'الاسم', 'الدور', 'آخر دخول', 'نشط', 'إجراءات'].map(h => (
                     <th key={h} style={{
                       padding: '10px 12px', fontSize: 11,
-                      color: 'rgba(255,255,255,0.4)', fontWeight: 600, textAlign: 'right',
+                      color: '#888', fontWeight: 600, textAlign: 'right',
                     }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'JetBrains Mono, monospace' }}>{u.username}</td>
-                    <td style={{ padding: '10px 12px', fontSize: 13 }}>{u.full_name}</td>
+                  <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#333' }}>{u.username}</td>
+                    <td style={{ padding: '10px 12px', fontSize: 13, color: '#333' }}>{u.full_name}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
                         padding: '2px 10px', borderRadius: 10, fontSize: 11,
-                        background: u.role === 'owner' ? 'rgba(212,160,23,0.2)' : 'rgba(255,255,255,0.08)',
-                        color: u.role === 'owner' ? GOLD : 'rgba(255,255,255,0.6)',
+                        background: u.role === 'owner' ? 'rgba(212,160,23,0.15)' : '#f0f0f0',
+                        color: u.role === 'owner' ? GOLD : '#666',
                       }}>
                         {u.role === 'owner' ? 'مالك' : u.role === 'manager' ? 'مدير' : 'مشاهد'}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 12px', fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <td style={{ padding: '10px 12px', fontSize: 11, color: '#999', fontFamily: 'JetBrains Mono, monospace' }}>
                       {u.last_login ? new Date(u.last_login).toLocaleDateString('ar') : '—'}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
@@ -326,11 +331,11 @@ export default function PortalSettings() {
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => resetPassword(u.id)} title="إعادة تعيين كلمة المرور" style={{
-                          background: 'rgba(255,255,255,0.06)', border: 'none',
-                          borderRadius: 6, padding: 6, cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
+                          background: '#f0f0f0', border: 'none',
+                          borderRadius: 6, padding: 6, cursor: 'pointer', color: '#666',
                         }}><KeyRound size={14} /></button>
                         <button onClick={() => deleteUser(u.id)} title="حذف" style={{
-                          background: 'rgba(239,68,68,0.1)', border: 'none',
+                          background: '#fef2f2', border: 'none',
                           borderRadius: 6, padding: 6, cursor: 'pointer', color: '#EF4444',
                         }}><Trash2 size={14} /></button>
                       </div>
@@ -344,8 +349,8 @@ export default function PortalSettings() {
       </div>
 
       <style>{`
-        select option { background: #1a1a1a; color: white; }
-        input:focus { border-color: #D4A017 !important; box-shadow: 0 0 0 3px rgba(212,160,23,0.2) !important; }
+        select option { background: #fff; color: #333; }
+        input:focus { border-color: #D4A017 !important; box-shadow: 0 0 0 3px rgba(212,160,23,0.15) !important; }
       `}</style>
     </div>
   );
