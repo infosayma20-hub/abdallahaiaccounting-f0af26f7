@@ -341,7 +341,7 @@ const AccountsPage = () => {
     const isHiddenByCollapse = (acc: Account): boolean => {
       let current = acc;
       while (current.parent_code && current.parent_code !== current.account_code) {
-        if (collapsedGroups.has(current.parent_code)) return true;
+        if (!expanded.has(current.parent_code)) return true;
         const parent = accountsByCode.get(current.parent_code);
         if (!parent) break;
         current = parent;
@@ -361,10 +361,10 @@ const AccountsPage = () => {
         is_system: null,
         parent_code: null,
       };
-      const isTypeCollapsed = collapsedGroups.has(`type-${type}`);
-      rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: isTypeCollapsed });
+      const isTypeExpanded = expanded.has(`type-${type}`);
+      rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: !isTypeExpanded });
 
-      if (isTypeCollapsed) return;
+      if (!isTypeExpanded) return;
 
       const addAccountRows = (accs: Account[]) => {
         const ordered = buildOrderedTree(accs);
@@ -378,7 +378,7 @@ const AccountsPage = () => {
             level: depth + 1,
             isGroup: hasKids,
             hasChildren: hasKids,
-            isCollapsed: collapsedGroups.has(acc.account_code),
+            isCollapsed: !expanded.has(acc.account_code),
           });
         });
       };
@@ -402,7 +402,7 @@ const AccountsPage = () => {
     });
 
     return rows;
-  }, [filteredAccounts, collapsedGroups]);
+  }, [filteredAccounts, expanded]);
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
