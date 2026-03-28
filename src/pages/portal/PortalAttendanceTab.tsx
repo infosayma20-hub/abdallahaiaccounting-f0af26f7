@@ -159,6 +159,11 @@ export default function PortalAttendanceTab({ theme }: Props) {
     return () => { supabase.removeChannel(channel); };
   }, [notificationsEnabled]);
 
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   const d = theme === 'dark';
   const t = {
     card: d ? '#161B22' : '#FFFFFF',
