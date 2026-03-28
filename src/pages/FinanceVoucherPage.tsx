@@ -215,15 +215,17 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const tableData = useMemo(() => {
     return vouchers.map(v => {
-      // For receipts, contact_name is directly on the record
-      // For payments, we look up from contacts list
       const contactName = v.contact_name || contacts.find(c => c.id === v.contact_id)?.contact_name || "—";
+      const amountVal = Number(v.amount_ils || v.amount || 0);
+      const allocatedVal = Number(v.allocated_total || 0);
       return {
         ...v,
         contact_name: contactName,
         payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
         status_label: STATUS_LABELS[v.status] || v.status,
-        amount_display: Number(v.amount_ils || v.amount || 0),
+        amount_display: amountVal,
+        unallocated: amountVal - allocatedVal,
+        account_code: v.account_code || "—",
       };
     });
   }, [vouchers, contacts]);
