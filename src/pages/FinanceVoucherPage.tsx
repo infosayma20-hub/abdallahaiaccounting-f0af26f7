@@ -3,7 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2, Download
 } from "lucide-react";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
