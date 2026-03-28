@@ -15,18 +15,29 @@ const SERVICE_LABELS: Record<string, string> = {
 export default function TravelReportsPage() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<Record<string, string>>({});
   const [dateFrom, setDateFrom] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("travel_bookings").select("*").gte("booking_date", dateFrom).lte("booking_date", dateTo)
-      .then(({ data }) => { if (data) setBookings(data); });
+    // Fetch bookings and contacts in parallel
+    Promise.all([
+      supabase.from("travel_bookings").select("*").gte("booking_date", dateFrom).lte("booking_date", dateTo),
+      supabase.from("contacts").select("id, contact_name").eq("contact_type", "supplier"),
+    ]).then(([bRes, cRes]) => {
+      if (bRes.data) setBookings(bRes.data);
+      if (cRes.data) {
+        const map: Record<string, string> = {};
+        cRes.data.forEach((c: any) => { map[c.id] = c.contact_name; });
+        setContacts(map);
+      }
+    });
   }, [user, dateFrom, dateTo]);
 
   const active = bookings.filter(b => b.status !== "cancelled");
 
-  // Report 1: Service profitability
+  // Service profitability
   const serviceMap: Record<string, { count: number; sales: number; cost: number; profit: number }> = {};
   active.forEach(b => {
     if (!serviceMap[b.service_type]) serviceMap[b.service_type] = { count: 0, sales: 0, cost: 0, profit: 0 };
@@ -37,17 +48,18 @@ export default function TravelReportsPage() {
     m.profit += (b.selling_price || 0) - (b.cost_price_ils || 0);
   });
 
-  // Report 2: Supplier analysis
-  const supplierMap: Record<string, { count: number; paid: number; balance: number }> = {};
+  // Supplier analysis - using supplier_contact_id and contacts map
+  const supplierMap: Record<string, { name: string; count: number; paid: number; balance: number }> = {};
   active.forEach(b => {
-    const sid = b.supplier_id || "none";
-    if (!supplierMap[sid]) supplierMap[sid] = { count: 0, paid: 0, balance: 0 };
+    const sid = b.supplier_contact_id || "none";
+    const name = sid === "none" ? "بدون مورد" : (contacts[sid] || "مورد غير معروف");
+    if (!supplierMap[sid]) supplierMap[sid] = { name, count: 0, paid: 0, balance: 0 };
     supplierMap[sid].count++;
     supplierMap[sid].paid += b.supplier_paid ? (b.cost_price_ils || 0) : 0;
     supplierMap[sid].balance += b.supplier_paid ? 0 : (b.cost_price_ils || 0);
   });
 
-  // Report 3: Customer receivables
+  // Customer receivables
   const customerMap: Record<string, { name: string; total: number; paid: number; balance: number; bookings: number }> = {};
   active.forEach(b => {
     const key = b.customer_name || "بدون اسم";
@@ -58,11 +70,10 @@ export default function TravelReportsPage() {
     customerMap[key].bookings++;
   });
 
-  // Report 4: Cash flow
+  // Cash flow
   const totalReceipts = active.reduce((s, b) => s + (b.amount_paid || 0), 0);
   const totalSupplierPaid = active.filter(b => b.supplier_paid).reduce((s, b) => s + (b.cost_price_ils || 0), 0);
   const netCashFlow = totalReceipts - totalSupplierPaid;
-
   const totalSales = active.reduce((s, b) => s + (b.selling_price || 0), 0);
   const totalCost = active.reduce((s, b) => s + (b.cost_price_ils || 0), 0);
   const totalProfit = totalSales - totalCost;
@@ -71,7 +82,6 @@ export default function TravelReportsPage() {
     <div className="space-y-4" dir="rtl">
       <h1 className="text-xl font-bold" style={{ color: "#1B3A5C" }}>📊 تقارير السياحة</h1>
 
-      {/* Date range */}
       <div className="flex flex-wrap gap-3 items-end">
         <div><Label className="text-xs">من</Label><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" /></div>
         <div><Label className="text-xs">إلى</Label><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" /></div>
@@ -86,17 +96,16 @@ export default function TravelReportsPage() {
           <TabsTrigger value="cashflow">التدفق النقدي</TabsTrigger>
         </TabsList>
 
-        {/* Report 1 */}
         <TabsContent value="services">
           <Card className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
                   <th className="text-right py-3 px-3">الخدمة</th>
-                  <th className="text-right py-3 px-2">عدد الحجوزات</th>
-                  <th className="text-right py-3 px-2">إجمالي المبيعات</th>
-                  <th className="text-right py-3 px-2">إجمالي التكلفة</th>
-                  <th className="text-right py-3 px-2">صافي الربح</th>
+                  <th className="text-right py-3 px-2">عدد</th>
+                  <th className="text-right py-3 px-2">المبيعات</th>
+                  <th className="text-right py-3 px-2">التكلفة</th>
+                  <th className="text-right py-3 px-2">الربح</th>
                   <th className="text-right py-3 px-2">هامش %</th>
                 </tr>
               </thead>
@@ -126,33 +135,34 @@ export default function TravelReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* Report 2 */}
         <TabsContent value="suppliers">
           <Card className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
                   <th className="text-right py-3 px-3">المورد</th>
-                  <th className="text-right py-3 px-2">عدد الحجوزات</th>
-                  <th className="text-right py-3 px-2">إجمالي المدفوع</th>
-                  <th className="text-right py-3 px-2">الرصيد المستحق</th>
+                  <th className="text-right py-3 px-2">الحجوزات</th>
+                  <th className="text-right py-3 px-2">المدفوع</th>
+                  <th className="text-right py-3 px-2">المستحق</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(supplierMap).map(([sid, d]) => (
-                    <tr key={sid} className="border-b last:border-0">
-                      <td className="py-2.5 px-3">{sid === "none" ? "بدون مورد" : sid.slice(0, 8)}</td>
-                      <td className="py-2.5 px-2">{d.count}</td>
-                      <td className="py-2.5 px-2">₪{d.paid.toLocaleString()}</td>
-                      <td className="py-2.5 px-2 font-medium" style={{ color: d.balance > 0 ? "#DC2626" : "#16A34A" }}>₪{d.balance.toLocaleString()}</td>
-                    </tr>
+                {Object.entries(supplierMap).sort((a, b) => b[1].balance - a[1].balance).map(([sid, d]) => (
+                  <tr key={sid} className="border-b last:border-0">
+                    <td className="py-2.5 px-3 font-medium">{d.name}</td>
+                    <td className="py-2.5 px-2">{d.count}</td>
+                    <td className="py-2.5 px-2">₪{d.paid.toLocaleString()}</td>
+                    <td className="py-2.5 px-2 font-medium" style={{ color: d.balance > 0 ? "#DC2626" : "#16A34A" }}>₪{d.balance.toLocaleString()}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
+            {Object.keys(supplierMap).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">لا توجد بيانات موردين</p>
+            )}
           </Card>
         </TabsContent>
 
-        {/* Report 3 */}
         <TabsContent value="customers">
           <Card className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -183,7 +193,6 @@ export default function TravelReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* Report 4 */}
         <TabsContent value="cashflow">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-6 text-center">
@@ -199,7 +208,6 @@ export default function TravelReportsPage() {
               <p className="text-2xl font-bold" style={{ color: netCashFlow >= 0 ? "#16A34A" : "#DC2626" }}>₪{netCashFlow.toLocaleString()}</p>
             </Card>
           </div>
-
           <Card className="p-4 mt-4">
             <h3 className="font-semibold text-sm mb-3">ملخص الفترة</h3>
             <div className="space-y-2 text-sm">

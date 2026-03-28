@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plane, Plus, Users, TrendingUp, AlertTriangle, DollarSign, Calendar, Package } from "lucide-react";
+import { Plane, Plus, Users, TrendingUp, AlertTriangle, DollarSign, Calendar, FileWarning, Clock } from "lucide-react";
 
 const SERVICE_ICONS: Record<string, string> = {
   flight: "✈️", hotel: "🏨", visa: "📋", package: "📦",
@@ -20,20 +20,26 @@ export default function TravelDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
+  const [passengers, setPassengers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
-      const { data } = await supabase.from("travel_bookings").select("*").order("created_at", { ascending: false });
-      if (data) setBookings(data);
+    Promise.all([
+      supabase.from("travel_bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("travel_booking_passengers").select("passenger_name, passport_expiry, booking_id"),
+    ]).then(([bRes, pRes]) => {
+      if (bRes.data) setBookings(bRes.data);
+      if (pRes.data) setPassengers(pRes.data);
       setLoading(false);
-    };
-    fetch();
+    });
   }, [user]);
 
   const today = new Date().toISOString().split("T")[0];
   const thisMonth = new Date().toISOString().slice(0, 7);
+  const sixMonthsFromNow = new Date();
+  sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+  const sixMonthsStr = sixMonthsFromNow.toISOString().split("T")[0];
 
   const monthBookings = bookings.filter(b => b.booking_date?.startsWith(thisMonth));
   const todayBookings = bookings.filter(b => b.booking_date === today);
@@ -42,6 +48,20 @@ export default function TravelDashboard() {
   const totalProfitMonth = monthBookings.reduce((s, b) => s + ((b.selling_price || 0) - (b.cost_price_ils || 0)), 0);
 
   const overdueBookings = bookings.filter(b => b.payment_status !== "paid" && b.status !== "cancelled" && (b.selling_price || 0) - (b.amount_paid || 0) > 0);
+
+  // Smart alerts: passport expiry within 6 months
+  const expiringPassports = passengers.filter(p => p.passport_expiry && p.passport_expiry <= sixMonthsStr && p.passport_expiry > today);
+  const expiredPassports = passengers.filter(p => p.passport_expiry && p.passport_expiry <= today);
+
+  // Smart alerts: upcoming travel with unpaid balance (within 30 days)
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  const thirtyDaysStr = thirtyDaysFromNow.toISOString().split("T")[0];
+  const upcomingUnpaid = bookings.filter(b =>
+    b.travel_date && b.travel_date >= today && b.travel_date <= thirtyDaysStr &&
+    b.status !== "cancelled" && b.payment_status !== "paid" &&
+    (b.selling_price || 0) - (b.amount_paid || 0) > 0
+  );
 
   // Service breakdown
   const serviceBreakdown: Record<string, number> = {};
@@ -128,16 +148,43 @@ export default function TravelDashboard() {
           )}
         </Card>
 
-        {/* Alerts */}
+        {/* Smart Alerts */}
         <Card className="p-4">
-          <h3 className="font-semibold mb-4 text-sm">تنبيهات</h3>
+          <h3 className="font-semibold mb-4 text-sm">تنبيهات ذكية</h3>
           <div className="space-y-3">
+            {expiredPassports.length > 0 && (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-950/20">
+                <FileWarning className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-red-700 dark:text-red-400">جوازات منتهية الصلاحية</p>
+                  <p className="text-xs text-red-600 dark:text-red-300">{expiredPassports.length} مسافر بجواز منتهي</p>
+                </div>
+              </div>
+            )}
+            {expiringPassports.length > 0 && (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-orange-50 dark:bg-orange-950/20">
+                <FileWarning className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400">جوازات تنتهي قريباً</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-300">{expiringPassports.length} مسافر جوازه ينتهي خلال 6 أشهر</p>
+                </div>
+              </div>
+            )}
+            {upcomingUnpaid.length > 0 && (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20">
+                <Clock className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">سفر قريب غير مكتمل الدفع</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-300">{upcomingUnpaid.length} حجز يسافر خلال 30 يوم بدون دفع كامل</p>
+                </div>
+              </div>
+            )}
             {overdueBookings.length > 0 && (
               <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 dark:bg-red-950/20">
                 <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-red-700 dark:text-red-400">حجوزات رصيدها متأخر</p>
-                  <p className="text-xs text-red-600 dark:text-red-300">{overdueBookings.length} حجوزات بها رصيد مستحق</p>
+                  <p className="text-xs font-medium text-red-700 dark:text-red-400">رصيد مستحق</p>
+                  <p className="text-xs text-red-600 dark:text-red-300">{overdueBookings.length} حجوزات بها رصيد متأخر</p>
                 </div>
               </div>
             )}
@@ -150,7 +197,7 @@ export default function TravelDashboard() {
                 </div>
               </div>
             )}
-            {overdueBookings.length === 0 && totalProfitMonth === 0 && (
+            {overdueBookings.length === 0 && totalProfitMonth === 0 && expiringPassports.length === 0 && expiredPassports.length === 0 && upcomingUnpaid.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-4">لا توجد تنبيهات حالياً</p>
             )}
           </div>
@@ -181,7 +228,7 @@ export default function TravelDashboard() {
                 {recentBookings.map(b => {
                   const profit = (b.selling_price || 0) - (b.cost_price_ils || 0);
                   return (
-                    <tr key={b.id} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => navigate("/travel/bookings")}>
+                    <tr key={b.id} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/travel/bookings/${b.id}`)}>
                       <td className="py-2 pr-2 font-mono text-xs">{b.booking_number}</td>
                       <td className="py-2">{b.customer_name || "—"}</td>
                       <td className="py-2">{SERVICE_ICONS[b.service_type]} {SERVICE_LABELS[b.service_type] || b.service_type}</td>
