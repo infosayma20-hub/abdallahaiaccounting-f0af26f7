@@ -344,7 +344,7 @@ export default function TravelBookingFormPage() {
       const cost = totalCostILS;
       const paymentStatus = payAmt >= sell ? "paid" : payAmt > 0 ? "partial" : "unpaid";
 
-      const { data: booking, error } = await supabase.from("travel_bookings").insert({
+      const bookingData = {
         user_id: user.id,
         contact_id: customerId || null,
         customer_id: customerId || null,
@@ -361,17 +361,39 @@ export default function TravelBookingFormPage() {
         cost_price_ils: cost,
         selling_price: sell,
         selling_currency: currency,
-        amount_paid: payAmt,
-        payment_status: paymentStatus,
         supplier_id: supplierId || null,
         supplier_contact_id: supplierId || null,
         supplier_ref: supplierRef || null,
         notes: notes || null,
-        created_by: user.id,
-        status: "confirmed",
-      } as any).select().single();
+      } as any;
 
-      if (error) throw error;
+      let booking: any;
+
+      if (isEditMode && editId) {
+        // UPDATE existing booking
+        const { data, error } = await supabase.from("travel_bookings")
+          .update(bookingData)
+          .eq("id", editId)
+          .select().single();
+        if (error) throw error;
+        booking = data;
+
+        // Replace items
+        await supabase.from("travel_booking_items").delete().eq("booking_id", editId);
+        // Replace passengers
+        await supabase.from("travel_booking_passengers").delete().eq("booking_id", editId);
+      } else {
+        // INSERT new booking
+        bookingData.amount_paid = payAmt;
+        bookingData.payment_status = paymentStatus;
+        bookingData.created_by = user.id;
+        bookingData.status = "confirmed";
+        const { data, error } = await supabase.from("travel_bookings")
+          .insert(bookingData)
+          .select().single();
+        if (error) throw error;
+        booking = data;
+      }
 
       // Save cost items
       if (items.length > 0) {
@@ -400,11 +422,11 @@ export default function TravelBookingFormPage() {
         const pRows = [];
         for (let idx = 0; idx < validPassengers.length; idx++) {
           const p = validPassengers[idx];
-          let imageUrl: string | null = null;
+          let imageUrl: string | null = p.passport_image_url || null;
           if (p.passport_image_file) {
             const ext = p.passport_image_file.name.split(".").pop() || "jpg";
             const path = `travel/${user.id}/${booking.id}/passport_${idx}.${ext}`;
-            const { error: upErr } = await supabase.storage.from("travel-documents").upload(path, p.passport_image_file);
+            const { error: upErr } = await supabase.storage.from("travel-documents").upload(path, p.passport_image_file, { upsert: true });
             if (!upErr) { const { data: u } = supabase.storage.from("travel-documents").getPublicUrl(path); imageUrl = u?.publicUrl || null; }
           }
           pRows.push({
@@ -430,35 +452,37 @@ export default function TravelBookingFormPage() {
         await supabase.from("travel_booking_passengers").insert(pRows);
       }
 
-      // Payment record
-      if (payAmt > 0) {
-        await supabase.from("travel_booking_payments").insert({
-          user_id: user.id,
-          booking_id: booking.id,
-          amount: payAmt,
-          amount_ils: payAmt,
-          payment_method: payMethod,
-          payment_direction: "received",
-          payment_date: payDate,
-          reference_number: payRefNumber || null,
-          bank_name: payBankName || null,
+      if (!isEditMode) {
+        // Payment record (only for new bookings)
+        if (payAmt > 0) {
+          await supabase.from("travel_booking_payments").insert({
+            user_id: user.id,
+            booking_id: booking.id,
+            amount: payAmt,
+            amount_ils: payAmt,
+            payment_method: payMethod,
+            payment_direction: "received",
+            payment_date: payDate,
+            reference_number: payRefNumber || null,
+            bank_name: payBankName || null,
+          });
+        }
+
+        // Ensure travel accounts exist and create journal entry
+        await ensureTravelAccounts(user.id);
+        await createBookingJournalEntry({
+          userId: user.id,
+          bookingNumber: booking.booking_number,
+          customerName: customerName || "",
+          serviceType,
+          sellingPrice: sell,
+          amountPaid: payAmt,
+          paymentMethod: payMethod,
         });
       }
 
-      // Ensure travel accounts exist and create journal entry
-      await ensureTravelAccounts(user.id);
-      await createBookingJournalEntry({
-        userId: user.id,
-        bookingNumber: booking.booking_number,
-        customerName: customerName || "",
-        serviceType,
-        sellingPrice: sell,
-        amountPaid: payAmt,
-        paymentMethod: payMethod,
-      });
-
-      toast({ title: `✅ تم إنشاء الحجز ${booking.booking_number}` });
-      navigate("/travel/bookings");
+      toast({ title: isEditMode ? `✅ تم تحديث الحجز ${booking.booking_number}` : `✅ تم إنشاء الحجز ${booking.booking_number}` });
+      navigate(isEditMode ? `/travel/bookings/${editId}` : "/travel/bookings");
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
