@@ -933,7 +933,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
             posted_by: !asDraft ? user.id : null,
             posted_at: !asDraft ? new Date().toISOString() : null,
-          })
+            employee_id: isEmpPay ? selectedEmployee.id : null,
+            attachments: attachments.length > 0 ? attachments : [],
+          } as any)
           .select("id, ref_number")
           .single();
 
