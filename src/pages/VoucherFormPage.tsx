@@ -451,6 +451,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
         setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
+      } else {
+        const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1);
+        const lastRef = (rvData || [])[0]?.receipt_number || "";
+        const match = lastRef.match(/(\d+)$/);
+        const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+        setRefNumber(`RCV-${new Date().getFullYear()}-${nextNum}`);
       }
     };
     load();
