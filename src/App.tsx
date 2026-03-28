@@ -33,6 +33,7 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
+const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage"));
@@ -242,6 +243,7 @@ const App = () => (
                       <Route path="/export" element={<ExportPage />} />
                       <Route path="/smart-report" element={<SmartReportPage />} />
                       <Route path="/invoices" element={<InvoicesPage />} />
+                      <Route path="/invoices/recurring" element={<RecurringInvoicesPage />} />
                       <Route path="/invoices/new" element={<InvoiceCreatePage />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />

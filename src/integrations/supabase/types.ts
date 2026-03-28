@@ -8788,6 +8788,98 @@ export type Database = {
           },
         ]
       }
+      recurring_invoices: {
+        Row: {
+          auto_send: boolean | null
+          contact_id: string | null
+          contact_name: string
+          created_at: string | null
+          currency: string | null
+          discount_amount: number | null
+          end_date: string | null
+          frequency: string
+          generated_count: number | null
+          id: string
+          interval_value: number
+          invoice_type: string
+          is_active: boolean | null
+          items: Json
+          last_generated_at: string | null
+          next_due_date: string
+          notes: string | null
+          payment_method: string | null
+          payment_terms: string | null
+          start_date: string
+          subtotal: number
+          tax_amount: number | null
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_send?: boolean | null
+          contact_id?: string | null
+          contact_name: string
+          created_at?: string | null
+          currency?: string | null
+          discount_amount?: number | null
+          end_date?: string | null
+          frequency?: string
+          generated_count?: number | null
+          id?: string
+          interval_value?: number
+          invoice_type?: string
+          is_active?: boolean | null
+          items?: Json
+          last_generated_at?: string | null
+          next_due_date?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          start_date?: string
+          subtotal?: number
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_send?: boolean | null
+          contact_id?: string | null
+          contact_name?: string
+          created_at?: string | null
+          currency?: string | null
+          discount_amount?: number | null
+          end_date?: string | null
+          frequency?: string
+          generated_count?: number | null
+          id?: string
+          interval_value?: number
+          invoice_type?: string
+          is_active?: boolean | null
+          items?: Json
+          last_generated_at?: string | null
+          next_due_date?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          start_date?: string
+          subtotal?: number
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_invoices_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_sections: {
         Row: {
           branch_id: string | null
