@@ -64,16 +64,22 @@ export default function TravelBookingDetailPage() {
 
   const fetchAll = async () => {
     const [bRes, iRes, pRes, pmRes, dRes] = await Promise.all([
-      supabase.from("travel_bookings").select("*, supplier:travel_suppliers(name)").eq("id", id).single(),
+      supabase.from("travel_bookings").select("*").eq("id", id).single(),
       supabase.from("travel_booking_items").select("*").eq("booking_id", id).order("sort_order"),
       supabase.from("travel_booking_passengers").select("*").eq("booking_id", id).order("passenger_index"),
       supabase.from("travel_booking_payments").select("*").eq("booking_id", id).order("payment_date", { ascending: false }),
       supabase.from("travel_booking_documents").select("*").eq("booking_id", id).order("created_at", { ascending: false }),
     ]);
     if (bRes.data) {
-      setBooking(bRes.data);
+      const b = bRes.data as any;
+      // Fetch supplier name from contacts if linked
+      if (b.supplier_contact_id) {
+        const { data: sc } = await supabase.from("contacts").select("contact_name").eq("id", b.supplier_contact_id).single();
+        if (sc) b.supplier_name = sc.contact_name;
+      }
+      setBooking(b);
       // Fetch linked transactions
-      const { data: txs } = await supabase.from("transactions").select("*").eq("reference", bRes.data.booking_number).eq("is_deleted", false).order("created_at", { ascending: false });
+      const { data: txs } = await supabase.from("transactions").select("*").eq("reference", b.booking_number).eq("is_deleted", false).order("created_at", { ascending: false });
       if (txs) setTransactions(txs);
     }
     if (iRes.data) setItems(iRes.data);
@@ -185,7 +191,7 @@ export default function TravelBookingDetailPage() {
                 <div><span className="text-muted-foreground">الوجهة:</span><p>{booking.destination || "—"}</p></div>
                 <div><span className="text-muted-foreground">تاريخ السفر:</span><p>{booking.travel_date || "—"}</p></div>
                 <div><span className="text-muted-foreground">تاريخ العودة:</span><p>{booking.return_date || "—"}</p></div>
-                <div><span className="text-muted-foreground">المورد:</span><p>{booking.supplier?.name || "—"}</p></div>
+                <div><span className="text-muted-foreground">المورد:</span><p>{booking.supplier_name || "—"}</p></div>
                 <div><span className="text-muted-foreground">PNR:</span><p className="font-mono">{booking.supplier_ref || "—"}</p></div>
                 <div><span className="text-muted-foreground">عدد المسافرين:</span><p>{booking.pax_count}</p></div>
               </div>
