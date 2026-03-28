@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock, LogOut, Plus } from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock, LogOut, Plus, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
