@@ -597,22 +597,43 @@ Deno.serve(async (req) => {
         todayAtt.set(a.employee_id, a);
       });
 
+      // Fetch breaks for the date range
+      let breaksQuery = supabase
+        .from("attendance_breaks")
+        .select("employee_id, break_out, break_in, reason, duration_minutes")
+        .in("employee_id", empIds);
+      if (dateFrom) breaksQuery = breaksQuery.gte("break_out", `${dateFrom}T00:00:00`);
+      if (dateTo) breaksQuery = breaksQuery.lte("break_out", `${dateTo}T23:59:59`);
+      const { data: breaks } = await breaksQuery;
+
+      const breaksByEmp = new Map<string, any[]>();
+      (breaks || []).forEach((b: any) => {
+        if (!breaksByEmp.has(b.employee_id)) breaksByEmp.set(b.employee_id, []);
+        breaksByEmp.get(b.employee_id)!.push(b);
+      });
+
       let presentCount = 0, absentCount = 0, leftCount = 0;
 
       const employeeData = emps.map((emp: any) => {
         const records = attByEmp.get(emp.id) || [];
         const todayRecord = todayAtt.get(emp.id);
+        const empBreaks = breaksByEmp.get(emp.id) || [];
 
         const totalDays = records.length;
         const totalHours = records.reduce((s: number, r: any) => s + (r.total_hours || 0), 0);
         const totalOvertime = records.reduce((s: number, r: any) => s + (r.overtime_hours || 0), 0);
+        const totalBreakMinutes = empBreaks.reduce((s: number, b: any) => s + (b.duration_minutes || 0), 0);
+
+        // Check if employee is currently on break
+        const openBreak = empBreaks.find((b: any) => !b.break_in);
+        const isOnBreak = !!openBreak;
 
         const hasCheckedIn = !!todayRecord?.first_check_in;
         const hasCheckedOut = !!todayRecord?.last_check_out;
-        const isPresent = hasCheckedIn && !hasCheckedOut;
-        const status = !hasCheckedIn ? "absent" : isPresent ? "present" : "left";
+        const isPresent = hasCheckedIn && !hasCheckedOut && !isOnBreak;
+        const status = !hasCheckedIn ? "absent" : isOnBreak ? "on_break" : isPresent ? "present" : hasCheckedOut ? "left" : "present";
 
-        if (status === "present") presentCount++;
+        if (status === "present" || status === "on_break") presentCount++;
         else if (status === "left") leftCount++;
         else absentCount++;
 
@@ -629,6 +650,17 @@ Deno.serve(async (req) => {
           total_days: totalDays,
           total_hours: Math.round(totalHours * 10) / 10,
           total_overtime: Math.round(totalOvertime * 10) / 10,
+          total_break_minutes: totalBreakMinutes,
+          net_work_minutes: todayRecord?.net_work_minutes || null,
+          break_count: empBreaks.length,
+          is_on_break: isOnBreak,
+          current_break_reason: openBreak?.reason || null,
+          breaks: empBreaks.map((b: any) => ({
+            break_out: b.break_out,
+            break_in: b.break_in,
+            reason: b.reason,
+            duration_minutes: b.duration_minutes,
+          })),
           records: records.map((r: any) => ({
             date: r.attendance_date,
             check_in: r.first_check_in,
@@ -636,6 +668,8 @@ Deno.serve(async (req) => {
             hours: r.total_hours,
             overtime: r.overtime_hours,
             status: r.status,
+            total_break_minutes: r.total_break_minutes || 0,
+            net_work_minutes: r.net_work_minutes || null,
           })),
         };
       });
