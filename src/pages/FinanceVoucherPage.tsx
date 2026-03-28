@@ -481,7 +481,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">₪{v.amount_display.toLocaleString()}</td>
                       <td className="px-3 py-3 text-xs tabular-nums">
                         {v.unallocated > 0 ? (
-                          <span className="text-amber-600 font-semibold">₪{v.unallocated.toLocaleString()}</span>
+                          <span className="text-destructive/80 font-semibold">₪{v.unallocated.toLocaleString()}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
