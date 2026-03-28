@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info, ArrowUpDown, Upload } from "lucide-react";
+import { Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet, Lock, Info, ArrowUpDown, Upload, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { MoveAccountModal } from "@/components/accounting/MoveAccountModal";
 import { ImportAccountsModal } from "@/components/accounting/ImportAccountsModal";
 import { exportAccountsToExcel } from "@/lib/accountsExport";
@@ -132,6 +132,16 @@ const typeLabels: Record<string, string> = {
   "Expenses": "المصروفات",
 };
 
+const GROUP_DESC: Record<string, string> = {
+  "Asset": "أصل مادي ملموس اكتسبت المنشأة الحق فيه نتيجة لأحداث حدثت في الماضي له القدرة بتزويد المنشأة بمنافع في المستقبل",
+  "Liability": "ديون أو إلتزامات المالية على المنشأة والتي تنشأ خلال عملياتها التشغيلية ويتم سدادها عن طريق منافع المنشأة الاقتصادية من أموال أو سلع أو خدمات",
+  "Owner's Equity": "هي الأموال التي يتم إرجاعها للمساهمين عند تصفية جميع أصول المنشأة وسداد جميع التزاماتها",
+  "Equity": "هي الأموال التي يتم إرجاعها للمساهمين عند تصفية جميع أصول المنشأة وسداد جميع التزاماتها",
+  "Revenue": "هي مقدار زيادة الأصول أو نقص الالتزامات أو كليهما معاً خلال مدة زمنية معينة نتيجة إنتاج السلع أو بيعها",
+  "Purchases": "تكلفة شراء البضاعة والمواد المخصصة للبيع أو التشغيل خلال الفترة المحاسبية",
+  "Expenses": "هو انقضاء أصل أو تحمل التزام أو كلاهما معاً خلال مدة زمنية معينة نتيجة إنتاج السلع أو بيعها",
+};
+
 const typeBadgeStyles: Record<string, string> = {
   "Asset": "bg-blue-50 text-blue-700 border border-blue-200",
   "Liability": "bg-red-50 text-red-700 border border-red-200",
@@ -171,7 +181,7 @@ const AccountsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
   const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
@@ -284,13 +294,31 @@ const AccountsPage = () => {
     }
   }, [user, accounts, toast]);
 
-  const toggleGroup = useCallback((code: string) => {
-    setCollapsedGroups(prev => {
+  const toggleGroup = useCallback((code: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpanded(prev => {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code); else next.add(code);
       return next;
     });
   }, []);
+
+  const allParentCodes = useMemo(() => {
+    const parents = new Set<string>();
+    // Add virtual type headers
+    const types = new Set(accounts.map(a => normalizeType(a.account_type)));
+    types.forEach(t => parents.add(`type-${t}`));
+    // Add accounts that have children
+    accounts.forEach(a => {
+      if (accounts.some(c => c.parent_code === a.account_code && c.account_code !== a.account_code)) {
+        parents.add(a.account_code);
+      }
+    });
+    return parents;
+  }, [accounts]);
+
+  const expandAll = useCallback(() => setExpanded(new Set(allParentCodes)), [allParentCodes]);
+  const collapseAll = useCallback(() => setExpanded(new Set()), []);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
@@ -323,7 +351,7 @@ const AccountsPage = () => {
     const isHiddenByCollapse = (acc: Account): boolean => {
       let current = acc;
       while (current.parent_code && current.parent_code !== current.account_code) {
-        if (collapsedGroups.has(current.parent_code)) return true;
+        if (!expanded.has(current.parent_code)) return true;
         const parent = accountsByCode.get(current.parent_code);
         if (!parent) break;
         current = parent;
@@ -343,10 +371,10 @@ const AccountsPage = () => {
         is_system: null,
         parent_code: null,
       };
-      const isTypeCollapsed = collapsedGroups.has(`type-${type}`);
-      rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: isTypeCollapsed });
+      const isTypeExpanded = expanded.has(`type-${type}`);
+      rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: !isTypeExpanded });
 
-      if (isTypeCollapsed) return;
+      if (!isTypeExpanded) return;
 
       const addAccountRows = (accs: Account[]) => {
         const ordered = buildOrderedTree(accs);
@@ -360,7 +388,7 @@ const AccountsPage = () => {
             level: depth + 1,
             isGroup: hasKids,
             hasChildren: hasKids,
-            isCollapsed: collapsedGroups.has(acc.account_code),
+            isCollapsed: !expanded.has(acc.account_code),
           });
         });
       };
@@ -384,7 +412,7 @@ const AccountsPage = () => {
     });
 
     return rows;
-  }, [filteredAccounts, collapsedGroups]);
+  }, [filteredAccounts, expanded]);
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -419,6 +447,15 @@ const AccountsPage = () => {
           </Button>
           <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </Button>
+          <div className="h-5 w-px bg-border mx-1" />
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={expandAll}>
+            <ChevronsUpDown className="h-3.5 w-3.5" />
+            توسيع الكل
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={collapseAll}>
+            <ChevronsDownUp className="h-3.5 w-3.5" />
+            ضم الكل
           </Button>
         </div>
       </div>
@@ -549,11 +586,9 @@ const AccountsPage = () => {
                       !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
                       !isGroup && idx % 2 !== 0 && "bg-[hsl(210,20%,99.5%)] dark:bg-card",
                       !isVirtualTypeHeader && "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5",
-                      (isVirtualTypeHeader || hasChildren) && "cursor-pointer"
                     )}
                     onClick={() => {
                       if (isVirtualTypeHeader) toggleGroup(acc.id);
-                      else if (hasChildren) toggleGroup(acc.account_code);
                     }}
                     onMouseEnter={() => !isVirtualTypeHeader && setHoveredRow(acc.id)}
                     onMouseLeave={() => setHoveredRow(null)}
@@ -570,10 +605,13 @@ const AccountsPage = () => {
                     >
                       {isGroup && hasChildren && (
                         <button
-                          onClick={() => toggleGroup(isVirtualTypeHeader ? acc.id : acc.account_code)}
+                          onClick={(e) => toggleGroup(isVirtualTypeHeader ? acc.id : acc.account_code, e)}
                           className="p-0.5 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors shrink-0"
                         >
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground transition-transform", isCollapsed && "-rotate-90 rtl:rotate-90")} />
+                          {isCollapsed
+                            ? <ChevronLeft className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                            : <ChevronDown className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                          }
                         </button>
                       )}
                       {!isGroup && level >= 2 && (
@@ -634,7 +672,18 @@ const AccountsPage = () => {
 
                     {/* Description */}
                     <div className="min-w-0">
-                      {!isVirtualTypeHeader && acc.description_ar ? (
+                      {isVirtualTypeHeader && GROUP_DESC[nType] ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
+                              {GROUP_DESC[nType]}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-[300px] text-right" dir="rtl">
+                            {GROUP_DESC[nType]}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : !isVirtualTypeHeader && acc.description_ar ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground truncate block max-w-[200px] cursor-help">
