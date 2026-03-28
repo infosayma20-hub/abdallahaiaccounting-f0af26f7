@@ -42,7 +42,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white" dir="rtl">
+    <div className="absolute inset-0 z-[60] flex flex-col bg-white overflow-y-auto" dir="rtl">
       {/* Progress bar */}
       <div className="relative h-1 bg-slate-100">
         <motion.div
