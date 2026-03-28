@@ -22,7 +22,13 @@ interface EmployeeAtt {
   total_days: number;
   total_hours: number;
   total_overtime: number;
-  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string }[];
+  total_break_minutes: number;
+  net_work_minutes: number | null;
+  break_count: number;
+  is_on_break: boolean;
+  current_break_reason: string | null;
+  breaks: { break_out: string; break_in: string | null; reason: string; duration_minutes: number | null }[];
+  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string; total_break_minutes: number; net_work_minutes: number | null }[];
 }
 
 interface Summary {
