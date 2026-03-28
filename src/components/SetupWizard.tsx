@@ -345,7 +345,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
               >
-                <img src="/logos/amwali-mark-navy.png" alt="AMWALI" className="mx-auto h-36 w-36" />
+                <img src={amwaliMarkNavy} alt="AMWALI" className="mx-auto h-36 w-36 object-contain" />
               </motion.div>
               <div className="space-y-3">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
@@ -947,7 +947,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                   >
-                    <img src="/logos/amwali-mark-navy.png" alt="AMWALI" className="h-12 w-12" />
+                    <img src={amwaliMarkNavy} alt="AMWALI" className="h-12 w-12 object-contain" />
                   </motion.div>
                 </motion.div>
                 {/* Decorative circles */}
