@@ -122,12 +122,6 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "5940", name: "ضريبة الدخل", type: "مصاريف", parent: "5900" },
   { code: "5950", name: "غرامات وجزاءات", type: "مصاريف", parent: "5900" },
   { code: "5960", name: "ديون معدومة", type: "مصاريف", parent: "5900" },
-  { code: "5910", name: "خصومات ممنوحة", type: "مصاريف", parent: "5900" },
-  { code: "5920", name: "مصاريف بنكية", type: "مصاريف", parent: "5900" },
-  { code: "5930", name: "فروقات عملة", type: "مصاريف", parent: "5900" },
-  { code: "5940", name: "ضريبة الدخل", type: "مصاريف", parent: "5900" },
-  { code: "5950", name: "غرامات وجزاءات", type: "مصاريف", parent: "5900" },
-  { code: "5960", name: "ديون معدومة", type: "مصاريف", parent: "5900" },
 
   // ═══════════ مصاريف مالية (6xxx) ═══════════
   { code: "6100", name: "مصاريف فوائد بنكية", type: "مصاريف", parent: null },
