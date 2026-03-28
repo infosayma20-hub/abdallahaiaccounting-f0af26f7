@@ -71,9 +71,15 @@ export default function TravelBookingDetailPage() {
       supabase.from("travel_booking_documents").select("*").eq("booking_id", id).order("created_at", { ascending: false }),
     ]);
     if (bRes.data) {
-      setBooking(bRes.data);
+      const b = bRes.data as any;
+      // Fetch supplier name from contacts if linked
+      if (b.supplier_contact_id) {
+        const { data: sc } = await supabase.from("contacts").select("contact_name").eq("id", b.supplier_contact_id).single();
+        if (sc) b.supplier_name = sc.contact_name;
+      }
+      setBooking(b);
       // Fetch linked transactions
-      const { data: txs } = await supabase.from("transactions").select("*").eq("reference", bRes.data.booking_number).eq("is_deleted", false).order("created_at", { ascending: false });
+      const { data: txs } = await supabase.from("transactions").select("*").eq("reference", b.booking_number).eq("is_deleted", false).order("created_at", { ascending: false });
       if (txs) setTransactions(txs);
     }
     if (iRes.data) setItems(iRes.data);
