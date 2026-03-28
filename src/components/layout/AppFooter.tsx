@@ -27,7 +27,7 @@ const AppFooter = () => {
             سياسة الخصوصية
           </Link>
           <span style={{ color: "#D1D5DB" }}>|</span>
-          <Link to="/support-tickets" className="hover:text-foreground transition-colors">
+          <Link to="/help" className="hover:text-foreground transition-colors">
             الأسئلة الشائعة
           </Link>
         </div>
