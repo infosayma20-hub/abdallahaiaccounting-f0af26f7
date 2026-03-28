@@ -637,12 +637,14 @@ const InvoiceCreatePage = () => {
         currency: form.currency,
         notes: form.notes,
         notes_internal: form.notesInternal || null,
-        billing_address: form.billingAddress || null,
+        billing_address: customerOverrides.address || form.billingAddress || null,
         salesperson_id: form.salespersonId || null,
         tax_inclusive: form.taxInclusive,
         amount_in_words: amountInWords,
         payment_terms: form.paymentTerms,
         exchange_rate: form.exchangeRate,
+        attachments: attachments.length > 0 ? JSON.stringify(attachments) : "[]",
+        terms: invoiceTerms.trim() || null,
       };
 
       const buildItemsPayload = (invoiceId: string) =>
