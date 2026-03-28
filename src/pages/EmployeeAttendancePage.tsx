@@ -82,11 +82,21 @@ export default function EmployeeAttendancePage() {
   const [breakReason, setBreakReason] = useState("استراحة");
   const [breakElapsed, setBreakElapsed] = useState(0);
 
-  // Live clock
+  // Live clock + break timer
   useEffect(() => {
-    const t = setInterval(() => setCurrentTime(new Date()), 1000);
+    const t = setInterval(() => {
+      setCurrentTime(new Date());
+      // Update break elapsed time
+      const openBreak = todayBreaks.find(b => !b.break_in);
+      if (openBreak) {
+        const elapsed = Math.round((Date.now() - new Date(openBreak.break_out).getTime()) / 60000);
+        setBreakElapsed(elapsed);
+      } else {
+        setBreakElapsed(0);
+      }
+    }, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [todayBreaks]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
