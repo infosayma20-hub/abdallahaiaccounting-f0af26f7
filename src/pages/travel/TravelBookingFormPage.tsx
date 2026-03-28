@@ -67,7 +67,7 @@ export default function TravelBookingFormPage() {
   const [notes, setNotes] = useState("");
 
   // Step 4
-  const [passengers, setPassengers] = useState<Passenger[]>([{ full_name: "", passport_number: "", nationality: "", date_of_birth: "", gender: "", ticket_number: "" }]);
+  const [passengers, setPassengers] = useState<Passenger[]>([{ full_name: "", passport_number: "", passport_expiry: "", passport_image_url: "", passport_image_file: null, nationality: "", date_of_birth: "", gender: "", ticket_number: "" }]);
 
   // Step 5
   const [payNow, setPayNow] = useState(false);
