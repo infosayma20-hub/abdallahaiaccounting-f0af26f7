@@ -644,13 +644,9 @@ const AccountsPage = () => {
 
                     {/* Type Badge */}
                     <div className="hidden sm:flex items-center gap-1">
-                      {!isVirtualTypeHeader && (
-                        <>
-                          <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeBadgeStyles[nType] || "bg-muted text-muted-foreground")}>
-                            {typeLabels[nType] || nType}
-                          </span>
-                        </>
-                      )}
+                      <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeBadgeStyles[nType] || "bg-muted text-muted-foreground")}>
+                        {typeLabels[nType] || nType}
+                      </span>
                     </div>
 
                     {/* Natural Balance */}
