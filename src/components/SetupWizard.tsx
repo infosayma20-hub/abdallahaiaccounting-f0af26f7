@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FinixLogo } from "@/components/ui/FinixLogo";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { motion, AnimatePresence } from "framer-motion";
+import amwaliMarkNavy from "@/assets/amwali-mark-navy.png";
 
 interface SetupWizardProps {
   userId: string;
