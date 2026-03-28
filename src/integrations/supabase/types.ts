@@ -1861,6 +1861,7 @@ export type Database = {
           default_expense_account: string | null
           default_invoice_currency: string | null
           default_invoice_language: string | null
+          default_invoice_terms: string | null
           default_payable_account: string | null
           default_payment_terms: string | null
           default_receivable_account: string | null
@@ -1998,6 +1999,7 @@ export type Database = {
           default_expense_account?: string | null
           default_invoice_currency?: string | null
           default_invoice_language?: string | null
+          default_invoice_terms?: string | null
           default_payable_account?: string | null
           default_payment_terms?: string | null
           default_receivable_account?: string | null
@@ -2135,6 +2137,7 @@ export type Database = {
           default_expense_account?: string | null
           default_invoice_currency?: string | null
           default_invoice_language?: string | null
+          default_invoice_terms?: string | null
           default_payable_account?: string | null
           default_payment_terms?: string | null
           default_receivable_account?: string | null
@@ -4799,6 +4802,7 @@ export type Database = {
       invoices: {
         Row: {
           amount_in_words: string | null
+          attachments: Json | null
           billing_address: string | null
           contact_id: string | null
           contact_name: string | null
@@ -4831,12 +4835,14 @@ export type Database = {
           subtotal: number
           tax_amount: number | null
           tax_inclusive: boolean | null
+          terms: string | null
           total_amount: number
           updated_at: string
           user_id: string
         }
         Insert: {
           amount_in_words?: string | null
+          attachments?: Json | null
           billing_address?: string | null
           contact_id?: string | null
           contact_name?: string | null
@@ -4869,12 +4875,14 @@ export type Database = {
           subtotal?: number
           tax_amount?: number | null
           tax_inclusive?: boolean | null
+          terms?: string | null
           total_amount?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           amount_in_words?: string | null
+          attachments?: Json | null
           billing_address?: string | null
           contact_id?: string | null
           contact_name?: string | null
@@ -4907,6 +4915,7 @@ export type Database = {
           subtotal?: number
           tax_amount?: number | null
           tax_inclusive?: boolean | null
+          terms?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string

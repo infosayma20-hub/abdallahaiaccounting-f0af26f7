@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
-  ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip
+  ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
+  Upload, X, ExternalLink, FileCheck, ChevronUp
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import PageHeader from "@/components/layout/PageHeader";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,6 +176,27 @@ const InvoiceCreatePage = () => {
   const [showQuickAddRep, setShowQuickAddRep] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
+
+  // Customer detail overrides (on-invoice only)
+  const [customerOverrides, setCustomerOverrides] = useState({ phone: "", email: "", tax_number: "", address: "" });
+
+  // Attachments
+  const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+
+  // Terms
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [invoiceTerms, setInvoiceTerms] = useState("");
+  const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nفي حال التأخر تُطبق رسوم إضافية.\nشكراً لتعاملكم معنا.";
+
+  // Initialize terms from company settings
+  useEffect(() => {
+    if (invoiceTerms === "" && !isEditMode) {
+      setInvoiceTerms(defaultTerms);
+    }
+  }, [defaultTerms]);
 
   // Form state
   const [form, setForm] = useState({
@@ -380,6 +403,15 @@ const InvoiceCreatePage = () => {
           transferBank: "",
         }));
 
+        // Load attachments and terms from edit data
+        if (data.attachments) {
+          try {
+            const parsed = typeof data.attachments === 'string' ? JSON.parse(data.attachments) : data.attachments;
+            setAttachments(Array.isArray(parsed) ? parsed : []);
+          } catch { setAttachments([]); }
+        }
+        if (data.terms) setInvoiceTerms(data.terms);
+
         setContactSearch(data.contact_name || "");
       } catch (err: any) {
         console.error("Load invoice for edit failed:", err);
@@ -467,6 +499,13 @@ const InvoiceCreatePage = () => {
         ? PAYMENT_TERMS.find(t => t.days === contact.payment_terms_days)?.value || "net_30"
         : p.paymentTerms,
     }));
+    // Populate customer detail overrides
+    setCustomerOverrides({
+      phone: contact.phone || "",
+      email: contact.email || "",
+      tax_number: contact.tax_number || "",
+      address: contact.address || "",
+    });
     // Debt warning
     if (contact.current_balance && contact.current_balance > 0) {
       setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrency(contact.current_balance)}${contact.credit_limit ? ` من سقف ${fmtCurrency(contact.credit_limit)}` : ""}`);
@@ -607,12 +646,14 @@ const InvoiceCreatePage = () => {
         currency: form.currency,
         notes: form.notes,
         notes_internal: form.notesInternal || null,
-        billing_address: form.billingAddress || null,
+        billing_address: customerOverrides.address || form.billingAddress || null,
         salesperson_id: form.salespersonId || null,
         tax_inclusive: form.taxInclusive,
         amount_in_words: amountInWords,
         payment_terms: form.paymentTerms,
         exchange_rate: form.exchangeRate,
+        attachments: attachments.length > 0 ? JSON.stringify(attachments) : "[]",
+        terms: invoiceTerms.trim() || null,
       };
 
       const buildItemsPayload = (invoiceId: string) =>
@@ -971,13 +1012,32 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
-          {/* Auto-filled contact details */}
+          {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
-            <div className="bg-muted/30 rounded-xl p-3 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
-              {selectedContact.address && <div><span className="text-muted-foreground">العنوان:</span> <span className="font-medium">{selectedContact.address}</span></div>}
-              {selectedContact.phone && <div><span className="text-muted-foreground">الهاتف:</span> <span className="font-medium">{selectedContact.phone}</span></div>}
-              {selectedContact.email && <div><span className="text-muted-foreground">الإيميل:</span> <span className="font-medium">{selectedContact.email}</span></div>}
-              {selectedContact.tax_number && <div><span className="text-muted-foreground">الرقم الضريبي:</span> <span className="font-medium">{selectedContact.tax_number}</span></div>}
+            <div className="bg-muted/30 rounded-xl p-3 space-y-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الهاتف</label>
+                  <Input value={customerOverrides.phone} onChange={e => setCustomerOverrides(p => ({ ...p, phone: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">البريد الإلكتروني</label>
+                  <Input value={customerOverrides.email} onChange={e => setCustomerOverrides(p => ({ ...p, email: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الرقم الضريبي</label>
+                  <Input value={customerOverrides.tax_number} onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">العنوان</label>
+                  <Input value={customerOverrides.address} onChange={e => setCustomerOverrides(p => ({ ...p, address: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" />
+                </div>
+              </div>
+              {(!customerOverrides.phone && !customerOverrides.email && !customerOverrides.tax_number && !customerOverrides.address) && (
+                <a href={`/contacts`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline">
+                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل
+                </a>
+              )}
             </div>
           )}
 
@@ -1291,6 +1351,126 @@ const InvoiceCreatePage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* ─── SECTION 5: Terms & Conditions (Collapsible) ─── */}
+      <Collapsible open={termsOpen} onOpenChange={setTermsOpen}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <FileCheck className="h-4 w-4 text-primary" /> الشروط والأحكام
+                  <span className="text-[9px] text-muted-foreground/60 font-normal">(تظهر في PDF)</span>
+                </CardTitle>
+                {termsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-5 pb-5 pt-3">
+              <Textarea
+                placeholder="أدخل الشروط والأحكام..."
+                value={invoiceTerms}
+                onChange={e => setInvoiceTerms(e.target.value)}
+                className="rounded-xl text-sm min-h-[80px] resize-none"
+                rows={4}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1.5">القيمة الافتراضية يمكن تخصيصها من إعدادات الشركة</p>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ─── SECTION 6: Attachments (Collapsible) ─── */}
+      <Collapsible open={attachmentsOpen} onOpenChange={setAttachmentsOpen}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Paperclip className="h-4 w-4 text-primary" /> المرفقات
+                  {attachments.length > 0 && <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{attachments.length}</Badge>}
+                </CardTitle>
+                {attachmentsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-5 pb-5 pt-3 space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files || !user) return;
+                  const maxFiles = 5;
+                  const maxSize = 10 * 1024 * 1024; // 10MB
+
+                  if (attachments.length + files.length > maxFiles) {
+                    toast({ title: `الحد الأقصى ${maxFiles} ملفات`, variant: "destructive" });
+                    return;
+                  }
+
+                  setUploadingFile(true);
+                  const newAttachments = [...attachments];
+
+                  for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (file.size > maxSize) {
+                      toast({ title: `${file.name} أكبر من 10MB`, variant: "destructive" });
+                      continue;
+                    }
+                    const filePath = `${user.id}/${Date.now()}-${file.name}`;
+                    const { error } = await supabase.storage.from("invoice-attachments").upload(filePath, file);
+                    if (error) {
+                      toast({ title: `فشل رفع ${file.name}`, variant: "destructive" });
+                      continue;
+                    }
+                    const { data: urlData } = supabase.storage.from("invoice-attachments").getPublicUrl(filePath);
+                    newAttachments.push({
+                      name: file.name,
+                      url: urlData.publicUrl,
+                      size: file.size,
+                      type: file.type,
+                      uploaded_at: new Date().toISOString(),
+                    });
+                  }
+
+                  setAttachments(newAttachments);
+                  setUploadingFile(false);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+              />
+
+              <Button variant="outline" size="sm" className="rounded-xl gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile || attachments.length >= 5}>
+                {uploadingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                رفع ملف
+              </Button>
+              <p className="text-[10px] text-muted-foreground">PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB للملف</p>
+
+              {attachments.length > 0 && (
+                <div className="space-y-1.5">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-xs font-medium truncate">{att.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{(att.size / 1024).toFixed(0)} KB</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive/60 hover:text-destructive shrink-0" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-50">
