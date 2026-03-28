@@ -780,21 +780,49 @@ const InventoryPage = () => {
               </div>
             </div>
 
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU) - تلقائي</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="العائلة"
-                  value={form.skuPrefix}
-                  onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))}
-                  className="rounded-xl w-24 text-center font-mono" dir="ltr" maxLength={5}
-                />
-                <div className="flex-1 h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center px-3 text-sm text-muted-foreground font-mono" dir="ltr">
-                  {editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix)}
+            {/* SKU + Barcode */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU) - تلقائي</label>
+                <div className="flex gap-1.5">
+                  <Input
+                    placeholder="العائلة"
+                    value={form.skuPrefix}
+                    onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))}
+                    className="rounded-xl w-16 text-center font-mono text-xs" dir="ltr" maxLength={5}
+                  />
+                  <div className="flex-1 h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center px-2 text-xs text-muted-foreground font-mono" dir="ltr">
+                    {editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix)}
+                  </div>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">غيّر العائلة (مثل GEN, RAW, PKG) للتحكم بأنواع المخزون</p>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الباركود</label>
+                <div className="flex gap-1.5">
+                  <Input
+                    placeholder="أدخل الباركود"
+                    value={form.barcode}
+                    onChange={e => setForm(p => ({ ...p, barcode: e.target.value }))}
+                    className="rounded-xl flex-1 font-mono text-xs" dir="ltr"
+                  />
+                  <Button type="button" size="sm" variant="outline" className="rounded-xl px-2.5 shrink-0" onClick={startBarcodeScanner} title="مسح بالكاميرا">
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                </div>
+                {showBarcodeScanner && (
+                  <div className="mt-2 relative rounded-xl overflow-hidden border border-border">
+                    <video ref={barcodeVideoRef} className="w-full h-32 object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <ScanLine className="h-8 w-8 text-primary animate-pulse" />
+                    </div>
+                    <Button type="button" size="sm" variant="destructive" className="absolute top-1 left-1 h-6 w-6 p-0 rounded-full" onClick={stopBarcodeScanner}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
+            <p className="text-[10px] text-muted-foreground -mt-2">غيّر العائلة (مثل GEN, RAW, PKG) للتحكم بأنواع المخزون</p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -818,9 +846,83 @@ const InventoryPage = () => {
               </div>
             </div>
 
+            {/* Tax Rate */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">نسبة الضريبة %</label>
+              <div className="flex gap-2">
+                <Select value={form.tax_rate} onValueChange={v => setForm(p => ({ ...p, tax_rate: v, custom_tax_rate: v === "أخرى" ? p.custom_tax_rate : "" }))}>
+                  <SelectTrigger className="rounded-xl flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TAX_OPTIONS.map(t => <SelectItem key={t} value={t}>{t === "أخرى" ? "أخرى (يدوي)" : `${t}%`}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {form.tax_rate === "أخرى" && (
+                  <Input type="number" placeholder="%" value={form.custom_tax_rate} onChange={e => setForm(p => ({ ...p, custom_tax_rate: e.target.value }))} className="rounded-xl w-24" dir="ltr" min="0" max="100" step="0.5" />
+                )}
+              </div>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="flex flex-wrap gap-4 py-2 border-y border-border/50">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_sold} onCheckedChange={v => setForm(p => ({ ...p, is_sold: !!v }))} />
+                يُباع
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_purchased} onCheckedChange={v => setForm(p => ({ ...p, is_purchased: !!v }))} />
+                يُشترى
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_pos_product} onCheckedChange={v => setForm(p => ({ ...p, is_pos_product: !!v }))} />
+                منتج نقاط البيع
+              </label>
+            </div>
+
+            {/* Sales Account */}
+            {form.is_sold && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">حساب المبيعات</label>
+                <Select value={form.sales_account_code} onValueChange={v => setForm(p => ({ ...p, sales_account_code: v }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر حساب الإيرادات" /></SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    {accounts.filter(a => a.account_type === "إيرادات").map(a => (
+                      <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Purchase Account */}
+            {form.is_purchased && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">حساب المشتريات</label>
+                <Select value={form.purchase_account_code} onValueChange={v => setForm(p => ({ ...p, purchase_account_code: v }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر حساب المصاريف" /></SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    {accounts.filter(a => a.account_type === "مصاريف" || a.account_type === "أصول").map(a => (
+                      <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Description */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">وصف المنتج</label>
+              <Textarea placeholder="وصف تفصيلي للمنتج أو الخدمة..." value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="rounded-xl min-h-[60px] resize-none" rows={2} />
+            </div>
+
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Input placeholder="اختياري" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="rounded-xl" />
+            </div>
+
+            {/* Terms */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الشروط والأحكام</label>
+              <Textarea placeholder="اختياري..." value={form.terms} onChange={e => setForm(p => ({ ...p, terms: e.target.value }))} className="rounded-xl min-h-[50px] resize-none" rows={2} />
             </div>
 
             {kitchenStations.length > 0 && (
