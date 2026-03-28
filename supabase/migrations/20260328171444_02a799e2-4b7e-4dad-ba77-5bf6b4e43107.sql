@@ -1,0 +1,1 @@
+UPDATE public.accounts SET parent_code = NULL WHERE account_code = '2180' AND parent_code = '2100';
