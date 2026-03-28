@@ -626,7 +626,7 @@ export default function EmployeeAttendancePage() {
           <DialogFooter>
             <Button onClick={processAttendance} disabled={checkingIn || !qrInput.trim()} className="w-full gap-2">
               {checkingIn && <Loader2 className="h-4 w-4 animate-spin" />}
-              {pendingAction === "checkin" ? "تأكيد الدخول" : "تأكيد الخروج"}
+              {pendingAction === "checkin" ? "تأكيد الدخول" : pendingAction === "checkout" ? "تأكيد الخروج" : pendingAction === "break_out" ? "تأكيد المغادرة المؤقتة" : "تأكيد العودة"}
             </Button>
           </DialogFooter>
         </DialogContent>
