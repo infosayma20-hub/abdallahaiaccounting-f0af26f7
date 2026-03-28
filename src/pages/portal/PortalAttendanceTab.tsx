@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp, Bell, BellOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Props {
   theme: 'light' | 'dark';
@@ -43,10 +44,33 @@ export default function PortalAttendanceTab({ theme }: Props) {
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const notifAudioRef = useRef<HTMLAudioElement | null>(null);
+  const employeeCacheRef = useRef<Map<string, string>>(new Map());
 
+  // Notification sound
   useEffect(() => {
-    const t = setInterval(() => setClock(new Date()), 1000);
-    return () => clearInterval(t);
+    notifAudioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbsGczIz2LzN3LdzsaK4DI3NB+OBksh8nd0H84GSuIyt7Qfzkhb3R2goWDgoOFiIuOkZOWmZyen6GjpqirrrCztba5u76/wcTFyMrLzc/Q0tTW19nb3N3f4OLj5ebn6err7O3u8PHy8/T19vf4+fr7/P3+');
+  }, []);
+
+  // Request browser notification permission
+  const enableNotifications = useCallback(async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        toast.success('تم تفعيل الإشعارات بنجاح');
+      } else {
+        toast.error('تم رفض إذن الإشعارات');
+      }
+    }
+  }, []);
+
+  // Check if notifications already granted
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
   }, []);
 
   const applyPreset = (p: DatePreset) => {
