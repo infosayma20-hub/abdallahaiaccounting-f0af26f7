@@ -177,6 +177,27 @@ const InvoiceCreatePage = () => {
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
 
+  // Customer detail overrides (on-invoice only)
+  const [customerOverrides, setCustomerOverrides] = useState({ phone: "", email: "", tax_number: "", address: "" });
+
+  // Attachments
+  const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+
+  // Terms
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [invoiceTerms, setInvoiceTerms] = useState("");
+  const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nفي حال التأخر تُطبق رسوم إضافية.\nشكراً لتعاملكم معنا.";
+
+  // Initialize terms from company settings
+  useEffect(() => {
+    if (invoiceTerms === "" && !isEditMode) {
+      setInvoiceTerms(defaultTerms);
+    }
+  }, [defaultTerms]);
+
   // Form state
   const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
