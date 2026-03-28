@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Eye, Edit, Trash2, Printer } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Printer, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -27,6 +27,8 @@ const PAY_MAP: Record<string, { label: string; variant: "success" | "warning" | 
   unpaid: { label: "غير مدفوع", variant: "outline" }, refunded: { label: "مسترد", variant: "destructive" },
 };
 
+const PAGE_SIZE = 20;
+
 export default function TravelBookingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,6 +38,7 @@ export default function TravelBookingsPage() {
   const [serviceFilter, setServiceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [payFilter, setPayFilter] = useState("all");
+  const [page, setPage] = useState(1);
 
   useEffect(() => { if (user) fetchBookings(); }, [user]);
 
@@ -59,6 +62,12 @@ export default function TravelBookingsPage() {
     if (payFilter !== "all" && b.payment_status !== payFilter) return false;
     return true;
   });
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [search, serviceFilter, statusFilter, payFilter]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Summary stats
   const totalSales = filtered.reduce((s, b) => s + (b.selling_price || 0), 0);
@@ -134,7 +143,7 @@ export default function TravelBookingsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(b => {
+            {paged.map(b => {
               const profit = (b.selling_price || 0) - (b.cost_price_ils || 0);
               const balance = (b.selling_price || 0) - (b.amount_paid || 0);
               const st = STATUS_MAP[b.status] || STATUS_MAP.confirmed;
@@ -167,6 +176,47 @@ export default function TravelBookingsPage() {
         </table>
         {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">لا توجد حجوزات</p>}
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 7) {
+                pageNum = i + 1;
+              } else if (page <= 4) {
+                pageNum = i + 1;
+              } else if (page >= totalPages - 3) {
+                pageNum = totalPages - 6 + i;
+              } else {
+                pageNum = page - 3 + i;
+              }
+              return (
+                <Button
+                  key={pageNum}
+                  variant={page === pageNum ? "default" : "outline"}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  style={page === pageNum ? { background: "#0D1B2E" } : {}}
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-xs text-muted-foreground mr-2">
+            صفحة {page} من {totalPages} ({filtered.length} حجز)
+          </span>
+        </div>
+      )}
     </div>
   );
 }
