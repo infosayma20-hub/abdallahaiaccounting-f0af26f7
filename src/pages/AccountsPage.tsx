@@ -27,6 +27,8 @@ interface Account {
   display_order?: number | null;
   is_system_protected?: boolean | null;
   system_role?: string | null;
+  is_contra?: boolean | null;
+  nature?: string | null;
 }
 
 // Calculate depth based on parent_code chain
