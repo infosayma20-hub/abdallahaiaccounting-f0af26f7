@@ -154,6 +154,10 @@ serve(async (req) => {
       parent_code: a.parent,
       is_system: true,
       is_active: true,
+      is_contra: a.is_contra || false,
+      nature: a.nature || (
+        ['أصول', 'مصاريف', 'مشتريات'].includes(a.type) ? 'debit' : 'credit'
+      ),
     }));
 
     let inserted = 0;
