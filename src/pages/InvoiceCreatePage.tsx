@@ -490,6 +490,13 @@ const InvoiceCreatePage = () => {
         ? PAYMENT_TERMS.find(t => t.days === contact.payment_terms_days)?.value || "net_30"
         : p.paymentTerms,
     }));
+    // Populate customer detail overrides
+    setCustomerOverrides({
+      phone: contact.phone || "",
+      email: contact.email || "",
+      tax_number: contact.tax_number || "",
+      address: contact.address || "",
+    });
     // Debt warning
     if (contact.current_balance && contact.current_balance > 0) {
       setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrency(contact.current_balance)}${contact.credit_limit ? ` من سقف ${fmtCurrency(contact.credit_limit)}` : ""}`);
