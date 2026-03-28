@@ -176,12 +176,35 @@ export default function TravelBookingFormPage() {
 
       if (error) throw error;
 
-      // Add passengers
+      // Upload passport images and add passengers
       const validPassengers = passengers.filter(p => p.full_name.trim());
       if (validPassengers.length > 0) {
-        await supabase.from("travel_booking_passengers").insert(
-          validPassengers.map(p => ({ booking_id: booking.id, ...p }))
-        );
+        const passengerRows = [];
+        for (let idx = 0; idx < validPassengers.length; idx++) {
+          const p = validPassengers[idx];
+          let imageUrl: string | null = null;
+          if (p.passport_image_file) {
+            const ext = p.passport_image_file.name.split(".").pop() || "jpg";
+            const path = `bookings/${booking.id}/passport_${idx}.${ext}`;
+            const { error: upErr } = await supabase.storage.from("passport-documents").upload(path, p.passport_image_file);
+            if (!upErr) {
+              const { data: urlData } = supabase.storage.from("passport-documents").getPublicUrl(path);
+              imageUrl = urlData?.publicUrl || null;
+            }
+          }
+          passengerRows.push({
+            booking_id: booking.id,
+            full_name: p.full_name,
+            passport_number: p.passport_number || null,
+            passport_expiry: p.passport_expiry || null,
+            passport_image_url: imageUrl,
+            nationality: p.nationality || null,
+            date_of_birth: p.date_of_birth || null,
+            gender: p.gender || null,
+            ticket_number: p.ticket_number || null,
+          });
+        }
+        await supabase.from("travel_booking_passengers").insert(passengerRows);
       }
 
       // Journal entry: debit receivables/cash, credit revenue
