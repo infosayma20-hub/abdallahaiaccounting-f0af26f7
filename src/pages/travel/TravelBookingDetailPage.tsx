@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createPaymentJournalEntry, reverseCancellationEntries } from "@/services/travelAccountingService";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { ArrowRight, Printer, Upload, X, FileText, AlertTriangle } from "lucide-react";
+import { ArrowRight, Printer, Upload, X, FileText, AlertTriangle, Ban, CheckCircle } from "lucide-react";
 
 const SERVICE_LABELS: Record<string, string> = {
   hajj: "🕋 حج", umrah: "🕌 عمرة", flight: "✈️ تذاكر طيران", hotel: "🏨 فنادق",
@@ -104,21 +105,42 @@ export default function TravelBookingDetailPage() {
     });
     await supabase.from("travel_bookings").update({ amount_paid: newPaid, payment_status: newStatus }).eq("id", booking.id);
 
-    // Journal entry
-    const debitCode = payMethod === "bank_transfer" ? "1120" : payMethod === "check" ? "1150" : "1110";
-    await supabase.from("transactions").insert({
-      user_id: user.id,
-      transaction_date: new Date().toISOString().split("T")[0],
-      description: `دفعة حجز سياحي - ${booking.booking_number} - ${booking.customer_name || ""}`,
-      debit_account_code: debitCode, credit_account_code: "1130",
-      amount: amt, currency: "شيكل", transaction_type: "travel_payment",
-      reference: booking.booking_number,
-      payment_method: payMethod === "cash" ? "نقدي" : payMethod === "bank_transfer" ? "بنك" : payMethod,
-      idempotency_key: `TRVPAY-${booking.id}-${Date.now()}`,
+    // Journal entry via service
+    await createPaymentJournalEntry({
+      userId: user.id,
+      bookingNumber: booking.booking_number,
+      customerName: booking.customer_name || "",
+      amount: amt,
+      paymentMethod: payMethod,
+      bookingId: booking.id,
     });
 
     toast({ title: "✅ تم تسجيل الدفعة" });
     setPayAmount(""); setPayRef(""); setPayBankName("");
+    fetchAll();
+  };
+
+  const handleCancel = async () => {
+    if (!booking || !user) return;
+    if (!confirm("هل أنت متأكد من إلغاء هذا الحجز؟ سيتم عكس جميع القيود المحاسبية.")) return;
+
+    await supabase.from("travel_bookings").update({ status: "cancelled", payment_status: "refunded" }).eq("id", booking.id);
+
+    // Reverse all journal entries
+    await reverseCancellationEntries({
+      userId: user.id,
+      bookingNumber: booking.booking_number,
+      customerName: booking.customer_name || "",
+    });
+
+    toast({ title: "تم إلغاء الحجز وعكس القيود المحاسبية" });
+    fetchAll();
+  };
+
+  const handleMarkCompleted = async () => {
+    if (!booking) return;
+    await supabase.from("travel_bookings").update({ status: "completed" }).eq("id", booking.id);
+    toast({ title: "✅ تم تحديث الحالة إلى مكتمل" });
     fetchAll();
   };
 
@@ -166,6 +188,16 @@ export default function TravelBookingDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="w-4 h-4 ml-1" /> طباعة</Button>
+          {booking.status !== "completed" && booking.status !== "cancelled" && (
+            <Button variant="outline" size="sm" onClick={handleMarkCompleted} className="text-green-600 border-green-200 hover:bg-green-50">
+              <CheckCircle className="w-4 h-4 ml-1" /> مكتمل
+            </Button>
+          )}
+          {booking.status !== "cancelled" && (
+            <Button variant="outline" size="sm" onClick={handleCancel} className="text-destructive border-destructive/20 hover:bg-destructive/5">
+              <Ban className="w-4 h-4 ml-1" /> إلغاء الحجز
+            </Button>
+          )}
         </div>
       </div>
 

@@ -271,6 +271,7 @@ export const navigationSections: NavSection[] = [
               { label: "الموردون", path: "/travel/suppliers" },
               { label: "الباقات والعروض", path: "/travel/packages" },
               { label: "التقارير", path: "/travel/reports" },
+              { label: "إعدادات السياحة", path: "/travel/settings" },
             ],
           },
         ],
