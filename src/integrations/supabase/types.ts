@@ -8733,6 +8733,8 @@ export type Database = {
       receipt_vouchers: {
         Row: {
           amount: number
+          attachments: Json | null
+          auto_allocate: boolean | null
           bank_account_id: string | null
           bank_name: string | null
           cash_box_id: string | null
@@ -8754,6 +8756,8 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          attachments?: Json | null
+          auto_allocate?: boolean | null
           bank_account_id?: string | null
           bank_name?: string | null
           cash_box_id?: string | null
@@ -8775,6 +8779,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          attachments?: Json | null
+          auto_allocate?: boolean | null
           bank_account_id?: string | null
           bank_name?: string | null
           cash_box_id?: string | null
@@ -10876,6 +10882,7 @@ export type Database = {
         Row: {
           amount: number | null
           amount_ils: number | null
+          attachments: Json | null
           bank_account_id: string | null
           cheque_bank_name: string | null
           cheque_due_date: string | null
@@ -10885,6 +10892,7 @@ export type Database = {
           currency: string | null
           date: string
           description: string
+          employee_id: string | null
           exchange_rate: number | null
           id: string
           linked_transaction_id: string | null
@@ -10902,6 +10910,7 @@ export type Database = {
         Insert: {
           amount?: number | null
           amount_ils?: number | null
+          attachments?: Json | null
           bank_account_id?: string | null
           cheque_bank_name?: string | null
           cheque_due_date?: string | null
@@ -10911,6 +10920,7 @@ export type Database = {
           currency?: string | null
           date?: string
           description: string
+          employee_id?: string | null
           exchange_rate?: number | null
           id?: string
           linked_transaction_id?: string | null
@@ -10928,6 +10938,7 @@ export type Database = {
         Update: {
           amount?: number | null
           amount_ils?: number | null
+          attachments?: Json | null
           bank_account_id?: string | null
           cheque_bank_name?: string | null
           cheque_due_date?: string | null
@@ -10937,6 +10948,7 @@ export type Database = {
           currency?: string | null
           date?: string
           description?: string
+          employee_id?: string | null
           exchange_rate?: number | null
           id?: string
           linked_transaction_id?: string | null
@@ -10957,6 +10969,20 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
         ]
