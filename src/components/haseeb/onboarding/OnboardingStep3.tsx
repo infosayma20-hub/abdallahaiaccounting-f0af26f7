@@ -87,7 +87,7 @@ const OnboardingStep3 = ({ onComplete, onBack }: Props) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="text-2xl font-extrabold text-slate-900 mb-2"
+        className="text-2xl font-extrabold text-foreground mb-2"
         style={{ fontFamily: "Tajawal, sans-serif" }}
       >
         أنت جاهز! 🎉
@@ -97,7 +97,7 @@ const OnboardingStep3 = ({ onComplete, onBack }: Props) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="text-sm text-slate-500 text-center max-w-xs mb-8 leading-relaxed"
+        className="text-sm text-muted-foreground text-center max-w-xs mb-8 leading-relaxed"
       >
         المحاسب الذكي يعرف الآن كل شيء
         <br />
@@ -168,13 +168,13 @@ const StatCard = ({
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, type: "spring", stiffness: 200 }}
-      className="flex-1 text-center py-4 px-2 rounded-2xl bg-slate-50 border border-slate-200"
+      className="flex-1 text-center py-4 px-2 rounded-2xl bg-muted border border-border"
     >
       <div className="text-lg mb-1">{emoji}</div>
-      <div className="text-2xl font-extrabold text-slate-900" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      <div className="text-2xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
         {value}{suffix}
       </div>
-      <div className="text-[10px] text-slate-500 mt-1">{label}</div>
+      <div className="text-[10px] text-muted-foreground mt-1">{label}</div>
     </motion.div>
   );
 };

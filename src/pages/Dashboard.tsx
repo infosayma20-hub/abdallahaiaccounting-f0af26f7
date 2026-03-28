@@ -13,7 +13,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
 import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
-import OnboardingFlow from "@/components/OnboardingFlow";
+// OnboardingFlow removed — handled by AppsLauncher
 import SetupWizard from "@/components/SetupWizard";
 import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import SavedCommands from "@/components/SavedCommands";

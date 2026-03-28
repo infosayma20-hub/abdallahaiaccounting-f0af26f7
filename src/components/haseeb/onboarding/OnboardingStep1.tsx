@@ -124,11 +124,11 @@ const OnboardingStep1 = ({ userName, onNext }: Props) => {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xl">{cap.emoji}</span>
-                  <span className="text-sm font-bold text-slate-900">
+                  <span className="text-sm font-bold text-foreground">
                     {cap.title}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 pr-7">
+                <p className="text-[11px] text-muted-foreground pr-7">
                   "{cap.example}"
                 </p>
               </button>
