@@ -654,21 +654,21 @@ const AccountsPage = () => {
                     </div>
 
                     {/* Natural Balance */}
-                    {(() => {
-                      const actualNature = acc.nature || (naturalBalance[nType] === "مدين" ? "debit" : "credit");
-                      const isDebit = actualNature === "debit";
-                      return (
-                        <span className={cn(
-                          "text-[11px] font-medium",
-                          isVirtualTypeHeader && "hidden",
-                          isDebit
-                            ? "text-[hsl(142,71%,40%)] dark:text-green-400"
-                            : "text-[hsl(0,72%,51%)] dark:text-red-400"
-                        )}>
-                          {isVirtualTypeHeader ? '' : (isDebit ? "مدين" : "دائن")}
-                        </span>
-                      );
-                    })()}
+                    <span className={cn(
+                      "text-[11px] font-medium",
+                      isVirtualTypeHeader
+                        ? "text-[hsl(210,10%,50%)] dark:text-muted-foreground"
+                        : (acc.nature === "debit" || (!acc.nature && naturalBalance[nType] === "مدين"))
+                          ? "text-[hsl(142,71%,40%)] dark:text-green-400"
+                          : "text-[hsl(0,72%,51%)] dark:text-red-400"
+                    )}>
+                      {isVirtualTypeHeader
+                        ? naturalBalance[nType] || ''
+                        : (acc.nature === "debit" || (!acc.nature && naturalBalance[nType] === "مدين"))
+                          ? "مدين"
+                          : "دائن"
+                      }
+                    </span>
 
                     {/* Description */}
                     <div className="min-w-0">
