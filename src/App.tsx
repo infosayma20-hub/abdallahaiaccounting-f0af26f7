@@ -48,6 +48,7 @@ const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
 const EmployeeAttendancePage = lazy(() => import("./pages/EmployeeAttendancePage"));
 const HRAttendancePage = lazy(() => import("./pages/HRAttendancePage"));
 const BranchDisplayPage = lazy(() => import("./pages/BranchDisplayPage"));
@@ -410,6 +411,7 @@ const App = () => (
                       <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
                       <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
+                      <Route path="/help" element={<HelpCenterPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     </Suspense>
