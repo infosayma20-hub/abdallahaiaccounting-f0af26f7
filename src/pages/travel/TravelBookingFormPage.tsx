@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "@/hooks/use-toast";
-import { ArrowRight, ArrowLeft, Plus, Trash2, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, Trash2, Check, Upload, X, AlertTriangle } from "lucide-react";
 
 const SERVICE_TYPES = [
   { key: "flight", label: "تذاكر طيران", icon: "✈️" },
