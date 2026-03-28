@@ -15,19 +15,13 @@ const SERVICE_LABELS: Record<string, string> = {
 export default function TravelReportsPage() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [dateFrom, setDateFrom] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      supabase.from("travel_bookings").select("*").gte("booking_date", dateFrom).lte("booking_date", dateTo),
-      supabase.from("travel_suppliers").select("*"),
-    ]).then(([bRes, sRes]) => {
-      if (bRes.data) setBookings(bRes.data);
-      if (sRes.data) setSuppliers(sRes.data);
-    });
+    supabase.from("travel_bookings").select("*").gte("booking_date", dateFrom).lte("booking_date", dateTo)
+      .then(({ data }) => { if (data) setBookings(data); });
   }, [user, dateFrom, dateTo]);
 
   const active = bookings.filter(b => b.status !== "cancelled");
@@ -145,11 +139,9 @@ export default function TravelReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(supplierMap).map(([sid, d]) => {
-                  const sup = suppliers.find(s => s.id === sid);
-                  return (
+                {Object.entries(supplierMap).map(([sid, d]) => (
                     <tr key={sid} className="border-b last:border-0">
-                      <td className="py-2.5 px-3">{sup?.name || "بدون مورد"}</td>
+                      <td className="py-2.5 px-3">{sid === "none" ? "بدون مورد" : sid.slice(0, 8)}</td>
                       <td className="py-2.5 px-2">{d.count}</td>
                       <td className="py-2.5 px-2">₪{d.paid.toLocaleString()}</td>
                       <td className="py-2.5 px-2 font-medium" style={{ color: d.balance > 0 ? "#DC2626" : "#16A34A" }}>₪{d.balance.toLocaleString()}</td>
