@@ -657,39 +657,40 @@ const AccountsPage = () => {
                       )}
                     </div>
 
-                    {/* Row Actions (hover) */}
+                    {/* Row Actions */}
                     {!isVirtualTypeHeader && (
-                      <div className="hidden sm:flex items-center justify-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="hidden sm:flex items-center justify-end gap-0.5 pe-1" onClick={(e) => e.stopPropagation()}>
+                        {isProtected && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="p-1 shrink-0"><Lock className="h-3.5 w-3.5 text-amber-500/50" /></span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">حساب محمي — مرتبط بقيود تلقائية</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="إضافة فرعي"
+                          onClick={() => navigate(`/accounts/new?parent=${acc.account_code}`)}>
+                          <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                        </button>
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="عرض الحركات"
+                          onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}>
+                          <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                        </button>
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="تعديل"
+                          onClick={() => navigate(`/accounts/${acc.id}/edit`)}>
+                          <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                        </button>
                         {!isProtected && (
                           <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="نقل الحساب"
                             onClick={() => setMoveModalAccount(acc)}>
                             <ArrowUpDown className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                           </button>
                         )}
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="تعديل"
-                          onClick={() => navigate(`/accounts/${acc.id}/edit`)}>
-                          <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
-                        </button>
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="عرض الحركات"
-                          onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}>
-                          <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
-                        </button>
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="إضافة فرعي"
-                          onClick={() => navigate(`/accounts/new?parent=${acc.account_code}`)}>
-                          <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
-                        </button>
-                        {!acc.is_system && !isProtected ? (
+                        {!acc.is_system && !isProtected && (
                           <button className="p-1 rounded hover:bg-destructive/10 transition-colors" title="حذف الحساب"
                             onClick={() => handleDeleteAccount(acc)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive/60 hover:text-destructive" />
                           </button>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="p-1 opacity-30 cursor-not-allowed"><Lock className="h-3.5 w-3.5 text-amber-500" /></span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs">محمي</TooltipContent>
-                          </Tooltip>
                         )}
                       </div>
                     )}
