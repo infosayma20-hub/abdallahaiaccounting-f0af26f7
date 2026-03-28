@@ -1588,14 +1588,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {selectedContact && partyType === "contact" && (
         <Card>
           <CardContent className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 📄 ربط بفاتورة
               </h3>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="flex items-center gap-1.5 text-[10px] cursor-pointer select-none">
+                  <input type="checkbox" checked={autoAllocate} onChange={e => { setAutoAllocate(e.target.checked); if (!e.target.checked) clearSelection(); }}
+                    className="w-3.5 h-3.5 rounded border-border accent-primary" />
+                  تخصيص تلقائي حسب الأقدمية
+                </label>
                 <button onClick={selectAll} className="text-[10px] px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all">✓ تحديد الكل</button>
-                <button onClick={selectOldestFirst} className="text-[10px] px-2.5 py-1 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 transition-all">الأقدم أولاً</button>
                 <button onClick={clearSelection} className="text-[10px] px-2.5 py-1 rounded-lg bg-secondary text-muted-foreground hover:bg-secondary/80 transition-all">مسح</button>
               </div>
             </div>
