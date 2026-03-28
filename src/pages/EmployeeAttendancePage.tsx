@@ -232,10 +232,28 @@ export default function EmployeeAttendancePage() {
         return;
       }
 
-      const endpoint = pendingAction === "checkin" ? "checkin" : "checkout";
+      const actionMap: Record<string, string> = {
+        checkin: "checkin",
+        checkout: "checkout",
+        break_out: "break_out",
+        break_in: "break_in",
+      };
+      const endpoint = actionMap[pendingAction] || pendingAction;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
+
+      const bodyPayload: any = {
+        action: endpoint,
+        branch_id: branchId,
+        qr_token: token,
+        latitude: lat,
+        longitude: lng,
+        device_info: navigator.userAgent.substring(0, 100),
+      };
+      if (pendingAction === "break_out") {
+        bodyPayload.reason = breakReason;
+      }
 
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/attendance`,
@@ -246,14 +264,7 @@ export default function EmployeeAttendancePage() {
             Authorization: `Bearer ${accessToken}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({
-            action: endpoint,
-            branch_id: branchId,
-            qr_token: token,
-            latitude: lat,
-            longitude: lng,
-            device_info: navigator.userAgent.substring(0, 100),
-          }),
+          body: JSON.stringify(bodyPayload),
         }
       );
 
