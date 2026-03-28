@@ -27,6 +27,9 @@ const SERVICE_TYPES = [
 interface Passenger {
   full_name: string;
   passport_number: string;
+  passport_expiry: string;
+  passport_image_url: string;
+  passport_image_file: File | null;
   nationality: string;
   date_of_birth: string;
   gender: string;
