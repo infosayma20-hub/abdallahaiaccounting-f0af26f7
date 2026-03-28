@@ -41,7 +41,6 @@ export default function TravelBookingFormPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [contacts, setContacts] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Step 1
@@ -56,8 +55,20 @@ export default function TravelBookingFormPage() {
   const [travelDate, setTravelDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [supplierName, setSupplierName] = useState("");
   const [supplierRef, setSupplierRef] = useState("");
   const [paxCount, setPaxCount] = useState(1);
+
+  // Inline quick-add
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingSupplier, setSavingSupplier] = useState(false);
+  const customerRef = useRef<HTMLDivElement>(null);
+  const supplierRef2 = useRef<HTMLDivElement>(null);
 
   // Step 3
   const [costPrice, setCostPrice] = useState("");
@@ -74,27 +85,100 @@ export default function TravelBookingFormPage() {
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
 
-  useEffect(() => {
+  const fetchContacts = useCallback(async () => {
     if (!user) return;
-    Promise.all([
-      supabase.from("contacts").select("id, contact_name, phone").order("contact_name"),
-      supabase.from("travel_suppliers").select("id, name, type, currency, commission_rate").eq("is_active", true),
-    ]).then(([cRes, sRes]) => {
-      if (cRes.data) setContacts(cRes.data);
-      if (sRes.data) setSuppliers(sRes.data);
-    });
+    const { data } = await supabase.from("contacts").select("id, contact_name, phone, contact_type").eq("is_archived", false).order("contact_name");
+    if (data) setContacts(data);
   }, [user]);
+
+  useEffect(() => { fetchContacts(); }, [fetchContacts]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (customerRef.current && !customerRef.current.contains(e.target as Node)) setShowCustomerDropdown(false);
+      if (supplierRef2.current && !supplierRef2.current.contains(e.target as Node)) setShowSupplierDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const costIls = parseFloat(costPrice || "0") * parseFloat(costExchangeRate || "1");
   const profit = parseFloat(sellingPrice || "0") - costIls;
   const profitMargin = parseFloat(sellingPrice || "0") > 0 ? (profit / parseFloat(sellingPrice || "1")) * 100 : 0;
 
-  const handleSelectContact = (id: string) => {
-    setCustomerId(id);
-    const c = contacts.find(c => c.id === id);
-    if (c) {
-      setCustomerName(c.contact_name);
-      setCustomerPhone(c.phone || "");
+  const customers = contacts.filter(c => c.contact_type === "عميل" || c.contact_type === "both");
+  const suppliers = contacts.filter(c => c.contact_type === "مورد" || c.contact_type === "both");
+
+  const filteredCustomers = customerSearch.trim()
+    ? customers.filter(c => c.contact_name.includes(customerSearch))
+    : customers;
+
+  const filteredSuppliers = supplierSearch.trim()
+    ? suppliers.filter(c => c.contact_name.includes(supplierSearch))
+    : suppliers;
+
+  const handleSelectContact = (c: any) => {
+    setCustomerId(c.id);
+    setCustomerName(c.contact_name);
+    setCustomerPhone(c.phone || "");
+    setCustomerSearch(c.contact_name);
+    setShowCustomerDropdown(false);
+  };
+
+  const handleSelectSupplier = (c: any) => {
+    setSupplierId(c.id);
+    setSupplierName(c.contact_name);
+    setSupplierSearch(c.contact_name);
+    setShowSupplierDropdown(false);
+  };
+
+  const handleQuickAddCustomer = async () => {
+    if (!user || !customerSearch.trim()) return;
+    setSavingCustomer(true);
+    try {
+      const { data, error } = await supabase.from("contacts").upsert({
+        user_id: user.id,
+        contact_name: customerSearch.trim(),
+        contact_type: "عميل",
+        phone: newCustomerPhone || null,
+      }, { onConflict: "user_id,contact_name" }).select().single();
+      if (error) throw error;
+      await fetchContacts();
+      setCustomerId(data.id);
+      setCustomerName(data.contact_name);
+      setCustomerPhone(data.phone || "");
+      setCustomerSearch(data.contact_name);
+      setNewCustomerPhone("");
+      setShowCustomerDropdown(false);
+      toast({ title: "✅ تم إضافة العميل" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
+  const handleQuickAddSupplier = async () => {
+    if (!user || !supplierSearch.trim()) return;
+    setSavingSupplier(true);
+    try {
+      const { data, error } = await supabase.from("contacts").upsert({
+        user_id: user.id,
+        contact_name: supplierSearch.trim(),
+        contact_type: "مورد",
+      }, { onConflict: "user_id,contact_name" }).select().single();
+      if (error) throw error;
+      await fetchContacts();
+      setSupplierId(data.id);
+      setSupplierName(data.contact_name);
+      setSupplierSearch(data.contact_name);
+      setShowSupplierDropdown(false);
+      toast({ title: "✅ تم إضافة المورد" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingSupplier(false);
     }
   };
 
