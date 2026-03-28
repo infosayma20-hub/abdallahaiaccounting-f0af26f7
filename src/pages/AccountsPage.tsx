@@ -449,14 +449,17 @@ const AccountsPage = () => {
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </Button>
           <div className="h-5 w-px bg-border mx-1" />
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={expandAll}>
-            <ChevronsUpDown className="h-3.5 w-3.5" />
-            توسيع الكل
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={collapseAll}>
-            <ChevronsDownUp className="h-3.5 w-3.5" />
-            ضم الكل
-          </Button>
+          {expanded.size > 0 ? (
+            <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={collapseAll}>
+              <ChevronsDownUp className="h-3.5 w-3.5" />
+              ضم الكل
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5" onClick={expandAll}>
+              <ChevronsUpDown className="h-3.5 w-3.5" />
+              توسيع الكل
+            </Button>
+          )}
         </div>
       </div>
 
