@@ -184,8 +184,19 @@ export default function EmployeeAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleAttendanceAction = (action: "checkin" | "checkout") => {
+  const handleAttendanceAction = (action: "checkin" | "checkout" | "break_out" | "break_in") => {
     setPendingAction(action);
+    setShowQRDialog(true);
+    setQrInput("");
+  };
+
+  const handleBreakRequest = () => {
+    setShowBreakSheet(true);
+  };
+
+  const confirmBreakOut = () => {
+    setShowBreakSheet(false);
+    setPendingAction("break_out");
     setShowQRDialog(true);
     setQrInput("");
   };
