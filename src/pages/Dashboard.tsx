@@ -13,7 +13,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
 import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
-import OnboardingFlow from "@/components/OnboardingFlow";
+// OnboardingFlow removed — handled by AppsLauncher
 import SetupWizard from "@/components/SetupWizard";
 import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import SavedCommands from "@/components/SavedCommands";
@@ -52,7 +52,7 @@ const Dashboard = () => {
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showPasskeyOnboarding, setShowPasskeyOnboarding] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // showOnboarding removed — handled by AppsLauncher
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
@@ -99,11 +99,7 @@ const Dashboard = () => {
     if (!done && browserSupportsWebAuthn()) setShowPasskeyOnboarding(true);
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const done = localStorage.getItem("onboarding_completed");
-    if (!done) setShowOnboarding(true);
-  }, [user]);
+  // Legacy onboarding removed — handled by AppsLauncher
 
   useEffect(() => {
     if (!user) return;
@@ -914,9 +910,7 @@ const Dashboard = () => {
         <SetupWizard userId={user.id} onComplete={() => { setShowSetupWizard(false); setProfileData(prev => prev ? { ...prev, setup_completed: true } : prev); }} />
       )}
       {showPasskeyOnboarding && <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />}
-      {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
-        <OnboardingFlow onComplete={() => setShowOnboarding(false)} onFocusInput={() => { const input = document.querySelector<HTMLInputElement>("#smart-input-bar input"); input?.focus(); }} />
-      )}
+      {/* Legacy OnboardingFlow removed — handled by AppsLauncher */}
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
       <JournalEntryPopup
         open={showJournalEntry}
