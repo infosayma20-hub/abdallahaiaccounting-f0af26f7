@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock, LogOut, Plus } from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock, LogOut, Plus, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
@@ -409,6 +409,34 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* ═══ Footer ═══ */}
       <div style={{ borderTop: `1px solid ${SEPARATOR}`, padding: 8 }}>
+        {/* Help Center */}
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => navigate("/help")}
+                className="w-full flex items-center justify-center py-2 rounded-lg transition-all duration-150"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "hsl(var(--accent))"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>مركز المساعدة</p></TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            onClick={() => navigate("/help")}
+            className="w-full flex items-center gap-3 rounded-lg transition-all duration-150"
+            style={{ fontSize: 14, color: "hsl(var(--muted-foreground))", padding: "10px 12px", borderRadius: 8 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "hsl(var(--accent))"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <HelpCircle className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            <span>مركز المساعدة</span>
+          </button>
+        )}
         {/* Logout */}
         {collapsed ? (
           <Tooltip>
