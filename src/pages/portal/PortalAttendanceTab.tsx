@@ -396,7 +396,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
                   <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${t.border}` }}>
                     {/* Summary stats */}
                     <div style={{
-                      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+                      display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8,
                       marginTop: 10, marginBottom: 10,
                     }}>
                       <div style={{ textAlign: 'center', padding: 8, background: `${t.accent}08`, borderRadius: 8 }}>
@@ -411,7 +411,37 @@ export default function PortalAttendanceTab({ theme }: Props) {
                         <div style={{ fontSize: 16, fontWeight: 700, color: t.amber }}>{emp.total_overtime}</div>
                         <div style={{ fontSize: 9, color: t.textMuted }}>ساعات إضافية</div>
                       </div>
+                      <div style={{ textAlign: 'center', padding: 8, background: '#f9731608', borderRadius: 8 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#f97316' }}>{emp.total_break_minutes || 0}</div>
+                        <div style={{ fontSize: 9, color: t.textMuted }}>دقائق استراحة</div>
+                      </div>
                     </div>
+
+                    {/* Today's breaks */}
+                    {emp.breaks && emp.breaks.length > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: t.textMuted, marginBottom: 4 }}>
+                          ☕ المغادرات المؤقتة ({emp.breaks.length})
+                        </div>
+                        {emp.breaks.map((b, i) => (
+                          <div key={i} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '4px 8px', background: `${t.border}`, borderRadius: 6, marginBottom: 2,
+                            fontSize: 10,
+                          }}>
+                            <span style={{ color: t.text }}>{b.reason || 'استراحة'}</span>
+                            <div style={{ display: 'flex', gap: 8, color: t.textMuted }}>
+                              <span>{format(new Date(b.break_out), 'hh:mm a')}</span>
+                              <span>←</span>
+                              <span>{b.break_in ? format(new Date(b.break_in), 'hh:mm a') : '🔴 مفتوح'}</span>
+                              {b.duration_minutes != null && (
+                                <span style={{ fontWeight: 700, color: '#f97316' }}>{b.duration_minutes} د</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Records table */}
                     {emp.records.length > 0 && (
