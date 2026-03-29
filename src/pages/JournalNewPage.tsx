@@ -789,18 +789,69 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
+      {/* Attachments Section */}
+      <Card>
+        <CardContent className="p-0">
+          <button
+            onClick={() => setAttachmentsOpen(!attachmentsOpen)}
+            className="w-full flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors rounded-xl"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Paperclip className="h-4 w-4 text-primary" />
+              المرفقات {attachments.length > 0 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{attachments.length}</span>}
+            </span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${attachmentsOpen ? "rotate-180" : ""}`} />
+          </button>
+          {attachmentsOpen && (
+            <div className="px-4 pb-4 space-y-3">
+              <div
+                ref={dropZoneRef}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={e => { e.preventDefault(); e.stopPropagation(); const files = e.dataTransfer.files; if (files.length) handleFileUpload(files[0]); }}
+                className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">اسحب الملفات هنا أو اضغط للرفع</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, JPG, PNG, XLSX — حد أقصى 10MB / 5 ملفات</p>
+              </div>
+              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.xlsx"
+                onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); e.target.value = ""; }} />
+              {uploadingFile && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ الرفع...</div>}
+              {attachments.map((att, i) => (
+                <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{att.name}</a>
+                    <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
+                  </div>
+                  <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="p-1 hover:text-destructive text-muted-foreground">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Action Buttons */}
-      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-        <button onClick={() => handleSave(true)} disabled={saving}
+      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4 flex-wrap gap-3">
+        <button onClick={() => handleSave("draft")} disabled={saving}
           className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
           حفظ كمسودة
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة
           </button>
-          <button onClick={() => handleSave(false)} disabled={saving || !isBalanced}
+          <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
+            <Clock className="h-4 w-4" />
+            حفظ مع التأجيل
+          </button>
+          <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
             <Save className="h-4 w-4" />
             {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
