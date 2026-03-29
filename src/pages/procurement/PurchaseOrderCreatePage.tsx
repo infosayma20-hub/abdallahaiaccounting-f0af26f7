@@ -445,23 +445,20 @@ const PurchaseOrderCreatePage = () => {
                 return (
                   <div
                     key={item.id}
-                    className={`relative rounded-xl overflow-hidden cursor-pointer transition-all select-none group hover:shadow-md active:scale-[0.97] ${
+                    className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 select-none group hover:shadow-md active:scale-[0.97] border-2 ${
                       isInOrder
-                        ? "ring-2 ring-[#2D7A4F] bg-[#2D7A4F]/5 shadow-sm border border-[#2D7A4F]/40"
-                        : "border border-border/50 bg-card hover:bg-muted/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+                        ? "border-[#2D7A4F] bg-[#F0FDF4] shadow-sm"
+                        : "border-[#E2E8F0] bg-white hover:border-gray-300 hover:shadow-sm"
                     }`}
-                    style={{
-                      borderBottomWidth: "3px",
-                      borderBottomColor: catColor + "60",
-                    }}
-                    onClick={() => addOrUpdateItem(item, 1)}
+                    onClick={() => !isInOrder && addOrUpdateItem(item, 1)}
                     onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
                   >
+                    {/* Quantity badge */}
                     {isInOrder && (
-                      <div className="absolute -top-1.5 -left-1.5 z-10 bg-[#2D7A4F] text-white text-[9px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-md">{qty}</div>
+                      <div className="absolute top-1 left-1 z-10 bg-[#2D7A4F] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">{qty}</div>
                     )}
                     <button
-                      className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
                       onClick={e => { e.stopPropagation(); openEditItem(item); }}
                     >
                       <Pencil className="h-3 w-3" />
@@ -469,25 +466,25 @@ const PurchaseOrderCreatePage = () => {
 
                     <div className="px-2.5 py-2.5">
                       {searchQuery ? (
-                        <p className="text-sm font-semibold leading-tight mb-0.5" dangerouslySetInnerHTML={{ __html: highlightSearchWords(item.name, searchQuery) }} />
+                        <p className="text-sm font-semibold leading-tight mb-0.5 text-right" dangerouslySetInnerHTML={{ __html: highlightSearchWords(item.name, searchQuery) }} />
                       ) : (
-                        <p className="text-sm font-semibold leading-tight mb-0.5">{item.name}</p>
+                        <p className="text-sm font-semibold leading-tight mb-0.5 text-right">{item.name}</p>
                       )}
-                      <p className="text-xs text-muted-foreground">{item.unit}</p>
+                      <p className="text-xs text-muted-foreground text-right">{item.unit}</p>
                       {cardSize === "large" && (
-                        <p className={`text-xs mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
+                        <p className={`text-xs mt-0.5 text-right ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
                           {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
                         </p>
                       )}
-                      {/* Inline quantity controls when in order */}
+                      {/* Inline quantity controls */}
                       {isInOrder && (
-                        <div className="flex items-center gap-1 mt-2" onClick={e => e.stopPropagation()}>
-                          <button className="h-6 w-6 rounded bg-[#DC2626]/10 text-[#DC2626] flex items-center justify-center hover:bg-[#DC2626]/20"
+                        <div className="flex items-center justify-between mt-2 gap-1" onClick={e => e.stopPropagation()}>
+                          <button className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors"
                             onClick={() => addOrUpdateItem(item, -1)}>
                             <Minus className="h-3 w-3" />
                           </button>
-                          <span className="text-sm font-bold min-w-[24px] text-center">{qty}</span>
-                          <button className="h-6 w-6 rounded bg-[#2D7A4F]/10 text-[#2D7A4F] flex items-center justify-center hover:bg-[#2D7A4F]/20"
+                          <span className="w-8 text-center font-bold text-sm text-gray-800">{qty}</span>
+                          <button className="w-7 h-7 rounded-md bg-[#2D7A4F] hover:bg-[#246B42] text-white flex items-center justify-center transition-colors"
                             onClick={() => addOrUpdateItem(item, 1)}>
                             <Plus className="h-3 w-3" />
                           </button>
