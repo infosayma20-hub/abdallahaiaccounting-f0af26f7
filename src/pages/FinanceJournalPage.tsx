@@ -518,14 +518,16 @@ const FinanceJournalPage = () => {
                   const statusStyles: Record<string, string> = {
                     "posted": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
                     "draft": "bg-muted text-muted-foreground",
+                    "deferred": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
                     "cancelled": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
                   };
                   const dotColor: Record<string, string> = {
                     "posted": "bg-green-500",
                     "draft": "bg-muted-foreground",
+                    "deferred": "bg-yellow-500",
                     "cancelled": "bg-red-500",
                   };
-                  const statusLabelMap: Record<string, string> = { posted: "مرحّل", draft: "مسودة", cancelled: "ملغي" };
+                  const statusLabelMap: Record<string, string> = { posted: "مرحّل", draft: "مسودة", deferred: "مؤجل", cancelled: "ملغي" };
                   return (
                     <tr
                       key={v.id}

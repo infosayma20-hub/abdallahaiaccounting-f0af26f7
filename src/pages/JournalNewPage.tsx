@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
-  BookOpen, User, Building2, Users, X, UserPlus
+  BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -28,6 +28,7 @@ interface JournalLine {
   credit: number;
   contact_id?: string;
   contact_name?: string;
+  line_comment?: string;
 }
 
 interface Contact {
