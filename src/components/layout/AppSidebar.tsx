@@ -43,29 +43,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isTrial = subscription?.isTrial ?? true;
 
-  const enabledSettings = useMemo(() => ({
-    has_pos: !!settings.has_pos,
-    has_employees: !!settings.has_employees,
-    has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
-    has_contractor: settings.business_type === "مقاولات",
-    has_ecommerce: settings.business_type === "متجر إلكتروني",
-    has_travel: settings.business_type === "سياحة",
-    has_workshops: ["ورش ومناجر", "مقاولات"].includes(settings.business_type || ""),
-    has_tasks: false,
-  }), [settings]);
-
   const hiddenApps: string[] = useMemo(() => {
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
 
   const isItemHidden = (item: NavItem) => hiddenApps.includes(item.id);
-
-  // Item is not relevant for this business type — hide entirely
-  const isItemIrrelevant = (item: NavItem) => {
-    if (!item.enableSetting) return false;
-    if (isTrial) return false;
-    return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
-  };
 
   // Item is locked by super admin — show with lock
   const isItemDisabled = (item: NavItem) => {
