@@ -60,11 +60,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isItemHidden = (item: NavItem) => hiddenApps.includes(item.id);
 
-  const isItemDisabled = (item: NavItem) => {
-    if (isItemHidden(item)) return true;
+  // Item is not relevant for this business type — hide entirely
+  const isItemIrrelevant = (item: NavItem) => {
     if (!item.enableSetting) return false;
     if (isTrial) return false;
     return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
+  };
+
+  // Item is locked by super admin — show with lock
+  const isItemDisabled = (item: NavItem) => {
+    if (isItemHidden(item)) return true;
+    return false;
   };
 
   const isActive = (path?: string) => {
