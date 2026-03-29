@@ -1332,7 +1332,7 @@ const InvoicesPage = () => {
       {/* Search & Filters */}
       {invoices.length > 0 && (
         <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-          <CardContent className="p-3">
+          <CardContent className="p-3 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
@@ -1367,6 +1367,43 @@ const InvoicesPage = () => {
               </Select>
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
             </div>
+
+            {/* Advanced Filters */}
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground h-7 px-2">
+                  <Filter className="h-3 w-3" />
+                  فلاتر متقدمة
+                  <ChevronDown className={`h-3 w-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+                  {(dateFrom || dateTo || amountMin || amountMax) && <Badge className="text-[9px] h-4 px-1 bg-primary/10 text-primary">مفعّل</Badge>}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-xl bg-muted/20 border border-border/30">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">من تاريخ</Label>
+                    <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 text-xs rounded-lg" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">إلى تاريخ</Label>
+                    <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 text-xs rounded-lg" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">حد أدنى ₪</Label>
+                    <Input type="number" placeholder="0" value={amountMin} onChange={e => setAmountMin(e.target.value)} className="h-8 text-xs rounded-lg font-mono" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">حد أعلى ₪</Label>
+                    <Input type="number" placeholder="∞" value={amountMax} onChange={e => setAmountMax(e.target.value)} className="h-8 text-xs rounded-lg font-mono" />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" onClick={resetAdvancedFilters}>
+                    <X className="h-3 w-3" /> إعادة تعيين
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
       )}
