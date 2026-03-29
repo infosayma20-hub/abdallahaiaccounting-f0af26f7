@@ -205,10 +205,10 @@ const JournalNewPage = () => {
   };
 
 
-  const handleSave = async (asDraft = false) => {
+  const handleSave = async (mode: "draft" | "posted" | "deferred" = "posted") => {
     if (!user) return;
     if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
-    if (!asDraft && !isBalanced) { toast.error("القيد غير متوازن"); return; }
+    if (mode === "posted" && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
     // Auto-assign account codes for contact-only lines before validation
     const preparedLines = lines.map(l => {
@@ -237,9 +237,11 @@ const JournalNewPage = () => {
         amount_ils: totalDebit,
         description: formDescription,
         notes: formNotes || null,
-        status: asDraft ? "draft" : "posted",
-        posted_by: !asDraft ? user.id : null,
-        posted_at: !asDraft ? new Date().toISOString() : null,
+        status: mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft",
+        posted_by: mode === "posted" ? user.id : null,
+        posted_at: mode === "posted" ? new Date().toISOString() : null,
+        attachments: attachments.length > 0 ? attachments : [],
+        line_sort_order: lineSortOrder,
       }).select("id, ref_number").single();
 
       if (error) throw error;
@@ -255,15 +257,15 @@ const JournalNewPage = () => {
           line_order: i + 1,
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
+          line_comment: l.line_comment || null,
         }))
       );
 
       // If posted, create transactions (one per debit-credit pair, with contact_id)
-      if (!asDraft) {
+      if (mode === "posted") {
         const debitLines = validLines.filter(l => Number(l.debit) > 0);
         const creditLines = validLines.filter(l => Number(l.credit) > 0);
         
-        // Create individual transactions for each debit line paired with credit lines
         const txns: any[] = [];
         for (const dl of debitLines) {
           for (const cl of creditLines) {
@@ -289,7 +291,6 @@ const JournalNewPage = () => {
           }
         }
         
-        // Fallback: if no pairs created, use simple approach
         if (txns.length === 0 && debitLines.length > 0 && creditLines.length > 0) {
           txns.push({
             user_id: user.id,
@@ -311,13 +312,39 @@ const JournalNewPage = () => {
         }
       }
 
-      toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل سند القيد ${voucher.ref_number}`);
+      const modeLabel = mode === "posted" ? `تم ترحيل سند القيد ${voucher.ref_number}` : mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${voucher.ref_number}` : "تم حفظ المسودة";
+      toast.success(modeLabel);
       setSaved(true);
       setSavedRefNumber(voucher.ref_number || "");
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // File upload handler
+  const handleFileUpload = async (file: File) => {
+    if (!user) return;
+    if (attachments.length >= 5) { toast.error("الحد الأقصى 5 ملفات"); return; }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    if (!allowedTypes.includes(file.type)) { toast.error("نوع الملف غير مدعوم. يُقبل: PDF, JPG, PNG, XLSX"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("حجم الملف يتجاوز 10MB"); return; }
+
+    setUploadingFile(true);
+    try {
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("journal-attachments").upload(filePath, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("journal-attachments").getPublicUrl(filePath);
+      setAttachments(prev => [...prev, {
+        name: file.name, url: urlData.publicUrl, size: file.size, type: file.type, uploaded_at: new Date().toISOString(),
+      }]);
+      toast.success(`تم رفع ${file.name}`);
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في الرفع");
+    } finally {
+      setUploadingFile(false);
     }
   };
 
