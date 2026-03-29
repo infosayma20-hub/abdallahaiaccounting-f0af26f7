@@ -1,15 +1,15 @@
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo, Fragment, useCallback } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { 
-  FileText, Plus, Search, CheckCircle2, 
+import * as XLSX from "xlsx";
+import {
+  FileText, Plus, Search, CheckCircle2,
   Clock, AlertTriangle, Ban, RefreshCw, ChevronDown,
   Building2, Calendar, Hash, User, Banknote,
   ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
-  ArrowRight, ArrowUpDown, Zap,
+  ArrowUpDown, Zap, Download,
   ChevronLeft, ChevronRight, Loader2, X, Send
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -75,51 +75,37 @@ const statusConfig: Record<ChequeStatus, { icon: any; color: string; bg: string;
   'مصروف': { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10', badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400', label: 'مصروف' },
 };
 
-// Available actions per status — differentiate by cheque type
 const getAvailableActions = (status: ChequeStatus, chequeType: ChequeType): ActionType[] => {
   if (chequeType === 'صادر') {
-    // Outgoing cheque actions
     switch (status) {
-      case 'مسجل':
-      case 'آجل':
-      case 'مستحق':
-        return ['cashed', 'recover', 'cancel'];
-      case 'مرتجع':
-        return ['cashed', 'cancel'];
-      default:
-        return [];
+      case 'مسجل': case 'آجل': case 'مستحق': return ['cashed', 'recover', 'cancel'];
+      case 'مرتجع': return ['cashed', 'cancel'];
+      default: return [];
     }
   }
-  // Incoming cheque actions
   switch (status) {
-    case 'مسجل':
-    case 'آجل':
-    case 'مستحق':
-      return ['deposit', 'endorse', 'return_to_customer', 'cancel'];
-    case 'مودع':
-      return ['collected', 'bounced'];
-    case 'مظهر':
-      return ['collected', 'return_to_customer'];
-    case 'مرتجع':
-      return ['deposit', 'endorse', 'cancel'];
-    default:
-      return [];
+    case 'مسجل': case 'آجل': case 'مستحق': return ['deposit', 'endorse', 'return_to_customer', 'cancel'];
+    case 'مودع': return ['collected', 'bounced'];
+    case 'مظهر': return ['collected', 'return_to_customer'];
+    case 'مرتجع': return ['deposit', 'endorse', 'cancel'];
+    default: return [];
   }
 };
 
-const STATUS_FILTERS = ['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مصروف', 'مظهر', 'ملغي'];
+const PENDING_STATUSES = ['مسجل', 'آجل', 'مستحق', 'مودع'];
 const PER_PAGE = 15;
-type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number';
+type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number' | 'created_at';
 type SortDir = 'asc' | 'desc';
 
 const ChequesPage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("الكل");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -127,19 +113,13 @@ const ChequesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
-  const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string }[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [partySearch, setPartySearch] = useState("");
   const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
-  const [accountSearch, setAccountSearch] = useState("");
-  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
-
-  // Action modal state
   const [actionTarget, setActionTarget] = useState<Cheque | null>(null);
   const [actionType, setActionType] = useState<ActionType | null>(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
-
   const [sortKey, setSortKey] = useState<SortKey>("cheque_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
@@ -149,7 +129,9 @@ const ChequesPage = () => {
     cheque_type: ChequeType;
     cheque_number: string;
     bank_name: string;
+    bank_account: string;
     cheque_date: string;
+    issue_date: string;
     amount: string;
     currency: string;
     exchange_rate: string;
@@ -158,13 +140,16 @@ const ChequesPage = () => {
     linked_account: string;
     notes: string;
     source_bank_account_id: string;
+    deposit_cash_box_id: string;
   }
 
   const emptyChequeRow = (type: ChequeType): ChequeRow => ({
     cheque_type: type,
     cheque_number: '',
     bank_name: '',
+    bank_account: '',
     cheque_date: '',
+    issue_date: new Date().toISOString().split('T')[0],
     amount: '',
     currency: 'شيكل',
     exchange_rate: '',
@@ -173,6 +158,7 @@ const ChequesPage = () => {
     linked_account: '',
     notes: '',
     source_bank_account_id: '',
+    deposit_cash_box_id: '',
   });
 
   const [addType, setAddType] = useState<ChequeType>('وارد');
@@ -197,6 +183,7 @@ const ChequesPage = () => {
       party_name: last.party_name,
       party_type: last.party_type,
       bank_name: last.bank_name,
+      bank_account: last.bank_account,
       source_bank_account_id: last.source_bank_account_id,
       currency: last.currency,
       exchange_rate: last.exchange_rate,
@@ -210,36 +197,30 @@ const ChequesPage = () => {
     setNewCheques(prev => prev.filter((_, i) => i !== index));
   };
 
-  const fetchAccounts = async () => {
-    if (!user) return;
-    const { data } = await supabase.from('accounts').select('account_code, account_name, account_type').eq('user_id', user.id).eq('is_active', true).order('account_code');
-    setAccounts(data || []);
-  };
-
-  const fetchBankAccounts = async () => {
+  // =================== DATA FETCHING ===================
+  const fetchBankAccounts = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('bank_accounts').select('id, name, bank_name, gl_account_code').eq('user_id', user.id).eq('is_active', true);
     setBankAccounts(data || []);
-  };
+  }, [user]);
 
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
-  };
+  }, [user]);
 
-  const fetchCheques = async () => {
+  const fetchCheques = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase.from('cheques').select('*').eq('user_id', user.id).order('cheque_date', { ascending: false });
-    if (error) { toast.error("خطأ في جلب الشيكات"); }
-    else { setCheques((data || []) as unknown as Cheque[]); }
+    if (error) toast.error("خطأ في جلب الشيكات");
+    else setCheques((data || []) as unknown as Cheque[]);
     setLoading(false);
-  };
+  }, [user]);
 
   const findContactId = (partyName: string): string | null => {
-    const contact = contacts.find(c => c.contact_name === partyName);
-    return contact?.id || null;
+    return contacts.find(c => c.contact_name === partyName)?.id || null;
   };
 
   const fetchHistory = async (chequeId: string) => {
@@ -256,7 +237,6 @@ const ChequesPage = () => {
       const { error } = await supabase.from('contacts').insert({ user_id: user.id, contact_name: name.trim(), contact_type: contactType });
       if (error) throw error;
       toast.success(`تم إضافة "${name.trim()}" كـ${contactType} جديد`);
-      // Update all rows with the new party name
       setNewCheques(prev => prev.map(r => ({ ...r, party_name: name.trim() })));
       setPartySearch(name.trim());
       setPartyPopoverOpen(false);
@@ -265,13 +245,19 @@ const ChequesPage = () => {
     finally { setQuickAddingContact(false); }
   };
 
+  // =================== ADD HANDLER ===================
   const handleAdd = async () => {
     if (!user) return;
-    // Validate all rows
     for (let i = 0; i < newCheques.length; i++) {
       const row = newCheques[i];
       if (!row.party_name || !row.amount || !row.cheque_date) {
         toast.error(`يرجى تعبئة الحقول المطلوبة في الشيك ${i + 1}`); return;
+      }
+      if (!row.cheque_number) {
+        toast.error(`يرجى إدخال رقم الشيك ${i + 1}`); return;
+      }
+      if (!row.bank_name && addType === 'وارد') {
+        toast.error(`يرجى إدخال اسم البنك في الشيك ${i + 1}`); return;
       }
       if (addType === 'صادر' && !row.source_bank_account_id) {
         toast.error(`يرجى اختيار الحساب البنكي في الشيك ${i + 1}`); return;
@@ -327,11 +313,9 @@ const ChequesPage = () => {
 
         await supabase.from('cheque_status_history').insert({
           cheque_id: chequeId, user_id: user.id,
-          from_status: null, to_status: chequeStatus,
-          action_type: 'register',
+          from_status: null, to_status: chequeStatus, action_type: 'register',
         });
       }
-
       toast.success(`تم تسجيل ${newCheques.length} شيك ${addType} وإنشاء القيود ✅`);
       setAddOpen(false);
       setNewCheques([emptyChequeRow(addType)]);
@@ -349,8 +333,6 @@ const ChequesPage = () => {
       const config = ACTION_CONFIGS[data.action];
       const newStatus = config.nextStatus as ChequeStatus;
       const updatePayload: Record<string, any> = { status: newStatus };
-
-      // Build journal entry if needed
       let txId: string | null = null;
       const cheque = actionTarget;
 
@@ -359,7 +341,6 @@ const ChequesPage = () => {
         updatePayload.deposit_date = data.depositDate;
         const bank = bankAccounts.find(b => b.id === data.bankAccountId);
         updatePayload.linked_account = bank?.gl_account_code || cheque.linked_account;
-        // Journal: debit cheques-in-collection (1125), credit incoming cheques (1150)
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: data.depositDate || new Date().toISOString().split('T')[0],
           description: `إيداع شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''}`,
@@ -373,7 +354,6 @@ const ChequesPage = () => {
 
       if (data.action === 'collected') {
         updatePayload.collection_date = data.collectionDate;
-        // Journal: debit bank (1120), credit cheques-in-collection (1125)
         const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
         const bankCode = bank?.gl_account_code || '1120';
         const { data: txResult } = await supabase.from('transactions').insert({
@@ -392,7 +372,6 @@ const ChequesPage = () => {
         updatePayload.bounce_reason = data.bounceReason;
         updatePayload.bank_fees = data.bankFees || 0;
         const contactId = findContactId(cheque.party_name);
-        // Journal: debit receivables (1130), credit cheques-in-collection (1125) — returns balance to customer
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
@@ -403,7 +382,6 @@ const ChequesPage = () => {
           idempotency_key: `CHQ-BNC-${cheque.id}`,
         }).select('id').single();
         txId = txResult?.id || null;
-        // Bank fees entry
         if (data.bankFees && data.bankFees > 0) {
           await supabase.from('transactions').insert({
             user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
@@ -419,7 +397,6 @@ const ChequesPage = () => {
       if (data.action === 'endorse') {
         updatePayload.endorsed_to_name = data.endorsedToName;
         updatePayload.endorsed_to_contact_id = data.endorsedToContactId;
-        // Journal: debit supplier payables (2100), credit incoming cheques (1150)
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: new Date().toISOString().split('T')[0],
           description: `تظهير شيك - ${cheque.party_name} → ${data.endorsedToName}`,
@@ -435,7 +412,6 @@ const ChequesPage = () => {
       if (data.action === 'return_to_customer') {
         const contactId = findContactId(cheque.party_name);
         const today = new Date().toISOString().split('T')[0];
-        // Reverse registration: debit receivables (1130), credit incoming cheques (1150)
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: today,
           description: `إرجاع شيك للزبون - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.returnReason || ''}`,
@@ -452,7 +428,6 @@ const ChequesPage = () => {
         const contactId = findContactId(cheque.party_name);
         const today = new Date().toISOString().split('T')[0];
         if (cheque.cheque_type === 'وارد') {
-          // Reverse incoming registration: debit receivables (1130), credit incoming cheques (1150)
           const { data: txResult } = await supabase.from('transactions').insert({
             user_id: user.id, transaction_date: today,
             description: `إلغاء شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
@@ -464,7 +439,6 @@ const ChequesPage = () => {
           }).select('id').single();
           txId = txResult?.id || null;
         } else {
-          // Reverse outgoing: debit outgoing cheques (1160), credit supplier payables (2100)
           const { data: txResult } = await supabase.from('transactions').insert({
             user_id: user.id, transaction_date: today,
             description: `إلغاء شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
@@ -478,13 +452,11 @@ const ChequesPage = () => {
         }
       }
 
-      // ===== OUTGOING CHEQUE: CASHED (صُرف في البنك) =====
       if (data.action === 'cashed') {
         updatePayload.cashed_date = data.cashedDate;
         const contactId = cheque.contact_id || findContactId(cheque.party_name);
         const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
         const bankGlCode = sourceBank?.gl_account_code || '1120';
-        // Journal: Debit outgoing cheques (1160), Credit bank account
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
           description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
@@ -497,13 +469,11 @@ const ChequesPage = () => {
         txId = txResult?.id || null;
       }
 
-      // ===== OUTGOING CHEQUE: BOUNCED (مرتجع من البنك) =====
       if (data.action === 'outgoing_bounced') {
         updatePayload.bounce_date = data.bounceDate;
         updatePayload.bounce_reason = data.bounceReason;
         updatePayload.bank_fees = data.bankFees || 0;
         const contactId = cheque.contact_id || findContactId(cheque.party_name);
-        // Reverse: Debit outgoing cheques (1160), Credit supplier payables (2100) — restore obligation
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
@@ -514,7 +484,6 @@ const ChequesPage = () => {
           idempotency_key: `CHQ-OBNC-${cheque.id}`,
         }).select('id').single();
         txId = txResult?.id || null;
-        // Bank fees
         if (data.bankFees && data.bankFees > 0) {
           await supabase.from('transactions').insert({
             user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
@@ -527,11 +496,9 @@ const ChequesPage = () => {
         }
       }
 
-      // ===== OUTGOING CHEQUE: RECOVER (استرداد) =====
       if (data.action === 'recover') {
         const contactId = cheque.contact_id || findContactId(cheque.party_name);
         const today = new Date().toISOString().split('T')[0];
-        // Reverse registration: Debit outgoing cheques (1160), Credit supplier payables (2100)
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: today,
           description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
@@ -544,20 +511,15 @@ const ChequesPage = () => {
         txId = txResult?.id || null;
       }
 
-      // Update cheque
       const { error } = await supabase.from('cheques').update(updatePayload as any).eq('id', cheque.id);
       if (error) throw error;
 
-      // Record status history
       const historyDetails: Record<string, any> = {};
-      if (data.action === 'deposit') {
-        const bank = bankAccounts.find(b => b.id === data.bankAccountId);
-        historyDetails.bank_name = bank?.name;
-      }
+      if (data.action === 'deposit') { const bank = bankAccounts.find(b => b.id === data.bankAccountId); historyDetails.bank_name = bank?.name; }
       if (data.action === 'endorse') historyDetails.endorsed_to = data.endorsedToName;
       if (data.action === 'bounced' || data.action === 'outgoing_bounced') { historyDetails.bounce_reason = data.bounceReason; historyDetails.bank_fees = data.bankFees; }
       if (data.action === 'cashed') { const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id); historyDetails.source_bank = sb?.name; }
-      if (data.action === 'recover') { historyDetails.recover_reason = data.recoverReason; }
+      if (data.action === 'recover') historyDetails.recover_reason = data.recoverReason;
 
       await supabase.from('cheque_status_history').insert({
         cheque_id: cheque.id, user_id: user.id,
@@ -580,17 +542,11 @@ const ChequesPage = () => {
     }
   };
 
-  // =================== BULK ACTIONS ===================
   const handleBulkAction = async (action: ActionType) => {
     if (!user || selected.size === 0) return;
     const selectedCheques = cheques.filter(c => selected.has(c.id));
-    // Check all have same status
     const statuses = new Set(selectedCheques.map(c => c.status));
-    if (statuses.size > 1) {
-      toast.error("يجب أن تكون جميع الشيكات المحددة بنفس الحالة");
-      return;
-    }
-    // For bulk, open modal with first cheque as target (amount = total)
+    if (statuses.size > 1) { toast.error("يجب أن تكون جميع الشيكات المحددة بنفس الحالة"); return; }
     setActionTarget(selectedCheques[0]);
     setActionType(action);
   };
@@ -609,22 +565,46 @@ const ChequesPage = () => {
     finally { setDeleting(false); }
   };
 
+  // =================== EXPORT EXCEL ===================
+  const exportExcel = () => {
+    if (filtered.length === 0) { toast.error("لا توجد بيانات للتصدير"); return; }
+    const rows = filtered.map(c => ({
+      'النوع': c.cheque_type,
+      'رقم الشيك': c.cheque_number || '',
+      'الجهة': c.party_name,
+      'البنك': c.bank_name || '',
+      'المبلغ': c.amount,
+      'العملة': c.currency,
+      'تاريخ الاستحقاق': c.cheque_date,
+      'تاريخ التسجيل': c.created_at?.split('T')[0] || '',
+      'الحالة': c.status,
+      'ملاحظات': c.notes || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = Object.keys(rows[0]).map(() => ({ wch: 18 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'الشيكات');
+    XLSX.writeFile(wb, `شيكات-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success("تم تصدير الشيكات بنجاح");
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
-  // Filtering
+  // =================== FILTERING ===================
   const filtered = useMemo(() => {
     return cheques.filter(c => {
       if (filterType !== 'all' && c.cheque_type !== filterType) return false;
       if (filterStatus !== 'الكل' && c.status !== filterStatus) return false;
+      if (dateFrom && c.cheque_date < dateFrom) return false;
+      if (dateTo && c.cheque_date > dateTo) return false;
       if (search) {
         const s = search.toLowerCase();
         if (!c.party_name.toLowerCase().includes(s) && !c.cheque_number?.toLowerCase().includes(s) && !c.bank_name?.toLowerCase().includes(s)) return false;
       }
       return true;
     });
-  }, [cheques, filterType, filterStatus, search]);
+  }, [cheques, filterType, filterStatus, search, dateFrom, dateTo]);
 
-  // Sorting
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((a, b) => {
@@ -640,16 +620,8 @@ const ChequesPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
   const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  useEffect(() => {
-    if (user) {
-      fetchCheques();
-      fetchContacts();
-      fetchAccounts();
-      fetchBankAccounts();
-    }
-  }, [user]);
-
-  useEffect(() => { setPage(1); }, [search, filterType, filterStatus]);
+  useEffect(() => { if (user) { fetchCheques(); fetchContacts(); fetchBankAccounts(); } }, [user]);
+  useEffect(() => { setPage(1); }, [search, filterType, filterStatus, dateFrom, dateTo]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -669,19 +641,21 @@ const ChequesPage = () => {
     });
   };
 
-  // KPIs
-  const totalIncoming = cheques.filter(c => c.cheque_type === 'وارد').reduce((s, c) => s + c.amount, 0);
-  const totalOutgoing = cheques.filter(c => c.cheque_type === 'صادر').reduce((s, c) => s + c.amount, 0);
-  const totalDue = cheques.filter(c => c.status === 'مستحق').reduce((s, c) => s + c.amount, 0);
-  const totalPending = cheques.filter(c => c.status === 'آجل').reduce((s, c) => s + c.amount, 0);
-  const dueTodayCheques = cheques.filter(c => c.status === 'مستحق' && c.cheque_date <= today);
+  // =================== KPIs ===================
+  const pendingIncoming = cheques.filter(c => c.cheque_type === 'وارد' && PENDING_STATUSES.includes(c.status));
+  const pendingOutgoing = cheques.filter(c => c.cheque_type === 'صادر' && PENDING_STATUSES.includes(c.status));
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  const dueWithin7 = cheques.filter(c => PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const collectedThisMonth = cheques.filter(c => ['محصل', 'مصروف'].includes(c.status) && c.updated_at?.startsWith(thisMonth));
 
   const toggleExpand = (id: string) => {
-    if (expandedId === id) { setExpandedId(null); } else { setExpandedId(id); fetchHistory(id); }
+    if (expandedId === id) setExpandedId(null);
+    else { setExpandedId(id); fetchHistory(id); }
   };
 
   const fmtDate = (d: string) => {
-    try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return d; }
+    try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { return d; }
   };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
@@ -691,7 +665,6 @@ const ChequesPage = () => {
     </button>
   );
 
-  // Selected cheques info for bulk bar
   const selectedCheques = cheques.filter(c => selected.has(c.id));
   const selectedTotal = selectedCheques.reduce((s, c) => s + c.amount, 0);
   const selectedStatuses = new Set(selectedCheques.map(c => c.status));
@@ -699,37 +672,332 @@ const ChequesPage = () => {
   const bulkSameType = new Set(selectedCheques.map(c => c.cheque_type)).size === 1;
   const bulkStatus = bulkSameStatus ? [...selectedStatuses][0] : null;
   const bulkType = bulkSameType ? selectedCheques[0]?.cheque_type : null;
-  const bulkActions = (bulkStatus && bulkType) ? getAvailableActions(bulkStatus, bulkType) : [];
+  const bulkActions = (bulkStatus && bulkType) ? getAvailableActions(bulkStatus as ChequeStatus, bulkType) : [];
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title="إدارة الشيكات" breadcrumb={["المالية", "الشيكات"]} />
-      
-      {/* Action buttons */}
+
+      {/* ============ STATS CARDS ============ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-2xl border p-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground font-medium mb-1">واردة معلقة</p>
+              <p className="text-lg font-bold text-emerald-600">₪{pendingIncoming.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{pendingIncoming.length} شيك</p>
+            </div>
+            <ArrowDownCircle className="h-5 w-5 text-emerald-600 opacity-50" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border p-4 bg-destructive/5 border-destructive/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground font-medium mb-1">صادرة معلقة</p>
+              <p className="text-lg font-bold text-destructive">₪{pendingOutgoing.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{pendingOutgoing.length} شيك</p>
+            </div>
+            <ArrowUpCircle className="h-5 w-5 text-destructive opacity-50" />
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border p-4 ${dueWithin7.length > 0 ? 'bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-800' : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground font-medium mb-1">مستحقة خلال 7 أيام</p>
+              <p className={`text-lg font-bold ${dueWithin7.length > 0 ? 'text-red-600' : 'text-yellow-600'}`}>₪{dueWithin7.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{dueWithin7.length} شيك</p>
+            </div>
+            <AlertTriangle className={`h-5 w-5 opacity-50 ${dueWithin7.length > 0 ? 'text-red-600 animate-pulse' : 'text-yellow-600'}`} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border p-4 bg-primary/5 border-primary/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground font-medium mb-1">محصّلة هذا الشهر</p>
+              <p className="text-lg font-bold text-primary">₪{collectedThisMonth.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{collectedThisMonth.length} شيك</p>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-primary opacity-50" />
+          </div>
+        </div>
+      </div>
+
+      {/* ============ ACTION BUTTONS ============ */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button className="gap-1.5 rounded-xl shadow-sm" style={{ background: '#166534' }} onClick={() => openAddDialog('وارد')}>
+          <ArrowDownCircle className="h-4 w-4" /> شيك وارد
+        </Button>
+        <Button className="gap-1.5 rounded-xl shadow-sm bg-destructive hover:bg-destructive/90" onClick={() => openAddDialog('صادر')}>
+          <ArrowUpCircle className="h-4 w-4" /> شيك صادر
+        </Button>
+        {cheques.length > 0 && (
+          <Button variant="outline" className="gap-1.5 rounded-xl mr-auto" onClick={exportExcel}>
+            <Download className="h-4 w-4" /> تصدير Excel
+          </Button>
+        )}
+      </div>
+
+      {/* ============ FILTERS ============ */}
       {cheques.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-1.5 rounded-lg" style={{ color: "#166534", borderColor: "#BBF7D0" }} onClick={() => openAddDialog('وارد')}>
-            <ArrowDownCircle className="h-4 w-4" /> تسجيل شيك وارد
-          </Button>
-          <Button variant="outline" className="gap-1.5 rounded-lg" style={{ color: "#EF4444", borderColor: "#FECACA" }} onClick={() => openAddDialog('صادر')}>
-            <ArrowUpCircle className="h-4 w-4" /> تسجيل شيك صادر
-          </Button>
+        <div className="space-y-3">
+          {/* Type tabs */}
+          <div className="flex items-center gap-2">
+            {[
+              { key: 'all', label: 'الكل', emoji: '' },
+              { key: 'وارد', label: 'واردة', emoji: '🟢' },
+              { key: 'صادر', label: 'صادرة', emoji: '🔴' },
+            ].map(t => (
+              <button key={t.key} onClick={() => setFilterType(t.key)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${filterType === t.key ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                {t.emoji} {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Status pills */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مصروف', 'مظهر', 'ملغي'].map(st => {
+              const count = st === 'الكل' ? cheques.length : cheques.filter(c => c.status === st && (filterType === 'all' || c.cheque_type === filterType)).length;
+              return (
+                <button key={st} onClick={() => setFilterStatus(st)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    filterStatus === st ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                  }`}>
+                  {st}
+                  {count > 0 && <span className="text-[9px] bg-muted/50 rounded-full px-1.5">{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search + Date */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+              <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-xl bg-muted/30" />
+              {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-[10px] text-muted-foreground whitespace-nowrap">من:</Label>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-xl text-xs" />
+              <Label className="text-[10px] text-muted-foreground whitespace-nowrap">إلى:</Label>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-xl text-xs" />
+              {(dateFrom || dateTo) && (
+                <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Add Cheque Dialog */}
+      {/* ============ DUE ALERT ============ */}
+      {dueWithin7.filter(c => c.cheque_date <= today).length > 0 && (
+        <div className="relative overflow-hidden rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-destructive animate-pulse" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-destructive">{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
+                <p className="text-xs text-destructive/70">بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs" onClick={() => { setFilterStatus('مستحق'); setFilterType('all'); }}>
+              <Eye className="h-3.5 w-3.5 ml-1" />عرض
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && <div className="flex items-center justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}
+
+      {/* Empty */}
+      {!loading && cheques.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4"><Banknote className="h-10 w-10 text-muted-foreground/40" /></div>
+          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد شيكات بعد</h3>
+          <p className="text-xs text-muted-foreground mb-4">سجّل أول شيك لبدء التتبع</p>
+          <div className="flex items-center gap-2 justify-center">
+            <Button className="rounded-xl gap-2" style={{ background: '#166534' }} onClick={() => openAddDialog('وارد')}><ArrowDownCircle className="h-4 w-4" /> شيك وارد</Button>
+            <Button className="rounded-xl gap-2 bg-destructive hover:bg-destructive/90" onClick={() => openAddDialog('صادر')}><ArrowUpCircle className="h-4 w-4" /> شيك صادر</Button>
+          </div>
+        </div>
+      )}
+
+      {/* No results */}
+      {!loading && cheques.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); }}>مسح الفلاتر</Button>
+        </div>
+      )}
+
+      {/* ============ TABLE ============ */}
+      {!loading && paged.length > 0 && (
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: 40 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 'auto' }} />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 85 }} />
+                <col style={{ width: 110 }} />
+              </colgroup>
+              <thead>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold">النوع</th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold">الإصدار</th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الاستحقاق" field="cheque_date" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((c, i) => {
+                  const sc = statusConfig[c.status];
+                  const actions = getAvailableActions(c.status, c.cheque_type);
+                  const isSelected = selected.has(c.id);
+                  const isExpanded = expandedId === c.id;
+                  const history = statusHistory[c.id] || [];
+                  const isDueSoon = PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
+                  return (
+                    <Fragment key={c.id}>
+                      <tr className={`border-b border-border/50 transition-colors cursor-pointer ${isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`} onClick={() => toggleExpand(c.id)}>
+                        <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(c.id)} /></td>
+                        <td className="px-2 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.cheque_type === 'وارد' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground font-mono truncate" dir="ltr">{c.cheque_number || "—"}</td>
+                        <td className="px-2 py-3"><p className="text-sm font-semibold text-foreground truncate">{c.party_name}</p></td>
+                        <td className="px-2 py-3 text-xs text-muted-foreground truncate">{c.bank_name || '—'}</td>
+                        <td className={`px-2 py-3 text-sm font-bold tabular-nums ${c.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-destructive'}`}>{c.amount.toLocaleString()} ₪</td>
+                        <td className="px-2 py-3 text-[11px] text-muted-foreground tabular-nums">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
+                        <td className={`px-2 py-3 text-[11px] tabular-nums ${isDueSoon ? 'text-red-600 font-bold' : 'text-muted-foreground'}`}>{fmtDate(c.cheque_date)}</td>
+                        <td className="px-2 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />{sc.label}
+                          </span>
+                        </td>
+                        <td className="px-2 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            {actions.length > 0 && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+                                    <Zap className="h-3 w-3" />إجراء<ChevronDown className="h-3 w-3" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-[180px]">
+                                  {actions.map(actionId => {
+                                    const ac = ACTION_CONFIGS[actionId];
+                                    return (
+                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }} className="gap-2 text-xs cursor-pointer">
+                                        <span>{ac.emoji}</span>{ac.label}
+                                      </DropdownMenuItem>
+                                    );
+                                  })}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                            <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${c.id}-details`}>
+                          <td colSpan={10} className="bg-muted/10 border-b border-border/50 px-6 py-4">
+                            <ChequeTimeline cheque={c} history={history} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td colSpan={5} className="px-2 py-3 text-right text-foreground">المجموع ({filtered.length} شيك)</td>
+                  <td className="px-2 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
+                  <td colSpan={4} className="px-2 py-3 text-xs text-muted-foreground font-normal">إجمالي قيمة الشيكات</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {sorted.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
+                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
+                ))}
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
+              </div>
+              <p className="text-xs text-muted-foreground">{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${totalPages}`}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============ BULK ACTION BAR ============ */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-primary/30 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
+          <span className="text-sm font-bold text-foreground">✓ {selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
+          {bulkSameStatus && bulkActions.length > 0 ? (
+            <div className="flex items-center gap-2">
+              {bulkActions.slice(0, 4).map(actionId => {
+                const ac = ACTION_CONFIGS[actionId];
+                return (
+                  <button key={actionId} onClick={() => handleBulkAction(actionId)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+                    {ac.emoji} {ac.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">يجب أن تكون بنفس الحالة</span>
+          )}
+          <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      {/* ============ ADD DIALOG ============ */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-center text-lg">
-              {addType === 'وارد' ? '⬇ تسجيل شيكات واردة' : '⬆ تسجيل شيكات صادرة'}
+              {addType === 'وارد' ? '⬇ تسجيل شيك وارد' : '⬆ تسجيل شيك صادر'}
             </DialogTitle>
           </DialogHeader>
 
-          {/* Shared: Party Name */}
           <div className="space-y-3 mt-2">
+            {/* Party */}
             <div>
-              <Label className="text-xs font-semibold">اسم {addType === 'وارد' ? 'العميل / الجهة' : 'المورد / الجهة'} *</Label>
+              <Label className="text-xs font-semibold">الجهة ({addType === 'وارد' ? 'من' : 'إلى'}) *</Label>
               <Popover open={partyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Input className="h-9 rounded-xl" value={partySearch} onChange={e => {
@@ -740,11 +1008,11 @@ const ChequesPage = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
                   {(() => {
-                    const filteredContacts = contacts.filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
-                    const exactMatch = contacts.some(c => c.contact_name === partySearch.trim());
+                    const fc = contacts.filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
+                    const exact = contacts.some(c => c.contact_name === partySearch.trim());
                     return (
                       <>
-                        {filteredContacts.length > 0 ? filteredContacts.slice(0, 20).map(c => (
+                        {fc.length > 0 ? fc.slice(0, 20).map(c => (
                           <button key={c.id} className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center gap-2" onClick={() => {
                             setNewCheques(prev => prev.map(r => ({ ...r, party_name: c.contact_name })));
                             setPartySearch(c.contact_name);
@@ -755,7 +1023,7 @@ const ChequesPage = () => {
                             <Badge variant="outline" className="text-[9px] mr-auto">{c.contact_type}</Badge>
                           </button>
                         )) : <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>}
-                        {partySearch.trim() && !exactMatch && (
+                        {partySearch.trim() && !exact && (
                           <button className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2 text-primary font-medium border-t border-border mt-1 pt-2" onClick={() => handleQuickAddContact(partySearch)} disabled={quickAddingContact}>
                             <UserPlus className="h-3.5 w-3.5" />إضافة "{partySearch.trim()}" كجهة جديدة
                           </button>
@@ -767,10 +1035,10 @@ const ChequesPage = () => {
               </Popover>
             </div>
 
-            {/* Source bank for outgoing cheques */}
+            {/* Source bank for outgoing */}
             {addType === 'صادر' && (
               <div>
-                <Label className="text-xs font-semibold flex items-center gap-1"><Building2 className="h-3 w-3" /> دفتر الشيكات (الحساب البنكي) *</Label>
+                <Label className="text-xs font-semibold flex items-center gap-1"><Building2 className="h-3 w-3" /> الدفع من (حساب بنكي) *</Label>
                 {bankAccounts.length === 0 ? (
                   <p className="text-xs text-muted-foreground mt-2">لا توجد حسابات بنكية</p>
                 ) : (
@@ -808,16 +1076,16 @@ const ChequesPage = () => {
                   )}
                   <div className="grid grid-cols-4 gap-2">
                     <div>
-                      <Label className="text-[10px] text-muted-foreground">رقم الشيك</Label>
+                      <Label className="text-[10px] text-muted-foreground">رقم الشيك *</Label>
                       <Input className="h-8 rounded-lg text-xs" value={row.cheque_number} onChange={e => updateChequeRow(idx, 'cheque_number', e.target.value)} placeholder="رقم" />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">اسم البنك {addType === 'وارد' ? '*' : ''}</Label>
+                      <Input className="h-8 rounded-lg text-xs" value={row.bank_name} onChange={e => updateChequeRow(idx, 'bank_name', e.target.value)} placeholder="البنك" disabled={addType === 'صادر'} />
                     </div>
                     <div>
                       <Label className="text-[10px] text-muted-foreground">المبلغ *</Label>
                       <Input className="h-8 rounded-lg text-xs" type="number" value={row.amount} onChange={e => updateChequeRow(idx, 'amount', e.target.value)} placeholder="0" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">تاريخ الاستحقاق *</Label>
-                      <Input className="h-8 rounded-lg text-xs" type="date" value={row.cheque_date} onChange={e => updateChequeRow(idx, 'cheque_date', e.target.value)} />
                     </div>
                     <div>
                       <Label className="text-[10px] text-muted-foreground">العملة</Label>
@@ -832,20 +1100,26 @@ const ChequesPage = () => {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {addType === 'وارد' && (
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">البنك</Label>
-                        <Input className="h-8 rounded-lg text-xs" value={row.bank_name} onChange={e => updateChequeRow(idx, 'bank_name', e.target.value)} placeholder="اختياري" />
-                      </div>
-                    )}
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">تاريخ الإصدار</Label>
+                      <Input className="h-8 rounded-lg text-xs" type="date" value={row.issue_date} onChange={e => updateChequeRow(idx, 'issue_date', e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">تاريخ الاستحقاق *</Label>
+                      <Input className="h-8 rounded-lg text-xs" type="date" value={row.cheque_date} onChange={e => updateChequeRow(idx, 'cheque_date', e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">رقم الحساب البنكي</Label>
+                      <Input className="h-8 rounded-lg text-xs" value={row.bank_account} onChange={e => updateChequeRow(idx, 'bank_account', e.target.value)} placeholder="اختياري" />
+                    </div>
                     {row.currency !== 'شيكل' && (
                       <div>
                         <Label className="text-[10px] text-muted-foreground">سعر الصرف</Label>
                         <Input className="h-8 rounded-lg text-xs" type="number" step="0.01" value={row.exchange_rate} onChange={e => updateChequeRow(idx, 'exchange_rate', e.target.value)} placeholder="1.00" />
                       </div>
                     )}
-                    <div>
+                    <div className={row.currency !== 'شيكل' ? '' : 'col-span-1'}>
                       <Label className="text-[10px] text-muted-foreground">ملاحظات</Label>
                       <Input className="h-8 rounded-lg text-xs" value={row.notes} onChange={e => updateChequeRow(idx, 'notes', e.target.value)} placeholder="اختياري" />
                     </div>
@@ -870,230 +1144,7 @@ const ChequesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* KPI Cards */}
-      {cheques.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "شيكات واردة", value: `₪${totalIncoming.toLocaleString()}`, count: cheques.filter(c => c.cheque_type === 'وارد').length, icon: ArrowDownCircle, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
-            { label: "شيكات صادرة", value: `₪${totalOutgoing.toLocaleString()}`, count: cheques.filter(c => c.cheque_type === 'صادر').length, icon: ArrowUpCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/10" },
-            { label: "مستحقة", value: `₪${totalDue.toLocaleString()}`, count: cheques.filter(c => c.status === 'مستحق').length, icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
-            { label: "آجلة", value: `₪${totalPending.toLocaleString()}`, count: cheques.filter(c => c.status === 'آجل').length, icon: Clock, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          ].map((k, i) => (
-            <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
-                  <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{k.count} شيك</p>
-                </div>
-                <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Due Today Alert */}
-      {dueTodayCheques.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-destructive animate-pulse" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-destructive">{dueTodayCheques.length} شيك مستحق اليوم</p>
-                <p className="text-xs text-destructive/70">بقيمة إجمالية {dueTodayCheques.reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
-              </div>
-            </div>
-            <Button size="sm" variant="outline" className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs" onClick={() => { setFilterStatus('مستحق'); setFilterType('all'); }}>
-              <Eye className="h-3.5 w-3.5 ml-1" />عرض الآن
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Toolbar */}
-      {cheques.length > 0 && (
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input placeholder="ابحث بالاسم، رقم الشيك، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-xl bg-muted/30" />
-            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-              {STATUS_FILTERS.map(st => (
-                <button key={st} onClick={() => setFilterStatus(st)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterStatus === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>{st}</button>
-              ))}
-            </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[140px] rounded-xl text-xs"><SelectValue placeholder="نوع الشيك" /></SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                <SelectItem value="all">كل الأنواع</SelectItem>
-                <SelectItem value="وارد">⬇ وارد</SelectItem>
-                <SelectItem value="صادر">⬆ صادر</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading && <div className="flex items-center justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}
-
-      {/* Empty */}
-      {!loading && cheques.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4"><Banknote className="h-10 w-10 text-muted-foreground/40" /></div>
-          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد شيكات بعد</h3>
-          <p className="text-xs text-muted-foreground mb-4">سجّل أول شيك لبدء التتبع</p>
-          <div className="flex items-center gap-2 justify-center">
-            <Button variant="outline" className="rounded-xl gap-2 text-emerald-700 border-emerald-300" onClick={() => openAddDialog('وارد')}><ArrowDownCircle className="h-4 w-4" /> شيك وارد</Button>
-            <Button variant="outline" className="rounded-xl gap-2 text-destructive border-destructive/30" onClick={() => openAddDialog('صادر')}><ArrowUpCircle className="h-4 w-4" /> شيك صادر</Button>
-          </div>
-        </div>
-      )}
-
-      {/* No results */}
-      {!loading && cheques.length > 0 && filtered.length === 0 && (
-        <div className="text-center py-12 space-y-2">
-          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-          <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); }}>مسح الفلاتر</Button>
-        </div>
-      )}
-
-      {/* TABLE */}
-      {!loading && paged.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-primary text-primary-foreground">
-                  <th className="px-3 py-3 text-right w-10"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="النوع" field="cheque_type" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الاستحقاق" field="cheque_date" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.map((c, i) => {
-                  const sc = statusConfig[c.status];
-                  const actions = getAvailableActions(c.status, c.cheque_type);
-                  const isSelected = selected.has(c.id);
-                  const isExpanded = expandedId === c.id;
-                  const history = statusHistory[c.id] || [];
-                  return (
-                    <Fragment key={c.id}>
-                      <tr className={`border-b border-border/50 transition-colors cursor-pointer ${isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`} onClick={() => toggleExpand(c.id)}>
-                        <td className="px-3 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(c.id)} /></td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground font-mono" dir="ltr">{c.cheque_number || "—"}</td>
-                        <td className="px-3 py-3"><p className="text-sm font-semibold text-foreground">{c.party_name}</p></td>
-                        <td className="px-3 py-3"><Badge variant="outline" className="text-[10px]">{c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}</Badge></td>
-                        <td className={`px-3 py-3 text-sm font-bold tabular-nums ${c.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-destructive'}`}>{c.amount.toLocaleString()} ₪</td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{fmtDate(c.cheque_date)}</td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />{sc.label}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground">{c.bank_name || '—'}</td>
-                        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
-                            {actions.length > 0 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all">
-                                    <Zap className="h-3 w-3" />إجراء<ChevronDown className="h-3 w-3" />
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-[180px]">
-                                  {actions.map(actionId => {
-                                    const ac = ACTION_CONFIGS[actionId];
-                                    return (
-                                      <DropdownMenuItem key={actionId} onClick={() => { setActionTarget(c); setActionType(actionId); }}
-                                        className="gap-2 text-xs cursor-pointer">
-                                        <span>{ac.emoji}</span>{ac.label}
-                                      </DropdownMenuItem>
-                                    );
-                                  })}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                            <button onClick={() => setDeleteTarget(c)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr key={`${c.id}-details`}>
-                          <td colSpan={9} className="bg-muted/10 border-b border-border/50 px-6 py-4">
-                            <ChequeTimeline cheque={c} history={history} />
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                  <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} شيك)</td>
-                  <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={4} className="px-3 py-3 text-xs text-muted-foreground font-normal">إجمالي قيمة الشيكات</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {sorted.length > PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
-              <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
-                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
-                ))}
-                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
-              </div>
-              <p className="text-xs text-muted-foreground">{selected.size > 0 ? `${selected.size} شيك محدد` : `صفحة ${page} من ${totalPages}`}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Bulk Action Bar */}
-      {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-primary/30 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
-          <span className="text-sm font-bold text-foreground">✓ تم تحديد {selected.size} شيك — ₪{selectedTotal.toLocaleString()}</span>
-          {bulkSameStatus && bulkActions.length > 0 ? (
-            <div className="flex items-center gap-2">
-              {bulkActions.slice(0, 4).map(actionId => {
-                const ac = ACTION_CONFIGS[actionId];
-                return (
-                  <button key={actionId} onClick={() => handleBulkAction(actionId)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all">
-                    {ac.emoji} {ac.label}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">يجب أن تكون جميعها بنفس الحالة</span>
-          )}
-          <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-        </div>
-      )}
-
-      {/* Action Modal */}
+      {/* ============ ACTION MODAL ============ */}
       <ChequeActionModal
         open={!!actionTarget && !!actionType}
         onOpenChange={(v) => { if (!v) { setActionTarget(null); setActionType(null); } }}
@@ -1110,7 +1161,7 @@ const ChequesPage = () => {
         submitting={actionSubmitting}
       />
 
-      {/* Delete Confirmation */}
+      {/* ============ DELETE CONFIRMATION ============ */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent dir="rtl" className="rounded-2xl">
           <AlertDialogHeader>
