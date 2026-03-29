@@ -151,7 +151,7 @@ const JournalNewPage = () => {
   const diff = Math.abs(totalDebit - totalCredit);
 
   const addLine = () => {
-    setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" }]);
+    setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" }]);
   };
 
   const removeLine = (id: string) => {
