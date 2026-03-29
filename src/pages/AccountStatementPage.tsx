@@ -1726,18 +1726,18 @@ const AccountStatementPage = () => {
                       )}
                       style={isActive ? { background: "#0D1B2E" } : undefined}
                     >
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-0.5">
                         <span className={cn("text-xs font-semibold truncate flex items-center gap-1.5", isActive ? "text-white" : "text-foreground")}>
                           {isActive && <span className="text-emerald-400">✓</span>}
                           {entity.name}
                         </span>
                         <span className={cn("text-xs font-bold tabular-nums shrink-0 mr-2",
                           isActive
-                            ? (entity.balance === 0 ? "text-white/60" : entity.balance > 0 ? "text-red-300" : "text-emerald-300")
+                            ? (entity.balance === 0 ? "text-emerald-300" : entity.balance > 0 ? "text-red-300" : "text-emerald-300")
                             : (() => {
                                 const code = entity.accountCode || "";
                                 const isAssetOrExpense = code.startsWith("1") || code.startsWith("5");
-                                if (entity.balance === 0) return "text-muted-foreground";
+                                if (entity.balance === 0) return "text-emerald-600";
                                 if (isAssetOrExpense) return entity.balance > 0 ? "text-foreground" : "text-red-600";
                                 return entity.balance > 0 ? "text-red-600" : "text-emerald-600";
                               })()
@@ -1745,9 +1745,14 @@ const AccountStatementPage = () => {
                           {entity.balance === 0 ? "✓ مسدَّد" : fmtAmount(entity.balance)}
                         </span>
                       </div>
-                      {entity.subtitle && (
-                        <div className={cn("text-[10px] truncate", isActive ? "text-white/50" : "text-muted-foreground")}>{entity.subtitle}</div>
-                      )}
+                      <div className="flex items-center justify-between">
+                        {entity.subtitle ? (
+                          <span className={cn("text-[11px] truncate", isActive ? "text-white/50" : "text-muted-foreground")}>{entity.subtitle}</span>
+                        ) : <span />}
+                        {entity.balance === 0 && (
+                          <Badge variant="secondary" className={cn("text-[9px] px-1.5 py-0 h-4", isActive ? "bg-emerald-500/30 text-emerald-300 border-0" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400")}>مسدّد ✓</Badge>
+                        )}
+                      </div>
                       {entity.balance !== 0 && !isActive && (
                         <div className="h-1 rounded-full bg-muted/50 overflow-hidden mt-1">
                           <div
@@ -1976,42 +1981,40 @@ const AccountStatementPage = () => {
                     <div className="p-5 border-b border-border">
                       <div className={cn("grid gap-4", isMobile ? "grid-cols-2" : "grid-cols-4")}>
                         {/* Opening Balance */}
-                        <div className="rounded-xl border border-border bg-card p-4 relative overflow-hidden" style={{ borderRight: "4px solid #9CA3AF" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #94A3B8", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
                             <BookOpen className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-[13px] text-muted-foreground">رصيد افتتاحي</span>
+                            <span className="text-[12px] text-muted-foreground">رصيد افتتاحي</span>
                           </div>
-                          <p className="font-bold tabular-nums text-foreground" style={{ fontSize: "22px" }}>{fmtAmount(openingBalance, statementCurrency)}</p>
+                          <p className="font-bold tabular-nums text-foreground" style={{ fontSize: "26px" }}>{fmtAmount(openingBalance, statementCurrency)}</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
                         </div>
 
                         {/* Total Debit */}
-                        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-card p-4 relative overflow-hidden" style={{ borderRight: "4px solid #3B82F6" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #3B82F6", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
                             <TrendingUp className="w-4 h-4 text-blue-500" />
-                            <span className="text-[13px] text-muted-foreground">إجمالي المدين</span>
+                            <span className="text-[12px] text-muted-foreground">إجمالي المدين</span>
                           </div>
-                          <p className="font-bold tabular-nums text-red-600" style={{ fontSize: "22px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
+                          <p className="font-bold tabular-nums text-blue-600" style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
                         </div>
 
                         {/* Total Credit */}
-                        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-card p-4 relative overflow-hidden" style={{ borderRight: "4px solid #10B981" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #22C55E", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
                             <TrendingDown className="w-4 h-4 text-emerald-500" />
-                            <span className="text-[13px] text-muted-foreground">إجمالي الدائن</span>
+                            <span className="text-[12px] text-muted-foreground">إجمالي الدائن</span>
                           </div>
-                          <p className="font-bold tabular-nums text-emerald-600" style={{ fontSize: "22px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
+                          <p className="font-bold tabular-nums text-emerald-600" style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
                         </div>
 
                         {/* Closing Balance */}
-                        <div className={cn("rounded-xl border bg-card p-4 relative overflow-hidden",
-                          closingBalance > 0 ? "border-red-200 dark:border-red-800" : closingBalance < 0 ? "border-emerald-200 dark:border-emerald-800" : "border-border"
-                        )} style={{ borderRight: closingBalance > 0 ? "4px solid #EF4444" : closingBalance < 0 ? "4px solid #10B981" : "4px solid #9CA3AF" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${closingBalance > 0 ? "#EF4444" : closingBalance < 0 ? "#22C55E" : "#94A3B8"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
                             {closingBalance !== 0 ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Wallet className="w-4 h-4 text-muted-foreground" />}
-                            <span className="text-[13px] text-muted-foreground">الرصيد المستحق</span>
+                            <span className="text-[12px] text-muted-foreground">الرصيد المستحق</span>
                           </div>
-                          <p className={cn("font-bold tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-muted-foreground")} style={{ fontSize: "22px" }}>
+                          <p className={cn("font-bold tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>
                             {fmtAmount(closingBalance, statementCurrency)}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -2262,20 +2265,20 @@ const AccountStatementPage = () => {
                         </div>
                       ) : (
                         <>
-                          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-                            <table className="w-full text-[13px]" style={{ tableLayout: "fixed", minWidth: "900px" }}>
+                          <div className="overflow-x-auto overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+                            <table className="w-full text-[13px]" style={{ tableLayout: "fixed", minWidth: "880px" }}>
                               <colgroup>
-                                {isColVisible("date") && <col style={{ width: "120px" }} />}
-                                {isColVisible("reference") && <col style={{ width: "130px" }} />}
+                                {isColVisible("date") && <col style={{ width: "110px" }} />}
+                                {isColVisible("reference") && <col style={{ width: "110px" }} />}
                                 {isColVisible("description") && <col />}
-                                {isColVisible("dueDate") && <col style={{ width: "120px" }} />}
-                                {isColVisible("type") && <col style={{ width: "100px" }} />}
+                                {isColVisible("dueDate") && <col style={{ width: "110px" }} />}
+                                {isColVisible("type") && <col style={{ width: "90px" }} />}
                                 {isColVisible("paymentMethod") && <col style={{ width: "85px" }} />}
                                 {isColVisible("currency") && <col style={{ width: "65px" }} />}
                                 {isColVisible("contactCode") && <col style={{ width: "80px" }} />}
-                                {isColVisible("debit") && <col style={{ width: "120px" }} />}
-                                {isColVisible("credit") && <col style={{ width: "120px" }} />}
-                                {isColVisible("balance") && <col style={{ width: "130px" }} />}
+                                {isColVisible("debit") && <col style={{ width: "110px" }} />}
+                                {isColVisible("credit") && <col style={{ width: "110px" }} />}
+                                {isColVisible("balance") && <col style={{ width: "120px" }} />}
                               </colgroup>
                               <thead className="sticky top-0 z-10">
                                 <tr style={{ background: "#0D1B2A" }}>
@@ -2295,7 +2298,7 @@ const AccountStatementPage = () => {
                               <tbody>
                                 {/* Opening balance */}
                                 <tr style={{ background: "#F8F9FA" }} className="border-b-2 border-border/60">
-                                  {isColVisible("date") && <td className="px-3 py-2.5 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>}
+                                  {isColVisible("date") && <td className="px-3 py-2.5 text-xs text-muted-foreground italic whitespace-nowrap">{(() => { try { const d = new Date(dateFrom); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; } catch { return dateFrom; } })()}</td>}
                                   {isColVisible("reference") && <td className="px-3 py-2.5 text-xs text-muted-foreground">—</td>}
                                   {isColVisible("description") && <td className="px-3 py-2.5 text-xs font-bold text-foreground italic">رصيد أول المدة</td>}
                                   {isColVisible("dueDate") && <td className="px-3 py-2.5"></td>}
@@ -2369,17 +2372,17 @@ const AccountStatementPage = () => {
                                       {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
                                       {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                       {isColVisible("debit") && (
-                                        <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
+                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
                                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                                         </td>
                                       )}
                                       {isColVisible("credit") && (
-                                        <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
+                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
                                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                                         </td>
                                       )}
                                       {isColVisible("balance") && (
-                                        <td className="px-3 py-2 text-left">
+                                        <td className="px-3 py-2 text-left whitespace-nowrap">
                                           {!isSubRow ? <BalanceCell value={row.balance} bold currency={row.currency} /> : <span className="text-muted-foreground/30">—</span>}
                                         </td>
                                       )}
@@ -2388,19 +2391,19 @@ const AccountStatementPage = () => {
                                 })}
 
                                 {/* Closing balance */}
-                                <tr style={{ background: "#0D1B2E" }}>
+                                <tr style={{ background: "#0D1B2E", color: "white", fontWeight: 700 }}>
                                   {isColVisible("date") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
                                   {isColVisible("reference") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
-                                  {isColVisible("description") && <td className="px-3 py-3.5 text-sm font-bold text-white">رصيد ختامي</td>}
+                                  {isColVisible("description") && <td className="px-3 py-3.5 text-sm font-bold text-white">رصيد الختام</td>}
                                   {isColVisible("dueDate") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("type") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
-                                  {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit, statementCurrency)}</td>}
-                                  {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit, statementCurrency)}</td>}
+                                  {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm whitespace-nowrap">{fmtAmount(totalDebit, statementCurrency)}</td>}
+                                  {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm whitespace-nowrap">{fmtAmount(totalCredit, statementCurrency)}</td>}
                                   {isColVisible("balance") && (
-                                    <td className="px-3 py-3.5 text-left">
+                                    <td className="px-3 py-3.5 text-left whitespace-nowrap">
                                       <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
                                         closingBalance > 0 ? "text-red-300 bg-red-500/20" :
                                         closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
