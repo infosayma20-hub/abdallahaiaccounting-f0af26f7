@@ -533,9 +533,10 @@ const JournalNewPage = () => {
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-2.5 text-white font-medium w-10">#</th>
                   <th className="p-2.5 text-white font-medium w-24">رقم الحساب</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "40%" }}>الحساب / الجهة</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "30%" }}>الحساب / الجهة</th>
                   <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
                   <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "18%" }}>تعليق</th>
                   <th className="p-2.5 w-10"></th>
                 </tr>
               </thead>
