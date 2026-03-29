@@ -187,9 +187,6 @@ const AppsLauncher = () => {
   const allFilteredApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
 
-    // Filter out irrelevant apps for this business type
-    allApps = allApps.filter(app => !isAppIrrelevant(app));
-
     // Filter by role if restricted
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
@@ -209,7 +206,7 @@ const AppsLauncher = () => {
       const bDisabled = isAppDisabled(b) ? 1 : 0;
       return aDisabled - bDisabled;
     });
-  }, [search, enabledSettings, restrictedRole, hiddenApps]);
+  }, [search, restrictedRole, hiddenApps]);
 
   const totalResults = allFilteredApps.length;
 
