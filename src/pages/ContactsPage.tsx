@@ -606,11 +606,18 @@ const ContactsPage = () => {
                           {contact.credit_limit ? `₪${contact.credit_limit.toLocaleString()}` : "—"}
                         </span>
                       </td>
-                      <td className="p-3">
-                        <span className={`text-xs font-semibold tabular-nums ${hasOverdue ? 'text-red-600' : 'text-muted-foreground'}`}>
-                          {hasOverdue ? `₪${(contact.overdue_amount || 0).toLocaleString()}` : "—"}
-                          {hasOverdue && <AlertTriangle className="inline h-3 w-3 mr-1 text-red-500" />}
-                        </span>
+                      <td className="p-3" onClick={e => e.stopPropagation()}>
+                        {hasOverdue ? (
+                          <button
+                            className="text-xs font-semibold tabular-nums text-red-600 hover:underline cursor-pointer flex items-center gap-1"
+                            onClick={() => { setOverdueContact(contact); setOverdueDialogOpen(true); }}
+                          >
+                            ₪{(contact.overdue_amount || 0).toLocaleString()}
+                            <AlertTriangle className="h-3 w-3 text-red-500" />
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="p-3">
                         <span className="text-xs text-muted-foreground tabular-nums">
