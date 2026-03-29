@@ -670,7 +670,7 @@ const InvoicesPage = () => {
   };
 
 
-    // Update in DB
+    const updateStatus = async (id: string, status: Invoice["status"]) => {
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
     await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
     
