@@ -87,7 +87,7 @@ interface Employee {
 const emptyEmployee: Partial<Employee> = {
   full_name: "", id_number: "", employee_number: "", phone: "", email: "", position: "", department: "",
   job_title: "", start_date: new Date().toISOString().split("T")[0], salary_type: "شهري",
-  base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 8,
+  base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 10,
   annual_leave_days: 14, sick_leave_days: 14, bank_name: "", bank_account: "",
   emergency_contact: "", emergency_phone: "", address: "", notes: "", is_active: true,
   marital_status: "single", children_count: 0, spouse_allowance_amount: 0,
@@ -332,7 +332,7 @@ const EmployeesPage = () => {
     const legacyDeductions = deductions.filter(d => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
     const slip = calculateSalarySlip({
       baseSalary: Number(selectedEmployee.base_salary) || 0, hourlyRate: Number(selectedEmployee.hourly_rate) || 0,
-      workDaysPerWeek: selectedEmployee.work_days_per_week || 6, workHoursPerDay: selectedEmployee.work_hours_per_day || 8,
+      workDaysPerWeek: selectedEmployee.work_days_per_week || 6, workHoursPerDay: selectedEmployee.work_hours_per_day || 10,
       presentDays: workDays, annualLeaveDays: 0, sickLeaveDays: 0, officialHolidayDays: 0, weeklyDaysOff: weeklyOff, totalWorkDays: workDays,
       transportationPerDay: Number((selectedEmployee as any).transportation_allowance_per_day) || 0,
       mealPerDay: Number((selectedEmployee as any).meal_allowance_per_day) || 0,
@@ -999,7 +999,7 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">الراتب الأساسي</label><Input type="number" value={form.base_salary || 0} onChange={e => setForm({ ...form, base_salary: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">معدل الساعة</label><Input type="number" value={form.hourly_rate || 0} onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">أيام العمل/أسبوع</label><Input type="number" value={form.work_days_per_week || 6} onChange={e => setForm({ ...form, work_days_per_week: Number(e.target.value) })} /></div>
-            <div><label className="text-xs text-muted-foreground">ساعات العمل/يوم</label><Input type="number" value={form.work_hours_per_day || 8} onChange={e => setForm({ ...form, work_hours_per_day: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">ساعات العمل/يوم</label><Input type="number" value={form.work_hours_per_day || 10} onChange={e => setForm({ ...form, work_hours_per_day: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">بداية الوردية</label><Input type="time" value={(form as any).shift_start || "08:00"} onChange={e => setForm({ ...form, shift_start: e.target.value })} dir="ltr" /></div>
             <div><label className="text-xs text-muted-foreground">نهاية الوردية</label><Input type="time" value={(form as any).shift_end || "16:00"} onChange={e => setForm({ ...form, shift_end: e.target.value })} dir="ltr" /></div>
             <div className="col-span-2 border-t border-border pt-3 mt-2">

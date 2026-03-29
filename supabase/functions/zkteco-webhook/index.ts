@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
           // Find employee by fingerprint_id
           const { data: employee, error: empErr } = await supabase
             .from("employees")
-            .select("id, full_name, branch_id, auth_user_id")
+            .select("id, full_name, branch_id, auth_user_id, work_hours_per_day")
             .eq("fingerprint_id", fingerprint_id)
             .eq("is_active", true)
             .single();
@@ -134,7 +134,8 @@ Deno.serve(async (req) => {
             if (dayRecord?.first_check_in) {
               const totalHours =
                 (eventTime.getTime() - new Date(dayRecord.first_check_in).getTime()) / 3600000;
-              const overtime = Math.max(0, totalHours - 8);
+              const dailyHours = employee.work_hours_per_day || 10;
+              const overtime = Math.max(0, totalHours - dailyHours);
 
               await supabase
                 .from("attendance_days")
