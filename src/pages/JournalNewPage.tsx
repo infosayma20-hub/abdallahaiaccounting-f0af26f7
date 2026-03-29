@@ -541,7 +541,15 @@ const JournalNewPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {lines.map((line, i) => {
+                {(() => {
+                  const displayLines = lineSortOrder === "debit_first"
+                    ? [...lines].sort((a, b) => {
+                        const aIsDebit = Number(a.debit) > 0 ? 0 : 1;
+                        const bIsDebit = Number(b.debit) > 0 ? 0 : 1;
+                        return aIsDebit - bIsDebit;
+                      })
+                    : lines;
+                  return displayLines.map((line, i) => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
                     <td className="p-2.5 text-muted-foreground">{i + 1}</td>
