@@ -34,7 +34,7 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
           </div>
           <div className="space-y-2">
             <Label>ساعات العمل اليومية</Label>
-            <Input type="number" value={settings.hr_daily_hours ?? 8} onChange={e => onChange({ hr_daily_hours: Number(e.target.value) })} />
+            <Input type="number" value={settings.hr_daily_hours ?? 10} onChange={e => onChange({ hr_daily_hours: Number(e.target.value) })} />
           </div>
           <div className="space-y-2">
             <Label>بداية الدوام</Label>

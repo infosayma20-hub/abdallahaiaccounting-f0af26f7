@@ -287,7 +287,7 @@ export const mapExcelRowToEmployee = (row: Record<string, any>, userId: string) 
   base_salary: Number(row["الراتب الأساسي"]) || 0,
   salary_type: row["نوع الراتب"] || "شهري",
   work_days_per_week: Number(row["أيام العمل/أسبوع"]) || 6,
-  work_hours_per_day: Number(row["ساعات العمل/يوم"]) || 8,
+  work_hours_per_day: Number(row["ساعات العمل/يوم"]) || 10,
   transportation_allowance_per_day: Number(row["بدل مواصلات/يوم"]) || 0,
   meal_allowance_per_day: Number(row["بدل وجبات/يوم"]) || 0,
   marital_status: row["الحالة الاجتماعية"] === "متزوج" ? "married" : row["الحالة الاجتماعية"] === "مطلق" ? "divorced" : "single",

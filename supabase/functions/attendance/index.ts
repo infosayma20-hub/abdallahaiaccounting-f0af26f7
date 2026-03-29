@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
       // 4. Get employee record
       const { data: employee, error: empErr } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, user_id")
+        .select("id, full_name, branch_id, user_id, work_hours_per_day")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -390,7 +390,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      const overtime = Math.max(0, totalHours - 8);
+      const dailyHours = employee.work_hours_per_day || 10;
+      const overtime = Math.max(0, totalHours - dailyHours);
       const currentlyIn = evts[evts.length - 1]?.event_type === "check_in";
 
       // Determine status
