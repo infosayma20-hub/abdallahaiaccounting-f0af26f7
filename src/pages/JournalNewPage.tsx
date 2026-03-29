@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
-  BookOpen, User, Building2, Users, X, UserPlus
+  BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -28,6 +28,7 @@ interface JournalLine {
   credit: number;
   contact_id?: string;
   contact_name?: string;
+  line_comment?: string;
 }
 
 interface Contact {
@@ -57,6 +58,14 @@ const JournalNewPage = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedRefNumber, setSavedRefNumber] = useState("");
+  const [lineSortOrder, setLineSortOrder] = useState<"debit_first" | "original">("debit_first");
+
+  // Attachments
+  const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -70,8 +79,8 @@ const JournalNewPage = () => {
   const [quickAddType, setQuickAddType] = useState<"customer" | "supplier">("customer");
   const [quickAddSaving, setQuickAddSaving] = useState(false);
   const [lines, setLines] = useState<JournalLine[]>([
-    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
-    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
 
   // ─── Load Duplicate Data ───
@@ -142,7 +151,7 @@ const JournalNewPage = () => {
   const diff = Math.abs(totalDebit - totalCredit);
 
   const addLine = () => {
-    setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" }]);
+    setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" }]);
   };
 
   const removeLine = (id: string) => {
@@ -196,10 +205,10 @@ const JournalNewPage = () => {
   };
 
 
-  const handleSave = async (asDraft = false) => {
+  const handleSave = async (mode: "draft" | "posted" | "deferred" = "posted") => {
     if (!user) return;
     if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
-    if (!asDraft && !isBalanced) { toast.error("القيد غير متوازن"); return; }
+    if (mode === "posted" && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
     // Auto-assign account codes for contact-only lines before validation
     const preparedLines = lines.map(l => {
@@ -228,9 +237,11 @@ const JournalNewPage = () => {
         amount_ils: totalDebit,
         description: formDescription,
         notes: formNotes || null,
-        status: asDraft ? "draft" : "posted",
-        posted_by: !asDraft ? user.id : null,
-        posted_at: !asDraft ? new Date().toISOString() : null,
+        status: mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft",
+        posted_by: mode === "posted" ? user.id : null,
+        posted_at: mode === "posted" ? new Date().toISOString() : null,
+        attachments: attachments.length > 0 ? attachments : [],
+        line_sort_order: lineSortOrder,
       }).select("id, ref_number").single();
 
       if (error) throw error;
@@ -246,15 +257,15 @@ const JournalNewPage = () => {
           line_order: i + 1,
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
+          line_comment: l.line_comment || null,
         }))
       );
 
       // If posted, create transactions (one per debit-credit pair, with contact_id)
-      if (!asDraft) {
+      if (mode === "posted") {
         const debitLines = validLines.filter(l => Number(l.debit) > 0);
         const creditLines = validLines.filter(l => Number(l.credit) > 0);
         
-        // Create individual transactions for each debit line paired with credit lines
         const txns: any[] = [];
         for (const dl of debitLines) {
           for (const cl of creditLines) {
@@ -280,7 +291,6 @@ const JournalNewPage = () => {
           }
         }
         
-        // Fallback: if no pairs created, use simple approach
         if (txns.length === 0 && debitLines.length > 0 && creditLines.length > 0) {
           txns.push({
             user_id: user.id,
@@ -302,13 +312,39 @@ const JournalNewPage = () => {
         }
       }
 
-      toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل سند القيد ${voucher.ref_number}`);
+      const modeLabel = mode === "posted" ? `تم ترحيل سند القيد ${voucher.ref_number}` : mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${voucher.ref_number}` : "تم حفظ المسودة";
+      toast.success(modeLabel);
       setSaved(true);
       setSavedRefNumber(voucher.ref_number || "");
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // File upload handler
+  const handleFileUpload = async (file: File) => {
+    if (!user) return;
+    if (attachments.length >= 5) { toast.error("الحد الأقصى 5 ملفات"); return; }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    if (!allowedTypes.includes(file.type)) { toast.error("نوع الملف غير مدعوم. يُقبل: PDF, JPG, PNG, XLSX"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("حجم الملف يتجاوز 10MB"); return; }
+
+    setUploadingFile(true);
+    try {
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("journal-attachments").upload(filePath, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("journal-attachments").getPublicUrl(filePath);
+      setAttachments(prev => [...prev, {
+        name: file.name, url: urlData.publicUrl, size: file.size, type: file.type, uploaded_at: new Date().toISOString(),
+      }]);
+      toast.success(`تم رفع ${file.name}`);
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في الرفع");
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -335,9 +371,10 @@ const JournalNewPage = () => {
               setFormDescription("");
               setFormNotes("");
               setFormContactId("");
+              setAttachments([]);
               setLines([
-                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
-                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
               ]);
             }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               سند قيد جديد
@@ -364,9 +401,10 @@ const JournalNewPage = () => {
           setFormDescription("");
           setFormNotes("");
           setFormContactId("");
+          setAttachments([]);
           setLines([
-            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
-            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
           ]);
         }}
         onNewSimilar={saved ? () => {
@@ -497,14 +535,23 @@ const JournalNewPage = () => {
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-2.5 text-white font-medium w-10">#</th>
                   <th className="p-2.5 text-white font-medium w-24">رقم الحساب</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "40%" }}>الحساب / الجهة</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "30%" }}>الحساب / الجهة</th>
                   <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
                   <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "18%" }}>تعليق</th>
                   <th className="p-2.5 w-10"></th>
                 </tr>
               </thead>
               <tbody>
-                {lines.map((line, i) => {
+                {(() => {
+                  const displayLines = lineSortOrder === "debit_first"
+                    ? [...lines].sort((a, b) => {
+                        const aIsDebit = Number(a.debit) > 0 ? 0 : 1;
+                        const bIsDebit = Number(b.debit) > 0 ? 0 : 1;
+                        return aIsDebit - bIsDebit;
+                      })
+                    : lines;
+                  return displayLines.map((line, i) => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
                     <td className="p-2.5 text-muted-foreground">{i + 1}</td>
@@ -713,23 +760,45 @@ const JournalNewPage = () => {
                       />
                     </td>
                     <td className="p-2.5">
+                      <Input
+                        value={line.line_comment || ""}
+                        onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
+                        className="h-9 text-xs"
+                        placeholder="تعليق على هذا السطر..."
+                      />
+                    </td>
+                    <td className="p-2.5">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
                   </tr>
                   );
-                })}
+                });
+                })()}
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
                   <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
                   <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                   <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
-                  <td></td>
+                  <td colSpan={2}></td>
                 </tr>
               </tfoot>
             </table>
+          </div>
+
+          {/* Sort Order Radio */}
+          <div className="flex items-center gap-4 text-xs">
+            <span className="text-muted-foreground font-medium">ترتيب البنود:</span>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="sortOrder" checked={lineSortOrder === "debit_first"} onChange={() => setLineSortOrder("debit_first")} className="accent-primary" />
+              <span className={lineSortOrder === "debit_first" ? "font-bold text-foreground" : "text-muted-foreground"}>المدين ثم الدائن</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
+              <span className={lineSortOrder === "original" ? "font-bold text-foreground" : "text-muted-foreground"}>الترتيب الأصلي</span>
+            </label>
           </div>
 
           {/* Balance Status */}
@@ -753,18 +822,69 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
+      {/* Attachments Section */}
+      <Card>
+        <CardContent className="p-0">
+          <button
+            onClick={() => setAttachmentsOpen(!attachmentsOpen)}
+            className="w-full flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors rounded-xl"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Paperclip className="h-4 w-4 text-primary" />
+              المرفقات {attachments.length > 0 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{attachments.length}</span>}
+            </span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${attachmentsOpen ? "rotate-180" : ""}`} />
+          </button>
+          {attachmentsOpen && (
+            <div className="px-4 pb-4 space-y-3">
+              <div
+                ref={dropZoneRef}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={e => { e.preventDefault(); e.stopPropagation(); const files = e.dataTransfer.files; if (files.length) handleFileUpload(files[0]); }}
+                className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">اسحب الملفات هنا أو اضغط للرفع</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, JPG, PNG, XLSX — حد أقصى 10MB / 5 ملفات</p>
+              </div>
+              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.xlsx"
+                onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); e.target.value = ""; }} />
+              {uploadingFile && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> جارٍ الرفع...</div>}
+              {attachments.map((att, i) => (
+                <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{att.name}</a>
+                    <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
+                  </div>
+                  <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="p-1 hover:text-destructive text-muted-foreground">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Action Buttons */}
-      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-        <button onClick={() => handleSave(true)} disabled={saving}
+      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4 flex-wrap gap-3">
+        <button onClick={() => handleSave("draft")} disabled={saving}
           className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
           حفظ كمسودة
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة
           </button>
-          <button onClick={() => handleSave(false)} disabled={saving || !isBalanced}
+          <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
+            <Clock className="h-4 w-4" />
+            حفظ مع التأجيل
+          </button>
+          <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
             <Save className="h-4 w-4" />
             {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}

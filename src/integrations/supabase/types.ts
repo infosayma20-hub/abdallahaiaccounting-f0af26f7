@@ -10839,6 +10839,7 @@ export type Database = {
           debit: number | null
           description: string | null
           id: string
+          line_comment: string | null
           line_order: number | null
           voucher_id: string
         }
@@ -10852,6 +10853,7 @@ export type Database = {
           debit?: number | null
           description?: string | null
           id?: string
+          line_comment?: string | null
           line_order?: number | null
           voucher_id: string
         }
@@ -10865,6 +10867,7 @@ export type Database = {
           debit?: number | null
           description?: string | null
           id?: string
+          line_comment?: string | null
           line_order?: number | null
           voucher_id?: string
         }
@@ -10895,6 +10898,7 @@ export type Database = {
           employee_id: string | null
           exchange_rate: number | null
           id: string
+          line_sort_order: string | null
           linked_transaction_id: string | null
           notes: string | null
           payment_method: string | null
@@ -10923,6 +10927,7 @@ export type Database = {
           employee_id?: string | null
           exchange_rate?: number | null
           id?: string
+          line_sort_order?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           payment_method?: string | null
@@ -10951,6 +10956,7 @@ export type Database = {
           employee_id?: string | null
           exchange_rate?: number | null
           id?: string
+          line_sort_order?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           payment_method?: string | null
