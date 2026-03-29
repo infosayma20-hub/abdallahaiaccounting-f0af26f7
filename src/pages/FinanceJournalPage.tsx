@@ -461,6 +461,7 @@ const FinanceJournalPage = () => {
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="posted">✅ مرحّل</SelectItem>
               <SelectItem value="draft">📝 مسودة</SelectItem>
+              <SelectItem value="deferred">⏳ مؤجل</SelectItem>
               <SelectItem value="cancelled">🔴 ملغي فقط</SelectItem>
             </SelectContent>
           </Select>
