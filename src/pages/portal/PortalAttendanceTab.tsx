@@ -272,15 +272,15 @@ export default function PortalAttendanceTab({ theme }: Props) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={notificationsEnabled ? () => { setNotificationsEnabled(false); setAudioUnlocked(false); } : enableNotifications} style={{
-            background: notificationsEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(42,123,155,0.1)',
-            border: `1px solid ${notificationsEnabled ? 'rgba(34,197,94,0.4)' : 'rgba(42,123,155,0.25)'}`,
-            borderRadius: 8, padding: '6px 12px', color: notificationsEnabled ? t.green : t.accent, fontSize: 12,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: 'Tajawal, sans-serif', fontWeight: notificationsEnabled ? 600 : 400,
+            background: notificationsEnabled ? 'rgba(34,197,94,0.1)' : 'rgba(42,123,155,0.1)',
+            border: `1px solid ${notificationsEnabled ? 'rgba(34,197,94,0.3)' : 'rgba(42,123,155,0.25)'}`,
+            borderRadius: 8, padding: '4px 8px', color: notificationsEnabled ? t.green : t.accent, fontSize: 11,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
+            fontFamily: 'Tajawal, sans-serif',
             WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
           }}>
-            {notificationsEnabled ? <Bell size={14} /> : <BellOff size={14} />}
-            {notificationsEnabled ? '🔔 إشعارات مفعّلة' : '🔕 تفعيل الإشعارات'}
+            {notificationsEnabled ? <Bell size={11} /> : <BellOff size={11} />}
+            {notificationsEnabled ? 'إشعارات ✓' : 'تفعيل الإشعارات'}
           </button>
           <button onClick={fetchData} style={{
             background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
