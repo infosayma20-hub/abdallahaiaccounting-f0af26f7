@@ -1109,7 +1109,7 @@ export default function WorkshopsPage() {
 
         {/* ── Payment Dialog ── */}
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-          <DialogContent className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none p-6 overflow-y-auto" dir="rtl">
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <DialogTitle>💵 تسجيل دفعة من الزبون</DialogTitle>
             </DialogHeader>
