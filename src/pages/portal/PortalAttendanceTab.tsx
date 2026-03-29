@@ -50,8 +50,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [audioUnlocked, setAudioUnlocked] = useState(true);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
   const employeeCacheRef = useRef<Map<string, string>>(new Map());
 
