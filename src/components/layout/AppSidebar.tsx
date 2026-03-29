@@ -60,11 +60,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isItemHidden = (item: NavItem) => hiddenApps.includes(item.id);
 
-  const isItemDisabled = (item: NavItem) => {
-    if (isItemHidden(item)) return true;
+  // Item is not relevant for this business type — hide entirely
+  const isItemIrrelevant = (item: NavItem) => {
     if (!item.enableSetting) return false;
     if (isTrial) return false;
     return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
+  };
+
+  // Item is locked by super admin — show with lock
+  const isItemDisabled = (item: NavItem) => {
+    if (isItemHidden(item)) return true;
+    return false;
   };
 
   const isActive = (path?: string) => {
@@ -366,7 +372,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
         {/* Enabled items per section */}
         {navigationSections.map((section, sectionIdx) => {
-          const enabledItems = section.items.filter(item => !isItemDisabled(item));
+          const enabledItems = section.items.filter(item => !isItemIrrelevant(item) && !isItemDisabled(item));
           if (enabledItems.length === 0 && sectionIdx > 0) return null;
           return (
             <div key={section.sectionTitle || "top"}>
@@ -388,7 +394,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
         {/* Disabled/locked items at the very end */}
         {(() => {
-          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => isItemDisabled(item));
+          const disabledItems = navigationSections.flatMap(s => s.items).filter(item => !isItemIrrelevant(item) && isItemDisabled(item));
           if (disabledItems.length === 0) return null;
           return (
             <div>

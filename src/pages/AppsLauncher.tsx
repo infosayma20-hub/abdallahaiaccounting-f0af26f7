@@ -186,13 +186,17 @@ const AppsLauncher = () => {
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
 
-  const isAppDisabled = (app: NavItem) => {
-    // If super admin hid this app, disable it
-    if (hiddenApps.includes(app.id)) return true;
+  // Item is not relevant for this business type — hide entirely
+  const isAppIrrelevant = (app: NavItem) => {
     if (!app.enableSetting) return false;
-    // During trial, all apps are available
     if (isTrial) return false;
     return !enabledSettings[app.enableSetting];
+  };
+
+  // Item is locked by super admin
+  const isAppDisabled = (app: NavItem) => {
+    if (hiddenApps.includes(app.id)) return true;
+    return false;
   };
 
   // Check if user has a restricted role (not admin/super_admin)
@@ -206,6 +210,9 @@ const AppsLauncher = () => {
 
   const allFilteredApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
+
+    // Filter out irrelevant apps for this business type
+    allApps = allApps.filter(app => !isAppIrrelevant(app));
 
     // Filter by role if restricted
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
@@ -222,11 +229,9 @@ const AppsLauncher = () => {
       : allApps;
     // Sort: enabled first, hidden/locked apps last
     return filtered.sort((a, b) => {
-      const aHidden = hiddenApps.includes(a.id) ? 2 : 0;
-      const bHidden = hiddenApps.includes(b.id) ? 2 : 0;
       const aDisabled = isAppDisabled(a) ? 1 : 0;
       const bDisabled = isAppDisabled(b) ? 1 : 0;
-      return (aHidden + aDisabled) - (bHidden + bDisabled);
+      return aDisabled - bDisabled;
     });
   }, [search, enabledSettings, restrictedRole, hiddenApps]);
 
