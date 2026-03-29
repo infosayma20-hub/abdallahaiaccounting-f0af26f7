@@ -87,7 +87,7 @@ interface Employee {
 const emptyEmployee: Partial<Employee> = {
   full_name: "", id_number: "", employee_number: "", phone: "", email: "", position: "", department: "",
   job_title: "", start_date: new Date().toISOString().split("T")[0], salary_type: "شهري",
-  base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 10,
+  base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 8,
   annual_leave_days: 14, sick_leave_days: 14, bank_name: "", bank_account: "",
   emergency_contact: "", emergency_phone: "", address: "", notes: "", is_active: true,
   marital_status: "single", children_count: 0, spouse_allowance_amount: 0,
