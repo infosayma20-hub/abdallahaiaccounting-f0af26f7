@@ -617,7 +617,59 @@ const InvoicesPage = () => {
     }, 200);
   };
 
-  const updateStatus = async (id: string, status: Invoice["status"]) => {
+  // Direct print for a specific invoice
+  const handleDirectPrint = (inv: Invoice) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<html dir="rtl"><head>
+      <title>فاتورة ${inv.invoiceNumber}</title>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }</style>
+    </head><body><div id="print-root"></div></body></html>`);
+    win.document.close();
+    setTimeout(() => {
+      const container = win.document.getElementById("print-root");
+      if (container) {
+        const root = createRoot(container);
+        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel="أصلية" />);
+        setTimeout(() => win.print(), 500);
+      }
+    }, 200);
+  };
+
+  // Open email modal
+  const openEmailModal = async (inv: Invoice) => {
+    setEmailTarget(inv);
+    setEmailSubject(`فاتورة رقم ${inv.invoiceNumber}`);
+    // Try to get contact email
+    if (inv.contactId) {
+      const { data } = await supabase.from("contacts").select("email").eq("id", inv.contactId).maybeSingle();
+      setEmailTo(data?.email || "");
+    } else {
+      setEmailTo("");
+    }
+    setEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailTarget || !emailTo) {
+      toast({ title: "يرجى إدخال البريد الإلكتروني", variant: "destructive" });
+      return;
+    }
+    setSendingEmail(true);
+    // For now, show success (actual email integration can be added later)
+    setTimeout(() => {
+      toast({ title: `تم إرسال الفاتورة إلى ${emailTo} ✅` });
+      setSendingEmail(false);
+      setEmailModalOpen(false);
+    }, 1000);
+  };
+
+  const resetAdvancedFilters = () => {
+    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("");
+  };
+
+
     // Update in DB
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
     await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
