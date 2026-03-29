@@ -523,7 +523,19 @@
   50% { stroke: hsl(42, 86%, 70%); opacity: 1; }
 }
 
-/* ── Print Utilities (removed — all printing via bridge) ── */
+/* ── Print Utilities ── */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  .print-only {
+    display: block !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
 
 /* ═══════════════════════════════════════
    CUSTOM SCROLLBAR — FINIX BRAND
