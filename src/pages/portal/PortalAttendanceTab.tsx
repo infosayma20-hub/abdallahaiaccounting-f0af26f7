@@ -95,8 +95,8 @@ export default function PortalAttendanceTab({ theme }: Props) {
   }, []);
 
   // Request browser notification permission — mobile-friendly
-  const enableNotifications = useCallback(async () => {
-    // Unlock audio on this user gesture
+  const enableNotifications = useCallback(() => {
+    // Unlock audio on this user gesture immediately
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const buffer = ctx.createBuffer(1, 1, 22050);
@@ -104,45 +104,40 @@ export default function PortalAttendanceTab({ theme }: Props) {
       source.buffer = buffer;
       source.connect(ctx.destination);
       source.start(0);
-      setAudioUnlocked(true);
     } catch {}
 
-    // Check if Notification API is available
-    if (!('Notification' in window)) {
-      // On iOS Safari (non-PWA), Notification API is not available
-      setNotificationsEnabled(true);
-      setAudioUnlocked(true);
-      toast.success('تم تفعيل إشعارات الصوت والتنبيهات داخل التطبيق', { duration: 4000 });
-      return;
+    // Always enable in-app notifications + sound immediately
+    setNotificationsEnabled(true);
+    setAudioUnlocked(true);
+
+    // Play test sound immediately to confirm it works
+    setTimeout(() => playNotificationSound(), 200);
+
+    // Try browser notifications as a bonus (non-blocking)
+    if ('Notification' in window && Notification.permission === 'default') {
+      try {
+        Notification.requestPermission().then((perm) => {
+          if (perm === 'granted') {
+            new Notification('أموالي - إشعارات الحضور', {
+              body: 'تم تفعيل الإشعارات بنجاح ✅',
+              icon: '/favicon.ico',
+            });
+          }
+        }).catch(() => {});
+      } catch {
+        // Old callback-based API
+        try {
+          Notification.requestPermission((perm) => {
+            if (perm === 'granted') {
+              new Notification('أموالي', { body: 'تم تفعيل الإشعارات ✅' });
+            }
+          });
+        } catch {}
+      }
     }
 
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        setNotificationsEnabled(true);
-        toast.success('تم تفعيل الإشعارات بنجاح');
-        // Test notification
-        setTimeout(() => {
-          new Notification('أموالي - إشعارات الحضور', {
-            body: 'تم تفعيل الإشعارات بنجاح ✅',
-            icon: '/favicon.ico',
-          });
-        }, 500);
-      } else if (permission === 'denied') {
-        // Still enable in-app notifications with sound
-        setNotificationsEnabled(true);
-        toast.info('تم تفعيل التنبيهات الصوتية داخل التطبيق. لتلقي إشعارات المتصفح، فعّلها من إعدادات المتصفح.', { duration: 6000 });
-      } else {
-        setNotificationsEnabled(true);
-        toast.success('تم تفعيل إشعارات الصوت والتنبيهات');
-      }
-    } catch {
-      // Some browsers throw on requestPermission
-      setNotificationsEnabled(true);
-      setAudioUnlocked(true);
-      toast.success('تم تفعيل التنبيهات الصوتية');
-    }
-  }, []);
+    toast.success('تم تفعيل الإشعارات والصوت ✅', { duration: 2000 });
+  }, [playNotificationSound]);
 
   // Check if notifications already granted
   useEffect(() => {
