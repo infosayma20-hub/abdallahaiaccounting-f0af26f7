@@ -51,24 +51,96 @@ export default function PortalAttendanceTab({ theme }: Props) {
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
   const employeeCacheRef = useRef<Map<string, string>>(new Map());
 
-  // Notification sound
+  // Create notification sound using AudioContext for better mobile support
+  const playNotificationSound = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.4);
+      // Also play a second beep
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.frequency.setValueAtTime(1100, ctx.currentTime + 0.5);
+      osc2.frequency.setValueAtTime(1320, ctx.currentTime + 0.6);
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.5);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
+      osc2.start(ctx.currentTime + 0.5);
+      osc2.stop(ctx.currentTime + 0.9);
+    } catch {
+      // Fallback to HTML Audio
+      if (notifAudioRef.current) {
+        notifAudioRef.current.play().catch(() => {});
+      }
+    }
+  }, []);
+
+  // Fallback audio element
   useEffect(() => {
     notifAudioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbsGczIz2LzN3LdzsaK4DI3NB+OBksh8nd0H84GSuIyt7Qfzkhb3R2goWDgoOFiIuOkZOWmZyen6GjpqirrrCztba5u76/wcTFyMrLzc/Q0tTW19nb3N3f4OLj5ebn6err7O3u8PHy8/T19vf4+fr7/P3+');
   }, []);
 
-  // Request browser notification permission
+  // Request browser notification permission — mobile-friendly
   const enableNotifications = useCallback(async () => {
-    if ('Notification' in window) {
+    // Unlock audio on this user gesture
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      setAudioUnlocked(true);
+    } catch {}
+
+    // Check if Notification API is available
+    if (!('Notification' in window)) {
+      // On iOS Safari (non-PWA), Notification API is not available
+      setNotificationsEnabled(true);
+      setAudioUnlocked(true);
+      toast.success('تم تفعيل إشعارات الصوت والتنبيهات داخل التطبيق', { duration: 4000 });
+      return;
+    }
+
+    try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         setNotificationsEnabled(true);
         toast.success('تم تفعيل الإشعارات بنجاح');
+        // Test notification
+        setTimeout(() => {
+          new Notification('أموالي - إشعارات الحضور', {
+            body: 'تم تفعيل الإشعارات بنجاح ✅',
+            icon: '/favicon.ico',
+          });
+        }, 500);
+      } else if (permission === 'denied') {
+        // Still enable in-app notifications with sound
+        setNotificationsEnabled(true);
+        toast.info('تم تفعيل التنبيهات الصوتية داخل التطبيق. لتلقي إشعارات المتصفح، فعّلها من إعدادات المتصفح.', { duration: 6000 });
       } else {
-        toast.error('تم رفض إذن الإشعارات');
+        setNotificationsEnabled(true);
+        toast.success('تم تفعيل إشعارات الصوت والتنبيهات');
       }
+    } catch {
+      // Some browsers throw on requestPermission
+      setNotificationsEnabled(true);
+      setAudioUnlocked(true);
+      toast.success('تم تفعيل التنبيهات الصوتية');
     }
   }, []);
 
