@@ -211,21 +211,23 @@ export default function PortalAttendanceTab({ theme }: Props) {
           // In-app toast notification
           toast(msg, {
             icon: isCheckIn ? '🟢' : '🟠',
-            duration: 5000,
+            duration: 8000,
           });
 
-          // Play notification sound
-          if (notifAudioRef.current) {
-            notifAudioRef.current.play().catch(() => {});
+          // Play notification sound (always when notifications enabled)
+          if (notificationsEnabled || audioUnlocked) {
+            playNotificationSound();
           }
 
           // Browser push notification
           if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('حضور الموظفين - أموالي', {
-              body: msg,
-              icon: '/favicon.ico',
-              tag: `att-${evt.id}`,
-            });
+            try {
+              new Notification('حضور الموظفين - أموالي', {
+                body: msg,
+                icon: '/favicon.ico',
+                tag: `att-${evt.id}`,
+              });
+            } catch {}
           }
 
           // Auto-refresh data
@@ -235,7 +237,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [notificationsEnabled]);
+  }, [notificationsEnabled, audioUnlocked, playNotificationSound]);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
