@@ -167,15 +167,14 @@ const AppsLauncher = () => {
   const enabledSettings: Record<string, boolean> = useMemo(() => {
     if (!settings) return {};
     return {
-      enable_pos: !!(settings as any)?.enable_pos,
-      enable_inventory: !!(settings as any)?.enable_inventory,
-      enable_fixed_assets: !!(settings as any)?.enable_fixed_assets,
-      enable_contractor: !!(settings as any)?.enable_contractor,
-      enable_workshops: !!(settings as any)?.enable_workshops,
-      enable_ecommerce: !!(settings as any)?.enable_ecommerce,
-      enable_travel: !!(settings as any)?.enable_travel,
-      enable_tasks: !!(settings as any)?.enable_tasks,
-      enable_hr: !!(settings as any)?.enable_hr,
+      has_pos: !!settings.has_pos,
+      has_employees: !!settings.has_employees,
+      has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
+      has_contractor: settings.business_type === "مقاولات",
+      has_ecommerce: settings.business_type === "متجر إلكتروني",
+      has_travel: settings.business_type === "سياحة",
+      has_workshops: ["ورش ومناجر", "مقاولات"].includes(settings.business_type || ""),
+      has_tasks: false,
     };
   }, [settings]);
 
