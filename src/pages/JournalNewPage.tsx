@@ -371,9 +371,10 @@ const JournalNewPage = () => {
               setFormDescription("");
               setFormNotes("");
               setFormContactId("");
+              setAttachments([]);
               setLines([
-                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
-                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
               ]);
             }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               سند قيد جديد
@@ -400,9 +401,10 @@ const JournalNewPage = () => {
           setFormDescription("");
           setFormNotes("");
           setFormContactId("");
+          setAttachments([]);
           setLines([
-            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
-            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
           ]);
         }}
         onNewSimilar={saved ? () => {
