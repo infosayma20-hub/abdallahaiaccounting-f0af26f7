@@ -750,6 +750,14 @@ const JournalNewPage = () => {
                       />
                     </td>
                     <td className="p-2.5">
+                      <Input
+                        value={line.line_comment || ""}
+                        onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
+                        className="h-9 text-xs"
+                        placeholder="تعليق على هذا السطر..."
+                      />
+                    </td>
+                    <td className="p-2.5">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -763,10 +771,23 @@ const JournalNewPage = () => {
                   <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
                   <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                   <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
-                  <td></td>
+                  <td colSpan={2}></td>
                 </tr>
               </tfoot>
             </table>
+          </div>
+
+          {/* Sort Order Radio */}
+          <div className="flex items-center gap-4 text-xs">
+            <span className="text-muted-foreground font-medium">ترتيب البنود:</span>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="sortOrder" checked={lineSortOrder === "debit_first"} onChange={() => setLineSortOrder("debit_first")} className="accent-primary" />
+              <span className={lineSortOrder === "debit_first" ? "font-bold text-foreground" : "text-muted-foreground"}>المدين ثم الدائن</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="sortOrder" checked={lineSortOrder === "original"} onChange={() => setLineSortOrder("original")} className="accent-primary" />
+              <span className={lineSortOrder === "original" ? "font-bold text-foreground" : "text-muted-foreground"}>الترتيب الأصلي</span>
+            </label>
           </div>
 
           {/* Balance Status */}
