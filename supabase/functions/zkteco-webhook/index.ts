@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
             if (dayRecord?.first_check_in) {
               const totalHours =
                 (eventTime.getTime() - new Date(dayRecord.first_check_in).getTime()) / 3600000;
-              const dailyHours = employee.work_hours_per_day || 10;
+              const dailyHours = employee.work_hours_per_day || 8;
               const overtime = Math.max(0, totalHours - dailyHours);
 
               await supabase

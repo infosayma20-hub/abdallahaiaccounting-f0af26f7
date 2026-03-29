@@ -390,7 +390,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const dailyHours = employee.work_hours_per_day || 10;
+      const dailyHours = employee.work_hours_per_day || 8;
       const overtime = Math.max(0, totalHours - dailyHours);
       const currentlyIn = evts[evts.length - 1]?.event_type === "check_in";
 

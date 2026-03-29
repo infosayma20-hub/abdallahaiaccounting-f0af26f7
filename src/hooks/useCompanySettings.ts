@@ -234,7 +234,7 @@ const defaultSettings: CompanySettings = {
   inventory_allow_no_barcode: true,
   // HR
   hr_work_days_per_week: 6,
-  hr_daily_hours: 10,
+  hr_daily_hours: 8,
   hr_shift_start: "08:00",
   hr_shift_end: "16:00",
   hr_late_grace_minutes: 15,
