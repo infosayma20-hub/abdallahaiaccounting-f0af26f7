@@ -211,7 +211,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
           // In-app toast notification
           toast(msg, {
             icon: isCheckIn ? '🟢' : '🟠',
-            duration: 8000,
+            duration: 2000,
           });
 
           // Play notification sound (always when notifications enabled)
