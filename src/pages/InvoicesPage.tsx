@@ -1707,6 +1707,33 @@ const InvoicesPage = () => {
           docAmount={selectedInvoice.total}
         />
       )}
+
+      {/* Email Modal */}
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Mail className="h-5 w-5 text-primary" />
+              إرسال الفاتورة بالبريد
+            </DialogTitle>
+            <DialogDescription>{emailTarget?.invoiceNumber}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">البريد الإلكتروني</Label>
+              <Input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="email@example.com" className="text-sm" dir="ltr" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">الموضوع</Label>
+              <Input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="text-sm" />
+            </div>
+            <Button className="w-full gap-2" disabled={sendingEmail || !emailTo} onClick={handleSendEmail}>
+              {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              إرسال
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
