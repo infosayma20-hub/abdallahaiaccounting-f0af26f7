@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown } from "lucide-react";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -167,6 +167,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  const [autoAllocate, setAutoAllocate] = useState(false);
+
+  // Attachments
+  const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Employee party type (for payment vouchers)
   const [partyType, setPartyType] = useState<PartyType>("contact");
@@ -444,6 +451,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
         setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
+      } else {
+        const { data: rvData } = await supabase.from("receipt_vouchers").select("receipt_number").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1);
+        const lastRef = (rvData || [])[0]?.receipt_number || "";
+        const match = lastRef.match(/(\d+)$/);
+        const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+        setRefNumber(`RCV-${new Date().getFullYear()}-${nextNum}`);
       }
     };
     load();
@@ -525,6 +538,49 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const selectOldestFirst = () => selectAll();
+
+  // Auto-allocate effect
+  useEffect(() => {
+    if (autoAllocate && amountNum > 0 && invoices.length > 0) {
+      selectAll();
+    }
+  }, [autoAllocate, amount]);
+
+  // File upload handler
+  const handleFileUpload = useCallback(async (files: FileList | File[]) => {
+    if (!user) return;
+    const fileArray = Array.from(files);
+    if (attachments.length + fileArray.length > 5) {
+      toast.error("الحد الأقصى 5 ملفات");
+      return;
+    }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    for (const file of fileArray) {
+      if (file.size > 10 * 1024 * 1024) { toast.error(`الملف ${file.name} أكبر من 10MB`); continue; }
+      if (!allowedTypes.includes(file.type)) { toast.error(`نوع الملف ${file.name} غير مدعوم`); continue; }
+      setUploadingFile(true);
+      try {
+        const filePath = `${user.id}/${Date.now()}-${file.name}`;
+        const { error } = await supabase.storage.from("voucher-attachments").upload(filePath, file);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from("voucher-attachments").getPublicUrl(filePath);
+        setAttachments(prev => [...prev, {
+          name: file.name,
+          url: urlData.publicUrl || filePath,
+          size: file.size,
+          type: file.type,
+          uploaded_at: new Date().toISOString(),
+        }]);
+      } catch (err: any) {
+        toast.error(`فشل رفع ${file.name}: ${err.message}`);
+      }
+      setUploadingFile(false);
+    }
+  }, [user, attachments.length]);
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const clearSelection = () => {
     setInvoices(prev => prev.map(inv => ({ ...inv, selected: false, allocatedAmount: 0 })));
@@ -799,7 +855,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             notes,
             status: asDraft ? "draft" : "posted",
             linked_transaction_id: txId,
-          })
+            attachments: attachments.length > 0 ? attachments : [],
+            auto_allocate: autoAllocate,
+          } as any)
           .select("id, receipt_number")
           .single();
 
@@ -875,7 +933,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
             posted_by: !asDraft ? user.id : null,
             posted_at: !asDraft ? new Date().toISOString() : null,
-          })
+            employee_id: isEmpPay ? selectedEmployee.id : null,
+            attachments: attachments.length > 0 ? attachments : [],
+          } as any)
           .select("id, ref_number")
           .single();
 
@@ -1532,14 +1592,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {selectedContact && partyType === "contact" && (
         <Card>
           <CardContent className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 📄 ربط بفاتورة
               </h3>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="flex items-center gap-1.5 text-[10px] cursor-pointer select-none">
+                  <input type="checkbox" checked={autoAllocate} onChange={e => { setAutoAllocate(e.target.checked); if (!e.target.checked) clearSelection(); }}
+                    className="w-3.5 h-3.5 rounded border-border accent-primary" />
+                  تخصيص تلقائي حسب الأقدمية
+                </label>
                 <button onClick={selectAll} className="text-[10px] px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all">✓ تحديد الكل</button>
-                <button onClick={selectOldestFirst} className="text-[10px] px-2.5 py-1 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 transition-all">الأقدم أولاً</button>
                 <button onClick={clearSelection} className="text-[10px] px-2.5 py-1 rounded-lg bg-secondary text-muted-foreground hover:bg-secondary/80 transition-all">مسح</button>
               </div>
             </div>
@@ -1635,6 +1699,53 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Attachments */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <button
+            type="button"
+            onClick={() => dropZoneRef.current?.classList.toggle("hidden")}
+            className="flex items-center gap-2 text-sm font-bold text-foreground w-full"
+          >
+            <Paperclip className="h-4 w-4 text-primary" />
+            المرفقات ({attachments.length})
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground mr-auto" />
+          </button>
+          <div ref={dropZoneRef}>
+            <div
+              className="border-2 border-dashed border-border/50 rounded-xl p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
+              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("border-primary/60", "bg-primary/5"); }}
+              onDragLeave={e => { e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); }}
+              onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove("border-primary/60", "bg-primary/5"); handleFileUpload(e.dataTransfer.files); }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">اسحب الملفات هنا أو انقر للرفع</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">PDF, JPG, PNG, XLSX — حد أقصى 5 ملفات / 10MB</p>
+            </div>
+            <input ref={fileInputRef} type="file" className="hidden" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx"
+              onChange={e => { if (e.target.files) handleFileUpload(e.target.files); e.target.value = ""; }} />
+            {uploadingFile && <p className="text-xs text-primary mt-2 animate-pulse">جاري الرفع...</p>}
+            {attachments.length > 0 && (
+              <div className="space-y-1.5 mt-3">
+                {attachments.map((att, i) => (
+                  <div key={i} className="flex items-center justify-between bg-secondary/30 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-medium text-foreground">{att.name}</span>
+                      <span className="text-muted-foreground">({(att.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                    <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Notes */}
       <Card>

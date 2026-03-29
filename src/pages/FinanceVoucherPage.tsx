@@ -3,7 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2, Download
 } from "lucide-react";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
@@ -162,12 +162,16 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     setLoading(true);
 
     if (isReceipt) {
-      // Receipts are stored in receipt_vouchers table
-      const [rvRes, cRes] = await Promise.all([
+      const [rvRes, cRes, linksRes] = await Promise.all([
         supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+        supabase.from("payment_invoice_links").select("payment_id, allocated_amount"),
       ]);
-      // Map receipt_vouchers fields to unified format
+      // Build allocated map
+      const allocMap = new Map<string, number>();
+      for (const link of (linksRes.data || [])) {
+        allocMap.set(link.payment_id, (allocMap.get(link.payment_id) || 0) + (link.allocated_amount || 0));
+      }
       const mapped = (rvRes.data || []).map((rv: any) => ({
         ...rv,
         ref_number: rv.receipt_number,
@@ -175,17 +179,21 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         amount_ils: rv.amount,
         amount: rv.amount,
         type: "receipt",
-        // payment_method is already in Arabic in receipt_vouchers
+        account_code: rv.deposit_account_code || "—",
+        allocated_total: allocMap.get(rv.id) || 0,
       }));
       setVouchers(mapped);
       setContacts(cRes.data || []);
     } else {
-      // Payments are stored in vouchers table
       const [vRes, cRes] = await Promise.all([
         supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
       ]);
-      setVouchers(vRes.data || []);
+      setVouchers((vRes.data || []).map((v: any) => ({
+        ...v,
+        account_code: "—",
+        allocated_total: 0,
+      })));
       setContacts(cRes.data || []);
     }
 
@@ -207,15 +215,17 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const tableData = useMemo(() => {
     return vouchers.map(v => {
-      // For receipts, contact_name is directly on the record
-      // For payments, we look up from contacts list
       const contactName = v.contact_name || contacts.find(c => c.id === v.contact_id)?.contact_name || "—";
+      const amountVal = Number(v.amount_ils || v.amount || 0);
+      const allocatedVal = Number(v.allocated_total || 0);
       return {
         ...v,
         contact_name: contactName,
         payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
         status_label: STATUS_LABELS[v.status] || v.status,
-        amount_display: Number(v.amount_ils || v.amount || 0),
+        amount_display: amountVal,
+        unallocated: amountVal - allocatedVal,
+        account_code: v.account_code || "—",
       };
     });
   }, [vouchers, contacts]);
@@ -271,18 +281,46 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const PAYMENT_METHODS = ["نقدي", "بنك", "شيك", "تحويل"];
 
+  const exportToExcel = () => {
+    import("xlsx").then(XLSX => {
+      const rows = filtered.map(v => ({
+        "رقم السند": v.ref_number || "",
+        "التاريخ": v.date || "",
+        "الجهة": v.contact_name || "",
+        "البيان": v.description || v.notes || "",
+        "طريقة الدفع": v.payment_label || "",
+        "الحساب": v.account_code || "",
+        "المبلغ": v.amount_display || 0,
+        "غير مخصص": v.unallocated || 0,
+        "الحالة": v.status_label || "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31));
+      XLSX.writeFile(wb, `${title}-${new Date().toISOString().split("T")[0]}.xlsx`);
+    });
+  };
+
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title={title} breadcrumb={["المالية", title]} />
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-xs text-muted-foreground">{isReceipt ? "إدارة سندات القبض والمقبوضات" : "إدارة سندات الصرف والمدفوعات"}</p>
-        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
-          if (isReceipt) { navigate("/finance/receipt/new"); }
-          else { navigate("/finance/payment/new"); }
-        }}>
-          <Plus className="h-4 w-4" /> {newTitle}
-        </Button>
+        <div className="flex items-center gap-2">
+          {filtered.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={exportToExcel}>
+              <Download className="h-3.5 w-3.5" /> تصدير Excel
+            </Button>
+          )}
+          <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
+            if (isReceipt) { navigate("/finance/receipt/new"); }
+            else { navigate("/finance/payment/new"); }
+          }}>
+            <Plus className="h-4 w-4" /> {newTitle}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -398,7 +436,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={contactLabel} field="contact_name" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold">البيان</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="طريقة الدفع" field="payment_label" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الحساب</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount_display" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">غير مخصص</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status_label" /></th>
                   <th className="px-3 py-3 w-10"></th>
                 </tr>
@@ -437,7 +477,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                       <td className="px-3 py-3 text-sm font-medium text-foreground">{v.contact_name}</td>
                       <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.description || v.notes || "—"}</td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">{v.payment_label}</td>
+                      <td className="px-3 py-3 text-xs font-mono text-muted-foreground">{v.account_code}</td>
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">₪{v.amount_display.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-xs tabular-nums">
+                        {v.unallocated > 0 ? (
+                          <span className="text-destructive/80 font-semibold">₪{v.unallocated.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[v.status_label] || "bg-muted text-muted-foreground"}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status_label] || "bg-muted-foreground"}`} />
@@ -479,9 +527,9 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
               </tbody>
               <tfoot>
                 <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                  <td colSpan={5} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
+                  <td colSpan={7} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
                   <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, v) => s + v.amount_display, 0).toLocaleString()}</td>
-                  <td className="px-3 py-3" />
+                  <td colSpan={2} className="px-3 py-3" />
                 </tr>
               </tfoot>
             </table>
