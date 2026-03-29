@@ -152,6 +152,21 @@ const ContactsPage = () => {
     else if (typeParam === "supplier") setFilterType("مورد");
   }, [searchParams]);
 
+  // Fetch overdue invoices when dialog opens
+  useEffect(() => {
+    if (!overdueDialogOpen || !overdueContact || !user) return;
+    setOverdueLoading(true);
+    supabase.from("invoices")
+      .select("id, invoice_number, due_date, remaining_amount")
+      .eq("user_id", user.id)
+      .eq("contact_name", overdueContact.contact_name)
+      .not("due_date", "is", null)
+      .lt("due_date", new Date().toISOString().split("T")[0])
+      .gt("remaining_amount", 0)
+      .order("due_date", { ascending: true })
+      .then(({ data }) => { setOverdueInvoices(data || []); setOverdueLoading(false); });
+  }, [overdueDialogOpen, overdueContact, user]);
+
   const fetchContacts = async () => {
     if (!user) return;
     setLoading(true);
