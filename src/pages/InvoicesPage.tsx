@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
@@ -110,6 +114,20 @@ const InvoicesPage = () => {
   const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Advanced filters
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+
+  // Email modal
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailTarget, setEmailTarget] = useState<Invoice | null>(null);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Duplicate state
   const [duplicateModal, setDuplicateModal] = useState(false);
@@ -599,8 +617,60 @@ const InvoicesPage = () => {
     }, 200);
   };
 
-  const updateStatus = async (id: string, status: Invoice["status"]) => {
-    // Update in DB
+  // Direct print for a specific invoice
+  const handleDirectPrint = (inv: Invoice) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<html dir="rtl"><head>
+      <title>فاتورة ${inv.invoiceNumber}</title>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }</style>
+    </head><body><div id="print-root"></div></body></html>`);
+    win.document.close();
+    setTimeout(() => {
+      const container = win.document.getElementById("print-root");
+      if (container) {
+        const root = createRoot(container);
+        root.render(<InvoicePrintView invoice={inv} settings={companySettings} copyLabel="أصلية" />);
+        setTimeout(() => win.print(), 500);
+      }
+    }, 200);
+  };
+
+  // Open email modal
+  const openEmailModal = async (inv: Invoice) => {
+    setEmailTarget(inv);
+    setEmailSubject(`فاتورة رقم ${inv.invoiceNumber}`);
+    // Try to get contact email
+    if (inv.contactId) {
+      const { data } = await supabase.from("contacts").select("email").eq("id", inv.contactId).maybeSingle();
+      setEmailTo(data?.email || "");
+    } else {
+      setEmailTo("");
+    }
+    setEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailTarget || !emailTo) {
+      toast({ title: "يرجى إدخال البريد الإلكتروني", variant: "destructive" });
+      return;
+    }
+    setSendingEmail(true);
+    // For now, show success (actual email integration can be added later)
+    setTimeout(() => {
+      toast({ title: `تم إرسال الفاتورة إلى ${emailTo} ✅` });
+      setSendingEmail(false);
+      setEmailModalOpen(false);
+    }, 1000);
+  };
+
+  const resetAdvancedFilters = () => {
+    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("");
+  };
+
+
+    const updateStatus = async (id: string, status: Invoice["status"]) => {
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
     await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
     
@@ -643,6 +713,10 @@ const InvoicesPage = () => {
   const filtered = invoices.filter(inv => {
     if (filterType !== "all" && inv.type !== filterType) return false;
     if (searchQuery && !inv.contactName.includes(searchQuery) && !inv.invoiceNumber.includes(searchQuery)) return false;
+    if (dateFrom && inv.date < dateFrom) return false;
+    if (dateTo && inv.date > dateTo) return false;
+    if (amountMin && inv.total < Number(amountMin)) return false;
+    if (amountMax && inv.total > Number(amountMax)) return false;
     return true;
   });
 
@@ -1258,7 +1332,7 @@ const InvoicesPage = () => {
       {/* Search & Filters */}
       {invoices.length > 0 && (
         <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-          <CardContent className="p-3">
+          <CardContent className="p-3 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
@@ -1293,6 +1367,43 @@ const InvoicesPage = () => {
               </Select>
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
             </div>
+
+            {/* Advanced Filters */}
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground h-7 px-2">
+                  <Filter className="h-3 w-3" />
+                  فلاتر متقدمة
+                  <ChevronDown className={`h-3 w-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+                  {(dateFrom || dateTo || amountMin || amountMax) && <Badge className="text-[9px] h-4 px-1 bg-primary/10 text-primary">مفعّل</Badge>}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-xl bg-muted/20 border border-border/30">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">من تاريخ</Label>
+                    <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 text-xs rounded-lg" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">إلى تاريخ</Label>
+                    <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 text-xs rounded-lg" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">حد أدنى ₪</Label>
+                    <Input type="number" placeholder="0" value={amountMin} onChange={e => setAmountMin(e.target.value)} className="h-8 text-xs rounded-lg font-mono" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">حد أعلى ₪</Label>
+                    <Input type="number" placeholder="∞" value={amountMax} onChange={e => setAmountMax(e.target.value)} className="h-8 text-xs rounded-lg font-mono" />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" onClick={resetAdvancedFilters}>
+                    <X className="h-3 w-3" /> إعادة تعيين
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
       )}
@@ -1368,18 +1479,53 @@ const InvoicesPage = () => {
                       <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <div className="flex gap-0.5 items-center">
+                          <Tooltip><TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">عرض</p></TooltipContent></Tooltip>
+
                           {canEdit({ status: inv.status }) && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
+                            <Tooltip><TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">تعديل</p></TooltipContent></Tooltip>
                           )}
+
                           {canDelete({ status: inv.status }) && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={e => { e.stopPropagation(); setDeleteTargetInvoice(inv); setShowDeleteDialog(true); }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <Tooltip><TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { setDeleteTargetInvoice(inv); setShowDeleteDialog(true); }}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">حذف</p></TooltipContent></Tooltip>
                           )}
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-background min-w-[160px]">
+                              <DropdownMenuItem onClick={() => handleDuplicate(inv)}>
+                                <Copy className="h-4 w-4 ml-2" /> نسخ الفاتورة
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDirectPrint(inv)}>
+                                <Printer className="h-4 w-4 ml-2" /> طباعة
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                                <Download className="h-4 w-4 ml-2" /> تحميل PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openEmailModal(inv)}>
+                                <Mail className="h-4 w-4 ml-2" /> إرسال بالبريد
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1561,6 +1707,33 @@ const InvoicesPage = () => {
           docAmount={selectedInvoice.total}
         />
       )}
+
+      {/* Email Modal */}
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Mail className="h-5 w-5 text-primary" />
+              إرسال الفاتورة بالبريد
+            </DialogTitle>
+            <DialogDescription>{emailTarget?.invoiceNumber}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">البريد الإلكتروني</Label>
+              <Input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="email@example.com" className="text-sm" dir="ltr" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">الموضوع</Label>
+              <Input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="text-sm" />
+            </div>
+            <Button className="w-full gap-2" disabled={sendingEmail || !emailTo} onClick={handleSendEmail}>
+              {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              إرسال
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

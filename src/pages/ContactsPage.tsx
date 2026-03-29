@@ -136,6 +136,10 @@ const ContactsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [alerts, setAlerts] = useState<ContactAlert[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [overdueContact, setOverdueContact] = useState<Contact | null>(null);
+  const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
+  const [overdueInvoices, setOverdueInvoices] = useState<any[]>([]);
+  const [overdueLoading, setOverdueLoading] = useState(false);
   const [newContact, setNewContact] = useState({
     name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "",
     contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: ""
@@ -147,6 +151,21 @@ const ContactsPage = () => {
     if (typeParam === "customer") setFilterType("عميل");
     else if (typeParam === "supplier") setFilterType("مورد");
   }, [searchParams]);
+
+  // Fetch overdue invoices when dialog opens
+  useEffect(() => {
+    if (!overdueDialogOpen || !overdueContact || !user) return;
+    setOverdueLoading(true);
+    supabase.from("invoices")
+      .select("id, invoice_number, due_date, remaining_amount")
+      .eq("user_id", user.id)
+      .eq("contact_name", overdueContact.contact_name)
+      .not("due_date", "is", null)
+      .lt("due_date", new Date().toISOString().split("T")[0])
+      .gt("remaining_amount", 0)
+      .order("due_date", { ascending: true })
+      .then(({ data }) => { setOverdueInvoices(data || []); setOverdueLoading(false); });
+  }, [overdueDialogOpen, overdueContact, user]);
 
   const fetchContacts = async () => {
     if (!user) return;
@@ -606,11 +625,18 @@ const ContactsPage = () => {
                           {contact.credit_limit ? `₪${contact.credit_limit.toLocaleString()}` : "—"}
                         </span>
                       </td>
-                      <td className="p-3">
-                        <span className={`text-xs font-semibold tabular-nums ${hasOverdue ? 'text-red-600' : 'text-muted-foreground'}`}>
-                          {hasOverdue ? `₪${(contact.overdue_amount || 0).toLocaleString()}` : "—"}
-                          {hasOverdue && <AlertTriangle className="inline h-3 w-3 mr-1 text-red-500" />}
-                        </span>
+                      <td className="p-3" onClick={e => e.stopPropagation()}>
+                        {hasOverdue ? (
+                          <button
+                            className="text-xs font-semibold tabular-nums text-red-600 hover:underline cursor-pointer flex items-center gap-1"
+                            onClick={() => { setOverdueContact(contact); setOverdueDialogOpen(true); }}
+                          >
+                            ₪{(contact.overdue_amount || 0).toLocaleString()}
+                            <AlertTriangle className="h-3 w-3 text-red-500" />
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="p-3">
                         <span className="text-xs text-muted-foreground tabular-nums">
@@ -877,6 +903,47 @@ const ContactsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Overdue Invoices Dialog */}
+      <Dialog open={overdueDialogOpen} onOpenChange={v => { setOverdueDialogOpen(v); if (!v) setOverdueContact(null); }}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              الفواتير المتأخرة — {overdueContact?.contact_name}
+            </DialogTitle>
+          </DialogHeader>
+          {overdueLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : overdueInvoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">لا توجد فواتير متأخرة</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-muted/50 border-b">
+                  <th className="p-2 text-right text-xs font-semibold">رقم الفاتورة</th>
+                  <th className="p-2 text-right text-xs font-semibold">تاريخ الاستحقاق</th>
+                  <th className="p-2 text-right text-xs font-semibold">المتبقي</th>
+                  <th className="p-2 text-right text-xs font-semibold">أيام التأخير</th>
+                </tr></thead>
+                <tbody>
+                  {overdueInvoices.map((inv: any) => {
+                    const daysLate = Math.max(0, Math.floor((Date.now() - new Date(inv.due_date).getTime()) / 86400000));
+                    return (
+                      <tr key={inv.id} className="border-b hover:bg-muted/20">
+                        <td className="p-2 text-xs font-mono">{inv.invoice_number}</td>
+                        <td className="p-2 text-xs">{inv.due_date}</td>
+                        <td className="p-2 text-xs font-bold text-red-600 tabular-nums">₪{Number(inv.remaining_amount).toLocaleString()}</td>
+                        <td className="p-2 text-xs font-bold text-red-600 tabular-nums">{daysLate} يوم</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
