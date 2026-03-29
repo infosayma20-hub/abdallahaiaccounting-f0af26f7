@@ -186,13 +186,17 @@ const AppsLauncher = () => {
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
 
-  const isAppDisabled = (app: NavItem) => {
-    // If super admin hid this app, disable it
-    if (hiddenApps.includes(app.id)) return true;
+  // Item is not relevant for this business type — hide entirely
+  const isAppIrrelevant = (app: NavItem) => {
     if (!app.enableSetting) return false;
-    // During trial, all apps are available
     if (isTrial) return false;
     return !enabledSettings[app.enableSetting];
+  };
+
+  // Item is locked by super admin
+  const isAppDisabled = (app: NavItem) => {
+    if (hiddenApps.includes(app.id)) return true;
+    return false;
   };
 
   // Check if user has a restricted role (not admin/super_admin)
