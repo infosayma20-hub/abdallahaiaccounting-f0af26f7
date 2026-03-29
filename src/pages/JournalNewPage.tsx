@@ -79,8 +79,8 @@ const JournalNewPage = () => {
   const [quickAddType, setQuickAddType] = useState<"customer" | "supplier">("customer");
   const [quickAddSaving, setQuickAddSaving] = useState(false);
   const [lines, setLines] = useState<JournalLine[]>([
-    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
-    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
 
   // ─── Load Duplicate Data ───
