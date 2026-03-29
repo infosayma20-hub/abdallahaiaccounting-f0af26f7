@@ -164,33 +164,10 @@ const AppsLauncher = () => {
       });
   }, [user]);
 
-  const enabledSettings: Record<string, boolean> = useMemo(() => {
-    if (!settings) return {};
-    return {
-      has_pos: !!settings.has_pos,
-      has_employees: !!settings.has_employees,
-      has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
-      has_contractor: settings.business_type === "مقاولات",
-      has_ecommerce: settings.business_type === "متجر إلكتروني",
-      has_travel: settings.business_type === "سياحة",
-      has_workshops: ["ورش ومناجر", "مقاولات"].includes(settings.business_type || ""),
-      has_tasks: false,
-    };
-  }, [settings]);
-
-  const isTrial = subscription?.status === "trial" || subscription?.status === "active";
-
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
     return (settings as any)?.hidden_apps || [];
   }, [settings]);
-
-  // Item is not relevant for this business type — hide entirely
-  const isAppIrrelevant = (app: NavItem) => {
-    if (!app.enableSetting) return false;
-    if (isTrial) return false;
-    return !enabledSettings[app.enableSetting];
-  };
 
   // Item is locked by super admin
   const isAppDisabled = (app: NavItem) => {
@@ -209,9 +186,6 @@ const AppsLauncher = () => {
 
   const allFilteredApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
-
-    // Filter out irrelevant apps for this business type
-    allApps = allApps.filter(app => !isAppIrrelevant(app));
 
     // Filter by role if restricted
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
@@ -232,7 +206,7 @@ const AppsLauncher = () => {
       const bDisabled = isAppDisabled(b) ? 1 : 0;
       return aDisabled - bDisabled;
     });
-  }, [search, enabledSettings, restrictedRole, hiddenApps]);
+  }, [search, restrictedRole, hiddenApps]);
 
   const totalResults = allFilteredApps.length;
 
