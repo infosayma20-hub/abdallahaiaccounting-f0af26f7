@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Minus, Trash2, Send, Save, Package, Search, PlusCircle, Wheat, Egg, Beef, Droplets, Sparkles, CupSoda, PackageIcon, UtensilsCrossed, SprayCan, Shirt, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil } from "lucide-react";
+import { Plus, Minus, Trash2, Send, Save, Package, Search, Wheat, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, Shield, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil, Milk, Egg, SprayCan, Shirt } from "lucide-react";
 import { useSuppliers, useItemCategories, useProcurementItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import { useNavigate } from "react-router-dom";
@@ -13,16 +13,15 @@ import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
   wheat: Wheat, egg: Egg, beef: Beef, droplets: Droplets, sparkles: Sparkles,
-  "cup-soda": CupSoda, package: PackageIcon, utensils: UtensilsCrossed,
-  "spray-can": SprayCan, shirt: Shirt,
+  "cup-soda": CupSoda, package: Package, utensils: UtensilsCrossed,
+  "spray-can": SprayCan, shirt: Shirt, milk: Milk, shield: Shield,
 };
 
-const ICON_OPTIONS = ["wheat", "egg", "beef", "droplets", "sparkles", "cup-soda", "package", "utensils", "spray-can", "shirt"];
+const ICON_OPTIONS = ["wheat", "egg", "beef", "droplets", "sparkles", "cup-soda", "package", "utensils", "spray-can", "shirt", "milk", "shield"];
 const COLOR_OPTIONS = ["#4A9EE8", "#FFFFFF", "#E74C3C", "#E67E22", "#9B59B6", "#3498DB", "#27AE60", "#1ABC9C", "#2ECC71", "#95A5A6"];
 const DEFAULT_UNITS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
 const CUSTOM_UNITS_KEY = "po-custom-units";
@@ -107,7 +106,6 @@ const PurchaseOrderCreatePage = () => {
   const [newCategory, setNewCategory] = useState({ name: "", icon: "package", color: "#4A9EE8" });
   const [savingDialog, setSavingDialog] = useState(false);
 
-  // Edit item dialog
   const [editItemOpen, setEditItemOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
 
@@ -151,7 +149,7 @@ const PurchaseOrderCreatePage = () => {
       }
       return prev;
     });
-  }, []);
+  }, [defaultBranchId]);
 
   const addManual = () => {
     if (!manualItem.item_name.trim()) return;
@@ -188,25 +186,14 @@ const PurchaseOrderCreatePage = () => {
   const handleAddSupplier = async () => {
     if (!newSupplier.name.trim()) { toast({ title: "أدخل اسم المورد", variant: "destructive" }); return; }
     setSavingDialog(true);
-    // Save to pos_suppliers for procurement FK references
     const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null });
-    // Also save to contacts table so it appears in account statements & reports
-    // Check if contact already exists to avoid duplicates
     if (ok && user) {
       const { data: existing } = await supabase.from("contacts")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("contact_name", newSupplier.name.trim())
-        .eq("contact_type", "مورد")
-        .maybeSingle();
+        .select("id").eq("user_id", user.id).eq("contact_name", newSupplier.name.trim()).eq("contact_type", "مورد").maybeSingle();
       if (!existing) {
         await supabase.from("contacts").insert({
-          user_id: user.id,
-          contact_name: newSupplier.name.trim(),
-          contact_type: "مورد",
-          phone: newSupplier.phone || null,
-          is_active: true,
-          linked_account_code: "2110",
+          user_id: user.id, contact_name: newSupplier.name.trim(), contact_type: "مورد",
+          phone: newSupplier.phone || null, is_active: true, linked_account_code: "2110",
         } as any);
       }
     }
@@ -223,8 +210,8 @@ const PurchaseOrderCreatePage = () => {
       user_id: user?.id, is_active: true, radius_meters: 500,
     } as any);
     setSavingDialog(false);
-    if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "✅ تم إضافة الفرع" });
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "تم إضافة الفرع" });
     setBranchOpen(false); setNewBranch({ name: "", address: "", latitude: 31.9, longitude: 35.2 });
     refetchBranches();
   };
@@ -233,7 +220,6 @@ const PurchaseOrderCreatePage = () => {
     if (!newItem.name.trim()) { toast({ title: "أدخل اسم الصنف", variant: "destructive" }); return; }
     if (!newItem.unit.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
     if (!newItem.category_id) { toast({ title: "اختر التصنيف", variant: "destructive" }); return; }
-    // Save custom unit
     if (!DEFAULT_UNITS.includes(newItem.unit)) { saveCustomUnit(newItem.unit); setUnitOptions(prev => [...new Set([...prev, newItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.create({
@@ -261,7 +247,6 @@ const PurchaseOrderCreatePage = () => {
     if (ok) { setCategoryOpen(false); setNewCategory({ name: "", icon: "package", color: "#4A9EE8" }); }
   };
 
-  // Edit existing item
   const openEditItem = (item: any) => {
     setEditItem({ id: item.id, name: item.name, category_id: item.category_id || "", unit: item.unit, default_price: Number(item.default_price) || 0 });
     setEditItemOpen(true);
@@ -287,105 +272,135 @@ const PurchaseOrderCreatePage = () => {
   return (
     <TooltipProvider>
       <div className="h-[100vh] flex flex-col overflow-hidden" dir="rtl">
-        {/* TOP BAR */}
-        <div className="shrink-0 border-b border-border bg-card px-3 py-2">
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* ═══ HEADER ═══ */}
+        <div className="shrink-0 border-b border-border bg-card">
+          {/* Row 1: Title */}
+          <div className="px-4 py-2.5 flex items-center gap-3 border-b border-border/50">
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)}>
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <span className="font-bold text-sm text-foreground shrink-0">طلب مشتريات جديد</span>
+            <span className="font-bold text-sm text-foreground">طلب مشتريات جديد</span>
             <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => navigate("/procurement/settings")}>
               <Settings className="h-3.5 w-3.5" />
             </Button>
+          </div>
 
-            {/* Supplier */}
-            <div className="flex items-center gap-1">
+          {/* Row 2: Supplier, Dates, Branch */}
+          <div className="px-4 py-2 flex items-center gap-4 flex-wrap border-b border-border/50">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">المورد:</Label>
               <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
                 <SelectContent>{allSuppliers.filter((s: any) => s.is_active !== false).map((s: any) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}</SelectContent>
               </Select>
               <Tooltip><TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setSupplierOpen(true)}>
                   <UserPlus className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger><TooltipContent>إضافة مورد جديد</TooltipContent></Tooltip>
             </div>
 
-
-            {/* Dates with labels */}
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[9px] text-muted-foreground leading-none">تاريخ الطلبية</span>
-              <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="h-7 w-[120px] text-[11px]" />
-            </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[9px] text-muted-foreground leading-none">التسليم المتوقع</span>
-              <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className="h-7 w-[120px] text-[11px]" />
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">تاريخ الطلب:</Label>
+              <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="h-8 w-[140px] text-xs" />
             </div>
 
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-              <span>أصناف <b className="text-foreground">{lines.length}</b></span>
-              <span>كمية <b className="text-foreground">{totalQty}</b></span>
-              <span>إجمالي <b className="text-foreground">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</b></span>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">التسليم المتوقع:</Label>
+              <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className="h-8 w-[140px] text-xs" />
             </div>
-            <div className="h-4 w-px bg-border mx-1" />
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => handleSave(false)} disabled={saving}>
-              <Save className="h-3.5 w-3.5 ml-1" />مسودة
+
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">الفرع:</Label>
+              <Select value={defaultBranchId} onValueChange={setDefaultBranchId}>
+                <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 3: Stats */}
+          <div className="px-4 py-1.5 flex items-center gap-6 border-b border-border/50 bg-muted/30">
+            <div className="flex items-center gap-1.5 text-xs">
+              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">الأصناف:</span>
+              <span className="font-bold text-foreground">{lines.length}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">الكمية:</span>
+              <span className="font-bold text-foreground">{totalQty}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">الإجمالي:</span>
+              <span className="font-bold text-foreground">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+          </div>
+
+          {/* Row 4: Action buttons */}
+          <div className="px-4 py-2 flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
+              <Save className="h-3.5 w-3.5" />
+              حفظ مسودة
             </Button>
-            <Button size="sm" className="h-8 text-xs text-white" style={{ background: "#1B3A5C" }} onClick={() => handleSave(true)} disabled={saving}>
-              <Send className="h-3.5 w-3.5 ml-1" />إرسال
+            <Button size="sm" className="h-8 text-xs gap-1.5 text-white" style={{ background: "#1B3A5C" }} onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
+              <Send className="h-3.5 w-3.5" />
+              إرسال للمورد
             </Button>
+            {lines.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={clearAll}>
+                <Trash2 className="h-3.5 w-3.5" />
+                مسح الكل
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* MAIN 2-COLUMN: Items + Order Lines */}
+        {/* ═══ MAIN 2-COLUMN ═══ */}
         <div className="flex-1 flex min-h-0">
-          {/* CENTER: Categories (horizontal) + Items Grid */}
+          {/* CENTER: Categories + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Category Tabs - wrap style like POS */}
+            {/* Category Tabs */}
             <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2.5">
               <div className="flex flex-wrap items-center gap-2">
+                {/* All button */}
                 <button
                   onClick={() => setActiveCategory(null)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${
-                    !activeCategory 
-                      ? "bg-foreground text-background shadow-md scale-105" 
-                      : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                    !activeCategory
+                      ? "text-white shadow-md"
+                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
                   }`}
+                  style={!activeCategory ? { backgroundColor: "#1B3A5C" } : undefined}
                 >
-                  <Package className="h-3.5 w-3.5" />
+                  <LayoutGrid className="h-3.5 w-3.5" />
                   <span>الكل</span>
-                  <span className="text-[9px] opacity-80">({allItems.length})</span>
+                  <span className="text-[10px] opacity-80">({allItems.length})</span>
                 </button>
 
                 {categories.map((cat: any) => {
                   const isActive = activeCategory === cat.id;
-                  const Icon = iconMap[cat.icon || ""] || PackageIcon;
+                  const Icon = iconMap[cat.icon || ""] || Package;
                   const count = categoryCounts[cat.id] || 0;
                   return (
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${
-                        isActive ? "shadow-md scale-105 text-white" : "hover:shadow-sm hover:scale-[1.02]"
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        isActive
+                          ? "text-white shadow-md"
+                          : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
                       }`}
-                      style={{
-                        backgroundColor: isActive ? (cat.color || "#6b7280") : `${cat.color || "#6b7280"}15`,
-                        color: isActive ? "white" : (cat.color || "#6b7280"),
-                        border: `1.5px solid ${isActive ? (cat.color || "#6b7280") : (cat.color || "#6b7280") + "50"}`,
-                        boxShadow: isActive ? `0 4px 12px ${cat.color || "#6b7280"}40` : undefined,
-                      }}
+                      style={isActive ? { backgroundColor: "#1B3A5C" } : undefined}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{cat.name}</span>
-                      <span className={`text-[9px] ${isActive ? "opacity-90" : "opacity-60"}`}>({count})</span>
+                      <span className="text-[10px] opacity-80">({count})</span>
                     </button>
                   );
                 })}
 
                 <button onClick={() => setCategoryOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all border border-dashed border-border/60">
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all border border-dashed border-border/60">
                   <Plus className="h-3 w-3" />
                   <span>تصنيف</span>
                 </button>
@@ -397,21 +412,22 @@ const PurchaseOrderCreatePage = () => {
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)} className="h-7 pr-8 text-xs" />
+                  onChange={e => setSearchQuery(e.target.value)} className="h-8 pr-8 text-xs" />
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setItemOpen(true)}>
-                <Plus className="h-3 w-3 ml-1" />إضافة صنف
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setItemOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                إضافة صنف جديد
               </Button>
               <div className="flex-1" />
               <div className="flex items-center gap-0.5 border rounded-md p-0.5">
-                {(["small", "medium", "large"] as CardSize[]).map(size => {
-                  const Icon = size === "small" ? Grid3X3 : size === "medium" ? LayoutGrid : Grid2X2;
-                  const label = size === "small" ? "صغير" : size === "medium" ? "متوسط" : "كبير";
+                {(["large", "medium", "small"] as CardSize[]).map(size => {
+                  const Icon = size === "large" ? Grid2X2 : size === "medium" ? LayoutGrid : Grid3X3;
+                  const label = size === "large" ? "جدول" : size === "medium" ? "بطاقات صغيرة" : "بطاقات كبيرة";
                   return (
                     <Tooltip key={size}><TooltipTrigger asChild>
                       <button onClick={() => { setCardSize(size); savePrefs({ ...loadPrefs(), cardSize: size }); }}
-                        className={`p-1 rounded ${cardSize === size ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                        <Icon className="h-3.5 w-3.5" />
+                        className={`p-1.5 rounded ${cardSize === size ? "bg-[#1B3A5C] text-white" : "text-muted-foreground hover:text-foreground"}`}>
+                        <Icon className="h-4 w-4" />
                       </button>
                     </TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
                   );
@@ -419,7 +435,7 @@ const PurchaseOrderCreatePage = () => {
               </div>
             </div>
 
-            {/* Grid — click = add 1, right-click = edit */}
+            {/* Grid */}
             <div className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}>
               {filteredItems.map((item: any) => {
                 const qty = getLineQuantity(item.id);
@@ -429,23 +445,21 @@ const PurchaseOrderCreatePage = () => {
                 return (
                   <div
                     key={item.id}
-                    className={`relative rounded-xl border overflow-hidden cursor-pointer transition-all select-none group hover:shadow-md active:scale-[0.97] ${
-                      isInOrder 
-                        ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-sm" 
-                        : "border-border/50 bg-card hover:bg-muted/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+                    className={`relative rounded-xl overflow-hidden cursor-pointer transition-all select-none group hover:shadow-md active:scale-[0.97] ${
+                      isInOrder
+                        ? "ring-2 ring-[#2D7A4F] bg-[#2D7A4F]/5 shadow-sm border border-[#2D7A4F]/40"
+                        : "border border-border/50 bg-card hover:bg-muted/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
                     }`}
-                    style={{ 
-                      borderBottomWidth: "3px", 
+                    style={{
+                      borderBottomWidth: "3px",
                       borderBottomColor: catColor + "60",
                     }}
                     onClick={() => addOrUpdateItem(item, 1)}
                     onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
                   >
-                    {/* Qty badge */}
                     {isInOrder && (
-                      <div className="absolute -top-1.5 -left-1.5 z-10 bg-primary text-primary-foreground text-[9px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-md">{qty}</div>
+                      <div className="absolute -top-1.5 -left-1.5 z-10 bg-[#2D7A4F] text-white text-[9px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-md">{qty}</div>
                     )}
-                    {/* Edit icon on hover */}
                     <button
                       className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
                       onClick={e => { e.stopPropagation(); openEditItem(item); }}
@@ -453,17 +467,31 @@ const PurchaseOrderCreatePage = () => {
                       <Pencil className="h-3 w-3" />
                     </button>
 
-                    <div className="px-2.5 py-2">
+                    <div className="px-2.5 py-2.5">
                       {searchQuery ? (
-                        <p className="text-xs font-semibold leading-tight mb-0.5" dangerouslySetInnerHTML={{ __html: highlightSearchWords(item.name, searchQuery) }} />
+                        <p className="text-sm font-semibold leading-tight mb-0.5" dangerouslySetInnerHTML={{ __html: highlightSearchWords(item.name, searchQuery) }} />
                       ) : (
-                        <p className="text-xs font-semibold leading-tight mb-0.5">{item.name}</p>
+                        <p className="text-sm font-semibold leading-tight mb-0.5">{item.name}</p>
                       )}
-                      <p className="text-[10px] text-muted-foreground">{item.unit}</p>
+                      <p className="text-xs text-muted-foreground">{item.unit}</p>
                       {cardSize === "large" && (
-                        <p className={`text-[10px] mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
+                        <p className={`text-xs mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
                           {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
                         </p>
+                      )}
+                      {/* Inline quantity controls when in order */}
+                      {isInOrder && (
+                        <div className="flex items-center gap-1 mt-2" onClick={e => e.stopPropagation()}>
+                          <button className="h-6 w-6 rounded bg-[#DC2626]/10 text-[#DC2626] flex items-center justify-center hover:bg-[#DC2626]/20"
+                            onClick={() => addOrUpdateItem(item, -1)}>
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="text-sm font-bold min-w-[24px] text-center">{qty}</span>
+                          <button className="h-6 w-6 rounded bg-[#2D7A4F]/10 text-[#2D7A4F] flex items-center justify-center hover:bg-[#2D7A4F]/20"
+                            onClick={() => addOrUpdateItem(item, 1)}>
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -479,15 +507,16 @@ const PurchaseOrderCreatePage = () => {
           </div>
 
           {/* LEFT: Order Lines Panel */}
-          <div className="w-[290px] shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
-            <div className="shrink-0 px-3 py-2 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-bold flex items-center gap-1.5">
+          <div className="w-[300px] shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
+            <div className="shrink-0 px-3 py-2.5 border-b border-border flex items-center justify-between">
+              <span className="text-sm font-bold flex items-center gap-1.5">
                 بنود الطلبية
-                {lines.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1">{lines.length}</Badge>}
+                {lines.length > 0 && <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{lines.length}</Badge>}
               </span>
               {lines.length > 0 && (
-                <button onClick={clearAll} className="text-[10px] text-destructive hover:underline flex items-center gap-0.5">
-                  <Trash2 className="h-3 w-3" />مسح الكل
+                <button onClick={clearAll} className="text-xs text-destructive hover:underline flex items-center gap-1">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  مسح الكل
                 </button>
               )}
             </div>
@@ -495,79 +524,87 @@ const PurchaseOrderCreatePage = () => {
             <div className="flex-1 overflow-y-auto">
               {lines.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground">
-                  <Package className="h-6 w-6 mx-auto mb-1 opacity-20" />
+                  <Package className="h-8 w-8 mx-auto mb-2 opacity-20" />
                   <p className="text-xs">اضغط على أي صنف لإضافته</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border/50">
-                  {lines.map(line => {
-                    const lineBranch = branches.find((b: any) => b.id === line.branch_id);
-                    return (
-                    <div key={line.id} className="px-3 py-2.5">
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="text-xs font-semibold leading-tight">{line.item_name}</span>
+                  {lines.map(line => (
+                    <div key={line.id} className="px-3 py-3">
+                      <div className="flex items-start justify-between mb-1.5">
+                        <span className="text-sm font-semibold leading-tight">{line.item_name}</span>
                         <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5 shrink-0">
-                          <X className="h-3 w-3" />
+                          <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
+
                       {/* Branch per line */}
-                      <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
-                        <SelectTrigger className={`h-5 text-[10px] mb-1 w-full ${!line.branch_id ? "border-orange-400 bg-orange-500/5" : ""}`}>
-                          <MapPin className="h-2.5 w-2.5 shrink-0 ml-0.5" />
-                          <SelectValue placeholder="حدد الفرع" />
-                        </SelectTrigger>
-                        <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-muted-foreground mb-1.5">
-                        {line.quantity} {line.unit} × {line.unit_price.toFixed(2)} ₪ = <span className="text-foreground font-medium">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
+                      <div className="flex items-center gap-1 mb-2">
+                        <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
+                          <SelectTrigger className={`h-6 text-[11px] w-full ${!line.branch_id ? "border-[#D97706] bg-[#D97706]/5" : ""}`}>
+                            <SelectValue placeholder="حدد الفرع" />
+                          </SelectTrigger>
+                          <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Price calculation */}
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {line.quantity} {line.unit} × {line.unit_price.toFixed(2)} ₪ = <span className="text-foreground font-semibold">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
                       </p>
+
+                      {/* Quantity + Price controls */}
                       <div className="flex items-center gap-1.5">
-                        <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => { if (line.quantity > 1) updateLine(line.id, "quantity", line.quantity - 1); else removeLine(line.id); }}>
-                          <Minus className="h-3 w-3" />
+                        <button className="h-7 w-7 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          onClick={() => { if (line.quantity > 1) updateLine(line.id, "quantity", line.quantity - 1); else removeLine(line.id); }}>
+                          <Minus className="h-3.5 w-3.5" />
                         </button>
                         <Input type="number" value={line.quantity} min={0.001} step="any"
                           onChange={e => updateLine(line.id, "quantity", Number(e.target.value))}
-                          className="h-6 w-12 text-center text-xs px-0" />
-                        <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => updateLine(line.id, "quantity", line.quantity + 1)}>
-                          <Plus className="h-3 w-3" />
+                          className="h-7 w-14 text-center text-sm font-bold px-0" />
+                        <button className="h-7 w-7 rounded border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          onClick={() => updateLine(line.id, "quantity", line.quantity + 1)}>
+                          <Plus className="h-3.5 w-3.5" />
                         </button>
                         <Input type="number" value={line.unit_price} min={0} step="any"
                           onChange={e => updateLine(line.id, "unit_price", Number(e.target.value))}
-                          className={`h-6 w-16 text-center text-xs px-0 ${line.unit_price === 0 ? "border-orange-400 bg-orange-500/10" : ""}`}
+                          className={`h-7 w-20 text-center text-sm px-0 ${line.unit_price === 0 ? "border-[#D97706] bg-[#D97706]/10" : ""}`}
                           placeholder="سعر" />
                         <button onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)}
-                          className={`p-0.5 rounded ${line.notes ? "text-accent" : "text-muted-foreground"} hover:text-foreground`}>
-                          <StickyNote className="h-3 w-3" />
+                          className={`p-1 rounded ${line.notes ? "text-[#D97706]" : "text-muted-foreground"} hover:text-foreground`}>
+                          <StickyNote className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       {editingNoteId === line.id && (
                         <Input value={line.notes} placeholder="ملاحظة..."
                           onChange={e => updateLine(line.id, "notes", e.target.value)}
-                          className="h-6 text-[11px] mt-1.5" autoFocus />
+                          className="h-7 text-xs mt-2" autoFocus />
                       )}
                     </div>
-                  );
-                  })}
+                  ))}
                 </div>
               )}
             </div>
 
-            <div className="shrink-0 border-t border-border p-3 space-y-2 bg-muted/20">
+            <div className="shrink-0 border-t border-border p-3 space-y-2.5 bg-muted/20">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">المجموع التقديري</span>
-                <span className="font-bold">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+                <span className="font-bold text-base">{totalAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
               </div>
-              <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => handleSave(false)} disabled={saving}>
-                <Save className="h-3.5 w-3.5 ml-1" />حفظ مسودة
+              <Button variant="outline" size="sm" className="w-full h-9 text-xs gap-1.5" onClick={() => handleSave(false)} disabled={saving}>
+                <Save className="h-4 w-4" />
+                حفظ مسودة
               </Button>
-              <Button size="sm" className="w-full h-8 text-xs bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => handleSave(true)} disabled={saving}>
-                <Send className="h-3.5 w-3.5 ml-1" />إرسال الطلبية
+              <Button size="sm" className="w-full h-9 text-xs gap-1.5 text-white" style={{ background: "#1B3A5C" }} onClick={() => handleSave(true)} disabled={saving || !supplierId || lines.length === 0}>
+                <Send className="h-4 w-4" />
+                إرسال الطلبية
               </Button>
             </div>
           </div>
         </div>
 
-        {/* ── DIALOGS ── */}
+        {/* ═══ DIALOGS ═══ */}
 
         {/* Manual Item */}
         <Dialog open={manualOpen} onOpenChange={setManualOpen}>
@@ -581,7 +618,7 @@ const PurchaseOrderCreatePage = () => {
                 <div><Label className="text-xs">السعر</Label><Input type="number" value={manualItem.unit_price || ""} onChange={e => setManualItem({...manualItem, unit_price: Number(e.target.value)})} className="text-sm" /></div>
               </div>
               <div><Label className="text-xs">ملاحظة</Label><Input value={manualItem.notes} onChange={e => setManualItem({...manualItem, notes: e.target.value})} className="text-sm" /></div>
-              <Button className="w-full" onClick={addManual}><Plus className="h-4 w-4 ml-1" />إضافة للطلبية</Button>
+              <Button className="w-full gap-1.5" onClick={addManual}><Plus className="h-4 w-4" />إضافة للطلبية</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -658,7 +695,7 @@ const PurchaseOrderCreatePage = () => {
                 <Label className="text-xs">الأيقونة</Label>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {ICON_OPTIONS.map(iconKey => {
-                    const Ic = iconMap[iconKey] || PackageIcon;
+                    const Ic = iconMap[iconKey] || Package;
                     return (
                       <button key={iconKey} onClick={() => setNewCategory({...newCategory, icon: iconKey})}
                         className={`h-8 w-8 rounded-md border flex items-center justify-center transition-colors ${
