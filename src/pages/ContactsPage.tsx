@@ -136,6 +136,10 @@ const ContactsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [alerts, setAlerts] = useState<ContactAlert[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [overdueContact, setOverdueContact] = useState<Contact | null>(null);
+  const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
+  const [overdueInvoices, setOverdueInvoices] = useState<any[]>([]);
+  const [overdueLoading, setOverdueLoading] = useState(false);
   const [newContact, setNewContact] = useState({
     name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "",
     contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: ""
