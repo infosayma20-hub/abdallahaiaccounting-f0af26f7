@@ -1571,11 +1571,11 @@ const AccountStatementPage = () => {
 
   // ─── RENDER ───
   return (
-    <div className="min-h-screen bg-background flex flex-col" dir="rtl">
+    <div className="min-h-screen flex flex-col" dir="rtl" style={{ background: "#F5F7FA" }}>
       {/* ─── TOP BAR ─── */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border no-print">
-        {/* Row 1: Nav + Actions */}
-        <div className="flex items-center justify-between px-4 py-2">
+        {/* Row 1: Nav + Actions + Date Range */}
+        <div className="flex items-center justify-between px-5 py-2.5">
           <div className="flex items-center gap-3">
             <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/finance"); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <ArrowRight className="w-5 h-5 text-foreground" />
@@ -1587,36 +1587,36 @@ const AccountStatementPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Date range */}
+            <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-2 py-1">
+              <label className="text-[10px] text-muted-foreground font-semibold">من</label>
+              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-7 w-32 text-xs bg-transparent border-0 p-0 shadow-none focus-visible:ring-0" />
+              <div className="w-px h-4 bg-border" />
+              <label className="text-[10px] text-muted-foreground font-semibold">إلى</label>
+              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-7 w-32 text-xs bg-transparent border-0 p-0 shadow-none focus-visible:ring-0" />
+            </div>
+
+            <div className="h-6 w-px bg-border" />
+
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setShowCustomizePanel(true)}
               className="h-8 gap-1.5 text-xs"
+              style={{ background: "#1B3A5C" }}
             >
               <Settings2 className="w-3.5 h-3.5" /> تخصيص
             </Button>
-
-            {/* PDF Preview button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePreviewPDF}
-              disabled={!selectedEntityId || rows.length === 0 || pdfGenerating}
-              className="h-8 gap-1.5 text-xs"
-            >
+            <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={!selectedEntityId || rows.length === 0 || pdfGenerating} className="h-8 gap-1.5 text-xs">
               {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-              {pdfGenerating ? "جاري التوليد..." : "معاينة PDF"}
+              معاينة PDF
             </Button>
-
             <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
-
-            {/* Send dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
@@ -1643,31 +1643,9 @@ const AccountStatementPage = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
             </Button>
-          </div>
-        </div>
-
-        {/* Row 2: Entity type tabs */}
-        <div className="px-4 pb-2">
-          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 w-fit">
-            {ENTITY_TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all",
-                  activeTab === tab.key
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <tab.icon className={cn("w-4 h-4", activeTab === tab.key && tab.color)} />
-                {tab.label}
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -1675,10 +1653,119 @@ const AccountStatementPage = () => {
       {/* ─── BODY: Sidebar + Main ─── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ─── SIDE PANEL (RIGHT) — only on large screens ─── */}
-        {!sidebarCollapsed && (
+        {/* ─── SIDE PANEL (RIGHT in RTL = entity list) ─── */}
+        {!isMobile && (
           <div className="border-l border-border bg-card flex flex-col shrink-0 no-print" style={{ width: "280px", minWidth: "280px" }}>
-            {renderSidebarContent()}
+            {/* Tabs */}
+            <div className="p-3 border-b border-border">
+              <div className="flex items-center bg-muted/50 rounded-lg p-0.5">
+                {ENTITY_TABS.map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md text-[11px] font-semibold transition-all",
+                      activeTab === tab.key
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <tab.icon className={cn("w-3.5 h-3.5", activeTab === tab.key && tab.color)} />
+                    <span className="hidden xl:inline">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="p-3 border-b border-border space-y-2.5">
+              <div className="relative">
+                <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
+                  value={entitySearch}
+                  onChange={e => setEntitySearch(e.target.value)}
+                  className="pr-9 h-9 text-xs bg-muted/50 border-0 rounded-lg"
+                />
+              </div>
+              <div className="bg-muted/30 rounded-lg p-2.5 space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">الرصيد الإجمالي:</span>
+                  <span className={cn("font-bold tabular-nums", isAccountsTab ? "text-foreground" : totalBalance > 0 ? "text-red-600" : totalBalance < 0 ? "text-emerald-600" : "text-foreground")}>
+                    {fmtAmount(totalBalance)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px]">
+                  <span className="text-red-500">+{debitCount} مدين</span>
+                  <span className="text-emerald-500">+{creditCount} دائن</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Entity list */}
+            <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="p-3 space-y-2">
+                  {[1,2,3,4].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+                </div>
+              ) : entityList.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">لا توجد نتائج</div>
+              ) : (
+                entityList.map(entity => {
+                  const isActive = entity.id === selectedEntityId;
+                  const balPct = Math.min((Math.abs(entity.balance) / maxBalance) * 100, 100);
+                  return (
+                    <button
+                      key={entity.id}
+                      onClick={() => selectEntity(entity.id)}
+                      className={cn(
+                        "w-full text-right px-3 py-3 border-b border-border/30 transition-all",
+                        isActive
+                          ? "text-white"
+                          : "hover:bg-muted/30"
+                      )}
+                      style={isActive ? { background: "#0D1B2E" } : undefined}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={cn("text-xs font-semibold truncate flex items-center gap-1.5", isActive ? "text-white" : "text-foreground")}>
+                          {isActive && <span className="text-emerald-400">✓</span>}
+                          {entity.name}
+                        </span>
+                        <span className={cn("text-xs font-bold tabular-nums shrink-0 mr-2",
+                          isActive
+                            ? (entity.balance === 0 ? "text-white/60" : entity.balance > 0 ? "text-red-300" : "text-emerald-300")
+                            : (() => {
+                                const code = entity.accountCode || "";
+                                const isAssetOrExpense = code.startsWith("1") || code.startsWith("5");
+                                if (entity.balance === 0) return "text-muted-foreground";
+                                if (isAssetOrExpense) return entity.balance > 0 ? "text-foreground" : "text-red-600";
+                                return entity.balance > 0 ? "text-red-600" : "text-emerald-600";
+                              })()
+                        )}>
+                          {entity.balance === 0 ? "✓ مسدَّد" : fmtAmount(entity.balance)}
+                        </span>
+                      </div>
+                      {entity.subtitle && (
+                        <div className={cn("text-[10px] truncate", isActive ? "text-white/50" : "text-muted-foreground")}>{entity.subtitle}</div>
+                      )}
+                      {entity.balance !== 0 && !isActive && (
+                        <div className="h-1 rounded-full bg-muted/50 overflow-hidden mt-1">
+                          <div
+                            className={cn("h-full rounded-full transition-all", (() => {
+                              const code = entity.accountCode || "";
+                              const isAssetOrExpense = code.startsWith("1") || code.startsWith("5");
+                              if (isAssetOrExpense) return entity.balance > 0 ? "bg-primary" : "bg-red-500";
+                              return entity.balance > 0 ? "bg-red-500" : "bg-emerald-500";
+                            })())}
+                            style={{ width: `${balPct}%` }}
+                          />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
 
@@ -1716,21 +1803,26 @@ const AccountStatementPage = () => {
               />
             </div>
 
-            {/* Contact selector for collapsed sidebar (medium screens) */}
-            {sidebarCollapsed && !isMobile && (
-              <div className="px-4 pt-3 no-print">
-                <EntitySearchCombobox
-                  entities={entityList}
-                  selectedId={selectedEntityId}
-                  onSelect={selectEntity}
-                  placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : isEmployeesTab ? "ابحث عن موظف..." : activeTab === "suppliers" ? "ابحث عن مورد..." : "ابحث عن زبون..."}
-                />
-              </div>
-            )}
-
             {/* Mobile: Contact selector */}
             {isMobile && (
-              <div className="px-4 pt-3 no-print">
+              <div className="px-4 pt-3 no-print space-y-2">
+                <div className="flex items-center bg-muted/50 rounded-lg p-0.5 w-full">
+                  {ENTITY_TABS.map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-md text-[11px] font-semibold transition-all",
+                        activeTab === tab.key
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <tab.icon className={cn("w-3.5 h-3.5", activeTab === tab.key && tab.color)} />
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
                 <EntitySearchCombobox
                   entities={entityList}
                   selectedId={selectedEntityId}
@@ -1755,7 +1847,7 @@ const AccountStatementPage = () => {
                 {/* ─── CREDIT LIMIT WARNING ─── */}
                 {creditLimitWarning && creditLimitWarning.level !== "ok" && (
                   <div className={cn(
-                    "mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print",
+                    "mx-5 mt-4 rounded-xl border px-4 py-2.5 flex items-center gap-3 no-print",
                     creditLimitWarning.level === "exceeded"
                       ? "bg-red-500/10 border-red-500/30 text-red-600"
                       : "bg-amber-500/10 border-amber-500/30 text-amber-600"
@@ -1772,7 +1864,7 @@ const AccountStatementPage = () => {
 
                 {/* ─── OVERDUE ALERT ─── */}
                 {overdueAlert && (
-                  <div className="mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print bg-amber-500/10 border-amber-500/30 text-amber-700">
+                  <div className="mx-5 mt-4 rounded-xl border px-4 py-2.5 flex items-center gap-3 no-print bg-amber-500/10 border-amber-500/30 text-amber-700">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <div className="text-xs">
                       <strong>⚠️ يوجد رصيد متأخر السداد</strong>
@@ -1785,149 +1877,176 @@ const AccountStatementPage = () => {
 
                 {/* ─── ZERO BALANCE NOTICE ─── */}
                 {selectedEntityId && !loading && closingBalance === 0 && rows.length > 0 && (
-                  <div className="mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print bg-emerald-500/10 border-emerald-500/30 text-emerald-700">
+                  <div className="mx-5 mt-4 rounded-xl border px-4 py-2.5 flex items-center gap-3 no-print bg-emerald-500/10 border-emerald-500/30 text-emerald-700">
                     <span className="text-base">✅</span>
                     <span className="text-xs font-semibold">لا توجد مديونية على هذا الحساب — الرصيد مسدَّد بالكامل</span>
                   </div>
                 )}
 
-                {/* ─── ENTITY INFO CARD ─── */}
-                <div className="p-4 no-print">
-                  <div className="bg-card rounded-xl border border-border p-5">
-                    <div className="flex items-start justify-between mb-5">
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <FileText className="w-3 h-3" />
-                        <span className="font-mono">{statementNumber}</span>
-                        <span className="mx-1">·</span>
-                        <span>من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</span>
+                {/* ─── DOCUMENT CARD ─── */}
+                <div className="p-5">
+                  <div className="bg-white dark:bg-card rounded-xl border border-border" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+
+                    {/* Document Header */}
+                    <div className="rounded-t-xl p-6 border-b border-border" style={{ background: "#1B3A5C" }}>
+                      <div className="flex items-start justify-between">
+                        {/* Right: Company info */}
+                        <div className="flex items-center gap-3">
+                          {companyInfo.logo_url && (
+                            <img src={companyInfo.logo_url} alt="logo" className="w-14 h-14 object-contain rounded-lg bg-white p-1" />
+                          )}
+                          <div>
+                            <h3 className="text-white font-bold text-base">{companyInfo.name || "AMWALI"}</h3>
+                            {companyInfo.email && <p className="text-white/60 text-[11px] flex items-center gap-1"><Mail className="w-3 h-3" />{companyInfo.email}</p>}
+                            {companyInfo.phone && <p className="text-white/60 text-[11px] flex items-center gap-1"><Phone className="w-3 h-3" />{companyInfo.phone}</p>}
+                          </div>
+                        </div>
+                        {/* Left: Statement title */}
+                        <div className="text-left">
+                          <h2 className="text-white font-bold text-lg">كشف حساب</h2>
+                          <p className="text-white/50 text-xs">STATEMENT OF ACCOUNT</p>
+                          <p className="text-amber-300 text-[11px] font-mono mt-1">{statementNumber}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-start justify-between mb-5">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <h2 className="text-lg font-bold text-foreground">{selectedEntityName}</h2>
-                          <Badge variant="secondary" className="text-[10px]">
-                            {isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type}
-                          </Badge>
-                          {selectedContact?.contact_class && (
-                            <Badge className={cn("text-[10px]",
-                              selectedContact.contact_class === "A" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
-                              selectedContact.contact_class === "B" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" :
-                              selectedContact.contact_class === "C" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" :
-                              "bg-red-500/10 text-red-600 border-red-500/30"
-                            )} variant="outline">
-                              <Star className="w-3 h-3 ml-1" />
-                              {selectedContact.contact_class === "A" ? "ممتاز" : selectedContact.contact_class === "B" ? "جيد" : selectedContact.contact_class === "C" ? "عادي" : "مخاطرة"}
+
+                    {/* Entity info + metadata */}
+                    <div className="p-5 border-b border-border">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-semibold mb-1">صادر إلى</p>
+                          <h2 className="text-lg font-bold text-foreground mb-1">{selectedEntityName}</h2>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className="text-[10px]">
+                              {isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type}
                             </Badge>
-                          )}
+                            {selectedContact?.contact_class && (
+                              <Badge className={cn("text-[10px]",
+                                selectedContact.contact_class === "A" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
+                                selectedContact.contact_class === "B" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" :
+                                selectedContact.contact_class === "C" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" :
+                                "bg-red-500/10 text-red-600 border-red-500/30"
+                              )} variant="outline">
+                                <Star className="w-3 h-3 ml-1" />
+                                {selectedContact.contact_class === "A" ? "ممتاز" : selectedContact.contact_class === "B" ? "جيد" : selectedContact.contact_class === "C" ? "عادي" : "مخاطرة"}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap mt-2">
+                            {selectedEntityInfo.code && (
+                              <span className="font-mono bg-muted/50 px-2 py-0.5 rounded text-[11px]">{selectedEntityInfo.code}</span>
+                            )}
+                            {selectedEntityInfo.phone && (
+                              <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{selectedEntityInfo.phone}</span>
+                            )}
+                            {selectedEntityInfo.email && (
+                              <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{selectedEntityInfo.email}</span>
+                            )}
+                            {selectedEntityInfo.address && (
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selectedEntityInfo.address}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                          {selectedEntityInfo.code && (
-                            <span className="font-mono bg-muted/50 px-2 py-0.5 rounded text-[11px]">{selectedEntityInfo.code}</span>
-                          )}
-                          {selectedEntityInfo.phone && (
-                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{selectedEntityInfo.phone}</span>
-                          )}
-                          {selectedEntityInfo.email && (
-                            <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{selectedEntityInfo.email}</span>
-                          )}
-                          {selectedEntityInfo.address && (
-                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selectedEntityInfo.address}</span>
-                          )}
-                          {lastTxDate && (
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                              <Clock className="w-3 h-3" /> آخر معاملة: {getDayName(lastTxDate)} {fmtDate(lastTxDate)}
-                            </span>
-                          )}
+                        <div className="text-left space-y-1.5 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>رقم الكشف:</span>
+                            <span className="font-mono text-foreground font-semibold">{statementNumber}</span>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>تاريخ الإصدار:</span>
+                            <span className="text-foreground">{fmtDate(format(new Date(), "yyyy-MM-dd"))}</span>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>من:</span>
+                            <span className="text-foreground">{fmtDate(dateFrom)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>إلى:</span>
+                            <span className="text-foreground">{fmtDate(dateTo)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>العملة:</span>
+                            <span className="text-foreground">{getCurrencySymbol(statementCurrency)} {statementCurrency}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* 4 KPI Cards */}
-                    <div className={cn("grid gap-3", isMobile ? "grid-cols-2" : "grid-cols-4")}>
-                      <div className="rounded-xl border border-border bg-muted/20 p-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                          <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground font-semibold">رصيد افتتاحي</span>
+                    {/* 4 KPI Cards — redesigned with colored left border */}
+                    <div className="p-5 border-b border-border">
+                      <div className={cn("grid gap-4", isMobile ? "grid-cols-2" : "grid-cols-4")}>
+                        {/* Opening Balance */}
+                        <div className="rounded-xl border border-border bg-card p-4 relative overflow-hidden" style={{ borderRight: "4px solid #9CA3AF" }}>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <BookOpen className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-[13px] text-muted-foreground">رصيد افتتاحي</span>
+                          </div>
+                          <p className="font-bold tabular-nums text-foreground" style={{ fontSize: "22px" }}>{fmtAmount(openingBalance, statementCurrency)}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
                         </div>
-                         <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance, statementCurrency)}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
-                      </div>
-                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                          <TrendingUp className="w-3.5 h-3.5 text-red-500" />
-                          <span className="text-[10px] text-red-600 font-semibold">إجمالي مدين</span>
+
+                        {/* Total Debit */}
+                        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-card p-4 relative overflow-hidden" style={{ borderRight: "4px solid #3B82F6" }}>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <TrendingUp className="w-4 h-4 text-blue-500" />
+                            <span className="text-[13px] text-muted-foreground">إجمالي المدين</span>
+                          </div>
+                          <p className="font-bold tabular-nums text-red-600" style={{ fontSize: "22px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit, statementCurrency)}</p>
-                      </div>
-                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                          <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="text-[10px] text-emerald-600 font-semibold">إجمالي دائن</span>
+
+                        {/* Total Credit */}
+                        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-card p-4 relative overflow-hidden" style={{ borderRight: "4px solid #10B981" }}>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <TrendingDown className="w-4 h-4 text-emerald-500" />
+                            <span className="text-[13px] text-muted-foreground">إجمالي الدائن</span>
+                          </div>
+                          <p className="font-bold tabular-nums text-emerald-600" style={{ fontSize: "22px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</p>
-                      </div>
-                      <div className={cn("rounded-xl border p-3.5 text-center",
-                        closingBalance > 0 ? "border-red-500/20 bg-red-50 dark:bg-red-500/5" :
-                        closingBalance < 0 ? "border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5" :
-                        "border-border bg-muted/20"
-                      )}>
-                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                          <Wallet className="w-3.5 h-3.5 text-foreground" />
-                          <span className="text-[10px] text-foreground font-semibold">رصيد ختامي</span>
-                        </div>
-                        <p className={cn("text-lg font-bold tabular-nums",
-                          closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-muted-foreground"
-                        )}>
-                          {fmtAmount(closingBalance, statementCurrency)}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد"}
-                        </p>
-                        {oldestOpenInvoice && (
-                          <p className="text-[9px] text-muted-foreground mt-1 border-t border-border/50 pt-1">
-                            ⏰ أقدم فاتورة: {oldestOpenInvoice.ref} ({oldestOpenInvoice.days} يوم)
+
+                        {/* Closing Balance */}
+                        <div className={cn("rounded-xl border bg-card p-4 relative overflow-hidden",
+                          closingBalance > 0 ? "border-red-200 dark:border-red-800" : closingBalance < 0 ? "border-emerald-200 dark:border-emerald-800" : "border-border"
+                        )} style={{ borderRight: closingBalance > 0 ? "4px solid #EF4444" : closingBalance < 0 ? "4px solid #10B981" : "4px solid #9CA3AF" }}>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            {closingBalance !== 0 ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Wallet className="w-4 h-4 text-muted-foreground" />}
+                            <span className="text-[13px] text-muted-foreground">الرصيد المستحق</span>
+                          </div>
+                          <p className={cn("font-bold tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-muted-foreground")} style={{ fontSize: "22px" }}>
+                            {fmtAmount(closingBalance, statementCurrency)}
                           </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─── FILTER BAR ─── */}
-                <div className="px-4 pb-3 no-print">
-                  <div className="bg-card rounded-xl border border-border p-3 space-y-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-muted-foreground font-semibold">من</label>
-                        <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0 rounded-lg" />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-muted-foreground font-semibold">إلى</label>
-                        <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0 rounded-lg" />
-                      </div>
-                      <div className="h-5 w-px bg-border" />
-                      {QUICK_PERIODS.map(p => (
-                        <button
-                          key={p.label}
-                          onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
-                          className={cn(
-                            "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border",
-                            activePeriod === p.label
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد ✅"}
+                          </p>
+                          {oldestOpenInvoice && (
+                            <p className="text-[9px] text-muted-foreground mt-1 border-t border-border/50 pt-1">
+                              ⏰ أقدم فاتورة: {oldestOpenInvoice.ref} ({oldestOpenInvoice.days} يوم)
+                            </p>
                           )}
-                        >
-                          {p.label}
-                        </button>
-                      ))}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                    {/* ─── FILTER BAR ─── */}
+                    <div className="px-5 py-3 border-b border-border bg-muted/20 no-print">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {QUICK_PERIODS.map(p => (
+                          <button
+                            key={p.label}
+                            onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border",
+                              activePeriod === p.label
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                        <div className="h-5 w-px bg-border" />
                         <Select value={txTypeFilter} onValueChange={setTxTypeFilter}>
-                          <SelectTrigger className="h-8 w-40 text-xs bg-muted/50 border-0 rounded-lg">
+                          <SelectTrigger className="h-8 w-40 text-xs bg-card border-border rounded-lg">
+                            <Filter className="w-3 h-3 ml-1 text-muted-foreground" />
                             <SelectValue placeholder="النوع" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1936,417 +2055,429 @@ const AccountStatementPage = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
-                      <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                        <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-0 rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CURRENCIES.map(c => (
-                            <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      {/* Year comparison toggle */}
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox
-                          checked={showYearComparison}
-                          onCheckedChange={(v) => setShowYearComparison(!!v)}
-                          className="h-3.5 w-3.5"
-                        />
-                        <span className="text-[11px] text-muted-foreground">مقارنة بالسنة السابقة</span>
-                      </label>
-
-                      <div className="flex-1" />
-                      <div className="relative">
-                        <Search className="absolute right-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
-                        <Input
-                          placeholder="🔍 بحث في الحركات..."
-                          value={txSearch}
-                          onChange={e => setTxSearch(e.target.value)}
-                          className="pr-8 h-8 w-52 text-xs bg-muted/50 border-0 rounded-lg"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─── YEAR COMPARISON CARDS ─── */}
-                {showYearComparison && comparisonData && (
-                  <div className="px-4 pb-3 no-print">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <h4 className="text-xs font-bold text-muted-foreground mb-3">📊 مقارنة بنفس الفترة من السنة الماضية ({fmtDate(comparisonData.fromPrev)} — {fmtDate(comparisonData.toPrev)})</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr>
-                                <th className="text-right py-1 text-muted-foreground font-semibold"></th>
-                                <th className="text-left py-1 text-muted-foreground font-semibold">{fmtDate(dateFrom).slice(-4)}</th>
-                                <th className="text-left py-1 text-muted-foreground font-semibold">{fmtDate(comparisonData.fromPrev).slice(-4)}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr className="border-b border-border/30">
-                                <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit, statementCurrency)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
-                              </tr>
-                              <tr className="border-b border-border/30">
-                                <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
-                              </tr>
-                              <tr>
-                                <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
-                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance, statementCurrency)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance, statementCurrency)}</td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                        <div className="flex items-center justify-center">
-                          <div className={cn(
-                            "rounded-xl p-4 text-center border",
-                            comparisonData.change > 0 ? "bg-red-500/5 border-red-500/20" : "bg-emerald-500/5 border-emerald-500/20"
-                          )}>
-                            <p className="text-[10px] text-muted-foreground mb-1">التغيير</p>
-                            <p className={cn("text-lg font-bold tabular-nums", comparisonData.change > 0 ? "text-red-600" : "text-emerald-600")}>
-                              {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change, statementCurrency)}
-                            </p>
-                            {comparisonData.changePct !== 0 && (
-                              <p className={cn("text-xs font-semibold", comparisonData.change > 0 ? "text-red-500" : "text-emerald-500")}>
-                                ({comparisonData.changePct > 0 ? "+" : ""}{Math.round(comparisonData.changePct)}%)
-                              </p>
-                            )}
-                          </div>
+                        <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                          <SelectTrigger className="h-8 w-32 text-xs bg-card border-border rounded-lg">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CURRENCIES.map(c => (
+                              <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox checked={showYearComparison} onCheckedChange={(v) => setShowYearComparison(!!v)} className="h-3.5 w-3.5" />
+                          <span className="text-[11px] text-muted-foreground">مقارنة سنوية</span>
+                        </label>
+                        <div className="flex-1" />
+                        <div className="relative">
+                          <Search className="absolute right-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
+                          <Input
+                            placeholder="🔍 بحث في الحركات..."
+                            value={txSearch}
+                            onChange={e => setTxSearch(e.target.value)}
+                            className="pr-8 h-8 w-52 text-xs bg-card border-border rounded-lg"
+                          />
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
 
-                {/* ─── CHEQUES SECTION ─── */}
-                {displayOptions.showCheques && relatedCheques.length > 0 && (
-                  <div className="px-4 pb-3 no-print">
-                    <Collapsible>
-                      <CollapsibleTrigger className="w-full">
-                        <div className="bg-card rounded-xl border border-border p-3 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <CreditCard className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-xs font-semibold text-foreground">الشيكات المرتبطة</span>
-                            <Badge variant="secondary" className="text-[10px]">{relatedCheques.length}</Badge>
-                          </div>
-                          <div className="flex items-center gap-3 text-[10px]">
-                            <span className="text-emerald-500">واردة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "وارد").reduce((s, c) => s + c.amount, 0))}</span>
-                            <span className="text-red-400">صادرة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "صادر").reduce((s, c) => s + c.amount, 0))}</span>
-                          </div>
-                        </div>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-[12px]" style={{ minWidth: "500px" }}>
+                    {/* ─── YEAR COMPARISON CARDS ─── */}
+                    {showYearComparison && comparisonData && (
+                      <div className="px-5 py-3 border-b border-border no-print">
+                        <h4 className="text-xs font-bold text-muted-foreground mb-3">📊 مقارنة بنفس الفترة من السنة الماضية ({fmtDate(comparisonData.fromPrev)} — {fmtDate(comparisonData.toPrev)})</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <table className="w-full text-xs">
                               <thead>
-                                <tr style={{ background: "#0D1B2A" }}>
-                                  <th className="text-right px-3 py-2 text-[10px] font-bold text-white">رقم الشيك</th>
-                                  <th className="text-center px-3 py-2 text-[10px] font-bold text-white">النوع</th>
-                                  <th className="text-left px-3 py-2 text-[10px] font-bold text-white">المبلغ</th>
-                                  <th className="text-right px-3 py-2 text-[10px] font-bold text-white">التاريخ</th>
-                                  <th className="text-center px-3 py-2 text-[10px] font-bold text-white">الحالة</th>
-                                  <th className="text-right px-3 py-2 text-[10px] font-bold text-white">البنك</th>
+                                <tr>
+                                  <th className="text-right py-1 text-muted-foreground font-semibold"></th>
+                                  <th className="text-left py-1 text-muted-foreground font-semibold">{fmtDate(dateFrom).slice(-4)}</th>
+                                  <th className="text-left py-1 text-muted-foreground font-semibold">{fmtDate(comparisonData.fromPrev).slice(-4)}</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {relatedCheques.map((c, i) => (
-                                  <tr key={c.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors", i % 2 === 1 && "bg-muted/10")}>
-                                    <td className="px-3 py-2 text-right">
-                                      <button onClick={() => navigate("/cheques")} className="text-primary hover:underline font-mono text-[11px]">{c.cheque_number || "—"}</button>
-                                    </td>
-                                    <td className="px-3 py-2 text-center">
-                                      <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", c.cheque_type === "وارد" ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" : "border-red-500/30 text-red-500 bg-red-500/5")}>{c.cheque_type}</span>
-                                    </td>
-                                    <td className="px-3 py-2 text-left font-mono font-semibold">{fmtAmount(c.amount)}</td>
-                                    <td className="px-3 py-2 text-right text-muted-foreground">{fmtDate(c.cheque_date)}</td>
-                                    <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-[9px]">{c.status}</Badge></td>
-                                    <td className="px-3 py-2 text-right text-muted-foreground">{c.bank_name || "—"}</td>
-                                  </tr>
-                                ))}
+                                <tr className="border-b border-border/30">
+                                  <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
+                                  <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit, statementCurrency)}</td>
+                                  <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
+                                </tr>
+                                <tr className="border-b border-border/30">
+                                  <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
+                                  <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</td>
+                                  <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
+                                  <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance, statementCurrency)}</td>
+                                  <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance, statementCurrency)}</td>
+                                </tr>
                               </tbody>
                             </table>
                           </div>
+                          <div className="flex items-center justify-center">
+                            <div className={cn(
+                              "rounded-xl p-4 text-center border",
+                              comparisonData.change > 0 ? "bg-red-500/5 border-red-500/20" : "bg-emerald-500/5 border-emerald-500/20"
+                            )}>
+                              <p className="text-[10px] text-muted-foreground mb-1">التغيير</p>
+                              <p className={cn("text-lg font-bold tabular-nums", comparisonData.change > 0 ? "text-red-600" : "text-emerald-600")}>
+                                {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change, statementCurrency)}
+                              </p>
+                              {comparisonData.changePct !== 0 && (
+                                <p className={cn("text-xs font-semibold", comparisonData.change > 0 ? "text-red-500" : "text-emerald-500")}>
+                                  ({comparisonData.changePct > 0 ? "+" : ""}{Math.round(comparisonData.changePct)}%)
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
+                      </div>
+                    )}
 
-                {/* ─── AGING ANALYSIS ─── */}
-                {agingData && (
-                  <div className="px-4 pb-3 no-print">
-                    <Collapsible>
-                      <CollapsibleTrigger className="w-full">
-                        <div className="bg-card rounded-xl border border-border p-3 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-xs font-semibold text-foreground">تحليل التقادم (Aging)</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-[10px]">
-                            <span className="text-muted-foreground">الإجمالي:</span>
-                            <span className="font-bold text-red-600 tabular-nums">{fmtAmount(agingData.total)}</span>
-                          </div>
-                        </div>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
-                          <div className={cn("grid gap-px bg-border", isMobile ? "grid-cols-2" : "grid-cols-5")}>
-                            {[
-                              { label: "جاري (حالي)", value: agingData.current, color: "text-emerald-600", bg: "bg-emerald-500/5" },
-                              { label: "1 - 30 يوم", value: agingData.d1_30, color: "text-amber-600", bg: "bg-amber-500/5" },
-                              { label: "31 - 60 يوم", value: agingData.d31_60, color: "text-orange-600", bg: "bg-orange-500/5" },
-                              { label: "+60 يوم", value: agingData.d60plus, color: "text-red-600", bg: "bg-red-500/5" },
-                              { label: "الإجمالي", value: agingData.total, color: "text-foreground font-bold", bg: "bg-muted/30" },
-                            ].map((col, i) => (
-                              <div key={i} className={cn("p-3 text-center", col.bg)}>
-                                <div className="text-[10px] text-muted-foreground font-semibold mb-1">{col.label}</div>
-                                <div className={cn("text-sm font-bold tabular-nums", col.color)}>
-                                  {col.value > 0 ? fmtAmount(col.value) : "—"}
-                                </div>
-                                {agingData.total > 0 && col.value > 0 && col.label !== "الإجمالي" && (
-                                  <div className="mt-1">
-                                    <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
-                                      <div
-                                        className={cn("h-full rounded-full",
-                                          i === 0 ? "bg-emerald-500" : i === 1 ? "bg-amber-500" : i === 2 ? "bg-orange-500" : "bg-red-500"
-                                        )}
-                                        style={{ width: `${Math.round((col.value / agingData.total) * 100)}%` }}
-                                      />
-                                    </div>
-                                    <div className="text-[9px] text-muted-foreground mt-0.5">
-                                      {Math.round((col.value / agingData.total) * 100)}%
-                                    </div>
-                                  </div>
-                                )}
+                    {/* ─── CHEQUES SECTION ─── */}
+                    {displayOptions.showCheques && relatedCheques.length > 0 && (
+                      <div className="px-5 py-3 border-b border-border no-print">
+                        <Collapsible>
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer py-1">
+                              <div className="flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-xs font-semibold text-foreground">الشيكات المرتبطة</span>
+                                <Badge variant="secondary" className="text-[10px]">{relatedCheques.length}</Badge>
                               </div>
-                            ))}
-                          </div>
+                              <div className="flex items-center gap-3 text-[10px]">
+                                <span className="text-emerald-500">واردة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "وارد").reduce((s, c) => s + c.amount, 0))}</span>
+                                <span className="text-red-400">صادرة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "صادر").reduce((s, c) => s + c.amount, 0))}</span>
+                              </div>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="mt-2 overflow-hidden rounded-lg border border-border">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-[12px]" style={{ minWidth: "500px" }}>
+                                  <thead>
+                                    <tr style={{ background: "#0D1B2A" }}>
+                                      <th className="text-right px-3 py-2 text-[10px] font-bold text-white">رقم الشيك</th>
+                                      <th className="text-center px-3 py-2 text-[10px] font-bold text-white">النوع</th>
+                                      <th className="text-left px-3 py-2 text-[10px] font-bold text-white">المبلغ</th>
+                                      <th className="text-right px-3 py-2 text-[10px] font-bold text-white">التاريخ</th>
+                                      <th className="text-center px-3 py-2 text-[10px] font-bold text-white">الحالة</th>
+                                      <th className="text-right px-3 py-2 text-[10px] font-bold text-white">البنك</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {relatedCheques.map((c, i) => (
+                                      <tr key={c.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors", i % 2 === 1 && "bg-muted/10")}>
+                                        <td className="px-3 py-2 text-right">
+                                          <button onClick={() => navigate("/cheques")} className="text-primary hover:underline font-mono text-[11px]">{c.cheque_number || "—"}</button>
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                          <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", c.cheque_type === "وارد" ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" : "border-red-500/30 text-red-500 bg-red-500/5")}>{c.cheque_type}</span>
+                                        </td>
+                                        <td className="px-3 py-2 text-left font-mono font-semibold">{fmtAmount(c.amount)}</td>
+                                        <td className="px-3 py-2 text-right text-muted-foreground">{fmtDate(c.cheque_date)}</td>
+                                        <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-[9px]">{c.status}</Badge></td>
+                                        <td className="px-3 py-2 text-right text-muted-foreground">{c.bank_name || "—"}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    )}
+
+                    {/* ─── AGING ANALYSIS ─── */}
+                    {agingData && (
+                      <div className="px-5 py-3 border-b border-border no-print">
+                        <Collapsible>
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer py-1">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-xs font-semibold text-foreground">تحليل التقادم (Aging)</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[10px]">
+                                <span className="text-muted-foreground">الإجمالي:</span>
+                                <span className="font-bold text-red-600 tabular-nums">{fmtAmount(agingData.total)}</span>
+                              </div>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="mt-2 overflow-hidden rounded-lg border border-border">
+                              <div className={cn("grid gap-px bg-border", isMobile ? "grid-cols-2" : "grid-cols-5")}>
+                                {[
+                                  { label: "جاري (حالي)", value: agingData.current, color: "text-emerald-600", bg: "bg-emerald-500/5" },
+                                  { label: "1 - 30 يوم", value: agingData.d1_30, color: "text-amber-600", bg: "bg-amber-500/5" },
+                                  { label: "31 - 60 يوم", value: agingData.d31_60, color: "text-orange-600", bg: "bg-orange-500/5" },
+                                  { label: "+60 يوم", value: agingData.d60plus, color: "text-red-600", bg: "bg-red-500/5" },
+                                  { label: "الإجمالي", value: agingData.total, color: "text-foreground font-bold", bg: "bg-muted/30" },
+                                ].map((col, i) => (
+                                  <div key={i} className={cn("p-3 text-center", col.bg)}>
+                                    <div className="text-[10px] text-muted-foreground font-semibold mb-1">{col.label}</div>
+                                    <div className={cn("text-sm font-bold tabular-nums", col.color)}>
+                                      {col.value > 0 ? fmtAmount(col.value) : "—"}
+                                    </div>
+                                    {agingData.total > 0 && col.value > 0 && col.label !== "الإجمالي" && (
+                                      <div className="mt-1">
+                                        <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
+                                          <div
+                                            className={cn("h-full rounded-full",
+                                              i === 0 ? "bg-emerald-500" : i === 1 ? "bg-amber-500" : i === 2 ? "bg-orange-500" : "bg-red-500"
+                                            )}
+                                            style={{ width: `${Math.round((col.value / agingData.total) * 100)}%` }}
+                                          />
+                                        </div>
+                                        <div className="text-[9px] text-muted-foreground mt-0.5">
+                                          {Math.round((col.value / agingData.total) * 100)}%
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    )}
+
+                    {/* ─── TRANSACTIONS TABLE ─── */}
+                    <div className="no-print">
+                      {loading ? (
+                        <div className="p-5 space-y-2">
+                          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-10 w-full" />)}
                         </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
+                      ) : rows.length === 0 ? (
+                        <div className="py-16 text-center">
+                          <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground font-medium">لا توجد حركات في هذه الفترة</p>
+                          <button onClick={() => { setDateFrom("2020-01-01"); setDateTo(format(new Date(), "yyyy-MM-dd")); setActivePeriod("كل الفترات"); }}
+                            className="mt-2 text-xs text-primary hover:underline">
+                            عرض كل الفترات
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+                            <table className="w-full text-[13px]" style={{ tableLayout: "fixed", minWidth: "900px" }}>
+                              <colgroup>
+                                {isColVisible("date") && <col style={{ width: "120px" }} />}
+                                {isColVisible("reference") && <col style={{ width: "130px" }} />}
+                                {isColVisible("description") && <col />}
+                                {isColVisible("dueDate") && <col style={{ width: "120px" }} />}
+                                {isColVisible("type") && <col style={{ width: "100px" }} />}
+                                {isColVisible("paymentMethod") && <col style={{ width: "85px" }} />}
+                                {isColVisible("currency") && <col style={{ width: "65px" }} />}
+                                {isColVisible("contactCode") && <col style={{ width: "80px" }} />}
+                                {isColVisible("debit") && <col style={{ width: "120px" }} />}
+                                {isColVisible("credit") && <col style={{ width: "120px" }} />}
+                                {isColVisible("balance") && <col style={{ width: "130px" }} />}
+                              </colgroup>
+                              <thead className="sticky top-0 z-10">
+                                <tr style={{ background: "#0D1B2A" }}>
+                                  {isColVisible("date") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">التاريخ</th>}
+                                  {isColVisible("reference") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">المرجع</th>}
+                                  {isColVisible("description") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">البيان</th>}
+                                  {isColVisible("dueDate") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">الاستحقاق</th>}
+                                  {isColVisible("type") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">النوع</th>}
+                                  {isColVisible("paymentMethod") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">الدفع</th>}
+                                  {isColVisible("currency") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">العملة</th>}
+                                  {isColVisible("contactCode") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">كود الجهة</th>}
+                                  {isColVisible("debit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-red-300">مدين (عليه)</th>}
+                                  {isColVisible("credit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-emerald-300">دائن (له)</th>}
+                                  {isColVisible("balance") && <th className="text-left px-3 py-3 text-[11px] font-bold text-white">الرصيد</th>}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {/* Opening balance */}
+                                <tr style={{ background: "#F8F9FA" }} className="border-b-2 border-border/60">
+                                  {isColVisible("date") && <td className="px-3 py-2.5 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>}
+                                  {isColVisible("reference") && <td className="px-3 py-2.5 text-xs text-muted-foreground">—</td>}
+                                  {isColVisible("description") && <td className="px-3 py-2.5 text-xs font-bold text-foreground italic">رصيد أول المدة</td>}
+                                  {isColVisible("dueDate") && <td className="px-3 py-2.5"></td>}
+                                  {isColVisible("type") && <td className="px-3 py-2.5"></td>}
+                                  {isColVisible("paymentMethod") && <td className="px-3 py-2.5"></td>}
+                                  {isColVisible("currency") && <td className="px-3 py-2.5"></td>}
+                                  {isColVisible("contactCode") && <td className="px-3 py-2.5"></td>}
+                                  {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
+                                  {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
+                                  {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} currency={statementCurrency} /></td>}
+                                </tr>
 
-                {/* ─── TABLE ─── */}
-                <div className="px-4 pb-4 flex-1 no-print">
-                  {loading ? (
-                    <div className="space-y-2">
-                      {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-10 w-full" />)}
-                    </div>
-                  ) : rows.length === 0 ? (
-                    <div className="bg-card rounded-xl border border-border py-16 text-center">
-                      <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground font-medium">لا توجد حركات في هذه الفترة</p>
-                      <button onClick={() => { setDateFrom("2020-01-01"); setDateTo(format(new Date(), "yyyy-MM-dd")); setActivePeriod("كل الفترات"); }}
-                        className="mt-2 text-xs text-primary hover:underline">
-                        عرض كل الفترات
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-                        <table className="w-full text-[13px]" style={{ tableLayout: "fixed", minWidth: "800px" }}>
-                          <colgroup>
-                            {isColVisible("date") && <col style={{ width: "100px" }} />}
-                            {isColVisible("reference") && <col style={{ width: "120px" }} />}
-                            {isColVisible("description") && <col />}
-                            {isColVisible("dueDate") && <col style={{ width: "90px" }} />}
-                            {isColVisible("type") && <col style={{ width: "105px" }} />}
-                            {isColVisible("paymentMethod") && <col style={{ width: "85px" }} />}
-                            {isColVisible("currency") && <col style={{ width: "65px" }} />}
-                            {isColVisible("contactCode") && <col style={{ width: "80px" }} />}
-                            {isColVisible("debit") && <col style={{ width: "110px" }} />}
-                            {isColVisible("credit") && <col style={{ width: "110px" }} />}
-                            {isColVisible("balance") && <col style={{ width: "130px" }} />}
-                          </colgroup>
-                          <thead className="sticky top-0 z-10">
-                            <tr style={{ background: "#0D1B2A" }}>
-                              {isColVisible("date") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">التاريخ</th>}
-                              {isColVisible("reference") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">المرجع</th>}
-                              {isColVisible("description") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">البيان</th>}
-                              {isColVisible("dueDate") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">الاستحقاق</th>}
-                              {isColVisible("type") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">النوع</th>}
-                              {isColVisible("paymentMethod") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">الدفع</th>}
-                              {isColVisible("currency") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">العملة</th>}
-                              {isColVisible("contactCode") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">كود الجهة</th>}
-                              {isColVisible("debit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-red-300">مدين ₪</th>}
-                              {isColVisible("credit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-emerald-300">دائن ₪</th>}
-                              {isColVisible("balance") && <th className="text-left px-3 py-3 text-[11px] font-bold text-white">الرصيد ₪</th>}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {/* Opening balance */}
-                            <tr className="bg-muted/30 border-b-2 border-border/60">
-                              {isColVisible("date") && <td className="px-3 py-2.5 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>}
-                              {isColVisible("reference") && <td className="px-3 py-2.5 text-xs text-muted-foreground">—</td>}
-                              {isColVisible("description") && <td className="px-3 py-2.5 text-xs font-bold text-foreground italic">رصيد مُرحَّل</td>}
-                              {isColVisible("dueDate") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("type") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("paymentMethod") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("currency") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("contactCode") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
-                              {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
-                              {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} currency={statementCurrency} /></td>}
-                            </tr>
+                                {/* Transaction rows */}
+                                {filteredRows.map((row, i) => {
+                                  const badge = getTypeBadge(row.transaction_type);
+                                  const isSubRow = row.isLineItem;
+                                  return (
+                                    <tr
+                                      key={`${row.transaction_id}-${i}`}
+                                      className={cn(
+                                        "border-b border-border/30 transition-colors",
+                                        isSubRow
+                                          ? "bg-primary/[0.03] hover:bg-primary/[0.06]"
+                                          : cn("hover:bg-primary/5 cursor-pointer", i % 2 === 1 && "bg-muted/10")
+                                      )}
+                                      onClick={() => !isSubRow && openPreview(row.transaction_id)}
+                                      style={{ height: isSubRow ? "36px" : "44px" }}
+                                    >
+                                      {isColVisible("date") && (
+                                        <td className="px-3 py-2">
+                                          {!isSubRow ? (
+                                            <>
+                                              <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
+                                              <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
+                                            </>
+                                          ) : <span className="text-[10px] text-muted-foreground/50">↳</span>}
+                                        </td>
+                                      )}
+                                      {isColVisible("reference") && (
+                                        <td className="px-3 py-2 text-xs">
+                                          {!isSubRow && row.reference ? (
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); openPreview(row.transaction_id); }}
+                                              className="text-primary hover:underline font-mono text-[11px] font-semibold"
+                                            >
+                                              {row.reference}
+                                            </button>
+                                          ) : <span className="text-muted-foreground">{isSubRow ? "" : "—"}</span>}
+                                        </td>
+                                      )}
+                                      {isColVisible("description") && (
+                                        <td className={cn("px-3 py-2 text-xs truncate", isSubRow ? "text-muted-foreground pr-6" : "text-foreground")}>
+                                          {row.description}
+                                        </td>
+                                      )}
+                                      {isColVisible("dueDate") && (
+                                        <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
+                                          {!isSubRow && row.dueDate ? fmtDate(row.dueDate) : isSubRow ? "" : "—"}
+                                        </td>
+                                      )}
+                                      {isColVisible("type") && (
+                                        <td className="px-3 py-2 text-center">
+                                          {!isSubRow ? (
+                                            <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
+                                              {badge.label}
+                                            </span>
+                                          ) : <span className="text-[9px] text-muted-foreground">بند</span>}
+                                        </td>
+                                      )}
+                                      {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? (PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—") : ""}</td>}
+                                      {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
+                                      {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
+                                      {isColVisible("debit") && (
+                                        <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
+                                          {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
+                                        </td>
+                                      )}
+                                      {isColVisible("credit") && (
+                                        <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
+                                          {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
+                                        </td>
+                                      )}
+                                      {isColVisible("balance") && (
+                                        <td className="px-3 py-2 text-left">
+                                          {!isSubRow ? <BalanceCell value={row.balance} bold currency={row.currency} /> : <span className="text-muted-foreground/30">—</span>}
+                                        </td>
+                                      )}
+                                    </tr>
+                                  );
+                                })}
 
-                            {/* Transaction rows */}
-                            {filteredRows.map((row, i) => {
-                              const badge = getTypeBadge(row.transaction_type);
-                              const isSubRow = row.isLineItem;
-                              return (
-                                <tr
-                                  key={`${row.transaction_id}-${i}`}
-                                  className={cn(
-                                    "border-b border-border/30 transition-colors",
-                                    isSubRow
-                                      ? "bg-primary/[0.03] hover:bg-primary/[0.06]"
-                                      : cn("hover:bg-primary/5 cursor-pointer", i % 2 === 1 && "bg-muted/10")
-                                  )}
-                                  onClick={() => !isSubRow && openPreview(row.transaction_id)}
-                                  style={{ height: isSubRow ? "36px" : "44px" }}
-                                >
-                                  {isColVisible("date") && (
-                                    <td className="px-3 py-2">
-                                      {!isSubRow ? (
-                                        <>
-                                          <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
-                                          <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
-                                        </>
-                                      ) : <span className="text-[10px] text-muted-foreground/50">↳</span>}
-                                    </td>
-                                  )}
-                                  {isColVisible("reference") && (
-                                    <td className="px-3 py-2 text-xs">
-                                      {!isSubRow && row.reference ? (
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); openPreview(row.transaction_id); }}
-                                          className="text-primary hover:underline font-mono text-[11px] font-semibold"
-                                        >
-                                          {row.reference}
-                                        </button>
-                                      ) : <span className="text-muted-foreground">{isSubRow ? "" : "—"}</span>}
-                                    </td>
-                                  )}
-                                  {isColVisible("description") && (
-                                    <td className={cn("px-3 py-2 text-xs truncate", isSubRow ? "text-muted-foreground pr-6" : "text-foreground")}>
-                                      {row.description}
-                                    </td>
-                                  )}
-                                  {isColVisible("dueDate") && (
-                                    <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
-                                      {!isSubRow && row.dueDate ? fmtDate(row.dueDate) : isSubRow ? "" : "—"}
-                                    </td>
-                                  )}
-                                  {isColVisible("type") && (
-                                    <td className="px-3 py-2 text-center">
-                                      {!isSubRow ? (
-                                        <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
-                                          {badge.label}
-                                        </span>
-                                      ) : <span className="text-[9px] text-muted-foreground">بند</span>}
-                                    </td>
-                                  )}
-                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? (PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—") : ""}</td>}
-                                  {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
-                                  {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
-                                  {isColVisible("debit") && (
-                                    <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
-                                      {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
-                                    </td>
-                                  )}
-                                  {isColVisible("credit") && (
-                                    <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
-                                      {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
-                                    </td>
-                                  )}
+                                {/* Closing balance */}
+                                <tr style={{ background: "#0D1B2E" }}>
+                                  {isColVisible("date") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
+                                  {isColVisible("reference") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
+                                  {isColVisible("description") && <td className="px-3 py-3.5 text-sm font-bold text-white">رصيد ختامي</td>}
+                                  {isColVisible("dueDate") && <td className="px-3 py-3.5"></td>}
+                                  {isColVisible("type") && <td className="px-3 py-3.5"></td>}
+                                  {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
+                                  {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
+                                  {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
+                                  {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit, statementCurrency)}</td>}
+                                  {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit, statementCurrency)}</td>}
                                   {isColVisible("balance") && (
-                                    <td className="px-3 py-2 text-left">
-                                      {!isSubRow ? <BalanceCell value={row.balance} currency={row.currency} /> : <span className="text-muted-foreground/30">—</span>}
+                                    <td className="px-3 py-3.5 text-left">
+                                      <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
+                                        closingBalance > 0 ? "text-red-300 bg-red-500/20" :
+                                        closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
+                                        "text-white/70"
+                                      )}>
+                                        {fmtAmount(closingBalance, statementCurrency)}
+                                      </span>
                                     </td>
                                   )}
                                 </tr>
-                              );
-                            })}
+                              </tbody>
+                            </table>
+                          </div>
 
-                            {/* Closing balance */}
-                            <tr style={{ background: "hsl(210, 50%, 15%)" }}>
-                              {isColVisible("date") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
-                              {isColVisible("reference") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
-                              {isColVisible("description") && <td className="px-3 py-3.5 text-sm font-bold text-white">رصيد ختامي</td>}
-                              {isColVisible("dueDate") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("type") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit, statementCurrency)}</td>}
-                              {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit, statementCurrency)}</td>}
-                              {isColVisible("balance") && (
-                                <td className="px-3 py-3.5 text-left">
-                                  <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
-                                    closingBalance > 0 ? "text-red-300 bg-red-500/20" :
-                                    closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
-                                    "text-white/70"
-                                  )}>
+                          {/* Footer summary */}
+                          <div className="bg-muted/60 border-t border-border px-5 py-3 space-y-2">
+                            <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+                              <span className="text-muted-foreground">
+                                إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong>
+                              </span>
+                              <div className="flex items-center gap-4 flex-wrap">
+                                <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit, statementCurrency)}</strong></span>
+                                <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit, statementCurrency)}</strong></span>
+                                <Separator orientation="vertical" className="h-4" />
+                                <span>
+                                  الرصيد الختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
                                     {fmtAmount(closingBalance, statementCurrency)}
-                                  </span>
-                                </td>
-                              )}
-                            </tr>
-                          </tbody>
-                        </table>
+                                  </strong> ({closingBalance >= 0 ? "مدين" : "دائن"})
+                                </span>
+                              </div>
+                            </div>
+
+                            {pdcTotal > 0 && (
+                              <div className="flex items-center gap-4 text-xs border-t border-border/50 pt-2 flex-wrap">
+                                <span className="text-muted-foreground">إجمالي شيكات آجلة (PDC):</span>
+                                <strong className="text-emerald-600 tabular-nums">{fmtAmount(pdcTotal)}</strong>
+                                <Separator orientation="vertical" className="h-4" />
+                                <span className="text-muted-foreground">الرصيد مع PDC:</span>
+                                <strong className={cn("tabular-nums", (closingBalance + pdcTotal) > 0 ? "text-red-600" : "text-emerald-600")}>
+                                  {fmtAmount(closingBalance + pdcTotal)}
+                                </strong>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/50 pt-2">
+                              <span>أساس المحاسبة: الاستحقاق</span>
+                              <span>تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Document Footer */}
+                    <div className="rounded-b-xl p-5 border-t border-border" style={{ background: "#F8F9FA" }}>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="text-xs text-muted-foreground">
+                          <p className="font-semibold mb-1">للمطابقة والاستفسار:</p>
+                          {companyInfo.email && <p className="flex items-center gap-1"><Mail className="w-3 h-3" /> {companyInfo.email}</p>}
+                          {companyInfo.phone && <p className="flex items-center gap-1"><Phone className="w-3 h-3" /> {companyInfo.phone}</p>}
+                        </div>
                       </div>
-
-                      {/* Enhanced Footer with PDC */}
-                      <div className="bg-muted/60 border-t border-border px-4 py-3 space-y-2">
-                        <div className="flex items-center justify-between text-xs flex-wrap gap-2">
-                          <span className="text-muted-foreground">
-                            إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong>
-                          </span>
-                          <div className="flex items-center gap-4 flex-wrap">
-                            <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit, statementCurrency)}</strong></span>
-                            <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit, statementCurrency)}</strong></span>
-                            <Separator orientation="vertical" className="h-4" />
-                            <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit, statementCurrency)}</strong></span>
-                            <Separator orientation="vertical" className="h-4" />
-                            <span>
-                              الرصيد الختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
-                                {fmtAmount(closingBalance, statementCurrency)}
-                              </strong> ({closingBalance >= 0 ? "مدين" : "دائن"})
-                            </span>
-                          </div>
+                      <div className="flex items-end justify-between gap-8">
+                        <div className="flex-1 text-center border border-border/50 rounded-lg py-6 px-4">
+                          <p className="text-[10px] text-muted-foreground mt-1">ختم الشركة وتوقيع المحاسب</p>
                         </div>
-
-                        {/* PDC section */}
-                        {pdcTotal > 0 && (
-                          <div className="flex items-center gap-4 text-xs border-t border-border/50 pt-2 flex-wrap">
-                            <span className="text-muted-foreground">إجمالي شيكات آجلة (PDC):</span>
-                            <strong className="text-emerald-600 tabular-nums">{fmtAmount(pdcTotal)}</strong>
-                            <Separator orientation="vertical" className="h-4" />
-                            <span className="text-muted-foreground">الرصيد مع PDC:</span>
-                            <strong className={cn("tabular-nums", (closingBalance + pdcTotal) > 0 ? "text-red-600" : "text-emerald-600")}>
-                              {fmtAmount(closingBalance + pdcTotal)}
-                            </strong>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/50 pt-2">
-                          <span>أساس المحاسبة: الاستحقاق</span>
-                          <span>تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}</span>
+                        <div className="flex-1 text-center border border-border/50 rounded-lg py-6 px-4">
+                          <p className="text-[10px] text-muted-foreground mt-1">اعتماد العميل</p>
                         </div>
+                      </div>
+                      <div className="mt-3 text-center text-[10px] text-muted-foreground">
+                        <p>يرجى الإشارة إلى رقم الكشف عند التواصل</p>
+                        <p className="mt-1">طُبع بتاريخ: {fmtDate(format(new Date(), "yyyy-MM-dd"))} — {companyInfo.name || "AMWALI"}</p>
                       </div>
                     </div>
-                  )}
+
+                  </div>
                 </div>
               </>
             )}
@@ -2379,24 +2510,24 @@ const AccountStatementPage = () => {
           <div className="space-y-6 mt-6">
             {/* Detail level */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase">📋 مستوى تفصيل الكشف</h4>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase">مستوى التفصيل</h4>
               <RadioGroup value={detailLevel} onValueChange={(v) => setDetailLevel(v as DetailLevel)} className="space-y-2">
-                <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="summary" id="summary" className="mt-0.5" />
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="summary" id="summary" />
                   <div>
-                    <Label htmlFor="summary" className="text-sm font-medium cursor-pointer">ملخص فقط</Label>
-                    <p className="text-[10px] text-muted-foreground">فاتورة → رقم + تاريخ + إجمالي</p>
+                    <Label htmlFor="summary" className="text-sm font-medium cursor-pointer">ملخص</Label>
+                    <p className="text-[10px] text-muted-foreground">عرض ملخص بدون تفاصيل</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="total" id="total" className="mt-0.5" />
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="total" id="total" />
                   <div>
-                    <Label htmlFor="total" className="text-sm font-medium cursor-pointer">إجمالي الفاتورة</Label>
-                    <p className="text-[10px] text-muted-foreground">كل فاتورة في سطر واحد (افتراضي)</p>
+                    <Label htmlFor="total" className="text-sm font-medium cursor-pointer">إجمالي</Label>
+                    <p className="text-[10px] text-muted-foreground">كل حركة في سطر واحد</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="lineItems" id="lineItems" className="mt-0.5" />
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="lineItems" id="lineItems" />
                   <div>
                     <Label htmlFor="lineItems" className="text-sm font-medium cursor-pointer">تفصيل البنود</Label>
                     <p className="text-[10px] text-muted-foreground">كل صنف في الفاتورة في سطر منفصل</p>
@@ -2449,7 +2580,6 @@ const AccountStatementPage = () => {
                     checked={displayOptions[opt.key]}
                     onCheckedChange={(v) => {
                       setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }));
-                      // Sync with column visibility
                       if (opt.colKey) {
                         const newCols = columns.map(c =>
                           c.key === opt.colKey ? { ...c, visible: !!v } : c
@@ -2612,7 +2742,6 @@ const AccountStatementPage = () => {
             flexDirection: "column",
           }}
         >
-          {/* Toolbar */}
           <div
             style={{
               background: "#1B3A5C",
@@ -2629,36 +2758,19 @@ const AccountStatementPage = () => {
               معاينة كشف الحساب
             </span>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={handleDownloadPDF}
-                disabled={pdfGenerating}
-              >
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
                 {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
                 {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={handlePrintStatement}
-              >
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
                 <Printer className="w-3.5 h-3.5" /> طباعة
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={() => setShowPdfModal(false)}
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setShowPdfModal(false)}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
 
-          {/* HTML Document Preview */}
           <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
             <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
               <StatementPrintView
