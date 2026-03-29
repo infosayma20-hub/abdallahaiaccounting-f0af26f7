@@ -888,6 +888,47 @@ const ContactsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Overdue Invoices Dialog */}
+      <Dialog open={overdueDialogOpen} onOpenChange={v => { setOverdueDialogOpen(v); if (!v) setOverdueContact(null); }}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              الفواتير المتأخرة — {overdueContact?.contact_name}
+            </DialogTitle>
+          </DialogHeader>
+          {overdueLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : overdueInvoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">لا توجد فواتير متأخرة</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-muted/50 border-b">
+                  <th className="p-2 text-right text-xs font-semibold">رقم الفاتورة</th>
+                  <th className="p-2 text-right text-xs font-semibold">تاريخ الاستحقاق</th>
+                  <th className="p-2 text-right text-xs font-semibold">المتبقي</th>
+                  <th className="p-2 text-right text-xs font-semibold">أيام التأخير</th>
+                </tr></thead>
+                <tbody>
+                  {overdueInvoices.map((inv: any) => {
+                    const daysLate = Math.max(0, Math.floor((Date.now() - new Date(inv.due_date).getTime()) / 86400000));
+                    return (
+                      <tr key={inv.id} className="border-b hover:bg-muted/20">
+                        <td className="p-2 text-xs font-mono">{inv.invoice_number}</td>
+                        <td className="p-2 text-xs">{inv.due_date}</td>
+                        <td className="p-2 text-xs font-bold text-red-600 tabular-nums">₪{Number(inv.remaining_amount).toLocaleString()}</td>
+                        <td className="p-2 text-xs font-bold text-red-600 tabular-nums">{daysLate} يوم</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
