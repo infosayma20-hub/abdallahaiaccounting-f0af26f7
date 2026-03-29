@@ -661,6 +661,10 @@ const InvoicesPage = () => {
   const filtered = invoices.filter(inv => {
     if (filterType !== "all" && inv.type !== filterType) return false;
     if (searchQuery && !inv.contactName.includes(searchQuery) && !inv.invoiceNumber.includes(searchQuery)) return false;
+    if (dateFrom && inv.date < dateFrom) return false;
+    if (dateTo && inv.date > dateTo) return false;
+    if (amountMin && inv.total < Number(amountMin)) return false;
+    if (amountMax && inv.total > Number(amountMax)) return false;
     return true;
   });
 
