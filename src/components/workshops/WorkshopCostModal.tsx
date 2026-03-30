@@ -136,7 +136,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   const [supplierContactId, setSupplierContactId] = useState<string | null>(null);
   const [supplierNameManual, setSupplierNameManual] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("نقدي");
+  const [paymentMethod, setPaymentMethod] = useState("آجل");
   const [saving, setSaving] = useState(false);
   
   // Surplus handling
@@ -218,7 +218,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     setWasteEnabled(false); setWastePct(10); setPhase("preparation");
     setDescription(""); setCostDate(format(new Date(), "yyyy-MM-dd"));
     setSupplierSearch(""); setSupplierContactId(null); setSupplierNameManual("");
-    setInvoiceNumber(""); setPaymentMethod("نقدي");
+    setInvoiceNumber(""); setPaymentMethod("آجل");
     setSurplusAction("inventory"); setTransferTargetId("");
     setUseFromInventory(false); setSelectedInventoryId(""); setInventoryUseQty(0);
   };
