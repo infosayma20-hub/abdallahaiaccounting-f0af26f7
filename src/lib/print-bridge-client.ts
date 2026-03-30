@@ -67,7 +67,7 @@ export async function sendToBridge(type: PrintType, order: PrintOrder): Promise<
   const response = await bridgeFetch("/print", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, order }),
+    body: JSON.stringify({ type, order, stationId: order.stationId }),
     signal: AbortSignal.timeout(8000),
   });
   return response.json();
