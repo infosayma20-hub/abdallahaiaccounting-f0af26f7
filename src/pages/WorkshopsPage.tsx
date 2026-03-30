@@ -661,7 +661,7 @@ export default function WorkshopsPage() {
     calcBalance();
   }, [selectedWorkshop?.contact_id, costs, payments]);
 
-  if (selectedWorkshop) {
+  if (selectedWorkshop && view !== "new-payment") {
     const status = STATUS_MAP[selectedWorkshop.status] || STATUS_MAP.active;
     const profit = selectedWorkshop.total_budget - costSummary.total;
     const customerContact = contacts.find(c => c.id === selectedWorkshop.contact_id);
