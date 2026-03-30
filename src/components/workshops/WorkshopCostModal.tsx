@@ -347,32 +347,57 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
             notes: `فائض من ورشة ${workshopName}`,
           });
 
-        } else {
-          // No surplus or pending surplus
-          const costAmount = isMaterial ? usedCost : usedCost;
+        } else if (hasSurplus && surplusAction === "pending") {
+          // Scenario C: Cost for used + surplus to inventory (pending)
+          // Entry 1: Debit workshop cost (used) / Credit supplier
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-            user_id: userId, transaction_date: costDate, description: txDesc,
+            user_id: userId, transaction_date: costDate,
+            description: txDesc + ` (${usedQty} ${unitLabel} مستخدم)`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
-            amount: isMaterial ? totalPurchaseCost : costAmount, currency: "شيكل", transaction_type: "workshop_cost",
+            amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
             contact_id: supplierContactId || null,
             reference: `WS-${workshopName.substring(0, 15)}`,
             payment_method: paymentMethod, idempotency_key: idempotencyKey,
           } as any).select("id").single();
           if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
 
-          await insertCostRecord(workshopId, isMaterial ? totalPurchaseCost : costAmount, isMaterial ? purchasedQty : purchasedQty, txData?.id);
+          // Entry 2: Debit raw materials inventory / Credit supplier (surplus)
+          await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate,
+            description: `مخزون مواد خام (${catLabel}) - فائض معلق ورشة ${workshopName}`,
+            debit_account_code: "1140", credit_account_code: creditCode,
+            amount: surplusCost, currency: "شيكل", transaction_type: "workshop_inventory",
+            contact_id: supplierContactId || null,
+            reference: `WS-INV-${workshopName.substring(0, 10)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-INV",
+          } as any);
 
-          // If pending surplus, add to inventory with pending status
-          if (hasSurplus && surplusAction === "pending") {
-            await supabase.from("workshop_material_inventory" as any).insert({
-              user_id: userId, material_type: catLabel, material_category: category,
-              quantity: surplusQty, unit, unit_cost: unitPrice,
-              total_value: surplusCost, source_workshop_id: workshopId,
-              supplier_contact_id: supplierContactId || null,
-              supplier_name: supplierName || null, status: "available",
-              notes: `فائض معلق - ورشة ${workshopName}`,
-            });
-          }
+          // Cost record for workshop (used amount only)
+          await insertCostRecord(workshopId, usedCost, usedQty, txData?.id);
+
+          // Inventory record with pending
+          await supabase.from("workshop_material_inventory" as any).insert({
+            user_id: userId, material_type: catLabel, material_category: category,
+            quantity: surplusQty, unit, unit_cost: unitPrice,
+            total_value: surplusCost, source_workshop_id: workshopId,
+            supplier_contact_id: supplierContactId || null,
+            supplier_name: supplierName || null, status: "available",
+            notes: `فائض معلق - ورشة ${workshopName}`,
+          });
+
+        } else {
+          // No surplus scenario
+          const { data: txData, error: txErr } = await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate, description: txDesc,
+            debit_account_code: glInfo.debit, credit_account_code: creditCode,
+            amount: isMaterial ? totalPurchaseCost : usedCost, currency: "شيكل", transaction_type: "workshop_cost",
+            contact_id: supplierContactId || null,
+            reference: `WS-${workshopName.substring(0, 15)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey,
+          } as any).select("id").single();
+          if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
+
+          await insertCostRecord(workshopId, isMaterial ? totalPurchaseCost : usedCost, isMaterial ? purchasedQty : purchasedQty, txData?.id);
         }
 
         // ── Create purchase invoice for supplier ──
@@ -382,6 +407,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
           await supabase.from("invoices").insert({
             user_id: userId,
             invoice_type: "purchase",
+            contact_id: supplierContactId || null,
             contact_name: supplierName || supplierNameManual || "مورد",
             invoice_date: costDate,
             subtotal: invAmount,
