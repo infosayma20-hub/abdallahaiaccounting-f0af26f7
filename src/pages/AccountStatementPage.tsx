@@ -1650,102 +1650,28 @@ const AccountStatementPage = () => {
         </div>
       </div>
 
-      {/* ─── ENTITY SELECTOR BAR (horizontal, replaces sidebar) ─── */}
-      <div className="border-b border-border bg-card no-print">
-        <div className="flex items-center gap-3 px-5 py-2.5 flex-wrap">
-          {/* Tabs */}
-          <div className="flex items-center bg-muted/50 rounded-lg p-0.5">
-            {ENTITY_TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
-                className={cn(
-                  "flex items-center justify-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all",
-                  activeTab === tab.key
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <tab.icon className={cn("w-3.5 h-3.5", activeTab === tab.key && tab.color)} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute right-2.5 top-2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
-              value={entitySearch}
-              onChange={e => setEntitySearch(e.target.value)}
-              className="pr-9 h-8 w-[280px] text-xs bg-muted/50 border-0 rounded-lg"
-            />
-          </div>
-
-          {/* Summary badge */}
-          <div className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-lg px-3 py-1.5">
-            <span className="text-muted-foreground">الإجمالي:</span>
-            <span className={cn("font-bold tabular-nums", totalBalance > 0 ? "text-red-600" : totalBalance < 0 ? "text-emerald-600" : "text-foreground")}>
-              {fmtAmount(totalBalance)}
-            </span>
-            <span className="text-red-500 text-[10px]">{debitCount} مدين</span>
-            <span className="text-emerald-500 text-[10px]">{creditCount} دائن</span>
-          </div>
-        </div>
-
-        {/* Entity chips — horizontal scrollable */}
-        <div className="px-5 pb-2.5">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
-            {loading ? (
-              <>
-                {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-8 w-32 rounded-lg shrink-0" />)}
-              </>
-            ) : entityList.length === 0 ? (
-              <span className="text-xs text-muted-foreground py-1">لا توجد نتائج</span>
-            ) : (
-              entityList.map(entity => {
-                const isActive = entity.id === selectedEntityId;
-                const hasBalance = entity.balance !== 0;
-                return (
-                  <button
-                    key={entity.id}
-                    onClick={() => selectEntity(entity.id)}
-                    className={cn(
-                      "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border whitespace-nowrap",
-                      isActive
-                        ? "text-white border-[#0D1B2E]"
-                        : hasBalance
-                          ? "border-red-200 dark:border-red-800 hover:border-red-300"
-                          : "border-emerald-200 dark:border-emerald-800 hover:border-emerald-300"
-                    )}
-                    style={
-                      isActive
-                        ? { background: "#0D1B2E", borderColor: "#0D1B2E" }
-                        : hasBalance
-                          ? { background: "#FEF2F2" }
-                          : { background: "#F0FDF4" }
-                    }
-                  >
-                    <span className={cn(
-                      isActive ? "text-white" : hasBalance ? "text-foreground" : "text-foreground"
-                    )}>
-                      {entity.name}
-                    </span>
-                    <span className={cn(
-                      "tabular-nums text-[11px]",
-                      isActive
-                        ? (hasBalance ? "text-red-300" : "text-emerald-300")
-                        : hasBalance ? "text-red-600" : "text-emerald-600"
-                    )}>
-                      {entity.balance === 0 ? "✓" : fmtAmount(entity.balance)}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+      {/* ─── ADVANCED SEARCH BAR ─── */}
+      <div className="px-5 pt-4 pb-3 no-print">
+        <AdvancedEntitySearch
+          entityList={entityList}
+          allContacts={contacts}
+          allAccounts={accounts}
+          allEmployees={employeeEntities}
+          accountBalances={accountBalances}
+          contactBalances={contactBalances}
+          employeeBalances={employeeBalances}
+          selectedEntityId={selectedEntityId}
+          activeTab={activeTab}
+          onSelect={(id, tab) => {
+            if (tab && tab !== activeTab) {
+              setActiveTab(tab);
+            }
+            selectEntity(id);
+          }}
+          onClear={() => { setSelectedEntityId(""); }}
+          onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+          loading={loading}
+        />
       </div>
 
       {/* ─── BODY: Full width main content ─── */}
