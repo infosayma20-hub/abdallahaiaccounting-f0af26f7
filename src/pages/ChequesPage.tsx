@@ -124,6 +124,7 @@ const ChequesPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState('all');
 
   interface ChequeRow {
     cheque_type: ChequeType;
@@ -692,7 +693,6 @@ const ChequesPage = () => {
     setPage(1);
   };
 
-  const [activeTab, setActiveTab] = useState('all');  // eslint-disable-line react-hooks/rules-of-hooks
   const handleTab = (key: string) => { setActiveTab(key); applyTab(key); };
 
   // Apply tab-level filtering
