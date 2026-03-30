@@ -1398,26 +1398,46 @@ export default function WorkshopsPage() {
         {loading ? (
           <div className="text-center py-16 text-muted-foreground">جاري التحميل...</div>
         ) : filteredWorkshops.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <Hammer className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">لا توجد ورشات</p>
-            <p className="text-xs mt-1">أنشئ أول ورشة لبدء تتبع التكاليف</p>
+          <div className="text-center py-20">
+            <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto mb-4">
+              <Hammer className="h-8 w-8 text-muted-foreground/40" />
+            </div>
+            <p className="font-bold text-foreground text-base mb-1">لا توجد ورشات</p>
+            <p className="text-sm text-muted-foreground mb-4">أنشئ أول ورشة لبدء تتبع التكاليف والمهام</p>
+            <Button onClick={() => setShowNewWorkshop(true)} className="gap-2" style={{ background: "#0D1B2E", borderRadius: 10 }}>
+              <Plus className="h-4 w-4" /> ورشة جديدة
+            </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
             {filteredWorkshops.map((ws, idx) => {
               const status = STATUS_MAP[ws.status] || STATUS_MAP.active;
+              const statusColor = ws.status === "completed" ? "#3B82F6" : ws.status === "paused" || ws.status === "cancelled" ? "#EF4444" : "#22C55E";
+              const wsTypes = (ws.workshop_type || "").split(",").filter(Boolean);
+              const firstType = WORKSHOP_TYPES.find(x => x.value === wsTypes[0]);
+              const TypeIcon = firstType?.Icon || Hammer;
+
               return (
                 <motion.div key={ws.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="bg-card rounded-xl overflow-hidden cursor-pointer hover:shadow-lg transition-all"
+                  style={{ borderRight: `4px solid ${statusColor}`, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
                   onClick={() => openWorkshop(ws)}
-                  className="rounded-2xl bg-card border border-border p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0" onClick={() => openWorkshop(ws)}>
-                      <h3 className="font-bold text-foreground">{ws.name}</h3>
-                      <p className="text-xs text-muted-foreground">{ws.customer_name || "بدون زبون"}</p>
+                >
+                  {/* Header */}
+                  <div className="px-4 pt-4 pb-2 flex items-start justify-between">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#EEF2FF" }}>
+                        <TypeIcon className="h-5 w-5" style={{ color: "#1B3A5C" }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm text-foreground truncate">{ws.name}</h3>
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                          👤 {ws.customer_name || "بدون زبون"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Badge variant={status.variant} className="text-[10px]">{status.label}</Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
@@ -1434,9 +1454,39 @@ export default function WorkshopsPage() {
                       </DropdownMenu>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">الميزانية: <strong className="text-foreground">{ws.total_budget?.toLocaleString()} ₪</strong></span>
-                    {ws.start_date && <span className="text-muted-foreground/60">{format(new Date(ws.start_date), "dd/MM/yyyy")}</span>}
+
+                  {/* Progress */}
+                  <div className="px-4 py-2">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                      <span>تقدم العمل</span>
+                      <span className="font-bold text-foreground">—</span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "#E2E8F0" }}>
+                      <div className="h-full rounded-full" style={{ width: "0%", background: statusColor }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">لم تُضف مهام بعد</p>
+                  </div>
+
+                  {/* Info row */}
+                  <div className="px-4 py-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">📅 {ws.start_date ? format(new Date(ws.start_date), "dd/MM/yyyy") : "—"}</span>
+                    <span className="flex items-center gap-1">
+                      💰 {(ws.total_budget || 0) > 0
+                        ? <strong className="text-foreground">{ws.total_budget?.toLocaleString()} ₪</strong>
+                        : <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-amber-300 text-amber-600 bg-amber-50">⚠️ بدون ميزانية</Badge>
+                      }
+                    </span>
+                    <span>📐 {ws.area_sqm ? `${ws.area_sqm} م²` : "—"}</span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="px-4 py-2.5 border-t border-border/50 flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={e => { e.stopPropagation(); openWorkshop(ws); }}>
+                      <FileText className="h-3.5 w-3.5" /> التفاصيل
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1.5" onClick={e => { e.stopPropagation(); openEditWorkshop(ws); }}>
+                      <Edit className="h-3.5 w-3.5" /> تعديل
+                    </Button>
                   </div>
                 </motion.div>
               );
