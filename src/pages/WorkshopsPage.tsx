@@ -335,9 +335,9 @@ export default function WorkshopsPage() {
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: user!.id,
       transaction_date: paymentForm.payment_date,
-      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}${isCheque ? ` (${chequeRows.length} شيك)` : ""}`,
+      description: paymentForm.description || `دفعة ورشة من ${selectedWorkshop.customer_name || "زبون"} - ${selectedWorkshop.name}${isCheque ? ` (${chequeRows.length} شيك)` : ""}`,
       debit_account_code: debitCode,
-      credit_account_code: "4200",
+      credit_account_code: "1130",
       amount: amountILS,
       currency: currencyLabel,
       transaction_type: "workshop_payment",
@@ -354,15 +354,15 @@ export default function WorkshopsPage() {
     if (isCheque && chequeRows.length > 0) {
       const chequeInserts = chequeRows.map((row, i) => ({
         user_id: user!.id,
-        cheque_type: "incoming" as any,
+        cheque_type: "وارد" as any,
         cheque_number: row.number,
         party_name: row.drawer || selectedWorkshop.customer_name || "زبون",
-        party_type: "customer",
+        party_type: "عميل",
         contact_id: selectedWorkshop.contact_id || null,
         amount: row.amount,
         cheque_date: row.date,
         bank_name: row.bank || null,
-        status: "registered" as any,
+        status: "مسجل" as any,
         currency: paymentForm.currency,
         linked_transaction_id: txData?.id || null,
         linked_account: "1150",
@@ -383,6 +383,38 @@ export default function WorkshopsPage() {
 
     if (error) { toast.error(error.message); return; }
     toast.success(isCheque ? `✅ تم تسجيل ${chequeRows.length} شيك وارد بنجاح` : "✅ تم تسجيل الدفعة بنجاح");
+
+    // Print receipt
+    if (txData?.id) {
+      const receiptContent = `
+        <div dir="rtl" style="font-family:'Cairo',sans-serif;max-width:300px;margin:0 auto;padding:16px;">
+          <div style="text-align:center;margin-bottom:12px;">
+            <h2 style="margin:0;font-size:16px;">${settings?.company_name || "الشركة"}</h2>
+            ${settings?.phone ? `<p style="margin:2px 0;font-size:11px;">${settings.phone}</p>` : ""}
+            <hr style="border:1px dashed #999;margin:8px 0;"/>
+            <h3 style="margin:4px 0;font-size:14px;">سند قبض - دفعة ورشة</h3>
+          </div>
+          <p style="font-size:11px;margin:4px 0;"><strong>التاريخ:</strong> ${paymentForm.payment_date}</p>
+          <p style="font-size:11px;margin:4px 0;"><strong>الورشة:</strong> ${selectedWorkshop.name}</p>
+          <p style="font-size:11px;margin:4px 0;"><strong>الزبون:</strong> ${selectedWorkshop.customer_name || "—"}</p>
+          <p style="font-size:11px;margin:4px 0;"><strong>طريقة الدفع:</strong> ${isCheque ? "شيكات" : paymentForm.payment_method}</p>
+          <hr style="border:1px dashed #999;margin:8px 0;"/>
+          <p style="text-align:center;font-size:18px;font-weight:bold;margin:8px 0;">${amountILS.toLocaleString()} ₪</p>
+          ${paymentForm.currency !== "ILS" ? `<p style="text-align:center;font-size:11px;">(${paymentForm.amount} ${paymentForm.currency} × ${paymentForm.exchange_rate})</p>` : ""}
+          ${isCheque ? `<p style="font-size:11px;margin:4px 0;"><strong>عدد الشيكات:</strong> ${chequeRows.length}</p>` : ""}
+          ${paymentForm.description ? `<p style="font-size:11px;margin:4px 0;"><strong>ملاحظات:</strong> ${paymentForm.description}</p>` : ""}
+          <hr style="border:1px dashed #999;margin:8px 0;"/>
+          <p style="text-align:center;font-size:9px;color:#666;">تم الطباعة بواسطة AMWALI</p>
+        </div>
+      `;
+      const printWin = window.open("", "_blank", "width=350,height=500");
+      if (printWin) {
+        printWin.document.write(`<html dir="rtl"><head><title>سند قبض</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet"></head><body style="margin:0;">${receiptContent}</body></html>`);
+        printWin.document.close();
+        setTimeout(() => { printWin.print(); }, 500);
+      }
+    }
+
     setShowPaymentDialog(false);
     setView("workshops");
     const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 };
@@ -1302,8 +1334,8 @@ export default function WorkshopsPage() {
               </div>
 
               {chequeRows.length > 0 && (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-xs">
+                <div className="overflow-x-auto rounded-lg border border-border" style={{ maxWidth: "100%" }}>
+                  <table className="text-xs" style={{ minWidth: 780, width: "100%" }}>
                     <thead>
                       <tr className="text-white" style={{ background: "#0D1B2E" }}>
                         <th className="text-right py-2 px-2 font-medium">#</th>
