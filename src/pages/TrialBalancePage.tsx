@@ -221,6 +221,15 @@ const TrialBalancePage = () => {
     if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
 
     const rows: TrialBalanceRow[] = [];
+    // Build parent_code map for child detection
+    const childrenByParent: Record<string, string[]> = {};
+    for (const acc of accounts) {
+      if (acc.parent_code) {
+        if (!childrenByParent[acc.parent_code]) childrenByParent[acc.parent_code] = [];
+        childrenByParent[acc.parent_code].push(acc.account_code);
+      }
+    }
+
     for (const code of allCodes) {
       const acc = accountMap[code];
       const totalDebit = debitMap[code] || 0;
@@ -239,7 +248,48 @@ const TrialBalancePage = () => {
         prevDebit: prevDebitMap[code] || 0,
         prevCredit: prevCreditMap[code] || 0,
         prevBalance: (prevDebitMap[code] || 0) - (prevCreditMap[code] || 0),
+        isChild: false,
+        parentCode: acc?.parent_code || undefined,
       });
+    }
+
+    // If showDetailedAccounts, also add child accounts that are not already in the list
+    if (showDetailedAccounts) {
+      const existingCodes = new Set(rows.map(r => r.accountCode));
+      for (const acc of accounts) {
+        if (acc.parent_code && !existingCodes.has(acc.account_code)) {
+          // Check if parent is in the list
+          if (existingCodes.has(acc.parent_code)) {
+            const totalDebit = debitMap[acc.account_code] || 0;
+            const totalCredit = creditMap[acc.account_code] || 0;
+            const openingDebit = openingDebitMap[acc.account_code] || 0;
+            const openingCredit = openingCreditMap[acc.account_code] || 0;
+            const openingBalance = openingDebit - openingCredit;
+            const balance = totalDebit - totalCredit;
+            if (totalDebit > 0 || totalCredit > 0 || openingDebit > 0 || openingCredit > 0) {
+              rows.push({
+                accountName: acc.account_name,
+                accountCode: acc.account_code,
+                accountType: acc.account_type,
+                openingDebit, openingCredit, openingBalance,
+                totalDebit, totalCredit, balance,
+                closingBalance: openingBalance + balance,
+                prevDebit: prevDebitMap[acc.account_code] || 0,
+                prevCredit: prevCreditMap[acc.account_code] || 0,
+                prevBalance: (prevDebitMap[acc.account_code] || 0) - (prevCreditMap[acc.account_code] || 0),
+                isChild: true,
+                parentCode: acc.parent_code || undefined,
+              });
+            }
+          }
+        }
+      }
+      // Mark existing rows that have a parent as children
+      for (const row of rows) {
+        if (row.parentCode && rows.some(r => r.accountCode === row.parentCode && !r.isChild)) {
+          row.isChild = true;
+        }
+      }
     }
 
     rows.sort((a, b) => {
