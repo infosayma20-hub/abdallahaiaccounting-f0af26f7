@@ -155,9 +155,9 @@ const CashBoxesPage = () => {
 
         <CardContent className="p-3 space-y-2">
           {/* Balance */}
-          <div className="flex items-baseline justify-between">
-            <span className="text-[10px] text-muted-foreground">رصيد ₪</span>
-            <span className={`text-base font-bold font-mono ${bal.balance > 0 ? "" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`} style={bal.balance > 0 ? { color: colors.text } : {}}>
+          <div className="flex items-baseline justify-between gap-1 min-w-0">
+            <span className="text-[10px] text-muted-foreground shrink-0">رصيد ₪</span>
+            <span className={`text-base font-bold font-mono min-w-0 break-all leading-tight ${bal.balance > 0 ? "" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`} style={bal.balance > 0 ? { color: colors.text } : {}}>
               ₪{fmt(bal.balance)}
             </span>
           </div>
@@ -215,9 +215,9 @@ const CashBoxesPage = () => {
     <Card className="p-3 border" style={{ borderColor: color + "30" }}>
       <div className="flex items-center gap-2.5">
         <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-lg" style={{ background: color + "15" }}>{icon}</div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <p className="text-[11px] text-muted-foreground truncate">{label}</p>
-          <p className={`text-sm font-bold font-mono mt-0.5 ${value < 0 ? "text-red-600" : ""}`} style={value >= 0 ? { color } : {}}>
+          <p className={`text-sm font-bold font-mono mt-0.5 min-w-0 break-all leading-tight ${value < 0 ? "text-red-600" : ""}`} style={value >= 0 ? { color } : {}}>
             ₪{fmt(value)}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
