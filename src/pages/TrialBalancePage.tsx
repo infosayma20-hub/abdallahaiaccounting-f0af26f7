@@ -36,6 +36,8 @@ interface TrialBalanceRow {
   prevDebit?: number;
   prevCredit?: number;
   prevBalance?: number;
+  isChild?: boolean;
+  parentCode?: string;
 }
 
 const ACCOUNT_TYPE_ORDER: Record<string, number> = {
@@ -125,6 +127,7 @@ const TrialBalancePage = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [showDetailedAccounts, setShowDetailedAccounts] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -218,6 +221,15 @@ const TrialBalancePage = () => {
     if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
 
     const rows: TrialBalanceRow[] = [];
+    // Build parent_code map for child detection
+    const childrenByParent: Record<string, string[]> = {};
+    for (const acc of accounts) {
+      if (acc.parent_code) {
+        if (!childrenByParent[acc.parent_code]) childrenByParent[acc.parent_code] = [];
+        childrenByParent[acc.parent_code].push(acc.account_code);
+      }
+    }
+
     for (const code of allCodes) {
       const acc = accountMap[code];
       const totalDebit = debitMap[code] || 0;
@@ -236,13 +248,61 @@ const TrialBalancePage = () => {
         prevDebit: prevDebitMap[code] || 0,
         prevCredit: prevCreditMap[code] || 0,
         prevBalance: (prevDebitMap[code] || 0) - (prevCreditMap[code] || 0),
+        isChild: false,
+        parentCode: acc?.parent_code || undefined,
       });
     }
 
+    // If showDetailedAccounts, also add child accounts that are not already in the list
+    if (showDetailedAccounts) {
+      const existingCodes = new Set(rows.map(r => r.accountCode));
+      for (const acc of accounts) {
+        if (acc.parent_code && !existingCodes.has(acc.account_code)) {
+          // Check if parent is in the list
+          if (existingCodes.has(acc.parent_code)) {
+            const totalDebit = debitMap[acc.account_code] || 0;
+            const totalCredit = creditMap[acc.account_code] || 0;
+            const openingDebit = openingDebitMap[acc.account_code] || 0;
+            const openingCredit = openingCreditMap[acc.account_code] || 0;
+            const openingBalance = openingDebit - openingCredit;
+            const balance = totalDebit - totalCredit;
+            if (totalDebit > 0 || totalCredit > 0 || openingDebit > 0 || openingCredit > 0) {
+              rows.push({
+                accountName: acc.account_name,
+                accountCode: acc.account_code,
+                accountType: acc.account_type,
+                openingDebit, openingCredit, openingBalance,
+                totalDebit, totalCredit, balance,
+                closingBalance: openingBalance + balance,
+                prevDebit: prevDebitMap[acc.account_code] || 0,
+                prevCredit: prevCreditMap[acc.account_code] || 0,
+                prevBalance: (prevDebitMap[acc.account_code] || 0) - (prevCreditMap[acc.account_code] || 0),
+                isChild: true,
+                parentCode: acc.parent_code || undefined,
+              });
+            }
+          }
+        }
+      }
+      // Mark existing rows that have a parent as children
+      for (const row of rows) {
+        if (row.parentCode && rows.some(r => r.accountCode === row.parentCode && !r.isChild)) {
+          row.isChild = true;
+        }
+      }
+    }
+
     rows.sort((a, b) => {
+      // Parents first, then children grouped under parent
+      const parentA = a.isChild ? a.parentCode || "" : a.accountCode;
+      const parentB = b.isChild ? b.parentCode || "" : b.accountCode;
       const orderA = ACCOUNT_TYPE_ORDER[a.accountType] || 99;
       const orderB = ACCOUNT_TYPE_ORDER[b.accountType] || 99;
       if (orderA !== orderB) return orderA - orderB;
+      if (parentA !== parentB) return parentA.localeCompare(parentB);
+      // Parent before its children
+      if (a.accountCode === parentB && b.isChild) return -1;
+      if (b.accountCode === parentA && a.isChild) return 1;
       return (a.accountCode || "").localeCompare(b.accountCode || "");
     });
 
@@ -256,7 +316,7 @@ const TrialBalancePage = () => {
     const grandClosingCredit = rows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
     return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
-  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
+  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, showDetailedAccounts, prevPeriod]);
 
   // Search filter
   const filteredRows = useMemo(() => {
@@ -398,6 +458,10 @@ const TrialBalancePage = () => {
             <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
             <span className="text-muted-foreground">الحسابات الصفرية</span>
           </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox checked={showDetailedAccounts} onCheckedChange={(v) => setShowDetailedAccounts(!!v)} />
+            <span className="text-muted-foreground">إظهار الحسابات التفصيلية</span>
+          </label>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-[10px]">نوع الحساب:</span>
             <select
@@ -530,19 +594,25 @@ const TrialBalancePage = () => {
                       const balChange = showComparison && (row.prevBalance || 0) !== 0
                         ? ((row.balance - (row.prevBalance || 0)) / Math.abs(row.prevBalance || 1)) * 100 : null;
                       return (
-                      <tr key={row.accountCode} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
+                      <tr key={row.accountCode} className={`border-b border-border/20 hover:bg-muted/10 transition-colors ${row.isChild ? "bg-muted/5" : ""}`}>
                         <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums font-mono">
-                          {row.accountCode || "—"}
+                          {row.isChild ? "" : (row.accountCode || "—")}
                         </td>
                         <td className="px-4 py-3 text-xs text-foreground font-medium">
-                          {(row.totalDebit > 0 || row.totalCredit > 0) ? (
-                            <button
-                              onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
-                              className="text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-xs font-medium"
-                            >
-                              {row.accountName}
-                            </button>
-                          ) : row.accountName}
+                          <div style={{ paddingRight: row.isChild ? 24 : 0 }} className="flex items-center gap-1">
+                            {row.isChild && <span className="text-muted-foreground/40">└</span>}
+                            {(row.totalDebit > 0 || row.totalCredit > 0) ? (
+                              <button
+                                onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
+                                className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs font-medium ${row.isChild ? "text-muted-foreground" : "text-primary"}`}
+                              >
+                                {row.accountName}
+                                {row.isChild && <span className="text-[10px] text-muted-foreground/50 mr-1 font-mono">({row.accountCode})</span>}
+                              </button>
+                            ) : (
+                              <span>{row.accountName}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${ACCOUNT_TYPE_COLORS[ACCOUNT_TYPE_LABELS[row.accountType] || ""] || "bg-muted text-muted-foreground"}`}>
