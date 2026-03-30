@@ -1,60 +1,113 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { X } from "lucide-react";
 
+const LS_KEY = "trial_banner_last_shown";
+const LS_DISMISS_KEY = "trial_banner_dismissed_at";
+const SS_KEY = "trial_banner_shown_this_session";
+
+function getDaysSince(isoDate: string | null): number | null {
+  if (!isoDate) return null;
+  const diff = Date.now() - new Date(isoDate).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function shouldShow(daysLeft: number): boolean {
+  const lastShown = localStorage.getItem(LS_KEY);
+  const daysSince = getDaysSince(lastShown);
+  const dismissed = localStorage.getItem(LS_DISMISS_KEY);
+  const dismissedSince = getDaysSince(dismissed);
+
+  if (daysLeft < 7) return true;
+
+  if (daysLeft >= 7 && daysLeft < 30) {
+    // Check if dismissed this session
+    if (sessionStorage.getItem(SS_KEY) === "dismissed") return false;
+    return true;
+  }
+
+  if (daysLeft >= 30 && daysLeft <= 60) {
+    // Show if dismissed more than 1 day ago or never dismissed
+    if (dismissedSince !== null && dismissedSince < 1) return false;
+    if (daysSince !== null && daysSince < 1) return false;
+    return true;
+  }
+
+  // daysLeft > 60
+  if (dismissedSince !== null && dismissedSince < 7) return false;
+  if (daysSince !== null && daysSince < 7) return false;
+  return true;
+}
+
+function getAutoDismissMs(daysLeft: number): number | null {
+  if (daysLeft < 7) return null;
+  if (daysLeft >= 7 && daysLeft < 30) return 15000;
+  if (daysLeft >= 30 && daysLeft <= 60) return 10000;
+  return 8000; // > 60
+}
+
 const TrialBanner = () => {
   const navigate = useNavigate();
   const { subscription, loading } = useSubscription();
-  const [dismissed, setDismissed] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  const daysLeft = subscription?.daysLeft ?? 999;
+  const isTrial = subscription?.isTrial ?? false;
+  const status = subscription?.status ?? "";
+  const isExpired = subscription?.isExpired ?? false;
+
+  // Determine visibility on mount / subscription change
   useEffect(() => {
-    // During trial with >7 days, allow dismiss for 24h
-    // During trial with <=7 days or expired, never dismiss (always show)
-    if (subscription && subscription.isTrial && subscription.daysLeft <= 7) {
-      setDismissed(false);
-      return;
-    }
-    const dismissedAt = localStorage.getItem("trial_banner_dismissed");
-    if (dismissedAt) {
-      const diff = Date.now() - parseInt(dismissedAt);
-      if (diff < 24 * 60 * 60 * 1000) setDismissed(true);
-      else {
-        localStorage.removeItem("trial_banner_dismissed");
-        setDismissed(false);
+    if (loading || !subscription) return;
+    if (!isTrial && status === "active") { setVisible(false); return; }
+    if (isExpired || status === "expired") { setVisible(true); setMounted(true); return; }
+    if (status === "past_due" || status === "grace" || status === "grace_period") { setVisible(true); setMounted(true); return; }
+    if (!isTrial) { setVisible(false); return; }
+
+    const show = shouldShow(daysLeft);
+    if (show) {
+      localStorage.setItem(LS_KEY, todayISO());
+      if (daysLeft >= 7 && daysLeft < 30) {
+        sessionStorage.setItem(SS_KEY, "shown");
       }
     }
-  }, [subscription]);
+    setVisible(show);
+    setMounted(true);
+  }, [loading, subscription, daysLeft, isTrial, status, isExpired]);
 
-  if (loading || !subscription || dismissed) return null;
-  const { isTrial, daysLeft, isExpired, status } = subscription;
-  if (status === "active" && !isTrial) return null;
+  // Auto-dismiss timer
+  useEffect(() => {
+    if (!visible || !isTrial) return;
+    const ms = getAutoDismissMs(daysLeft);
+    if (!ms) return;
+    const timer = setTimeout(() => {
+      setVisible(false);
+      localStorage.setItem(LS_DISMISS_KEY, todayISO());
+      if (daysLeft >= 7 && daysLeft < 30) {
+        sessionStorage.setItem(SS_KEY, "dismissed");
+      }
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [visible, daysLeft, isTrial]);
 
-  if (isTrial && daysLeft > 7) {
-    return (
-      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm text-white flex-shrink-0" style={{ background: "linear-gradient(135deg, #0D1B2A, #1E3A5F)", fontFamily: "Tajawal" }} dir="rtl">
-        <span>🎁 أنت في الفترة التجريبية المجانية — متبقي {daysLeft} يوماً</span>
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/pricing")} className="px-4 py-1 rounded-full text-xs font-bold hover:brightness-110 transition-all" style={{ background: "#E8A020", color: "#0D1B2A" }}>
-            اختر خطتك الآن
-          </button>
-          <button onClick={() => { setDismissed(true); localStorage.setItem("trial_banner_dismissed", String(Date.now())); }} className="text-white/60 hover:text-white">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleDismiss = useCallback(() => {
+    setVisible(false);
+    localStorage.setItem(LS_DISMISS_KEY, todayISO());
+    localStorage.setItem(LS_KEY, todayISO());
+    if (daysLeft >= 7 && daysLeft < 30) {
+      sessionStorage.setItem(SS_KEY, "dismissed");
+    }
+  }, [daysLeft]);
 
-  if (isTrial && daysLeft > 0 && daysLeft <= 7) {
-    return (
-      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-amber-500 flex-shrink-0" style={{ background: "#FEF9C3", fontFamily: "Tajawal" }} dir="rtl">
-        <span className="text-amber-800 font-medium">⏰ تنتهي تجربتك المجانية خلال {daysLeft} أيام! اشترك الآن للاستمرار بدون انقطاع</span>
-        <button onClick={() => navigate("/pricing")} className="bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-amber-600">اشترك الآن</button>
-      </div>
-    );
-  }
+  if (loading || !visible || !mounted) return null;
 
+  // Expired state
   if (isExpired || status === "expired") {
     return (
       <div className="z-40 flex items-center justify-between px-6 py-3 text-sm border-b-2 border-red-500 animate-pulse flex-shrink-0" style={{ background: "#FEE2E2", fontFamily: "Tajawal" }} dir="rtl">
@@ -64,6 +117,7 @@ const TrialBanner = () => {
     );
   }
 
+  // Past due / grace
   if (status === "past_due" || status === "grace" || status === "grace_period") {
     return (
       <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-orange-500 flex-shrink-0" style={{ background: "#FFF7ED", fontFamily: "Tajawal" }} dir="rtl">
@@ -73,7 +127,30 @@ const TrialBanner = () => {
     );
   }
 
-  return null;
+  // Urgent: < 7 days
+  if (isTrial && daysLeft < 7 && daysLeft > 0) {
+    return (
+      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-amber-500 flex-shrink-0" style={{ background: "#FEF9C3", fontFamily: "Tajawal" }} dir="rtl">
+        <span className="text-amber-800 font-medium">⏰ تنتهي تجربتك المجانية خلال {daysLeft} أيام! اشترك الآن للاستمرار بدون انقطاع</span>
+        <button onClick={() => navigate("/pricing")} className="bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-amber-600">اشترك الآن</button>
+      </div>
+    );
+  }
+
+  // Normal trial banner (>= 7 days)
+  return (
+    <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm text-white flex-shrink-0" style={{ background: "linear-gradient(135deg, #0D1B2A, #1E3A5F)", fontFamily: "Tajawal" }} dir="rtl">
+      <span>🎁 أنت في الفترة التجريبية المجانية — متبقي {daysLeft} يوماً</span>
+      <div className="flex items-center gap-3">
+        <button onClick={() => navigate("/pricing")} className="px-4 py-1 rounded-full text-xs font-bold hover:brightness-110 transition-all" style={{ background: "#E8A020", color: "#0D1B2A" }}>
+          اختر خطتك الآن
+        </button>
+        <button onClick={handleDismiss} className="text-white/60 hover:text-white">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default TrialBanner;
