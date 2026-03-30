@@ -384,6 +384,7 @@ export default function WorkshopsPage() {
     if (error) { toast.error(error.message); return; }
     toast.success(isCheque ? `✅ تم تسجيل ${chequeRows.length} شيك وارد بنجاح` : "✅ تم تسجيل الدفعة بنجاح");
     setShowPaymentDialog(false);
+    setView("workshops");
     const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 };
     setPaymentForm(resetForm as any);
     setChequeRows([]);
