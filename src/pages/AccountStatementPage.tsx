@@ -31,6 +31,7 @@ import { ar } from "date-fns/locale";
 import { cn, multiWordMatchAny } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import StatementPrintView from "@/components/StatementPrintView";
+import AdvancedEntitySearch from "@/components/account-statement/AdvancedEntitySearch";
 
 // ─── TYPES ───
 interface Contact {
