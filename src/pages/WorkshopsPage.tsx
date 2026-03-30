@@ -1110,6 +1110,7 @@ export default function WorkshopsPage() {
           workshopId={selectedWorkshop.id} workshopName={selectedWorkshop.name}
           userId={user!.id} contacts={contacts}
           onSaved={() => loadCosts(selectedWorkshop.id)} onContactsReload={loadContacts}
+          allWorkshops={workshops.map(w => ({ id: w.id, name: w.name, status: w.status }))}
         />
 
         {/* ── Cost Report Modal ── */}
