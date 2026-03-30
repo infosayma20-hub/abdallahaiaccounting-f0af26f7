@@ -378,21 +378,22 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
         // ── Create purchase invoice for supplier ──
         if (supplierContactId || supplierNameManual) {
           const invAmount = isMaterial ? totalPurchaseCost : usedCost;
-          const invNumber = `PI-WS-${Date.now().toString().slice(-6)}`;
           const isPaid = paymentMethod !== "آجل";
-          await supabase.from("purchase_invoices").insert({
+          await supabase.from("invoices").insert({
             user_id: userId,
-            supplier_id: supplierContactId || null,
-            supplier_name: supplierName || supplierNameManual || "مورد",
-            invoice_number: invNumber,
+            invoice_type: "purchase",
+            contact_name: supplierName || supplierNameManual || "مورد",
             invoice_date: costDate,
-            total_amount: invAmount,
             subtotal: invAmount,
+            total_amount: invAmount,
             paid_amount: isPaid ? invAmount : 0,
             remaining_amount: isPaid ? 0 : invAmount,
+            payment_status: isPaid ? "paid" : "unpaid",
             payment_method: paymentMethod === "آجل" ? "آجل" : paymentMethod === "نقدي" ? "نقدي" : "بنك",
-            status: isPaid ? "approved" : "pending",
+            currency: "شيكل",
+            status: isPaid ? "sent" : "draft",
             notes: `تكلفة ورشة: ${workshopName} - ${catLabel}`,
+            source: "workshop",
           } as any);
         }
 
