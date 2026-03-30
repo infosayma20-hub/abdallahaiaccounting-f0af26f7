@@ -77,6 +77,7 @@ interface CartItem {
   unit: string;
   total: number;
   note: string;
+  station_id?: string | null;
   modifiers?: SelectedModifier[];
 }
 
