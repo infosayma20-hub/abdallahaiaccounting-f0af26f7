@@ -11,6 +11,7 @@ export interface PrintItem {
   quantity: number;
   price: number;
   note?: string;
+  stationId?: string;
   printerKey?: "kitchen" | "grill" | "pizza" | "none";
   modifiers?: { option_name: string; extra_price?: number }[];
 }
