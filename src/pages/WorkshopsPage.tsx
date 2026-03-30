@@ -669,23 +669,47 @@ export default function WorkshopsPage() {
       <div className="min-h-full bg-background pb-24" dir="rtl">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedWorkshop(null)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-foreground truncate">{selectedWorkshop.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{selectedWorkshop.customer_name || "بدون زبون"}</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedWorkshop(null)}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-foreground truncate">{selectedWorkshop.name}</h1>
+                  <Badge variant={status.variant}>{status.label}</Badge>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                  <span className="flex items-center gap-1">👤 {selectedWorkshop.customer_name || "بدون زبون"}</span>
+                  {selectedWorkshop.workshop_type && (
+                    <>
+                      <span className="text-border">|</span>
+                      {selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
+                        const wt = WORKSHOP_TYPES.find(x => x.value === t);
+                        return wt ? <span key={t} className="flex items-center gap-1"><wt.Icon className="h-3.5 w-3.5" /> {wt.label}</span> : null;
+                      })}
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+                  <span>📅 بدأت: {selectedWorkshop.start_date ? format(new Date(selectedWorkshop.start_date), "dd/MM/yyyy") : "—"}</span>
+                  <span className="text-border">|</span>
+                  <span>⏰ الانتهاء المتوقع: {selectedWorkshop.expected_end_date ? format(new Date(selectedWorkshop.expected_end_date), "dd/MM/yyyy") : "—"}</span>
+                  {selectedWorkshop.area_sqm ? (
+                    <>
+                      <span className="text-border">|</span>
+                      <span>📐 {selectedWorkshop.area_sqm} م²</span>
+                    </>
+                  ) : null}
+                </div>
                 {selectedWorkshop.contact_id && (
-                  <Badge variant="outline" className="text-[9px]">
-                    رصيد: {customerBalance.toLocaleString()} ₪
-                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-1">💰 رصيد العميل المستحق: <strong className="text-foreground">{customerBalance.toLocaleString()} ₪</strong></p>
                 )}
               </div>
             </div>
-            <Badge variant={status.variant}>{status.label}</Badge>
-            <div className="flex items-center gap-1.5">
+
+            {/* Toolbar */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => openEditWorkshop(selectedWorkshop)}>
                 <Edit className="h-3.5 w-3.5" /> تعديل
               </Button>
@@ -719,9 +743,6 @@ export default function WorkshopsPage() {
                 }
               }}>
                 <FileText className="h-3.5 w-3.5" /> عقد PDF
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
-                <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
                 const printContent = document.getElementById("workshop-print-area");
@@ -769,32 +790,29 @@ export default function WorkshopsPage() {
                       return `<tr><td>${c.cost_date}</td><td>${catInfo.icon} ${catInfo.label}</td><td>${c.description || "—"}</td><td class="text-red">${c.amount.toLocaleString()} ₪</td><td>${c.supplier_name || "—"}</td></tr>`;
                     }).join("")}
                     </tbody></table>` : ""}
-                  <!-- view only -->
                   </body></html>
                 `);
                 printWin.document.close();
               }}>
                 <Printer className="h-3.5 w-3.5" /> معاينة طباعة
               </Button>
-              <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
-                <Trash2 className="h-3.5 w-3.5" /> حذف
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
+                <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                    <MoreVertical className="h-3.5 w-3.5" /> المزيد
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem className="text-destructive gap-2" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
+                    <Trash2 className="h-3.5 w-3.5" /> حذف الورشة
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-
-          {/* Area + Type info */}
-          {(selectedWorkshop.area_sqm || selectedWorkshop.workshop_type) && (
-            <div className="flex gap-2 flex-wrap text-xs">
-              {selectedWorkshop.workshop_type && selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
-                const wt = WORKSHOP_TYPES.find(x => x.value === t);
-                return wt ? <Badge key={t} variant="outline"><wt.Icon className="h-3.5 w-3.5 inline-block ml-1" /> {wt.label}</Badge> : null;
-              })}
-              {selectedWorkshop.area_sqm ? <Badge variant="outline">📐 {selectedWorkshop.area_sqm} م²</Badge> : null}
-              {selectedWorkshop.area_sqm && costSummary.total > 0 ? (
-                <Badge variant="secondary">تكلفة المتر: {Math.round(costSummary.total / selectedWorkshop.area_sqm).toLocaleString()} ₪/م²</Badge>
-              ) : null}
-            </div>
-          )}
 
           {/* Image */}
           {selectedWorkshop.image_url && (
@@ -815,26 +833,46 @@ export default function WorkshopsPage() {
             </div>
           )}
 
-          {/* KPIs - Professional */}
+          {/* KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {[
-              { label: "الميزانية", value: `${selectedWorkshop.total_budget?.toLocaleString()} ₪`, cls: "text-foreground", showBar: false },
-              { label: "المصروف", value: `${costSummary.total.toLocaleString()} ₪`, cls: "text-destructive", showBar: false },
-              { label: "المتبقي", value: `${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-foreground" : "text-destructive", showBar: false },
-              { label: "نسبة الإنجاز", value: `${Math.round(budgetUsedPct)}%`, cls: "text-foreground", showBar: true },
-              { label: "الربح", value: `${profit.toLocaleString()} ₪`, cls: profit >= 0 ? "text-emerald-600" : "text-destructive", showBar: false },
-            ].map(kpi => (
-              <div key={kpi.label} className="rounded-xl bg-card border border-border p-3 text-center">
-                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
-                <p className={`text-base font-bold ${kpi.cls}`}>{kpi.value}</p>
-                {kpi.showBar && (
-                  <div className="h-2 bg-muted rounded-full overflow-hidden mt-1.5">
-                    <div className={`h-full rounded-full transition-all ${budgetUsedPct > 95 ? "bg-destructive" : budgetUsedPct > 80 ? "bg-amber-500" : "bg-emerald-500"}`}
-                      style={{ width: `${Math.min(budgetUsedPct, 100)}%` }} />
-                  </div>
-                )}
+            {/* الميزانية */}
+            <div className="rounded-xl bg-card border border-border p-3 text-center">
+              <p className="text-[10px] text-muted-foreground">الميزانية</p>
+              <p className="text-base font-bold text-foreground">{selectedWorkshop.total_budget?.toLocaleString()} ₪</p>
+            </div>
+            {/* المصروف */}
+            <div className="rounded-xl bg-card border border-border p-3 text-center">
+              <p className="text-[10px] text-muted-foreground">المصروف</p>
+              <p className="text-base font-bold text-destructive">{costSummary.total.toLocaleString()} ₪</p>
+            </div>
+            {/* المتبقي */}
+            <div className="rounded-xl bg-card border border-border p-3 text-center">
+              <p className="text-[10px] text-muted-foreground">المتبقي</p>
+              <p className={`text-base font-bold ${(selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-foreground" : "text-destructive"}`}>
+                {(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪
+              </p>
+            </div>
+            {/* نسبة الإنجاز */}
+            <div className={`rounded-xl border p-3 text-center ${budgetUsedPct >= 100 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800" : "bg-card border-border"}`}>
+              <p className="text-[10px] text-muted-foreground">نسبة الإنجاز</p>
+              <p className="text-base font-bold text-foreground">{Math.round(budgetUsedPct)}%</p>
+              <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ background: "#E2E8F0" }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(budgetUsedPct, 100)}%`, background: budgetUsedPct >= 100 ? "#22C55E" : "#1B3A5C" }} />
               </div>
-            ))}
+              <p className="text-[9px] text-muted-foreground mt-1">0 مهمة مكتملة من 0 إجمالية</p>
+            </div>
+            {/* الربح */}
+            <div className={`rounded-xl border p-3 text-center ${profit < 0 ? "bg-destructive/5 border-destructive/20" : "bg-card border-border"}`}>
+              <p className="text-[10px] text-muted-foreground">الربح</p>
+              <p className={`text-base font-bold flex items-center justify-center gap-1 ${profit > 0 ? "text-emerald-600" : profit < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                {profit > 0 && <TrendingUp className="h-4 w-4" />}
+                {profit < 0 && <TrendingDown className="h-4 w-4" />}
+                {profit.toLocaleString()} ₪
+              </p>
+              {profit < 0 && (
+                <Badge variant="destructive" className="text-[8px] mt-1 px-1.5 py-0">الورشة بالخسارة</Badge>
+              )}
+            </div>
           </div>
 
           {/* Payments section */}
@@ -878,14 +916,20 @@ export default function WorkshopsPage() {
 
           {/* Actions */}
           {selectedWorkshop.status === "active" && (
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")} className="flex-1">⏸️ إيقاف</Button>
-              <Button size="sm" onClick={() => {
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={() => setShowCostReport(true)}>
+                  <BarChart3 className="h-3.5 w-3.5" /> تقرير التكلفة
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")}>
+                  ⏸️ إيقاف
+                </Button>
+              </div>
+              <Button size="sm" className="w-full h-10 text-sm font-bold gap-2 text-white" style={{ background: "#0D1B2E", borderRadius: 10 }} onClick={() => {
                 setInvoiceForm({ amount: selectedWorkshop.total_budget - totalPaid, payment_method: "آجل", description: "" });
                 setShowInvoiceDialog(true);
-              }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">💰 فوترة واكتمال</Button>
-              <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowCostReport(true)}>
-                <BarChart3 className="h-3.5 w-3.5" /> تقرير التكلفة
+              }}>
+                🧾 فوترة واكتمال
               </Button>
             </div>
           )}
@@ -893,14 +937,14 @@ export default function WorkshopsPage() {
             <Button size="sm" onClick={() => handleUpdateStatus(selectedWorkshop, "active")} className="w-full">▶️ استئناف</Button>
           )}
 
-          {/* Add cost button */}
-          <Button onClick={() => setShowNewCost(true)} className="w-full gap-2">
-            <Plus className="h-4 w-4" /> إضافة تكلفة
-          </Button>
-
           {/* ── Cost Ledger Table ── */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground">سجل التكاليف</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">سجل التكاليف</h3>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setShowNewCost(true)}>
+                <Plus className="h-3.5 w-3.5" /> إضافة تكلفة
+              </Button>
+            </div>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
               {[
                 { key: "all", label: "الكل" },
