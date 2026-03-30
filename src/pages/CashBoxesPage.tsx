@@ -372,7 +372,7 @@ const CashBoxesPage = () => {
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-baseline justify-between">
                           <span className="text-[10px] text-muted-foreground">رصيد</span>
-                          <span className={`text-base font-bold font-mono ${bal.balance < 0 ? "text-red-600" : ""}`} style={bal.balance >= 0 ? { color: "#1A5FA8" } : {}}>
+                          <span className={`text-base font-bold font-mono min-w-0 break-all leading-tight ${bal.balance < 0 ? "text-red-600" : ""}`} style={bal.balance >= 0 ? { color: "#1A5FA8" } : {}}>
                             ₪{fmt(bal.balance)}
                           </span>
                         </div>
