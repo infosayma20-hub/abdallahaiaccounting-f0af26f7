@@ -83,8 +83,6 @@ export default function PrinterSettingsPage() {
 
     try {
       const isReceipt = printer.print_categories?.includes("receipt");
-      // Set stationId so bridge routes to the correct printer
-      testOrder.stationId = (printer.station_ids || [])[0] || undefined;
       if (isReceipt) {
         await printReceipt(testOrder);
       } else {
