@@ -1962,6 +1962,7 @@ const POSPage = () => {
           subtotal: item.qty * item.unit_price,
           total: item.total,
           cost_price: item.cost_price,
+          kitchen_station_id: item.station_id || null,
         }));
         await supabase.from("pos_order_lines").insert(lines);
 
