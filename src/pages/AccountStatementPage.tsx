@@ -1743,12 +1743,23 @@ const AccountStatementPage = () => {
 
             {!selectedEntityId ? (
               <div className="flex-1 flex items-center justify-center py-32">
-                <div className="text-center space-y-3">
+                <div className="text-center space-y-5">
                   <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
-                    <BookOpen className="w-8 h-8 text-muted-foreground/40" />
+                    <Search className="w-8 h-8 text-muted-foreground/40" />
                   </div>
-                  <p className="text-sm font-semibold text-muted-foreground">اختر حساباً لعرض كشفه المالي</p>
-                  <p className="text-xs text-muted-foreground/60">يمكنك البحث بالاسم أو الكود من القائمة</p>
+                  <p className="text-sm font-semibold text-muted-foreground">ابحث عن جهة لعرض كشف حسابها</p>
+                  <div className="flex items-center justify-center gap-3">
+                    <button onClick={() => { setActiveTab("customers"); setSelectedEntityId(""); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-muted/60 hover:bg-muted text-xs font-semibold text-muted-foreground transition-colors">
+                      👤 زبائن
+                    </button>
+                    <button onClick={() => { setActiveTab("suppliers"); setSelectedEntityId(""); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-muted/60 hover:bg-muted text-xs font-semibold text-muted-foreground transition-colors">
+                      🚚 موردين
+                    </button>
+                    <button onClick={() => { setActiveTab("accounts"); setSelectedEntityId(""); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-muted/60 hover:bg-muted text-xs font-semibold text-muted-foreground transition-colors">
+                      📊 حسابات
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/50">اضغط للتصفح بدون بحث</p>
                 </div>
               </div>
             ) : (
