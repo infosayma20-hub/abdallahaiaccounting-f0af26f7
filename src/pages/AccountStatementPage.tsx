@@ -1574,7 +1574,7 @@ const AccountStatementPage = () => {
       {/* ─── TOP BAR ─── */}
       <div className="sticky top-0 z-50 no-print" style={{ background: "#ffffff", borderBottom: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "12px 24px" }}>
         {/* Row 1: Nav + Actions + Date Range */}
-        <div className="flex items-center justify-between px-5 py-2.5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/finance"); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <ArrowRight className="w-5 h-5 text-foreground" />
