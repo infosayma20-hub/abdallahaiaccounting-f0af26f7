@@ -1175,6 +1175,7 @@ export default function WorkshopsPage() {
 
         {/* ── Financial Claim Modal ── */}
         <FinancialClaimModal
+          sourceType="workshop"
           open={showClaimModal}
           onOpenChange={setShowClaimModal}
           project={{

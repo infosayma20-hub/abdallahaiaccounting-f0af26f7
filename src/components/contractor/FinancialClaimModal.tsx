@@ -74,6 +74,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   project: { id: string; name: string; client_name: string | null; phone: string | null; address: string | null; budget: number; total_expenses: number; total_receipts: number };
   userId: string;
+  sourceType?: "contractor" | "workshop";
   companyName: string;
   companyPhone: string;
   companyAddress: string;
@@ -81,7 +82,7 @@ interface Props {
   logoUrl: string;
 }
 
-export default function FinancialClaimModal({ open, onOpenChange, project, userId, companyName, companyPhone, companyAddress, companyEmail, logoUrl }: Props) {
+export default function FinancialClaimModal({ open, onOpenChange, project, userId, companyName, companyPhone, companyAddress, companyEmail, logoUrl, sourceType = "contractor" }: Props) {
   const [mode, setMode] = useState<"form" | "preview" | "history">("form");
   const [claims, setClaims] = useState<Claim[]>([]);
   const [previewClaim, setPreviewClaim] = useState<Claim | null>(null);
@@ -116,26 +117,34 @@ export default function FinancialClaimModal({ open, onOpenChange, project, userI
   }, [open]);
 
   const fetchClaims = useCallback(async () => {
-    const { data } = await supabase
+    let query = supabase
       .from("financial_claims" as any)
       .select("*")
-      .eq("project_id", project.id)
       .order("created_at", { ascending: false });
+    
+    if (sourceType === "workshop") {
+      query = query.eq("user_id", userId).is("project_id", null).eq("recipient_name", project.client_name || "");
+    } else {
+      query = query.eq("project_id", project.id);
+    }
+    const { data } = await query;
     if (data) setClaims(data as any);
-  }, [project.id]);
+  }, [project.id, sourceType, userId, project.client_name]);
 
   const saveClaim = async () => {
     if (!form.recipient_name.trim() || amountNum <= 0) { toast.error("الاسم والمبلغ مطلوبان"); return; }
     const { data, error } = await supabase.from("financial_claims" as any).insert({
       user_id: userId,
-      project_id: project.id,
+      project_id: sourceType === "workshop" ? null : project.id,
       recipient_name: form.recipient_name,
       recipient_address: form.recipient_address || null,
       amount: amountNum,
       amount_text: amountText,
       claim_date: form.claim_date,
       reply_days: parseInt(form.reply_days) || 7,
-      custom_note: form.custom_note || null,
+      custom_note: sourceType === "workshop" 
+        ? `ورشة: ${project.name}${form.custom_note ? " | " + form.custom_note : ""}`
+        : (form.custom_note || null),
     } as any).select("*").single();
     if (error) { toast.error("فشل الحفظ: " + error.message); return; }
     toast.success("تم إنشاء المطالبة بنجاح");
