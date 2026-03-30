@@ -733,7 +733,7 @@ export default function WorkshopsPage() {
                   areaSqm: selectedWorkshop.area_sqm || 0,
                   budget: selectedWorkshop.total_budget || 0,
                   startDate: selectedWorkshop.start_date || "",
-                  endDate: selectedWorkshop.end_date || "",
+                  endDate: selectedWorkshop.expected_end_date || "",
                   notes: selectedWorkshop.notes || "",
                   payments: contractPayments.length > 0 ? contractPayments : undefined,
                 };
