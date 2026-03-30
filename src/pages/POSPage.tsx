@@ -2172,7 +2172,7 @@ const POSPage = () => {
       unit: line.unit || "قطعة",
       total: Number(line.total),
       note: "",
-      station_id: line.kitchen_station_id || null,
+      station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
     }));
 
     // Find or create order tab for this table
