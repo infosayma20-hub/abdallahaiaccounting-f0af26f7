@@ -594,19 +594,25 @@ const TrialBalancePage = () => {
                       const balChange = showComparison && (row.prevBalance || 0) !== 0
                         ? ((row.balance - (row.prevBalance || 0)) / Math.abs(row.prevBalance || 1)) * 100 : null;
                       return (
-                      <tr key={row.accountCode} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
+                      <tr key={row.accountCode} className={`border-b border-border/20 hover:bg-muted/10 transition-colors ${row.isChild ? "bg-muted/5" : ""}`}>
                         <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums font-mono">
-                          {row.accountCode || "—"}
+                          {row.isChild ? "" : (row.accountCode || "—")}
                         </td>
                         <td className="px-4 py-3 text-xs text-foreground font-medium">
-                          {(row.totalDebit > 0 || row.totalCredit > 0) ? (
-                            <button
-                              onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
-                              className="text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-xs font-medium"
-                            >
-                              {row.accountName}
-                            </button>
-                          ) : row.accountName}
+                          <div style={{ paddingRight: row.isChild ? 24 : 0 }} className="flex items-center gap-1">
+                            {row.isChild && <span className="text-muted-foreground/40">└</span>}
+                            {(row.totalDebit > 0 || row.totalCredit > 0) ? (
+                              <button
+                                onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
+                                className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs font-medium ${row.isChild ? "text-muted-foreground" : "text-primary"}`}
+                              >
+                                {row.accountName}
+                                {row.isChild && <span className="text-[10px] text-muted-foreground/50 mr-1 font-mono">({row.accountCode})</span>}
+                              </button>
+                            ) : (
+                              <span>{row.accountName}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${ACCOUNT_TYPE_COLORS[ACCOUNT_TYPE_LABELS[row.accountType] || ""] || "bg-muted text-muted-foreground"}`}>
