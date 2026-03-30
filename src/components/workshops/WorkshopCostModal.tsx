@@ -530,7 +530,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
                       <Label className="text-[11px] font-bold">الكمية المشتراة</Label>
-                      <Input type="number" min={0} step="any" value={purchasedQty || ""} onChange={e => { setPurchasedQty(Number(e.target.value)); if (usedQty === 0 || usedQty > Number(e.target.value)) setUsedQty(Number(e.target.value)); }} />
+                      <Input type="number" min={0} step="any" value={purchasedQty || ""} onChange={e => { const val = Number(e.target.value); setPurchasedQty(val); if (usedQty > val) setUsedQty(val); }} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[11px]">الوحدة</Label>
