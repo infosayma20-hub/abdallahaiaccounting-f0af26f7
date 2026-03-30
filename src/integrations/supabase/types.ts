@@ -11155,6 +11155,88 @@ export type Database = {
           },
         ]
       }
+      workshop_material_inventory: {
+        Row: {
+          created_at: string | null
+          id: string
+          material_category: string | null
+          material_type: string
+          notes: string | null
+          quantity: number
+          source_cost_id: string | null
+          source_workshop_id: string | null
+          status: string
+          supplier_contact_id: string | null
+          supplier_name: string | null
+          target_workshop_id: string | null
+          total_value: number
+          unit: string
+          unit_cost: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          material_category?: string | null
+          material_type: string
+          notes?: string | null
+          quantity?: number
+          source_cost_id?: string | null
+          source_workshop_id?: string | null
+          status?: string
+          supplier_contact_id?: string | null
+          supplier_name?: string | null
+          target_workshop_id?: string | null
+          total_value?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          material_category?: string | null
+          material_type?: string
+          notes?: string | null
+          quantity?: number
+          source_cost_id?: string | null
+          source_workshop_id?: string | null
+          status?: string
+          supplier_contact_id?: string | null
+          supplier_name?: string | null
+          target_workshop_id?: string | null
+          total_value?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workshop_material_inventory_source_workshop_id_fkey"
+            columns: ["source_workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workshop_material_inventory_supplier_contact_id_fkey"
+            columns: ["supplier_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workshop_material_inventory_target_workshop_id_fkey"
+            columns: ["target_workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workshop_payments: {
         Row: {
           amount: number
