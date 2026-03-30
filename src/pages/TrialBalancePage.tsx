@@ -41,21 +41,21 @@ interface TrialBalanceRow {
 }
 
 const ACCOUNT_TYPE_ORDER: Record<string, number> = {
-  "Asset": 1, "أصول": 1, "أصل": 1,
-  "Liability": 2, "التزامات": 2, "التزام": 2, "خصوم": 2,
-  "Owner's Equity": 3, "Equity": 3, "حقوق ملكية": 3, "حقوق الملكية": 3, "رأس مال": 3,
-  "Revenue": 4, "إيرادات": 4, "إيراد": 4, "دخل": 4,
-  "Purchases": 5, "مشتريات": 5,
+  "Asset": 1, "asset": 1, "assets": 1, "Assets": 1, "أصول": 1, "أصل": 1,
+  "Liability": 2, "liability": 2, "liabilities": 2, "Liabilities": 2, "التزامات": 2, "التزام": 2, "خصوم": 2,
+  "Owner's Equity": 3, "Equity": 3, "equity": 3, "حقوق ملكية": 3, "حقوق الملكية": 3, "رأس مال": 3,
+  "Revenue": 4, "revenue": 4, "إيرادات": 4, "إيراد": 4, "دخل": 4,
+  "Purchases": 5, "purchases": 5, "مشتريات": 5,
   "Expenses": 6, "مصروفات": 6, "مصروف": 6, "المصروفات": 6, "مصاريف": 6,
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  "Assets": "الأصول", "Asset": "الأصول",
-  "Liabilities": "الالتزامات", "Liability": "الالتزامات",
-  "Owner's Equity": "حقوق الملكية", "Equity": "حقوق الملكية",
-  "Revenue": "الإيرادات",
-  "Purchases": "المشتريات",
-  "Expenses": "المصروفات",
+  "Assets": "الأصول", "Asset": "الأصول", "asset": "الأصول", "assets": "الأصول",
+  "Liabilities": "الالتزامات", "Liability": "الالتزامات", "liability": "الالتزامات", "liabilities": "الالتزامات",
+  "Owner's Equity": "حقوق الملكية", "Equity": "حقوق الملكية", "equity": "حقوق الملكية",
+  "Revenue": "الإيرادات", "revenue": "الإيرادات",
+  "Purchases": "المشتريات", "purchases": "المشتريات",
+  "Expenses": "المصروفات", "expenses": "المصروفات", "expense": "المصروفات",
   "أصول": "الأصول", "أصل": "الأصول",
   "التزامات": "الالتزامات", "التزام": "الالتزامات", "خصوم": "الالتزامات",
   "حقوق ملكية": "حقوق الملكية", "حقوق الملكية": "حقوق الملكية", "رأس مال": "حقوق الملكية",
@@ -545,11 +545,11 @@ const TrialBalancePage = () => {
           <p className="text-sm text-muted-foreground">لا توجد حسابات بحركات للفترة المحددة</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-card border border-border/40">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b-2 border-primary/20 bg-muted/40">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b-2 border-primary/20 bg-muted/60">
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[80px]">الكود</th>
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[180px]">اسم الحساب</th>
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[100px]">النوع</th>
@@ -615,7 +615,7 @@ const TrialBalancePage = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${ACCOUNT_TYPE_COLORS[ACCOUNT_TYPE_LABELS[row.accountType] || ""] || "bg-muted text-muted-foreground"}`}>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap ${ACCOUNT_TYPE_COLORS[ACCOUNT_TYPE_LABELS[row.accountType] || ""] || "bg-muted text-muted-foreground"}`}>
                             {ACCOUNT_TYPE_LABELS[row.accountType] || row.accountType || "—"}
                           </span>
                         </td>
