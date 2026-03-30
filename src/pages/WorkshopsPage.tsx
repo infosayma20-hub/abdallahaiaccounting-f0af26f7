@@ -493,54 +493,7 @@ export default function WorkshopsPage() {
     if (selectedWorkshop) loadCosts(selectedWorkshop.id);
   };
 
-  /* ── Complete Workshop + Create Revenue Entry ── */
-  const handleInvoiceWorkshop = async () => {
-    if (!selectedWorkshop || invoiceForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
-
-    const creditCode = "4200"; // إيرادات خدمات
-    const debitCode = PAYMENT_CREDIT_MAP[invoiceForm.payment_method] || "1130";
-    // For credit sales, debit receivables (1130)
-    const finalDebit = invoiceForm.payment_method === "آجل" ? "1130" : debitCode;
-    const idempotencyKey = `WS-REVENUE-${selectedWorkshop.id}`;
-
-    const { error: txError } = await supabase.from("transactions").insert({
-      user_id: user!.id,
-      transaction_date: format(new Date(), "yyyy-MM-dd"),
-      description: invoiceForm.description || `إيرادات ورشة ${selectedWorkshop.name} - ${selectedWorkshop.customer_name || ""}`,
-      debit_account_code: finalDebit,
-      credit_account_code: creditCode,
-      amount: invoiceForm.amount,
-      currency: "شيكل",
-      transaction_type: "workshop_revenue",
-      contact_id: selectedWorkshop.contact_id || null,
-      reference: `WS-REV-${selectedWorkshop.name.substring(0, 15)}`,
-      payment_method: invoiceForm.payment_method,
-      idempotency_key: idempotencyKey,
-    } as any);
-
-    if (txError) { toast.error(txError.message); return; }
-
-    // Update workshop status
-    await supabase.from("workshops").update({
-      status: "completed", actual_end_date: format(new Date(), "yyyy-MM-dd"), updated_at: new Date().toISOString(),
-    } as any).eq("id", selectedWorkshop.id);
-
-    // Update customer balance if on credit
-    if (invoiceForm.payment_method === "آجل" && selectedWorkshop.contact_id) {
-      const contact = contacts.find(c => c.id === selectedWorkshop.contact_id);
-      if (contact) {
-        await supabase.from("contacts")
-          .update({ current_balance: contact.current_balance + invoiceForm.amount } as any)
-          .eq("id", selectedWorkshop.contact_id);
-      }
-    }
-
-    toast.success("✅ تم إكمال الورشة وتسجيل الإيرادات");
-    setShowInvoiceDialog(false);
-    setSelectedWorkshop({ ...selectedWorkshop, status: "completed" });
-    loadWorkshops();
-    loadContacts();
-  };
+   /* ── Workshop invoicing now handled via /invoices/new with workshop_id param ── */
 
   const handleUpdateStatus = async (ws: Workshop, newStatus: string) => {
     const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
