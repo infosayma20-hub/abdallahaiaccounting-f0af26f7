@@ -140,6 +140,7 @@ async function ensureWorkshopAccounts(userId: string) {
 /* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [view, setView] = useState<"workshops" | "reports" | "new-payment" | "inventory">("workshops");
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
