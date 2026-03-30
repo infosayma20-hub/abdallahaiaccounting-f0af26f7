@@ -156,6 +156,7 @@ const InvoiceCreatePage = () => {
   const prefillContactName = searchParams.get("contact_name");
   const prefillAmount = searchParams.get("amount");
   const prefillNotes = searchParams.get("notes");
+  const workshopId = searchParams.get("workshop_id");
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
@@ -818,8 +819,17 @@ const InvoiceCreatePage = () => {
         details: { total: summary.total, payment_method: paymentMethodDb },
       } as any);
 
+      // If linked to a workshop, mark it as completed
+      if (workshopId && !asDraft) {
+        await supabase.from("workshops").update({
+          status: "completed",
+          actual_end_date: new Date().toISOString().split("T")[0],
+          updated_at: new Date().toISOString(),
+        } as any).eq("id", workshopId);
+      }
+
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
-      navigate("/invoices");
+      navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
       toast({ title: "خطأ في حفظ الفاتورة", description: err.message, variant: "destructive" });
