@@ -750,7 +750,6 @@ const AccountStatementPage = () => {
 
   // ─── ACCOUNT BALANCES ───
   const accountBalances = useMemo(() => {
-    if (!isAccountsTab) return {};
     const map: Record<string, number> = {};
     for (const acc of accounts) {
       let bal = 0;
@@ -761,11 +760,10 @@ const AccountStatementPage = () => {
       map[acc.id] = bal;
     }
     return map;
-  }, [accounts, transactions, isAccountsTab]);
+  }, [accounts, transactions]);
 
   // ─── EMPLOYEE BALANCES ───
   const employeeBalances = useMemo(() => {
-    if (!isEmployeesTab) return {};
     const map: Record<string, number> = {};
     // Count how many employees share each account code
     const codeCount: Record<string, number> = {};
@@ -787,23 +785,23 @@ const AccountStatementPage = () => {
       map[emp.id] = bal;
     }
     return map;
-  }, [employeeEntities, transactions, isEmployeesTab]);
+  }, [employeeEntities, transactions]);
 
-  // ─── CONTACT BALANCES ───
+  // ─── CONTACT BALANCES (all contacts, not just active tab) ───
   const contactBalances = useMemo(() => {
-    if (isAccountsTab || isEmployeesTab) return {};
     const map: Record<string, number> = {};
-    const accountCode = activeTabConfig.accountCode;
     const nameToIds = new Map<string, Set<string>>();
-    for (const c of tabContacts) {
+    for (const c of contacts) {
       const name = c.contact_name?.trim();
       if (!nameToIds.has(name)) nameToIds.set(name, new Set());
       nameToIds.get(name)!.add(c.id);
     }
-    for (const c of tabContacts) {
+    for (const c of contacts) {
       let bal = 0;
       const name = c.contact_name?.trim();
       const relatedIds = nameToIds.get(name) || new Set([c.id]);
+      // Use the correct account code based on contact type
+      const accountCode = c.contact_type === "عميل" ? "1130" : c.contact_type === "مورد" ? "2110" : "2180";
       for (const tx of transactions) {
         const matches = (tx.contact_id && relatedIds.has(tx.contact_id)) ||
           (!tx.contact_id && tx.description?.includes(name));
@@ -814,7 +812,7 @@ const AccountStatementPage = () => {
       map[c.id] = bal;
     }
     return map;
-  }, [tabContacts, transactions, activeTab]);
+  }, [contacts, transactions]);
 
   // ─── COMBINED ENTITY LIST FOR LEFT PANEL ───
   const entityList = useMemo(() => {
@@ -1649,30 +1647,29 @@ const AccountStatementPage = () => {
             </Button>
           </div>
         </div>
-      </div>
-
-      {/* ─── ADVANCED SEARCH BAR ─── */}
-      <div className="px-5 pt-4 pb-3 no-print">
-        <AdvancedEntitySearch
-          entityList={entityList}
-          allContacts={contacts}
-          allAccounts={accounts}
-          allEmployees={employeeEntities}
-          accountBalances={accountBalances}
-          contactBalances={contactBalances}
-          employeeBalances={employeeBalances}
-          selectedEntityId={selectedEntityId}
-          activeTab={activeTab}
-          onSelect={(id, tab) => {
-            if (tab && tab !== activeTab) {
-              setActiveTab(tab);
-            }
-            selectEntity(id);
-          }}
-          onClear={() => { setSelectedEntityId(""); }}
-          onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
-          loading={loading}
-        />
+        {/* ─── ADVANCED SEARCH BAR (inside sticky) ─── */}
+        <div className="px-5 pt-3 pb-3 border-t border-border/50">
+          <AdvancedEntitySearch
+            entityList={entityList}
+            allContacts={contacts}
+            allAccounts={accounts}
+            allEmployees={employeeEntities}
+            accountBalances={accountBalances}
+            contactBalances={contactBalances}
+            employeeBalances={employeeBalances}
+            selectedEntityId={selectedEntityId}
+            activeTab={activeTab}
+            onSelect={(id, tab) => {
+              if (tab && tab !== activeTab) {
+                setActiveTab(tab);
+              }
+              selectEntity(id);
+            }}
+            onClear={() => { setSelectedEntityId(""); }}
+            onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+            loading={loading}
+          />
+        </div>
       </div>
 
       {/* ─── BODY: Full width main content ─── */}
