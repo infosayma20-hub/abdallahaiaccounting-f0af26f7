@@ -74,6 +74,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   project: { id: string; name: string; client_name: string | null; phone: string | null; address: string | null; budget: number; total_expenses: number; total_receipts: number };
   userId: string;
+  sourceType?: "contractor" | "workshop";
   companyName: string;
   companyPhone: string;
   companyAddress: string;
@@ -81,7 +82,7 @@ interface Props {
   logoUrl: string;
 }
 
-export default function FinancialClaimModal({ open, onOpenChange, project, userId, companyName, companyPhone, companyAddress, companyEmail, logoUrl }: Props) {
+export default function FinancialClaimModal({ open, onOpenChange, project, userId, companyName, companyPhone, companyAddress, companyEmail, logoUrl, sourceType = "contractor" }: Props) {
   const [mode, setMode] = useState<"form" | "preview" | "history">("form");
   const [claims, setClaims] = useState<Claim[]>([]);
   const [previewClaim, setPreviewClaim] = useState<Claim | null>(null);
