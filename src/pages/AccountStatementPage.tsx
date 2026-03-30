@@ -1572,7 +1572,7 @@ const AccountStatementPage = () => {
   return (
     <div className="min-h-screen flex flex-col" dir="rtl" style={{ background: "#F5F7FA" }}>
       {/* ─── TOP BAR ─── */}
-      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border no-print">
+      <div className="sticky top-0 z-50 no-print" style={{ background: "#ffffff", borderBottom: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "12px 24px" }}>
         {/* Row 1: Nav + Actions + Date Range */}
         <div className="flex items-center justify-between px-5 py-2.5">
           <div className="flex items-center gap-3">
@@ -1647,8 +1647,9 @@ const AccountStatementPage = () => {
             </Button>
           </div>
         </div>
-        {/* ─── ADVANCED SEARCH BAR (inside sticky) ─── */}
-        <div className="px-5 pt-3 pb-3 border-t border-border/50">
+      </div>
+      {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) ─── */}
+      <div className="sticky z-40 no-print" style={{ top: 57, background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
           <AdvancedEntitySearch
             entityList={entityList}
             allContacts={contacts}
@@ -1669,7 +1670,6 @@ const AccountStatementPage = () => {
             onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
             loading={loading}
           />
-        </div>
       </div>
 
       {/* ─── BODY: Full width main content ─── */}
