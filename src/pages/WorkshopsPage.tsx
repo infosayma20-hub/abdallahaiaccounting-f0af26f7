@@ -161,7 +161,7 @@ export default function WorkshopsPage() {
   const [showCostReport, setShowCostReport] = useState(false);
   const [costFilter, setCostFilter] = useState("all");
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
-  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [customerBalance, setCustomerBalance] = useState(0);
   const [invItems, setInvItems] = useState<any[]>([]);
@@ -197,9 +197,6 @@ export default function WorkshopsPage() {
     supplier_name: "", payment_method: "نقدي", notes: "",
     supplier_contact_id: null as string | null,
   }); // kept for backward compat with delete/etc
-  const [invoiceForm, setInvoiceForm] = useState({
-    amount: 0, payment_method: "آجل", description: "",
-  });
 
   const [accountsEnsured, setAccountsEnsured] = useState(false);
 
