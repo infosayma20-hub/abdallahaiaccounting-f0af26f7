@@ -2117,6 +2117,7 @@ const POSPage = () => {
         cashier: cashierName,
         tableNumber: tableName,
         orderType: activeOrder.orderType,
+        stationId: stationId === "_default" ? undefined : stationId,
         items: group.items.map((item: any) => ({
           id: item.product_id || item.name,
           name: item.name,
