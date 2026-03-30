@@ -47,12 +47,13 @@ export interface StatementCompanyData {
 }
 
 // ─── Colors ───
-const navy: [number, number, number] = [27, 58, 92];
-const gold: [number, number, number] = [201, 168, 76];
-const lightGray: [number, number, number] = [248, 249, 250];
+const navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
+const navyLight: [number, number, number] = [27, 58, 92];  // #1B3A5C
+const lightGray: [number, number, number] = [248, 250, 252]; // #F8FAFC
+const borderColor: [number, number, number] = [226, 232, 240]; // #E2E8F0
 const darkText: [number, number, number] = [30, 30, 30];
-const greenText: [number, number, number] = [34, 139, 34];
-const redText: [number, number, number] = [220, 38, 38];
+const greenText: [number, number, number] = [22, 163, 74];  // #16A34A
+const redText: [number, number, number] = [220, 38, 38];    // #DC2626
 const warningBg: [number, number, number] = [255, 251, 235];
 const warningBorder: [number, number, number] = [234, 179, 8];
 
