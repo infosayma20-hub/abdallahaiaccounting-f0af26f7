@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -139,6 +140,7 @@ async function ensureWorkshopAccounts(userId: string) {
 /* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { settings } = useCompanySettings();
   const [view, setView] = useState<"workshops" | "reports" | "new-payment" | "inventory">("workshops");
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
@@ -852,6 +854,16 @@ export default function WorkshopsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  <DropdownMenuItem className="gap-2" onClick={() => {
+                    const params = new URLSearchParams();
+                    if (selectedWorkshop.contact_id) params.set("contact_id", selectedWorkshop.contact_id);
+                    else if (selectedWorkshop.customer_name) params.set("contact_name", selectedWorkshop.customer_name);
+                    if (selectedWorkshop.total_budget) params.set("amount", String(selectedWorkshop.total_budget));
+                    params.set("notes", `ورشة: ${selectedWorkshop.name}`);
+                    navigate(`/invoices/new?${params.toString()}`);
+                  }}>
+                    <FileText className="h-3.5 w-3.5" /> فاتورة مبيعات للعميل
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="text-destructive gap-2" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
                     <Trash2 className="h-3.5 w-3.5" /> حذف الورشة
                   </DropdownMenuItem>

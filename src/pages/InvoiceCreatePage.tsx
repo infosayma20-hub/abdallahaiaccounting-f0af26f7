@@ -152,6 +152,10 @@ const InvoiceCreatePage = () => {
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const editInvoiceId = searchParams.get("edit");
+  const prefillContactId = searchParams.get("contact_id");
+  const prefillContactName = searchParams.get("contact_name");
+  const prefillAmount = searchParams.get("amount");
+  const prefillNotes = searchParams.get("notes");
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
@@ -296,6 +300,30 @@ const InvoiceCreatePage = () => {
             setContactSearch(found.contact_name);
           }
         }
+      }
+
+      // Pre-fill from URL params (e.g. from workshops)
+      if (prefillContactId && !fromDuplicate && !isEditMode) {
+        const found = contactsList.find(c => c.id === prefillContactId);
+        if (found) {
+          setSelectedContact(found);
+          setContactSearch(found.contact_name);
+          setForm(f => ({ ...f, contactId: found.id, contactName: found.contact_name }));
+          if (found.address) setCustomerOverrides(o => ({ ...o, address: found.address || "" }));
+          if (found.phone) setCustomerOverrides(o => ({ ...o, phone: found.phone || "" }));
+        }
+        if (prefillAmount) {
+          const amt = Number(prefillAmount);
+          if (amt > 0) {
+            setForm(f => ({ ...f, items: [{ ...createEmptyItem(), description: prefillNotes || "خدمات ورشة عمل", qty: 1, unitPrice: amt, total: amt }] }));
+          }
+        }
+        if (prefillNotes && !prefillAmount) {
+          setForm(f => ({ ...f, notes: prefillNotes }));
+        }
+      } else if (prefillContactName && !prefillContactId && !fromDuplicate && !isEditMode) {
+        setContactSearch(prefillContactName);
+        setForm(f => ({ ...f, contactName: prefillContactName }));
       }
     };
     fetchAll();
