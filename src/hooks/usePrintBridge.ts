@@ -15,6 +15,9 @@ export interface PrintItem {
   modifiers?: { option_name: string; extra_price?: number }[];
 }
 
+/** Maps station IDs to their printer IDs in pos_printers */
+export type StationPrinterMap = Record<string, string>;
+
 export interface PrintOrder {
   orderNumber: string | number;
   queueNumber?: number;
