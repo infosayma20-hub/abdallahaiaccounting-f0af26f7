@@ -751,7 +751,6 @@ const AccountStatementPage = () => {
   // ─── ACCOUNT BALANCES ───
   const accountBalances = useMemo(() => {
     const map: Record<string, number> = {};
-    const map: Record<string, number> = {};
     for (const acc of accounts) {
       let bal = 0;
       for (const tx of transactions) {
@@ -765,7 +764,6 @@ const AccountStatementPage = () => {
 
   // ─── EMPLOYEE BALANCES ───
   const employeeBalances = useMemo(() => {
-    const map: Record<string, number> = {};
     const map: Record<string, number> = {};
     // Count how many employees share each account code
     const codeCount: Record<string, number> = {};
