@@ -458,6 +458,10 @@ const TrialBalancePage = () => {
             <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
             <span className="text-muted-foreground">الحسابات الصفرية</span>
           </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox checked={showDetailedAccounts} onCheckedChange={(v) => setShowDetailedAccounts(!!v)} />
+            <span className="text-muted-foreground">إظهار الحسابات التفصيلية</span>
+          </label>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-[10px]">نوع الحساب:</span>
             <select
