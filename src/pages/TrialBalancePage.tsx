@@ -385,11 +385,31 @@ const TrialBalancePage = () => {
     const fmtN = (n: number) => n !== 0 ? Math.abs(n).toLocaleString() : "—";
     const fmtSigned = (n: number) => n !== 0 ? n.toLocaleString() : "—";
 
+    // Format negative numbers
+    const fmtAmount = (n: number) => {
+      if (!n || n === 0) return '—';
+      if (n < 0) return `<span style="color:#DC2626">(${Math.abs(n).toLocaleString()})</span>`;
+      return n.toLocaleString();
+    };
+
+    // Net movement: positive = debit column, negative = credit column
+    const fmtNetDebit = (d: number, c: number) => {
+      const net = d - c;
+      return net > 0 ? net.toLocaleString() : '—';
+    };
+    const fmtNetCredit = (d: number, c: number) => {
+      const net = d - c;
+      return net < 0 ? Math.abs(net).toLocaleString() : '—';
+    };
+
+    // Determine colspan based on columns
+    const totalColspan = hasDateRange ? 10 : 6;
+
     // Build hierarchical table rows HTML
     let rowsHtml = "";
     for (const group of groupedRows) {
-      // Group header row
-      rowsHtml += `<tr class="group-header"><td colspan="8" style="background:#0D1B2E;color:#fff;font-weight:700;padding:8px 12px;font-size:11px">${group.label} <span style="opacity:0.6;font-size:9px;margin-right:12px">${group.rows.length} حساب</span></td></tr>`;
+      // Group header row - navy dark
+      rowsHtml += `<tr><td colspan="${totalColspan}" style="background:#0D1B2E;color:#FFFFFF;font-weight:700;padding:8px 16px;font-size:13px">${group.label} <span style="opacity:0.7;font-size:10px;margin-right:16px;float:left">${group.rows.length} حساب</span></td></tr>`;
       
       for (const r of group.rows) {
         const indent = r.isChild ? 'padding-right:28px;font-size:9px;color:#64748B' : 'font-weight:600';
@@ -397,7 +417,6 @@ const TrialBalancePage = () => {
         const openingC = r.openingCredit > 0 ? r.openingCredit.toLocaleString() : "—";
         const movD = r.totalDebit > 0 ? r.totalDebit.toLocaleString() : "—";
         const movC = r.totalCredit > 0 ? r.totalCredit.toLocaleString() : "—";
-        const netMov = fmtSigned(r.balance);
         const closingD = r.closingBalance > 0 ? r.closingBalance.toLocaleString() : "—";
         const closingC = r.closingBalance < 0 ? Math.abs(r.closingBalance).toLocaleString() : "—";
         const typeLabel = ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType || "—";
@@ -409,20 +428,21 @@ const TrialBalancePage = () => {
           ${hasDateRange ? `<td style="color:#2563EB">${openingD}</td><td style="color:#DC2626">${openingC}</td>` : ''}
           <td style="color:#2563EB">${movD}</td>
           <td style="color:#DC2626">${movC}</td>
-          <td style="font-weight:600">${netMov}</td>
+          <td style="font-weight:600">${fmtNetDebit(r.totalDebit, r.totalCredit) !== '—' ? `<span style="color:#2563EB">${fmtNetDebit(r.totalDebit, r.totalCredit)}</span>` : (fmtNetCredit(r.totalDebit, r.totalCredit) !== '—' ? `<span style="color:#DC2626">${fmtNetCredit(r.totalDebit, r.totalCredit)}-</span>` : '—')}</td>
           ${hasDateRange ? `<td style="color:#16A34A;font-weight:600">${closingD}</td><td style="color:#EF4444;font-weight:600">${closingC}</td>` : ''}
         </tr>`;
       }
 
       // Group subtotal row
-      const gNet = group.totalDebit - group.totalCredit;
+      const gNetD = fmtNetDebit(group.totalDebit, group.totalCredit);
+      const gNetC = fmtNetCredit(group.totalDebit, group.totalCredit);
       rowsHtml += `<tr class="subtotal-row">
-        <td colspan="2" style="text-align:left;font-weight:700">إجمالي ${group.label}</td>
+        <td colspan="2" style="text-align:left;font-weight:700;color:#0D1B2E">إجمالي ${group.label}</td>
         <td></td>
         ${hasDateRange ? '<td></td><td></td>' : ''}
         <td style="color:#2563EB;font-weight:700">${group.totalDebit > 0 ? group.totalDebit.toLocaleString() : '—'}</td>
         <td style="color:#DC2626;font-weight:700">${group.totalCredit > 0 ? group.totalCredit.toLocaleString() : '—'}</td>
-        <td style="font-weight:700">${fmtSigned(gNet)}</td>
+        <td style="font-weight:700">${gNetD !== '—' ? gNetD : (gNetC !== '—' ? gNetC + '-' : '—')}</td>
         ${hasDateRange ? '<td></td><td></td>' : ''}
       </tr>`;
     }
@@ -435,7 +455,7 @@ const TrialBalancePage = () => {
       ${hasDateRange ? '<td></td><td></td>' : ''}
       <td>₪${grandTotalDebit.toLocaleString()}</td>
       <td>₪${grandTotalCredit.toLocaleString()}</td>
-      <td>${grandBalance === 0 ? '0' : fmtSigned(grandBalance)}</td>
+      <td>${grandBalance === 0 ? '0' : fmtAmount(grandBalance)}</td>
       ${hasDateRange ? '<td></td><td></td>' : ''}
     </tr>`;
 
@@ -450,13 +470,14 @@ const TrialBalancePage = () => {
 body{background:#fff;color:#1f2937;font-size:11px;line-height:1.5}
 @page{size:A4 landscape;margin:0}
 .page{width:297mm;min-height:210mm;margin:0 auto;position:relative}
-.header-bar{background:linear-gradient(135deg,#1B3A5C 0%,#0F2640 100%);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center}
+.header-bar{padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0D1B2E;margin-bottom:0}
 .header-bar .company{display:flex;align-items:center;gap:14px}
-.header-bar .logo{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#4A9EE8}
-.header-bar .logo img{width:52px;height:52px;border-radius:8px;object-fit:contain;background:#fff;padding:3px}
-.header-bar h2{font-size:16px;font-weight:700}.header-bar .sub{font-size:10px;opacity:0.8;margin-top:2px}
-.header-bar .title{text-align:left}.header-bar .title h1{font-size:18px;font-weight:700}
-.header-bar .title p{font-size:10px;opacity:0.8}
+.header-bar .logo img{height:56px;object-fit:contain}
+.header-bar .company-name{font-size:20px;font-weight:700;color:#0D1B2E}
+.header-bar .title{text-align:left}
+.header-bar .title h1{font-size:24px;font-weight:700;color:#0D1B2E}
+.header-bar .title .en{font-size:11px;color:#94A3B8}
+.header-bar .title .period{font-size:12px;color:#64748B;margin-top:2px}
 .gold-line{height:3px;background:linear-gradient(90deg,#4A9EE8,#7BB8F0,#4A9EE8)}
 .info{padding:14px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #E5E7EB;font-size:10px}
 .info .report-title{font-size:16px;font-weight:700;color:#1B3A5C}
@@ -472,9 +493,9 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
 .child-row{background:#FAFBFC}
 .child-row td{font-size:9px}
 .subtotal-row{background:#F1F5F9}
-.subtotal-row td{padding:6px 8px;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1}
-.totals-row{background:#0D1B2E;color:#fff;font-weight:700}
-.totals-row td{padding:8px}
+.subtotal-row td{padding:6px 8px;border-top:2px solid #CBD5E1;border-bottom:2px solid #CBD5E1;color:#0D1B2E;font-weight:700}
+.totals-row{background:#1B3A5C;color:#fff;font-weight:700;font-size:14px}
+.totals-row td{padding:8px;border-top:3px solid #0D1B2E}
 .notes{margin:16px 28px;font-size:9px;color:#6B7280;border-top:1px solid #E5E7EB;padding-top:10px;text-align:right;line-height:1.8}
 .footer-section{margin:0 28px;padding:14px 0;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between}
 .footer-section .contact{font-size:10px;color:#4B5563;line-height:1.8}
@@ -489,25 +510,18 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
 <div class="page">
   <div class="header-bar">
     <div class="company">
-      <div class="logo">${companyInfo.logo_url ? `<img src="${companyInfo.logo_url}" alt="Logo">` : (companyInfo.name?.charAt(0) || 'C')}</div>
-      <div>
-        <h2>${companyInfo.name}</h2>
-        <div class="sub">${companyInfo.address || ''} ${companyInfo.phone ? '📞 ' + companyInfo.phone : ''}</div>
-        <div class="sub">${companyInfo.email ? '✉️ ' + companyInfo.email : ''} ${companyInfo.tax_number ? 'رقم ضريبي: ' + companyInfo.tax_number : ''}</div>
-      </div>
+      ${companyInfo.logo_url ? `<div class="logo"><img src="${companyInfo.logo_url}" alt="Logo"></div>` : `<span class="company-name">${companyInfo.name}</span>`}
+      ${companyInfo.logo_url ? `<span class="company-name">${companyInfo.name}</span>` : ''}
     </div>
     <div class="title">
       <h1>ميزان المراجعة</h1>
-      <p>TRIAL BALANCE</p>
+      <p class="en">TRIAL BALANCE</p>
+      <p class="period">${dateRangeLabel}</p>
     </div>
   </div>
   <div class="gold-line"></div>
   <div class="info">
-    <div>
-      <div class="report-title">ميزان المراجعة</div>
-      <div class="period">${dateRangeLabel}</div>
-    </div>
-    <div class="meta">
+    <div class="meta" style="margin-right:auto">
       <div>تاريخ الإصدار: <strong>${today}</strong></div>
     </div>
   </div>
