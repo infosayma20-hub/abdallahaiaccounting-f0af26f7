@@ -229,15 +229,9 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "workshops", label: "إدارة الورشات والمناجر", description: "إدارة ورشات العمل والمناجر وتتبع تكاليف كل ورشة", module: "workshops", icon: Building2,
-        color: "text-amber-700", bgColor: "bg-amber-600/10", path: "/workshops",
+        color: "text-amber-700", bgColor: "bg-amber-600/10", path: "/workshops", isDirect: true,
         enableSetting: "has_workshops",
         keywords: ["ورشة", "ورشات", "منجرة", "مناجر", "مطبخ", "خشب", "نجار"],
-        groups: [
-          { children: [
-            { label: "إدارة الورشات والمناجر", path: "/workshops" },
-            { label: "تقارير الورشات", path: "/workshop-reports" },
-          ]},
-        ],
       },
       {
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
