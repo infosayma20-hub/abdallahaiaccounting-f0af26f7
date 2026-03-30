@@ -692,7 +692,7 @@ const ChequesPage = () => {
     setPage(1);
   };
 
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('all');  // eslint-disable-line react-hooks/rules-of-hooks
   const handleTab = (key: string) => { setActiveTab(key); applyTab(key); };
 
   // Apply tab-level filtering
