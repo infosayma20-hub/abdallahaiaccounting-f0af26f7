@@ -5373,20 +5373,26 @@ const POSPage = () => {
                   orderNumber: kitchenTicketData.orderNumber || Date.now().toString(),
                   branchName: company?.name || "مطعم الملكي - سفيان",
                   cashier: kitchenTicketData.cashierName || "",
-                  items: (kitchenTicketData.stations || []).flatMap((st: any) =>
-                    (st.items || []).map((item: any) => ({
+                  items: [],
+                  total: 0,
+                  orderNote: kitchenTicketData.orderNote || undefined,
+                };
+                // Send per-station print jobs so each station routes to its own printer
+                for (const st of (kitchenTicketData.stations || kitchenTicketData.tickets || [])) {
+                  const stationOrder: BridgePrintOrder = {
+                    ...kitchenOrder,
+                    branchName: st.stationName || kitchenOrder.branchName,
+                    stationId: st.stationId,
+                    items: (st.items || []).map((item: any) => ({
                       id: item.id || item.name,
                       name: item.name,
                       quantity: item.qty || 1,
                       price: 0,
                       note: item.note || undefined,
-                      printerKey: "kitchen" as const,
-                    }))
-                  ),
-                  total: 0,
-                  orderNote: kitchenTicketData.orderNote || undefined,
-                };
-                bridgePrintAll(kitchenOrder);
+                    })),
+                  };
+                  sendToBridge("kitchen", stationOrder).catch(() => {});
+                }
               }
               setShowKitchenTicket(false);
             }} className="flex-1 gap-1">
