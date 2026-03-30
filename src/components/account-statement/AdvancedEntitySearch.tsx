@@ -106,56 +106,66 @@ export default function AdvancedEntitySearch({
 
     const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; tab: EntityTab }[] }[] = [];
 
+    const showAll = !q && open; // browsing mode — filter by activeTab
+
     // Accounts
-    const accs = allAccounts.filter(a => !q || multiWordMatchAny(q, a.account_name, a.account_code));
-    if (accs.length > 0) {
-      groups.push({
-        key: "accounts", label: "الحسابات", emoji: "📊",
-        items: accs.slice(0, 15).map(a => ({
-          id: a.id, name: a.account_name, code: a.account_code,
-          balance: accountBalances[a.id] || 0, tab: "accounts" as EntityTab,
-        })),
-      });
+    if (!showAll || activeTab === "accounts") {
+      const accs = allAccounts.filter(a => !q || multiWordMatchAny(q, a.account_name, a.account_code));
+      if (accs.length > 0) {
+        groups.push({
+          key: "accounts", label: "الحسابات", emoji: "📊",
+          items: accs.slice(0, 15).map(a => ({
+            id: a.id, name: a.account_name, code: a.account_code,
+            balance: accountBalances[a.id] || 0, tab: "accounts" as EntityTab,
+          })),
+        });
+      }
     }
 
     // Customers
-    const custs = allContacts.filter(c => c.contact_type === "عميل" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
-    if (custs.length > 0) {
-      groups.push({
-        key: "customers", label: "الزبائن", emoji: "👤",
-        items: custs.slice(0, 15).map(c => ({
-          id: c.id, name: c.contact_name, code: c.linked_account_code || "",
-          balance: contactBalances[c.id] || 0, tab: "customers" as EntityTab,
-        })),
-      });
+    if (!showAll || activeTab === "customers") {
+      const custs = allContacts.filter(c => c.contact_type === "عميل" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
+      if (custs.length > 0) {
+        groups.push({
+          key: "customers", label: "الزبائن", emoji: "👤",
+          items: custs.slice(0, 15).map(c => ({
+            id: c.id, name: c.contact_name, code: c.linked_account_code || "",
+            balance: contactBalances[c.id] || 0, tab: "customers" as EntityTab,
+          })),
+        });
+      }
     }
 
     // Suppliers
-    const sups = allContacts.filter(c => c.contact_type === "مورد" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
-    if (sups.length > 0) {
-      groups.push({
-        key: "suppliers", label: "الموردين", emoji: "🚚",
-        items: sups.slice(0, 15).map(c => ({
-          id: c.id, name: c.contact_name, code: c.linked_account_code || "",
-          balance: contactBalances[c.id] || 0, tab: "suppliers" as EntityTab,
-        })),
-      });
+    if (!showAll || activeTab === "suppliers") {
+      const sups = allContacts.filter(c => c.contact_type === "مورد" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
+      if (sups.length > 0) {
+        groups.push({
+          key: "suppliers", label: "الموردين", emoji: "🚚",
+          items: sups.slice(0, 15).map(c => ({
+            id: c.id, name: c.contact_name, code: c.linked_account_code || "",
+            balance: contactBalances[c.id] || 0, tab: "suppliers" as EntityTab,
+          })),
+        });
+      }
     }
 
     // Employees
-    const emps = allEmployees.filter(e => !q || multiWordMatchAny(q, e.full_name, e.department));
-    if (emps.length > 0) {
-      groups.push({
-        key: "employees", label: "الموظفين", emoji: "👨‍💼",
-        items: emps.slice(0, 10).map(e => ({
-          id: e.id, name: e.full_name, code: e.account_code || "",
-          balance: employeeBalances[e.id] || 0, tab: "employees" as EntityTab,
-        })),
-      });
+    if (!showAll || activeTab === "employees") {
+      const emps = allEmployees.filter(e => !q || multiWordMatchAny(q, e.full_name, e.department));
+      if (emps.length > 0) {
+        groups.push({
+          key: "employees", label: "الموظفين", emoji: "👨‍💼",
+          items: emps.slice(0, 10).map(e => ({
+            id: e.id, name: e.full_name, code: e.account_code || "",
+            balance: employeeBalances[e.id] || 0, tab: "employees" as EntityTab,
+          })),
+        });
+      }
     }
 
     return groups;
-  }, [search, open, allAccounts, allContacts, allEmployees, accountBalances, contactBalances, employeeBalances]);
+  }, [search, open, activeTab, allAccounts, allContacts, allEmployees, accountBalances, contactBalances, employeeBalances]);
 
   const flatResults = useMemo(() => groupedResults.flatMap(g => g.items), [groupedResults]);
 
