@@ -47,12 +47,13 @@ export interface StatementCompanyData {
 }
 
 // ─── Colors ───
-const navy: [number, number, number] = [27, 58, 92];
-const gold: [number, number, number] = [201, 168, 76];
-const lightGray: [number, number, number] = [248, 249, 250];
+const navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
+const navyLight: [number, number, number] = [27, 58, 92];  // #1B3A5C
+const lightGray: [number, number, number] = [248, 250, 252]; // #F8FAFC
+const borderColor: [number, number, number] = [226, 232, 240]; // #E2E8F0
 const darkText: [number, number, number] = [30, 30, 30];
-const greenText: [number, number, number] = [34, 139, 34];
-const redText: [number, number, number] = [220, 38, 38];
+const greenText: [number, number, number] = [22, 163, 74];  // #16A34A
+const redText: [number, number, number] = [220, 38, 38];    // #DC2626
 const warningBg: [number, number, number] = [255, 251, 235];
 const warningBorder: [number, number, number] = [234, 179, 8];
 
@@ -123,7 +124,7 @@ export const generateStatementPDF = (
   // ══════ HEADER BAR ══════
   doc.setFillColor(...navy);
   doc.rect(0, 0, W, 36, 'F');
-  doc.setFillColor(...gold);
+  doc.setFillColor(...navyLight);
   doc.rect(0, 36, W, 1.5, 'F');
 
   // Company name (right side)
@@ -151,7 +152,7 @@ export const generateStatementPDF = (
 
   // Statement number & dates
   doc.setFontSize(8);
-  doc.setTextColor(...gold);
+  doc.setTextColor(...navyLight);
   doc.text(data.statementNumber, margin, 30);
 
   // ══════ DETAILS SECTION ══════
@@ -301,7 +302,7 @@ export const generateStatementPDF = (
       fontSize: 7.5,
       cellPadding: 2.5,
       halign: 'center',
-      lineColor: [220, 225, 230],
+      lineColor: borderColor,
       lineWidth: 0.2,
     },
     headStyles: {
@@ -316,7 +317,7 @@ export const generateStatementPDF = (
       textColor: darkText,
     },
     alternateRowStyles: {
-      fillColor: [250, 251, 253],
+      fillColor: [248, 250, 252],
     },
     columnStyles: {
       0: { cellWidth: 30, fontStyle: 'bold' },
@@ -337,7 +338,7 @@ export const generateStatementPDF = (
       }
       // Closing balance row
       if (rowIdx === lastIdx && hookData.section === 'body') {
-        hookData.cell.styles.fillColor = navy;
+        hookData.cell.styles.fillColor = navyLight;
         hookData.cell.styles.textColor = [255, 255, 255];
         hookData.cell.styles.fontStyle = 'bold';
       }
@@ -425,7 +426,7 @@ export const generateStatementPDF = (
       );
       doc.setFontSize(6.5);
       doc.setFont('Amiri', 'normal');
-      doc.setTextColor(120, 100, 40);
+      doc.setTextColor(100, 116, 139);
       doc.text(ar('يرجى التواصل لترتيب السداد'), W / 2, currentY + 11, { align: 'center' });
       currentY += 18;
     }
@@ -459,14 +460,14 @@ export const generateStatementPDF = (
 
     // Note
     doc.setFontSize(6);
-    doc.setTextColor(180, 160, 100);
+    doc.setTextColor(100, 116, 139);
     doc.text(ar('يرجى الإشارة إلى رقم الكشف عند التواصل'), W - margin, sigY + 32, { align: 'right' });
   }
 
   // ══════ FOOTER ══════
   doc.setFillColor(...navy);
   doc.rect(0, H - 12, W, 12, 'F');
-  doc.setFillColor(...gold);
+  doc.setFillColor(...navyLight);
   doc.rect(0, H - 14, W, 2, 'F');
 
   doc.setTextColor(255, 255, 255);
@@ -477,7 +478,7 @@ export const generateStatementPDF = (
   doc.text(`${fmtDate(new Date().toISOString().split('T')[0])} :${ar('طُبع بتاريخ')}`, W - margin, H - 5, { align: 'right' });
 
   // Center: company name
-  doc.setTextColor(...gold);
+  doc.setTextColor(255, 255, 255);
   doc.setFont('Amiri', 'bold');
   doc.text(ar(company.name || 'AMWALI'), W / 2, H - 5, { align: 'center' });
 
