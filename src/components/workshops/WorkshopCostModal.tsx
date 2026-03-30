@@ -407,6 +407,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
           await supabase.from("invoices").insert({
             user_id: userId,
             invoice_type: "purchase",
+            contact_id: supplierContactId || null,
             contact_name: supplierName || supplierNameManual || "مورد",
             invoice_date: costDate,
             subtotal: invAmount,
