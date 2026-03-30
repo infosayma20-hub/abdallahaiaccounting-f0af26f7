@@ -1647,30 +1647,29 @@ const AccountStatementPage = () => {
             </Button>
           </div>
         </div>
-      </div>
-
-      {/* ─── ADVANCED SEARCH BAR ─── */}
-      <div className="px-5 pt-4 pb-3 no-print">
-        <AdvancedEntitySearch
-          entityList={entityList}
-          allContacts={contacts}
-          allAccounts={accounts}
-          allEmployees={employeeEntities}
-          accountBalances={accountBalances}
-          contactBalances={contactBalances}
-          employeeBalances={employeeBalances}
-          selectedEntityId={selectedEntityId}
-          activeTab={activeTab}
-          onSelect={(id, tab) => {
-            if (tab && tab !== activeTab) {
-              setActiveTab(tab);
-            }
-            selectEntity(id);
-          }}
-          onClear={() => { setSelectedEntityId(""); }}
-          onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
-          loading={loading}
-        />
+        {/* ─── ADVANCED SEARCH BAR (inside sticky) ─── */}
+        <div className="px-5 pt-3 pb-3 border-t border-border/50">
+          <AdvancedEntitySearch
+            entityList={entityList}
+            allContacts={contacts}
+            allAccounts={accounts}
+            allEmployees={employeeEntities}
+            accountBalances={accountBalances}
+            contactBalances={contactBalances}
+            employeeBalances={employeeBalances}
+            selectedEntityId={selectedEntityId}
+            activeTab={activeTab}
+            onSelect={(id, tab) => {
+              if (tab && tab !== activeTab) {
+                setActiveTab(tab);
+              }
+              selectEntity(id);
+            }}
+            onClear={() => { setSelectedEntityId(""); }}
+            onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+            loading={loading}
+          />
+        </div>
       </div>
 
       {/* ─── BODY: Full width main content ─── */}

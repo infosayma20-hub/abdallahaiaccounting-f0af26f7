@@ -226,6 +226,24 @@ export default function AdvancedEntitySearch({
 
   return (
     <div ref={containerRef} className="relative">
+      {/* Tab filters ABOVE search input */}
+      <div className="flex items-center gap-1 mb-2">
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => { onTabFilter(tab.key); setSearch(""); setOpen(true); }}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+              activeTab === tab.key
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Search input */}
       <div
         className={cn(
@@ -246,27 +264,10 @@ export default function AdvancedEntitySearch({
           placeholder="ابحث عن حساب، زبون، مورد، موظف..."
           className="flex-1 bg-transparent border-0 outline-none text-base text-foreground placeholder:text-muted-foreground"
         />
-        {/* Tab filters inside search */}
-        <div className="flex items-center gap-1 shrink-0">
-          {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => { onTabFilter(tab.key); setSearch(""); setOpen(true); }}
-              className={cn(
-                "px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all",
-                activeTab === tab.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Dropdown results */}
-      {open && (search.trim() || true) && (
+      {open && (
         <div
           ref={listRef}
           className="absolute top-full left-0 right-0 z-50 bg-popover border border-border rounded-b-xl shadow-xl max-h-[400px] overflow-y-auto"
