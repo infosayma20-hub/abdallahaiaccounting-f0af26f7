@@ -1457,19 +1457,14 @@ export default function WorkshopsPage() {
   /* ── Inventory View ── */
   /* ════════════════════════════════════════════ */
   if (view === "inventory") {
-    const [invItems, setInvItems] = useState<any[]>([]);
-    const [invLoading, setInvLoading] = useState(true);
-    const [transferWsId, setTransferWsId] = useState<Record<string, string>>({});
 
-    useEffect(() => {
-      const load = async () => {
-        setInvLoading(true);
-        const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
-        setInvItems((data as any[]) || []);
-        setInvLoading(false);
-      };
-      load();
-    }, []);
+    const loadInv = async () => {
+      setInvLoading(true);
+      const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+      setInvItems((data as any[]) || []);
+      setInvLoading(false);
+    };
+    if (invItems.length === 0 && !invLoading) loadInv();
 
     const handleTransfer = async (item: any) => {
       const targetId = transferWsId[item.id];
