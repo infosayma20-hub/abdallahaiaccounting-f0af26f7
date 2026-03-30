@@ -8,6 +8,7 @@ import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
   TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp, Printer,
+  Sofa, BedDouble, UtensilsCrossed, DoorOpen, LayoutGrid, Package, Check,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,12 +95,12 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 const getCostType = (v: string) => COST_TYPES.find(c => c.value === v) || COST_TYPES[COST_TYPES.length - 1];
 
 const WORKSHOP_TYPES = [
-  { value: "kitchen", label: "مطبخ", icon: "🍳" },
-  { value: "bedroom", label: "غرفة نوم", icon: "🛏️" },
-  { value: "livingroom", label: "صالون", icon: "🛋️" },
-  { value: "closet", label: "خزائن", icon: "🗄️" },
-  { value: "door", label: "أبواب", icon: "🚪" },
-  { value: "other", label: "أخرى", icon: "📦" },
+  { value: "kitchen", label: "مطبخ", Icon: UtensilsCrossed },
+  { value: "bedroom", label: "غرفة نوم", Icon: BedDouble },
+  { value: "livingroom", label: "صالون", Icon: Sofa },
+  { value: "closet", label: "خزائن", Icon: LayoutGrid },
+  { value: "door", label: "أبواب", Icon: DoorOpen },
+  { value: "other", label: "أخرى", Icon: Package },
 ];
 
 /* ── Ensure workshop GL accounts exist ── */
@@ -786,7 +787,7 @@ export default function WorkshopsPage() {
             <div className="flex gap-2 flex-wrap text-xs">
               {selectedWorkshop.workshop_type && selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
                 const wt = WORKSHOP_TYPES.find(x => x.value === t);
-                return wt ? <Badge key={t} variant="outline">{wt.icon} {wt.label}</Badge> : null;
+                return wt ? <Badge key={t} variant="outline"><wt.Icon className="h-3.5 w-3.5 inline-block ml-1" /> {wt.label}</Badge> : null;
               })}
               {selectedWorkshop.area_sqm ? <Badge variant="outline">📐 {selectedWorkshop.area_sqm} م²</Badge> : null}
               {selectedWorkshop.area_sqm && costSummary.total > 0 ? (
@@ -1518,11 +1519,19 @@ export default function WorkshopsPage() {
                   const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(wt.value);
                   return (
                     <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
-                      className={`p-2 rounded-xl border text-center transition-all ${
-                        selected ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
-                      }`}>
-                      <span className="text-xl block">{wt.icon}</span>
-                      <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                      className="relative p-3 text-center transition-all"
+                      style={{
+                        borderRadius: 10,
+                        border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0",
+                        background: selected ? "#EEF2FF" : "#fff",
+                      }}>
+                      {selected && (
+                        <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}>
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                      <wt.Icon className="mx-auto mb-1" style={{ width: 28, height: 28, color: selected ? "#1B3A5C" : "#64748B" }} />
+                      <span className="text-[11px] font-medium text-foreground">{wt.label}</span>
                     </button>
                   );
                 })}
@@ -1599,11 +1608,19 @@ export default function WorkshopsPage() {
                   const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(wt.value);
                   return (
                     <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
-                      className={`p-2 rounded-xl border text-center transition-all ${
-                        selected ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
-                      }`}>
-                      <span className="text-xl block">{wt.icon}</span>
-                      <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                      className="relative p-3 text-center transition-all"
+                      style={{
+                        borderRadius: 10,
+                        border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0",
+                        background: selected ? "#EEF2FF" : "#fff",
+                      }}>
+                      {selected && (
+                        <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}>
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                      <wt.Icon className="mx-auto mb-1" style={{ width: 28, height: 28, color: selected ? "#1B3A5C" : "#64748B" }} />
+                      <span className="text-[11px] font-medium text-foreground">{wt.label}</span>
                     </button>
                   );
                 })}
