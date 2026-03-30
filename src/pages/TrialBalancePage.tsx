@@ -385,11 +385,31 @@ const TrialBalancePage = () => {
     const fmtN = (n: number) => n !== 0 ? Math.abs(n).toLocaleString() : "—";
     const fmtSigned = (n: number) => n !== 0 ? n.toLocaleString() : "—";
 
+    // Format negative numbers
+    const fmtAmount = (n: number) => {
+      if (!n || n === 0) return '—';
+      if (n < 0) return `<span style="color:#DC2626">(${Math.abs(n).toLocaleString()})</span>`;
+      return n.toLocaleString();
+    };
+
+    // Net movement: positive = debit column, negative = credit column
+    const fmtNetDebit = (d: number, c: number) => {
+      const net = d - c;
+      return net > 0 ? net.toLocaleString() : '—';
+    };
+    const fmtNetCredit = (d: number, c: number) => {
+      const net = d - c;
+      return net < 0 ? Math.abs(net).toLocaleString() : '—';
+    };
+
+    // Determine colspan based on columns
+    const totalColspan = hasDateRange ? 10 : 6;
+
     // Build hierarchical table rows HTML
     let rowsHtml = "";
     for (const group of groupedRows) {
-      // Group header row
-      rowsHtml += `<tr class="group-header"><td colspan="8" style="background:#0D1B2E;color:#fff;font-weight:700;padding:8px 12px;font-size:11px">${group.label} <span style="opacity:0.6;font-size:9px;margin-right:12px">${group.rows.length} حساب</span></td></tr>`;
+      // Group header row - navy dark
+      rowsHtml += `<tr><td colspan="${totalColspan}" style="background:#0D1B2E;color:#FFFFFF;font-weight:700;padding:8px 16px;font-size:13px">${group.label} <span style="opacity:0.7;font-size:10px;margin-right:16px;float:left">${group.rows.length} حساب</span></td></tr>`;
       
       for (const r of group.rows) {
         const indent = r.isChild ? 'padding-right:28px;font-size:9px;color:#64748B' : 'font-weight:600';
@@ -397,7 +417,6 @@ const TrialBalancePage = () => {
         const openingC = r.openingCredit > 0 ? r.openingCredit.toLocaleString() : "—";
         const movD = r.totalDebit > 0 ? r.totalDebit.toLocaleString() : "—";
         const movC = r.totalCredit > 0 ? r.totalCredit.toLocaleString() : "—";
-        const netMov = fmtSigned(r.balance);
         const closingD = r.closingBalance > 0 ? r.closingBalance.toLocaleString() : "—";
         const closingC = r.closingBalance < 0 ? Math.abs(r.closingBalance).toLocaleString() : "—";
         const typeLabel = ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType || "—";
@@ -409,20 +428,21 @@ const TrialBalancePage = () => {
           ${hasDateRange ? `<td style="color:#2563EB">${openingD}</td><td style="color:#DC2626">${openingC}</td>` : ''}
           <td style="color:#2563EB">${movD}</td>
           <td style="color:#DC2626">${movC}</td>
-          <td style="font-weight:600">${netMov}</td>
+          <td style="font-weight:600">${fmtNetDebit(r.totalDebit, r.totalCredit) !== '—' ? `<span style="color:#2563EB">${fmtNetDebit(r.totalDebit, r.totalCredit)}</span>` : (fmtNetCredit(r.totalDebit, r.totalCredit) !== '—' ? `<span style="color:#DC2626">${fmtNetCredit(r.totalDebit, r.totalCredit)}-</span>` : '—')}</td>
           ${hasDateRange ? `<td style="color:#16A34A;font-weight:600">${closingD}</td><td style="color:#EF4444;font-weight:600">${closingC}</td>` : ''}
         </tr>`;
       }
 
       // Group subtotal row
-      const gNet = group.totalDebit - group.totalCredit;
+      const gNetD = fmtNetDebit(group.totalDebit, group.totalCredit);
+      const gNetC = fmtNetCredit(group.totalDebit, group.totalCredit);
       rowsHtml += `<tr class="subtotal-row">
-        <td colspan="2" style="text-align:left;font-weight:700">إجمالي ${group.label}</td>
+        <td colspan="2" style="text-align:left;font-weight:700;color:#0D1B2E">إجمالي ${group.label}</td>
         <td></td>
         ${hasDateRange ? '<td></td><td></td>' : ''}
         <td style="color:#2563EB;font-weight:700">${group.totalDebit > 0 ? group.totalDebit.toLocaleString() : '—'}</td>
         <td style="color:#DC2626;font-weight:700">${group.totalCredit > 0 ? group.totalCredit.toLocaleString() : '—'}</td>
-        <td style="font-weight:700">${fmtSigned(gNet)}</td>
+        <td style="font-weight:700">${gNetD !== '—' ? gNetD : (gNetC !== '—' ? gNetC + '-' : '—')}</td>
         ${hasDateRange ? '<td></td><td></td>' : ''}
       </tr>`;
     }
@@ -435,7 +455,7 @@ const TrialBalancePage = () => {
       ${hasDateRange ? '<td></td><td></td>' : ''}
       <td>₪${grandTotalDebit.toLocaleString()}</td>
       <td>₪${grandTotalCredit.toLocaleString()}</td>
-      <td>${grandBalance === 0 ? '0' : fmtSigned(grandBalance)}</td>
+      <td>${grandBalance === 0 ? '0' : fmtAmount(grandBalance)}</td>
       ${hasDateRange ? '<td></td><td></td>' : ''}
     </tr>`;
 
