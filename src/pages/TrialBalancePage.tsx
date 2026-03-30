@@ -36,6 +36,8 @@ interface TrialBalanceRow {
   prevDebit?: number;
   prevCredit?: number;
   prevBalance?: number;
+  isChild?: boolean;
+  parentCode?: string;
 }
 
 const ACCOUNT_TYPE_ORDER: Record<string, number> = {
