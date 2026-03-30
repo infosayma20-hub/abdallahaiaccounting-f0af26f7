@@ -38,6 +38,8 @@ export interface PrintOrder {
   tenderedAmount?: number;
   change?: number;
   orderNote?: string;
+  /** Station ID — used by bridge to route to the correct printer */
+  stationId?: string;
 }
 
 export function usePrintBridge() {
