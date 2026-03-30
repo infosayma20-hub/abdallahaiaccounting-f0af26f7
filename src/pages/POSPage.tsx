@@ -2665,7 +2665,48 @@ const POSPage = () => {
           change: changeILS,
           orderNote,
         };
-        bridgePrintAll(bridgeOrder);
+
+        // 1) Print receipt (no stationId needed)
+        sendToBridge("receipt", bridgeOrder).catch(() => console.warn("Receipt print failed"));
+
+        // 2) Print kitchen tickets per station so each printer gets only its items
+        try {
+          const productIds = cart.filter(i => i.product_id).map(i => i.product_id);
+          const { data: productsWithStations } = await supabase
+            .from("products")
+            .select("id, kitchen_station_id")
+            .in("id", productIds);
+
+          const stationMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.kitchen_station_id]));
+
+          // Group cart items by station
+          const stationItems: Record<string, typeof bridgeOrder.items> = {};
+          cart.forEach(item => {
+            const sid = stationMap.get(item.product_id) || "__default__";
+            if (!stationItems[sid]) stationItems[sid] = [];
+            stationItems[sid].push({
+              id: item.product_id || item.id,
+              name: item.name,
+              quantity: item.qty,
+              price: item.unit_price,
+              note: item.note || undefined,
+              modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
+            });
+          });
+
+          // Send one kitchen print per station
+          Object.entries(stationItems).forEach(([sid, items]) => {
+            const kitchenOrder: BridgePrintOrder = {
+              ...bridgeOrder,
+              items,
+              stationId: sid === "__default__" ? undefined : sid,
+            };
+            sendToBridge("kitchen", kitchenOrder).catch(() => console.warn(`Kitchen print failed for station ${sid}`));
+          });
+        } catch (stationErr) {
+          // Fallback: send all items as kitchen with no stationId
+          sendToBridge("kitchen", bridgeOrder).catch(() => console.warn("Kitchen print fallback failed"));
+        }
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
       }
