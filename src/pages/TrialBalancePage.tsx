@@ -293,9 +293,16 @@ const TrialBalancePage = () => {
     }
 
     rows.sort((a, b) => {
+      // Parents first, then children grouped under parent
+      const parentA = a.isChild ? a.parentCode || "" : a.accountCode;
+      const parentB = b.isChild ? b.parentCode || "" : b.accountCode;
       const orderA = ACCOUNT_TYPE_ORDER[a.accountType] || 99;
       const orderB = ACCOUNT_TYPE_ORDER[b.accountType] || 99;
       if (orderA !== orderB) return orderA - orderB;
+      if (parentA !== parentB) return parentA.localeCompare(parentB);
+      // Parent before its children
+      if (a.accountCode === parentB && b.isChild) return -1;
+      if (b.accountCode === parentA && a.isChild) return 1;
       return (a.accountCode || "").localeCompare(b.accountCode || "");
     });
 
