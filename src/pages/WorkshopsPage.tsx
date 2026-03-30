@@ -715,8 +715,14 @@ export default function WorkshopsPage() {
                 <Edit className="h-3.5 w-3.5" /> تعديل
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
-                const { data: settings } = await supabase.from("company_settings").select("company_name, phone, address, logo_url").eq("user_id", user!.id).maybeSingle();
+                const { data: settings } = await supabase.from("company_settings").select("company_name, phone, email, address, logo_url, tax_number").eq("user_id", user!.id).maybeSingle();
                 const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(" + ");
+                // Build payment schedule from actual payments
+                const contractPayments = payments.map(p => ({
+                  description: (p as any).description || "دفعة",
+                  amount: (p as any).amount || 0,
+                  date: (p as any).payment_date || "",
+                }));
                 const contractData: ContractData = {
                   workshopName: selectedWorkshop.name,
                   workshopType: workshopTypeLabels,
@@ -727,13 +733,17 @@ export default function WorkshopsPage() {
                   areaSqm: selectedWorkshop.area_sqm || 0,
                   budget: selectedWorkshop.total_budget || 0,
                   startDate: selectedWorkshop.start_date || "",
+                  endDate: selectedWorkshop.expected_end_date || "",
                   notes: selectedWorkshop.notes || "",
+                  payments: contractPayments.length > 0 ? contractPayments : undefined,
                 };
                 const companyData: ContractCompanyData = {
                   name: settings?.company_name || "",
                   phone: settings?.phone || "",
+                  email: settings?.email || "",
                   address: settings?.address || "",
                   logo_url: settings?.logo_url || "",
+                  tax_number: settings?.tax_number || "",
                 };
                 try {
                   const pdf = await generateWorkshopContractPDF(contractData, companyData);
