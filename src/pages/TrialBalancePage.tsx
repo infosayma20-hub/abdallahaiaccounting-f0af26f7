@@ -470,13 +470,14 @@ const TrialBalancePage = () => {
 body{background:#fff;color:#1f2937;font-size:11px;line-height:1.5}
 @page{size:A4 landscape;margin:0}
 .page{width:297mm;min-height:210mm;margin:0 auto;position:relative}
-.header-bar{background:linear-gradient(135deg,#1B3A5C 0%,#0F2640 100%);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center}
+.header-bar{padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0D1B2E;margin-bottom:0}
 .header-bar .company{display:flex;align-items:center;gap:14px}
-.header-bar .logo{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#4A9EE8}
-.header-bar .logo img{width:52px;height:52px;border-radius:8px;object-fit:contain;background:#fff;padding:3px}
-.header-bar h2{font-size:16px;font-weight:700}.header-bar .sub{font-size:10px;opacity:0.8;margin-top:2px}
-.header-bar .title{text-align:left}.header-bar .title h1{font-size:18px;font-weight:700}
-.header-bar .title p{font-size:10px;opacity:0.8}
+.header-bar .logo img{height:56px;object-fit:contain}
+.header-bar .company-name{font-size:20px;font-weight:700;color:#0D1B2E}
+.header-bar .title{text-align:left}
+.header-bar .title h1{font-size:24px;font-weight:700;color:#0D1B2E}
+.header-bar .title .en{font-size:11px;color:#94A3B8}
+.header-bar .title .period{font-size:12px;color:#64748B;margin-top:2px}
 .gold-line{height:3px;background:linear-gradient(90deg,#4A9EE8,#7BB8F0,#4A9EE8)}
 .info{padding:14px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #E5E7EB;font-size:10px}
 .info .report-title{font-size:16px;font-weight:700;color:#1B3A5C}
@@ -492,9 +493,9 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
 .child-row{background:#FAFBFC}
 .child-row td{font-size:9px}
 .subtotal-row{background:#F1F5F9}
-.subtotal-row td{padding:6px 8px;border-top:1px solid #CBD5E1;border-bottom:1px solid #CBD5E1}
-.totals-row{background:#0D1B2E;color:#fff;font-weight:700}
-.totals-row td{padding:8px}
+.subtotal-row td{padding:6px 8px;border-top:2px solid #CBD5E1;border-bottom:2px solid #CBD5E1;color:#0D1B2E;font-weight:700}
+.totals-row{background:#1B3A5C;color:#fff;font-weight:700;font-size:14px}
+.totals-row td{padding:8px;border-top:3px solid #0D1B2E}
 .notes{margin:16px 28px;font-size:9px;color:#6B7280;border-top:1px solid #E5E7EB;padding-top:10px;text-align:right;line-height:1.8}
 .footer-section{margin:0 28px;padding:14px 0;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between}
 .footer-section .contact{font-size:10px;color:#4B5563;line-height:1.8}
@@ -509,16 +510,13 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
 <div class="page">
   <div class="header-bar">
     <div class="company">
-      <div class="logo">${companyInfo.logo_url ? `<img src="${companyInfo.logo_url}" alt="Logo">` : (companyInfo.name?.charAt(0) || 'C')}</div>
-      <div>
-        <h2>${companyInfo.name}</h2>
-        <div class="sub">${companyInfo.address || ''} ${companyInfo.phone ? '📞 ' + companyInfo.phone : ''}</div>
-        <div class="sub">${companyInfo.email ? '✉️ ' + companyInfo.email : ''} ${companyInfo.tax_number ? 'رقم ضريبي: ' + companyInfo.tax_number : ''}</div>
-      </div>
+      ${companyInfo.logo_url ? `<div class="logo"><img src="${companyInfo.logo_url}" alt="Logo"></div>` : `<span class="company-name">${companyInfo.name}</span>`}
+      ${companyInfo.logo_url ? `<span class="company-name">${companyInfo.name}</span>` : ''}
     </div>
     <div class="title">
       <h1>ميزان المراجعة</h1>
-      <p>TRIAL BALANCE</p>
+      <p class="en">TRIAL BALANCE</p>
+      <p class="period">${dateRangeLabel}</p>
     </div>
   </div>
   <div class="gold-line"></div>
