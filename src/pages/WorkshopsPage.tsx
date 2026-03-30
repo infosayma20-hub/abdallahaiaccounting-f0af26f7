@@ -140,7 +140,7 @@ async function ensureWorkshopAccounts(userId: string) {
 export default function WorkshopsPage() {
   const { user } = useAuth();
   const { settings } = useCompanySettings();
-  const [view, setView] = useState<"workshops" | "reports">("workshops");
+  const [view, setView] = useState<"workshops" | "reports" | "new-payment">("workshops");
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -884,7 +884,7 @@ export default function WorkshopsPage() {
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
                 setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 });
                 setChequeRows([]);
-                setShowPaymentDialog(true);
+                setView("new-payment");
               }}>
                 <Plus className="h-3 w-3" /> دفعة جديدة
               </Button>
