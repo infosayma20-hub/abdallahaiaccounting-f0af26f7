@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Search, UserPlus, Upload, Check } from "lucide-react";
+import { Search, UserPlus, Check, AlertTriangle, Package } from "lucide-react";
 
 /* ── Cost Categories ── */
 export const COST_CATEGORIES = [
@@ -33,14 +34,8 @@ export const COST_CATEGORIES = [
 
 /* ── Units per category ── */
 const UNITS_MAP: Record<string, { value: string; label: string }[]> = {
-  wood_natural: [
-    { value: "m2", label: "م²" }, { value: "m3", label: "م³" },
-    { value: "sheet", label: "لوح" }, { value: "piece", label: "قطعة" }, { value: "linear_m", label: "متر طولي" },
-  ],
-  mdf: [
-    { value: "m2", label: "م²" }, { value: "m3", label: "م³" },
-    { value: "sheet", label: "لوح" }, { value: "piece", label: "قطعة" }, { value: "linear_m", label: "متر طولي" },
-  ],
+  wood_natural: [{ value: "m2", label: "م²" }, { value: "m3", label: "م³" }, { value: "sheet", label: "لوح" }, { value: "piece", label: "قطعة" }, { value: "linear_m", label: "متر طولي" }],
+  mdf: [{ value: "m2", label: "م²" }, { value: "m3", label: "م³" }, { value: "sheet", label: "لوح" }, { value: "piece", label: "قطعة" }, { value: "linear_m", label: "متر طولي" }],
   glass: [{ value: "m2", label: "م²" }, { value: "piece", label: "قطعة" }],
   paint: [{ value: "liter", label: "لتر" }, { value: "kg", label: "كيلو" }, { value: "can_18L", label: "صفيحة (18L)" }],
   varnish: [{ value: "liter", label: "لتر" }, { value: "kg", label: "كيلو" }, { value: "can_18L", label: "صفيحة (18L)" }],
@@ -56,6 +51,7 @@ const UNITS_MAP: Record<string, { value: string; label: string }[]> = {
   other: [{ value: "manual", label: "يدوي" }],
 };
 
+const MATERIAL_CATEGORIES = ["wood_natural", "mdf", "glass", "marble", "veneer", "countertop", "paint", "varnish", "adhesive", "hardware", "fittings"];
 const WASTE_CATEGORIES = ["wood_natural", "mdf", "glass", "marble", "veneer"];
 
 export const PHASES = [
@@ -110,6 +106,7 @@ const PLACEHOLDERS: Record<string, string> = {
 };
 
 type Contact = { id: string; contact_name: string; contact_type: string; current_balance: number };
+type Workshop = { id: string; name: string; status: string };
 
 interface Props {
   open: boolean;
@@ -120,11 +117,13 @@ interface Props {
   contacts: Contact[];
   onSaved: () => void;
   onContactsReload: () => void;
+  allWorkshops?: Workshop[];
 }
 
-export default function WorkshopCostModal({ open, onOpenChange, workshopId, workshopName, userId, contacts, onSaved, onContactsReload }: Props) {
+export default function WorkshopCostModal({ open, onOpenChange, workshopId, workshopName, userId, contacts, onSaved, onContactsReload, allWorkshops = [] }: Props) {
   const [category, setCategory] = useState("wood_natural");
-  const [quantity, setQuantity] = useState(1);
+  const [purchasedQty, setPurchasedQty] = useState(0);
+  const [usedQty, setUsedQty] = useState(0);
   const [unit, setUnit] = useState("m2");
   const [unitPrice, setUnitPrice] = useState(0);
   const [wasteEnabled, setWasteEnabled] = useState(false);
@@ -139,7 +138,18 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("نقدي");
   const [saving, setSaving] = useState(false);
+  
+  // Surplus handling
+  const [surplusAction, setSurplusAction] = useState<"inventory" | "transfer" | "pending">("inventory");
+  const [transferTargetId, setTransferTargetId] = useState<string>("");
 
+  // Inventory usage
+  const [useFromInventory, setUseFromInventory] = useState(false);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [selectedInventoryId, setSelectedInventoryId] = useState<string>("");
+  const [inventoryUseQty, setInventoryUseQty] = useState(0);
+
+  const isMaterial = MATERIAL_CATEGORIES.includes(category);
   const availableUnits = useMemo(() => UNITS_MAP[category] || UNITS_MAP.other, [category]);
   const showWaste = WASTE_CATEGORIES.includes(category);
 
@@ -147,27 +157,70 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     const units = UNITS_MAP[category] || UNITS_MAP.other;
     setUnit(units[0]?.value || "piece");
     if (!WASTE_CATEGORIES.includes(category)) setWasteEnabled(false);
+    setUseFromInventory(false);
+    setSelectedInventoryId("");
+    setInventoryUseQty(0);
   }, [category]);
 
-  const effectiveQty = useMemo(() => wasteEnabled && wastePct > 0 ? quantity * (1 + wastePct / 100) : quantity, [quantity, wasteEnabled, wastePct]);
-  const totalAmount = useMemo(() => Math.round(effectiveQty * unitPrice * 100) / 100, [effectiveQty, unitPrice]);
-  const wasteAmount = useMemo(() => wasteEnabled ? Math.round((effectiveQty - quantity) * unitPrice * 100) / 100 : 0, [effectiveQty, quantity, unitPrice, wasteEnabled]);
+  // Load available inventory for this category
+  useEffect(() => {
+    if (!open || !isMaterial) return;
+    const loadInventory = async () => {
+      const { data } = await supabase
+        .from("workshop_material_inventory" as any)
+        .select("*")
+        .eq("user_id", userId)
+        .eq("status", "available")
+        .eq("material_category", category);
+      setInventoryItems((data as any[]) || []);
+    };
+    loadInventory();
+  }, [open, category, userId, isMaterial]);
+
+  // For materials: use purchasedQty/usedQty; for non-materials: single quantity
+  const quantity = isMaterial ? usedQty : purchasedQty;
+  const surplusQty = isMaterial ? Math.max(0, purchasedQty - usedQty) : 0;
+  const hasSurplus = isMaterial && purchasedQty > 0 && usedQty > 0 && surplusQty > 0;
+
+  const effectiveQty = useMemo(() => {
+    const baseQty = isMaterial ? usedQty : purchasedQty;
+    return wasteEnabled && wastePct > 0 ? baseQty * (1 + wastePct / 100) : baseQty;
+  }, [usedQty, purchasedQty, wasteEnabled, wastePct, isMaterial]);
+
+  const usedCost = useMemo(() => Math.round(effectiveQty * unitPrice * 100) / 100, [effectiveQty, unitPrice]);
+  const totalPurchaseCost = useMemo(() => Math.round(purchasedQty * unitPrice * 100) / 100, [purchasedQty, unitPrice]);
+  const surplusCost = useMemo(() => Math.round(surplusQty * unitPrice * 100) / 100, [surplusQty, unitPrice]);
+  const wasteAmount = useMemo(() => wasteEnabled ? Math.round((effectiveQty - (isMaterial ? usedQty : purchasedQty)) * unitPrice * 100) / 100 : 0, [effectiveQty, usedQty, purchasedQty, unitPrice, wasteEnabled, isMaterial]);
+
+  // For inventory usage
+  const selectedInvItem = inventoryItems.find(i => i.id === selectedInventoryId);
+  const inventoryCost = selectedInvItem ? Math.round(inventoryUseQty * (selectedInvItem.unit_cost || 0) * 100) / 100 : 0;
+
+  const totalAmount = useFromInventory ? inventoryCost : (isMaterial ? totalPurchaseCost : usedCost);
 
   const filteredSuppliers = useMemo(() =>
     contacts.filter(c => !supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase()))
   , [contacts, supplierSearch]);
 
+  const activeWorkshops = useMemo(() => allWorkshops.filter(w => w.status === "active" && w.id !== workshopId), [allWorkshops, workshopId]);
+
   const glInfo = CATEGORY_GL_MAP[category] || CATEGORY_GL_MAP.other;
   const creditCode = PAYMENT_CREDIT_MAP[paymentMethod] || "1110";
 
-  const canSave = totalAmount > 0;
+  const canSave = useFromInventory
+    ? (inventoryUseQty > 0 && selectedInventoryId)
+    : (isMaterial ? (purchasedQty > 0 && usedQty > 0 && unitPrice > 0 && usedQty <= purchasedQty) : (purchasedQty > 0 && unitPrice > 0));
+
+  const unitLabel = availableUnits.find(u => u.value === unit)?.label || unit;
 
   const resetForm = () => {
-    setCategory("wood_natural"); setQuantity(1); setUnit("m2"); setUnitPrice(0);
+    setCategory("wood_natural"); setPurchasedQty(0); setUsedQty(0); setUnit("m2"); setUnitPrice(0);
     setWasteEnabled(false); setWastePct(10); setPhase("preparation");
     setDescription(""); setCostDate(format(new Date(), "yyyy-MM-dd"));
     setSupplierSearch(""); setSupplierContactId(null); setSupplierNameManual("");
     setInvoiceNumber(""); setPaymentMethod("نقدي");
+    setSurplusAction("inventory"); setTransferTargetId("");
+    setUseFromInventory(false); setSelectedInventoryId(""); setInventoryUseQty(0);
   };
 
   const handleSave = async () => {
@@ -176,51 +229,161 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     try {
       const idempotencyKey = `WS-COST-${workshopId}-${Date.now()}`;
       const supplierName = supplierContactId ? contacts.find(c => c.id === supplierContactId)?.contact_name || supplierNameManual : supplierNameManual;
-      const txDesc = `${glInfo.label} - ورشة ${workshopName}${supplierName ? ` (${supplierName})` : ""}`;
+      const catLabel = COST_CATEGORIES.find(c => c.value === category)?.label || category;
 
-      // 1. Journal entry
-      const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-        user_id: userId, transaction_date: costDate, description: txDesc,
-        debit_account_code: glInfo.debit, credit_account_code: creditCode,
-        amount: totalAmount, currency: "شيكل", transaction_type: "workshop_cost",
-        contact_id: supplierContactId || null,
-        reference: `WS-${workshopName.substring(0, 20)}`,
-        payment_method: paymentMethod, idempotency_key: idempotencyKey,
-      } as any).select("id").single();
-      if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
+      if (useFromInventory && selectedInvItem) {
+        // ── Use from existing inventory ──
+        const txDesc = `استخدام مخزون (${catLabel}) - ورشة ${workshopName}`;
+        const { data: txData, error: txErr } = await supabase.from("transactions").insert({
+          user_id: userId, transaction_date: costDate, description: txDesc,
+          debit_account_code: glInfo.debit, credit_account_code: "1140",
+          amount: inventoryCost, currency: "شيكل", transaction_type: "workshop_cost",
+          reference: `WS-INV-${workshopName.substring(0, 15)}`,
+          payment_method: "مخزون", idempotency_key: idempotencyKey,
+        } as any).select("id").single();
+        if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
 
-      // 2. Cost record with new fields
-      // Map new category back to old cost_type for backward compat
-      const costTypeMap: Record<string, string> = {
-        wood_natural: "wood", mdf: "wood", glass: "glass", paint: "paint", varnish: "paint",
-        marble: "marble", hardware: "hardware", labor: "labor", transport: "transport",
-        countertop: "crystal", electricity: "other", adhesive: "paint",
-        veneer: "paint", fittings: "hardware", other: "other",
-      };
+        // Create cost record
+        const costTypeMap: Record<string, string> = {
+          wood_natural: "wood", mdf: "wood", glass: "glass", paint: "paint", varnish: "paint",
+          marble: "marble", hardware: "hardware", labor: "labor", transport: "transport",
+          countertop: "crystal", electricity: "other", adhesive: "paint",
+          veneer: "paint", fittings: "hardware", other: "other",
+        };
+        await supabase.from("workshop_costs").insert({
+          workshop_id: workshopId, user_id: userId,
+          cost_type: costTypeMap[category] || "other",
+          category, description: description || `من المخزون المتاح`,
+          amount: inventoryCost, cost_date: costDate,
+          quantity: inventoryUseQty, unit, unit_price: selectedInvItem.unit_cost,
+          phase, payment_method: "مخزون", notes: `مصدر: مخزون مواد - ${selectedInvItem.material_type}`,
+          linked_transaction_id: txData?.id || null,
+        } as any);
 
-      const { error: costErr } = await supabase.from("workshop_costs").insert({
-        workshop_id: workshopId, user_id: userId,
-        cost_type: costTypeMap[category] || "other",
-        category, description: description || null,
-        amount: totalAmount, cost_date: costDate,
-        quantity, unit, unit_price: unitPrice,
-        waste_percentage: wasteEnabled ? wastePct : 0,
-        waste_amount: wasteAmount,
-        phase, supplier_name: supplierName || null,
-        supplier_contact_id: supplierContactId || null,
-        invoice_number: invoiceNumber || null,
-        payment_method: paymentMethod, notes: null,
-        linked_transaction_id: txData?.id || null,
-      } as any);
-      if (costErr) { toast.error(costErr.message); return; }
+        // Update inventory
+        const remainingQty = (selectedInvItem.quantity || 0) - inventoryUseQty;
+        if (remainingQty <= 0) {
+          await supabase.from("workshop_material_inventory" as any).update({ status: "used", quantity: 0, total_value: 0 }).eq("id", selectedInventoryId);
+        } else {
+          await supabase.from("workshop_material_inventory" as any).update({
+            quantity: remainingQty,
+            total_value: Math.round(remainingQty * selectedInvItem.unit_cost * 100) / 100,
+          }).eq("id", selectedInventoryId);
+        }
 
-      // 3. Supplier balance update for credit
-      if (paymentMethod === "آجل" && supplierContactId) {
-        const bal = contacts.find(c => c.id === supplierContactId)?.current_balance || 0;
-        await supabase.from("contacts").update({ current_balance: bal + totalAmount } as any).eq("id", supplierContactId);
+        toast.success(`✅ تم استخدام ${inventoryUseQty} ${unitLabel} من المخزون`);
+      } else {
+        // ── Normal purchase flow ──
+        const txDesc = `${glInfo.label} - ورشة ${workshopName}${supplierName ? ` (${supplierName})` : ""}`;
+
+        if (hasSurplus && surplusAction === "transfer" && transferTargetId) {
+          // Scenario B: Split between current workshop + target workshop
+          const targetWs = allWorkshops.find(w => w.id === transferTargetId);
+
+          // Entry 1: Cost for current workshop (used qty)
+          const { data: txData, error: txErr } = await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate,
+            description: `${glInfo.label} - ورشة ${workshopName} (${usedQty} ${unitLabel})`,
+            debit_account_code: glInfo.debit, credit_account_code: creditCode,
+            amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
+            contact_id: supplierContactId || null,
+            reference: `WS-${workshopName.substring(0, 15)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey,
+          } as any).select("id").single();
+          if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
+
+          // Entry 2: Cost for target workshop (surplus qty)
+          await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate,
+            description: `${glInfo.label} - ورشة ${targetWs?.name || "أخرى"} (نقل ${surplusQty} ${unitLabel})`,
+            debit_account_code: glInfo.debit, credit_account_code: creditCode,
+            amount: surplusCost, currency: "شيكل", transaction_type: "workshop_cost",
+            contact_id: supplierContactId || null,
+            reference: `WS-TRNSFR-${(targetWs?.name || "").substring(0, 10)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-SURPLUS",
+          } as any);
+
+          // Cost record for current workshop
+          await insertCostRecord(workshopId, usedCost, usedQty, txData?.id);
+
+          // Cost record for target workshop
+          await insertCostRecord(transferTargetId, surplusCost, surplusQty, null);
+
+        } else if (hasSurplus && surplusAction === "inventory") {
+          // Scenario A: Cost for workshop + surplus to inventory
+          // Entry: Debit workshop cost (used) + Debit inventory (surplus) / Credit supplier (total)
+          const { data: txData, error: txErr } = await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate,
+            description: txDesc + ` (${usedQty} ${unitLabel} مستخدم)`,
+            debit_account_code: glInfo.debit, credit_account_code: creditCode,
+            amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
+            contact_id: supplierContactId || null,
+            reference: `WS-${workshopName.substring(0, 15)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey,
+          } as any).select("id").single();
+          if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
+
+          // Inventory entry: Debit raw materials inventory / Credit supplier
+          await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate,
+            description: `مخزون مواد خام (${catLabel}) - فائض ورشة ${workshopName}`,
+            debit_account_code: "1140", credit_account_code: creditCode,
+            amount: surplusCost, currency: "شيكل", transaction_type: "workshop_inventory",
+            contact_id: supplierContactId || null,
+            reference: `WS-INV-${workshopName.substring(0, 10)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-INV",
+          } as any);
+
+          // Cost record for workshop (used amount only)
+          await insertCostRecord(workshopId, usedCost, usedQty, txData?.id);
+
+          // Inventory record
+          await supabase.from("workshop_material_inventory" as any).insert({
+            user_id: userId, material_type: catLabel, material_category: category,
+            quantity: surplusQty, unit, unit_cost: unitPrice,
+            total_value: surplusCost, source_workshop_id: workshopId,
+            supplier_contact_id: supplierContactId || null,
+            supplier_name: supplierName || null, status: "available",
+            notes: `فائض من ورشة ${workshopName}`,
+          });
+
+        } else {
+          // No surplus or pending surplus
+          const costAmount = isMaterial ? usedCost : usedCost;
+          const { data: txData, error: txErr } = await supabase.from("transactions").insert({
+            user_id: userId, transaction_date: costDate, description: txDesc,
+            debit_account_code: glInfo.debit, credit_account_code: creditCode,
+            amount: isMaterial ? totalPurchaseCost : costAmount, currency: "شيكل", transaction_type: "workshop_cost",
+            contact_id: supplierContactId || null,
+            reference: `WS-${workshopName.substring(0, 15)}`,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey,
+          } as any).select("id").single();
+          if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
+
+          await insertCostRecord(workshopId, isMaterial ? totalPurchaseCost : costAmount, isMaterial ? purchasedQty : purchasedQty, txData?.id);
+
+          // If pending surplus, add to inventory with pending status
+          if (hasSurplus && surplusAction === "pending") {
+            await supabase.from("workshop_material_inventory" as any).insert({
+              user_id: userId, material_type: catLabel, material_category: category,
+              quantity: surplusQty, unit, unit_cost: unitPrice,
+              total_value: surplusCost, source_workshop_id: workshopId,
+              supplier_contact_id: supplierContactId || null,
+              supplier_name: supplierName || null, status: "available",
+              notes: `فائض معلق - ورشة ${workshopName}`,
+            });
+          }
+        }
+
+        // Supplier balance update for credit
+        if (paymentMethod === "آجل" && supplierContactId) {
+          const bal = contacts.find(c => c.id === supplierContactId)?.current_balance || 0;
+          await supabase.from("contacts").update({ current_balance: bal + totalPurchaseCost } as any).eq("id", supplierContactId);
+        }
+
+        toast.success(`✅ تم تسجيل التكلفة وإنشاء القيد`);
       }
 
-      toast.success(`✅ تم تسجيل التكلفة وإنشاء القيد (${glInfo.debit} ← ${creditCode})`);
       resetForm();
       onOpenChange(false);
       onSaved();
@@ -228,6 +391,30 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     } finally {
       setSaving(false);
     }
+  };
+
+  const insertCostRecord = async (wsId: string, amount: number, qty: number, txId: string | null) => {
+    const costTypeMap: Record<string, string> = {
+      wood_natural: "wood", mdf: "wood", glass: "glass", paint: "paint", varnish: "paint",
+      marble: "marble", hardware: "hardware", labor: "labor", transport: "transport",
+      countertop: "crystal", electricity: "other", adhesive: "paint",
+      veneer: "paint", fittings: "hardware", other: "other",
+    };
+    const supplierName = supplierContactId ? contacts.find(c => c.id === supplierContactId)?.contact_name || supplierNameManual : supplierNameManual;
+    await supabase.from("workshop_costs").insert({
+      workshop_id: wsId, user_id: userId,
+      cost_type: costTypeMap[category] || "other",
+      category, description: description || null,
+      amount, cost_date: costDate,
+      quantity: qty, unit, unit_price: unitPrice,
+      waste_percentage: wasteEnabled ? wastePct : 0,
+      waste_amount: wasteAmount, phase,
+      supplier_name: supplierName || null,
+      supplier_contact_id: supplierContactId || null,
+      invoice_number: invoiceNumber || null,
+      payment_method: paymentMethod, notes: null,
+      linked_transaction_id: txId,
+    } as any);
   };
 
   return (
@@ -264,139 +451,254 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
             </p>
           </div>
 
-          {/* ── 2. Line Item Details ── */}
-          <div className="space-y-3">
-            {/* Total (auto) */}
-            <div className="rounded-xl bg-accent/5 border border-border p-3 text-center">
-              <p className="text-[10px] text-muted-foreground">المبلغ الإجمالي</p>
-              <p className="text-2xl font-bold text-foreground tabular-nums">{totalAmount.toLocaleString()} ₪</p>
-              {wasteEnabled && wasteAmount > 0 && (
-                <p className="text-[10px] text-amber-600">يشمل هدر {wasteAmount.toLocaleString()} ₪</p>
-              )}
-            </div>
-
-            {/* Qty + Unit + Unit Price */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[11px]">الكمية</Label>
-                <Input type="number" min={0} step="any" value={quantity || ""} onChange={e => setQuantity(Number(e.target.value))} />
+          {/* ── Use from inventory toggle ── */}
+          {isMaterial && inventoryItems.length > 0 && (
+            <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5" /> من المخزون المتاح
+                </Label>
+                <Switch checked={useFromInventory} onCheckedChange={v => { setUseFromInventory(v); if (!v) { setSelectedInventoryId(""); setInventoryUseQty(0); } }} />
               </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">الوحدة</Label>
-                <Select value={unit} onValueChange={setUnit}>
-                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {availableUnits.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">سعر الوحدة (₪)</Label>
-                <Input type="number" min={0} step="any" value={unitPrice || ""} onChange={e => setUnitPrice(Number(e.target.value))} />
-              </div>
-            </div>
-
-            {/* Waste Toggle */}
-            {showWaste && (
-              <div className="rounded-xl border border-border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">احتساب نسبة هدر (Waste %)</Label>
-                  <Switch checked={wasteEnabled} onCheckedChange={setWasteEnabled} />
-                </div>
-                {wasteEnabled && (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" min={0} max={50} value={wastePct} onChange={e => setWastePct(Number(e.target.value))} className="w-20 h-8 text-sm" />
-                      <span className="text-xs text-muted-foreground">%</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      الكمية الصافية: {quantity} {availableUnits.find(u => u.value === unit)?.label} | مع الهدر: {effectiveQty.toFixed(2)} {availableUnits.find(u => u.value === unit)?.label}
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Date + Phase */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[11px]">التاريخ 📅</Label>
-                <Input type="date" value={costDate} onChange={e => setCostDate(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">المرحلة 🏗️</Label>
-                <Select value={phase} onValueChange={setPhase}>
-                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {PHASES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1">
-              <Label className="text-[11px]">وصف تفصيلي</Label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)}
-                placeholder={PLACEHOLDERS[category] || "وصف البند..."} rows={2} />
-            </div>
-
-            {/* Supplier */}
-            <div className="space-y-1">
-              <Label className="text-[11px]">المورد 🏪</Label>
-              {supplierContactId ? (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/5 border border-border">
-                  <span className="text-sm flex-1 text-foreground">
-                    {contacts.find(c => c.id === supplierContactId)?.contact_name || supplierNameManual}
-                  </span>
-                  <Badge variant="outline" className="text-[9px]">{contacts.find(c => c.id === supplierContactId)?.contact_type}</Badge>
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => { setSupplierContactId(null); setSupplierNameManual(""); }}>✕</Button>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="relative">
-                    <Search className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input value={supplierSearch} onChange={e => { setSupplierSearch(e.target.value); setShowSupplierPicker(true); }}
-                      onFocus={() => setShowSupplierPicker(true)} placeholder="ابحث عن مورد أو زبون..." className="pr-8" />
-                  </div>
-                  {showSupplierPicker && supplierSearch && (
-                    <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card">
-                      {filteredSuppliers.slice(0, 8).map(s => (
-                        <button key={s.id} onClick={() => { setSupplierContactId(s.id); setSupplierNameManual(s.contact_name); setShowSupplierPicker(false); setSupplierSearch(""); }}
-                          className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground flex items-center justify-between">
-                          <span>{s.contact_name}</span>
-                          <Badge variant="outline" className="text-[9px]">{s.contact_type}</Badge>
-                        </button>
-                      ))}
-                      {filteredSuppliers.length === 0 && supplierSearch.trim().length > 1 && (
-                        <button onClick={async () => {
-                          const name = supplierSearch.trim();
-                          const { data, error } = await supabase.from("contacts").upsert(
-                            { contact_name: name, contact_type: "مورد", user_id: userId, current_balance: 0 },
-                            { onConflict: "contact_name,user_id" }
-                          ).select().single();
-                          if (error) { toast.error("خطأ في إضافة المورد"); return; }
-                          toast.success(`تم إضافة "${name}" كمورد`);
-                          setSupplierContactId(data.id); setSupplierNameManual(data.contact_name);
-                          setShowSupplierPicker(false); setSupplierSearch("");
-                          onContactsReload();
-                        }} className="w-full text-right px-3 py-2 text-sm hover:bg-primary/10 text-primary font-medium flex items-center gap-2">
-                          <UserPlus className="h-3.5 w-3.5" /> إضافة "{supplierSearch.trim()}" كمورد جديد
-                        </button>
+              {useFromInventory && (
+                <div className="space-y-2">
+                  {inventoryItems.map(item => (
+                    <button key={item.id} onClick={() => { setSelectedInventoryId(item.id); setUnit(item.unit); }}
+                      className={`w-full text-right p-2 rounded-lg border text-xs transition-all ${
+                        selectedInventoryId === item.id ? "border-primary bg-primary/10" : "border-border hover:bg-accent/5"
+                      }`}>
+                      <div className="flex justify-between items-center">
+                        <Badge variant="outline" className="text-[9px]">{item.quantity} {item.unit}</Badge>
+                        <span className="font-medium">{item.material_type} — {item.quantity} متاح ({item.unit_cost}₪/{item.unit})</span>
+                      </div>
+                      {item.supplier_name && <p className="text-[10px] text-muted-foreground mt-0.5">المورد: {item.supplier_name}</p>}
+                    </button>
+                  ))}
+                  {selectedInventoryId && selectedInvItem && (
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">الكمية المطلوبة (الحد الأقصى: {selectedInvItem.quantity})</Label>
+                      <Input type="number" min={0} max={selectedInvItem.quantity} step="any"
+                        value={inventoryUseQty || ""} onChange={e => setInventoryUseQty(Math.min(Number(e.target.value), selectedInvItem.quantity))} />
+                      {inventoryUseQty > 0 && (
+                        <p className="text-xs font-bold text-center">التكلفة: {inventoryCost.toLocaleString()} ₪</p>
                       )}
                     </div>
                   )}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Invoice number */}
-            <div className="space-y-1">
-              <Label className="text-[11px]">رقم الفاتورة (اختياري)</Label>
-              <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="رقم فاتورة الشراء..." />
-            </div>
+          {!useFromInventory && (
+            <>
+              {/* ── 2. Total (auto) ── */}
+              <div className="rounded-xl bg-accent/5 border border-border p-3 text-center">
+                <p className="text-[10px] text-muted-foreground">المبلغ الإجمالي</p>
+                <p className="text-2xl font-bold text-foreground tabular-nums">{totalPurchaseCost.toLocaleString()} ₪</p>
+                {wasteEnabled && wasteAmount > 0 && (
+                  <p className="text-[10px] text-amber-600">يشمل هدر {wasteAmount.toLocaleString()} ₪</p>
+                )}
+                {isMaterial && hasSurplus && (
+                  <p className="text-[10px] text-primary">تكلفة الورشة: {usedCost.toLocaleString()} ₪ | فائض: {surplusCost.toLocaleString()} ₪</p>
+                )}
+              </div>
 
-          </div>
+              {/* ── Qty fields ── */}
+              {isMaterial ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold">الكمية المشتراة</Label>
+                      <Input type="number" min={0} step="any" value={purchasedQty || ""} onChange={e => { setPurchasedQty(Number(e.target.value)); if (usedQty === 0 || usedQty > Number(e.target.value)) setUsedQty(Number(e.target.value)); }} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">الوحدة</Label>
+                      <Select value={unit} onValueChange={setUnit}>
+                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {availableUnits.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">سعر الوحدة (₪)</Label>
+                      <Input type="number" min={0} step="any" value={unitPrice || ""} onChange={e => setUnitPrice(Number(e.target.value))} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold">الكمية المستخدمة في هذه الورشة</Label>
+                      <Input type="number" min={0} max={purchasedQty} step="any" value={usedQty || ""} onChange={e => setUsedQty(Math.min(Number(e.target.value), purchasedQty))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">الفائض</Label>
+                      <div className="flex items-center h-10 px-3 rounded-lg border border-border bg-muted/30 text-sm font-bold">
+                        {surplusQty > 0 ? `${surplusQty} ${unitLabel}` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                  {usedQty > purchasedQty && (
+                    <p className="text-xs text-destructive">⚠️ الكمية المستخدمة لا يمكن أن تتجاوز المشتراة</p>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">الكمية</Label>
+                    <Input type="number" min={0} step="any" value={purchasedQty || ""} onChange={e => setPurchasedQty(Number(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">الوحدة</Label>
+                    <Select value={unit} onValueChange={setUnit}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {availableUnits.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">سعر الوحدة (₪)</Label>
+                    <Input type="number" min={0} step="any" value={unitPrice || ""} onChange={e => setUnitPrice(Number(e.target.value))} />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Surplus Action Panel ── */}
+              {hasSurplus && (
+                <div className="rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                      يوجد فائض {surplusQty} {unitLabel} بقيمة {surplusCost.toLocaleString()} ₪
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">ماذا تريد أن تفعل بالفائض؟</p>
+                  <RadioGroup value={surplusAction} onValueChange={v => setSurplusAction(v as any)} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="inventory" id="inv" />
+                      <Label htmlFor="inv" className="text-xs cursor-pointer">أضفه للمخزون العام</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="transfer" id="trf" />
+                      <Label htmlFor="trf" className="text-xs cursor-pointer">نقله لورشة أخرى</Label>
+                    </div>
+                    {surplusAction === "transfer" && (
+                      <Select value={transferTargetId} onValueChange={setTransferTargetId}>
+                        <SelectTrigger className="h-9 text-xs mr-6"><SelectValue placeholder="اختر ورشة..." /></SelectTrigger>
+                        <SelectContent>
+                          {activeWorkshops.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="pending" id="pnd" />
+                      <Label htmlFor="pnd" className="text-xs cursor-pointer">أتركه معلقاً (سأحدده لاحقاً)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* ── Waste Toggle ── */}
+              {showWaste && (
+                <div className="rounded-xl border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">احتساب نسبة هدر (Waste %)</Label>
+                    <Switch checked={wasteEnabled} onCheckedChange={setWasteEnabled} />
+                  </div>
+                  {wasteEnabled && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Input type="number" min={0} max={50} value={wastePct} onChange={e => setWastePct(Number(e.target.value))} className="w-20 h-8 text-sm" />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        الكمية الصافية: {isMaterial ? usedQty : purchasedQty} {unitLabel} | مع الهدر: {effectiveQty.toFixed(2)} {unitLabel}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ── Date + Phase ── */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">التاريخ 📅</Label>
+                  <Input type="date" value={costDate} onChange={e => setCostDate(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">المرحلة 🏗️</Label>
+                  <Select value={phase} onValueChange={setPhase}>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PHASES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* ── Description ── */}
+              <div className="space-y-1">
+                <Label className="text-[11px]">وصف تفصيلي</Label>
+                <Textarea value={description} onChange={e => setDescription(e.target.value)}
+                  placeholder={PLACEHOLDERS[category] || "وصف البند..."} rows={2} />
+              </div>
+
+              {/* ── Supplier ── */}
+              <div className="space-y-1">
+                <Label className="text-[11px]">المورد 🏪</Label>
+                {supplierContactId ? (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/5 border border-border">
+                    <span className="text-sm flex-1 text-foreground">
+                      {contacts.find(c => c.id === supplierContactId)?.contact_name || supplierNameManual}
+                    </span>
+                    <Badge variant="outline" className="text-[9px]">{contacts.find(c => c.id === supplierContactId)?.contact_type}</Badge>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => { setSupplierContactId(null); setSupplierNameManual(""); }}>✕</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Search className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input value={supplierSearch} onChange={e => { setSupplierSearch(e.target.value); setShowSupplierPicker(true); }}
+                        onFocus={() => setShowSupplierPicker(true)} placeholder="ابحث عن مورد أو زبون..." className="pr-8" />
+                    </div>
+                    {showSupplierPicker && supplierSearch && (
+                      <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card">
+                        {filteredSuppliers.slice(0, 8).map(s => (
+                          <button key={s.id} onClick={() => { setSupplierContactId(s.id); setSupplierNameManual(s.contact_name); setShowSupplierPicker(false); setSupplierSearch(""); }}
+                            className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground flex items-center justify-between">
+                            <span>{s.contact_name}</span>
+                            <Badge variant="outline" className="text-[9px]">{s.contact_type}</Badge>
+                          </button>
+                        ))}
+                        {filteredSuppliers.length === 0 && supplierSearch.trim().length > 1 && (
+                          <button onClick={async () => {
+                            const name = supplierSearch.trim();
+                            const { data, error } = await supabase.from("contacts").upsert(
+                              { contact_name: name, contact_type: "مورد", user_id: userId, current_balance: 0 },
+                              { onConflict: "contact_name,user_id" }
+                            ).select().single();
+                            if (error) { toast.error("خطأ في إضافة المورد"); return; }
+                            toast.success(`تم إضافة "${name}" كمورد`);
+                            setSupplierContactId(data.id); setSupplierNameManual(data.contact_name);
+                            setShowSupplierPicker(false); setSupplierSearch("");
+                            onContactsReload();
+                          }} className="w-full text-right px-3 py-2 text-sm hover:bg-primary/10 text-primary font-medium flex items-center gap-2">
+                            <UserPlus className="h-3.5 w-3.5" /> إضافة "{supplierSearch.trim()}" كمورد جديد
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Invoice number ── */}
+              <div className="space-y-1">
+                <Label className="text-[11px]">رقم الفاتورة (اختياري)</Label>
+                <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="رقم فاتورة الشراء..." />
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
