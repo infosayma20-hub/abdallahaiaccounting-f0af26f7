@@ -2093,9 +2093,7 @@ const POSPage = () => {
     if (Object.keys(stationGroups).length === 0) {
       stationGroups["_default"] = { stationName: "المطبخ", stationColor: "#ef4444", items: noStationItems.length ? noStationItems : cart.map(item => ({ name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] })) };
     } else if (noStationItems.length > 0) {
-      // Attach unassigned items to first station
-      const firstKey = Object.keys(stationGroups)[0];
-      stationGroups[firstKey].items.push(...noStationItems);
+      stationGroups["_default"] = { stationName: "المطبخ", stationColor: "#ef4444", items: noStationItems };
     }
 
     // Build kitchen ticket data for dialog display
