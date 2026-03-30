@@ -521,11 +521,7 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
   </div>
   <div class="gold-line"></div>
   <div class="info">
-    <div>
-      <div class="report-title">ميزان المراجعة</div>
-      <div class="period">${dateRangeLabel}</div>
-    </div>
-    <div class="meta">
+    <div class="meta" style="margin-right:auto">
       <div>تاريخ الإصدار: <strong>${today}</strong></div>
     </div>
   </div>
