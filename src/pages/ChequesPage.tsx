@@ -986,7 +986,8 @@ const ChequesPage = () => {
             </div>
           )}
         </div>
-      )
+      )}
+
 
       {/* ============ BULK ACTION BAR ============ */}
       {selected.size > 0 && (
