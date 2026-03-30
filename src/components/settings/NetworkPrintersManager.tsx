@@ -189,12 +189,14 @@ export default function NetworkPrintersManager() {
     setTesting(printer.id);
     try {
       const type = (printer.print_categories || []).includes("receipt") ? "receipt" : "kitchen";
+      const stationId = (printer.station_ids || [])[0] || undefined;
       const result = await sendToBridge(type, {
         orderNumber: "TEST",
         branchName: "اختبار Print Bridge",
         cashier: "النظام",
         orderType: "اختبار",
-        items: [{ id: "1", name: `اختبار ${printer.name}`, quantity: 1, price: 0, printerKey: "kitchen" }],
+        stationId,
+        items: [{ id: "1", name: `اختبار ${printer.name}`, quantity: 1, price: 0 }],
         total: 0,
         paymentMethod: "اختبار",
       });
