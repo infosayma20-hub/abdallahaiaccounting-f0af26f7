@@ -106,7 +106,7 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   cash_transfer:      { label: "تحويل صندوق",    bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
   bank_transfer:      { label: "تحويل بنكي",     bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   exchange_diff:      { label: "فروق عملة",      bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
-  opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
   manual:             { label: "قيد يدوي",       bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
   journal:            { label: "قيد يومية",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
   // عقود ومقاولات
@@ -116,6 +116,8 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   workshop_cost:      { label: "تكلفة ورشة",     bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
   workshop_payment:   { label: "دفعة ورشة",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
   workshop_invoice:   { label: "فاتورة ورشة",    bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  workshop_inventory: { label: "مخزون ورشة",     bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
+  workshop_revenue:   { label: "إيرادات ورشة",   bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   // أصول ثابتة
   asset_purchase:     { label: "شراء أصل",       bg: "bg-[#CCFBF1]", text: "text-[#115E59]" },
   depreciation:       { label: "إهلاك",          bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
@@ -750,7 +752,7 @@ const TransactionsPage = () => {
 
       {/* TABLE */}
       {!loading && !error && paginatedTransactions.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+        <div className="border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed">
               <colgroup>
