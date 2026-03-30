@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { usePrintBridge } from "@/hooks/usePrintBridge";
+import { usePrintBridge, PrintOrder } from "@/hooks/usePrintBridge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,12 +66,13 @@ export default function PrinterSettingsPage() {
 
   const testPrinter = async (printer: PrinterRecord) => {
     setTesting(printer.id);
-    const testOrder = {
+    const testOrder: PrintOrder = {
       orderNumber: "TEST-001",
       branchName: "فرع سفيان — اختبار طباعة",
       cashier: "النظام",
       tableNumber: "5",
       orderType: "اختبار",
+      stationId: (printer.station_ids || [])[0] || undefined,
       items: [{
         id: "1", name: `اختبار — ${printer.name}`,
         quantity: 1, price: 0,

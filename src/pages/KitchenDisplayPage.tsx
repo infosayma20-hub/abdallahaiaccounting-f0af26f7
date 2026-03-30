@@ -182,11 +182,12 @@ export default function KitchenDisplayPage() {
       <table>${itemsHtml}</table>
     `;
 
-    // Send to bridge — silent, no dialog
+    // Send to bridge — silent, no dialog — with stationId for correct printer routing
     const bridgeOrder: PrintOrder = {
       orderNumber: ticket.order_number || "---",
       branchName: station?.name || "المطبخ",
       tableNumber: ticket.table_name,
+      stationId: ticket.station_id,
       items: ticket.items.map((item: any) => ({
         id: item.product_id || item.name,
         name: item.name,
