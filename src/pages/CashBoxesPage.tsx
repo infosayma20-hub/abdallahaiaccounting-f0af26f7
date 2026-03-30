@@ -125,8 +125,8 @@ const CashBoxesPage = () => {
 
   // ─── Status badge ───
   const StatusBadge = ({ box }: { box: any }) => {
-    if (!box.is_active) return <Badge className="text-[9px] h-5 px-1.5 bg-red-100 text-red-700 border-red-300">متوقف 🔴</Badge>;
-    return <Badge className="text-[9px] h-5 px-1.5 bg-emerald-100 text-emerald-700 border-emerald-300">نشط 🟢</Badge>;
+    if (!box.is_active) return <Badge className="text-[9px] h-5 px-1.5 shrink-0 whitespace-nowrap bg-red-100 text-red-700 border-red-300">متوقف 🔴</Badge>;
+    return <Badge className="text-[9px] h-5 px-1.5 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border-emerald-300">نشط 🟢</Badge>;
   };
 
   // ─── Box Card ───
@@ -367,7 +367,7 @@ const CashBoxesPage = () => {
                             <p className="text-[10px] opacity-60 font-mono">{ba.gl_account_code}</p>
                           </div>
                         </div>
-                        <Badge className="text-[9px] h-5 px-1.5 bg-emerald-100 text-emerald-700 border-emerald-300">نشط 🟢</Badge>
+                        <Badge className="text-[9px] h-5 px-1.5 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border-emerald-300">نشط 🟢</Badge>
                       </div>
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-baseline justify-between">
