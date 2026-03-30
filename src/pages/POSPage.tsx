@@ -77,6 +77,7 @@ interface CartItem {
   unit: string;
   total: number;
   note: string;
+  station_id?: string | null;
   modifiers?: SelectedModifier[];
 }
 
@@ -811,6 +812,7 @@ const POSPage = () => {
           unit: line.unit || "قطعة",
           total: Number(line.total),
           note: "",
+          station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
         }));
 
         setOrders(prev => prev.map((o, i) => i === 0 ? {
@@ -1685,6 +1687,7 @@ const POSPage = () => {
           unit: product.unit,
           total: itemQty * unitPrice,
           note: note || "",
+          station_id: product.kitchen_station_id,
           modifiers,
         },
       ]);
@@ -1716,6 +1719,7 @@ const POSPage = () => {
           unit: product.unit,
           total: product.sell_price,
           note: "",
+          station_id: product.kitchen_station_id,
           modifiers: [],
         },
       ];
@@ -2087,9 +2091,7 @@ const POSPage = () => {
     if (Object.keys(stationGroups).length === 0) {
       stationGroups["_default"] = { stationName: "المطبخ", stationColor: "#ef4444", items: noStationItems.length ? noStationItems : cart.map(item => ({ name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] })) };
     } else if (noStationItems.length > 0) {
-      // Attach unassigned items to first station
-      const firstKey = Object.keys(stationGroups)[0];
-      stationGroups[firstKey].items.push(...noStationItems);
+      stationGroups["_default"] = { stationName: "المطبخ", stationColor: "#ef4444", items: noStationItems };
     }
 
     // Build kitchen ticket data for dialog display
@@ -2168,6 +2170,7 @@ const POSPage = () => {
       unit: line.unit || "قطعة",
       total: Number(line.total),
       note: "",
+      station_id: products.find((p) => p.id === line.product_id)?.kitchen_station_id || null,
     }));
 
     // Find or create order tab for this table
@@ -2670,43 +2673,33 @@ const POSPage = () => {
         sendToBridge("receipt", bridgeOrder).catch(() => console.warn("Receipt print failed"));
 
         // 2) Print kitchen tickets per station so each printer gets only its items
-        try {
-          const productIds = cart.filter(i => i.product_id).map(i => i.product_id);
-          const { data: productsWithStations } = await supabase
-            .from("products")
-            .select("id, kitchen_station_id")
-            .in("id", productIds);
-
-          const stationMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.kitchen_station_id]));
-
-          // Group cart items by station
-          const stationItems: Record<string, typeof bridgeOrder.items> = {};
-          cart.forEach(item => {
-            const sid = stationMap.get(item.product_id) || "__default__";
-            if (!stationItems[sid]) stationItems[sid] = [];
-            stationItems[sid].push({
-              id: item.product_id || item.id,
-              name: item.name,
-              quantity: item.qty,
-              price: item.unit_price,
-              note: item.note || undefined,
-              modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
-            });
+        const stationItems: Record<string, typeof bridgeOrder.items> = {};
+        cart.forEach(item => {
+          const sid = item.station_id || "__default__";
+          if (!stationItems[sid]) stationItems[sid] = [];
+          stationItems[sid].push({
+            id: item.product_id || item.id,
+            name: item.name,
+            quantity: item.qty,
+            price: item.unit_price,
+            note: item.note || undefined,
+            stationId: item.station_id || undefined,
+            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
           });
+        });
 
-          // Send one kitchen print per station
-          Object.entries(stationItems).forEach(([sid, items]) => {
-            const kitchenOrder: BridgePrintOrder = {
-              ...bridgeOrder,
-              items,
-              stationId: sid === "__default__" ? undefined : sid,
-            };
-            sendToBridge("kitchen", kitchenOrder).catch(() => console.warn(`Kitchen print failed for station ${sid}`));
-          });
-        } catch (stationErr) {
-          // Fallback: send all items as kitchen with no stationId
-          sendToBridge("kitchen", bridgeOrder).catch(() => console.warn("Kitchen print fallback failed"));
-        }
+        await Promise.all(
+          Object.entries(stationItems)
+            .filter(([sid]) => sid !== "__default__")
+            .map(([sid, items]) => {
+              const kitchenOrder: BridgePrintOrder = {
+                ...bridgeOrder,
+                items,
+                stationId: sid,
+              };
+              return sendToBridge("kitchen", kitchenOrder);
+            })
+        ).catch(() => console.warn("Kitchen print failed for one or more stations"));
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
       }
@@ -3201,7 +3194,7 @@ const POSPage = () => {
             quantity: item.qty,
             price: item.unit_price,
             note: item.note || undefined,
-            printerKey: "kitchen" as const,
+            stationId: item.station_id || undefined,
             modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
           })),
           subtotal: cartTotals.subtotal,
@@ -3209,7 +3202,30 @@ const POSPage = () => {
           total: cartTotals.total,
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
-        bridgePrintAll(f8Order);
+        sendToBridge("receipt", f8Order).catch(() => console.warn("Receipt print failed"));
+        const stationItems: Record<string, typeof f8Order.items> = {};
+        cart.forEach(item => {
+          const sid = item.station_id || "__default__";
+          if (!stationItems[sid]) stationItems[sid] = [];
+          stationItems[sid].push({
+            id: item.product_id || item.id,
+            name: item.name,
+            quantity: item.qty,
+            price: item.unit_price,
+            note: item.note || undefined,
+            stationId: item.station_id || undefined,
+            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
+          });
+        });
+        const defaultItems = stationItems["__default__"] || [];
+        if (defaultItems.length > 0) {
+          sendToBridge("kitchen", { ...f8Order, items: defaultItems }).catch(() => console.warn("Default kitchen print failed"));
+        }
+        Object.entries(stationItems)
+          .filter(([sid]) => sid !== "__default__")
+          .forEach(([sid, items]) => {
+            sendToBridge("kitchen", { ...f8Order, items, stationId: sid }).catch(() => console.warn(`Kitchen print failed for station ${sid}`));
+          });
         e.preventDefault();
         return;
       }
