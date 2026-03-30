@@ -162,6 +162,9 @@ export default function WorkshopsPage() {
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [customerBalance, setCustomerBalance] = useState(0);
+  const [invItems, setInvItems] = useState<any[]>([]);
+  const [invLoading, setInvLoading] = useState(false);
+  const [transferWsId, setTransferWsId] = useState<Record<string, string>>({});
 
   // Contacts for search
   const [contacts, setContacts] = useState<Contact[]>([]);
