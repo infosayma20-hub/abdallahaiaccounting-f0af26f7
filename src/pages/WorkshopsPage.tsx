@@ -787,7 +787,7 @@ export default function WorkshopsPage() {
             <div className="flex gap-2 flex-wrap text-xs">
               {selectedWorkshop.workshop_type && selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
                 const wt = WORKSHOP_TYPES.find(x => x.value === t);
-                return wt ? <Badge key={t} variant="outline">{wt.icon} {wt.label}</Badge> : null;
+                return wt ? <Badge key={t} variant="outline"><wt.Icon className="h-3.5 w-3.5 inline-block ml-1" /> {wt.label}</Badge> : null;
               })}
               {selectedWorkshop.area_sqm ? <Badge variant="outline">📐 {selectedWorkshop.area_sqm} م²</Badge> : null}
               {selectedWorkshop.area_sqm && costSummary.total > 0 ? (
