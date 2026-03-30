@@ -66,12 +66,13 @@ export default function PrinterSettingsPage() {
 
   const testPrinter = async (printer: PrinterRecord) => {
     setTesting(printer.id);
-    const testOrder = {
+    const testOrder: PrintOrder = {
       orderNumber: "TEST-001",
       branchName: "فرع سفيان — اختبار طباعة",
       cashier: "النظام",
       tableNumber: "5",
       orderType: "اختبار",
+      stationId: (printer.station_ids || [])[0] || undefined,
       items: [{
         id: "1", name: `اختبار — ${printer.name}`,
         quantity: 1, price: 0,
