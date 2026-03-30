@@ -1955,7 +1955,7 @@ const AccountStatementPage = () => {
                     </div>
 
                     {/* 4 KPI Cards — redesigned with colored left border */}
-                    <div className="p-5 border-b border-border">
+                    <div className="sticky z-10 bg-background border-b border-border shadow-sm" style={{ top: "112px", padding: "12px 20px" }}>
                       <div className={cn("grid gap-4", isMobile ? "grid-cols-2" : "grid-cols-4")}>
                         {/* Opening Balance */}
                         <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #94A3B8", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
