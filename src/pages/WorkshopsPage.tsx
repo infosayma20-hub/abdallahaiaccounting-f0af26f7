@@ -860,6 +860,7 @@ export default function WorkshopsPage() {
                     else if (selectedWorkshop.customer_name) params.set("contact_name", selectedWorkshop.customer_name);
                     if (selectedWorkshop.total_budget) params.set("amount", String(selectedWorkshop.total_budget));
                     params.set("notes", `ورشة: ${selectedWorkshop.name}`);
+                    params.set("workshop_id", selectedWorkshop.id);
                     navigate(`/invoices/new?${params.toString()}`);
                   }}>
                     <FileText className="h-3.5 w-3.5" /> فاتورة مبيعات للعميل
@@ -984,8 +985,14 @@ export default function WorkshopsPage() {
                 </Button>
               </div>
               <Button size="sm" className="w-full h-10 text-sm font-bold gap-2 text-white" style={{ background: "#0D1B2E", borderRadius: 10 }} onClick={() => {
-                setInvoiceForm({ amount: selectedWorkshop.total_budget - totalPaid, payment_method: "آجل", description: "" });
-                setShowInvoiceDialog(true);
+                const params = new URLSearchParams();
+                if (selectedWorkshop.contact_id) params.set("contact_id", selectedWorkshop.contact_id);
+                else if (selectedWorkshop.customer_name) params.set("contact_name", selectedWorkshop.customer_name);
+                const invoiceAmount = selectedWorkshop.total_budget > 0 ? selectedWorkshop.total_budget : costSummary.total;
+                if (invoiceAmount > 0) params.set("amount", String(invoiceAmount));
+                params.set("notes", `ورشة: ${selectedWorkshop.name}`);
+                params.set("workshop_id", selectedWorkshop.id);
+                navigate(`/invoices/new?${params.toString()}`);
               }}>
                 🧾 فوترة واكتمال
               </Button>
@@ -1135,59 +1142,7 @@ export default function WorkshopsPage() {
           budget={selectedWorkshop.total_budget} costs={costs} totalPaid={totalPaid}
         />
 
-        {/* ── Invoice/Complete Dialog ── */}
-        <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
-          <DialogContent className="max-w-sm" dir="rtl">
-            <DialogHeader>
-              <DialogTitle>💰 فوترة الورشة وإكمالها</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 py-2">
-              <div className="p-3 rounded-lg bg-accent/5 border border-border space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">إجمالي التكاليف</span>
-                  <span className="font-bold text-destructive">{costSummary.total.toLocaleString()} ₪</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">الميزانية</span>
-                  <span className="font-bold text-foreground">{selectedWorkshop.total_budget.toLocaleString()} ₪</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label>مبلغ الفاتورة (₪)</Label>
-                <Input type="number" value={invoiceForm.amount || ""} onChange={e => setInvoiceForm(f => ({ ...f, amount: Number(e.target.value) }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>طريقة الدفع</Label>
-                <div className="flex gap-1">
-                  {["نقدي", "بنك", "آجل"].map(m => (
-                    <button key={m} onClick={() => setInvoiceForm(f => ({ ...f, payment_method: m }))}
-                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
-                        invoiceForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                      }`}>{m}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label>وصف</Label>
-                <Input value={invoiceForm.description} onChange={e => setInvoiceForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder={`إيرادات ورشة ${selectedWorkshop.name}`} />
-              </div>
-              {invoiceForm.amount > 0 && (
-                <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-center">
-                  <p className="text-xs text-muted-foreground">الربح الصافي</p>
-                  <p className={`text-lg font-bold ${(invoiceForm.amount - costSummary.total) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                    {(invoiceForm.amount - costSummary.total).toLocaleString()} ₪
-                  </p>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowInvoiceDialog(false)}>إلغاء</Button>
-              <Button onClick={handleInvoiceWorkshop} disabled={invoiceForm.amount <= 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white">تأكيد الفوترة</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Invoice dialog removed — now uses /invoices/new */}
 
         {/* ── Financial Claim Modal ── */}
         <FinancialClaimModal
