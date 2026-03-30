@@ -198,52 +198,61 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-[4px]" onClick={onClose} />
 
       {/* Centered Modal */}
       <div
-        className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 rounded-2xl"
-        style={{ width: "min(680px, 95vw)", maxHeight: "min(88vh, 860px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+        className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300"
+        style={{ width: "min(560px, 95vw)", maxHeight: "min(88vh, 860px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)", borderRadius: 16 }}
         dir="rtl"
       >
-        {/* Header */}
-        <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: gradients[normalizedType] }}>
+        {/* Header — gradient navy */}
+        <div className="px-5 py-4 text-white shrink-0" style={{ background: "linear-gradient(135deg, #0D1B2E, #1B3A5C)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                {normalizedType === "main" ? <Landmark className="h-5 w-5" /> : normalizedType === "branch" ? <Building2 className="h-5 w-5" /> : normalizedType === "petty" ? <Wallet className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-lg">
+                {normalizedType === "main" ? "🏛️" : normalizedType === "branch" ? "🏪" : normalizedType === "petty" ? "💰" : "🖥️"}
               </div>
               <div>
-                <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[normalizedType]}</h2>
-                <p className="text-xs text-white/60">تعريف صندوق جديد وربطه بشجرة الحسابات</p>
+                <h2 className="text-base font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[normalizedType]}</h2>
+                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>تعريف صندوق جديد وربطه بشجرة الحسابات</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/20 transition-colors"><X className="h-5 w-5" /></button>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/20 transition-colors text-white"><X className="h-5 w-5" /></button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {/* Type Selector */}
           {!editBox && (
             <div>
-              <Label className="text-xs font-bold mb-2 block">نوع الصندوق</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <label className="text-[13px] font-bold text-muted-foreground mb-2 block">نوع الصندوق</label>
+              <div className="grid grid-cols-4 gap-2">
                 {([
-                  { key: "main" as const, icon: "🏛️", label: "رئيسي", desc: "صندوق أم يستقبل كل التحويلات" },
-                  { key: "branch" as const, icon: "🏪", label: "فرع", desc: "صندوق فرع يُرحَّل للرئيسي" },
-                  { key: "pos" as const, icon: "🖥️", label: "نقطة بيع", desc: "مرتبط بـ POS يستقبل مبيعات" },
-                  { key: "petty" as const, icon: "🗃️", label: "نثرية", desc: "مصروفات صغيرة ومتكررة" },
+                  { key: "main" as const, icon: "🏛️", label: "رئيسي", desc: "يستقبل كل التحويلات" },
+                  { key: "branch" as const, icon: "🏪", label: "فرع", desc: "صندوق فرع" },
+                  { key: "pos" as const, icon: "🖥️", label: "نقطة بيع", desc: "مربوط بـ POS" },
+                  { key: "petty" as const, icon: "💰", label: "نثرية", desc: "مصروفات صغيرة" },
                 ]).map(t => (
                   <button
                     key={t.key}
                     onClick={() => setBoxType(t.key)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${boxType === t.key ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
+                    className="relative p-3 text-center transition-all"
+                    style={{
+                      borderRadius: 10,
+                      border: boxType === t.key ? "2px solid #1B3A5C" : "1px solid #E2E8F0",
+                      background: boxType === t.key ? "#EEF2FF" : "#fff",
+                    }}
                   >
-                    <span className="text-2xl block mb-1">{t.icon}</span>
-                    <p className="text-xs font-bold">{t.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t.desc}</p>
-                    {boxType === t.key && <Check className="h-4 w-4 text-primary mx-auto mt-1" />}
+                    {boxType === t.key && (
+                      <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-[#1B3A5C] flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-white" />
+                      </div>
+                    )}
+                    <span className="text-xl block mb-0.5">{t.icon}</span>
+                    <p className="text-xs font-bold text-foreground">{t.label}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{t.desc}</p>
                   </button>
                 ))}
               </div>
@@ -258,22 +267,22 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           {/* Box Info */}
           <div className="space-y-4">
             <div>
-              <Label className="text-xs font-bold">اسم الصندوق *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder={placeholders[boxType]} className="mt-1 h-11" />
+              <label className="text-[13px] font-bold text-muted-foreground block mb-1">اسم الصندوق *</label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder={placeholders[boxType]} className="h-11" style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
             </div>
             <div>
-              <Label className="text-xs font-bold">الفرع / الموقع</Label>
-              <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="مثال: فرع رام الله" className="mt-1 h-11" />
+              <label className="text-[13px] font-bold text-muted-foreground block mb-1">الفرع / الموقع</label>
+              <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="مثال: فرع رام الله" className="h-11" style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
             </div>
             {/* Branch Link for POS/Branch boxes */}
             {(boxType === "pos" || boxType === "branch") && branchesList.length > 0 && (
               <div>
-                <Label className="text-xs font-bold flex items-center gap-1">
+                <label className="text-[13px] font-bold text-muted-foreground flex items-center gap-1 mb-1">
                   ربط بفرع (للكول سنتر) 
                   <span className="text-[10px] text-muted-foreground font-normal">— مهم لتوصيل الفواتير</span>
-                </Label>
+                </label>
                 <Select value={selectedBranchId || "none"} onValueChange={v => setSelectedBranchId(v === "none" ? null : v)}>
-                  <SelectTrigger className="mt-1 h-11">
+                  <SelectTrigger className="h-11" style={{ borderRadius: 8, borderColor: "#CBD5E1" }}>
                     <SelectValue placeholder="اختر الفرع..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,46 +294,62 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
                 </Select>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs font-bold">العملة الأساسية</Label>
-                <div className="flex gap-2 mt-1">
-                  {[{ key: "ILS", label: "₪ شيكل" }, { key: "USD", label: "$ دولار" }, { key: "JOD", label: "د.أ دينار" }].map(c => (
-                    <button key={c.key} onClick={() => setCurrency(c.key)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${currency === c.key ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
+
+            {/* Currency chips */}
+            <div>
+              <label className="text-[13px] font-bold text-muted-foreground block mb-1">العملة الأساسية</label>
+              <div className="flex gap-2">
+                {[{ key: "ILS", label: "₪ شيكل" }, { key: "USD", label: "$ دولار" }, { key: "JOD", label: "د.أ دينار" }].map(c => (
+                  <button key={c.key} onClick={() => setCurrency(c.key)}
+                    className="px-4 py-2 text-xs font-bold transition-all"
+                    style={{
+                      borderRadius: 8,
+                      background: currency === c.key ? "#0D1B2E" : "#F8FAFC",
+                      color: currency === c.key ? "#fff" : "#475569",
+                      border: currency === c.key ? "1px solid #0D1B2E" : "1px solid #CBD5E1",
+                    }}>
+                    {c.label}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Balance + Date row */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs font-bold">الرصيد الافتتاحي</Label>
-                <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" className="mt-1 h-11 font-mono" />
+                <label className="text-[13px] font-bold text-muted-foreground block mb-1">الرصيد الافتتاحي</label>
+                <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" className="h-11 font-mono" style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
               </div>
               <div>
-                <Label className="text-xs font-bold">تاريخ الرصيد</Label>
-                <Input type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className="mt-1 h-11" />
+                <label className="text-[13px] font-bold text-muted-foreground block mb-1">تاريخ الرصيد</label>
+                <Input type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className="h-11" style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Alert limits row */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs font-bold">حد التنبيه (الحد الأدنى)</Label>
-                <Input type="number" value={minAlert} onChange={e => setMinAlert(e.target.value)} placeholder="₪ 0.00" className="mt-1 h-11 font-mono" />
+                <label className="text-[13px] font-bold text-muted-foreground block mb-1">حد التنبيه (الحد الأدنى)</label>
+                <Input type="number" value={minAlert} onChange={e => setMinAlert(e.target.value)} placeholder="₪ 0.00" className="h-11 font-mono" style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
               </div>
               <div>
-                <Label className="text-xs font-bold">الحد الأقصى المسموح</Label>
-                <Input type="number" value={maxAlert} onChange={e => setMaxAlert(e.target.value)} placeholder="₪ 0.00" className="mt-1 h-11 font-mono" />
+                <label className="text-[13px] font-bold text-muted-foreground block mb-1">الحد الأقصى المسموح</label>
+                <Input type="number" value={maxAlert} onChange={e => setMaxAlert(e.target.value)} placeholder="₪ 0.00" className="h-11 font-mono" style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
               </div>
             </div>
             {maxAlert && (
               <div className="flex items-center gap-3">
-                <Label className="text-xs">عند تجاوز الحد:</Label>
+                <label className="text-xs text-muted-foreground">عند تجاوز الحد:</label>
                 <div className="flex gap-2">
                   {[{ key: "warn", label: "تنبيه فقط" }, { key: "block", label: "منع الإيداع" }].map(a => (
                     <button key={a.key} onClick={() => setMaxAction(a.key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${maxAction === a.key ? "border-primary bg-primary/10" : "border-border"}`}>
+                      className="px-3 py-1.5 text-xs font-medium transition-all"
+                      style={{
+                        borderRadius: 8,
+                        background: maxAction === a.key ? "#0D1B2E" : "#F8FAFC",
+                        color: maxAction === a.key ? "#fff" : "#475569",
+                        border: maxAction === a.key ? "1px solid #0D1B2E" : "1px solid #CBD5E1",
+                      }}>
                       {a.label}
                     </button>
                   ))}
@@ -339,7 +364,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
             {!editBox && (
               <div className="flex items-center gap-3">
                 <Switch checked={autoCreateAccount} onCheckedChange={setAutoCreateAccount} />
-                <Label className="text-xs">إنشاء حساب محاسبي جديد تلقائياً</Label>
+                <label className="text-xs">إنشاء حساب محاسبي جديد تلقائياً</label>
               </div>
             )}
             {autoCreateAccount && !editBox ? (
@@ -351,9 +376,9 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               </div>
             ) : (
               <div>
-                <Label className="text-xs">ربط بحساب موجود</Label>
+                <label className="text-xs text-muted-foreground">ربط بحساب موجود</label>
                 <Select value={existingAccountCode} onValueChange={setExistingAccountCode}>
-                  <SelectTrigger className="mt-1 h-11"><SelectValue placeholder="اختر حساب نقدية..." /></SelectTrigger>
+                  <SelectTrigger className="mt-1 h-11" style={{ borderRadius: 8, borderColor: "#CBD5E1" }}><SelectValue placeholder="اختر حساب نقدية..." /></SelectTrigger>
                   <SelectContent>
                     {cashAccounts.map(a => (
                       <SelectItem key={a.account_code} value={a.account_code}>
@@ -373,11 +398,11 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               <h3 className="text-xs font-bold">ترحيل للرئيسي</h3>
               <div className="flex items-center gap-3">
                 <Switch checked={autoTransfer} onCheckedChange={setAutoTransfer} />
-                <Label className="text-xs">ترحيل تلقائي للصندوق الرئيسي</Label>
+                <label className="text-xs">ترحيل تلقائي للصندوق الرئيسي</label>
               </div>
               {autoTransfer && (
                 <Select value={autoTransferTrigger} onValueChange={setAutoTransferTrigger}>
-                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10" style={{ borderRadius: 8, borderColor: "#CBD5E1" }}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="end_of_day">نهاية كل يوم</SelectItem>
                     <SelectItem value="threshold">عند تجاوز مبلغ محدد</SelectItem>
@@ -394,11 +419,11 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               <h3 className="text-xs font-bold">إعدادات نقطة البيع</h3>
               <div className="flex items-center gap-3">
                 <Switch checked={posAutoPost} onCheckedChange={setPosAutoPost} />
-                <Label className="text-xs">ترحيل مبيعات POS تلقائياً</Label>
+                <label className="text-xs">ترحيل مبيعات POS تلقائياً</label>
               </div>
               {posAutoPost && (
                 <Select value={posPostTrigger} onValueChange={setPosPostTrigger}>
-                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10" style={{ borderRadius: 8, borderColor: "#CBD5E1" }}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="shift_close">عند إغلاق الوردية</SelectItem>
                     <SelectItem value="end_of_day">نهاية اليوم</SelectItem>
@@ -408,30 +433,32 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               )}
               <div className="flex items-center gap-3">
                 <Switch checked={autoTransfer} onCheckedChange={setAutoTransfer} />
-                <Label className="text-xs">ترحيل تلقائي للصندوق الرئيسي</Label>
+                <label className="text-xs">ترحيل تلقائي للصندوق الرئيسي</label>
               </div>
             </div>
           )}
 
           {/* Notes */}
           <div>
-            <Label className="text-xs font-bold">ملاحظات</Label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="mt-1" placeholder="ملاحظات إضافية..." />
+            <label className="text-[13px] font-bold text-muted-foreground block mb-1">ملاحظات</label>
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="ملاحظات إضافية..." style={{ borderRadius: 8, borderColor: "#CBD5E1" }} />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 border-t bg-muted/30 p-4 flex items-center gap-3">
-          <Button variant="ghost" onClick={onClose} className="h-11 px-6">إلغاء</Button>
+        <div className="shrink-0 border-t p-4 space-y-2">
           <Button
-            className="flex-1 h-11 text-base font-bold gap-2 text-white"
-            style={{ background: normalizedType === "main" ? "#0A2342" : normalizedType === "branch" ? "#059669" : normalizedType === "petty" ? "#D97706" : "#7C3AED" }}
+            className="w-full h-12 text-base font-bold gap-2 text-white hover:opacity-90 transition-opacity"
+            style={{ background: "#0D1B2E", borderRadius: 10 }}
             disabled={saving || !name.trim() || (normalizedType === "main" && hasMainBox && !editBox)}
             onClick={handleSave}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             {editBox ? "حفظ التعديلات" : "✓ إنشاء الصندوق"}
           </Button>
+          <button onClick={onClose} className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-1">
+            إلغاء
+          </button>
         </div>
       </div>
     </>
