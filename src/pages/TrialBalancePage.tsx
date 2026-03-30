@@ -316,7 +316,7 @@ const TrialBalancePage = () => {
     const grandClosingCredit = rows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
     return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
-  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
+  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, showDetailedAccounts, prevPeriod]);
 
   // Search filter
   const filteredRows = useMemo(() => {
