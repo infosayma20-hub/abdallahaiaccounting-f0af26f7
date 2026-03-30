@@ -1451,6 +1451,126 @@ export default function WorkshopsPage() {
   }
 
   /* ════════════════════════════════════════════ */
+  /* ── Inventory View ── */
+  /* ════════════════════════════════════════════ */
+  if (view === "inventory") {
+    const [invItems, setInvItems] = useState<any[]>([]);
+    const [invLoading, setInvLoading] = useState(true);
+    const [transferWsId, setTransferWsId] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+      const load = async () => {
+        setInvLoading(true);
+        const { data } = await supabase.from("workshop_material_inventory" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+        setInvItems((data as any[]) || []);
+        setInvLoading(false);
+      };
+      load();
+    }, []);
+
+    const handleTransfer = async (item: any) => {
+      const targetId = transferWsId[item.id];
+      if (!targetId) { toast.error("اختر ورشة"); return; }
+      const targetWs = workshops.find(w => w.id === targetId);
+      const glInfo = CATEGORY_GL_MAP[item.material_category] || CATEGORY_GL_MAP.other;
+
+      await supabase.from("transactions").insert({
+        user_id: user!.id, transaction_date: format(new Date(), "yyyy-MM-dd"),
+        description: `نقل مواد (${item.material_type}) من المخزون لورشة ${targetWs?.name || ""}`,
+        debit_account_code: glInfo.debit, credit_account_code: "1140",
+        amount: item.total_value, currency: "شيكل", transaction_type: "workshop_cost",
+        reference: `WS-INV-TRNSFR`, payment_method: "مخزون",
+        idempotency_key: `WS-INV-T-${item.id}-${Date.now()}`,
+      } as any);
+
+      await supabase.from("workshop_costs").insert({
+        workshop_id: targetId, user_id: user!.id, cost_type: "other",
+        category: item.material_category, description: `نقل من المخزون: ${item.material_type}`,
+        amount: item.total_value, cost_date: format(new Date(), "yyyy-MM-dd"),
+        quantity: item.quantity, unit: item.unit, unit_price: item.unit_cost,
+        payment_method: "مخزون", phase: "preparation",
+      } as any);
+
+      await supabase.from("workshop_material_inventory" as any).update({
+        status: "transferred", target_workshop_id: targetId,
+      }).eq("id", item.id);
+
+      toast.success(`✅ تم نقل ${item.quantity} ${item.unit} لورشة ${targetWs?.name}`);
+      setInvItems(prev => prev.map(i => i.id === item.id ? { ...i, status: "transferred" } : i));
+    };
+
+    const available = invItems.filter(i => i.status === "available");
+    const used = invItems.filter(i => i.status !== "available");
+
+    return (
+      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5" dir="rtl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setView("workshops")}><ArrowRight className="h-5 w-5" /></Button>
+            <h1 className="text-xl font-bold text-foreground">📦 مخزون المواد المتاحة</h1>
+          </div>
+        </div>
+
+        {invLoading ? (
+          <div className="text-center py-16 text-muted-foreground">جاري التحميل...</div>
+        ) : available.length === 0 ? (
+          <div className="text-center py-16 space-y-3">
+            <Package className="h-16 w-16 mx-auto text-muted-foreground/30" />
+            <p className="text-muted-foreground">لا توجد مواد متاحة في المخزون حالياً</p>
+            <p className="text-xs text-muted-foreground">عند شراء مواد بكمية أكبر من المستخدم في الورشة، سيظهر الفائض هنا</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" style={{ minWidth: 700 }}>
+                <thead>
+                  <tr className="text-white" style={{ background: "#0D1B2E" }}>
+                    <th className="text-right py-2.5 px-3 font-medium">المادة</th>
+                    <th className="text-right py-2.5 px-3 font-medium">الكمية</th>
+                    <th className="text-right py-2.5 px-3 font-medium">القيمة</th>
+                    <th className="text-right py-2.5 px-3 font-medium">المورد</th>
+                    <th className="text-right py-2.5 px-3 font-medium">المصدر</th>
+                    <th className="text-right py-2.5 px-3 font-medium">إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {available.map(item => {
+                    const sourceWs = workshops.find(w => w.id === item.source_workshop_id);
+                    return (
+                      <tr key={item.id} className="border-b border-border/50 hover:bg-accent/5">
+                        <td className="py-2 px-3 font-medium">{item.material_type}</td>
+                        <td className="py-2 px-3">{item.quantity} {item.unit}</td>
+                        <td className="py-2 px-3 font-bold">{(item.total_value || 0).toLocaleString()} ₪</td>
+                        <td className="py-2 px-3 text-muted-foreground">{item.supplier_name || "—"}</td>
+                        <td className="py-2 px-3 text-muted-foreground">{sourceWs?.name || "—"}</td>
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={transferWsId[item.id] || ""}
+                              onChange={e => setTransferWsId(prev => ({ ...prev, [item.id]: e.target.value }))}
+                              className="text-xs border border-border rounded px-1 py-1 bg-background"
+                            >
+                              <option value="">نقل لورشة...</option>
+                              {workshops.filter(w => w.status === "active").map(w => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                              ))}
+                            </select>
+                            <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={!transferWsId[item.id]} onClick={() => handleTransfer(item)}>نقل</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════ */
   /* ── Reports View ── */
   /* ════════════════════════════════════════════ */
   if (view === "reports") {
