@@ -426,7 +426,7 @@ export const generateStatementPDF = (
       );
       doc.setFontSize(6.5);
       doc.setFont('Amiri', 'normal');
-      doc.setTextColor(120, 100, 40);
+      doc.setTextColor(100, 116, 139);
       doc.text(ar('يرجى التواصل لترتيب السداد'), W / 2, currentY + 11, { align: 'center' });
       currentY += 18;
     }
