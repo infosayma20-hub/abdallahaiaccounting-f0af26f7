@@ -1686,6 +1686,7 @@ const POSPage = () => {
           unit: product.unit,
           total: itemQty * unitPrice,
           note: note || "",
+          station_id: product.kitchen_station_id,
           modifiers,
         },
       ]);
