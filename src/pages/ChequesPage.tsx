@@ -124,6 +124,7 @@ const ChequesPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState('all');
 
   interface ChequeRow {
     cheque_type: ChequeType;
@@ -674,139 +675,159 @@ const ChequesPage = () => {
   const bulkType = bulkSameType ? selectedCheques[0]?.cheque_type : null;
   const bulkActions = (bulkStatus && bulkType) ? getAvailableActions(bulkStatus as ChequeStatus, bulkType) : [];
 
+  // Tab definitions
+  const tabs = [
+    { key: 'all', label: 'الكل', count: cheques.length },
+    { key: 'وارد', label: 'واردة', count: cheques.filter(c => c.cheque_type === 'وارد').length },
+    { key: 'صادر', label: 'صادرة', count: cheques.filter(c => c.cheque_type === 'صادر').length },
+    { key: 'معلقة', label: 'معلقة', count: cheques.filter(c => PENDING_STATUSES.includes(c.status)).length },
+    { key: 'مستحقة', label: 'مستحقة قريباً', count: dueWithin7.length },
+  ];
+
+  const applyTab = (key: string) => {
+    if (key === 'all') { setFilterType('all'); setFilterStatus('الكل'); }
+    else if (key === 'وارد') { setFilterType('وارد'); setFilterStatus('الكل'); }
+    else if (key === 'صادر') { setFilterType('صادر'); setFilterStatus('الكل'); }
+    else if (key === 'معلقة') { setFilterType('all'); setFilterStatus('الكل'); }
+    else if (key === 'مستحقة') { setFilterType('all'); setFilterStatus('الكل'); }
+    setPage(1);
+  };
+
+  const handleTab = (key: string) => { setActiveTab(key); applyTab(key); };
+
+  // Apply tab-level filtering
+  const tabFiltered = useMemo(() => {
+    if (activeTab === 'معلقة') return filtered.filter(c => PENDING_STATUSES.includes(c.status));
+    if (activeTab === 'مستحقة') return filtered.filter(c => PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+    return filtered;
+  }, [filtered, activeTab, sevenDaysFromNow, today]);
+
+  const tabSorted = useMemo(() => {
+    const arr = [...tabFiltered];
+    arr.sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === 'string') { av = (av || '').toLowerCase(); bv = (bv || '').toLowerCase(); }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [tabFiltered, sortKey, sortDir]);
+
+  const tabTotalPages = Math.max(1, Math.ceil(tabSorted.length / PER_PAGE));
+  const tabPaged = tabSorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      <PageHeader title="إدارة الشيكات" breadcrumb={["المالية", "الشيكات"]} />
-
-      {/* ============ STATS CARDS ============ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-2xl border p-4 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium mb-1">واردة معلقة</p>
-              <p className="text-lg font-bold text-emerald-600">₪{pendingIncoming.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{pendingIncoming.length} شيك</p>
-            </div>
-            <ArrowDownCircle className="h-5 w-5 text-emerald-600 opacity-50" />
-          </div>
+      {/* ============ HEADER ============ */}
+      <div>
+        <div className="mb-3 flex items-center gap-1 justify-start flex-wrap" style={{ fontSize: 13 }}>
+          <button onClick={() => {}} className="hover:underline transition-colors cursor-pointer" style={{ color: "#6B7280" }}>المالية</button>
+          <span className="mx-1" style={{ color: "#9CA3AF" }}>/</span>
+          <span style={{ color: "#1B3A5C", fontWeight: 500 }}>الشيكات</span>
         </div>
-
-        <div className="rounded-2xl border p-4 bg-destructive/5 border-destructive/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium mb-1">صادرة معلقة</p>
-              <p className="text-lg font-bold text-destructive">₪{pendingOutgoing.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{pendingOutgoing.length} شيك</p>
-            </div>
-            <ArrowUpCircle className="h-5 w-5 text-destructive opacity-50" />
-          </div>
-        </div>
-
-        <div className={`rounded-2xl border p-4 ${dueWithin7.length > 0 ? 'bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-800' : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium mb-1">مستحقة خلال 7 أيام</p>
-              <p className={`text-lg font-bold ${dueWithin7.length > 0 ? 'text-red-600' : 'text-yellow-600'}`}>₪{dueWithin7.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{dueWithin7.length} شيك</p>
-            </div>
-            <AlertTriangle className={`h-5 w-5 opacity-50 ${dueWithin7.length > 0 ? 'text-red-600 animate-pulse' : 'text-yellow-600'}`} />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border p-4 bg-primary/5 border-primary/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium mb-1">محصّلة هذا الشهر</p>
-              <p className="text-lg font-bold text-primary">₪{collectedThisMonth.reduce((s, c) => s + c.amount, 0).toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{collectedThisMonth.length} شيك</p>
-            </div>
-            <CheckCircle2 className="h-5 w-5 text-primary opacity-50" />
+        <div
+          className="w-full flex items-center justify-between overflow-hidden"
+          style={{ backgroundColor: "#1B3A5C", borderRadius: 12, borderTop: "3px solid #5B9BD5", padding: "10px 20px", height: 44 }}
+        >
+          <h1 style={{ fontFamily: "Tajawal, sans-serif", fontSize: 18, fontWeight: 500, color: "#FFFFFF", lineHeight: 1 }}>
+            إدارة الشيكات
+          </h1>
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="gap-1.5 rounded-lg text-xs h-8" style={{ background: "#0D1B2E", color: "#fff" }} onClick={() => openAddDialog('وارد')}>
+              <ArrowDownCircle className="h-3.5 w-3.5" /> شيك وارد
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg text-xs h-8 border-white/30 text-white hover:bg-white/10 hover:text-white" onClick={() => openAddDialog('صادر')}>
+              <ArrowUpCircle className="h-3.5 w-3.5" /> شيك صادر
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* ============ ACTION BUTTONS ============ */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button className="gap-1.5 rounded-xl shadow-sm" style={{ background: '#166534' }} onClick={() => openAddDialog('وارد')}>
-          <ArrowDownCircle className="h-4 w-4" /> شيك وارد
-        </Button>
-        <Button className="gap-1.5 rounded-xl shadow-sm bg-destructive hover:bg-destructive/90" onClick={() => openAddDialog('صادر')}>
-          <ArrowUpCircle className="h-4 w-4" /> شيك صادر
-        </Button>
+      {/* ============ STATS CARDS ============ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'واردة معلقة', amount: pendingIncoming.reduce((s, c) => s + c.amount, 0), count: pendingIncoming.length, icon: ArrowDownCircle, iconColor: '#0D1B2E', amountColor: '#0D1B2E' },
+          { label: 'صادرة معلقة', amount: pendingOutgoing.reduce((s, c) => s + c.amount, 0), count: pendingOutgoing.length, icon: ArrowUpCircle, iconColor: '#0D1B2E', amountColor: '#0D1B2E' },
+          { label: 'مستحقة خلال 7 أيام', amount: dueWithin7.reduce((s, c) => s + c.amount, 0), count: dueWithin7.length, icon: AlertTriangle, iconColor: '#D97706', amountColor: '#D97706' },
+          { label: 'محصّلة هذا الشهر', amount: collectedThisMonth.reduce((s, c) => s + c.amount, 0), count: collectedThisMonth.length, icon: CheckCircle2, iconColor: '#0D1B2E', amountColor: '#0D1B2E' },
+        ].map((card, i) => (
+          <div key={i} className="bg-white rounded-lg border p-4" style={{ borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>{card.label}</p>
+                <p className="text-xl font-bold" style={{ color: card.amountColor }}>₪{card.amount.toLocaleString()}</p>
+                <p className="text-[10px] mt-1" style={{ color: '#94A3B8' }}>{card.count} شيك</p>
+              </div>
+              <card.icon className="h-5 w-5 mt-0.5" style={{ color: card.iconColor, opacity: 0.6 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ============ FILTER TABS ============ */}
+      <div className="flex items-center gap-1 border-b" style={{ borderColor: '#E2E8F0' }}>
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => handleTab(t.key)}
+            className="px-4 py-2.5 text-xs font-medium transition-all relative"
+            style={{
+              color: activeTab === t.key ? '#0D1B2E' : '#64748B',
+              borderBottom: activeTab === t.key ? '2px solid #0D1B2E' : '2px solid transparent',
+              fontWeight: activeTab === t.key ? 600 : 400,
+            }}
+          >
+            {t.label}
+            {t.count > 0 && (
+              <span className="mr-1.5 text-[9px] px-1.5 py-0.5 rounded-full" style={{
+                background: activeTab === t.key ? '#0D1B2E' : '#F1F5F9',
+                color: activeTab === t.key ? '#fff' : '#64748B',
+              }}>{t.count}</span>
+            )}
+          </button>
+        ))}
         {cheques.length > 0 && (
-          <Button variant="outline" className="gap-1.5 rounded-xl mr-auto" onClick={exportExcel}>
-            <Download className="h-4 w-4" /> تصدير Excel
+          <Button variant="ghost" size="sm" className="mr-auto gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={exportExcel}>
+            <Download className="h-3.5 w-3.5" /> Excel
           </Button>
         )}
       </div>
 
-      {/* ============ FILTERS ============ */}
+      {/* ============ SEARCH + DATE FILTERS ============ */}
       {cheques.length > 0 && (
-        <div className="space-y-3">
-          {/* Type tabs */}
-          <div className="flex items-center gap-2">
-            {[
-              { key: 'all', label: 'الكل', emoji: '' },
-              { key: 'وارد', label: 'واردة', emoji: '🟢' },
-              { key: 'صادر', label: 'صادرة', emoji: '🔴' },
-            ].map(t => (
-              <button key={t.key} onClick={() => setFilterType(t.key)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${filterType === t.key ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                {t.emoji} {t.label}
-              </button>
-            ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#94A3B8' }} />
+            <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-lg" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }} />
+            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94A3B8' }}><X className="h-3.5 w-3.5" /></button>}
           </div>
-
-          {/* Status pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مصروف', 'مظهر', 'ملغي'].map(st => {
-              const count = st === 'الكل' ? cheques.length : cheques.filter(c => c.status === st && (filterType === 'all' || c.cheque_type === filterType)).length;
-              return (
-                <button key={st} onClick={() => setFilterStatus(st)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                    filterStatus === st ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}>
-                  {st}
-                  {count > 0 && <span className="text-[9px] bg-muted/50 rounded-full px-1.5">{count}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search + Date */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-              <Input placeholder="رقم الشيك، اسم الجهة، البنك..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10 rounded-xl bg-muted/30" />
-              {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Label className="text-[10px] text-muted-foreground whitespace-nowrap">من:</Label>
-              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-xl text-xs" />
-              <Label className="text-[10px] text-muted-foreground whitespace-nowrap">إلى:</Label>
-              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-xl text-xs" />
-              {(dateFrom || dateTo) && (
-                <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
-              )}
-            </div>
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[10px] whitespace-nowrap" style={{ color: '#64748B' }}>من:</Label>
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" style={{ borderColor: '#E2E8F0' }} />
+            <Label className="text-[10px] whitespace-nowrap" style={{ color: '#64748B' }}>إلى:</Label>
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-[140px] rounded-lg text-xs" style={{ borderColor: '#E2E8F0' }} />
+            {(dateFrom || dateTo) && (
+              <button onClick={() => { setDateFrom(''); setDateTo(''); }} style={{ color: '#94A3B8' }}><X className="h-3.5 w-3.5" /></button>
+            )}
           </div>
         </div>
       )}
 
       {/* ============ DUE ALERT ============ */}
       {dueWithin7.filter(c => c.cheque_date <= today).length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5">
+        <div className="rounded-lg border-2 p-3.5" style={{ borderColor: '#FBBF24', background: '#FFFBEB' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-destructive animate-pulse" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#FEF3C7' }}>
+                <AlertTriangle className="h-5 w-5" style={{ color: '#D97706' }} />
               </div>
               <div>
-                <p className="text-sm font-bold text-destructive">{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
-                <p className="text-xs text-destructive/70">بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
+                <p className="text-sm font-bold" style={{ color: '#92400E' }}>{dueWithin7.filter(c => c.cheque_date <= today).length} شيك مستحق اليوم</p>
+                <p className="text-xs" style={{ color: '#B45309' }}>بقيمة {dueWithin7.filter(c => c.cheque_date <= today).reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪</p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs" onClick={() => { setFilterStatus('مستحق'); setFilterType('all'); }}>
+            <Button size="sm" variant="outline" className="rounded-lg text-xs" style={{ borderColor: '#D97706', color: '#92400E' }} onClick={() => { handleTab('مستحقة'); }}>
               <Eye className="h-3.5 w-3.5 ml-1" />عرض
             </Button>
           </div>
@@ -814,33 +835,31 @@ const ChequesPage = () => {
       )}
 
       {/* Loading */}
-      {loading && <div className="flex items-center justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}
+      {loading && <div className="flex items-center justify-center py-20"><Loader2 className="h-10 w-10 animate-spin" style={{ color: '#0D1B2E' }} /></div>}
 
       {/* Empty */}
       {!loading && cheques.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4"><Banknote className="h-10 w-10 text-muted-foreground/40" /></div>
-          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد شيكات بعد</h3>
-          <p className="text-xs text-muted-foreground mb-4">سجّل أول شيك لبدء التتبع</p>
-          <div className="flex items-center gap-2 justify-center">
-            <Button className="rounded-xl gap-2" style={{ background: '#166534' }} onClick={() => openAddDialog('وارد')}><ArrowDownCircle className="h-4 w-4" /> شيك وارد</Button>
-            <Button className="rounded-xl gap-2 bg-destructive hover:bg-destructive/90" onClick={() => openAddDialog('صادر')}><ArrowUpCircle className="h-4 w-4" /> شيك صادر</Button>
+        <div className="text-center py-20">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#F1F5F9' }}>
+            <Banknote className="h-10 w-10" style={{ color: '#94A3B8' }} />
           </div>
+          <h3 className="text-base font-semibold mb-1" style={{ color: '#1E293B' }}>لا توجد شيكات بعد</h3>
+          <p className="text-xs" style={{ color: '#64748B' }}>سجّل أول شيك لبدء التتبع</p>
         </div>
       )}
 
       {/* No results */}
-      {!loading && cheques.length > 0 && filtered.length === 0 && (
+      {!loading && cheques.length > 0 && tabFiltered.length === 0 && (
         <div className="text-center py-12 space-y-2">
-          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-          <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); }}>مسح الفلاتر</Button>
+          <Search className="h-10 w-10 mx-auto" style={{ color: '#CBD5E1' }} />
+          <p className="text-sm" style={{ color: '#64748B' }}>لا توجد شيكات تطابق البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); setDateFrom(''); setDateTo(''); handleTab('all'); }}>مسح الفلاتر</Button>
         </div>
       )}
 
       {/* ============ TABLE ============ */}
-      {!loading && paged.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+      {!loading && tabPaged.length > 0 && (
+        <div className="rounded-lg border overflow-hidden" style={{ borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
               <colgroup>
@@ -856,8 +875,8 @@ const ChequesPage = () => {
                 <col style={{ width: 110 }} />
               </colgroup>
               <thead>
-                <tr className="bg-primary text-primary-foreground">
-                  <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" /></th>
+                <tr style={{ background: '#0D1B2E', color: '#fff' }}>
+                  <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-[#0D1B2E]" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">النوع</th>
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
@@ -870,7 +889,7 @@ const ChequesPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {paged.map((c, i) => {
+                {tabPaged.map((c, i) => {
                   const sc = statusConfig[c.status];
                   const actions = getAvailableActions(c.status, c.cheque_type);
                   const isSelected = selected.has(c.id);
@@ -879,19 +898,26 @@ const ChequesPage = () => {
                   const isDueSoon = PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
                   return (
                     <Fragment key={c.id}>
-                      <tr className={`border-b border-border/50 transition-colors cursor-pointer ${isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`} onClick={() => toggleExpand(c.id)}>
+                      <tr
+                        className="border-b transition-colors cursor-pointer hover:bg-[#F8FAFC]"
+                        style={{
+                          borderColor: '#E2E8F0',
+                          background: isSelected ? '#EFF6FF' : i % 2 === 0 ? '#fff' : '#F8FAFC',
+                        }}
+                        onClick={() => toggleExpand(c.id)}
+                      >
                         <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(c.id)} /></td>
                         <td className="px-2 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.cheque_type === 'وارد' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.cheque_type === 'وارد' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                             {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground font-mono truncate" dir="ltr">{c.cheque_number || "—"}</td>
-                        <td className="px-2 py-3"><p className="text-sm font-semibold text-foreground truncate">{c.party_name}</p></td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground truncate">{c.bank_name || '—'}</td>
-                        <td className={`px-2 py-3 text-sm font-bold tabular-nums ${c.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-destructive'}`}>{c.amount.toLocaleString()} ₪</td>
-                        <td className="px-2 py-3 text-[11px] text-muted-foreground tabular-nums">{fmtDate(c.created_at?.split('T')[0] || '')}</td>
-                        <td className={`px-2 py-3 text-[11px] tabular-nums ${isDueSoon ? 'text-red-600 font-bold' : 'text-muted-foreground'}`}>{fmtDate(c.cheque_date)}</td>
+                        <td className="px-2 py-3 text-xs font-mono truncate" dir="ltr" style={{ color: '#64748B' }}>{c.cheque_number || "—"}</td>
+                        <td className="px-2 py-3"><p className="text-sm font-semibold truncate" style={{ color: '#1E293B' }}>{c.party_name}</p></td>
+                        <td className="px-2 py-3 text-xs truncate" style={{ color: '#64748B' }}>{c.bank_name || '—'}</td>
+                        <td className="px-2 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{c.amount.toLocaleString()} ₪</td>
+                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: '#64748B' }}>{fmtDate(c.created_at?.split('T')[0] || '')}</td>
+                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
                         <td className="px-2 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />{sc.label}
@@ -902,7 +928,7 @@ const ChequesPage = () => {
                             {actions.length > 0 && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-all">
+                                  <button className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all" style={{ background: '#EFF6FF', color: '#0D1B2E' }}>
                                     <Zap className="h-3 w-3" />إجراء<ChevronDown className="h-3 w-3" />
                                   </button>
                                 </DropdownMenuTrigger>
@@ -918,15 +944,15 @@ const ChequesPage = () => {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
-                            <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-red-50 transition-colors" title="حذف">
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
                             </button>
                           </div>
                         </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${c.id}-details`}>
-                          <td colSpan={10} className="bg-muted/10 border-b border-border/50 px-6 py-4">
+                          <td colSpan={10} className="border-b px-6 py-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
                             <ChequeTimeline cheque={c} history={history} />
                           </td>
                         </tr>
@@ -936,31 +962,32 @@ const ChequesPage = () => {
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                  <td colSpan={5} className="px-2 py-3 text-right text-foreground">المجموع ({filtered.length} شيك)</td>
-                  <td className="px-2 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
-                  <td colSpan={4} className="px-2 py-3 text-xs text-muted-foreground font-normal">إجمالي قيمة الشيكات</td>
+                <tr className="border-t-2 font-bold text-sm" style={{ background: '#F8FAFC', borderColor: '#0D1B2E' }}>
+                  <td colSpan={5} className="px-2 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({tabFiltered.length} شيك)</td>
+                  <td className="px-2 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{tabFiltered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
+                  <td colSpan={4} className="px-2 py-3 text-xs font-normal" style={{ color: '#64748B' }}>إجمالي قيمة الشيكات</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
           {/* Pagination */}
-          {sorted.length > PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
-              <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
+          {tabSorted.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+              <p className="text-xs" style={{ color: '#64748B' }}>عرض {Math.min((page - 1) * PER_PAGE + 1, tabSorted.length)}–{Math.min(page * PER_PAGE, tabSorted.length)} من {tabSorted.length}</p>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
+                {Array.from({ length: tabTotalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(tabTotalPages, page + 2)).map(n => (
                   <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
                 ))}
-                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= tabTotalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
               </div>
-              <p className="text-xs text-muted-foreground">{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${totalPages}`}</p>
+              <p className="text-xs" style={{ color: '#64748B' }}>{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${tabTotalPages}`}</p>
             </div>
           )}
         </div>
       )}
+
 
       {/* ============ BULK ACTION BAR ============ */}
       {selected.size > 0 && (
