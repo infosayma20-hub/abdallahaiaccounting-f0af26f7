@@ -1212,238 +1212,313 @@ export default function WorkshopsPage() {
     const remaining = (selectedWorkshop.total_budget || 0) - totalPaid;
     const chequeTotal = chequeRows.reduce((s, r) => s + r.amount, 0);
     const chequeMismatch = paymentForm.payment_method === "شيك" && chequeRows.length > 0 && Math.abs(chequeTotal - paymentForm.amount) > 0.01;
+    const afterPayment = remaining - paymentForm.amount;
+    const canSave = paymentForm.amount > 0 && !(paymentForm.payment_method === "شيك" && (chequeRows.length === 0 || chequeMismatch));
 
     return (
       <div className="min-h-screen bg-background" dir="rtl">
-        <div className="max-w-3xl mx-auto px-4 py-6 pb-28 space-y-6">
+        <div className="w-full px-6 md:px-12 py-6 pb-28">
           {/* Header */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={() => setView("workshops")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-lg font-bold text-foreground">تسجيل دفعة جديدة</h1>
+              <h1 className="text-xl font-bold text-foreground">تسجيل دفعة جديدة</h1>
               <p className="text-sm text-muted-foreground">{selectedWorkshop.name} › {selectedWorkshop.customer_name || "بدون زبون"}</p>
             </div>
           </div>
 
-          {/* Financial Summary */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-border p-4 text-center">
-              <p className="text-[11px] text-muted-foreground mb-1">الميزانية</p>
-              <p className="text-lg font-bold text-foreground">{(selectedWorkshop.total_budget || 0).toLocaleString()} ₪</p>
-            </div>
-            <div className="rounded-xl p-4 text-center" style={{ border: "1px solid #93C5FD", background: "#EFF6FF" }}>
-              <p className="text-[11px] text-muted-foreground mb-1">المدفوع سابقاً</p>
-              <p className="text-lg font-bold" style={{ color: "#2563EB" }}>{totalPaid.toLocaleString()} ₪</p>
-            </div>
-            <div className="rounded-xl p-4 text-center" style={{ border: "1px solid #86EFAC", background: "#F0FDF4" }}>
-              <p className="text-[11px] text-muted-foreground mb-1">المتبقي</p>
-              <p className="text-lg font-bold" style={{ color: "#16A34A" }}>{remaining.toLocaleString()} ₪</p>
-            </div>
-          </div>
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            {/* RIGHT COLUMN — 60% — Payment Form */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Financial Summary Cards */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="rounded-xl border border-border p-5 text-center">
+                  <p className="text-xs text-muted-foreground mb-2">الميزانية</p>
+                  <p className="text-2xl font-bold text-foreground">{(selectedWorkshop.total_budget || 0).toLocaleString()} <span className="text-sm font-normal">₪</span></p>
+                </div>
+                <div className="rounded-xl p-5 text-center" style={{ border: "2px solid #93C5FD", background: "#EFF6FF" }}>
+                  <p className="text-xs text-muted-foreground mb-2">المدفوع سابقاً</p>
+                  <p className="text-2xl font-bold" style={{ color: "#2563EB" }}>{totalPaid.toLocaleString()} <span className="text-sm font-normal">₪</span></p>
+                </div>
+                <div className="rounded-xl p-5 text-center" style={{ border: `2px solid ${remaining < 0 ? "#FCA5A5" : "#86EFAC"}`, background: remaining < 0 ? "#FEF2F2" : "#F0FDF4" }}>
+                  <p className="text-xs text-muted-foreground mb-2">المتبقي</p>
+                  <p className="text-2xl font-bold" style={{ color: remaining < 0 ? "#DC2626" : "#16A34A" }}>{remaining.toLocaleString()} <span className="text-sm font-normal">₪</span></p>
+                </div>
+              </div>
 
-          {/* Payment Form */}
-          <div className="rounded-xl bg-card border border-border p-5 space-y-5">
-            {/* Amount + Date row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-bold">مبلغ الدفعة *</Label>
-                <Input type="number" value={paymentForm.amount || ""} onChange={e => setPaymentForm(f => ({ ...f, amount: Number(e.target.value) }))}
-                  placeholder="0.00" className="h-11 text-lg font-mono" style={{ borderRadius: 8 }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-bold">التاريخ *</Label>
-                <Input type="date" value={paymentForm.payment_date} onChange={e => setPaymentForm(f => ({ ...f, payment_date: e.target.value }))}
-                  className="h-11" style={{ borderRadius: 8 }} />
-              </div>
-            </div>
-
-            {/* Currency + Exchange */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">العملة</Label>
-                <select
-                  value={paymentForm.currency}
-                  onChange={e => {
-                    const code = e.target.value;
-                    const cur = currencies.find(c => c.code === code);
-                    setPaymentForm(f => ({ ...f, currency: code, exchange_rate: code === "ILS" ? 1 : (cur?.sell_rate || 1) }));
-                  }}
-                  className="w-full rounded-lg border border-border bg-background px-2 py-2.5 text-sm h-11"
-                >
-                  <option value="ILS">₪ شيكل</option>
-                  {currencies.filter(c => c.code !== "ILS").map(c => (
-                    <option key={c.code} value={c.code}>{c.code} {c.name_ar}</option>
-                  ))}
-                </select>
-              </div>
-              {paymentForm.currency !== "ILS" && (
-                <>
+              {/* Payment Form Card */}
+              <div className="rounded-xl bg-card border border-border p-6 space-y-5">
+                {/* Amount + Date */}
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">سعر الصرف</Label>
-                    <Input type="number" step="0.01" value={paymentForm.exchange_rate || ""} onChange={e => setPaymentForm(f => ({ ...f, exchange_rate: Number(e.target.value) }))} dir="ltr" className="h-11" />
+                    <Label className="text-sm font-bold">مبلغ الدفعة *</Label>
+                    <Input type="number" value={paymentForm.amount || ""} onChange={e => setPaymentForm(f => ({ ...f, amount: Number(e.target.value) }))}
+                      placeholder="0.00" className="h-12 text-xl font-mono" style={{ borderRadius: 8 }} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">المعادل بالشيكل</Label>
-                    <div className="flex items-center h-11 px-3 rounded-lg border border-border bg-muted/30 text-sm font-bold">
-                      {(paymentForm.amount * paymentForm.exchange_rate).toLocaleString()} ₪
+                    <Label className="text-sm font-bold">التاريخ *</Label>
+                    <Input type="date" value={paymentForm.payment_date} onChange={e => setPaymentForm(f => ({ ...f, payment_date: e.target.value }))}
+                      className="h-12" style={{ borderRadius: 8 }} />
+                  </div>
+                </div>
+
+                {/* Currency + Notes row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">العملة</Label>
+                    <select
+                      value={paymentForm.currency}
+                      onChange={e => {
+                        const code = e.target.value;
+                        const cur = currencies.find(c => c.code === code);
+                        setPaymentForm(f => ({ ...f, currency: code, exchange_rate: code === "ILS" ? 1 : (cur?.sell_rate || 1) }));
+                      }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
+                    >
+                      <option value="ILS">₪ شيكل</option>
+                      {currencies.filter(c => c.code !== "ILS").map(c => (
+                        <option key={c.code} value={c.code}>{c.code} {c.name_ar}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">مرجع / ملاحظة</Label>
+                    <Input value={paymentForm.description} onChange={e => setPaymentForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="مثل: دفعة أولى 50%..." className="h-12" style={{ borderRadius: 8 }} />
+                  </div>
+                </div>
+
+                {paymentForm.currency !== "ILS" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">سعر الصرف</Label>
+                      <Input type="number" step="0.01" value={paymentForm.exchange_rate || ""} onChange={e => setPaymentForm(f => ({ ...f, exchange_rate: Number(e.target.value) }))} dir="ltr" className="h-12" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">المعادل بالشيكل</Label>
+                      <div className="flex items-center h-12 px-4 rounded-lg border border-border bg-muted/30 text-sm font-bold">
+                        {(paymentForm.amount * paymentForm.exchange_rate).toLocaleString()} ₪
+                      </div>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+                )}
 
-            {/* Payment Method chips */}
-            <div className="space-y-2">
-              <Label className="text-sm font-bold">طريقة الدفع</Label>
-              <div className="flex gap-2">
-                {[
-                  { key: "نقدي", icon: "💵", label: "نقدي" },
-                  { key: "بنك", icon: "🏦", label: "بنك" },
-                  { key: "شيك", icon: "📋", label: "شيكات" },
-                ].map(m => (
-                  <button key={m.key} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m.key }))}
-                    className="flex-1 px-4 py-3 text-sm font-bold transition-all"
-                    style={{
-                      borderRadius: 10,
-                      background: paymentForm.payment_method === m.key ? "#0D1B2E" : "#F8FAFC",
-                      color: paymentForm.payment_method === m.key ? "#fff" : "#475569",
-                      border: paymentForm.payment_method === m.key ? "2px solid #0D1B2E" : "1px solid #CBD5E1",
-                    }}>
-                    {m.icon} {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Cheque Section */}
-          {paymentForm.payment_method === "شيك" && (
-            <div className="rounded-xl bg-card border border-border p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold flex items-center gap-2">📋 بيانات الشيكات الواردة</h3>
-                <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-muted-foreground">عدد:</Label>
-                  <Input type="number" min={1} max={24} value={paymentForm.cheque_count}
-                    onChange={e => {
-                      const count = Math.max(1, Number(e.target.value));
-                      setPaymentForm(f => ({ ...f, cheque_count: count }));
-                      setChequeRows(generateChequeRows(count, paymentForm.amount, chequeRows[0]?.number || "", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
-                    }}
-                    className="w-14 h-8 text-xs text-center" dir="ltr" />
-                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
-                    setChequeRows(generateChequeRows(paymentForm.cheque_count, paymentForm.amount, chequeRows[0]?.number || "1001", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
-                  }}>توليد تلقائي</Button>
-                </div>
-              </div>
-
-              {chequeRows.length > 0 && (
-                <div className="overflow-x-auto rounded-lg border border-border" style={{ maxWidth: "100%" }}>
-                  <table className="text-xs" style={{ minWidth: 780, width: "100%" }}>
-                    <thead>
-                      <tr className="text-white" style={{ background: "#0D1B2E" }}>
-                        <th className="text-right py-2 px-2 font-medium">#</th>
-                        <th className="text-right py-2 px-2 font-medium">رقم الشيك</th>
-                        <th className="text-right py-2 px-2 font-medium">الساحب</th>
-                        <th className="text-right py-2 px-2 font-medium">البنك</th>
-                        <th className="text-right py-2 px-2 font-medium">تاريخ الاستحقاق</th>
-                        <th className="text-right py-2 px-2 font-medium">المبلغ</th>
-                        <th className="py-2 px-2 w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {chequeRows.map((row, i) => (
-                        <tr key={i} className="border-b border-border/50 hover:bg-accent/5">
-                          <td className="py-2 px-2 text-muted-foreground font-medium">{i + 1}</td>
-                          <td className="py-1.5 px-1.5">
-                            <Input value={row.number} onChange={e => updateChequeRow(i, "number", e.target.value)}
-                              className="h-8 text-xs" dir="ltr" style={{ borderRadius: 6 }} />
-                          </td>
-                          <td className="py-1.5 px-1.5">
-                            <Input value={row.drawer} onChange={e => updateChequeRow(i, "drawer", e.target.value)}
-                              className="h-8 text-xs" style={{ borderRadius: 6 }} />
-                          </td>
-                          <td className="py-1.5 px-1.5">
-                            <Input value={row.bank} onChange={e => updateChequeRow(i, "bank", e.target.value)}
-                              className="h-8 text-xs" style={{ borderRadius: 6 }} />
-                          </td>
-                          <td className="py-1.5 px-1.5">
-                            <Input type="date" value={row.date} onChange={e => updateChequeRow(i, "date", e.target.value)}
-                              className="h-8 text-xs" style={{ borderRadius: 6 }} />
-                          </td>
-                          <td className="py-1.5 px-1.5">
-                            <Input type="number" value={row.amount} onChange={e => updateChequeRow(i, "amount", Number(e.target.value))}
-                              className="h-8 text-xs" dir="ltr" style={{ borderRadius: 6 }} />
-                          </td>
-                          <td className="py-1.5 px-1.5">
-                            {chequeRows.length > 1 && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                onClick={() => setChequeRows(prev => prev.filter((_, idx) => idx !== i))}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => {
-                setChequeRows(prev => [...prev, { number: "", drawer: selectedWorkshop.customer_name || "", bank: "", date: format(new Date(), "yyyy-MM-dd"), amount: 0 }]);
-                setPaymentForm(f => ({ ...f, cheque_count: f.cheque_count + 1 }));
-              }}>
-                <Plus className="h-3 w-3" /> إضافة شيك
-              </Button>
-
-              {chequeRows.length > 0 && (
-                <div className={`flex items-center justify-between p-3 rounded-lg border ${chequeMismatch ? "border-destructive/50 bg-destructive/5" : "border-border bg-accent/5"}`}>
-                  <span className="text-xs font-medium">مجموع الشيكات:</span>
-                  <span className={`text-sm font-bold ${chequeMismatch ? "text-destructive" : "text-foreground"}`}>{chequeTotal.toLocaleString()} ₪</span>
-                </div>
-              )}
-              {chequeMismatch && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertTriangle className="h-3.5 w-3.5" /> مجموع الشيكات لا يساوي مبلغ الدفعة
-                </p>
-              )}
-
-              {bankAccounts.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs">إيداع في حساب بنكي (اختياري)</Label>
-                  <select
-                    value={paymentForm.deposit_bank_id || ""}
-                    onChange={e => setPaymentForm(f => ({ ...f, deposit_bank_id: e.target.value || null }))}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  >
-                    <option value="">-- بدون إيداع فوري --</option>
-                    {bankAccounts.map(b => (
-                      <option key={b.id} value={b.id}>{b.name} — {b.bank_name}</option>
+                {/* Payment Method chips */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold">طريقة الدفع</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { key: "نقدي", icon: "💵", label: "نقدي" },
+                      { key: "بنك", icon: "🏦", label: "بنك" },
+                      { key: "شيك", icon: "📋", label: "شيكات" },
+                    ].map(m => (
+                      <button key={m.key} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m.key }))}
+                        className="flex items-center justify-center gap-2 text-sm font-bold transition-all"
+                        style={{
+                          borderRadius: 10,
+                          height: 56,
+                          background: paymentForm.payment_method === m.key ? "#0D1B2E" : "#F8FAFC",
+                          color: paymentForm.payment_method === m.key ? "#fff" : "#475569",
+                          border: paymentForm.payment_method === m.key ? "2px solid #0D1B2E" : "1px solid #CBD5E1",
+                        }}>
+                        <span className="text-lg">{m.icon}</span> {m.label}
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cheque Section */}
+              {paymentForm.payment_method === "شيك" && (
+                <div className={`rounded-xl bg-card border p-6 space-y-4 ${chequeMismatch ? "border-destructive" : "border-border"}`}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold flex items-center gap-2">📋 بيانات الشيكات الواردة</h3>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-[10px] text-muted-foreground">عدد:</Label>
+                      <Input type="number" min={1} max={24} value={paymentForm.cheque_count}
+                        onChange={e => {
+                          const count = Math.max(1, Number(e.target.value));
+                          setPaymentForm(f => ({ ...f, cheque_count: count }));
+                          setChequeRows(generateChequeRows(count, paymentForm.amount, chequeRows[0]?.number || "", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
+                        }}
+                        className="w-14 h-8 text-xs text-center" dir="ltr" />
+                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
+                        setChequeRows(generateChequeRows(paymentForm.cheque_count, paymentForm.amount, chequeRows[0]?.number || "1001", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
+                      }}>توليد تلقائي</Button>
+                    </div>
+                  </div>
+
+                  {chequeRows.length > 0 && (
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-white" style={{ background: "#0D1B2E" }}>
+                            <th className="text-right py-2.5 px-3 font-medium" style={{ width: 50 }}>#</th>
+                            <th className="text-right py-2.5 px-3 font-medium" style={{ width: 150 }}>رقم الشيك</th>
+                            <th className="text-right py-2.5 px-3 font-medium" style={{ width: 200 }}>الساحب</th>
+                            <th className="text-right py-2.5 px-3 font-medium" style={{ width: 180 }}>البنك</th>
+                            <th className="text-right py-2.5 px-3 font-medium" style={{ width: 160 }}>تاريخ الاستحقاق</th>
+                            <th className="text-right py-2.5 px-3 font-medium" style={{ width: 130 }}>المبلغ</th>
+                            <th className="py-2.5 px-2" style={{ width: 60 }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {chequeRows.map((row, i) => (
+                            <tr key={i} className="border-b border-border/50 hover:bg-accent/5">
+                              <td className="py-2 px-3 text-muted-foreground font-medium">{i + 1}</td>
+                              <td className="py-1.5 px-2">
+                                <Input value={row.number} onChange={e => updateChequeRow(i, "number", e.target.value)}
+                                  className="h-9 text-xs" dir="ltr" style={{ borderRadius: 6 }} />
+                              </td>
+                              <td className="py-1.5 px-2">
+                                <Input value={row.drawer} onChange={e => updateChequeRow(i, "drawer", e.target.value)}
+                                  className="h-9 text-xs" style={{ borderRadius: 6 }} />
+                              </td>
+                              <td className="py-1.5 px-2">
+                                <Input value={row.bank} onChange={e => updateChequeRow(i, "bank", e.target.value)}
+                                  className="h-9 text-xs" style={{ borderRadius: 6 }} />
+                              </td>
+                              <td className="py-1.5 px-2">
+                                <Input type="date" value={row.date} onChange={e => updateChequeRow(i, "date", e.target.value)}
+                                  className="h-9 text-xs" style={{ borderRadius: 6 }} />
+                              </td>
+                              <td className="py-1.5 px-2">
+                                <Input type="number" value={row.amount} onChange={e => updateChequeRow(i, "amount", Number(e.target.value))}
+                                  className="h-9 text-xs" dir="ltr" style={{ borderRadius: 6 }} />
+                              </td>
+                              <td className="py-1.5 px-2 text-center">
+                                {chequeRows.length > 1 && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setChequeRows(prev => prev.filter((_, idx) => idx !== i))}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Table footer */}
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => {
+                      setChequeRows(prev => [...prev, { number: "", drawer: selectedWorkshop.customer_name || "", bank: "", date: format(new Date(), "yyyy-MM-dd"), amount: 0 }]);
+                      setPaymentForm(f => ({ ...f, cheque_count: f.cheque_count + 1 }));
+                    }}>
+                      <Plus className="h-3 w-3" /> إضافة شيك
+                    </Button>
+                    {chequeRows.length > 0 && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground ml-2">المجموع:</span>
+                        <span className={`font-bold ${chequeMismatch ? "text-destructive" : "text-foreground"}`}>{chequeTotal.toLocaleString()} ₪</span>
+                        {!chequeMismatch && paymentForm.amount > 0 && <span className="text-xs text-muted-foreground mr-2">يجب أن يساوي مبلغ الدفعة</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  {chequeMismatch && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/30">
+                      <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                      <p className="text-xs text-destructive font-medium">
+                        مجموع الشيكات ({chequeTotal.toLocaleString()} ₪) لا يساوي مبلغ الدفعة ({paymentForm.amount.toLocaleString()} ₪)
+                      </p>
+                    </div>
+                  )}
+
+                  {bankAccounts.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">إيداع في حساب بنكي (اختياري)</Label>
+                      <select
+                        value={paymentForm.deposit_bank_id || ""}
+                        onChange={e => setPaymentForm(f => ({ ...f, deposit_bank_id: e.target.value || null }))}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                      >
+                        <option value="">-- بدون إيداع فوري --</option>
+                        {bankAccounts.map(b => (
+                          <option key={b.id} value={b.id}>{b.name} — {b.bank_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
 
-          {/* Notes */}
-          <div className="rounded-xl bg-card border border-border p-5 space-y-2">
-            <Label className="text-sm font-bold">ملاحظات</Label>
-            <Textarea value={paymentForm.description} onChange={e => setPaymentForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="مثل: دفعة أولى 50%..." rows={3} style={{ borderRadius: 8 }} />
+            {/* LEFT COLUMN — 40% — Workshop Summary (sticky) */}
+            <div className="lg:col-span-2">
+              <div className="lg:sticky lg:top-24 space-y-4">
+                <div className="rounded-xl border border-border p-6 space-y-4" style={{ background: "#F8FAFC" }}>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                      🏠 {selectedWorkshop.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      👤 {selectedWorkshop.customer_name || "بدون زبون"}
+                    </p>
+                  </div>
+
+                  <div className="border-t border-border pt-3 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">الميزانية</span>
+                      <span className="font-bold">{(selectedWorkshop.total_budget || 0).toLocaleString()} ₪</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">المدفوع سابقاً</span>
+                      <span className="font-bold" style={{ color: "#2563EB" }}>{totalPaid.toLocaleString()} ₪</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">المتبقي</span>
+                      <span className="font-bold" style={{ color: remaining < 0 ? "#DC2626" : "#16A34A" }}>{remaining.toLocaleString()} ₪</span>
+                    </div>
+                  </div>
+
+                  {paymentForm.amount > 0 && (
+                    <>
+                      <div className="border-t border-border pt-3 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">هذه الدفعة</span>
+                          <span className="font-bold text-foreground">{paymentForm.amount.toLocaleString()} ₪</span>
+                        </div>
+                      </div>
+                      <div className="border-t border-dashed border-border pt-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-bold text-foreground">بعد هذه الدفعة</span>
+                          <span className="font-bold text-lg" style={{ color: afterPayment < 0 ? "#DC2626" : "#16A34A" }}>
+                            {afterPayment.toLocaleString()} ₪
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">المتبقي على العميل</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Payment method info */}
+                {paymentForm.payment_method === "شيك" && chequeRows.length > 0 && (
+                  <div className="rounded-xl border border-border p-5 space-y-2" style={{ background: "#F8FAFC" }}>
+                    <h4 className="text-xs font-bold text-muted-foreground">ملخص الشيكات</h4>
+                    <p className="text-sm"><span className="text-muted-foreground">عدد الشيكات:</span> <strong>{chequeRows.length}</strong></p>
+                    <p className="text-sm"><span className="text-muted-foreground">المجموع:</span> <strong className={chequeMismatch ? "text-destructive" : ""}>{chequeTotal.toLocaleString()} ₪</strong></p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Sticky Footer */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-30">
-          <div className="max-w-3xl mx-auto flex gap-3" dir="rtl">
-            <Button variant="outline" className="flex-1 h-11" style={{ borderRadius: 10 }} onClick={() => setView("workshops")}>
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border py-4 px-6 md:px-12 z-30">
+          <div className="flex items-center justify-between" dir="rtl">
+            <Button variant="ghost" className="h-11 px-8 text-sm" style={{ borderRadius: 10 }} onClick={() => setView("workshops")}>
               إلغاء
             </Button>
-            <Button className="flex-1 h-11 text-sm font-bold gap-2 text-white" style={{ background: "#0D1B2E", borderRadius: 10 }}
-              disabled={paymentForm.amount <= 0 || (paymentForm.payment_method === "شيك" && chequeRows.length === 0) || chequeMismatch}
+            <Button className="h-11 text-sm font-bold gap-2 text-white" style={{ background: canSave ? "#0D1B2E" : "#94A3B8", borderRadius: 10, width: 220 }}
+              disabled={!canSave}
               onClick={handleAddPayment}>
               <Check className="h-4 w-4" /> حفظ الدفعة
             </Button>
