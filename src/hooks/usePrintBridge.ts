@@ -15,6 +15,9 @@ export interface PrintItem {
   modifiers?: { option_name: string; extra_price?: number }[];
 }
 
+/** Maps station IDs to their printer IDs in pos_printers */
+export type StationPrinterMap = Record<string, string>;
+
 export interface PrintOrder {
   orderNumber: string | number;
   queueNumber?: number;
@@ -35,6 +38,8 @@ export interface PrintOrder {
   tenderedAmount?: number;
   change?: number;
   orderNote?: string;
+  /** Station ID — used by bridge to route to the correct printer */
+  stationId?: string;
 }
 
 export function usePrintBridge() {
