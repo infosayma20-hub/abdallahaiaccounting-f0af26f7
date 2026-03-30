@@ -812,6 +812,7 @@ const POSPage = () => {
           unit: line.unit || "قطعة",
           total: Number(line.total),
           note: "",
+          station_id: line.kitchen_station_id || null,
         }));
 
         setOrders(prev => prev.map((o, i) => i === 0 ? {
