@@ -375,13 +375,34 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
           }
         }
 
+        // ── Create purchase invoice for supplier ──
+        if (supplierContactId || supplierNameManual) {
+          const invAmount = isMaterial ? totalPurchaseCost : usedCost;
+          const invNumber = `PI-WS-${Date.now().toString().slice(-6)}`;
+          const isPaid = paymentMethod !== "آجل";
+          await supabase.from("purchase_invoices").insert({
+            user_id: userId,
+            supplier_id: supplierContactId || null,
+            supplier_name: supplierName || supplierNameManual || "مورد",
+            invoice_number: invNumber,
+            invoice_date: costDate,
+            total_amount: invAmount,
+            subtotal: invAmount,
+            paid_amount: isPaid ? invAmount : 0,
+            remaining_amount: isPaid ? 0 : invAmount,
+            payment_method: paymentMethod === "آجل" ? "آجل" : paymentMethod === "نقدي" ? "نقدي" : "بنك",
+            status: isPaid ? "approved" : "pending",
+            notes: `تكلفة ورشة: ${workshopName} - ${catLabel}`,
+          } as any);
+        }
+
         // Supplier balance update for credit
         if (paymentMethod === "آجل" && supplierContactId) {
           const bal = contacts.find(c => c.id === supplierContactId)?.current_balance || 0;
           await supabase.from("contacts").update({ current_balance: bal + totalPurchaseCost } as any).eq("id", supplierContactId);
         }
 
-        toast.success(`✅ تم تسجيل التكلفة وإنشاء القيد`);
+        toast.success(`✅ تم تسجيل التكلفة وإنشاء القيد وفاتورة المشتريات`);
       }
 
       resetForm();
