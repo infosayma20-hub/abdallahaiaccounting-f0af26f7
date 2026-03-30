@@ -278,60 +278,75 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
 
         if (hasSurplus && surplusAction === "transfer" && transferTargetId) {
           // Scenario B: Split between current workshop + target workshop
+          // Balance check: usedCost + surplusCost === totalPurchaseCost
+          if (Math.abs((usedCost + surplusCost) - totalPurchaseCost) > 0.01) {
+            toast.error("خطأ: القيد غير متوازن — راجع الأرقام"); return;
+          }
           const targetWs = allWorkshops.find(w => w.id === transferTargetId);
+          const compoundRef = `WS-COMPOUND-${workshopId}-${Date.now()}`;
+          const compoundDesc = `شراء ${catLabel} — ورشة ${workshopName}${supplierName ? ` من ${supplierName}` : ""}`;
 
-          // Entry 1: Cost for current workshop (used qty)
+          // Line 1: Debit expense (current workshop used) 
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
             user_id: userId, transaction_date: costDate,
-            description: `${glInfo.label} - ورشة ${workshopName} (${usedQty} ${unitLabel})`,
+            description: `${compoundDesc} — مستخدم (${usedQty} ${unitLabel})`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
             contact_id: supplierContactId || null,
-            reference: `WS-${workshopName.substring(0, 15)}`,
+            reference: compoundRef,
             payment_method: paymentMethod, idempotency_key: idempotencyKey,
+            notes: `قيد مركّب: سطر 1/2 — مدين مصروف ورشة ${workshopName}`,
           } as any).select("id").single();
           if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
 
-          // Entry 2: Cost for target workshop (surplus qty)
+          // Line 2: Debit expense (target workshop surplus)
           await supabase.from("transactions").insert({
             user_id: userId, transaction_date: costDate,
-            description: `${glInfo.label} - ورشة ${targetWs?.name || "أخرى"} (نقل ${surplusQty} ${unitLabel})`,
+            description: `${compoundDesc} — نقل فائض لورشة ${targetWs?.name || "أخرى"} (${surplusQty} ${unitLabel})`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: surplusCost, currency: "شيكل", transaction_type: "workshop_cost",
             contact_id: supplierContactId || null,
-            reference: `WS-TRNSFR-${(targetWs?.name || "").substring(0, 10)}`,
-            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-SURPLUS",
+            reference: compoundRef,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-L2",
+            notes: `قيد مركّب: سطر 2/2 — مدين مصروف ورشة ${targetWs?.name || "أخرى"}`,
           } as any);
 
-          // Cost record for current workshop
+          // Cost records
           await insertCostRecord(workshopId, usedCost, usedQty, txData?.id);
-
-          // Cost record for target workshop
           await insertCostRecord(transferTargetId, surplusCost, surplusQty, null);
 
-        } else if (hasSurplus && surplusAction === "inventory") {
-          // Scenario A: Cost for workshop + surplus to inventory
-          // Entry: Debit workshop cost (used) + Debit inventory (surplus) / Credit supplier (total)
+        } else if (hasSurplus && (surplusAction === "inventory" || surplusAction === "pending")) {
+          // Scenario A/C: Cost for used + surplus to inventory (available or pending)
+          // Balance check: usedCost + surplusCost === totalPurchaseCost
+          if (Math.abs((usedCost + surplusCost) - totalPurchaseCost) > 0.01) {
+            toast.error("خطأ: القيد غير متوازن — راجع الأرقام"); return;
+          }
+          const compoundRef = `WS-COMPOUND-${workshopId}-${Date.now()}`;
+          const compoundDesc = `شراء ${catLabel} — ورشة ${workshopName}${supplierName ? ` من ${supplierName}` : ""}`;
+
+          // Line 1: Debit expense account (used in workshop) / Credit supplier
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
             user_id: userId, transaction_date: costDate,
-            description: txDesc + ` (${usedQty} ${unitLabel} مستخدم)`,
+            description: `${compoundDesc} — مستخدم في الورشة (${usedQty} ${unitLabel})`,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
             amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
             contact_id: supplierContactId || null,
-            reference: `WS-${workshopName.substring(0, 15)}`,
+            reference: compoundRef,
             payment_method: paymentMethod, idempotency_key: idempotencyKey,
+            notes: `قيد مركّب: سطر 1/2 — مدين ${glInfo.label}`,
           } as any).select("id").single();
           if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
 
-          // Inventory entry: Debit raw materials inventory / Credit supplier
+          // Line 2: Debit raw materials inventory (1140) / Credit supplier
           await supabase.from("transactions").insert({
             user_id: userId, transaction_date: costDate,
-            description: `مخزون مواد خام (${catLabel}) - فائض ورشة ${workshopName}`,
+            description: `${compoundDesc} — فائض للمخزون (${surplusQty} ${unitLabel})`,
             debit_account_code: "1140", credit_account_code: creditCode,
             amount: surplusCost, currency: "شيكل", transaction_type: "workshop_inventory",
             contact_id: supplierContactId || null,
-            reference: `WS-INV-${workshopName.substring(0, 10)}`,
-            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-INV",
+            reference: compoundRef,
+            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-L2",
+            notes: `قيد مركّب: سطر 2/2 — مدين مخزون مواد خام`,
           } as any);
 
           // Cost record for workshop (used amount only)
@@ -344,49 +359,11 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
             total_value: surplusCost, source_workshop_id: workshopId,
             supplier_contact_id: supplierContactId || null,
             supplier_name: supplierName || null, status: "available",
-            notes: `فائض من ورشة ${workshopName}`,
-          });
-
-        } else if (hasSurplus && surplusAction === "pending") {
-          // Scenario C: Cost for used + surplus to inventory (pending)
-          // Entry 1: Debit workshop cost (used) / Credit supplier
-          const { data: txData, error: txErr } = await supabase.from("transactions").insert({
-            user_id: userId, transaction_date: costDate,
-            description: txDesc + ` (${usedQty} ${unitLabel} مستخدم)`,
-            debit_account_code: glInfo.debit, credit_account_code: creditCode,
-            amount: usedCost, currency: "شيكل", transaction_type: "workshop_cost",
-            contact_id: supplierContactId || null,
-            reference: `WS-${workshopName.substring(0, 15)}`,
-            payment_method: paymentMethod, idempotency_key: idempotencyKey,
-          } as any).select("id").single();
-          if (txErr) { toast.error("خطأ في القيد: " + txErr.message); return; }
-
-          // Entry 2: Debit raw materials inventory / Credit supplier (surplus)
-          await supabase.from("transactions").insert({
-            user_id: userId, transaction_date: costDate,
-            description: `مخزون مواد خام (${catLabel}) - فائض معلق ورشة ${workshopName}`,
-            debit_account_code: "1140", credit_account_code: creditCode,
-            amount: surplusCost, currency: "شيكل", transaction_type: "workshop_inventory",
-            contact_id: supplierContactId || null,
-            reference: `WS-INV-${workshopName.substring(0, 10)}`,
-            payment_method: paymentMethod, idempotency_key: idempotencyKey + "-INV",
-          } as any);
-
-          // Cost record for workshop (used amount only)
-          await insertCostRecord(workshopId, usedCost, usedQty, txData?.id);
-
-          // Inventory record with pending
-          await supabase.from("workshop_material_inventory" as any).insert({
-            user_id: userId, material_type: catLabel, material_category: category,
-            quantity: surplusQty, unit, unit_cost: unitPrice,
-            total_value: surplusCost, source_workshop_id: workshopId,
-            supplier_contact_id: supplierContactId || null,
-            supplier_name: supplierName || null, status: "available",
-            notes: `فائض معلق - ورشة ${workshopName}`,
+            notes: surplusAction === "pending" ? `فائض معلق - ورشة ${workshopName}` : `فائض من ورشة ${workshopName}`,
           });
 
         } else {
-          // No surplus scenario
+          // No surplus scenario — single entry
           const { data: txData, error: txErr } = await supabase.from("transactions").insert({
             user_id: userId, transaction_date: costDate, description: txDesc,
             debit_account_code: glInfo.debit, credit_account_code: creditCode,
