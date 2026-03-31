@@ -119,7 +119,25 @@ const getTypeBadgeLabel = (txType: string) => {
   return "حركة";
 };
 
-// Smart column definitions based on detail mode
+const getTypeBadgeStyle = (txType: string): { bg: string; color: string; border: string } => {
+  if (txType.includes("payment") || txType.includes("صرف"))
+    return { bg: "#FEE2E2", color: "#991B1B", border: "#FECACA" };
+  if (txType.includes("sale") || txType.includes("فاتورة"))
+    return { bg: "#DBEAFE", color: "#1E40AF", border: "#BFDBFE" };
+  if (txType.includes("receipt") || txType.includes("قبض"))
+    return { bg: "#D1FAE5", color: "#065F46", border: "#A7F3D0" };
+  if (txType.includes("purchase") || txType.includes("مشتريات"))
+    return { bg: "#FFF7ED", color: "#9A3412", border: "#FED7AA" };
+  if (txType.includes("journal") || txType.includes("قيد") || txType.includes("salary"))
+    return { bg: "#EDE9FE", color: "#5B21B6", border: "#DDD6FE" };
+  if (txType.includes("cheque") || txType.includes("bounced"))
+    return { bg: "#E0E7FF", color: "#3730A3", border: "#C7D2FE" };
+  if (txType.includes("pos"))
+    return { bg: "#FCE7F3", color: "#9D174D", border: "#FBCFE8" };
+  return { bg: "#F3F4F6", color: "#6B7280", border: "#E5E7EB" };
+};
+
+// Smart column definitions
 interface SmartColumn {
   key: string;
   label: string;
@@ -127,29 +145,25 @@ interface SmartColumn {
 }
 
 const getSmartColumns = (detailMode: boolean, userColumns?: ColumnConfig[]): SmartColumn[] => {
-  // Base columns always shown
   const base: SmartColumn[] = [
-    { key: "date", label: "التاريخ", width: "11%" },
+    { key: "date", label: "التاريخ", width: "10%" },
     { key: "reference", label: "المرجع", width: "13%" },
-    { key: "description", label: "البيان", width: detailMode ? "30%" : "22%" },
+    { key: "description", label: "البيان", width: detailMode ? "28%" : "22%" },
   ];
 
-  // Conditional columns hidden in detail mode
   const conditional: (SmartColumn & { hidden: boolean })[] = [
     { key: "dueDate", label: "الاستحقاق", width: "10%", hidden: detailMode },
     { key: "currency", label: "العملة", width: "7%", hidden: detailMode },
     { key: "paymentMethod", label: "طريقة الدفع", width: "9%", hidden: detailMode },
   ];
 
-  // Fixed columns
   const fixed: SmartColumn[] = [
-    { key: "type", label: "النوع", width: detailMode ? "10%" : "9%" },
-    { key: "debit", label: "مدين (عليه) ₪", width: detailMode ? "12%" : "10%" },
-    { key: "credit", label: "دائن (له) ₪", width: detailMode ? "12%" : "10%" },
-    { key: "balance", label: "الرصيد ₪", width: detailMode ? "12%" : "10%" },
+    { key: "type", label: "النوع", width: "8%" },
+    { key: "debit", label: "مدين (عليه)", width: "12%" },
+    { key: "credit", label: "دائن (له)", width: "12%" },
+    { key: "balance", label: "الرصيد", width: "13%" },
   ];
 
-  // Also add contactCode if user has it visible
   const extraCols: SmartColumn[] = [];
   if (userColumns) {
     const contactCodeCol = userColumns.find(c => c.key === "contactCode" && c.visible);
@@ -159,19 +173,16 @@ const getSmartColumns = (detailMode: boolean, userColumns?: ColumnConfig[]): Sma
   }
 
   const visibleConditional = conditional.filter(c => !c.hidden);
-  
-  // Filter by user column visibility if provided
   const allCols = [...base, ...visibleConditional, ...extraCols, ...fixed];
-  
+
   if (userColumns) {
     return allCols.filter(col => {
       const userCol = userColumns.find(c => c.key === col.key);
       if (userCol) return userCol.visible;
-      // Default: show base + fixed, hide conditional unless user enabled
       return true;
     });
   }
-  
+
   return allCols;
 };
 
@@ -216,11 +227,11 @@ const StatementPrintView = ({
       case "date":
         return isSubRow
           ? <span style={{ color: "#9CA3AF", fontWeight: 600 }}>↳</span>
-          : <span style={{ color: "#374151", fontFeatureSettings: "'tnum'" }}>{fmtDate(row.date)}</span>;
+          : <span style={{ color: "#374151", fontVariantNumeric: "tabular-nums" }}>{fmtDate(row.date)}</span>;
       case "reference":
         if (isSubRow) return <span style={{ color: "#D1D5DB" }}>—</span>;
         return row.reference
-          ? <span style={{ color: "#1B3A5C", fontWeight: 600, fontFamily: "monospace", fontSize: "8px" }}>{row.reference}</span>
+          ? <span style={{ color: "#1B3A5C", fontWeight: 600, fontFamily: "'Courier New', monospace", fontSize: "8.5px" }}>{row.reference}</span>
           : <span style={{ color: "#9CA3AF" }}>—</span>;
       case "description":
         if (isSubRow && row.lineItemDetail) {
@@ -239,26 +250,26 @@ const StatementPrintView = ({
       case "dueDate":
         return isSubRow
           ? <span style={{ color: "#D1D5DB" }}>—</span>
-          : <span style={{ color: "#6B7280", fontFeatureSettings: "'tnum'" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</span>;
+          : <span style={{ color: "#6B7280", fontVariantNumeric: "tabular-nums" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</span>;
       case "type": {
         if (isSubRow) {
           return (
             <span style={{
-              fontSize: "7px", fontWeight: 700, padding: "1px 4px", borderRadius: "3px",
+              fontSize: "7.5px", fontWeight: 700, padding: "1px 5px", borderRadius: "4px",
               background: "#EEF2FF", color: "#4338CA", border: "1px solid #C7D2FE",
+              whiteSpace: "nowrap",
             }}>
               بند فاتورة
             </span>
           );
         }
         const label = getTypeBadgeLabel(row.transaction_type);
-        const isDebitType = row.debit > 0;
+        const badgeStyle = getTypeBadgeStyle(row.transaction_type);
         return (
           <span style={{
-            fontSize: "7px", fontWeight: 700, padding: "1px 4px", borderRadius: "3px",
-            background: isDebitType ? "#FEF2F2" : "#F0FDF4",
-            color: isDebitType ? "#DC2626" : "#16A34A",
-            border: `1px solid ${isDebitType ? "#FECACA" : "#BBF7D0"}`,
+            fontSize: "7.5px", fontWeight: 700, padding: "1px 5px", borderRadius: "4px",
+            background: badgeStyle.bg, color: badgeStyle.color, border: `1px solid ${badgeStyle.border}`,
+            whiteSpace: "nowrap",
           }}>
             {label}
           </span>
@@ -267,22 +278,23 @@ const StatementPrintView = ({
       case "paymentMethod":
         return isSubRow
           ? <span style={{ color: "#D1D5DB" }}>—</span>
-          : <span style={{ color: "#6B7280", fontSize: "8px" }}>{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</span>;
+          : <span style={{ color: "#6B7280", fontSize: "9px" }}>{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</span>;
       case "currency":
         return isSubRow
           ? <span style={{ color: "#D1D5DB" }}>—</span>
-          : <span style={{ color: "#6B7280", fontSize: "8px" }}>{row.currency || "—"}</span>;
+          : <span style={{ color: "#6B7280", fontSize: "9px" }}>{row.currency || "—"}</span>;
       case "contactCode":
         return isSubRow
           ? <span style={{ color: "#D1D5DB" }}>—</span>
-          : <span style={{ color: "#6B7280", fontFamily: "monospace", fontSize: "8px" }}>{contactCode || "—"}</span>;
+          : <span style={{ color: "#6B7280", fontFamily: "'Courier New', monospace", fontSize: "8.5px" }}>{contactCode || "—"}</span>;
       case "debit":
         return (
           <span style={{
             fontWeight: row.debit > 0 ? 700 : 400,
-            color: row.debit > 0 ? "#DC2626" : "#9CA3AF",
+            color: row.debit > 0 ? "#DC2626" : "#D1D5DB",
             opacity: isSubRow ? 0.85 : 1,
-            fontFeatureSettings: "'tnum'",
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
           }}>
             {row.debit > 0 ? fmtAmount(row.debit) : "—"}
           </span>
@@ -291,9 +303,10 @@ const StatementPrintView = ({
         return (
           <span style={{
             fontWeight: row.credit > 0 ? 700 : 400,
-            color: row.credit > 0 ? "#16A34A" : "#9CA3AF",
+            color: row.credit > 0 ? "#15803D" : "#D1D5DB",
             opacity: isSubRow ? 0.85 : 1,
-            fontFeatureSettings: "'tnum'",
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
           }}>
             {row.credit > 0 ? fmtAmount(row.credit) : "—"}
           </span>
@@ -301,18 +314,18 @@ const StatementPrintView = ({
       case "balance":
         if (isSubRow) return <span style={{ color: "#D1D5DB" }}>—</span>;
         return (
-          <>
+          <span style={{ whiteSpace: "nowrap" }}>
             <span style={{
               fontWeight: 700,
-              color: row.balance >= 0 ? "#DC2626" : "#16A34A",
-              fontFeatureSettings: "'tnum'",
+              color: "#0D1B2E",
+              fontVariantNumeric: "tabular-nums",
             }}>
               {fmtAmount(row.balance)}
             </span>
-            <span style={{ fontSize: "7px", marginRight: "2px", opacity: 0.7 }}>
+            <span style={{ fontSize: "7px", marginRight: "2px", color: row.balance >= 0 ? "#DC2626" : "#15803D", fontWeight: 600 }}>
               {row.balance >= 0 ? "م" : "د"}
             </span>
-          </>
+          </span>
         );
       default:
         return "—";
@@ -326,14 +339,14 @@ const StatementPrintView = ({
       style={{
         width: "100%", maxWidth: "794px", margin: "0 auto", padding: "0",
         fontFamily: "'Cairo', 'Segoe UI', sans-serif", direction: "rtl",
-        fontSize: "11px", lineHeight: 1.4, position: "relative", overflow: "hidden", boxSizing: "border-box",
+        fontSize: "11px", lineHeight: 1.5, position: "relative", overflow: "hidden", boxSizing: "border-box",
       }}
     >
       {/* ━━━ HEADER BAR ━━━ */}
       <div
         style={{
-          background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
-          color: "white", padding: "12px 28px",
+          background: "#0D1B2E",
+          color: "white", padding: "14px 28px",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}
       >
@@ -350,42 +363,47 @@ const StatementPrintView = ({
             <div
               style={{
                 width: "52px", height: "52px", borderRadius: "8px",
-                background: "rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.12)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "20px", fontWeight: 800, color: "#4A9EE8",
+                fontSize: "20px", fontWeight: 800, color: "#60A5FA",
               }}
             >
               {company.name?.charAt(0) || "C"}
             </div>
           )}
           <div>
-            <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.3px" }}>{company.name}</div>
-            <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>
+            <div style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "0.3px" }}>{company.name}</div>
+            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", marginTop: "3px" }}>
               {company.address && <span>{company.address}</span>}
-              {company.phone && <span style={{ marginRight: "12px" }}>📞 {company.phone}</span>}
+              {company.phone && <span style={{ marginRight: "14px" }}>📞 {company.phone}</span>}
             </div>
-            <div style={{ fontSize: "10px", opacity: 0.75, marginTop: "1px" }}>
+            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)", marginTop: "1px" }}>
               {company.email && <span>✉️ {company.email}</span>}
-              {company.tax_number && <span style={{ marginRight: "12px" }}>رقم ضريبي: {company.tax_number}</span>}
+              {company.tax_number && <span style={{ marginRight: "14px" }}>رقم ضريبي: {company.tax_number}</span>}
             </div>
           </div>
         </div>
         <div style={{ textAlign: "left" }}>
-          <div style={{ fontSize: "18px", fontWeight: 700 }}>كشف حساب</div>
-          <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>STATEMENT OF ACCOUNT</div>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "#CBD5E1" }}>كشف حساب</div>
+          <div style={{ fontSize: "10px", color: "#94A3B8", fontFamily: "'Segoe UI', sans-serif", marginTop: "2px" }}>STATEMENT OF ACCOUNT</div>
+          <div style={{ fontSize: "11px", color: "#F59E0B", fontWeight: 600, fontFamily: "'Courier New', monospace", marginTop: "4px" }}>{soaNumber}</div>
         </div>
       </div>
 
-      {/* ━━━ GOLD ACCENT LINE ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
+      {/* ━━━ ACCENT LINE ━━━ */}
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #60A5FA, #3B82F6, #60A5FA)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
-      <div style={{ padding: "10px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
+      <div style={{
+        margin: "10px 28px", padding: "12px 16px",
+        background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px",
+        display: "flex", justifyContent: "space-between",
+      }}>
         <div>
-          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
+          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 400, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
             صادر إلى
           </div>
-          <div style={{ fontSize: "16px", fontWeight: 700, color: "#1B3A5C" }}>{contact.name}</div>
+          <div style={{ fontSize: "16px", fontWeight: 700, color: "#0D1B2E" }}>{contact.name}</div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
             <span style={{
               fontSize: "9px", padding: "2px 8px", borderRadius: "4px",
@@ -400,81 +418,95 @@ const StatementPrintView = ({
               </span>
             )}
           </div>
-          {contact.phone && <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "4px" }}>📞 {contact.phone}</div>}
-          {contact.address && <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "2px" }}>📍 {contact.address}</div>}
+          {contact.phone && <div style={{ fontSize: "10px", color: "#374151", marginTop: "4px" }}>📞 {contact.phone}</div>}
+          {contact.address && <div style={{ fontSize: "10px", color: "#374151", marginTop: "2px" }}>📍 {contact.address}</div>}
         </div>
 
-        <div style={{ textAlign: "left", fontSize: "10px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
-            <span style={{ color: "#6B7280" }}>رقم الكشف:</span>
-            <span style={{ fontWeight: 700, color: "#1B3A5C", fontFamily: "monospace" }}>{soaNumber}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
-            <span style={{ color: "#6B7280" }}>تاريخ الإصدار:</span>
-            <span style={{ fontWeight: 600 }}>{fmtDateSlash(today)}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
-            <span style={{ color: "#6B7280" }}>من:</span>
-            <span style={{ fontWeight: 600 }}>{fmtDate(dateFrom)}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
-            <span style={{ color: "#6B7280" }}>إلى:</span>
-            <span style={{ fontWeight: 600 }}>{fmtDate(dateTo)}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "20px" }}>
-            <span style={{ color: "#6B7280" }}>العملة:</span>
-            <span style={{ fontWeight: 600 }}>شيكل إسرائيلي (₪ ILS)</span>
-          </div>
+        <div style={{ textAlign: "left", fontSize: "11px" }}>
+          {[
+            { label: "رقم الكشف:", value: soaNumber, mono: true },
+            { label: "تاريخ الإصدار:", value: fmtDateSlash(today) },
+            { label: "من:", value: fmtDate(dateFrom) },
+            { label: "إلى:", value: fmtDate(dateTo) },
+            { label: "العملة:", value: "شيكل إسرائيلي (₪ ILS)" },
+          ].map((item, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
+              <span style={{ color: "#6B7280", fontWeight: 400 }}>{item.label}</span>
+              <span style={{ fontWeight: 600, color: "#0D1B2E", fontFamily: item.mono ? "'Courier New', monospace" : undefined }}>{item.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* ━━━ KPI SUMMARY CARDS ━━━ */}
-      <div style={{ padding: "8px 28px", display: "grid", gridTemplateColumns: `repeat(${includeBounced && bouncedTotal > 0 ? 5 : 4}, 1fr)`, gap: "8px" }}>
-        {[
-          { label: "رصيد افتتاحي", value: openingBalance, bg: "#F8FAFC", border: "#E2E8F0", color: "#334155" },
-          { label: "إجمالي المدين", value: totalDebit, bg: "#FEF2F2", border: "#FECACA", color: "#DC2626" },
-          { label: "إجمالي الدائن", value: totalCredit, bg: "#F0FDF4", border: "#BBF7D0", color: "#16A34A" },
-          { label: "الرصيد المستحق", value: Math.abs(closingBalance), bg: isDebit ? "#FEF2F2" : "#F0FDF4", border: isDebit ? "#FECACA" : "#BBF7D0", color: isDebit ? "#DC2626" : "#16A34A", suffix: isDebit ? "(مدين - عليه)" : "(دائن - له)" },
-          ...(includeBounced && bouncedTotal > 0 ? [{
-            label: "شيكات مرتجعة", value: bouncedTotal, bg: "#FFF7ED", border: "#FED7AA", color: "#EA580C", suffix: `${bouncedCheques.length} شيك`
-          }] : []),
-        ].map((card, i) => (
-          <div
-            key={i}
-            style={{
-              background: card.bg, border: `1px solid ${card.border}`,
-              borderRadius: "8px", padding: "6px 10px", textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>{card.label}</div>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: card.color, fontFeatureSettings: "'tnum'" }}>
-              {fmtAmount(card.value)}
-            </div>
-            {(card as any).suffix && (
-              <div style={{ fontSize: "9px", color: card.color, marginTop: "2px", fontWeight: 600 }}>{(card as any).suffix}</div>
-            )}
+      <div style={{ padding: "4px 28px 8px", display: "grid", gridTemplateColumns: `repeat(${includeBounced && bouncedTotal > 0 ? 5 : 4}, 1fr)`, gap: "8px" }}>
+        {/* Opening Balance */}
+        <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "8px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: "10px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>رصيد افتتاحي</div>
+          <div style={{ fontSize: "16px", fontWeight: 700, color: "#0D1B2E", fontVariantNumeric: "tabular-nums" }}>{fmtAmount(openingBalance)}</div>
+        </div>
+
+        {/* Total Debit */}
+        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "8px", padding: "8px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: "10px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>إجمالي المدين</div>
+          <div style={{ fontSize: "16px", fontWeight: 700, color: "#15803D", fontVariantNumeric: "tabular-nums" }}>{fmtAmount(totalDebit)}</div>
+        </div>
+
+        {/* Total Credit */}
+        <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: "8px", padding: "8px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: "10px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>إجمالي الدائن</div>
+          <div style={{ fontSize: "16px", fontWeight: 700, color: "#C2410C", fontVariantNumeric: "tabular-nums" }}>{fmtAmount(totalCredit)}</div>
+        </div>
+
+        {/* Closing Balance */}
+        <div style={{
+          background: closingBalance === 0 ? "#F0FDF4" : isDebit ? "#FEF2F2" : "#F0FDF4",
+          border: `1px solid ${closingBalance === 0 ? "#BBF7D0" : isDebit ? "#FECACA" : "#BBF7D0"}`,
+          borderRadius: "8px", padding: "8px 10px", textAlign: "center",
+        }}>
+          <div style={{ fontSize: "10px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>الرصيد المستحق</div>
+          <div style={{
+            fontSize: "16px", fontWeight: 700,
+            color: closingBalance === 0 ? "#15803D" : isDebit ? "#DC2626" : "#15803D",
+            fontVariantNumeric: "tabular-nums",
+          }}>
+            {fmtAmount(closingBalance)}
           </div>
-        ))}
+          {closingBalance !== 0 && (
+            <div style={{ fontSize: "9px", color: isDebit ? "#DC2626" : "#15803D", marginTop: "2px", fontWeight: 600 }}>
+              {isDebit ? "(مدين - عليه)" : "(دائن - له)"}
+            </div>
+          )}
+        </div>
+
+        {/* Bounced Cheques */}
+        {includeBounced && bouncedTotal > 0 && (
+          <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: "8px", padding: "8px 10px", textAlign: "center" }}>
+            <div style={{ fontSize: "10px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>شيكات مرتجعة</div>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "#EA580C", fontVariantNumeric: "tabular-nums" }}>{fmtAmount(bouncedTotal)}</div>
+            <div style={{ fontSize: "9px", color: "#EA580C", marginTop: "2px", fontWeight: 600 }}>{bouncedCheques.length} شيك</div>
+          </div>
+        )}
       </div>
 
       {/* ━━━ TABLE ━━━ */}
       <div style={{ padding: "0 28px 4px" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", tableLayout: "fixed" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10.5px", tableLayout: "fixed" }}>
           <colgroup>
             {smartColumns.map(col => (
-              <col key={col.key} style={{ width: col.width === "auto" ? undefined : col.width }} />
+              <col key={col.key} style={{ width: col.width }} />
             ))}
           </colgroup>
           <thead>
-            <tr style={{ background: "#1B3A5C", color: "white" }}>
+            <tr style={{ background: "#0D1B2E", color: "#FFFFFF" }}>
               {smartColumns.map(col => (
                 <th
                   key={col.key}
                   style={{
-                    padding: "5px 4px",
+                    padding: "8px 6px",
                     textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
-                    fontWeight: 700, fontSize: "9px",
-                    borderBottom: "2px solid #4A9EE8",
+                    fontWeight: 600, fontSize: "10.5px",
+                    borderBottom: "2px solid #3B82F6",
                     whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   }}
                 >
@@ -484,44 +516,44 @@ const StatementPrintView = ({
             </tr>
           </thead>
           <tbody>
-            {/* Opening balance */}
-            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E5E7EB" }}>
+            {/* Opening balance row */}
+            <tr style={{ background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
               {smartColumns.map(col => {
-                if (col.key === "date") return <td key={col.key} style={{ padding: "4px 4px", color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fmtDate(dateFrom)}</td>;
-                if (col.key === "reference") return <td key={col.key} style={{ padding: "4px 4px", color: "#9CA3AF" }}>—</td>;
-                if (col.key === "description") return <td key={col.key} style={{ padding: "4px 4px", fontWeight: 700, color: "#1B3A5C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>رصيد أول المدة</td>;
-                if (col.key === "debit") return <td key={col.key} style={{ padding: "4px 4px", textAlign: "left", color: "#9CA3AF" }}>{openingBalance > 0 ? fmtAmount(openingBalance) : "—"}</td>;
-                if (col.key === "credit") return <td key={col.key} style={{ padding: "4px 4px", textAlign: "left", color: "#9CA3AF" }}>{openingBalance < 0 ? fmtAmount(openingBalance) : "—"}</td>;
+                if (col.key === "date") return <td key={col.key} style={{ padding: "5px 6px", color: "#374151", fontWeight: 700, fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{fmtDate(dateFrom)}</td>;
+                if (col.key === "reference") return <td key={col.key} style={{ padding: "5px 6px", color: "#9CA3AF" }}>—</td>;
+                if (col.key === "description") return <td key={col.key} style={{ padding: "5px 6px", fontWeight: 700, fontStyle: "italic", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>رصيد أول المدة</td>;
+                if (col.key === "debit") return <td key={col.key} style={{ padding: "5px 6px", textAlign: "left", color: openingBalance > 0 ? "#DC2626" : "#9CA3AF", fontWeight: openingBalance > 0 ? 700 : 400, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{openingBalance > 0 ? fmtAmount(openingBalance) : "—"}</td>;
+                if (col.key === "credit") return <td key={col.key} style={{ padding: "5px 6px", textAlign: "left", color: openingBalance < 0 ? "#15803D" : "#9CA3AF", fontWeight: openingBalance < 0 ? 700 : 400, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{openingBalance < 0 ? fmtAmount(openingBalance) : "—"}</td>;
                 if (col.key === "balance") return (
-                  <td key={col.key} style={{ padding: "4px 4px", textAlign: "left", fontWeight: 700, color: openingBalance >= 0 ? "#DC2626" : "#16A34A", fontFeatureSettings: "'tnum'" }}>
+                  <td key={col.key} style={{ padding: "5px 6px", textAlign: "left", fontWeight: 700, color: "#0D1B2E", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                     {fmtAmount(openingBalance)}
                   </td>
                 );
-                return <td key={col.key} style={{ padding: "4px 4px" }}></td>;
+                return <td key={col.key} style={{ padding: "5px 6px" }}></td>;
               })}
             </tr>
 
-            {/* Rows */}
+            {/* Data rows */}
             {rows.map((row, i) => {
               const isSubRow = !!row.isLineItem;
               return (
                 <tr
                   key={`${row.transaction_id}-${i}-${isSubRow ? "item" : "row"}`}
                   style={{
-                    background: isSubRow ? "#FFFBEB" : (i % 2 === 0 ? "white" : "#FAFBFC"),
-                    borderBottom: "1px solid #F3F4F6",
+                    background: isSubRow ? "#FFFBEB" : (i % 2 === 0 ? "#FFFFFF" : "#F8FAFC"),
+                    borderBottom: "1px solid #E2E8F0",
                   }}
                 >
                   {smartColumns.map(col => (
                     <td
                       key={col.key}
                       style={{
-                        padding: isSubRow ? "2px 4px" : "4px 4px",
+                        padding: isSubRow ? "3px 6px" : "5px 6px",
                         textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
                         overflow: "hidden", textOverflow: "ellipsis",
                         whiteSpace: col.key === "description" ? "normal" : "nowrap",
                         verticalAlign: "top",
-                        fontSize: isSubRow ? "9px" : "10px",
+                        fontSize: isSubRow ? "9px" : "10.5px",
                       }}
                     >
                       {renderCellValue(col.key, row)}
@@ -531,25 +563,25 @@ const StatementPrintView = ({
               );
             })}
 
-            {/* Closing balance */}
-            <tr style={{ background: "#1B3A5C", color: "white", fontWeight: 700 }}>
+            {/* Closing balance / Totals row */}
+            <tr style={{ background: "#0D1B2E", color: "#FFFFFF", fontWeight: 700, borderTop: "3px solid #3B82F6" }}>
               {smartColumns.map(col => {
-                if (col.key === "date") return <td key={col.key} style={{ padding: "5px 4px" }}>—</td>;
-                if (col.key === "reference") return <td key={col.key} style={{ padding: "5px 4px" }}>—</td>;
-                if (col.key === "description") return <td key={col.key} style={{ padding: "5px 4px", fontWeight: 700 }}>رصيد ختامي</td>;
-                if (col.key === "debit") return <td key={col.key} style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalDebit)}</td>;
-                if (col.key === "credit") return <td key={col.key} style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalCredit)}</td>;
+                if (col.key === "date") return <td key={col.key} style={{ padding: "10px 6px", fontSize: "11px" }}>—</td>;
+                if (col.key === "reference") return <td key={col.key} style={{ padding: "10px 6px", fontSize: "11px" }}>—</td>;
+                if (col.key === "description") return <td key={col.key} style={{ padding: "10px 6px", fontWeight: 700, fontSize: "11px" }}>رصيد ختامي</td>;
+                if (col.key === "debit") return <td key={col.key} style={{ padding: "10px 6px", textAlign: "left", fontVariantNumeric: "tabular-nums", fontSize: "11px", whiteSpace: "nowrap" }}>{fmtAmount(totalDebit)}</td>;
+                if (col.key === "credit") return <td key={col.key} style={{ padding: "10px 6px", textAlign: "left", fontVariantNumeric: "tabular-nums", fontSize: "11px", whiteSpace: "nowrap" }}>{fmtAmount(totalCredit)}</td>;
                 if (col.key === "balance") return (
-                  <td key={col.key} style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>
-                    <span style={{ color: "#4A9EE8", fontWeight: 800, fontSize: "11px" }}>
+                  <td key={col.key} style={{ padding: "10px 6px", textAlign: "left", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                    <span style={{ color: "#60A5FA", fontWeight: 800, fontSize: "12px" }}>
                       {fmtAmount(closingBalance)}
                     </span>
-                    <span style={{ fontSize: "8px", marginRight: "3px", color: "#4A9EE8" }}>
+                    <span style={{ fontSize: "8px", marginRight: "3px", color: "#93C5FD" }}>
                       {isDebit ? "مدين (عليه)" : "دائن (له)"}
                     </span>
                   </td>
                 );
-                return <td key={col.key} style={{ padding: "5px 4px" }}></td>;
+                return <td key={col.key} style={{ padding: "10px 6px" }}></td>;
               })}
             </tr>
           </tbody>
@@ -560,17 +592,18 @@ const StatementPrintView = ({
       {closingBalance > 0 && (
         <div
           style={{
-            margin: "0 28px 8px", padding: "6px 14px",
-            background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px",
+            margin: "8px 28px", padding: "10px 14px",
+            background: "#FEF3C7", border: "1px solid #F59E0B", borderRight: "4px solid #F59E0B",
+            borderRadius: "6px",
             display: "flex", alignItems: "center", gap: "10px",
           }}
         >
           <span style={{ fontSize: "18px" }}>⚠️</span>
           <div>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "#991B1B" }}>
-              يوجد رصيد مستحق بقيمة <span style={{ color: "#DC2626" }}>{fmtAmount(closingBalance)}</span>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "#92400E" }}>
+              يوجد رصيد مستحق بقيمة <span style={{ color: "#B45309" }}>{fmtAmount(closingBalance)}</span>
             </div>
-            <div style={{ fontSize: "9px", color: "#7F1D1D", marginTop: "2px" }}>
+            <div style={{ fontSize: "9px", color: "#92400E", marginTop: "2px" }}>
               يرجى التواصل لترتيب السداد
             </div>
           </div>
@@ -580,9 +613,7 @@ const StatementPrintView = ({
       {/* ━━━ PDC SECTION ━━━ */}
       {includePDC && pdcCheques.length > 0 && (
         <div style={{ margin: "0 28px 8px" }}>
-          <div style={{
-            border: "1px solid #DBEAFE", borderRadius: "8px", overflow: "hidden",
-          }}>
+          <div style={{ border: "1px solid #DBEAFE", borderRadius: "8px", overflow: "hidden" }}>
             <div style={{
               background: "#EFF6FF", padding: "6px 14px",
               display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -608,10 +639,10 @@ const StatementPrintView = ({
               <tbody>
                 {pdcCheques.map((chk, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #EFF6FF" }}>
-                    <td style={{ padding: "3px 8px", textAlign: "center", fontFamily: "monospace", fontWeight: 600 }}>{chk.cheque_number || "—"}</td>
-                    <td style={{ padding: "3px 8px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtDate(chk.cheque_date)}</td>
+                    <td style={{ padding: "3px 8px", textAlign: "center", fontFamily: "'Courier New', monospace", fontWeight: 600 }}>{chk.cheque_number || "—"}</td>
+                    <td style={{ padding: "3px 8px", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{fmtDate(chk.cheque_date)}</td>
                     <td style={{ padding: "3px 8px", textAlign: "center" }}>{chk.bank_name || "—"}</td>
-                    <td style={{ padding: "3px 8px", textAlign: "left", fontWeight: 700, color: "#16A34A", fontFeatureSettings: "'tnum'" }}>{fmtAmount(chk.amount)}</td>
+                    <td style={{ padding: "3px 8px", textAlign: "left", fontWeight: 700, color: "#15803D", fontVariantNumeric: "tabular-nums" }}>{fmtAmount(chk.amount)}</td>
                     <td style={{ padding: "3px 8px", textAlign: "center" }}>
                       <span style={{
                         fontSize: "8px", padding: "1px 6px", borderRadius: "4px",
@@ -626,7 +657,7 @@ const StatementPrintView = ({
                   <td colSpan={3} style={{ padding: "4px 8px", textAlign: "right", color: "#1E40AF", fontSize: "9px" }}>
                     الرصيد مع الشيكات الآجلة
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "left", color: "#1E40AF", fontFeatureSettings: "'tnum'", fontSize: "10px" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "left", color: "#1E40AF", fontVariantNumeric: "tabular-nums", fontSize: "10px" }}>
                     {fmtAmount(closingBalance + pdcTotal)}
                   </td>
                   <td></td>
@@ -641,34 +672,29 @@ const StatementPrintView = ({
       <div
         style={{
           margin: "0 28px", padding: "10px 0",
-          borderTop: "1px solid #E5E7EB",
+          borderTop: "1px solid #E2E8F0",
           display: "flex", justifyContent: "space-between", gap: "20px",
         }}
       >
         {/* للمطابقة والاستفسار */}
         <div style={{ flex: "0 0 auto" }}>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "6px" }}>للمطابقة والاستفسار:</div>
-          <div style={{ fontSize: "10px", color: "#4B5563", lineHeight: 1.8 }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#0D1B2E", marginBottom: "6px" }}>للمطابقة والاستفسار:</div>
+          <div style={{ fontSize: "10px", color: "#374151", lineHeight: 1.8 }}>
             {company.phone && <div>📞 {company.phone}</div>}
             {company.email && <div>✉️ {company.email}</div>}
           </div>
-          {/* فراغ للكتابة اليدوية */}
-          <div style={{ borderBottom: "1px dashed #D1D5DB", width: "180px", marginTop: "16px" }} />
-          <div style={{ fontSize: "8px", color: "#9CA3AF", marginTop: "4px", fontStyle: "italic" }}>
+          <div style={{ fontSize: "8px", color: "#9CA3AF", marginTop: "8px", fontStyle: "italic" }}>
             يرجى الإشارة إلى رقم الكشف عند التواصل
           </div>
         </div>
 
-        {/* Stamp & signature boxes */}
-        <div style={{ display: "flex", gap: "20px" }}>
+        {/* Signature lines */}
+        <div style={{ display: "flex", gap: "24px" }}>
           {["ختم الشركة وتوقيع المحاسب", "اعتماد العميل"].map((label, i) => (
             <div key={i} style={{ textAlign: "center", minWidth: "140px" }}>
-              <div style={{
-                width: "130px", height: "55px",
-                border: "1px dashed #D1D5DB", borderRadius: "6px",
-                margin: "0 auto 6px",
-              }} />
-              <div style={{ fontSize: "9px", fontWeight: 600, color: "#6B7280" }}>{label}</div>
+              <div style={{ marginTop: "40px", borderTop: "1.5px solid #CBD5E1", paddingTop: "8px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 600, color: "#6B7280" }}>{label}</div>
+              </div>
             </div>
           ))}
         </div>
@@ -677,13 +703,13 @@ const StatementPrintView = ({
       {/* ━━━ BOTTOM BAR ━━━ */}
       <div
         style={{
-          background: "#1B3A5C", color: "rgba(255,255,255,0.7)",
+          background: "#0D1B2E", color: "#94A3B8",
           padding: "6px 28px",
           display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "9px",
         }}
       >
         <span>طُبع بتاريخ: {fmtDateSlash(today)}</span>
-        <span style={{ color: "#4A9EE8", fontWeight: 600 }}>{company.name || "AMWALI أموالي"}</span>
+        <span style={{ color: "white", fontWeight: 600 }}>{company.name || "AMWALI أموالي"}</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>
