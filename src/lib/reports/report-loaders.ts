@@ -282,15 +282,26 @@ export async function loadMonthComparison(uid: string, setData: SetData) {
 }
 
 export async function loadForeignBalances(uid: string, setData: SetData) {
-  const { data: accounts } = await supabase.from("accounts").select("account_code, account_name").eq("user_id", uid).in("account_code", ["1111", "1112", "1113", "1114"]);
+  // Get all cash sub-accounts (111x) dynamically — not hardcoded
+  const { data: accounts } = await supabase.from("accounts").select("account_code, account_name").eq("user_id", uid).like("account_code", "111%");
   if (!accounts?.length) { setData([]); return; }
   const result = [];
   for (const acc of accounts) {
-    const { data: txns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
-    let balance = 0;
-    (txns || []).forEach(tx => { if (tx.debit_account_code === acc.account_code) balance += tx.amount; if (tx.credit_account_code === acc.account_code) balance -= tx.amount; });
-    const currencyMap: Record<string, string> = { "1111": "USD", "1112": "JOD", "1113": "EUR", "1114": "EGP" };
-    result.push({ account: acc.account_name, code: acc.account_code, currency: currencyMap[acc.account_code] || "—", balance });
+    const { data: txns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code, foreign_amount, currency").eq("user_id", uid).eq("is_deleted", false).or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
+    let balance = 0, foreignBalance = 0;
+    let detectedCurrency = "ILS";
+    (txns || []).forEach(tx => {
+      if (tx.debit_account_code === acc.account_code) { balance += tx.amount; foreignBalance += tx.foreign_amount || tx.amount; }
+      if (tx.credit_account_code === acc.account_code) { balance -= tx.amount; foreignBalance -= tx.foreign_amount || tx.amount; }
+      if (tx.currency && tx.currency !== "ILS") detectedCurrency = tx.currency;
+    });
+    // Try to detect currency from account name
+    const nameLC = acc.account_name.toLowerCase();
+    if (nameLC.includes("دولار") || nameLC.includes("usd") || nameLC.includes("$")) detectedCurrency = "USD";
+    else if (nameLC.includes("دينار") || nameLC.includes("jod")) detectedCurrency = "JOD";
+    else if (nameLC.includes("يورو") || nameLC.includes("eur") || nameLC.includes("€")) detectedCurrency = "EUR";
+    else if (nameLC.includes("جنيه") || nameLC.includes("egp")) detectedCurrency = "EGP";
+    result.push({ account: acc.account_name, code: acc.account_code, currency: detectedCurrency, balance, foreignBalance });
   }
   setData(result);
 }
