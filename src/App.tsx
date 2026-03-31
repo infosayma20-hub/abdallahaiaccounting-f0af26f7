@@ -60,6 +60,7 @@ const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
 const GeneralLedgerPage = lazy(() => import("./pages/GeneralLedgerPage"));
 const AccountStatementPage = lazy(() => import("./pages/AccountStatementPage"));
+const AccountStatementV2Page = lazy(() => import("./pages/AccountStatementV2Page"));
 const HRPayrollReport = lazy(() => import("./pages/reports/HRPayrollReport"));
 const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport"));
 const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
