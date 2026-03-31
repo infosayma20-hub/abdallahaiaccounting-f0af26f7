@@ -150,6 +150,29 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   const [selectedInventoryId, setSelectedInventoryId] = useState<string>("");
   const [inventoryUseQty, setInventoryUseQty] = useState(0);
 
+  // Custom cost categories
+  const [customCategories, setCustomCategories] = useState<{ id: string; name: string; icon: string }[]>([]);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newCustomName, setNewCustomName] = useState("");
+  const [savingCustom, setSavingCustom] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Load custom categories
+  useEffect(() => {
+    if (!open) return;
+    const load = async () => {
+      const { data } = await supabase.from("custom_cost_categories" as any).select("id, name, icon").eq("user_id", userId).eq("is_active", true).order("created_at");
+      setCustomCategories((data as any[]) || []);
+    };
+    load();
+  }, [open, userId]);
+
+  // All categories = default + custom
+  const allCategories = useMemo(() => {
+    const customs = customCategories.map(c => ({ value: `custom_${c.id}`, label: c.name, icon: c.icon }));
+    return [...COST_CATEGORIES, ...customs];
+  }, [customCategories]);
+
   const isMaterial = MATERIAL_CATEGORIES.includes(category);
   const availableUnits = useMemo(() => UNITS_MAP[category] || UNITS_MAP.other, [category]);
   const showWaste = WASTE_CATEGORIES.includes(category);
@@ -162,6 +185,29 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     setSelectedInventoryId("");
     setInventoryUseQty(0);
   }, [category]);
+
+  const handleSaveCustomCategory = async () => {
+    const trimmed = newCustomName.trim();
+    if (!trimmed) return;
+    setSavingCustom(true);
+    const { data, error } = await supabase.from("custom_cost_categories" as any).insert({ user_id: userId, name: trimmed, icon: "📦" }).select("id, name, icon").single();
+    setSavingCustom(false);
+    if (error) { toast.error("فشل في الحفظ"); return; }
+    const newCat = data as any;
+    setCustomCategories(prev => [...prev, newCat]);
+    setCategory(`custom_${newCat.id}`);
+    setNewCustomName("");
+    setShowAddCustom(false);
+    toast.success("✅ تم إضافة نوع التكلفة بنجاح");
+  };
+
+  const handleDeleteCustomCategory = async (id: string) => {
+    await supabase.from("custom_cost_categories" as any).delete().eq("id", id);
+    setCustomCategories(prev => prev.filter(c => c.id !== id));
+    if (category === `custom_${id}`) setCategory("other");
+    setDeleteConfirmId(null);
+    toast.success("تم حذف نوع التكلفة");
+  };
 
   // Load available inventory for this category
   useEffect(() => {
