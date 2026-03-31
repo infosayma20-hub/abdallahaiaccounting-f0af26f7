@@ -43,6 +43,9 @@ interface Props {
   accountBalances: Record<string, number>;
   contactBalances: Record<string, number>;
   employeeBalances: Record<string, number>;
+  accountTxCounts?: Record<string, number>;
+  contactTxCounts?: Record<string, number>;
+  employeeTxCounts?: Record<string, number>;
   selectedEntityId: string;
   activeTab: EntityTab;
   onSelect: (id: string, tab?: EntityTab) => void;
@@ -51,14 +54,21 @@ interface Props {
   loading: boolean;
 }
 
-const fmtBal = (n: number) => {
-  if (n === 0) return "✓ مسدّد";
+const fmtBal = (n: number, txCount: number) => {
+  if (n === 0) {
+    return txCount > 0 ? "✓ مسدّد" : "لا توجد حركات";
+  }
   const symbol = "₪";
   return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
+const balColor = (n: number, txCount: number) => {
+  if (n === 0) return txCount > 0 ? "text-emerald-600" : "text-muted-foreground";
+  return n > 0 ? "text-red-600" : "text-emerald-600";
+};
+
 const balLabel = (n: number) => {
-  if (n === 0) return "مسدّد";
+  if (n === 0) return "";
   return n > 0 ? "مدين" : "دائن";
 };
 
@@ -72,6 +82,7 @@ const TABS: { key: EntityTab; label: string; icon: any; emoji: string }[] = [
 export default function AdvancedEntitySearch({
   allContacts, allAccounts, allEmployees,
   accountBalances, contactBalances, employeeBalances,
+  accountTxCounts = {}, contactTxCounts = {}, employeeTxCounts = {},
   selectedEntityId, activeTab, onSelect, onClear, onTabFilter, loading,
 }: Props) {
   const [search, setSearch] = useState("");
@@ -104,7 +115,7 @@ export default function AdvancedEntitySearch({
     const q = search.trim();
     if (!q && !open) return [];
 
-    const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; tab: EntityTab }[] }[] = [];
+    const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; txCount: number; tab: EntityTab }[] }[] = [];
 
     const showAll = !q && open; // browsing mode — filter by activeTab
 
@@ -116,7 +127,7 @@ export default function AdvancedEntitySearch({
           key: "accounts", label: "الحسابات", emoji: "📊",
           items: accs.slice(0, 15).map(a => ({
             id: a.id, name: a.account_name, code: a.account_code,
-            balance: accountBalances[a.id] || 0, tab: "accounts" as EntityTab,
+            balance: accountBalances[a.id] || 0, txCount: accountTxCounts[a.id] || 0, tab: "accounts" as EntityTab,
           })),
         });
       }
@@ -130,7 +141,7 @@ export default function AdvancedEntitySearch({
           key: "customers", label: "الزبائن", emoji: "👤",
           items: custs.slice(0, 15).map(c => ({
             id: c.id, name: c.contact_name, code: c.linked_account_code || "",
-            balance: contactBalances[c.id] || 0, tab: "customers" as EntityTab,
+            balance: contactBalances[c.id] || 0, txCount: contactTxCounts[c.id] || 0, tab: "customers" as EntityTab,
           })),
         });
       }
@@ -144,7 +155,7 @@ export default function AdvancedEntitySearch({
           key: "suppliers", label: "الموردين", emoji: "🚚",
           items: sups.slice(0, 15).map(c => ({
             id: c.id, name: c.contact_name, code: c.linked_account_code || "",
-            balance: contactBalances[c.id] || 0, tab: "suppliers" as EntityTab,
+            balance: contactBalances[c.id] || 0, txCount: contactTxCounts[c.id] || 0, tab: "suppliers" as EntityTab,
           })),
         });
       }
@@ -158,14 +169,14 @@ export default function AdvancedEntitySearch({
           key: "employees", label: "الموظفين", emoji: "👨‍💼",
           items: emps.slice(0, 10).map(e => ({
             id: e.id, name: e.full_name, code: e.account_code || "",
-            balance: employeeBalances[e.id] || 0, tab: "employees" as EntityTab,
+            balance: employeeBalances[e.id] || 0, txCount: employeeTxCounts[e.id] || 0, tab: "employees" as EntityTab,
           })),
         });
       }
     }
 
     return groups;
-  }, [search, open, activeTab, allAccounts, allContacts, allEmployees, accountBalances, contactBalances, employeeBalances]);
+  }, [search, open, activeTab, allAccounts, allContacts, allEmployees, accountBalances, contactBalances, employeeBalances, accountTxCounts, contactTxCounts, employeeTxCounts]);
 
   const flatResults = useMemo(() => groupedResults.flatMap(g => g.items), [groupedResults]);
 
@@ -317,9 +328,9 @@ export default function AdvancedEntitySearch({
                         </div>
                         <span className={cn(
                           "text-xs font-bold tabular-nums shrink-0 mr-3",
-                          item.balance === 0 ? "text-emerald-600" : item.balance > 0 ? "text-red-600" : "text-emerald-600"
+                          balColor(item.balance, item.txCount)
                         )}>
-                          {fmtBal(item.balance)}
+                          {fmtBal(item.balance, item.txCount)}
                           {item.balance !== 0 && (
                             <span className="text-[10px] font-normal text-muted-foreground mr-1">{balLabel(item.balance)}</span>
                           )}
