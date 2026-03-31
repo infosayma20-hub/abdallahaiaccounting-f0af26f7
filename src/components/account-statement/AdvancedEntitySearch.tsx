@@ -43,6 +43,9 @@ interface Props {
   accountBalances: Record<string, number>;
   contactBalances: Record<string, number>;
   employeeBalances: Record<string, number>;
+  accountTxCounts?: Record<string, number>;
+  contactTxCounts?: Record<string, number>;
+  employeeTxCounts?: Record<string, number>;
   selectedEntityId: string;
   activeTab: EntityTab;
   onSelect: (id: string, tab?: EntityTab) => void;
