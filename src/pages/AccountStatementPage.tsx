@@ -1604,6 +1604,29 @@ const AccountStatementPage = () => {
               <ChevronLeft className="w-3 h-3" />
               <span className="text-foreground font-bold text-base">كشف الحساب</span>
             </div>
+            {/* Compact selected entity indicator in toolbar */}
+            {selectedEntityId && (() => {
+              const acc = accounts.find(a => a.id === selectedEntityId);
+              const con = contacts.find(c => c.id === selectedEntityId);
+              const emp = employeeEntities.find(e => e.id === selectedEntityId);
+              const emoji = acc ? "📊" : con ? (con.contact_type === "عميل" ? "👤" : "🚚") : emp ? "👨‍💼" : "";
+              const name = acc?.account_name || con?.contact_name || emp?.full_name || "";
+              const code = acc?.account_code || con?.linked_account_code || emp?.account_code || "";
+              return (
+                <div className="flex items-center gap-2 mr-2 px-3 py-1 rounded-lg" style={{ background: "#F1F5F9" }}>
+                  <span className="text-sm">{emoji}</span>
+                  <span className="text-sm font-semibold text-foreground">{name}</span>
+                  {code && <span className="text-xs text-muted-foreground">— {code}</span>}
+                  <button
+                    onClick={() => setSelectedEntityId("")}
+                    className="text-xs underline cursor-pointer mr-1 hover:opacity-70 transition-opacity"
+                    style={{ color: "#1B3A5C" }}
+                  >
+                    تغيير
+                  </button>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -1668,7 +1691,8 @@ const AccountStatementPage = () => {
           </div>
         </div>
       </div>
-      {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) ─── */}
+      {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) — only when no entity selected ─── */}
+      {!selectedEntityId && (
       <div className="sticky z-40 no-print" style={{ top: 57, background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
           <AdvancedEntitySearch
             entityList={entityList}
@@ -1691,6 +1715,7 @@ const AccountStatementPage = () => {
             loading={loading}
           />
       </div>
+      )}
 
       {/* ─── BODY: Full width main content ─── */}
       <div className="flex flex-1 min-h-0">
