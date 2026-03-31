@@ -1768,6 +1768,7 @@ export default function WorkshopsPage() {
               const statusColor = ws.status === "completed" ? "#3B82F6" : ws.status === "paused" || ws.status === "cancelled" ? "#EF4444" : "#22C55E";
               const wsTypes = (ws.workshop_type || "").split(",").filter(Boolean);
               const firstType = WORKSHOP_TYPES.find(x => x.value === wsTypes[0]);
+              const customFirst = !firstType ? customWsTypes.find(c => `custom_${c.id}` === wsTypes[0]) : null;
               const TypeIcon = firstType?.Icon || Hammer;
 
               return (
