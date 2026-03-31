@@ -1160,9 +1160,9 @@ export default function WorkshopsPage() {
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* RIGHT COLUMN — 75% — Payment Form */}
-            <div className="lg:col-span-3 space-y-6">
+          <div className="flex gap-4 items-start">
+            {/* RIGHT COLUMN — Payment Form */}
+            <div className="flex-1 min-w-0 space-y-6">
               {/* Financial Summary Cards */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-xl border border-border p-5 text-center">
@@ -1401,8 +1401,8 @@ export default function WorkshopsPage() {
               )}
             </div>
 
-            {/* LEFT COLUMN — 25% — Workshop Summary (sticky) */}
-            <div className="lg:col-span-1" style={{ maxWidth: 260 }}>
+            {/* LEFT COLUMN — Workshop Summary (sticky) */}
+            <div className="w-56 flex-shrink-0 hidden lg:block">
               <div className="lg:sticky lg:top-24">
                 <div className="rounded-xl border border-border p-4 space-y-3" style={{ background: "#F8FAFC" }}>
                   <div className="space-y-0.5">
