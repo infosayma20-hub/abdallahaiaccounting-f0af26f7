@@ -1921,21 +1921,44 @@ export default function WorkshopsPage() {
                   return (
                     <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
                       className="relative p-3 text-center transition-all"
-                      style={{
-                        borderRadius: 10,
-                        border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0",
-                        background: selected ? "#EEF2FF" : "#fff",
-                      }}>
-                      {selected && (
-                        <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}>
-                          <Check className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      )}
+                      style={{ borderRadius: 10, border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0", background: selected ? "#EEF2FF" : "#fff" }}>
+                      {selected && (<div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}><Check className="h-2.5 w-2.5 text-white" /></div>)}
                       <wt.Icon className="mx-auto mb-1" style={{ width: 28, height: 28, color: selected ? "#1B3A5C" : "#64748B" }} />
                       <span className="text-[11px] font-medium text-foreground">{wt.label}</span>
                     </button>
                   );
                 })}
+                {/* Custom workshop types */}
+                {customWsTypes.map(ct => {
+                  const val = `custom_${ct.id}`;
+                  const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(val);
+                  return (
+                    <button key={val} onClick={() => toggleWorkshopType(val)}
+                      className="relative p-3 text-center transition-all group"
+                      style={{ borderRadius: 10, border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0", background: selected ? "#EEF2FF" : "#fff" }}>
+                      {selected && (<div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}><Check className="h-2.5 w-2.5 text-white" /></div>)}
+                      <span onClick={e => { e.stopPropagation(); setDeleteWsTypeId(ct.id); }} className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-destructive"><X className="h-2.5 w-2.5" /></span>
+                      <span className="text-2xl block mx-auto mb-1">{ct.icon}</span>
+                      <span className="text-[11px] font-medium text-foreground">{ct.name}</span>
+                    </button>
+                  );
+                })}
+                {/* Add custom type card */}
+                {!showAddWsType ? (
+                  <button onClick={() => setShowAddWsType(true)}
+                    className="p-3 text-center transition-all hover:bg-primary/5"
+                    style={{ borderRadius: 10, border: "2px dashed #CBD5E1", background: "#F9FAFB" }}>
+                    <span className="text-2xl block mx-auto mb-1">➕</span>
+                    <span className="text-[11px] font-medium" style={{ color: "#94A3B8" }}>إضافة نوع</span>
+                    <span className="text-[9px] block" style={{ color: "#94A3B8" }}>ورشة جديد</span>
+                  </button>
+                ) : (
+                  <div className="col-span-2 flex items-center gap-2 p-2" style={{ borderRadius: 10, border: "2px solid #1B3A5C20", background: "#EEF2FF" }}>
+                    <Input value={newWsTypeName} onChange={e => setNewWsTypeName(e.target.value.slice(0, 20))} placeholder="اسم نوع الورشة..." className="h-8 text-xs flex-1" autoFocus
+                      onKeyDown={e => { if (e.key === "Enter") handleSaveWsType(); if (e.key === "Escape") { setShowAddWsType(false); setNewWsTypeName(""); } }} />
+                    <Button size="sm" className="h-8 text-xs px-3" disabled={!newWsTypeName.trim() || savingWsType} onClick={handleSaveWsType}>حفظ</Button>
+                  </div>
+                )}
               </div>
             </div>
 
