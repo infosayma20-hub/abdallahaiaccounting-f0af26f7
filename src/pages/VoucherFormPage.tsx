@@ -439,7 +439,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const load = async () => {
       const [cbRes, baRes] = await Promise.all([
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", user.id).eq("is_active", true),
       ]);
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
