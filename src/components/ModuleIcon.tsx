@@ -80,6 +80,7 @@ const moduleIcons: Record<string, React.ElementType> = {
   customization: Puzzle,
   tasks: ClipboardList,
   travel: Plane,
+  print: Printer,
 };
 
 const DashboardIcon = ({ size }: { size: number }) => (
