@@ -10,7 +10,7 @@ import { generateStatementPDF } from "@/utils/generateStatementPDF";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import StatementPrintView from "@/components/StatementPrintView";
+import StatementPrintViewClean from "@/components/StatementPrintViewClean";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -726,10 +726,9 @@ const AccountStatementV2Page = () => {
               </Button>
             </div>
           </div>
-          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
-            <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
-              <StatementPrintView
-                isPreview
+          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+            <div id="statement-preview-doc" style={{ width: "780px", minHeight: "1100px", background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4 }}>
+              <StatementPrintViewClean
                 company={companyInfo}
                 contact={{
                   name: selectedEntityName,
