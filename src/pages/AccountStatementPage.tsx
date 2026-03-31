@@ -879,6 +879,25 @@ const AccountStatementPage = () => {
     ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "", email: "" }
     : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "", email: selectedContact?.email || "" };
 
+  // ─── ACCOUNT NATURE (debit vs credit) for coloring ───
+  const isDebitNature = useMemo(() => {
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      const type = (selectedAccount.account_type || "").toLowerCase();
+      // Assets (1xxx) and Expenses/Purchases (5xxx) are debit-nature
+      if (code.startsWith("1") || code.startsWith("5")) return true;
+      if (["asset", "أصول", "أصل", "expense", "expenses", "مصروفات", "مصروف", "مصاريف", "purchases", "مشتريات"].includes(type)) return true;
+      // Liabilities (2xxx), Equity (3xxx), Revenue (4xxx) are credit-nature
+      if (code.startsWith("2") || code.startsWith("3") || code.startsWith("4")) return false;
+      if (["liability", "التزامات", "التزام", "خصوم", "equity", "حقوق ملكية", "حقوق الملكية", "رأس مال", "revenue", "إيرادات", "إيراد", "دخل"].includes(type)) return false;
+      return true; // default debit
+    }
+    if (isEmployeesTab) return false; // employees mapped to 2180 (liability)
+    // Contacts: customers = receivables (asset/debit), suppliers = payables (liability/credit)
+    if (activeTab === "customers") return true;
+    return false; // suppliers = credit nature
+  }, [isAccountsTab, isEmployeesTab, activeTab, selectedAccount]);
+
   // ─── CREDIT LIMIT CHECK ───
   const creditLimitWarning = useMemo(() => {
     if (isAccountsTab || isEmployeesTab || !selectedContact) return null;
