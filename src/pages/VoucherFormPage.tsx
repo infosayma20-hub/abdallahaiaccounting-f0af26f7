@@ -827,7 +827,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           credit_account_code: depositAccountCode,
           amount: amountInILS,
           currency: currencyLabel,
-          transaction_type: isEmployeePayment ? "employee_payment" : isAccountPayment ? "journal" : "payment",
+          transaction_type: isEmployeePayment ? (empCategory === "رواتب" ? "employee_salary" : empCategory === "سلفة" ? "employee_advance" : "employee_payment") : isAccountPayment ? "journal" : "payment",
           contact_id: txContactId,
           payment_method: payMethodMap[paymentMethod] || "نقدي",
           idempotency_key: `PAY-NEW-${Date.now()}`,
