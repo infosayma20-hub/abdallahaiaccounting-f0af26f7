@@ -228,6 +228,11 @@ export default function WorkshopsPage() {
     setBankAccounts((data as any) || []);
   };
 
+  const loadCashBoxes = async () => {
+    const { data } = await supabase.from("cash_boxes").select("id, name, type, gl_account_code, currency").eq("is_active", true).order("name");
+    setCashBoxes((data as any) || []);
+  };
+
   const loadCurrencies = async () => {
     const { data } = await supabase.from("currencies").select("code, name_ar, sell_rate").eq("is_active", true).order("code");
     setCurrencies((data as any) || []);
