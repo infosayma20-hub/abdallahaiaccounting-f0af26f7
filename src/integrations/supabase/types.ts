@@ -9801,6 +9801,7 @@ export type Database = {
       tasks: {
         Row: {
           assigned_at: string | null
+          assigned_by_name: string | null
           assigned_to: string | null
           category: string | null
           completed_at: string | null
@@ -9808,11 +9809,13 @@ export type Database = {
           completion_note: string | null
           created_at: string | null
           created_by: string | null
+          created_by_portal: boolean | null
           description: string | null
           due_date: string | null
           due_time: string | null
           id: string
           is_visible_to_all: boolean | null
+          portal_company_id: string | null
           priority: string
           status: string
           title: string
@@ -9821,6 +9824,7 @@ export type Database = {
         }
         Insert: {
           assigned_at?: string | null
+          assigned_by_name?: string | null
           assigned_to?: string | null
           category?: string | null
           completed_at?: string | null
@@ -9828,11 +9832,13 @@ export type Database = {
           completion_note?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_by_portal?: boolean | null
           description?: string | null
           due_date?: string | null
           due_time?: string | null
           id?: string
           is_visible_to_all?: boolean | null
+          portal_company_id?: string | null
           priority?: string
           status?: string
           title: string
@@ -9841,6 +9847,7 @@ export type Database = {
         }
         Update: {
           assigned_at?: string | null
+          assigned_by_name?: string | null
           assigned_to?: string | null
           category?: string | null
           completed_at?: string | null
@@ -9848,11 +9855,13 @@ export type Database = {
           completion_note?: string | null
           created_at?: string | null
           created_by?: string | null
+          created_by_portal?: boolean | null
           description?: string | null
           due_date?: string | null
           due_time?: string | null
           id?: string
           is_visible_to_all?: boolean | null
+          portal_company_id?: string | null
           priority?: string
           status?: string
           title?: string
