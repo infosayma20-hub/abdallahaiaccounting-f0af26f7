@@ -84,13 +84,13 @@ const S = {
   titleAr: { fontSize: 16, fontWeight: 700, color: "#111827", margin: 0 },
   titleEn: { fontSize: 10, color: "#6B7280", marginTop: 2 },
   soaNum: { fontSize: 10, color: "#6B7280", marginTop: 4 },
-  infoGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 20, marginBottom: 20 } as React.CSSProperties,
-  infoLabel: { fontSize: 10, color: "#6B7280", marginBottom: 2 },
-  infoName: { fontSize: 13, fontWeight: 600, color: "#111827" },
-  infoType: { fontSize: 10, color: "#6B7280", marginTop: 2 },
-  metaTable: { width: "100%", fontSize: 10, borderCollapse: "collapse" as const },
-  metaLabel: { color: "#6B7280", padding: "3px 0", textAlign: "left" as const, whiteSpace: "nowrap" as const },
-  metaValue: { color: "#111827", fontWeight: 500, padding: "3px 0", textAlign: "left" as const, paddingRight: 12 },
+  infoGrid: { display: "flex", justifyContent: "space-between", gap: 24, marginTop: 16, marginBottom: 16 } as React.CSSProperties,
+  infoLabel: { fontSize: 10, color: "#6B7280", marginBottom: 2, margin: 0 },
+  infoName: { fontSize: 13, fontWeight: 600, color: "#111827", margin: "2px 0" },
+  infoType: { fontSize: 10, color: "#6B7280", marginTop: 1, margin: 0 },
+  metaTable: { fontSize: 10, borderCollapse: "collapse" as const },
+  metaLabel: { color: "#6B7280", padding: "2px 0", paddingLeft: 16, whiteSpace: "nowrap" as const, textAlign: "right" as const },
+  metaValue: { color: "#111827", fontWeight: 500, padding: "2px 0", textAlign: "right" as const },
   summaryBar: { background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } as React.CSSProperties,
   summaryItem: { flex: 1, textAlign: "center" as const },
   summaryLabel: { fontSize: 9, color: "#9CA3AF", marginBottom: 2 },
@@ -135,20 +135,19 @@ const StatementPrintViewClean = ({
 
       {/* ═══ INFO BLOCK ═══ */}
       <div style={S.infoGrid}>
-        <div>
+        <div style={{ flex: 1 }}>
           <p style={S.infoLabel}>صادر إلى</p>
           <p style={S.infoName}>{contact.name}</p>
           <p style={S.infoType}>{contact.type}{contactCode ? ` — ${contactCode}` : ""}</p>
-          {contact.phone && <p style={{ ...S.infoType, marginTop: 1 }}>{contact.phone}</p>}
+          {contact.phone && <p style={S.infoType}>{contact.phone}</p>}
         </div>
-        <div>
+        <div style={{ flexShrink: 0 }}>
           <table style={S.metaTable}>
             <tbody>
-              <tr><td style={S.metaLabel}>رقم الكشف</td><td style={S.metaValue}>{soaNum}</td></tr>
-              <tr><td style={S.metaLabel}>تاريخ الإصدار</td><td style={S.metaValue}>{fmtToday()}</td></tr>
-              <tr><td style={S.metaLabel}>الفترة من</td><td style={S.metaValue}>{fmtDate(dateFrom)}</td></tr>
-              <tr><td style={S.metaLabel}>إلى</td><td style={S.metaValue}>{fmtDate(dateTo)}</td></tr>
-              <tr><td style={S.metaLabel}>العملة</td><td style={S.metaValue}>شيكل إسرائيلي (₪)</td></tr>
+              <tr><td style={S.metaLabel}>رقم الكشف:</td><td style={S.metaValue}>{soaNum}</td></tr>
+              <tr><td style={S.metaLabel}>تاريخ الإصدار:</td><td style={S.metaValue}>{fmtToday()}</td></tr>
+              <tr><td style={S.metaLabel}>الفترة من:</td><td style={S.metaValue}>{fmtDate(dateFrom)} — {fmtDate(dateTo)}</td></tr>
+              <tr><td style={S.metaLabel}>العملة:</td><td style={S.metaValue}>شيكل إسرائيلي (₪)</td></tr>
             </tbody>
           </table>
         </div>
