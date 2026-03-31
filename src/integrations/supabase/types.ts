@@ -8784,6 +8784,75 @@ export type Database = {
           },
         ]
       }
+      quotations: {
+        Row: {
+          client_address: string | null
+          client_name: string
+          created_at: string
+          discount_amount: number
+          discount_percent: number
+          id: string
+          items: Json
+          notes: string | null
+          payment_terms: string | null
+          quote_date: string
+          quote_number: string
+          status: string
+          subtotal: number
+          tax_amount: number
+          tax_enabled: boolean
+          total: number
+          updated_at: string
+          user_id: string
+          validity_days: number
+          workshop_id: string | null
+        }
+        Insert: {
+          client_address?: string | null
+          client_name?: string
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_terms?: string | null
+          quote_date?: string
+          quote_number: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_enabled?: boolean
+          total?: number
+          updated_at?: string
+          user_id: string
+          validity_days?: number
+          workshop_id?: string | null
+        }
+        Update: {
+          client_address?: string | null
+          client_name?: string
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_terms?: string | null
+          quote_date?: string
+          quote_number?: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_enabled?: boolean
+          total?: number
+          updated_at?: string
+          user_id?: string
+          validity_days?: number
+          workshop_id?: string | null
+        }
+        Relationships: []
+      }
       receipt_vouchers: {
         Row: {
           amount: number

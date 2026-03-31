@@ -27,6 +27,8 @@ import { motion } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import { generateWorkshopContractPDF, ContractData, ContractCompanyData } from "@/utils/generateWorkshopContractPDF";
 import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
+import QuotationDialog, { QuotationData } from "@/components/workshops/QuotationDialog";
+import QuotationPreview from "@/components/workshops/QuotationPreview";
 import WorkshopCostModal, { COST_CATEGORIES, PHASES, CATEGORY_GL_MAP, PAYMENT_CREDIT_MAP as NEW_PAYMENT_CREDIT } from "@/components/workshops/WorkshopCostModal";
 import WorkshopCostReport from "@/components/workshops/WorkshopCostReport";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -157,6 +159,9 @@ export default function WorkshopsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingWorkshop, setDeletingWorkshop] = useState<Workshop | null>(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [showQuotationDialog, setShowQuotationDialog] = useState(false);
+  const [showQuotationPreview, setShowQuotationPreview] = useState(false);
+  const [quotationPreviewData, setQuotationPreviewData] = useState<QuotationData | null>(null);
   const [showNewCost, setShowNewCost] = useState(false);
   const [showCostReport, setShowCostReport] = useState(false);
   const [costFilter, setCostFilter] = useState("all");
@@ -854,6 +859,9 @@ export default function WorkshopsPage() {
               }}>
                 <Printer className="h-3.5 w-3.5" /> معاينة طباعة
               </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowQuotationDialog(true)}>
+                <FileText className="h-3.5 w-3.5" /> عرض سعر
+              </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
                 <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
               </Button>
@@ -1175,6 +1183,30 @@ export default function WorkshopsPage() {
           companyAddress={settings.address || ""}
           companyEmail={settings.email || ""}
           logoUrl={settings.logo_url || ""}
+        />
+
+        {/* ── Quotation Dialog ── */}
+        <QuotationDialog
+          open={showQuotationDialog}
+          onOpenChange={setShowQuotationDialog}
+          workshopId={selectedWorkshop.id}
+          workshopName={selectedWorkshop.name}
+          clientName={selectedWorkshop.customer_name || ""}
+          budget={selectedWorkshop.total_budget || 0}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          logoUrl={settings.logo_url || ""}
+          onPreview={(data) => {
+            setQuotationPreviewData(data);
+            setShowQuotationPreview(true);
+          }}
+        />
+
+        {/* ── Quotation Preview ── */}
+        <QuotationPreview
+          open={showQuotationPreview}
+          onOpenChange={setShowQuotationPreview}
+          data={quotationPreviewData}
         />
 
         {/* Payment Dialog kept for backward compat but hidden — replaced by full page view */}
