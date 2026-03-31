@@ -9,9 +9,19 @@ type SetData = (data: any[]) => void;
 export async function loadAgingReport(uid: string, contactType: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class, last_transaction_date").eq("user_id", uid).eq("contact_type", contactType).gt("current_balance", 0);
   if (!contacts?.length) { setData([]); return; }
+
+  // Get unpaid invoices for proper per-invoice aging
+  const txTypes = contactType === "عميل"
+    ? ["sale_cash", "sale_bank", "sale_credit", "sale_cheque"]
+    : ["purchase_cash", "purchase_credit", "purchase_bank"];
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", txTypes);
+
   const today = new Date();
   setData(contacts.map(c => {
-    const days = c.last_transaction_date ? differenceInDays(today, new Date(c.last_transaction_date)) : 999;
+    // Use oldest unpaid transaction for aging, not last_transaction_date
+    const cTxns = (txns || []).filter(t => t.contact_id === c.id).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const oldestDate = cTxns.length > 0 ? cTxns[0].transaction_date : null;
+    const days = oldestDate ? differenceInDays(today, new Date(oldestDate)) : 0;
     return {
       name: c.contact_name, cls: c.contact_class || "-",
       current: days <= 0 ? c.current_balance : 0,
