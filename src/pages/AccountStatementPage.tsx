@@ -1943,21 +1943,21 @@ const AccountStatementPage = () => {
                         </div>
 
                         {/* Total Debit */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #3B82F6", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#22C55E" : "#EF4444"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingUp className="w-4 h-4 text-blue-500" />
+                            <TrendingUp className={cn("w-4 h-4", isDebitNature ? "text-emerald-500" : "text-red-500")} />
                             <span className="text-[12px] text-muted-foreground">إجمالي المدين</span>
                           </div>
-                          <p className="font-bold tabular-nums text-blue-600" style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
+                          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-emerald-600" : "text-red-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
                         </div>
 
                         {/* Total Credit */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #22C55E", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#EF4444" : "#22C55E"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingDown className="w-4 h-4 text-emerald-500" />
+                            <TrendingDown className={cn("w-4 h-4", isDebitNature ? "text-red-500" : "text-emerald-500")} />
                             <span className="text-[12px] text-muted-foreground">إجمالي الدائن</span>
                           </div>
-                          <p className="font-bold tabular-nums text-emerald-600" style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
+                          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-red-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
                         </div>
 
                         {/* Closing Balance */}
