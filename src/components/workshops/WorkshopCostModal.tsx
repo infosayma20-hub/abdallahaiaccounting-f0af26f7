@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Search, UserPlus, Check, AlertTriangle, Package } from "lucide-react";
+import { Search, UserPlus, Check, AlertTriangle, Package, X } from "lucide-react";
 
 /* ── Cost Categories ── */
 export const COST_CATEGORIES = [
@@ -149,6 +150,29 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   const [selectedInventoryId, setSelectedInventoryId] = useState<string>("");
   const [inventoryUseQty, setInventoryUseQty] = useState(0);
 
+  // Custom cost categories
+  const [customCategories, setCustomCategories] = useState<{ id: string; name: string; icon: string }[]>([]);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newCustomName, setNewCustomName] = useState("");
+  const [savingCustom, setSavingCustom] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Load custom categories
+  useEffect(() => {
+    if (!open) return;
+    const load = async () => {
+      const { data } = await supabase.from("custom_cost_categories" as any).select("id, name, icon").eq("user_id", userId).eq("is_active", true).order("created_at");
+      setCustomCategories((data as any[]) || []);
+    };
+    load();
+  }, [open, userId]);
+
+  // All categories = default + custom
+  const allCategories = useMemo(() => {
+    const customs = customCategories.map(c => ({ value: `custom_${c.id}`, label: c.name, icon: c.icon }));
+    return [...COST_CATEGORIES, ...customs];
+  }, [customCategories]);
+
   const isMaterial = MATERIAL_CATEGORIES.includes(category);
   const availableUnits = useMemo(() => UNITS_MAP[category] || UNITS_MAP.other, [category]);
   const showWaste = WASTE_CATEGORIES.includes(category);
@@ -161,6 +185,29 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     setSelectedInventoryId("");
     setInventoryUseQty(0);
   }, [category]);
+
+  const handleSaveCustomCategory = async () => {
+    const trimmed = newCustomName.trim();
+    if (!trimmed) return;
+    setSavingCustom(true);
+    const { data, error } = await supabase.from("custom_cost_categories" as any).insert({ user_id: userId, name: trimmed, icon: "📦" }).select("id, name, icon").single();
+    setSavingCustom(false);
+    if (error) { toast.error("فشل في الحفظ"); return; }
+    const newCat = data as any;
+    setCustomCategories(prev => [...prev, newCat]);
+    setCategory(`custom_${newCat.id}`);
+    setNewCustomName("");
+    setShowAddCustom(false);
+    toast.success("✅ تم إضافة نوع التكلفة بنجاح");
+  };
+
+  const handleDeleteCustomCategory = async (id: string) => {
+    await supabase.from("custom_cost_categories" as any).delete().eq("id", id);
+    setCustomCategories(prev => prev.filter(c => c.id !== id));
+    if (category === `custom_${id}`) setCategory("other");
+    setDeleteConfirmId(null);
+    toast.success("تم حذف نوع التكلفة");
+  };
 
   // Load available inventory for this category
   useEffect(() => {
@@ -454,27 +501,82 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
           <div className="space-y-2">
             <Label className="text-sm font-bold">نوع التكلفة</Label>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {COST_CATEGORIES.map(ct => (
-                <button key={ct.value} onClick={() => setCategory(ct.value)}
-                  className={`relative p-2.5 rounded-xl border-2 text-center transition-all ${
-                    category === ct.value
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-border hover:border-primary/30 hover:bg-accent/5"
-                  }`}>
-                  {category === ct.value && (
-                    <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5 text-primary-foreground" />
-                    </span>
-                  )}
-                  <span className="text-xl block">{ct.icon}</span>
-                  <span className="text-[10px] font-medium text-foreground block mt-0.5">{ct.label}</span>
+              {allCategories.map(ct => {
+                const isCustom = ct.value.startsWith("custom_");
+                const customId = isCustom ? ct.value.replace("custom_", "") : null;
+                return (
+                  <button key={ct.value} onClick={() => setCategory(ct.value)}
+                    className={`relative p-2.5 rounded-xl border-2 text-center transition-all group ${
+                      category === ct.value
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-primary/30 hover:bg-accent/5"
+                    }`}>
+                    {category === ct.value && (
+                      <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                      </span>
+                    )}
+                    {isCustom && customId && (
+                      <span
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(customId); }}
+                        className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-destructive"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+                    <span className="text-xl block">{ct.icon}</span>
+                    <span className="text-[10px] font-medium text-foreground block mt-0.5">{ct.label}</span>
+                  </button>
+                );
+              })}
+
+              {/* Add custom type card */}
+              {!showAddCustom ? (
+                <button
+                  onClick={() => setShowAddCustom(true)}
+                  className="p-2.5 rounded-xl border-2 border-dashed border-muted-foreground/30 text-center transition-all hover:border-primary hover:bg-primary/5 bg-muted/30"
+                >
+                  <span className="text-xl block">➕</span>
+                  <span className="text-[10px] font-medium text-muted-foreground block mt-0.5">إضافة نوع</span>
+                  <span className="text-[9px] text-muted-foreground block">تكلفة جديد</span>
                 </button>
-              ))}
+              ) : (
+                <div className="col-span-2 sm:col-span-2 flex items-center gap-2 p-2 rounded-xl border-2 border-primary/40 bg-primary/5">
+                  <Input
+                    value={newCustomName}
+                    onChange={e => setNewCustomName(e.target.value.slice(0, 30))}
+                    placeholder="اسم نوع التكلفة..."
+                    className="h-8 text-xs flex-1"
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleSaveCustomCategory();
+                      if (e.key === "Escape") { setShowAddCustom(false); setNewCustomName(""); }
+                    }}
+                  />
+                  <Button size="sm" className="h-8 text-xs px-3" disabled={!newCustomName.trim() || savingCustom} onClick={handleSaveCustomCategory}>
+                    حفظ
+                  </Button>
+                </div>
+              )}
             </div>
             <p className="text-[10px] text-muted-foreground text-center">
               القيد: مدين {glInfo.debit} ({glInfo.label}) ← دائن {creditCode}
             </p>
           </div>
+
+          {/* Delete custom category confirm */}
+          <AlertDialog open={!!deleteConfirmId} onOpenChange={v => { if (!v) setDeleteConfirmId(null); }}>
+            <AlertDialogContent dir="rtl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>هل تريد حذف هذا النوع؟</AlertDialogTitle>
+                <AlertDialogDescription>سيتم حذف نوع التكلفة المخصص. هذا الإجراء لا يمكن التراجع عنه.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteConfirmId && handleDeleteCustomCategory(deleteConfirmId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* ── Use from inventory toggle ── */}
           {isMaterial && inventoryItems.length > 0 && (
