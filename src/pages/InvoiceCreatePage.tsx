@@ -5,8 +5,9 @@ import {
   Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
-  Upload, X, ExternalLink, FileCheck, ChevronUp
+  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import PageHeader from "@/components/layout/PageHeader";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
