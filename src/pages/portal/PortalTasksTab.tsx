@@ -60,12 +60,11 @@ export default function PortalTasksTab({ theme }: Props) {
       setLinkedUserId(ownerId);
       if (settings?.company_name) setAdminName(settings.company_name);
 
-      // Fetch portal-created tasks for this owner
+      // Fetch ALL tasks for this owner (both portal-created and employee-created)
       const { data: tasksData } = await supabase
         .from('tasks')
         .select('*')
         .eq('user_id', ownerId)
-        .eq('created_by_portal', true)
         .order('created_at', { ascending: false });
 
       // Fetch task_users for this owner (employees in task system)
