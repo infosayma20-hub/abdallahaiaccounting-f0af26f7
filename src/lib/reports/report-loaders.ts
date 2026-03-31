@@ -155,7 +155,7 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
 }
 
 export async function loadSalesReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.return,description.ilike.%مرتجع%").order("transaction_date", { ascending: false });
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.return,transaction_type.eq.sales_return,transaction_type.eq.sale_return,description.ilike.%مرتجع%,description.ilike.%مردود%").order("transaction_date", { ascending: false });
   setData(txns || []);
 }
 
@@ -339,7 +339,7 @@ export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo
 }
 
 export async function loadPurchaseReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.purchase_return,description.ilike.%مرتجع شراء%").order("transaction_date", { ascending: false });
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.purchase_return,transaction_type.eq.debit_note,description.ilike.%مرتجع شراء%,description.ilike.%مردود مشتريات%").order("transaction_date", { ascending: false });
   setData(txns || []);
 }
 
@@ -414,8 +414,9 @@ export async function loadDepreciationSchedule(uid: string, setData: SetData) {
 }
 
 export async function loadFullyDepreciated(uid: string, setData: SetData) {
-  const { data: assets } = await supabase.from("assets").select("*").eq("user_id", uid).lte("net_book_value", 0);
-  setData(assets || []);
+  const { data: assets } = await supabase.from("assets").select("*").eq("user_id", uid);
+  // Filter assets where NBV is 0 or null (fully depreciated) but still active
+  setData((assets || []).filter(a => (a.net_book_value === 0 || a.net_book_value === null) && a.status !== "disposed"));
 }
 
 export async function loadAssetDisposal(uid: string, setData: SetData) {

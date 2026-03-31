@@ -28,15 +28,24 @@ export async function loadDSOReport(uid: string, dateFrom: string, dateTo: strin
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).in("contact_type", contactTypes);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
   const today = new Date();
   setData(contacts.map(c => {
-    const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale")));
-    const receipts = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("receipt")));
+    const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale") || t.transaction_type === "pos_sale")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const receipts = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type === "receipt")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
     const invCount = sales.length;
     const paidCount = receipts.length;
+    // Calculate days between each sale and the next receipt for that customer
     const collDays: number[] = [];
-    sales.forEach((s, i) => { if (receipts[i]) collDays.push(differenceInDays(new Date(receipts[i].transaction_date), new Date(s.transaction_date))); });
+    let receiptIdx = 0;
+    sales.forEach(s => {
+      // Find the first receipt that came after this sale
+      while (receiptIdx < receipts.length && receipts[receiptIdx].transaction_date < s.transaction_date) receiptIdx++;
+      if (receiptIdx < receipts.length) {
+        collDays.push(differenceInDays(new Date(receipts[receiptIdx].transaction_date), new Date(s.transaction_date)));
+        receiptIdx++;
+      }
+    });
     const avgDays = collDays.length > 0 ? Math.round(collDays.reduce((a, b) => a + b, 0) / collDays.length) : 0;
     const lateDays = collDays.filter(d => d > 30);
     const avgLate = lateDays.length > 0 ? Math.round(lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : 0;
@@ -119,13 +128,21 @@ export async function loadAPAgingDetail(uid: string, setData: SetData) {
 export async function loadDPOReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
   setData(contacts.map(c => {
-    const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
-    const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("payment"));
+    const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type === "payment").sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
     const totalPurchases = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+    // Match each purchase to next available payment chronologically
     const payDays: number[] = [];
-    purchases.forEach((p, i) => { if (payments[i]) payDays.push(differenceInDays(new Date(payments[i].transaction_date), new Date(p.transaction_date))); });
+    let payIdx = 0;
+    purchases.forEach(p => {
+      while (payIdx < payments.length && payments[payIdx].transaction_date < p.transaction_date) payIdx++;
+      if (payIdx < payments.length) {
+        payDays.push(differenceInDays(new Date(payments[payIdx].transaction_date), new Date(p.transaction_date)));
+        payIdx++;
+      }
+    });
     const avgDays = payDays.length > 0 ? Math.round(payDays.reduce((a, b) => a + b, 0) / payDays.length) : 0;
     const compliance = purchases.length > 0 ? Math.round((payments.length / purchases.length) * 100) : 0;
     return { name: c.contact_name, totalPurchases, avgDays, compliance, invCount: purchases.length };
