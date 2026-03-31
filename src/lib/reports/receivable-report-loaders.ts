@@ -9,12 +9,13 @@ export async function loadARAgingDetail(uid: string, setData: SetData) {
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).in("contact_type", contactTypes).gt("current_balance", 0);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_credit", "sale_cash", "sale_bank", "sale_cheque"]);
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_credit", "sale_cash", "sale_bank", "sale_cheque"]).order("transaction_date", { ascending: true });
   const today = new Date();
   setData(contacts.map(c => {
     const cTxns = (txns || []).filter(t => t.contact_id === c.id);
-    const oldestUnpaid = cTxns.length > 0 ? new Date(cTxns[cTxns.length - 1].transaction_date) : today;
-    const days = differenceInDays(today, oldestUnpaid);
+    // Use oldest unpaid transaction for aging
+    const oldestDate = cTxns.length > 0 ? new Date(cTxns[0].transaction_date) : today;
+    const days = differenceInDays(today, oldestDate);
     return {
       name: c.contact_name, cls: c.contact_class || "C", total: c.current_balance || 0,
       current: days <= 30 ? c.current_balance : 0, d31_60: days > 30 && days <= 60 ? c.current_balance : 0,
@@ -166,7 +167,8 @@ export async function loadSupplierStatementAll(uid: string, dateFrom: string, da
     if (!cTxns.length) return;
     let balance = 0;
     cTxns.forEach(tx => {
-      const isCredit = tx.credit_account_code === "2110";
+      // Credit to payables accounts (21xx) means we owe more
+      const isCredit = (tx.credit_account_code || "").startsWith("21");
       const debit = !isCredit ? tx.amount : 0;
       const credit = isCredit ? tx.amount : 0;
       balance += credit - debit;

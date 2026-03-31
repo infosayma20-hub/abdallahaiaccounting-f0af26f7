@@ -141,7 +141,6 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "unpaid-invoices": await loadUnpaidInvoices(uid, dateFrom, dateTo, setData); break;
         default: await loadGenericTransactions(uid, dateFrom, dateTo, setData); break;
       }
-      console.log(`[Report][${reportKey}] rows:`, data?.length || 0);
     } catch (e: any) {
       console.error(`[Report][${reportKey}] Error:`, e);
       toast.error("حدث خطأ أثناء تحميل التقرير — حاول مرة أخرى");
@@ -854,7 +853,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1.5 text-xs">
             <FileSpreadsheet className="h-3.5 w-3.5" />Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { /* no browser print */ }} className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5 text-xs">
             <Printer className="h-3.5 w-3.5" />طباعة
           </Button>
         </div>
