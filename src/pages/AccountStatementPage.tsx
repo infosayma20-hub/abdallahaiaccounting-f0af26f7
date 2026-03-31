@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   TrendingUp, TrendingDown, Wallet, Printer, Calendar,
@@ -391,8 +391,10 @@ const AccountStatementPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const pageFrameRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const summaryCardsRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
   // URL params
@@ -406,6 +408,8 @@ const AccountStatementPage = () => {
   const sidebarCollapsed = windowWidth < 1280;
   const [showMobileEntitySheet, setShowMobileEntitySheet] = useState(false);
   const [statementToolbarHeight, setStatementToolbarHeight] = useState(0);
+  const [summaryCardsHeight, setSummaryCardsHeight] = useState(0);
+  const [fixedChromeFrame, setFixedChromeFrame] = useState({ top: 0, left: 0, right: 0 });
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -413,27 +417,51 @@ const AccountStatementPage = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const node = toolbarRef.current;
-    if (!node) return;
+  useLayoutEffect(() => {
+    const pageNode = pageFrameRef.current;
+    if (!pageNode) return;
 
-    const updateToolbarHeight = () => {
-      const nextHeight = Math.ceil(node.getBoundingClientRect().height);
-      setStatementToolbarHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+    const scrollContainer = pageNode.closest("main") as HTMLElement | null;
+    if (!scrollContainer) return;
+
+    const updateChromeLayout = () => {
+      const scrollRect = scrollContainer.getBoundingClientRect();
+      const nextToolbarHeight = Math.ceil(toolbarRef.current?.getBoundingClientRect().height || 64);
+      const nextSummaryHeight = selectedEntityId
+        ? Math.ceil(summaryCardsRef.current?.getBoundingClientRect().height || (isMobile ? 176 : 120))
+        : 0;
+
+      setStatementToolbarHeight((prev) => (prev === nextToolbarHeight ? prev : nextToolbarHeight));
+      setSummaryCardsHeight((prev) => (prev === nextSummaryHeight ? prev : nextSummaryHeight));
+      setFixedChromeFrame((prev) => {
+        const nextFrame = {
+          top: Math.round(scrollRect.top),
+          left: Math.round(scrollRect.left),
+          right: Math.max(0, Math.round(window.innerWidth - scrollRect.right)),
+        };
+
+        return prev.top === nextFrame.top && prev.left === nextFrame.left && prev.right === nextFrame.right
+          ? prev
+          : nextFrame;
+      });
     };
 
-    updateToolbarHeight();
-    const frame = window.requestAnimationFrame(updateToolbarHeight);
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateToolbarHeight) : null;
-    observer?.observe(node);
-    window.addEventListener("resize", updateToolbarHeight);
+    updateChromeLayout();
+    const frame = window.requestAnimationFrame(updateChromeLayout);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateChromeLayout) : null;
+
+    [scrollContainer, pageNode, toolbarRef.current, summaryCardsRef.current]
+      .filter(Boolean)
+      .forEach((node) => observer?.observe(node as Element));
+
+    window.addEventListener("resize", updateChromeLayout);
 
     return () => {
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
-      window.removeEventListener("resize", updateToolbarHeight);
+      window.removeEventListener("resize", updateChromeLayout);
     };
-  }, []);
+  }, [selectedEntityId, isMobile]);
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -1622,12 +1650,80 @@ const AccountStatementPage = () => {
   );
 
   // ─── RENDER ───
-  const stickyOffsetTop = statementToolbarHeight || 72;
+  const toolbarOffsetTop = statementToolbarHeight || 72;
+  const summaryOffsetHeight = selectedEntityId ? (summaryCardsHeight || (isMobile ? 176 : 120)) : 0;
+  const contentOffset = toolbarOffsetTop + summaryOffsetHeight;
+
+  const summaryCardsBar = selectedEntityId ? (
+    <div
+      ref={summaryCardsRef}
+      className="fixed z-30 no-print bg-background border-b border-border shadow-sm"
+      style={{
+        top: fixedChromeFrame.top + toolbarOffsetTop,
+        left: fixedChromeFrame.left,
+        right: fixedChromeFrame.right,
+        padding: isMobile ? "12px 16px" : "12px 20px",
+      }}
+    >
+      <div className={cn("grid gap-4", isMobile ? "grid-cols-2" : "grid-cols-4")}>
+        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #94A3B8", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <BookOpen className="w-4 h-4 text-muted-foreground" />
+            <span className="text-[12px] text-muted-foreground">رصيد افتتاحي</span>
+          </div>
+          <p className="font-bold tabular-nums text-foreground" style={{ fontSize: "26px" }}>{fmtAmount(openingBalance, statementCurrency)}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
+        </div>
+
+        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#22C55E" : "#EF4444"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className={cn("w-4 h-4", isDebitNature ? "text-emerald-500" : "text-red-500")} />
+            <span className="text-[12px] text-muted-foreground">إجمالي المدين</span>
+          </div>
+          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-emerald-600" : "text-red-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
+        </div>
+
+        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#EF4444" : "#22C55E"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingDown className={cn("w-4 h-4", isDebitNature ? "text-red-500" : "text-emerald-500")} />
+            <span className="text-[12px] text-muted-foreground">إجمالي الدائن</span>
+          </div>
+          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-red-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
+        </div>
+
+        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${(() => {
+          if (closingBalance === 0) return "#94A3B8";
+          const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+          return isNormalSide ? "#22C55E" : "#EF4444";
+        })()}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            {closingBalance !== 0 ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Wallet className="w-4 h-4 text-muted-foreground" />}
+            <span className="text-[12px] text-muted-foreground">الرصيد المستحق</span>
+          </div>
+          <p className={cn("font-bold tabular-nums", (() => {
+            if (closingBalance === 0) return "text-emerald-600";
+            const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+            return isNormalSide ? "text-emerald-600" : "text-red-600";
+          })())} style={{ fontSize: "26px" }}>
+            {fmtAmount(closingBalance, statementCurrency)}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد ✅"}
+          </p>
+          {oldestOpenInvoice && (
+            <p className="text-[9px] text-muted-foreground mt-1 border-t border-border/50 pt-1">
+              ⏰ أقدم فاتورة: {oldestOpenInvoice.ref} ({oldestOpenInvoice.days} يوم)
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <div className="flex flex-col -m-5 lg:-m-8" dir="rtl" style={{ background: "#F5F7FA" }}>
+    <div ref={pageFrameRef} className="flex flex-col -m-5 lg:-m-8" dir="rtl" style={{ background: "#F5F7FA" }}>
       {/* ─── TOP BAR ─── */}
-      <div ref={toolbarRef} className="sticky top-0 z-40 no-print w-full" style={{ background: "#ffffff", borderBottom: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "12px 24px" }}>
+      <div ref={toolbarRef} className="fixed z-40 no-print bg-background border-b border-border shadow-sm" style={{ top: fixedChromeFrame.top, left: fixedChromeFrame.left, right: fixedChromeFrame.right, padding: "12px 24px" }}>
         {/* Row 1: Nav + Actions + Date Range */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1726,41 +1822,44 @@ const AccountStatementPage = () => {
           </div>
         </div>
       </div>
-      {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) — only when no entity selected ─── */}
-      {!selectedEntityId && (
-      <div className="sticky z-30 no-print w-full" style={{ top: stickyOffsetTop, background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
-          <AdvancedEntitySearch
-            entityList={entityList}
-            allContacts={contacts}
-            allAccounts={accounts}
-            allEmployees={employeeEntities}
-            accountBalances={accountBalances}
-            contactBalances={contactBalances}
-            employeeBalances={employeeBalances}
-            accountTxCounts={accountTxCounts}
-            contactTxCounts={contactTxCounts}
-            employeeTxCounts={employeeTxCounts}
-            selectedEntityId={selectedEntityId}
-            activeTab={activeTab}
-            onSelect={(id, tab) => {
-              if (tab && tab !== activeTab) {
-                setActiveTab(tab);
-              }
-              selectEntity(id);
-            }}
-            onClear={() => { setSelectedEntityId(""); }}
-            onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
-            loading={loading}
-          />
-      </div>
-      )}
+      {summaryCardsBar}
 
-      {/* ─── BODY: Full width main content ─── */}
-      <div className="flex flex-1">
+      <div className="flex flex-col flex-1" style={{ paddingTop: contentOffset }}>
+        {/* ─── ADVANCED SEARCH BAR — only when no entity selected ─── */}
+        {!selectedEntityId && (
+          <div className="no-print w-full" style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
+            <AdvancedEntitySearch
+              entityList={entityList}
+              allContacts={contacts}
+              allAccounts={accounts}
+              allEmployees={employeeEntities}
+              accountBalances={accountBalances}
+              contactBalances={contactBalances}
+              employeeBalances={employeeBalances}
+              accountTxCounts={accountTxCounts}
+              contactTxCounts={contactTxCounts}
+              employeeTxCounts={employeeTxCounts}
+              selectedEntityId={selectedEntityId}
+              activeTab={activeTab}
+              onSelect={(id, tab) => {
+                if (tab && tab !== activeTab) {
+                  setActiveTab(tab);
+                }
+                selectEntity(id);
+              }}
+              onClear={() => { setSelectedEntityId(""); }}
+              onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+              loading={loading}
+            />
+          </div>
+        )}
 
-        {/* ─── MAIN CONTENT ─── */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div ref={printRef} className="print-area flex-1">
+        {/* ─── BODY: Full width main content ─── */}
+        <div className="flex flex-1">
+
+          {/* ─── MAIN CONTENT ─── */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <div ref={printRef} className="print-area flex-1">
 
             {/* Professional Print View (hidden until print/PDF) */}
             <div id="statement-print-wrapper" className="print-only">
@@ -1988,66 +2087,6 @@ const AccountStatementPage = () => {
                             <span>العملة:</span>
                             <span className="text-foreground">{getCurrencySymbol(statementCurrency)} {statementCurrency}</span>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 4 KPI Cards — redesigned with colored left border */}
-                    <div className="sticky z-20 no-print w-full" style={{ top: stickyOffsetTop, background: "#F5F7FA", borderBottom: "1px solid #E2E8F0", padding: "12px 20px", boxShadow: "0 2px 4px rgba(0,0,0,0.04)" }}>
-                      <div className={cn("grid gap-4", isMobile ? "grid-cols-2" : "grid-cols-4")}>
-                        {/* Opening Balance */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #94A3B8", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <BookOpen className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-[12px] text-muted-foreground">رصيد افتتاحي</span>
-                          </div>
-                          <p className="font-bold tabular-nums text-foreground" style={{ fontSize: "26px" }}>{fmtAmount(openingBalance, statementCurrency)}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
-                        </div>
-
-                        {/* Total Debit */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#22C55E" : "#EF4444"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingUp className={cn("w-4 h-4", isDebitNature ? "text-emerald-500" : "text-red-500")} />
-                            <span className="text-[12px] text-muted-foreground">إجمالي المدين</span>
-                          </div>
-                          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-emerald-600" : "text-red-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
-                        </div>
-
-                        {/* Total Credit */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#EF4444" : "#22C55E"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingDown className={cn("w-4 h-4", isDebitNature ? "text-red-500" : "text-emerald-500")} />
-                            <span className="text-[12px] text-muted-foreground">إجمالي الدائن</span>
-                          </div>
-                          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-red-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
-                        </div>
-
-                        {/* Closing Balance */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${(() => {
-                          if (closingBalance === 0) return "#94A3B8";
-                          const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
-                          return isNormalSide ? "#22C55E" : "#EF4444";
-                        })()}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            {closingBalance !== 0 ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Wallet className="w-4 h-4 text-muted-foreground" />}
-                            <span className="text-[12px] text-muted-foreground">الرصيد المستحق</span>
-                          </div>
-                          <p className={cn("font-bold tabular-nums", (() => {
-                            if (closingBalance === 0) return "text-emerald-600";
-                            const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
-                            return isNormalSide ? "text-emerald-600" : "text-red-600";
-                          })())} style={{ fontSize: "26px" }}>
-                            {fmtAmount(closingBalance, statementCurrency)}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد ✅"}
-                          </p>
-                          {oldestOpenInvoice && (
-                            <p className="text-[9px] text-muted-foreground mt-1 border-t border-border/50 pt-1">
-                              ⏰ أقدم فاتورة: {oldestOpenInvoice.ref} ({oldestOpenInvoice.days} يوم)
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -2832,6 +2871,10 @@ const AccountStatementPage = () => {
           </div>
         </div>
       )}
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
   );
