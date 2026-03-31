@@ -765,29 +765,32 @@ const AccountStatementPage = () => {
     return { accountBalances: balMap, accountTxCounts: cntMap };
   }, [accounts, transactions]);
 
-  // ─── EMPLOYEE BALANCES ───
-  const employeeBalances = useMemo(() => {
-    const map: Record<string, number> = {};
-    // Count how many employees share each account code
+  // ─── EMPLOYEE BALANCES & TX COUNTS ───
+  const { employeeBalances, employeeTxCounts } = useMemo(() => {
+    const balMap: Record<string, number> = {};
+    const cntMap: Record<string, number> = {};
     const codeCount: Record<string, number> = {};
     for (const emp of employeeEntities) {
       if (emp.account_code) codeCount[emp.account_code] = (codeCount[emp.account_code] || 0) + 1;
     }
     for (const emp of employeeEntities) {
-      if (!emp.account_code) { map[emp.id] = 0; continue; }
+      if (!emp.account_code) { balMap[emp.id] = 0; cntMap[emp.id] = 0; continue; }
       const shared = (codeCount[emp.account_code] || 1) > 1;
       const empName = emp.full_name?.trim() || "";
       let bal = 0;
+      let cnt = 0;
       for (const tx of transactions) {
         const matchesCode = tx.debit_account_code === emp.account_code || tx.credit_account_code === emp.account_code;
         if (!matchesCode) continue;
         if (shared && empName && !tx.description?.includes(empName)) continue;
+        cnt++;
         if (tx.debit_account_code === emp.account_code) bal += tx.amount || 0;
         if (tx.credit_account_code === emp.account_code) bal -= tx.amount || 0;
       }
-      map[emp.id] = bal;
+      balMap[emp.id] = bal;
+      cntMap[emp.id] = cnt;
     }
-    return map;
+    return { employeeBalances: balMap, employeeTxCounts: cntMap };
   }, [employeeEntities, transactions]);
 
   // ─── CONTACT BALANCES (all contacts, not just active tab) ───
