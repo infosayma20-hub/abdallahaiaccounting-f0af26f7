@@ -328,9 +328,9 @@ export default function AdvancedEntitySearch({
                         </div>
                         <span className={cn(
                           "text-xs font-bold tabular-nums shrink-0 mr-3",
-                          item.balance === 0 ? "text-emerald-600" : item.balance > 0 ? "text-red-600" : "text-emerald-600"
+                          balColor(item.balance, item.txCount)
                         )}>
-                          {fmtBal(item.balance)}
+                          {fmtBal(item.balance, item.txCount)}
                           {item.balance !== 0 && (
                             <span className="text-[10px] font-normal text-muted-foreground mr-1">{balLabel(item.balance)}</span>
                           )}
