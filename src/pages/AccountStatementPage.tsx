@@ -793,9 +793,10 @@ const AccountStatementPage = () => {
     return { employeeBalances: balMap, employeeTxCounts: cntMap };
   }, [employeeEntities, transactions]);
 
-  // ─── CONTACT BALANCES (all contacts, not just active tab) ───
-  const contactBalances = useMemo(() => {
-    const map: Record<string, number> = {};
+  // ─── CONTACT BALANCES & TX COUNTS (all contacts) ───
+  const { contactBalances, contactTxCounts } = useMemo(() => {
+    const balMap: Record<string, number> = {};
+    const cntMap: Record<string, number> = {};
     const nameToIds = new Map<string, Set<string>>();
     for (const c of contacts) {
       const name = c.contact_name?.trim();
@@ -804,20 +805,22 @@ const AccountStatementPage = () => {
     }
     for (const c of contacts) {
       let bal = 0;
+      let cnt = 0;
       const name = c.contact_name?.trim();
       const relatedIds = nameToIds.get(name) || new Set([c.id]);
-      // Use the correct account code based on contact type
       const accountCode = c.contact_type === "عميل" ? "1130" : c.contact_type === "مورد" ? "2110" : "2180";
       for (const tx of transactions) {
         const matches = (tx.contact_id && relatedIds.has(tx.contact_id)) ||
           (!tx.contact_id && tx.description?.includes(name));
         if (!matches) continue;
+        cnt++;
         if (tx.debit_account_code === accountCode) bal += tx.amount || 0;
         if (tx.credit_account_code === accountCode) bal -= tx.amount || 0;
       }
-      map[c.id] = bal;
+      balMap[c.id] = bal;
+      cntMap[c.id] = cnt;
     }
-    return map;
+    return { contactBalances: balMap, contactTxCounts: cntMap };
   }, [contacts, transactions]);
 
   // ─── COMBINED ENTITY LIST FOR LEFT PANEL ───
