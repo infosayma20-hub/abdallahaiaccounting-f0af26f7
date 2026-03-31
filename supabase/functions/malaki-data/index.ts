@@ -492,7 +492,7 @@ Deno.serve(async (req) => {
 
       const { data: contacts } = await supabase
         .from("contacts")
-        .select("id, contact_name, contact_type, opening_balance")
+        .select("id, contact_name, contact_type, current_balance")
         .eq("user_id", linkedUserId)
         .in("contact_type", ["supplier", "both", "مورد", "عميل ومورد"])
         .order("contact_name");
