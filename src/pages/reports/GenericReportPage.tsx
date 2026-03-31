@@ -853,7 +853,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1.5 text-xs">
             <FileSpreadsheet className="h-3.5 w-3.5" />Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { /* no browser print */ }} className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5 text-xs">
             <Printer className="h-3.5 w-3.5" />طباعة
           </Button>
         </div>

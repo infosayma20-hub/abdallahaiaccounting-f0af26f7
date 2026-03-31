@@ -167,7 +167,8 @@ export async function loadSupplierStatementAll(uid: string, dateFrom: string, da
     if (!cTxns.length) return;
     let balance = 0;
     cTxns.forEach(tx => {
-      const isCredit = tx.credit_account_code === "2110";
+      // Credit to payables accounts (21xx) means we owe more
+      const isCredit = (tx.credit_account_code || "").startsWith("21");
       const debit = !isCredit ? tx.amount : 0;
       const credit = isCredit ? tx.amount : 0;
       balance += credit - debit;
