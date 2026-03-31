@@ -66,7 +66,7 @@ export default function TaskCard({ task, priorityColor, currentUserId, onAssign,
               {task.assignee?.full_name?.charAt(0) || "?"}
             </div>
             <span className="text-xs">{task.assignee?.full_name}</span>
-            {isMine && task.status === "in_progress" && (
+            {isMine && (task.status === "in_progress" || task.status === "open") && (
               <Button size="sm" variant="ghost" className="mr-auto h-6 text-[10px] px-2 text-green-600" onClick={e => { e.stopPropagation(); onComplete(); }}>
                 <CheckCircle2 className="w-3 h-3 ml-1" /> إنهاء
               </Button>
