@@ -7869,6 +7869,59 @@ export type Database = {
           },
         ]
       }
+      print_documents: {
+        Row: {
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          data: Json
+          document_date: string | null
+          document_number: string
+          id: string
+          status: string | null
+          template_type: string
+          updated_at: string | null
+          user_id: string
+          validity_days: number | null
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          data?: Json
+          document_date?: string | null
+          document_number: string
+          id?: string
+          status?: string | null
+          template_type: string
+          updated_at?: string | null
+          user_id: string
+          validity_days?: number | null
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          data?: Json
+          document_date?: string | null
+          document_number?: string
+          id?: string
+          status?: string | null
+          template_type?: string
+          updated_at?: string | null
+          user_id?: string
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       procurement_items: {
         Row: {
           category_id: string | null
