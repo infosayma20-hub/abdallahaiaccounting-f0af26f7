@@ -2871,10 +2871,6 @@ const AccountStatementPage = () => {
           </div>
         </div>
       )}
-            </div>
-          </div>
-        </div>
-      </div>
 
     </div>
   );
