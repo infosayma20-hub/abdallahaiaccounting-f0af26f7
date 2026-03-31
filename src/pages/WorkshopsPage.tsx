@@ -1692,7 +1692,7 @@ export default function WorkshopsPage() {
                   <TableRow key={w.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedWorkshop(w); setView("workshops"); }}>
                     <TableCell className="font-medium">{w.name}</TableCell>
                     <TableCell className="text-muted-foreground">{w.customer_name || "—"}</TableCell>
-                    <TableCell className="text-xs">{(w.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(", ")}</TableCell>
+                    <TableCell className="text-xs">{(w.workshop_type || "").split(",").filter(Boolean).map(t => { const wt = WORKSHOP_TYPES.find(x => x.value === t); if (wt) return wt.label; const ct = customWsTypes.find(c => `custom_${c.id}` === t); return ct?.name || t; }).join(", ")}</TableCell>
                     <TableCell>{(w.total_budget || 0).toLocaleString()} ₪</TableCell>
                     <TableCell><Badge variant={STATUS_MAP[w.status]?.variant || "outline"}>{STATUS_MAP[w.status]?.label || w.status}</Badge></TableCell>
                     <TableCell className="text-muted-foreground">{w.start_date ? format(new Date(w.start_date), "dd/MM/yyyy") : "—"}</TableCell>
