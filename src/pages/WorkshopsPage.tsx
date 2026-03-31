@@ -187,7 +187,9 @@ export default function WorkshopsPage() {
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
     cheque_bank: "", deposit_bank_id: null as string | null,
     currency: "ILS", exchange_rate: 1, cheque_count: 1,
+    cash_box_id: null as string | null,
   });
+  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string; gl_account_code: string | null; currency: string | null }[]>([]);
   type ChequeRow = { number: string; drawer: string; bank: string; date: string; amount: number };
   const [chequeRows, setChequeRows] = useState<ChequeRow[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
@@ -206,6 +208,7 @@ export default function WorkshopsPage() {
     loadContacts();
     loadBankAccounts();
     loadCurrencies();
+    loadCashBoxes();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
   }, [user]);
 
@@ -224,6 +227,11 @@ export default function WorkshopsPage() {
   const loadBankAccounts = async () => {
     const { data } = await supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("is_active", true).order("name");
     setBankAccounts((data as any) || []);
+  };
+
+  const loadCashBoxes = async () => {
+    const { data } = await supabase.from("cash_boxes").select("id, name, type, gl_account_code, currency").eq("is_active", true).order("name");
+    setCashBoxes((data as any) || []);
   };
 
   const loadCurrencies = async () => {
@@ -331,7 +339,12 @@ export default function WorkshopsPage() {
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    const debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    // Determine debit account: use cash box GL code if selected, otherwise default
+    let debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    if (!isCheque && paymentForm.cash_box_id) {
+      const selectedBox = cashBoxes.find(b => b.id === paymentForm.cash_box_id);
+      if (selectedBox?.gl_account_code) debitCode = selectedBox.gl_account_code;
+    }
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
@@ -419,7 +432,7 @@ export default function WorkshopsPage() {
 
     setShowPaymentDialog(false);
     setView("workshops");
-    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 };
+    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null };
     setPaymentForm(resetForm as any);
     setChequeRows([]);
     loadCosts(selectedWorkshop.id);
@@ -891,7 +904,7 @@ export default function WorkshopsPage() {
                 <Receipt className="h-3.5 w-3.5" /> الدفعات المقبوضة
               </h3>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
-                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 });
+                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
                 setChequeRows([]);
                 setView("new-payment");
               }}>
@@ -1246,6 +1259,28 @@ export default function WorkshopsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Cash Box Selector — for cash and bank methods */}
+                {paymentForm.payment_method !== "شيك" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold">الصندوق</Label>
+                    <select
+                      value={paymentForm.cash_box_id || ""}
+                      onChange={e => setPaymentForm(f => ({ ...f, cash_box_id: e.target.value || null }))}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
+                    >
+                      <option value="">الصندوق الافتراضي ({paymentForm.payment_method === "بنك" ? "1120" : "1110"})</option>
+                      {cashBoxes
+                        .filter(b => paymentForm.payment_method === "بنك" ? b.type === "بنكية" : b.type !== "بنكية")
+                        .map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} {b.gl_account_code ? `(${b.gl_account_code})` : ""} {b.currency && b.currency !== "ILS" ? `— ${b.currency}` : ""}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Cheque Section */}
