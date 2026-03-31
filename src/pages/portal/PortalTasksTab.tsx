@@ -373,6 +373,15 @@ export default function PortalTasksTab({ theme }: Props) {
                     <td style={{ padding: '10px 12px' }}>{getEmployeeName(task.assigned_to)}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12,
+                        background: task.created_by_portal ? `${PRIMARY}15` : `${ACCENT}15`,
+                        color: task.created_by_portal ? PRIMARY : ACCENT,
+                      }}>
+                        {task.created_by_portal ? '👑 المدير' : '👤 موظف'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         fontSize: 10, fontWeight: 600, color: prio?.color,
                       }}>
