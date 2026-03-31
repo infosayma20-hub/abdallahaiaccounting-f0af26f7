@@ -9,7 +9,7 @@ import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
   TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp, Printer,
-  Sofa, BedDouble, UtensilsCrossed, DoorOpen, LayoutGrid, Package, Check,
+  Sofa, BedDouble, UtensilsCrossed, DoorOpen, LayoutGrid, Package, Check, X, Wrench,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -202,6 +202,50 @@ export default function WorkshopsPage() {
 
   const [accountsEnsured, setAccountsEnsured] = useState(false);
 
+  // Custom workshop types
+  const [customWsTypes, setCustomWsTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
+  const [showAddWsType, setShowAddWsType] = useState(false);
+  const [newWsTypeName, setNewWsTypeName] = useState("");
+  const [savingWsType, setSavingWsType] = useState(false);
+  const [deleteWsTypeId, setDeleteWsTypeId] = useState<string | null>(null);
+
+  const loadCustomWsTypes = async () => {
+    const { data } = await supabase.from("custom_workshop_types" as any).select("id, name, icon").eq("is_active", true).order("created_at");
+    setCustomWsTypes((data as any[]) || []);
+  };
+
+  const handleSaveWsType = async () => {
+    const trimmed = newWsTypeName.trim();
+    if (!trimmed || !user) return;
+    setSavingWsType(true);
+    const { data, error } = await supabase.from("custom_workshop_types" as any).insert({ user_id: user.id, name: trimmed, icon: "🔧" }).select("id, name, icon").single();
+    setSavingWsType(false);
+    if (error) { toast.error("فشل في الحفظ"); return; }
+    const newType = data as any;
+    setCustomWsTypes(prev => [...prev, newType]);
+    // Auto-select the new type
+    const newValue = `custom_${newType.id}`;
+    setWsForm(f => {
+      const current = f.workshop_type.split(",").filter(Boolean);
+      return { ...f, workshop_type: [...current, newValue].join(",") };
+    });
+    setNewWsTypeName("");
+    setShowAddWsType(false);
+    toast.success("✅ تم إضافة نوع الورشة بنجاح");
+  };
+
+  const handleDeleteWsType = async (id: string) => {
+    await supabase.from("custom_workshop_types" as any).delete().eq("id", id);
+    setCustomWsTypes(prev => prev.filter(c => c.id !== id));
+    // Remove from current selection
+    setWsForm(f => {
+      const types = f.workshop_type.split(",").filter(Boolean).filter(t => t !== `custom_${id}`);
+      return { ...f, workshop_type: types.join(",") };
+    });
+    setDeleteWsTypeId(null);
+    toast.success("تم حذف نوع الورشة");
+  };
+
   useEffect(() => {
     if (!user) return;
     loadWorkshops();
@@ -209,6 +253,7 @@ export default function WorkshopsPage() {
     loadBankAccounts();
     loadCurrencies();
     loadCashBoxes();
+    loadCustomWsTypes();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
   }, [user]);
 
@@ -687,7 +732,9 @@ export default function WorkshopsPage() {
                       <span className="text-border">|</span>
                       {selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
                         const wt = WORKSHOP_TYPES.find(x => x.value === t);
-                        return wt ? <span key={t} className="flex items-center gap-1"><wt.Icon className="h-3.5 w-3.5" /> {wt.label}</span> : null;
+                        if (wt) return <span key={t} className="flex items-center gap-1"><wt.Icon className="h-3.5 w-3.5" /> {wt.label}</span>;
+                        const ct = customWsTypes.find(c => `custom_${c.id}` === t);
+                        return ct ? <span key={t} className="flex items-center gap-1">{ct.icon} {ct.name}</span> : null;
                       })}
                     </>
                   )}
@@ -716,7 +763,7 @@ export default function WorkshopsPage() {
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
                 const { data: settings } = await supabase.from("company_settings").select("company_name, phone, email, address, logo_url, tax_number").eq("user_id", user!.id).maybeSingle();
-                const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(" + ");
+                const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => { const wt = WORKSHOP_TYPES.find(x => x.value === t); if (wt) return wt.label; const ct = customWsTypes.find(c => `custom_${c.id}` === t); return ct?.name || t; }).join(" + ");
                 // Build payment schedule from actual payments
                 const contractPayments = payments.map(p => ({
                   description: (p as any).description || "دفعة",
@@ -1645,7 +1692,7 @@ export default function WorkshopsPage() {
                   <TableRow key={w.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedWorkshop(w); setView("workshops"); }}>
                     <TableCell className="font-medium">{w.name}</TableCell>
                     <TableCell className="text-muted-foreground">{w.customer_name || "—"}</TableCell>
-                    <TableCell className="text-xs">{(w.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(", ")}</TableCell>
+                    <TableCell className="text-xs">{(w.workshop_type || "").split(",").filter(Boolean).map(t => { const wt = WORKSHOP_TYPES.find(x => x.value === t); if (wt) return wt.label; const ct = customWsTypes.find(c => `custom_${c.id}` === t); return ct?.name || t; }).join(", ")}</TableCell>
                     <TableCell>{(w.total_budget || 0).toLocaleString()} ₪</TableCell>
                     <TableCell><Badge variant={STATUS_MAP[w.status]?.variant || "outline"}>{STATUS_MAP[w.status]?.label || w.status}</Badge></TableCell>
                     <TableCell className="text-muted-foreground">{w.start_date ? format(new Date(w.start_date), "dd/MM/yyyy") : "—"}</TableCell>
@@ -1721,6 +1768,7 @@ export default function WorkshopsPage() {
               const statusColor = ws.status === "completed" ? "#3B82F6" : ws.status === "paused" || ws.status === "cancelled" ? "#EF4444" : "#22C55E";
               const wsTypes = (ws.workshop_type || "").split(",").filter(Boolean);
               const firstType = WORKSHOP_TYPES.find(x => x.value === wsTypes[0]);
+              const customFirst = !firstType ? customWsTypes.find(c => `custom_${c.id}` === wsTypes[0]) : null;
               const TypeIcon = firstType?.Icon || Hammer;
 
               return (
@@ -1876,21 +1924,44 @@ export default function WorkshopsPage() {
                   return (
                     <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
                       className="relative p-3 text-center transition-all"
-                      style={{
-                        borderRadius: 10,
-                        border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0",
-                        background: selected ? "#EEF2FF" : "#fff",
-                      }}>
-                      {selected && (
-                        <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}>
-                          <Check className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      )}
+                      style={{ borderRadius: 10, border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0", background: selected ? "#EEF2FF" : "#fff" }}>
+                      {selected && (<div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}><Check className="h-2.5 w-2.5 text-white" /></div>)}
                       <wt.Icon className="mx-auto mb-1" style={{ width: 28, height: 28, color: selected ? "#1B3A5C" : "#64748B" }} />
                       <span className="text-[11px] font-medium text-foreground">{wt.label}</span>
                     </button>
                   );
                 })}
+                {/* Custom workshop types */}
+                {customWsTypes.map(ct => {
+                  const val = `custom_${ct.id}`;
+                  const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(val);
+                  return (
+                    <button key={val} onClick={() => toggleWorkshopType(val)}
+                      className="relative p-3 text-center transition-all group"
+                      style={{ borderRadius: 10, border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0", background: selected ? "#EEF2FF" : "#fff" }}>
+                      {selected && (<div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}><Check className="h-2.5 w-2.5 text-white" /></div>)}
+                      <span onClick={e => { e.stopPropagation(); setDeleteWsTypeId(ct.id); }} className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-destructive"><X className="h-2.5 w-2.5" /></span>
+                      <span className="text-2xl block mx-auto mb-1">{ct.icon}</span>
+                      <span className="text-[11px] font-medium text-foreground">{ct.name}</span>
+                    </button>
+                  );
+                })}
+                {/* Add custom type card */}
+                {!showAddWsType ? (
+                  <button onClick={() => setShowAddWsType(true)}
+                    className="p-3 text-center transition-all hover:bg-primary/5"
+                    style={{ borderRadius: 10, border: "2px dashed #CBD5E1", background: "#F9FAFB" }}>
+                    <span className="text-2xl block mx-auto mb-1">➕</span>
+                    <span className="text-[11px] font-medium" style={{ color: "#94A3B8" }}>إضافة نوع</span>
+                    <span className="text-[9px] block" style={{ color: "#94A3B8" }}>ورشة جديد</span>
+                  </button>
+                ) : (
+                  <div className="col-span-2 flex items-center gap-2 p-2" style={{ borderRadius: 10, border: "2px solid #1B3A5C20", background: "#EEF2FF" }}>
+                    <Input value={newWsTypeName} onChange={e => setNewWsTypeName(e.target.value.slice(0, 20))} placeholder="اسم نوع الورشة..." className="h-8 text-xs flex-1" autoFocus
+                      onKeyDown={e => { if (e.key === "Enter") handleSaveWsType(); if (e.key === "Escape") { setShowAddWsType(false); setNewWsTypeName(""); } }} />
+                    <Button size="sm" className="h-8 text-xs px-3" disabled={!newWsTypeName.trim() || savingWsType} onClick={handleSaveWsType}>حفظ</Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1965,21 +2036,41 @@ export default function WorkshopsPage() {
                   return (
                     <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
                       className="relative p-3 text-center transition-all"
-                      style={{
-                        borderRadius: 10,
-                        border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0",
-                        background: selected ? "#EEF2FF" : "#fff",
-                      }}>
-                      {selected && (
-                        <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}>
-                          <Check className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      )}
+                      style={{ borderRadius: 10, border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0", background: selected ? "#EEF2FF" : "#fff" }}>
+                      {selected && (<div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}><Check className="h-2.5 w-2.5 text-white" /></div>)}
                       <wt.Icon className="mx-auto mb-1" style={{ width: 28, height: 28, color: selected ? "#1B3A5C" : "#64748B" }} />
                       <span className="text-[11px] font-medium text-foreground">{wt.label}</span>
                     </button>
                   );
                 })}
+                {customWsTypes.map(ct => {
+                  const val = `custom_${ct.id}`;
+                  const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(val);
+                  return (
+                    <button key={val} onClick={() => toggleWorkshopType(val)}
+                      className="relative p-3 text-center transition-all group"
+                      style={{ borderRadius: 10, border: selected ? "2px solid #1B3A5C" : "1px solid #E2E8F0", background: selected ? "#EEF2FF" : "#fff" }}>
+                      {selected && (<div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "#1B3A5C" }}><Check className="h-2.5 w-2.5 text-white" /></div>)}
+                      <span onClick={e => { e.stopPropagation(); setDeleteWsTypeId(ct.id); }} className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-destructive"><X className="h-2.5 w-2.5" /></span>
+                      <span className="text-2xl block mx-auto mb-1">{ct.icon}</span>
+                      <span className="text-[11px] font-medium text-foreground">{ct.name}</span>
+                    </button>
+                  );
+                })}
+                {!showAddWsType ? (
+                  <button onClick={() => setShowAddWsType(true)}
+                    className="p-3 text-center transition-all hover:bg-primary/5"
+                    style={{ borderRadius: 10, border: "2px dashed #CBD5E1", background: "#F9FAFB" }}>
+                    <span className="text-2xl block mx-auto mb-1">➕</span>
+                    <span className="text-[11px] font-medium" style={{ color: "#94A3B8" }}>إضافة نوع</span>
+                  </button>
+                ) : (
+                  <div className="col-span-2 flex items-center gap-2 p-2" style={{ borderRadius: 10, border: "2px solid #1B3A5C20", background: "#EEF2FF" }}>
+                    <Input value={newWsTypeName} onChange={e => setNewWsTypeName(e.target.value.slice(0, 20))} placeholder="اسم نوع الورشة..." className="h-8 text-xs flex-1" autoFocus
+                      onKeyDown={e => { if (e.key === "Enter") handleSaveWsType(); if (e.key === "Escape") { setShowAddWsType(false); setNewWsTypeName(""); } }} />
+                    <Button size="sm" className="h-8 text-xs px-3" disabled={!newWsTypeName.trim() || savingWsType} onClick={handleSaveWsType}>حفظ</Button>
+                  </div>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -2060,6 +2151,20 @@ export default function WorkshopsPage() {
       </AlertDialog>
 
       {/* Claim modal removed — now inside detail view */}
+
+      {/* Delete custom workshop type confirm */}
+      <AlertDialog open={!!deleteWsTypeId} onOpenChange={v => { if (!v) setDeleteWsTypeId(null); }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل تريد حذف هذا النوع؟</AlertDialogTitle>
+            <AlertDialogDescription>سيتم حذف نوع الورشة المخصص. هذا الإجراء لا يمكن التراجع عنه.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteWsTypeId && handleDeleteWsType(deleteWsTypeId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
