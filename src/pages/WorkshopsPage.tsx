@@ -208,6 +208,7 @@ export default function WorkshopsPage() {
     loadContacts();
     loadBankAccounts();
     loadCurrencies();
+    loadCashBoxes();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
   }, [user]);
 
