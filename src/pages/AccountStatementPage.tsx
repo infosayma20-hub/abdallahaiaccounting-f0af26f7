@@ -2062,13 +2062,13 @@ const AccountStatementPage = () => {
                               <tbody>
                                 <tr className="border-b border-border/30">
                                   <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit, statementCurrency)}</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-emerald-600" : "text-red-600")}>{fmtAmount(totalDebit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-emerald-400" : "text-red-400")}>{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
                                 </tr>
                                 <tr className="border-b border-border/30">
                                   <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-red-600" : "text-emerald-600")}>{fmtAmount(totalCredit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-red-400" : "text-emerald-400")}>{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
                                 </tr>
                                 <tr>
                                   <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
