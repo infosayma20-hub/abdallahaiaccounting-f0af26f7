@@ -245,6 +245,7 @@ export default function PortalDashboard() {
         {activeTab === 'requests' && <PortalEmployeeRequestsTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'suppliers' && <PortalSupplierBalancesTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'attendance' && <PortalAttendanceTab theme={darkMode ? 'dark' : 'light'} />}
+        {activeTab === 'tasks' && <PortalTasksTab theme={darkMode ? 'dark' : 'light'} />}
       </div>
 
       <style>{`
