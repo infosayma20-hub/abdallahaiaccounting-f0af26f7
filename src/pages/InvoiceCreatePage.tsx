@@ -1343,6 +1343,18 @@ const InvoiceCreatePage = () => {
         </CardContent>
       </Card>
 
+      {/* Price warning summary */}
+      {form.type === "purchase" && form.items.some(item => {
+        const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+        const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
+        return storedPrice > 0 && item.unitPrice > storedPrice;
+      }) && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border-r-4 border-amber-400 text-amber-800 text-sm" dir="rtl">
+          <TriangleAlert className="h-4 w-4 flex-shrink-0" />
+          <span>تنبيه: بعض الأسعار أعلى من أسعار الشراء المثبتة — يرجى المراجعة قبل إنشاء الفاتورة</span>
+        </div>
+      )}
+
       {/* ─── SECTION 3: Summary ─── */}
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardContent className="p-5 space-y-2">
