@@ -187,7 +187,9 @@ export default function WorkshopsPage() {
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
     cheque_bank: "", deposit_bank_id: null as string | null,
     currency: "ILS", exchange_rate: 1, cheque_count: 1,
+    cash_box_id: null as string | null,
   });
+  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string; gl_account_code: string | null; currency: string | null }[]>([]);
   type ChequeRow = { number: string; drawer: string; bank: string; date: string; amount: number };
   const [chequeRows, setChequeRows] = useState<ChequeRow[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
