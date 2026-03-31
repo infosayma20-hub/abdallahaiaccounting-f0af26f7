@@ -135,20 +135,19 @@ const StatementPrintViewClean = ({
 
       {/* ═══ INFO BLOCK ═══ */}
       <div style={S.infoGrid}>
-        <div>
+        <div style={{ flex: 1 }}>
           <p style={S.infoLabel}>صادر إلى</p>
           <p style={S.infoName}>{contact.name}</p>
           <p style={S.infoType}>{contact.type}{contactCode ? ` — ${contactCode}` : ""}</p>
-          {contact.phone && <p style={{ ...S.infoType, marginTop: 1 }}>{contact.phone}</p>}
+          {contact.phone && <p style={S.infoType}>{contact.phone}</p>}
         </div>
-        <div>
+        <div style={{ flexShrink: 0 }}>
           <table style={S.metaTable}>
             <tbody>
-              <tr><td style={S.metaLabel}>رقم الكشف</td><td style={S.metaValue}>{soaNum}</td></tr>
-              <tr><td style={S.metaLabel}>تاريخ الإصدار</td><td style={S.metaValue}>{fmtToday()}</td></tr>
-              <tr><td style={S.metaLabel}>الفترة من</td><td style={S.metaValue}>{fmtDate(dateFrom)}</td></tr>
-              <tr><td style={S.metaLabel}>إلى</td><td style={S.metaValue}>{fmtDate(dateTo)}</td></tr>
-              <tr><td style={S.metaLabel}>العملة</td><td style={S.metaValue}>شيكل إسرائيلي (₪)</td></tr>
+              <tr><td style={S.metaLabel}>رقم الكشف:</td><td style={S.metaValue}>{soaNum}</td></tr>
+              <tr><td style={S.metaLabel}>تاريخ الإصدار:</td><td style={S.metaValue}>{fmtToday()}</td></tr>
+              <tr><td style={S.metaLabel}>الفترة من:</td><td style={S.metaValue}>{fmtDate(dateFrom)} — {fmtDate(dateTo)}</td></tr>
+              <tr><td style={S.metaLabel}>العملة:</td><td style={S.metaValue}>شيكل إسرائيلي (₪)</td></tr>
             </tbody>
           </table>
         </div>
