@@ -9,9 +9,19 @@ type SetData = (data: any[]) => void;
 export async function loadAgingReport(uid: string, contactType: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class, last_transaction_date").eq("user_id", uid).eq("contact_type", contactType).gt("current_balance", 0);
   if (!contacts?.length) { setData([]); return; }
+
+  // Get unpaid invoices for proper per-invoice aging
+  const txTypes = contactType === "عميل"
+    ? ["sale_cash", "sale_bank", "sale_credit", "sale_cheque"]
+    : ["purchase_cash", "purchase_credit", "purchase_bank"];
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", txTypes);
+
   const today = new Date();
   setData(contacts.map(c => {
-    const days = c.last_transaction_date ? differenceInDays(today, new Date(c.last_transaction_date)) : 999;
+    // Use oldest unpaid transaction for aging, not last_transaction_date
+    const cTxns = (txns || []).filter(t => t.contact_id === c.id).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const oldestDate = cTxns.length > 0 ? cTxns[0].transaction_date : null;
+    const days = oldestDate ? differenceInDays(today, new Date(oldestDate)) : 0;
     return {
       name: c.contact_name, cls: c.contact_class || "-",
       current: days <= 0 ? c.current_balance : 0,
@@ -27,34 +37,50 @@ export async function loadAgingReport(uid: string, contactType: string, setData:
 export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
   if (!txns?.length) { setData([]); return; }
+
+  // Calculate opening cash balance
+  const { data: openTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%");
+  let openingCash = 0;
+  (openTxns || []).forEach(tx => {
+    if ((tx.debit_account_code || "").startsWith("111")) openingCash += tx.amount;
+    if ((tx.credit_account_code || "").startsWith("111")) openingCash -= tx.amount;
+  });
+
   let operating = 0, investing = 0, financing = 0;
   txns.forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
-    if (dc.startsWith("4") || cc.startsWith("4") || dc.startsWith("5") || cc.startsWith("5")) {
-      if (cc.startsWith("4")) operating += tx.amount; else if (dc.startsWith("5")) operating -= tx.amount; else operating += tx.amount;
-    } else if (dc.startsWith("12") || cc.startsWith("12")) {
-      if (dc.startsWith("12")) investing -= tx.amount; else investing += tx.amount;
+    if (dc.startsWith("4") || cc.startsWith("4") || dc.startsWith("5") || cc.startsWith("5") || dc.startsWith("6") || cc.startsWith("6")) {
+      if (cc.startsWith("4")) operating += tx.amount; else if (dc.startsWith("5") || dc.startsWith("6")) operating -= tx.amount; else operating += tx.amount;
+    } else if (dc.startsWith("15") || cc.startsWith("15") || dc.startsWith("12") || cc.startsWith("12")) {
+      if (dc.startsWith("15") || dc.startsWith("12")) investing -= tx.amount; else investing += tx.amount;
     } else if (dc.startsWith("3") || cc.startsWith("3") || dc.startsWith("22") || cc.startsWith("22")) {
       if (cc.startsWith("3") || cc.startsWith("22")) financing += tx.amount; else financing -= tx.amount;
     }
   });
+  const netChange = operating + investing + financing;
   setData([
+    { section: "الرصيد الافتتاحي للنقد", amount: openingCash },
     { section: "أنشطة تشغيلية", amount: operating },
     { section: "أنشطة استثمارية", amount: investing },
     { section: "أنشطة تمويلية", amount: financing },
-    { section: "صافي التغير في النقد", amount: operating + investing + financing },
+    { section: "صافي التغير في النقد", amount: netChange },
+    { section: "الرصيد الختامي للنقد", amount: openingCash + netChange },
   ]);
 }
 
-export async function loadAccountMovement(uid: string, accountCode: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: openTxns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`);
+export async function loadAccountMovement(uid: string, accountCodePrefix: string, dateFrom: string, dateTo: string, setData: SetData) {
+  // Use like filter to capture sub-accounts (e.g. 1110 captures 1111, 1112...)
+  const { data: openTxns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`);
   let openBal = 0;
-  (openTxns || []).forEach(tx => { if (tx.debit_account_code === accountCode) openBal += tx.amount; if (tx.credit_account_code === accountCode) openBal -= tx.amount; });
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`).order("transaction_date", { ascending: true });
+  (openTxns || []).forEach(tx => {
+    if ((tx.debit_account_code || "").startsWith(accountCodePrefix)) openBal += tx.amount;
+    if ((tx.credit_account_code || "").startsWith(accountCodePrefix)) openBal -= tx.amount;
+  });
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`).order("transaction_date", { ascending: true });
   let running = openBal;
   const rows = (txns || []).map(tx => {
-    const inflow = tx.debit_account_code === accountCode ? tx.amount : 0;
-    const outflow = tx.credit_account_code === accountCode ? tx.amount : 0;
+    const inflow = (tx.debit_account_code || "").startsWith(accountCodePrefix) ? tx.amount : 0;
+    const outflow = (tx.credit_account_code || "").startsWith(accountCodePrefix) ? tx.amount : 0;
     running += inflow - outflow;
     return { date: tx.transaction_date, description: tx.description, inflow, outflow, balance: running, ref: tx.reference };
   });
@@ -186,17 +212,36 @@ export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: s
   let revenue = 0, cogs = 0, expenses = 0;
   (txns || []).forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+    // Revenue: credit to 4xxx accounts
     if (cc.startsWith("4")) revenue += tx.amount;
+    // COGS: debit to 51xx accounts
     if (dc.startsWith("51")) cogs += tx.amount;
-    if (dc.startsWith("5") && !dc.startsWith("51")) expenses += tx.amount;
+    // Expenses: debit to 5xxx (non-COGS) and 6xxx accounts
+    if ((dc.startsWith("5") && !dc.startsWith("51")) || dc.startsWith("6")) expenses += tx.amount;
   });
   const grossMargin = revenue > 0 ? ((revenue - cogs) / revenue * 100) : 0;
   const netMargin = revenue > 0 ? ((revenue - cogs - expenses) / revenue * 100) : 0;
+
+  // Current ratio: current assets / current liabilities
+  const { data: allTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false);
+  let currentAssets = 0, currentLiabilities = 0;
+  (allTxns || []).forEach(tx => {
+    const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+    // Current assets: 1xxx (excl fixed 15xx)
+    if (dc.startsWith("1") && !dc.startsWith("15")) currentAssets += tx.amount;
+    if (cc.startsWith("1") && !cc.startsWith("15")) currentAssets -= tx.amount;
+    // Current liabilities: 21xx
+    if (cc.startsWith("21")) currentLiabilities += tx.amount;
+    if (dc.startsWith("21")) currentLiabilities -= tx.amount;
+  });
+  const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) : 0;
+
   setData([
     { label: "إجمالي الإيرادات", value: fmtAmt(revenue), color: "#059669" },
     { label: "هامش الربح الإجمالي", value: `${grossMargin.toFixed(1)}%`, color: grossMargin >= 30 ? "#059669" : grossMargin >= 15 ? "#4A9EE8" : "#DC2626" },
     { label: "هامش الربح الصافي", value: `${netMargin.toFixed(1)}%`, color: netMargin >= 10 ? "#059669" : netMargin >= 5 ? "#4A9EE8" : "#DC2626" },
     { label: "صافي الربح", value: fmtAmt(revenue - cogs - expenses), color: revenue - cogs - expenses >= 0 ? "#059669" : "#DC2626" },
+    { label: "نسبة التداول", value: currentRatio.toFixed(2), color: currentRatio >= 1.5 ? "#059669" : currentRatio >= 1 ? "#4A9EE8" : "#DC2626" },
     { label: "تكلفة المبيعات", value: fmtAmt(cogs), color: "#6366F1" },
     { label: "المصروفات التشغيلية", value: fmtAmt(expenses), color: "#DC2626" },
   ]);
@@ -208,7 +253,13 @@ export async function loadMonthComparison(uid: string, setData: SetData) {
   const { data: txns } = await supabase.from("transactions").select("transaction_date, debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", months[0].from).lte("transaction_date", months[5].to);
   setData(months.map(m => {
     let rev = 0, exp = 0;
-    (txns || []).forEach(tx => { if (tx.transaction_date >= m.from && tx.transaction_date <= m.to) { if ((tx.credit_account_code || "").startsWith("4")) rev += tx.amount; if ((tx.debit_account_code || "").startsWith("5")) exp += tx.amount; } });
+    (txns || []).forEach(tx => {
+      if (tx.transaction_date >= m.from && tx.transaction_date <= m.to) {
+        const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+        if (cc.startsWith("4")) rev += tx.amount;
+        if (dc.startsWith("5") || dc.startsWith("6")) exp += tx.amount;
+      }
+    });
     return { month: m.label, revenue: rev, expenses: exp, profit: rev - exp };
   }));
 }
