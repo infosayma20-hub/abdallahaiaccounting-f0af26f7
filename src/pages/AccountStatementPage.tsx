@@ -970,18 +970,19 @@ const AccountStatementPage = () => {
     } else if (isEmployeesTab && !selectedEmployee?.account_code) {
       return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     } else {
-      const accountCode = activeTabConfig.accountCode;
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(
         contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id)
       );
+      // Check both receivables (1130) and payables (2110) for any contact
+      const contactAccountCodes = ["1130", "2110", "2180"];
       related = transactions.filter(tx =>
         (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
         (!tx.contact_id && contactName && tx.description?.includes(contactName))
       );
       resolveDebitCredit = (tx) => ({
-        isDebit: tx.debit_account_code === accountCode,
-        isCredit: tx.credit_account_code === accountCode,
+        isDebit: contactAccountCodes.includes(tx.debit_account_code),
+        isCredit: contactAccountCodes.includes(tx.credit_account_code),
       });
     }
 
