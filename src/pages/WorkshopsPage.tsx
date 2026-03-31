@@ -2148,6 +2148,20 @@ export default function WorkshopsPage() {
       </AlertDialog>
 
       {/* Claim modal removed — now inside detail view */}
+
+      {/* Delete custom workshop type confirm */}
+      <AlertDialog open={!!deleteWsTypeId} onOpenChange={v => { if (!v) setDeleteWsTypeId(null); }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل تريد حذف هذا النوع؟</AlertDialogTitle>
+            <AlertDialogDescription>سيتم حذف نوع الورشة المخصص. هذا الإجراء لا يمكن التراجع عنه.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteWsTypeId && handleDeleteWsType(deleteWsTypeId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
