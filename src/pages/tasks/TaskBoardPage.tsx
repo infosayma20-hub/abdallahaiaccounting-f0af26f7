@@ -22,8 +22,8 @@ const PRIORITY_COLS = [
 ];
 
 export default function TaskBoardPage() {
-  const { user } = useAuth();
-  const { taskUser, logout, isAdmin, loading: taskAuthLoading } = useTaskAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { taskUser, logout, isAdmin, loading: taskAuthLoading, loginAsOwner } = useTaskAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [taskUsers, setTaskUsers] = useState<any[]>([]);
@@ -34,6 +34,7 @@ export default function TaskBoardPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [completeTask, setCompleteTask] = useState<any>(null);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -46,11 +47,19 @@ export default function TaskBoardPage() {
     setLoading(false);
   }, [user]);
 
+  // Auto-login owner if not already logged into tasks
   useEffect(() => {
-    if (taskAuthLoading) return;
-    if (!taskUser) { navigate("/tasks"); return; }
-    fetchData();
-  }, [taskUser, taskAuthLoading, navigate, fetchData]);
+    if (authLoading || taskAuthLoading || autoLoginAttempted) return;
+    if (taskUser) { fetchData(); return; }
+    if (!user) return;
+    setAutoLoginAttempted(true);
+    const displayName = user.user_metadata?.full_name || user.email || "المالك";
+    loginAsOwner(user.id, displayName).then(() => fetchData());
+  }, [user, authLoading, taskUser, taskAuthLoading, autoLoginAttempted, loginAsOwner, fetchData]);
+
+  useEffect(() => {
+    if (taskUser && !taskAuthLoading) fetchData();
+  }, [taskUser, taskAuthLoading, fetchData]);
 
   const handleAssign = async (taskId: string) => {
     if (!taskUser) return;
