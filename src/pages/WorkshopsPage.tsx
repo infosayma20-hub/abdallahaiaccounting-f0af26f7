@@ -859,6 +859,9 @@ export default function WorkshopsPage() {
               }}>
                 <Printer className="h-3.5 w-3.5" /> معاينة طباعة
               </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowQuotationDialog(true)}>
+                <FileText className="h-3.5 w-3.5" /> عرض سعر
+              </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
                 <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
               </Button>
