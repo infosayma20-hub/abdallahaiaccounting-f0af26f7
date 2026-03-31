@@ -748,18 +748,21 @@ const AccountStatementPage = () => {
     return contacts.filter(c => c.contact_type === type);
   }, [contacts, activeTab]);
 
-  // ─── ACCOUNT BALANCES ───
-  const accountBalances = useMemo(() => {
-    const map: Record<string, number> = {};
+  // ─── ACCOUNT BALANCES & TRANSACTION COUNTS ───
+  const { accountBalances, accountTxCounts } = useMemo(() => {
+    const balMap: Record<string, number> = {};
+    const cntMap: Record<string, number> = {};
     for (const acc of accounts) {
       let bal = 0;
+      let cnt = 0;
       for (const tx of transactions) {
-        if (tx.debit_account_code === acc.account_code) bal += tx.amount || 0;
-        if (tx.credit_account_code === acc.account_code) bal -= tx.amount || 0;
+        if (tx.debit_account_code === acc.account_code) { bal += tx.amount || 0; cnt++; }
+        if (tx.credit_account_code === acc.account_code) { bal -= tx.amount || 0; cnt++; }
       }
-      map[acc.id] = bal;
+      balMap[acc.id] = bal;
+      cntMap[acc.id] = cnt;
     }
-    return map;
+    return { accountBalances: balMap, accountTxCounts: cntMap };
   }, [accounts, transactions]);
 
   // ─── EMPLOYEE BALANCES ───
