@@ -1961,12 +1961,20 @@ const AccountStatementPage = () => {
                         </div>
 
                         {/* Closing Balance */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${closingBalance > 0 ? "#EF4444" : closingBalance < 0 ? "#22C55E" : "#94A3B8"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${(() => {
+                          if (closingBalance === 0) return "#94A3B8";
+                          const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+                          return isNormalSide ? "#22C55E" : "#EF4444";
+                        })()}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
                             {closingBalance !== 0 ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Wallet className="w-4 h-4 text-muted-foreground" />}
                             <span className="text-[12px] text-muted-foreground">الرصيد المستحق</span>
                           </div>
-                          <p className={cn("font-bold tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>
+                          <p className={cn("font-bold tabular-nums", (() => {
+                            if (closingBalance === 0) return "text-emerald-600";
+                            const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+                            return isNormalSide ? "text-emerald-600" : "text-red-600";
+                          })())} style={{ fontSize: "26px" }}>
                             {fmtAmount(closingBalance, statementCurrency)}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
