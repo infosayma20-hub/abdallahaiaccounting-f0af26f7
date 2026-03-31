@@ -704,6 +704,53 @@ const AccountStatementV2Page = () => {
           </>
         )}
       </div>
+
+      {/* ─── PDF PREVIEW MODAL ─── */}
+      {showPdfModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column" }}>
+          <div style={{ background: "#1B3A5C", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }} dir="rtl">
+            <span style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
+              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle" }} />
+              معاينة كشف الحساب
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
+                {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
+              </Button>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
+                <Printer className="w-3.5 h-3.5" /> طباعة
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setShowPdfModal(false)}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
+            <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+              <StatementPrintView
+                isPreview
+                company={companyInfo}
+                contact={{
+                  name: selectedEntityName,
+                  type: isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد",
+                  phone: isAccountsTab ? "" : isEmployeesTab ? selectedEmployee?.phone || "" : selectedContact?.phone || "",
+                  address: selectedContact?.address || "",
+                  email: selectedContact?.email || "",
+                }}
+                rows={filteredRows}
+                openingBalance={openingBalance}
+                closingBalance={closingBalance}
+                totalDebit={totalDebit}
+                totalCredit={totalCredit}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                contactCode={selectedEntityCode}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
