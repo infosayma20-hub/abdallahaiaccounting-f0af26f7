@@ -95,7 +95,7 @@ export default function TaskDetailDrawer({ task, open, onClose, currentUserId, i
                   <Hand className="w-4 h-4 ml-1" /> تكفّل بها
                 </Button>
               )}
-              {isMine && task.status === "in_progress" && (
+              {isMine && (task.status === "in_progress" || task.status === "open") && (
                 <Button onClick={() => { onComplete(task); onClose(); }} className="bg-green-600 text-white hover:bg-green-700">
                   <CheckCircle2 className="w-4 h-4 ml-1" /> إنهاء المهمة
                 </Button>
