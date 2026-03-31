@@ -2868,6 +2868,7 @@ const AccountStatementPage = () => {
                 includePDC={displayOptions.includePDC}
               />
             </div>
+          </div>
         </div>
       )}
             </div>
