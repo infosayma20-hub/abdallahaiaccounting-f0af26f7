@@ -879,6 +879,25 @@ const AccountStatementPage = () => {
     ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "", email: "" }
     : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "", email: selectedContact?.email || "" };
 
+  // ─── ACCOUNT NATURE (debit vs credit) for coloring ───
+  const isDebitNature = useMemo(() => {
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      const type = (selectedAccount.account_type || "").toLowerCase();
+      // Assets (1xxx) and Expenses/Purchases (5xxx) are debit-nature
+      if (code.startsWith("1") || code.startsWith("5")) return true;
+      if (["asset", "أصول", "أصل", "expense", "expenses", "مصروفات", "مصروف", "مصاريف", "purchases", "مشتريات"].includes(type)) return true;
+      // Liabilities (2xxx), Equity (3xxx), Revenue (4xxx) are credit-nature
+      if (code.startsWith("2") || code.startsWith("3") || code.startsWith("4")) return false;
+      if (["liability", "التزامات", "التزام", "خصوم", "equity", "حقوق ملكية", "حقوق الملكية", "رأس مال", "revenue", "إيرادات", "إيراد", "دخل"].includes(type)) return false;
+      return true; // default debit
+    }
+    if (isEmployeesTab) return false; // employees mapped to 2180 (liability)
+    // Contacts: customers = receivables (asset/debit), suppliers = payables (liability/credit)
+    if (activeTab === "customers") return true;
+    return false; // suppliers = credit nature
+  }, [isAccountsTab, isEmployeesTab, activeTab, selectedAccount]);
+
   // ─── CREDIT LIMIT CHECK ───
   const creditLimitWarning = useMemo(() => {
     if (isAccountsTab || isEmployeesTab || !selectedContact) return null;
@@ -1924,30 +1943,38 @@ const AccountStatementPage = () => {
                         </div>
 
                         {/* Total Debit */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #3B82F6", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#22C55E" : "#EF4444"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingUp className="w-4 h-4 text-blue-500" />
+                            <TrendingUp className={cn("w-4 h-4", isDebitNature ? "text-emerald-500" : "text-red-500")} />
                             <span className="text-[12px] text-muted-foreground">إجمالي المدين</span>
                           </div>
-                          <p className="font-bold tabular-nums text-blue-600" style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
+                          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-emerald-600" : "text-red-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalDebit, statementCurrency)}</p>
                         </div>
 
                         {/* Total Credit */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #22C55E", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${isDebitNature ? "#EF4444" : "#22C55E"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingDown className="w-4 h-4 text-emerald-500" />
+                            <TrendingDown className={cn("w-4 h-4", isDebitNature ? "text-red-500" : "text-emerald-500")} />
                             <span className="text-[12px] text-muted-foreground">إجمالي الدائن</span>
                           </div>
-                          <p className="font-bold tabular-nums text-emerald-600" style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
+                          <p className={cn("font-bold tabular-nums", isDebitNature ? "text-red-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>{fmtAmount(totalCredit, statementCurrency)}</p>
                         </div>
 
                         {/* Closing Balance */}
-                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${closingBalance > 0 ? "#EF4444" : closingBalance < 0 ? "#22C55E" : "#94A3B8"}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                        <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: `4px solid ${(() => {
+                          if (closingBalance === 0) return "#94A3B8";
+                          const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+                          return isNormalSide ? "#22C55E" : "#EF4444";
+                        })()}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           <div className="flex items-center gap-1.5 mb-2">
                             {closingBalance !== 0 ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : <Wallet className="w-4 h-4 text-muted-foreground" />}
                             <span className="text-[12px] text-muted-foreground">الرصيد المستحق</span>
                           </div>
-                          <p className={cn("font-bold tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-emerald-600")} style={{ fontSize: "26px" }}>
+                          <p className={cn("font-bold tabular-nums", (() => {
+                            if (closingBalance === 0) return "text-emerald-600";
+                            const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+                            return isNormalSide ? "text-emerald-600" : "text-red-600";
+                          })())} style={{ fontSize: "26px" }}>
                             {fmtAmount(closingBalance, statementCurrency)}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -2035,13 +2062,13 @@ const AccountStatementPage = () => {
                               <tbody>
                                 <tr className="border-b border-border/30">
                                   <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit, statementCurrency)}</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-emerald-600" : "text-red-600")}>{fmtAmount(totalDebit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-emerald-400" : "text-red-400")}>{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
                                 </tr>
                                 <tr className="border-b border-border/30">
                                   <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</td>
-                                  <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-red-600" : "text-emerald-600")}>{fmtAmount(totalCredit, statementCurrency)}</td>
+                                  <td className={cn("py-1.5 text-left tabular-nums font-semibold", isDebitNature ? "text-red-400" : "text-emerald-400")}>{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
                                 </tr>
                                 <tr>
                                   <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
@@ -2223,8 +2250,8 @@ const AccountStatementPage = () => {
                                   {isColVisible("paymentMethod") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">الدفع</th>}
                                   {isColVisible("currency") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">العملة</th>}
                                   {isColVisible("contactCode") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">كود الجهة</th>}
-                                  {isColVisible("debit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-red-300">مدين (عليه)</th>}
-                                  {isColVisible("credit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-emerald-300">دائن (له)</th>}
+                                  {isColVisible("debit") && <th className={cn("text-left px-3 py-3 text-[11px] font-bold", isDebitNature ? "text-emerald-300" : "text-red-300")}>مدين (عليه)</th>}
+                                  {isColVisible("credit") && <th className={cn("text-left px-3 py-3 text-[11px] font-bold", isDebitNature ? "text-red-300" : "text-emerald-300")}>دائن (له)</th>}
                                   {isColVisible("balance") && <th className="text-left px-3 py-3 text-[11px] font-bold text-white">الرصيد</th>}
                                 </tr>
                               </thead>
@@ -2241,7 +2268,7 @@ const AccountStatementPage = () => {
                                   {isColVisible("contactCode") && <td className="px-3 py-2.5"></td>}
                                   {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
                                   {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
-                                  {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} currency={statementCurrency} /></td>}
+                                  {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} currency={statementCurrency} isDebitNature={isDebitNature} /></td>}
                                 </tr>
 
                                 {/* Transaction rows */}
@@ -2305,18 +2332,18 @@ const AccountStatementPage = () => {
                                       {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
                                       {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                       {isColVisible("debit") && (
-                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
+                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? `text-[10px] ${isDebitNature ? "text-emerald-500/70" : "text-red-500/70"}` : `font-semibold ${isDebitNature ? "text-emerald-600" : "text-red-600"}`)}>
                                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                                         </td>
                                       )}
                                       {isColVisible("credit") && (
-                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
+                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? `text-[10px] ${isDebitNature ? "text-red-500/70" : "text-emerald-500/70"}` : `font-semibold ${isDebitNature ? "text-red-600" : "text-emerald-600"}`)}>
                                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                                         </td>
                                       )}
                                       {isColVisible("balance") && (
                                         <td className="px-3 py-2 text-left whitespace-nowrap">
-                                          {!isSubRow ? <BalanceCell value={row.balance} bold currency={row.currency} /> : <span className="text-muted-foreground/30">—</span>}
+                                          {!isSubRow ? <BalanceCell value={row.balance} bold currency={row.currency} isDebitNature={isDebitNature} /> : <span className="text-muted-foreground/30">—</span>}
                                         </td>
                                       )}
                                     </tr>
@@ -2333,14 +2360,16 @@ const AccountStatementPage = () => {
                                   {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
-                                  {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm whitespace-nowrap">{fmtAmount(totalDebit, statementCurrency)}</td>}
-                                  {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm whitespace-nowrap">{fmtAmount(totalCredit, statementCurrency)}</td>}
+                                  {isColVisible("debit") && <td className={cn("px-3 py-3.5 text-left tabular-nums font-bold text-sm whitespace-nowrap", isDebitNature ? "text-emerald-300" : "text-red-300")}>{fmtAmount(totalDebit, statementCurrency)}</td>}
+                                  {isColVisible("credit") && <td className={cn("px-3 py-3.5 text-left tabular-nums font-bold text-sm whitespace-nowrap", isDebitNature ? "text-red-300" : "text-emerald-300")}>{fmtAmount(totalCredit, statementCurrency)}</td>}
                                   {isColVisible("balance") && (
                                     <td className="px-3 py-3.5 text-left whitespace-nowrap">
                                       <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
-                                        closingBalance > 0 ? "text-red-300 bg-red-500/20" :
-                                        closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
-                                        "text-white/70"
+                                        (() => {
+                                          if (closingBalance === 0) return "text-white/70";
+                                          const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+                                          return isNormalSide ? "text-emerald-300 bg-emerald-500/20" : "text-red-300 bg-red-500/20";
+                                        })()
                                       )}>
                                         {fmtAmount(closingBalance, statementCurrency)}
                                       </span>
@@ -2747,14 +2776,19 @@ const AccountStatementPage = () => {
 
 // ─── SUB-COMPONENTS ───
 
-function BalanceCell({ value, bold, currency }: { value: number; bold?: boolean; currency?: string }) {
+function BalanceCell({ value, bold, currency, isDebitNature = true }: { value: number; bold?: boolean; currency?: string; isDebitNature?: boolean }) {
+  // For debit-nature accounts: positive balance (debit) = normal (green), negative (credit) = abnormal (red)
+  // For credit-nature accounts: negative balance (credit) = normal (green), positive (debit) = abnormal (red)
+  const getColor = () => {
+    if (value === 0) return "text-muted-foreground";
+    const isNormalSide = value > 0 ? isDebitNature : !isDebitNature;
+    return isNormalSide ? "text-emerald-600 bg-emerald-500/10" : "text-red-600 bg-red-500/10";
+  };
   return (
     <span className={cn(
       "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs tabular-nums",
       bold ? "font-bold text-sm" : "font-semibold",
-      value > 0 ? "text-red-600 bg-red-500/10" :
-      value < 0 ? "text-emerald-600 bg-emerald-500/10" :
-      "text-muted-foreground"
+      getColor()
     )}>
       {fmtAmount(value, currency)}
       <span className="text-[9px] font-normal opacity-70">{value > 0 ? "م" : value < 0 ? "د" : ""}</span>
