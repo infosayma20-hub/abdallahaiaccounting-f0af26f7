@@ -2198,6 +2198,30 @@ export default function WorkshopsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Quotation Dialog (main page level) ── */}
+      <QuotationDialog
+        open={showQuotationDialog}
+        onOpenChange={setShowQuotationDialog}
+        workshopId={selectedWorkshop?.id || ""}
+        workshopName={selectedWorkshop?.name || ""}
+        clientName={selectedWorkshop?.customer_name || ""}
+        budget={selectedWorkshop?.total_budget || 0}
+        userId={user!.id}
+        companyName={settings.company_name || "الشركة"}
+        logoUrl={settings.logo_url || ""}
+        onPreview={(data) => {
+          setQuotationPreviewData(data);
+          setShowQuotationPreview(true);
+        }}
+      />
+
+      {/* ── Quotation Preview (main page level) ── */}
+      <QuotationPreview
+        open={showQuotationPreview}
+        onOpenChange={setShowQuotationPreview}
+        data={quotationPreviewData}
+      />
     </div>
   );
 }
