@@ -61,6 +61,18 @@ export default function TaskBoardPage() {
     if (taskUser && !taskAuthLoading) fetchData();
   }, [taskUser, taskAuthLoading, fetchData]);
 
+  // Realtime subscription for instant updates
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        fetchData();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, fetchData]);
+
   const handleAssign = async (taskId: string) => {
     if (!taskUser) return;
     await supabase.from("tasks").update({ assigned_to: taskUser.id, assigned_at: new Date().toISOString(), status: "in_progress" }).eq("id", taskId);

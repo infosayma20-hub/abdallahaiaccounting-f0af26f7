@@ -9,6 +9,7 @@ import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
 import PortalAttendanceTab from './PortalAttendanceTab';
+import PortalTasksTab from './PortalTasksTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#1B3A5C';
@@ -17,7 +18,7 @@ const ACCENT = '#2A7B9B';
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance'>('attendance');
+  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance' | 'tasks'>('attendance');
   const [clock, setClock] = useState(new Date());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
@@ -91,9 +92,10 @@ export default function PortalDashboard() {
 
   const tabs = [
     { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
+    { key: 'tasks' as const, label: '📋 المهام', visible: true },
     { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
     { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
-    { key: 'requests' as const, label: '📋 الطلبات', visible: true },
+    { key: 'requests' as const, label: '📝 الطلبات', visible: true },
     { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
   ].filter(t => t.visible);
 
@@ -243,6 +245,7 @@ export default function PortalDashboard() {
         {activeTab === 'requests' && <PortalEmployeeRequestsTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'suppliers' && <PortalSupplierBalancesTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'attendance' && <PortalAttendanceTab theme={darkMode ? 'dark' : 'light'} />}
+        {activeTab === 'tasks' && <PortalTasksTab theme={darkMode ? 'dark' : 'light'} />}
       </div>
 
       <style>{`
