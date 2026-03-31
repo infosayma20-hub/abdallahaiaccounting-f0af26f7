@@ -106,7 +106,7 @@ export default function PortalTasksTab({ theme }: Props) {
   }, [linkedUserId, fetchData]);
 
   const handleSubmit = async () => {
-    if (!title.trim() || !assignedTo || !linkedUserId) return;
+    if (!title.trim() || !linkedUserId) return;
     setSubmitting(true);
     try {
       const { error } = await supabase.from('tasks').insert({
@@ -117,8 +117,8 @@ export default function PortalTasksTab({ theme }: Props) {
         status: 'open',
         category: category || null,
         due_date: dueDate || null,
-        assigned_to: assignedTo,
-        assigned_at: new Date().toISOString(),
+        assigned_to: assignedTo || null,
+        assigned_at: assignedTo ? new Date().toISOString() : null,
         created_by_portal: true,
         assigned_by_name: adminName,
         is_visible_to_all: true,
@@ -240,7 +240,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
                 <select
                   value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
                   style={{
