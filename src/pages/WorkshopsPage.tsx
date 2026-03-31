@@ -202,6 +202,50 @@ export default function WorkshopsPage() {
 
   const [accountsEnsured, setAccountsEnsured] = useState(false);
 
+  // Custom workshop types
+  const [customWsTypes, setCustomWsTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
+  const [showAddWsType, setShowAddWsType] = useState(false);
+  const [newWsTypeName, setNewWsTypeName] = useState("");
+  const [savingWsType, setSavingWsType] = useState(false);
+  const [deleteWsTypeId, setDeleteWsTypeId] = useState<string | null>(null);
+
+  const loadCustomWsTypes = async () => {
+    const { data } = await supabase.from("custom_workshop_types" as any).select("id, name, icon").eq("is_active", true).order("created_at");
+    setCustomWsTypes((data as any[]) || []);
+  };
+
+  const handleSaveWsType = async () => {
+    const trimmed = newWsTypeName.trim();
+    if (!trimmed || !user) return;
+    setSavingWsType(true);
+    const { data, error } = await supabase.from("custom_workshop_types" as any).insert({ user_id: user.id, name: trimmed, icon: "🔧" }).select("id, name, icon").single();
+    setSavingWsType(false);
+    if (error) { toast.error("فشل في الحفظ"); return; }
+    const newType = data as any;
+    setCustomWsTypes(prev => [...prev, newType]);
+    // Auto-select the new type
+    const newValue = `custom_${newType.id}`;
+    setWsForm(f => {
+      const current = f.workshop_type.split(",").filter(Boolean);
+      return { ...f, workshop_type: [...current, newValue].join(",") };
+    });
+    setNewWsTypeName("");
+    setShowAddWsType(false);
+    toast.success("✅ تم إضافة نوع الورشة بنجاح");
+  };
+
+  const handleDeleteWsType = async (id: string) => {
+    await supabase.from("custom_workshop_types" as any).delete().eq("id", id);
+    setCustomWsTypes(prev => prev.filter(c => c.id !== id));
+    // Remove from current selection
+    setWsForm(f => {
+      const types = f.workshop_type.split(",").filter(Boolean).filter(t => t !== `custom_${id}`);
+      return { ...f, workshop_type: types.join(",") };
+    });
+    setDeleteWsTypeId(null);
+    toast.success("تم حذف نوع الورشة");
+  };
+
   useEffect(() => {
     if (!user) return;
     loadWorkshops();
@@ -209,6 +253,7 @@ export default function WorkshopsPage() {
     loadBankAccounts();
     loadCurrencies();
     loadCashBoxes();
+    loadCustomWsTypes();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
   }, [user]);
 
