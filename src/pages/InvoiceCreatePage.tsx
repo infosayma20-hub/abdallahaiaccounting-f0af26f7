@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -1216,30 +1218,47 @@ const InvoiceCreatePage = () => {
 
                 {/* Product */}
                 <div className="space-y-1">
-                  <Select
-                    value={item.productId || "__manual__"}
-                    onValueChange={val => {
-                      if (val === "__new__") { setShowQuickAdd(true); return; }
-                      if (val === "__manual__") return;
-                      selectProduct(item.id, val);
-                    }}
-                  >
-                    <SelectTrigger className="rounded-lg text-[11px] h-8 border-0 bg-background"><SelectValue placeholder="اختر منتج...">{item.description || "اختر منتج..."}</SelectValue></SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <SelectItem value="__new__" className="text-primary font-semibold"><span className="flex items-center gap-1.5"><Plus className="h-3 w-3" /> تعريف منتج جديد</span></SelectItem>
-                      <SelectItem value="__manual__" className="text-muted-foreground"><span className="flex items-center gap-1.5">✏️ إدخال يدوي</span></SelectItem>
-                      {products.map(p => (
-                        <SelectItem key={p.id} value={p.id}>
-                          <span className="flex items-center justify-between gap-2 w-full">
-                            <span>{p.name}</span>
-                            <span className="text-[9px] text-muted-foreground tabular-nums">
-                              {form.type === "sales" ? `₪${p.sell_price}` : `₪${p.buy_price}`} • {p.quantity} {p.unit}
-                            </span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="w-full flex items-center justify-between rounded-lg text-[11px] h-8 border-0 bg-background px-3 hover:bg-muted/50 transition-colors text-right">
+                        <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
+                          {item.description || "اختر منتج..."}
+                        </span>
+                        <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[320px] p-0" align="start" dir="rtl">
+                      <Command dir="rtl">
+                        <CommandInput placeholder="ابحث عن منتج..." className="text-[12px]" />
+                        <CommandList>
+                          <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem onSelect={() => { setShowQuickAdd(true); }} className="text-primary font-semibold text-[11px] gap-1.5">
+                              <Plus className="h-3 w-3" /> تعريف منتج جديد
+                            </CommandItem>
+                            <CommandItem onSelect={() => { updateItem(item.id, "productId", ""); }} className="text-muted-foreground text-[11px] gap-1.5">
+                              ✏️ إدخال يدوي
+                            </CommandItem>
+                          </CommandGroup>
+                          <CommandGroup heading="المنتجات">
+                            {products.map(p => (
+                              <CommandItem
+                                key={p.id}
+                                value={`${p.name} ${p.barcode || ""}`}
+                                onSelect={() => selectProduct(item.id, p.id)}
+                                className="text-[11px] flex items-center justify-between gap-2"
+                              >
+                                <span>{p.name}</span>
+                                <span className="text-[9px] text-muted-foreground tabular-nums">
+                                  {form.type === "sales" ? `₪${p.sell_price}` : `₪${p.buy_price}`} • {p.quantity} {p.unit}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {!item.productId && (
                     <Input placeholder="وصف يدوي..." value={item.description} onChange={e => updateItem(item.id, "description", e.target.value)} className="rounded-lg text-[11px] h-7 border-0 bg-muted/30" />
                   )}
