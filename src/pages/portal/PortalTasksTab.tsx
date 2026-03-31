@@ -354,6 +354,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>#</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>عنوان المهمة</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الموظف</th>
+                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>المصدر</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الأولوية</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الحالة</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الاستحقاق</th>
