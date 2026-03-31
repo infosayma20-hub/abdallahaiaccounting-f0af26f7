@@ -726,10 +726,9 @@ const AccountStatementV2Page = () => {
               </Button>
             </div>
           </div>
-          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
-            <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
-              <StatementPrintView
-                isPreview
+          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+            <div id="statement-preview-doc" style={{ width: "780px", minHeight: "1100px", background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4 }}>
+              <StatementPrintViewClean
                 company={companyInfo}
                 contact={{
                   name: selectedEntityName,
