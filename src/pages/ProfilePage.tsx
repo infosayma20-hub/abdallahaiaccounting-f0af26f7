@@ -389,27 +389,6 @@ const ProfilePage = () => {
           )}
         </div>
 
-        {/* Avatar */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-muted/30 flex items-center justify-center shadow-sm border border-border/30 overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-2xl font-bold text-primary/40">{initials || "؟"}</span>
-              )}
-            </div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-            >
-              {uploadingAvatar ? <Loader2 className="h-3.5 w-3.5 text-primary-foreground animate-spin" /> : <Camera className="h-3.5 w-3.5 text-primary-foreground" />}
-            </button>
-          </div>
-          <span className="text-[11px] text-muted-foreground">الصورة الشخصية</span>
-        </div>
 
         {/* Name & Email */}
         <div className="flex-1 pt-3">
