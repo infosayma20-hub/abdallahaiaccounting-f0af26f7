@@ -9,7 +9,7 @@ import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
   TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp, Printer,
-  Sofa, BedDouble, UtensilsCrossed, DoorOpen, LayoutGrid, Package, Check,
+  Sofa, BedDouble, UtensilsCrossed, DoorOpen, LayoutGrid, Package, Check, X, Wrench,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
