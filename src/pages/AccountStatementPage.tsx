@@ -410,6 +410,7 @@ const AccountStatementPage = () => {
   const [statementToolbarHeight, setStatementToolbarHeight] = useState(0);
   const [summaryCardsHeight, setSummaryCardsHeight] = useState(0);
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
+  const [fixedChromeFrame, setFixedChromeFrame] = useState({ top: 0, left: 0, right: 0 });
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
