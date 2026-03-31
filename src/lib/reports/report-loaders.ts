@@ -37,22 +37,34 @@ export async function loadAgingReport(uid: string, contactType: string, setData:
 export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
   if (!txns?.length) { setData([]); return; }
+
+  // Calculate opening cash balance
+  const { data: openTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%");
+  let openingCash = 0;
+  (openTxns || []).forEach(tx => {
+    if ((tx.debit_account_code || "").startsWith("111")) openingCash += tx.amount;
+    if ((tx.credit_account_code || "").startsWith("111")) openingCash -= tx.amount;
+  });
+
   let operating = 0, investing = 0, financing = 0;
   txns.forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
-    if (dc.startsWith("4") || cc.startsWith("4") || dc.startsWith("5") || cc.startsWith("5")) {
-      if (cc.startsWith("4")) operating += tx.amount; else if (dc.startsWith("5")) operating -= tx.amount; else operating += tx.amount;
-    } else if (dc.startsWith("12") || cc.startsWith("12")) {
-      if (dc.startsWith("12")) investing -= tx.amount; else investing += tx.amount;
+    if (dc.startsWith("4") || cc.startsWith("4") || dc.startsWith("5") || cc.startsWith("5") || dc.startsWith("6") || cc.startsWith("6")) {
+      if (cc.startsWith("4")) operating += tx.amount; else if (dc.startsWith("5") || dc.startsWith("6")) operating -= tx.amount; else operating += tx.amount;
+    } else if (dc.startsWith("15") || cc.startsWith("15") || dc.startsWith("12") || cc.startsWith("12")) {
+      if (dc.startsWith("15") || dc.startsWith("12")) investing -= tx.amount; else investing += tx.amount;
     } else if (dc.startsWith("3") || cc.startsWith("3") || dc.startsWith("22") || cc.startsWith("22")) {
       if (cc.startsWith("3") || cc.startsWith("22")) financing += tx.amount; else financing -= tx.amount;
     }
   });
+  const netChange = operating + investing + financing;
   setData([
+    { section: "الرصيد الافتتاحي للنقد", amount: openingCash },
     { section: "أنشطة تشغيلية", amount: operating },
     { section: "أنشطة استثمارية", amount: investing },
     { section: "أنشطة تمويلية", amount: financing },
-    { section: "صافي التغير في النقد", amount: operating + investing + financing },
+    { section: "صافي التغير في النقد", amount: netChange },
+    { section: "الرصيد الختامي للنقد", amount: openingCash + netChange },
   ]);
 }
 

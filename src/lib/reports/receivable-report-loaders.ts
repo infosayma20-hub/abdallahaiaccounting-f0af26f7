@@ -82,7 +82,8 @@ export async function loadCustomerStatementAll(uid: string, dateFrom: string, da
     if (!cTxns.length) return;
     let balance = 0;
     cTxns.forEach(tx => {
-      const isDebit = tx.debit_account_code === "1200";
+      // Debit to receivables accounts (12xx) means customer owes more
+      const isDebit = (tx.debit_account_code || "").startsWith("12");
       const debit = isDebit ? tx.amount : 0;
       const credit = !isDebit ? tx.amount : 0;
       balance += debit - credit;
