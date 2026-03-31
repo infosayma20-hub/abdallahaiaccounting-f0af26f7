@@ -1185,6 +1185,30 @@ export default function WorkshopsPage() {
           logoUrl={settings.logo_url || ""}
         />
 
+        {/* ── Quotation Dialog ── */}
+        <QuotationDialog
+          open={showQuotationDialog}
+          onOpenChange={setShowQuotationDialog}
+          workshopId={selectedWorkshop.id}
+          workshopName={selectedWorkshop.name}
+          clientName={selectedWorkshop.customer_name || ""}
+          budget={selectedWorkshop.total_budget || 0}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          logoUrl={settings.logo_url || ""}
+          onPreview={(data) => {
+            setQuotationPreviewData(data);
+            setShowQuotationPreview(true);
+          }}
+        />
+
+        {/* ── Quotation Preview ── */}
+        <QuotationPreview
+          open={showQuotationPreview}
+          onOpenChange={setShowQuotationPreview}
+          data={quotationPreviewData}
+        />
+
         {/* Payment Dialog kept for backward compat but hidden — replaced by full page view */}
       </div>
     );
