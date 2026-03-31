@@ -72,6 +72,7 @@ const PAYMENT_METHODS = [
 
 const EMP_TRANSACTION_CATEGORIES = [
   { value: "سلفة", label: "سلفة", emoji: "💰" },
+  { value: "رواتب", label: "رواتب وأجور", emoji: "💵" },
   { value: "أكل", label: "أكل / وجبات", emoji: "🍽️" },
   { value: "عجز", label: "عجز صندوق", emoji: "📉" },
   { value: "مشتريات", label: "مشتريات", emoji: "🛒" },
