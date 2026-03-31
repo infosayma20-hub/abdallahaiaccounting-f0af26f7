@@ -644,9 +644,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         if (selectedChequeBankAccount) {
           const ba = bankAccounts.find(b => b.id === selectedChequeBankAccount);
           if (isReceipt) {
-            depositAccountCode = "1150"; // incoming cheques
+            depositAccountCode = ba?.incoming_checks_account_code || "1150"; // incoming cheques
           } else {
-            depositAccountCode = ba?.gl_account_code || "1160"; // outgoing cheques
+            depositAccountCode = ba?.outgoing_checks_account_code || "1160"; // outgoing cheques
           }
           bankAccountId = selectedChequeBankAccount;
         } else {
