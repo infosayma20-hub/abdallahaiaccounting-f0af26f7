@@ -115,7 +115,7 @@ export default function AdvancedEntitySearch({
     const q = search.trim();
     if (!q && !open) return [];
 
-    const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; tab: EntityTab }[] }[] = [];
+    const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; txCount: number; tab: EntityTab }[] }[] = [];
 
     const showAll = !q && open; // browsing mode — filter by activeTab
 
