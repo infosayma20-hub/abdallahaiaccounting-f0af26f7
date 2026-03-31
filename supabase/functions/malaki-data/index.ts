@@ -532,7 +532,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        const openingBalance = c.opening_balance || 0;
+        const openingBalance = c.current_balance || 0;
         const closingBalance = openingBalance + totalPurchases - totalPayments;
 
         return {
