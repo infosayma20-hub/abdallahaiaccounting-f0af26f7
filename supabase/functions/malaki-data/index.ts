@@ -524,10 +524,10 @@ Deno.serve(async (req) => {
         let totalPayments = 0;
 
         for (const tx of contactTxs) {
-          if (tx.debit_account_code?.startsWith("5") || tx.credit_account_code === "2100") {
+          if (tx.debit_account_code?.startsWith("5") || tx.credit_account_code === "2110") {
             totalPurchases += tx.amount || 0;
           }
-          if (tx.debit_account_code === "2100") {
+          if (tx.debit_account_code === "2110") {
             totalPayments += tx.amount || 0;
           }
         }
