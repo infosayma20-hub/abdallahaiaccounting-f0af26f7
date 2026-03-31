@@ -141,7 +141,6 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "unpaid-invoices": await loadUnpaidInvoices(uid, dateFrom, dateTo, setData); break;
         default: await loadGenericTransactions(uid, dateFrom, dateTo, setData); break;
       }
-      console.log(`[Report][${reportKey}] rows:`, data?.length || 0);
     } catch (e: any) {
       console.error(`[Report][${reportKey}] Error:`, e);
       toast.error("حدث خطأ أثناء تحميل التقرير — حاول مرة أخرى");
