@@ -1401,8 +1401,8 @@ export default function WorkshopsPage() {
               )}
             </div>
 
-            {/* LEFT COLUMN — 25% — Workshop Summary (sticky) */}
-            <div className="lg:col-span-1" style={{ maxWidth: 260 }}>
+            {/* LEFT COLUMN — Workshop Summary (sticky) */}
+            <div className="w-56 flex-shrink-0 hidden lg:block">
               <div className="lg:sticky lg:top-24">
                 <div className="rounded-xl border border-border p-4 space-y-3" style={{ background: "#F8FAFC" }}>
                   <div className="space-y-0.5">
