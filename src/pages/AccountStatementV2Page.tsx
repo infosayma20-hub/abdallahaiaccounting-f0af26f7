@@ -1,0 +1,634 @@
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
+  Printer, ChevronLeft, ChevronDown, ChevronUp,
+  Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
+  Filter,
+} from "lucide-react";
+import * as XLSX from "xlsx";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears } from "date-fns";
+import { ar } from "date-fns/locale";
+import { cn, multiWordMatchAny } from "@/lib/utils";
+import AdvancedEntitySearch from "@/components/account-statement/AdvancedEntitySearch";
+
+// ─── TYPES ───
+interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
+interface Account { id: string; account_code: string; account_name: string; account_type: string; }
+interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
+interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; }
+interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; }
+
+type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
+
+// ─── HELPERS ───
+const normalizeCurrency = (c: string): string => {
+  if (!c) return "شيكل";
+  const map: Record<string, string> = { ILS: "شيكل", شيكل: "شيكل", USD: "دولار", دولار: "دولار", JOD: "دينار", دينار: "دينار", EUR: "يورو", يورو: "يورو", EGP: "جنيه", جنيه: "جنيه" };
+  return map[c] || c;
+};
+const getCurrencySymbol = (c: string): string => {
+  const n = normalizeCurrency(c);
+  if (n === "دولار") return "$"; if (n === "دينار") return "د.أ"; if (n === "يورو") return "€"; if (n === "جنيه") return "£"; return "₪";
+};
+const fmtAmount = (n: number, currency?: string) => {
+  if (n === 0) return "—";
+  const symbol = getCurrencySymbol(currency || "شيكل");
+  return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+const fmtDate = (d: string) => { if (!d) return "—"; const p = d.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
+const getDayName = (d: string) => { try { const date = parseISO(d); const diff = differenceInDays(new Date(), date); if (diff === 0) return "اليوم"; if (diff === 1) return "أمس"; return format(date, "EEEE", { locale: ar }); } catch { return ""; } };
+
+const getTypeBadge = (txType: string) => {
+  if (txType.includes("pos")) return "مبيعات POS";
+  if (txType.includes("sale") || txType.includes("فاتورة")) return "فاتورة مبيعات";
+  if (txType.includes("receipt") || txType.includes("قبض")) return "سند قبض";
+  if (txType.includes("payment") || txType.includes("صرف")) return "سند صرف";
+  if (txType.includes("purchase") || txType.includes("مشتريات")) return "فاتورة مشتريات";
+  if (txType.includes("journal") || txType.includes("قيد") || txType.includes("salary")) return "قيد محاسبي";
+  if (txType.includes("cheque")) return "شيك";
+  if (txType.includes("opening_balance")) return "رصيد افتتاحي";
+  return "حركة";
+};
+
+const QUICK_PERIODS = [
+  { label: "هذا الشهر", from: () => format(startOfMonth(new Date()), "yyyy-MM-dd"), to: () => format(endOfMonth(new Date()), "yyyy-MM-dd") },
+  { label: "الشهر الماضي", from: () => { const d = new Date(); d.setMonth(d.getMonth() - 1); return format(startOfMonth(d), "yyyy-MM-dd"); }, to: () => { const d = new Date(); d.setMonth(d.getMonth() - 1); return format(endOfMonth(d), "yyyy-MM-dd"); } },
+  { label: "الربع الحالي", from: () => format(startOfQuarter(new Date()), "yyyy-MM-dd"), to: () => format(endOfQuarter(new Date()), "yyyy-MM-dd") },
+  { label: "هذه السنة", from: () => format(startOfYear(new Date()), "yyyy-MM-dd"), to: () => format(endOfYear(new Date()), "yyyy-MM-dd") },
+  { label: "كل الفترات", from: () => "2020-01-01", to: () => format(new Date(), "yyyy-MM-dd") },
+];
+
+const CURRENCIES = [
+  { value: "all", label: "كل العملات" },
+  { value: "شيكل", label: "₪ شيكل" },
+  { value: "دولار", label: "$ دولار" },
+  { value: "دينار", label: "د.أ دينار" },
+];
+
+const TX_TYPE_FILTERS = [
+  { value: "all", label: "الكل" },
+  { value: "sale", label: "فواتير مبيعات" },
+  { value: "receipt", label: "سندات قبض" },
+  { value: "payment", label: "سندات صرف" },
+  { value: "journal", label: "قيود محاسبية" },
+  { value: "purchase", label: "فواتير مشتريات" },
+];
+
+// ─── COMPONENT ───
+const AccountStatementV2Page = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const urlContactId = searchParams.get("contact_id") || "";
+  const urlContactType = searchParams.get("contact_type") || "";
+  const urlEmployeeName = searchParams.get("employee_name") || "";
+  const urlAccountCode = searchParams.get("code") || "";
+
+  // State
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [cheques, setCheques] = useState<Cheque[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
+
+  const [activeTab, setActiveTab] = useState<EntityTab>(
+    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
+  );
+  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
+  const [txSearch, setTxSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [activePeriod, setActivePeriod] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState("all");
+  const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [showYearComparison, setShowYearComparison] = useState(false);
+  const [chequesOpen, setChequesOpen] = useState(false);
+  const [agingOpen, setAgingOpen] = useState(false);
+
+  const isAccountsTab = activeTab === "accounts";
+  const isEmployeesTab = activeTab === "employees";
+
+  // ─── FETCH DATA ───
+  const fetchData = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [{ data: contactData }, { data: accData }, { data: txData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
+        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", user.id).eq("is_active", true).order("contact_name"),
+        supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate").eq("user_id", user.id).eq("is_deleted", false).order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
+        supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", user.id).eq("is_active", true).order("full_name"),
+        supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
+        supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", user.id).order("cheque_date", { ascending: false }),
+        supabase.from("companies").select("id, name, logo_url, address, phone, email, tax_number").eq("owner_id", user.id).maybeSingle(),
+      ]);
+
+      setContacts((contactData as Contact[]) || []);
+      setAccounts((accData as Account[]) || []);
+      setTransactions((txData as Transaction[]) || []);
+      setCheques((chequeData as Cheque[]) || []);
+
+      const allAccounts = (accData as Account[]) || [];
+      const normalizeArabicName = (v: string = "") => v.replace(/\s+/g, " ").replace(/عبدالله/g, "عبد الله").trim();
+      const empList = ((empData as any[]) || []).map((emp: any) => {
+        const nn = normalizeArabicName(emp.full_name);
+        const linked = allAccounts.find(a => {
+          const isEmpRec = a.account_type === "أصول" || a.account_type === "asset";
+          const na = normalizeArabicName((a.account_name || "").replace(/^ذمم\s*موظف\s*[-–]\s*/, "").replace(/^ذمم\s+/, ""));
+          return isEmpRec && na === nn;
+        });
+        return { ...emp, account_code: linked?.account_code || null } as EmployeeEntity;
+      });
+      setEmployeeEntities(empList);
+
+      const cs = csData as any;
+      const comp = companyData as any;
+      if (cs) {
+        setCompanyInfo({ name: cs.company_name || comp?.name || "", logo_url: cs.logo_url || comp?.logo_url || "", address: cs.address || comp?.address || "", phone: cs.phone || comp?.phone || "", email: cs.email || comp?.email || "", website: cs.website || "", tax_number: cs.tax_number || comp?.tax_number || "" });
+      } else if (comp) {
+        setCompanyInfo({ name: comp.name || "", logo_url: comp.logo_url || "", address: comp.address || "", phone: comp.phone || "", email: comp.email || "", website: "", tax_number: comp.tax_number || "" });
+      }
+
+      if (urlEmployeeName && empList.length > 0) { const f = empList.find(e => e.full_name === urlEmployeeName); if (f) setSelectedEntityId(f.id); }
+      if (urlAccountCode && allAccounts.length > 0) { const f = allAccounts.find(a => a.account_code === urlAccountCode); if (f) setSelectedEntityId(f.id); }
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, [user]);
+
+  // ─── Derived State ───
+  const selectedAccount = useMemo(() => accounts.find(a => a.id === selectedEntityId), [accounts, selectedEntityId]);
+  const selectedContact = useMemo(() => contacts.find(c => c.id === selectedEntityId), [contacts, selectedEntityId]);
+  const selectedEmployee = useMemo(() => employeeEntities.find(e => e.id === selectedEntityId), [employeeEntities, selectedEntityId]);
+
+  const selectedEntityName = isAccountsTab ? selectedAccount?.account_name || "" : isEmployeesTab ? selectedEmployee?.full_name || "" : selectedContact?.contact_name || "";
+  const selectedEntityEmoji = selectedAccount ? "📊" : selectedContact ? (selectedContact.contact_type === "عميل" ? "👤" : "🚚") : selectedEmployee ? "👨‍💼" : "";
+  const selectedEntityCode = isAccountsTab ? selectedAccount?.account_code || "" : selectedContact?.linked_account_code || selectedEmployee?.account_code || "";
+
+  const isDebitNature = useMemo(() => {
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      if (code.startsWith("1") || code.startsWith("5")) return true;
+      if (code.startsWith("2") || code.startsWith("3") || code.startsWith("4")) return false;
+      return true;
+    }
+    if (isEmployeesTab) return false;
+    if (activeTab === "customers") return true;
+    return false;
+  }, [isAccountsTab, isEmployeesTab, activeTab, selectedAccount]);
+
+  // ─── BALANCES for search ───
+  const { accountBalances, accountTxCounts } = useMemo(() => {
+    const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
+    for (const acc of accounts) { let b = 0, c = 0; for (const tx of transactions) { if (tx.debit_account_code === acc.account_code) { b += tx.amount || 0; c++; } if (tx.credit_account_code === acc.account_code) { b -= tx.amount || 0; c++; } } balMap[acc.id] = b; cntMap[acc.id] = c; }
+    return { accountBalances: balMap, accountTxCounts: cntMap };
+  }, [accounts, transactions]);
+
+  const { contactBalances, contactTxCounts } = useMemo(() => {
+    const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
+    for (const c of contacts) { let b = 0, cnt = 0; const accountCode = c.contact_type === "عميل" ? "1130" : c.contact_type === "مورد" ? "2110" : "2180"; for (const tx of transactions) { const matches = (tx.contact_id === c.id) || (!tx.contact_id && tx.description?.includes(c.contact_name?.trim())); if (!matches) continue; cnt++; if (tx.debit_account_code === accountCode) b += tx.amount || 0; if (tx.credit_account_code === accountCode) b -= tx.amount || 0; } balMap[c.id] = b; cntMap[c.id] = cnt; }
+    return { contactBalances: balMap, contactTxCounts: cntMap };
+  }, [contacts, transactions]);
+
+  const { employeeBalances, employeeTxCounts } = useMemo(() => {
+    const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
+    for (const emp of employeeEntities) { if (!emp.account_code) { balMap[emp.id] = 0; cntMap[emp.id] = 0; continue; } let b = 0, cnt = 0; for (const tx of transactions) { const m = tx.debit_account_code === emp.account_code || tx.credit_account_code === emp.account_code; if (!m) continue; cnt++; if (tx.debit_account_code === emp.account_code) b += tx.amount || 0; if (tx.credit_account_code === emp.account_code) b -= tx.amount || 0; } balMap[emp.id] = b; cntMap[emp.id] = cnt; }
+    return { employeeBalances: balMap, employeeTxCounts: cntMap };
+  }, [employeeEntities, transactions]);
+
+  // ─── STATEMENT ROWS ───
+  const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
+    if (!selectedEntityId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
+
+    let related: Transaction[];
+    let resolveDebitCredit: (tx: Transaction) => { isDebit: boolean; isCredit: boolean };
+
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+      resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      const code = selectedEmployee.account_code;
+      related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+      resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+    } else {
+      const contactName = selectedContact?.contact_name?.trim() || "";
+      const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
+      const contactAccountCodes = ["1130", "2110", "2180"];
+      related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+      resolveDebitCredit = (tx) => ({ isDebit: contactAccountCodes.includes(tx.debit_account_code), isCredit: contactAccountCodes.includes(tx.credit_account_code) });
+    }
+
+    if (selectedCurrency !== "all") related = related.filter(tx => normalizeCurrency(tx.currency) === selectedCurrency);
+
+    const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
+    const isForeignCash = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
+    const getAmt = (tx: Transaction) => (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) ? tx.foreign_amount : (tx.amount || 0);
+
+    let openBal = 0;
+    const periodTx: Transaction[] = [];
+    for (const tx of related) {
+      const { isDebit, isCredit } = resolveDebitCredit(tx);
+      if (!isDebit && !isCredit) continue;
+      const amt = getAmt(tx);
+      if (dateFrom && tx.transaction_date < dateFrom) { if (isDebit) openBal += amt; if (isCredit) openBal -= amt; }
+      else if (!dateTo || tx.transaction_date <= dateTo) periodTx.push(tx);
+    }
+
+    let running = openBal, sD = 0, sC = 0;
+    const result: StatementRow[] = periodTx.map(tx => {
+      const { isDebit } = resolveDebitCredit(tx);
+      const amt = getAmt(tx);
+      const debit = isDebit ? amt : 0;
+      const credit = !isDebit ? amt : 0;
+      running += debit - credit; sD += debit; sC += credit;
+      let dueDate: string | undefined;
+      if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: normalizeCurrency(tx.currency), payment_method: tx.payment_method || null, dueDate };
+    });
+    return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency, contacts, selectedContact]);
+
+  const statementCurrency = useMemo(() => {
+    if (rows.length > 0) { const f: Record<string, number> = {}; rows.forEach(r => { f[r.currency] = (f[r.currency] || 0) + 1; }); const s = Object.entries(f).sort((a, b) => b[1] - a[1]); return s[0]?.[0] || "شيكل"; }
+    if (isAccountsTab && selectedAccount) { const nm = selectedAccount.account_name; if (nm.includes("دولار")) return "دولار"; if (nm.includes("دينار")) return "دينار"; }
+    return "شيكل";
+  }, [rows, isAccountsTab, selectedAccount]);
+
+  const filteredRows = useMemo(() => {
+    let r = rows;
+    if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
+    if (txSearch.trim()) r = r.filter(x => multiWordMatchAny(txSearch, x.description, x.reference));
+    return r;
+  }, [rows, txSearch, txTypeFilter]);
+
+  // ─── RELATED CHEQUES ───
+  const relatedCheques = useMemo(() => {
+    if (!selectedEntityName) return [];
+    return cheques.filter(c => c.party_name === selectedEntityName);
+  }, [cheques, selectedEntityName]);
+
+  // ─── AGING ───
+  const agingData = useMemo(() => {
+    if (!selectedEntityId || isAccountsTab) return null;
+    const today = new Date();
+    let current = 0, d1_30 = 0, d31_60 = 0, d60plus = 0;
+    for (const row of rows) { if (row.debit <= 0) continue; const days = differenceInDays(today, parseISO(row.date)); if (days <= 0) current += row.debit; else if (days <= 30) d1_30 += row.debit; else if (days <= 60) d31_60 += row.debit; else d60plus += row.debit; }
+    const total = current + d1_30 + d31_60 + d60plus;
+    return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
+  }, [rows, selectedEntityId, isAccountsTab]);
+
+  // ─── EXPORT ───
+  const handleExport = () => {
+    if (!filteredRows.length || !selectedEntityName) return;
+    const header = [["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين", "دائن", "الرصيد"]];
+    const data = filteredRows.map(r => [fmtDate(r.date), r.reference || "—", r.description, r.dueDate ? fmtDate(r.dueDate) : "—", getTypeBadge(r.transaction_type), r.debit || "", r.credit || "", r.balance]);
+    const ws = XLSX.utils.aoa_to_sheet([...header, ...data]);
+    ws["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 36 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
+    XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}.xlsx`);
+  };
+
+  const selectEntity = (id: string) => setSelectedEntityId(id);
+
+  // Balance color helper
+  const balColor = (val: number) => {
+    if (val === 0) return "#6B7280";
+    const isNormal = val > 0 ? isDebitNature : !isDebitNature;
+    return isNormal ? "#059669" : "#DC2626";
+  };
+
+  // ─── RENDER ───
+  return (
+    <div className="flex flex-col" style={{ height: "calc(100vh - 52px)", overflow: "hidden" }} dir="rtl">
+      {/* ═══ TOOLBAR ═══ */}
+      <div className="shrink-0 border-b" style={{ borderColor: "#E5E7EB", padding: "10px 24px", background: "white" }}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          {/* LEFT: breadcrumb + entity */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/finance")} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+              <ArrowRight className="w-5 h-5" style={{ color: "#374151" }} />
+            </button>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: "#6B7280" }}>
+              <span>المحاسبة</span>
+              <ChevronLeft className="w-3 h-3" />
+              <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
+            </div>
+            {selectedEntityId && (
+              <div className="flex items-center gap-2 mr-3 px-3 py-1.5 rounded-lg" style={{ background: "#F3F4F6" }}>
+                <span className="text-sm">{selectedEntityEmoji}</span>
+                <span className="text-sm font-semibold" style={{ color: "#111827" }}>{selectedEntityName}</span>
+                {selectedEntityCode && <span className="text-xs" style={{ color: "#6B7280" }}>— {selectedEntityCode}</span>}
+                <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1" style={{ color: "#1E40AF" }}>تغيير</button>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: dates + actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 rounded-lg px-2 py-1" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+              <label className="text-[10px] font-semibold" style={{ color: "#6B7280" }}>من</label>
+              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-7 w-32 text-xs bg-transparent border-0 p-0 shadow-none focus-visible:ring-0" />
+              <div className="w-px h-4" style={{ background: "#D1D5DB" }} />
+              <label className="text-[10px] font-semibold" style={{ color: "#6B7280" }}>إلى</label>
+              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-7 w-32 text-xs bg-transparent border-0 p-0 shadow-none focus-visible:ring-0" />
+            </div>
+            <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
+                  <Send className="w-3.5 h-3.5" /> إرسال <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { if (selectedContact?.phone) { const msg = `كشف حساب - ${selectedEntityName}\nالرصيد: ${fmtAmount(closingBalance, statementCurrency)}`; window.open(`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(msg)}`); } }} disabled={!selectedContact?.phone}>
+                  <MessageSquare className="w-4 h-4 ml-2 text-emerald-500" /> واتساب
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { if (selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(`كشف حساب - ${selectedEntityName}`)}`); }} disabled={!selectedContact?.email}>
+                  <Mail className="w-4 h-4 ml-2 text-blue-500" /> إيميل
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => navigate("/account-statement" + window.location.search)}>
+              ← النسخة الكلاسيكية
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ SCROLLABLE CONTENT ═══ */}
+      <div className="flex-1 overflow-y-auto" style={{ background: "#F9FAFB", padding: "24px" }}>
+        {/* Search bar when no entity selected */}
+        {!selectedEntityId && (
+          <div className="max-w-3xl mx-auto mb-6">
+            <AdvancedEntitySearch
+              entityList={[]}
+              allContacts={contacts}
+              allAccounts={accounts}
+              allEmployees={employeeEntities}
+              accountBalances={accountBalances}
+              contactBalances={contactBalances}
+              employeeBalances={employeeBalances}
+              accountTxCounts={accountTxCounts}
+              contactTxCounts={contactTxCounts}
+              employeeTxCounts={employeeTxCounts}
+              selectedEntityId={selectedEntityId}
+              activeTab={activeTab}
+              onSelect={(id, tab) => { if (tab && tab !== activeTab) setActiveTab(tab); selectEntity(id); }}
+              onClear={() => setSelectedEntityId("")}
+              onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+              loading={loading}
+            />
+          </div>
+        )}
+
+        {!selectedEntityId && (
+          <div className="flex items-center justify-center py-32">
+            <div className="text-center space-y-4">
+              <Search className="w-12 h-12 mx-auto" style={{ color: "#D1D5DB" }} />
+              <p className="text-sm font-medium" style={{ color: "#6B7280" }}>ابحث عن جهة لعرض كشف حسابها</p>
+            </div>
+          </div>
+        )}
+
+        {selectedEntityId && (
+          <>
+            {/* ─── SUMMARY LINE ─── */}
+            <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
+              <div className="flex items-center gap-8 flex-wrap text-[13px]">
+                <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{fmtAmount(totalDebit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{fmtAmount(totalCredit, statementCurrency)}</span></div>
+                <div className="mr-auto"><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></div>
+              </div>
+            </div>
+
+            {/* ─── FILTER BAR ─── */}
+            <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "10px 16px" }}>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Quick periods */}
+                <div className="flex items-center gap-1">
+                  {QUICK_PERIODS.map(p => (
+                    <button
+                      key={p.label}
+                      onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
+                      className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
+                      style={{
+                        color: activePeriod === p.label ? "#1E40AF" : "#6B7280",
+                        background: activePeriod === p.label ? "#EFF6FF" : "transparent",
+                        borderBottom: activePeriod === p.label ? "2px solid #1E40AF" : "2px solid transparent",
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="w-px h-5" style={{ background: "#E5E7EB" }} />
+
+                {/* Currency filter */}
+                <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                  <SelectTrigger className="h-7 w-28 text-[11px] border-gray-200"><SelectValue /></SelectTrigger>
+                  <SelectContent>{CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                </Select>
+
+                {/* Type filter */}
+                <Select value={txTypeFilter} onValueChange={setTxTypeFilter}>
+                  <SelectTrigger className="h-7 w-32 text-[11px] border-gray-200"><SelectValue /></SelectTrigger>
+                  <SelectContent>{TX_TYPE_FILTERS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+                </Select>
+
+                {/* Search */}
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "#9CA3AF" }} />
+                  <input
+                    value={txSearch}
+                    onChange={e => setTxSearch(e.target.value)}
+                    placeholder="بحث في الحركات..."
+                    className="w-full h-7 pr-8 pl-3 rounded text-[11px] outline-none"
+                    style={{ border: "1px solid #E5E7EB", background: "#F9FAFB" }}
+                  />
+                </div>
+
+                {/* Year comparison toggle */}
+                <label className="flex items-center gap-1.5 cursor-pointer text-[11px]" style={{ color: "#6B7280" }}>
+                  <input type="checkbox" checked={showYearComparison} onChange={e => setShowYearComparison(e.target.checked)} className="rounded" />
+                  مقارنة سنوية
+                </label>
+              </div>
+            </div>
+
+            {/* ─── TRANSACTIONS TABLE ─── */}
+            <div className="rounded-lg overflow-hidden mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+              <table className="w-full" style={{ tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "25%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "12%" }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ background: "#F3F4F6", borderBottom: "2px solid #E5E7EB" }}>
+                    {["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين (عليه)", "دائن (له)", "الرصيد"].map(h => (
+                      <th key={h} className="text-right" style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Opening balance row */}
+                  <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
+                    <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>
+                    <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>—</td>
+                    <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>
+                    <td style={{ padding: "8px 12px" }} />
+                    <td style={{ padding: "8px 12px" }} />
+                    <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>
+                    <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>
+                    <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>
+                  </tr>
+
+                  {loading ? (
+                    <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />جاري التحميل...</td></tr>
+                  ) : filteredRows.length === 0 ? (
+                    <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
+                  ) : (
+                    filteredRows.map((row, i) => (
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6" }} className="hover:bg-gray-50/50 transition-colors">
+                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
+                          <div>{fmtDate(row.date)}</div>
+                          <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
+                        </td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151", fontFamily: "monospace", wordBreak: "break-all" }}>{row.reference || "—"}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>{row.description}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280" }}>{getTypeBadge(row.transaction_type)}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>{row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>{row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                          {fmtAmount(row.balance, row.currency)}
+                          <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+
+                  {/* Closing balance row */}
+                  {filteredRows.length > 0 && (
+                    <tr style={{ background: "#F3F4F6", borderTop: "2px solid #E5E7EB" }}>
+                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>
+                      <td style={{ padding: "10px 12px", fontSize: 11 }}>—</td>
+                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>رصيد الختام</td>
+                      <td style={{ padding: "10px 12px" }} />
+                      <td style={{ padding: "10px 12px" }} />
+                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{fmtAmount(totalDebit, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{fmtAmount(totalCredit, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(closingBalance, statementCurrency)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ─── COLLAPSIBLE: CHEQUES ─── */}
+            {relatedCheques.length > 0 && (
+              <Collapsible open={chequesOpen} onOpenChange={setChequesOpen} className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold" style={{ color: "#374151" }}>
+                  <span>الشيكات المرتبطة ({relatedCheques.length})</span>
+                  {chequesOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div style={{ borderTop: "1px solid #E5E7EB" }}>
+                    <table className="w-full">
+                      <thead>
+                        <tr style={{ background: "#F9FAFB" }}>
+                          {["رقم الشيك", "النوع", "المبلغ", "التاريخ", "الحالة", "البنك"].map(h => (
+                            <th key={h} className="text-right" style={{ padding: "8px 12px", fontSize: 10, fontWeight: 600, color: "#6B7280" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {relatedCheques.map(chq => (
+                          <tr key={chq.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                            <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>{chq.cheque_number || "—"}</td>
+                            <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>{chq.cheque_type}</td>
+                            <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#111827" }}>{fmtAmount(chq.amount, chq.currency)}</td>
+                            <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>{fmtDate(chq.cheque_date)}</td>
+                            <td style={{ padding: "8px 12px", fontSize: 11, color: chq.status === "مرتجع" ? "#DC2626" : "#6B7280" }}>{chq.status}</td>
+                            <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>{chq.bank_name || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* ─── COLLAPSIBLE: AGING ─── */}
+            {agingData && (
+              <Collapsible open={agingOpen} onOpenChange={setAgingOpen} className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold" style={{ color: "#374151" }}>
+                  <span>تحليل التقادم (Aging)</span>
+                  {agingOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div style={{ borderTop: "1px solid #E5E7EB", padding: "16px" }}>
+                    <div className="grid grid-cols-5 gap-4 text-center">
+                      {[
+                        { label: "جاري", value: agingData.current, color: "#059669" },
+                        { label: "1-30 يوم", value: agingData.d1_30, color: "#D97706" },
+                        { label: "31-60 يوم", value: agingData.d31_60, color: "#EA580C" },
+                        { label: "+60 يوم", value: agingData.d60plus, color: "#DC2626" },
+                        { label: "الإجمالي", value: agingData.total, color: "#111827" },
+                      ].map(a => (
+                        <div key={a.label}>
+                          <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 4 }}>{a.label}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: a.color }}>{fmtAmount(a.value, statementCurrency)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* ─── FOOTER LINE ─── */}
+            <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
+              إجمالي الحركات: {filteredRows.length} قيد | مدين: {fmtAmount(totalDebit, statementCurrency)} | دائن: {fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: {fmtAmount(closingBalance, statementCurrency)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"}) | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AccountStatementV2Page;

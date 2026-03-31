@@ -60,6 +60,7 @@ const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
 const GeneralLedgerPage = lazy(() => import("./pages/GeneralLedgerPage"));
 const AccountStatementPage = lazy(() => import("./pages/AccountStatementPage"));
+const AccountStatementV2Page = lazy(() => import("./pages/AccountStatementV2Page"));
 const HRPayrollReport = lazy(() => import("./pages/reports/HRPayrollReport"));
 const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport"));
 const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
@@ -292,6 +293,7 @@ const App = () => (
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
                       <Route path="/general-ledger" element={<GeneralLedgerPage />} />
                       <Route path="/account-statement" element={<AccountStatementPage />} />
+                      <Route path="/accounting/statement-v2" element={<AccountStatementV2Page />} />
                       <Route path="/reports/hr-payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPayrollReport /></RoleGuard>} />
                       <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendanceReport /></RoleGuard>} />
                       <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRLeaveReport /></RoleGuard>} />
