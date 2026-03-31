@@ -314,6 +314,75 @@ const AccountStatementV2Page = () => {
 
   const selectEntity = (id: string) => setSelectedEntityId(id);
 
+  // ─── PDF PREVIEW ───
+  const handlePreviewPDF = useCallback(() => {
+    if (!selectedEntityId || rows.length === 0) return;
+    setShowPdfModal(true);
+  }, [selectedEntityId, rows]);
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (!selectedEntityId || filteredRows.length === 0) return;
+    setPdfGenerating(true);
+    try {
+      const entityType = isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد";
+      const entityPhone = isAccountsTab ? undefined : isEmployeesTab ? selectedEmployee?.phone || undefined : selectedContact?.phone || undefined;
+      const entityCode = isAccountsTab ? selectedAccount?.account_code : isEmployeesTab ? selectedEmployee?.account_code || undefined : selectedContact?.linked_account_code || undefined;
+
+      const doc = generateStatementPDF(
+        {
+          entityName: selectedEntityName,
+          entityType,
+          entityPhone,
+          entityCode,
+          dateFrom,
+          dateTo,
+          statementNumber: `SOA-${Date.now()}`,
+          currency: statementCurrency,
+          openingBalance,
+          closingBalance,
+          totalDebit,
+          totalCredit,
+          rows: filteredRows.map(r => ({
+            date: r.date,
+            description: r.description,
+            reference: r.reference,
+            debit: r.debit,
+            credit: r.credit,
+            balance: r.balance,
+          })),
+          agingData,
+        },
+        {
+          name: companyInfo.name,
+          phone: companyInfo.phone,
+          email: companyInfo.email,
+          address: companyInfo.address,
+          tax_number: companyInfo.tax_number,
+          logo_url: companyInfo.logo_url,
+        }
+      );
+
+      doc.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
+      toast({ title: "تم تحميل PDF بنجاح ✓" });
+    } catch (err) {
+      console.error("PDF download error:", err);
+      toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
+    } finally {
+      setPdfGenerating(false);
+    }
+  }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, toast]);
+
+  const handlePrintStatement = useCallback(() => {
+    const printContent = document.getElementById("statement-preview-doc");
+    if (!printContent) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`<html dir="rtl"><head><title>كشف حساب - ${selectedEntityName}</title><style>@media print { @page { size: A4; margin: 10mm; } body { font-family: Arial, sans-serif; } }</style></head><body>${printContent.innerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  }, [selectedEntityName]);
+
   // Balance color helper
   const balColor = (val: number) => {
     if (val === 0) return "#6B7280";
