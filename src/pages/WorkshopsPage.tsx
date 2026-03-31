@@ -1401,63 +1401,61 @@ export default function WorkshopsPage() {
               )}
             </div>
 
-            {/* LEFT COLUMN — 40% — Workshop Summary (sticky) */}
-            <div className="lg:col-span-2">
-              <div className="lg:sticky lg:top-24 space-y-4">
-                <div className="rounded-xl border border-border p-6 space-y-4" style={{ background: "#F8FAFC" }}>
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+            {/* LEFT COLUMN — 25% — Workshop Summary (sticky) */}
+            <div className="lg:col-span-1" style={{ maxWidth: 260 }}>
+              <div className="lg:sticky lg:top-24">
+                <div className="rounded-xl border border-border p-4 space-y-3" style={{ background: "#F8FAFC" }}>
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                       🏠 {selectedWorkshop.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
                       👤 {selectedWorkshop.customer_name || "بدون زبون"}
                     </p>
                   </div>
 
-                  <div className="border-t border-border pt-3 space-y-3">
-                    <div className="flex justify-between text-sm">
+                  <div className="border-t border-border pt-2 space-y-2">
+                    <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">الميزانية</span>
-                      <span className="font-bold">{(selectedWorkshop.total_budget || 0).toLocaleString()} ₪</span>
+                      <span className="font-bold text-sm">{(selectedWorkshop.total_budget || 0).toLocaleString()} ₪</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">المدفوع سابقاً</span>
-                      <span className="font-bold" style={{ color: "#2563EB" }}>{totalPaid.toLocaleString()} ₪</span>
+                      <span className="font-bold text-sm" style={{ color: "#2563EB" }}>{totalPaid.toLocaleString()} ₪</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">المتبقي</span>
-                      <span className="font-bold" style={{ color: remaining < 0 ? "#DC2626" : "#16A34A" }}>{remaining.toLocaleString()} ₪</span>
+                      <span className="font-bold text-sm" style={{ color: remaining < 0 ? "#DC2626" : "#16A34A" }}>{remaining.toLocaleString()} ₪</span>
                     </div>
                   </div>
 
                   {paymentForm.amount > 0 && (
                     <>
-                      <div className="border-t border-border pt-3 space-y-2">
-                        <div className="flex justify-between text-sm">
+                      <div className="border-t border-border pt-2 space-y-1.5">
+                        <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">هذه الدفعة</span>
-                          <span className="font-bold text-foreground">{paymentForm.amount.toLocaleString()} ₪</span>
+                          <span className="font-bold text-sm text-foreground">{paymentForm.amount.toLocaleString()} ₪</span>
                         </div>
                       </div>
-                      <div className="border-t border-dashed border-border pt-3">
-                        <div className="flex justify-between text-sm">
+                      <div className="border-t border-dashed border-border pt-2">
+                        <div className="flex justify-between text-xs">
                           <span className="font-bold text-foreground">بعد هذه الدفعة</span>
-                          <span className="font-bold text-lg" style={{ color: afterPayment < 0 ? "#DC2626" : "#16A34A" }}>
+                          <span className="font-bold text-base" style={{ color: afterPayment < 0 ? "#DC2626" : "#16A34A" }}>
                             {afterPayment.toLocaleString()} ₪
                           </span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-1">المتبقي على العميل</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">المتبقي على العميل</p>
                       </div>
                     </>
                   )}
-                </div>
 
-                {/* Payment method info */}
-                {paymentForm.payment_method === "شيك" && chequeRows.length > 0 && (
-                  <div className="rounded-xl border border-border p-5 space-y-2" style={{ background: "#F8FAFC" }}>
-                    <h4 className="text-xs font-bold text-muted-foreground">ملخص الشيكات</h4>
-                    <p className="text-sm"><span className="text-muted-foreground">عدد الشيكات:</span> <strong>{chequeRows.length}</strong></p>
-                    <p className="text-sm"><span className="text-muted-foreground">المجموع:</span> <strong className={chequeMismatch ? "text-destructive" : ""}>{chequeTotal.toLocaleString()} ₪</strong></p>
-                  </div>
-                )}
+                  {/* Inline cheque summary */}
+                  {paymentForm.payment_method === "شيك" && chequeRows.length > 0 && (
+                    <div className="border-t border-border pt-2">
+                      <p className="text-[11px] text-muted-foreground font-bold">ملخص الشيكات: <span className="text-foreground">{chequeRows.length} شيكات</span> | <span className={chequeMismatch ? "text-destructive" : "text-foreground"}>{chequeTotal.toLocaleString()} ₪</span></p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
