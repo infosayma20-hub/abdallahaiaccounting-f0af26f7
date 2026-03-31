@@ -732,7 +732,9 @@ export default function WorkshopsPage() {
                       <span className="text-border">|</span>
                       {selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
                         const wt = WORKSHOP_TYPES.find(x => x.value === t);
-                        return wt ? <span key={t} className="flex items-center gap-1"><wt.Icon className="h-3.5 w-3.5" /> {wt.label}</span> : null;
+                        if (wt) return <span key={t} className="flex items-center gap-1"><wt.Icon className="h-3.5 w-3.5" /> {wt.label}</span>;
+                        const ct = customWsTypes.find(c => `custom_${c.id}` === t);
+                        return ct ? <span key={t} className="flex items-center gap-1">{ct.icon} {ct.name}</span> : null;
                       })}
                     </>
                   )}
