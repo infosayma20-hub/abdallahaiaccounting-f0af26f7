@@ -240,7 +240,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
                 <select
                   value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
                   style={{
