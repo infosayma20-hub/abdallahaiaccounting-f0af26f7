@@ -384,7 +384,7 @@ const App = () => (
                       <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="/workshops" element={<WorkshopsPage />} />
                       <Route path="/workshop-reports" element={<WorkshopReportsPage />} />
-                      <Route path="/tasks" element={<TaskLoginPage />} />
+                      <Route path="/tasks" element={<TaskBoardPage />} />
                       <Route path="/tasks/board" element={<TaskBoardPage />} />
                       <Route path="/tasks/admin" element={<TaskAdminPage />} />
                       <Route path="/tasks/display" element={<TaskDisplayPage />} />
