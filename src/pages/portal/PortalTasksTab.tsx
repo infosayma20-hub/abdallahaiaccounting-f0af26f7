@@ -60,12 +60,11 @@ export default function PortalTasksTab({ theme }: Props) {
       setLinkedUserId(ownerId);
       if (settings?.company_name) setAdminName(settings.company_name);
 
-      // Fetch portal-created tasks for this owner
+      // Fetch ALL tasks for this owner (both portal-created and employee-created)
       const { data: tasksData } = await supabase
         .from('tasks')
         .select('*')
         .eq('user_id', ownerId)
-        .eq('created_by_portal', true)
         .order('created_at', { ascending: false });
 
       // Fetch task_users for this owner (employees in task system)
@@ -355,6 +354,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>#</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>عنوان المهمة</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الموظف</th>
+                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>المصدر</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الأولوية</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الحالة</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الاستحقاق</th>
@@ -371,6 +371,15 @@ export default function PortalTasksTab({ theme }: Props) {
                     <td style={{ padding: '10px 12px', color: t.textMuted }}>{i + 1}</td>
                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>{task.title}</td>
                     <td style={{ padding: '10px 12px' }}>{getEmployeeName(task.assigned_to)}</td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12,
+                        background: task.created_by_portal ? `${PRIMARY}15` : `${ACCENT}15`,
+                        color: task.created_by_portal ? PRIMARY : ACCENT,
+                      }}>
+                        {task.created_by_portal ? '👑 المدير' : '👤 موظف'}
+                      </span>
+                    </td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
