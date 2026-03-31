@@ -38,24 +38,41 @@ export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: 
   const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
   if (!txns?.length) { setData([]); return; }
 
-  // Calculate opening cash balance
-  const { data: openTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%");
+  // Calculate opening cash balance (cash = 111x, bank = 112x)
+  const { data: openTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%,debit_account_code.like.112%,credit_account_code.like.112%");
   let openingCash = 0;
   (openTxns || []).forEach(tx => {
-    if ((tx.debit_account_code || "").startsWith("111")) openingCash += tx.amount;
-    if ((tx.credit_account_code || "").startsWith("111")) openingCash -= tx.amount;
+    const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+    if (dc.startsWith("111") || dc.startsWith("112")) openingCash += tx.amount;
+    if (cc.startsWith("111") || cc.startsWith("112")) openingCash -= tx.amount;
   });
 
   let operating = 0, investing = 0, financing = 0;
   txns.forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
-    if (dc.startsWith("4") || cc.startsWith("4") || dc.startsWith("5") || cc.startsWith("5") || dc.startsWith("6") || cc.startsWith("6")) {
-      if (cc.startsWith("4")) operating += tx.amount; else if (dc.startsWith("5") || dc.startsWith("6")) operating -= tx.amount; else operating += tx.amount;
-    } else if (dc.startsWith("15") || cc.startsWith("15") || dc.startsWith("12") || cc.startsWith("12")) {
-      if (dc.startsWith("15") || dc.startsWith("12")) investing -= tx.amount; else investing += tx.amount;
-    } else if (dc.startsWith("3") || cc.startsWith("3") || dc.startsWith("22") || cc.startsWith("22")) {
-      if (cc.startsWith("3") || cc.startsWith("22")) financing += tx.amount; else financing -= tx.amount;
-    }
+    // Operating: revenue (4xxx), COGS (5xxx), expenses (6xxx), receivables (12xx), payables (21xx)
+    const isOpDc = dc.startsWith("4") || dc.startsWith("5") || dc.startsWith("6") || dc.startsWith("12") || dc.startsWith("21");
+    const isOpCc = cc.startsWith("4") || cc.startsWith("5") || cc.startsWith("6") || cc.startsWith("12") || cc.startsWith("21");
+    // Investing: fixed assets (15xx), long-term investments
+    const isInvDc = dc.startsWith("15");
+    const isInvCc = cc.startsWith("15");
+    // Financing: equity (3xxx), long-term liabilities (22xx)
+    const isFinDc = dc.startsWith("3") || dc.startsWith("22");
+    const isFinCc = cc.startsWith("3") || cc.startsWith("22");
+
+    // Only count transactions that touch cash/bank accounts
+    const touchesCashDc = dc.startsWith("111") || dc.startsWith("112");
+    const touchesCashCc = cc.startsWith("111") || cc.startsWith("112");
+    if (!touchesCashDc && !touchesCashCc) return;
+
+    const cashIn = touchesCashDc ? tx.amount : 0;
+    const cashOut = touchesCashCc ? tx.amount : 0;
+    const netCash = cashIn - cashOut;
+
+    if (isOpDc || isOpCc) operating += netCash;
+    else if (isInvDc || isInvCc) investing += netCash;
+    else if (isFinDc || isFinCc) financing += netCash;
+    else operating += netCash; // default to operating
   });
   const netChange = operating + investing + financing;
   setData([
