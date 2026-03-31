@@ -141,7 +141,7 @@ export default function AdvancedEntitySearch({
           key: "customers", label: "الزبائن", emoji: "👤",
           items: custs.slice(0, 15).map(c => ({
             id: c.id, name: c.contact_name, code: c.linked_account_code || "",
-            balance: contactBalances[c.id] || 0, tab: "customers" as EntityTab,
+            balance: contactBalances[c.id] || 0, txCount: contactTxCounts[c.id] || 0, tab: "customers" as EntityTab,
           })),
         });
       }
