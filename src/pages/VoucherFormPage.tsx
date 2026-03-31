@@ -1382,7 +1382,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
               <div>
                 <Label className="text-xs mb-1.5 block">نوع العملية</Label>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
                   {EMP_TRANSACTION_CATEGORIES.map(cat => (
                     <button key={cat.value} onClick={() => setEmpCategory(cat.value)}
                       className={`flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] transition-all border ${empCategory === cat.value ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
