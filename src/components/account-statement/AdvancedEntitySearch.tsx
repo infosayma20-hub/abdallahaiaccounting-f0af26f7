@@ -54,14 +54,21 @@ interface Props {
   loading: boolean;
 }
 
-const fmtBal = (n: number) => {
-  if (n === 0) return "✓ مسدّد";
+const fmtBal = (n: number, txCount: number) => {
+  if (n === 0) {
+    return txCount > 0 ? "✓ مسدّد" : "لا توجد حركات";
+  }
   const symbol = "₪";
   return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
+const balColor = (n: number, txCount: number) => {
+  if (n === 0) return txCount > 0 ? "text-emerald-600" : "text-muted-foreground";
+  return n > 0 ? "text-red-600" : "text-emerald-600";
+};
+
 const balLabel = (n: number) => {
-  if (n === 0) return "مسدّد";
+  if (n === 0) return "";
   return n > 0 ? "مدين" : "دائن";
 };
 
