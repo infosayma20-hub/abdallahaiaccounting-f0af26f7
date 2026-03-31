@@ -414,8 +414,9 @@ export async function loadDepreciationSchedule(uid: string, setData: SetData) {
 }
 
 export async function loadFullyDepreciated(uid: string, setData: SetData) {
-  const { data: assets } = await supabase.from("assets").select("*").eq("user_id", uid).lte("net_book_value", 0);
-  setData(assets || []);
+  const { data: assets } = await supabase.from("assets").select("*").eq("user_id", uid);
+  // Filter assets where NBV is 0 or null (fully depreciated) but still active
+  setData((assets || []).filter(a => (a.net_book_value === 0 || a.net_book_value === null) && a.status !== "disposed"));
 }
 
 export async function loadAssetDisposal(uid: string, setData: SetData) {
