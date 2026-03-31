@@ -409,6 +409,7 @@ const AccountStatementPage = () => {
   const [showMobileEntitySheet, setShowMobileEntitySheet] = useState(false);
   const [statementToolbarHeight, setStatementToolbarHeight] = useState(0);
   const [summaryCardsHeight, setSummaryCardsHeight] = useState(0);
+  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [fixedChromeFrame, setFixedChromeFrame] = useState({ top: 0, left: 0, right: 0 });
 
   useEffect(() => {
@@ -479,7 +480,6 @@ const AccountStatementPage = () => {
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
-  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [entitySearch, setEntitySearch] = useState("");
   const [txSearch, setTxSearch] = useState("");
   const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
@@ -2871,11 +2871,8 @@ const AccountStatementPage = () => {
           </div>
         </div>
       )}
-            </div>
-          </div>
-        </div>
-      </div>
 
+      </div>
     </div>
   );
 };
