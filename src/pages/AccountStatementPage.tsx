@@ -2250,8 +2250,8 @@ const AccountStatementPage = () => {
                                   {isColVisible("paymentMethod") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">الدفع</th>}
                                   {isColVisible("currency") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">العملة</th>}
                                   {isColVisible("contactCode") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">كود الجهة</th>}
-                                  {isColVisible("debit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-red-300">مدين (عليه)</th>}
-                                  {isColVisible("credit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-emerald-300">دائن (له)</th>}
+                                  {isColVisible("debit") && <th className={cn("text-left px-3 py-3 text-[11px] font-bold", isDebitNature ? "text-emerald-300" : "text-red-300")}>مدين (عليه)</th>}
+                                  {isColVisible("credit") && <th className={cn("text-left px-3 py-3 text-[11px] font-bold", isDebitNature ? "text-red-300" : "text-emerald-300")}>دائن (له)</th>}
                                   {isColVisible("balance") && <th className="text-left px-3 py-3 text-[11px] font-bold text-white">الرصيد</th>}
                                 </tr>
                               </thead>
