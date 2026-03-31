@@ -46,6 +46,8 @@ interface BankAccount {
   name: string;
   bank_name: string;
   gl_account_code: string | null;
+  incoming_checks_account_code?: string | null;
+  outgoing_checks_account_code?: string | null;
   currency?: string | null;
 }
 
