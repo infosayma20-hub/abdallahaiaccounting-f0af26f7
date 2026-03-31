@@ -480,7 +480,6 @@ const AccountStatementPage = () => {
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
-  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [entitySearch, setEntitySearch] = useState("");
   const [txSearch, setTxSearch] = useState("");
   const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
