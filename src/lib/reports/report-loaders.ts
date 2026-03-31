@@ -212,17 +212,36 @@ export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: s
   let revenue = 0, cogs = 0, expenses = 0;
   (txns || []).forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+    // Revenue: credit to 4xxx accounts
     if (cc.startsWith("4")) revenue += tx.amount;
+    // COGS: debit to 51xx accounts
     if (dc.startsWith("51")) cogs += tx.amount;
-    if (dc.startsWith("5") && !dc.startsWith("51")) expenses += tx.amount;
+    // Expenses: debit to 5xxx (non-COGS) and 6xxx accounts
+    if ((dc.startsWith("5") && !dc.startsWith("51")) || dc.startsWith("6")) expenses += tx.amount;
   });
   const grossMargin = revenue > 0 ? ((revenue - cogs) / revenue * 100) : 0;
   const netMargin = revenue > 0 ? ((revenue - cogs - expenses) / revenue * 100) : 0;
+
+  // Current ratio: current assets / current liabilities
+  const { data: allTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false);
+  let currentAssets = 0, currentLiabilities = 0;
+  (allTxns || []).forEach(tx => {
+    const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+    // Current assets: 1xxx (excl fixed 15xx)
+    if (dc.startsWith("1") && !dc.startsWith("15")) currentAssets += tx.amount;
+    if (cc.startsWith("1") && !cc.startsWith("15")) currentAssets -= tx.amount;
+    // Current liabilities: 21xx
+    if (cc.startsWith("21")) currentLiabilities += tx.amount;
+    if (dc.startsWith("21")) currentLiabilities -= tx.amount;
+  });
+  const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) : 0;
+
   setData([
     { label: "إجمالي الإيرادات", value: fmtAmt(revenue), color: "#059669" },
     { label: "هامش الربح الإجمالي", value: `${grossMargin.toFixed(1)}%`, color: grossMargin >= 30 ? "#059669" : grossMargin >= 15 ? "#4A9EE8" : "#DC2626" },
     { label: "هامش الربح الصافي", value: `${netMargin.toFixed(1)}%`, color: netMargin >= 10 ? "#059669" : netMargin >= 5 ? "#4A9EE8" : "#DC2626" },
     { label: "صافي الربح", value: fmtAmt(revenue - cogs - expenses), color: revenue - cogs - expenses >= 0 ? "#059669" : "#DC2626" },
+    { label: "نسبة التداول", value: currentRatio.toFixed(2), color: currentRatio >= 1.5 ? "#059669" : currentRatio >= 1 ? "#4A9EE8" : "#DC2626" },
     { label: "تكلفة المبيعات", value: fmtAmt(cogs), color: "#6366F1" },
     { label: "المصروفات التشغيلية", value: fmtAmt(expenses), color: "#DC2626" },
   ]);
