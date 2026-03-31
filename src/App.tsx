@@ -142,6 +142,7 @@ const TravelBookingDetailPage = lazy(() => import("./pages/travel/TravelBookingD
 const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPrintPage"));
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
+const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 
 const queryClient = new QueryClient();
 
