@@ -106,7 +106,7 @@ export default function PortalTasksTab({ theme }: Props) {
   }, [linkedUserId, fetchData]);
 
   const handleSubmit = async () => {
-    if (!title.trim() || !assignedTo || !linkedUserId) return;
+    if (!title.trim() || !linkedUserId) return;
     setSubmitting(true);
     try {
       const { error } = await supabase.from('tasks').insert({
