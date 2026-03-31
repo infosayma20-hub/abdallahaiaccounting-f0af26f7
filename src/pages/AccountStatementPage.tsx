@@ -2776,14 +2776,19 @@ const AccountStatementPage = () => {
 
 // ─── SUB-COMPONENTS ───
 
-function BalanceCell({ value, bold, currency }: { value: number; bold?: boolean; currency?: string }) {
+function BalanceCell({ value, bold, currency, isDebitNature = true }: { value: number; bold?: boolean; currency?: string; isDebitNature?: boolean }) {
+  // For debit-nature accounts: positive balance (debit) = normal (green), negative (credit) = abnormal (red)
+  // For credit-nature accounts: negative balance (credit) = normal (green), positive (debit) = abnormal (red)
+  const getColor = () => {
+    if (value === 0) return "text-muted-foreground";
+    const isNormalSide = value > 0 ? isDebitNature : !isDebitNature;
+    return isNormalSide ? "text-emerald-600 bg-emerald-500/10" : "text-red-600 bg-red-500/10";
+  };
   return (
     <span className={cn(
       "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs tabular-nums",
       bold ? "font-bold text-sm" : "font-semibold",
-      value > 0 ? "text-red-600 bg-red-500/10" :
-      value < 0 ? "text-emerald-600 bg-emerald-500/10" :
-      "text-muted-foreground"
+      getColor()
     )}>
       {fmtAmount(value, currency)}
       <span className="text-[9px] font-normal opacity-70">{value > 0 ? "م" : value < 0 ? "د" : ""}</span>
