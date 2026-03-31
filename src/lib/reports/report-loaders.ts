@@ -155,7 +155,7 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
 }
 
 export async function loadSalesReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.return,description.ilike.%مرتجع%").order("transaction_date", { ascending: false });
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.return,transaction_type.eq.sales_return,transaction_type.eq.sale_return,description.ilike.%مرتجع%,description.ilike.%مردود%").order("transaction_date", { ascending: false });
   setData(txns || []);
 }
 
