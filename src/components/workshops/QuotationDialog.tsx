@@ -178,7 +178,7 @@ const QuotationDialog = ({
       const quoteNumber = await generateQuoteNumber();
       const { error } = await supabase.from("quotations").insert({
         user_id: userId,
-        workshop_id: workshopId,
+        workshop_id: workshopId || null,
         quote_number: quoteNumber,
         client_name: clientNameField,
         client_address: clientAddress,
