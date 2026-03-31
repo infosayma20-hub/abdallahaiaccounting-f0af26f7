@@ -96,17 +96,21 @@ export async function loadCustomerStatementAll(uid: string, dateFrom: string, da
 export async function loadAPAgingDetail(uid: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("user_id", uid).eq("contact_type", "مورد").gt("current_balance", 0);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_credit", "purchase_cash", "purchase_bank"]);
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_credit", "purchase_cash", "purchase_bank"]).order("transaction_date", { ascending: true });
   const today = new Date();
   setData(contacts.map(c => {
     const cTxns = (txns || []).filter(t => t.contact_id === c.id);
-    const oldest = cTxns.length > 0 ? new Date(cTxns[cTxns.length - 1].transaction_date) : today;
+    const oldest = cTxns.length > 0 ? new Date(cTxns[0].transaction_date) : today;
     const days = differenceInDays(today, oldest);
     const bal = c.current_balance || 0;
+    const priority = days > 90 ? "🔴 حرج" : days > 60 ? "🟠 مرتفع" : days > 30 ? "🟡 متوسط" : "🟢 مريح";
     return {
       name: c.contact_name, total: bal,
-      current: bal, d31_60: 0, d61_90: 0, over90: 0,
-      priority: "🟢 مريح",
+      current: days <= 30 ? bal : 0,
+      d31_60: days > 30 && days <= 60 ? bal : 0,
+      d61_90: days > 60 && days <= 90 ? bal : 0,
+      over90: days > 90 ? bal : 0,
+      priority,
     };
   }).sort((a, b) => b.total - a.total));
 }
