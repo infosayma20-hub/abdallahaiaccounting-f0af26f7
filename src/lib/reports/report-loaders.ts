@@ -452,10 +452,14 @@ export async function loadCurrencyConversions(uid: string, dateFrom: string, dat
 }
 
 export async function loadExchangeGainLoss(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("debit_account_code.eq.7110,credit_account_code.eq.7110,debit_account_code.eq.5110,credit_account_code.eq.5110").order("transaction_date", { ascending: false });
-  setData((txns || []).map(tx => ({
-    ...tx, type: (tx.credit_account_code || "").startsWith("7") ? "ربح" : "خسارة",
-  })));
+  // Forex gains (7xxx) and forex losses (69xx or description-based)
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("debit_account_code.like.71%,credit_account_code.like.71%,debit_account_code.like.69%,credit_account_code.like.69%,transaction_type.eq.currency_exchange,description.ilike.%فروق عملة%,description.ilike.%فروقات صرف%").order("transaction_date", { ascending: false });
+  setData((txns || []).map(tx => {
+    const cc = tx.credit_account_code || "";
+    const dc = tx.debit_account_code || "";
+    const isGain = cc.startsWith("71") || dc.startsWith("69"); // credit to income = gain
+    return { ...tx, type: isGain ? "ربح" : "خسارة" };
+  }));
 }
 
 export async function loadAllOrders(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
