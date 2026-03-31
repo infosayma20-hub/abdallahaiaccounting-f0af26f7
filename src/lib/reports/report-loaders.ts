@@ -56,15 +56,19 @@ export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: 
   ]);
 }
 
-export async function loadAccountMovement(uid: string, accountCode: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: openTxns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`);
+export async function loadAccountMovement(uid: string, accountCodePrefix: string, dateFrom: string, dateTo: string, setData: SetData) {
+  // Use like filter to capture sub-accounts (e.g. 1110 captures 1111, 1112...)
+  const { data: openTxns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`);
   let openBal = 0;
-  (openTxns || []).forEach(tx => { if (tx.debit_account_code === accountCode) openBal += tx.amount; if (tx.credit_account_code === accountCode) openBal -= tx.amount; });
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`).order("transaction_date", { ascending: true });
+  (openTxns || []).forEach(tx => {
+    if ((tx.debit_account_code || "").startsWith(accountCodePrefix)) openBal += tx.amount;
+    if ((tx.credit_account_code || "").startsWith(accountCodePrefix)) openBal -= tx.amount;
+  });
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.like.${accountCodePrefix}%,credit_account_code.like.${accountCodePrefix}%`).order("transaction_date", { ascending: true });
   let running = openBal;
   const rows = (txns || []).map(tx => {
-    const inflow = tx.debit_account_code === accountCode ? tx.amount : 0;
-    const outflow = tx.credit_account_code === accountCode ? tx.amount : 0;
+    const inflow = (tx.debit_account_code || "").startsWith(accountCodePrefix) ? tx.amount : 0;
+    const outflow = (tx.credit_account_code || "").startsWith(accountCodePrefix) ? tx.amount : 0;
     running += inflow - outflow;
     return { date: tx.transaction_date, description: tx.description, inflow, outflow, balance: running, ref: tx.reference };
   });
