@@ -1819,6 +1819,9 @@ const AccountStatementPage = () => {
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
             </Button>
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => navigate("/accounting/statement-v2" + window.location.search)}>
+              ⚡ جرب النسخة الجديدة
+            </Button>
           </div>
         </div>
       </div>
