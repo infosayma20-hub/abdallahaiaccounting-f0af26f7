@@ -1259,6 +1259,28 @@ export default function WorkshopsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Cash Box Selector — for cash and bank methods */}
+                {paymentForm.payment_method !== "شيك" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold">الصندوق</Label>
+                    <select
+                      value={paymentForm.cash_box_id || ""}
+                      onChange={e => setPaymentForm(f => ({ ...f, cash_box_id: e.target.value || null }))}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
+                    >
+                      <option value="">الصندوق الافتراضي ({paymentForm.payment_method === "بنك" ? "1120" : "1110"})</option>
+                      {cashBoxes
+                        .filter(b => paymentForm.payment_method === "بنك" ? b.type === "بنكية" : b.type !== "بنكية")
+                        .map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} {b.gl_account_code ? `(${b.gl_account_code})` : ""} {b.currency && b.currency !== "ILS" ? `— ${b.currency}` : ""}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Cheque Section */}
