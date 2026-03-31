@@ -27,6 +27,8 @@ import { motion } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import { generateWorkshopContractPDF, ContractData, ContractCompanyData } from "@/utils/generateWorkshopContractPDF";
 import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
+import QuotationDialog, { QuotationData } from "@/components/workshops/QuotationDialog";
+import QuotationPreview from "@/components/workshops/QuotationPreview";
 import WorkshopCostModal, { COST_CATEGORIES, PHASES, CATEGORY_GL_MAP, PAYMENT_CREDIT_MAP as NEW_PAYMENT_CREDIT } from "@/components/workshops/WorkshopCostModal";
 import WorkshopCostReport from "@/components/workshops/WorkshopCostReport";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
