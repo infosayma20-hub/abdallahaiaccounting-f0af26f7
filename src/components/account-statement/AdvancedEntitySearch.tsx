@@ -82,6 +82,7 @@ const TABS: { key: EntityTab; label: string; icon: any; emoji: string }[] = [
 export default function AdvancedEntitySearch({
   allContacts, allAccounts, allEmployees,
   accountBalances, contactBalances, employeeBalances,
+  accountTxCounts = {}, contactTxCounts = {}, employeeTxCounts = {},
   selectedEntityId, activeTab, onSelect, onClear, onTabFilter, loading,
 }: Props) {
   const [search, setSearch] = useState("");
