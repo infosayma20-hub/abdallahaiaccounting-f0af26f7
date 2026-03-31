@@ -128,13 +128,21 @@ export async function loadAPAgingDetail(uid: string, setData: SetData) {
 export async function loadDPOReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
   setData(contacts.map(c => {
-    const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
-    const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("payment"));
+    const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type === "payment").sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
     const totalPurchases = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+    // Match each purchase to next available payment chronologically
     const payDays: number[] = [];
-    purchases.forEach((p, i) => { if (payments[i]) payDays.push(differenceInDays(new Date(payments[i].transaction_date), new Date(p.transaction_date))); });
+    let payIdx = 0;
+    purchases.forEach(p => {
+      while (payIdx < payments.length && payments[payIdx].transaction_date < p.transaction_date) payIdx++;
+      if (payIdx < payments.length) {
+        payDays.push(differenceInDays(new Date(payments[payIdx].transaction_date), new Date(p.transaction_date)));
+        payIdx++;
+      }
+    });
     const avgDays = payDays.length > 0 ? Math.round(payDays.reduce((a, b) => a + b, 0) / payDays.length) : 0;
     const compliance = purchases.length > 0 ? Math.round((payments.length / purchases.length) * 100) : 0;
     return { name: c.contact_name, totalPurchases, avgDays, compliance, invCount: purchases.length };
