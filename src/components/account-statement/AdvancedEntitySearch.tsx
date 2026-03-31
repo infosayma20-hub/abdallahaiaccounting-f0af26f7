@@ -169,7 +169,7 @@ export default function AdvancedEntitySearch({
           key: "employees", label: "الموظفين", emoji: "👨‍💼",
           items: emps.slice(0, 10).map(e => ({
             id: e.id, name: e.full_name, code: e.account_code || "",
-            balance: employeeBalances[e.id] || 0, tab: "employees" as EntityTab,
+            balance: employeeBalances[e.id] || 0, txCount: employeeTxCounts[e.id] || 0, tab: "employees" as EntityTab,
           })),
         });
       }
