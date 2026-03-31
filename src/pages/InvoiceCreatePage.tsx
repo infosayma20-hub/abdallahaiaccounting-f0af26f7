@@ -5,8 +5,9 @@ import {
   Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip,
-  Upload, X, ExternalLink, FileCheck, ChevronUp
+  Upload, X, ExternalLink, FileCheck, ChevronUp, TriangleAlert
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import PageHeader from "@/components/layout/PageHeader";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -1270,7 +1271,34 @@ const InvoiceCreatePage = () => {
                 </div>
 
                 {/* Price */}
-                <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                <div className="relative">
+                  {(() => {
+                    const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+                    const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
+                    const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
+                    const diff = item.unitPrice - storedPrice;
+                    const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
+                    return (
+                      <>
+                        <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
+                        {showWarning && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-help">
+                                <TriangleAlert className="h-3.5 w-3.5 text-amber-500" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] rounded-lg shadow-md p-2.5 max-w-[220px] space-y-0.5" dir="rtl">
+                              <p className="font-semibold">⚠️ السعر أعلى من سعر الشراء المعتاد</p>
+                              <p>سعر الشراء المثبت: {fmtCurrency(storedPrice)}</p>
+                              <p>الفرق: {fmtCurrency(diff)} ({pct}% أعلى)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
 
                 {/* Discount */}
                 <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
@@ -1314,6 +1342,18 @@ const InvoiceCreatePage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Price warning summary */}
+      {form.type === "purchase" && form.items.some(item => {
+        const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+        const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
+        return storedPrice > 0 && item.unitPrice > storedPrice;
+      }) && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border-r-4 border-amber-400 text-amber-800 text-sm" dir="rtl">
+          <TriangleAlert className="h-4 w-4 flex-shrink-0" />
+          <span>تنبيه: بعض الأسعار أعلى من أسعار الشراء المثبتة — يرجى المراجعة قبل إنشاء الفاتورة</span>
+        </div>
+      )}
 
       {/* ─── SECTION 3: Summary ─── */}
       <Card className="border-0 shadow-sm rounded-2xl">
