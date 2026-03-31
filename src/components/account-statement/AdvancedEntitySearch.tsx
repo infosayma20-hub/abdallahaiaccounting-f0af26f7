@@ -176,7 +176,7 @@ export default function AdvancedEntitySearch({
     }
 
     return groups;
-  }, [search, open, activeTab, allAccounts, allContacts, allEmployees, accountBalances, contactBalances, employeeBalances]);
+  }, [search, open, activeTab, allAccounts, allContacts, allEmployees, accountBalances, contactBalances, employeeBalances, accountTxCounts, contactTxCounts, employeeTxCounts]);
 
   const flatResults = useMemo(() => groupedResults.flatMap(g => g.items), [groupedResults]);
 
