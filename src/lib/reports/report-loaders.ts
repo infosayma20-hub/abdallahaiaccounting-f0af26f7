@@ -253,7 +253,13 @@ export async function loadMonthComparison(uid: string, setData: SetData) {
   const { data: txns } = await supabase.from("transactions").select("transaction_date, debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", months[0].from).lte("transaction_date", months[5].to);
   setData(months.map(m => {
     let rev = 0, exp = 0;
-    (txns || []).forEach(tx => { if (tx.transaction_date >= m.from && tx.transaction_date <= m.to) { if ((tx.credit_account_code || "").startsWith("4")) rev += tx.amount; if ((tx.debit_account_code || "").startsWith("5")) exp += tx.amount; } });
+    (txns || []).forEach(tx => {
+      if (tx.transaction_date >= m.from && tx.transaction_date <= m.to) {
+        const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
+        if (cc.startsWith("4")) rev += tx.amount;
+        if (dc.startsWith("5") || dc.startsWith("6")) exp += tx.amount;
+      }
+    });
     return { month: m.label, revenue: rev, expenses: exp, profit: rev - exp };
   }));
 }
