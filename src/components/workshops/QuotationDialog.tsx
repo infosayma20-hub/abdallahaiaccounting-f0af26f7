@@ -86,12 +86,15 @@ const QuotationDialog = ({
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
-    const { data } = await supabase
+    let query = supabase
       .from("quotations")
       .select("*")
       .eq("user_id", userId)
-      .eq("workshop_id", workshopId)
       .order("created_at", { ascending: false });
+    if (workshopId) {
+      query = query.eq("workshop_id", workshopId);
+    }
+    const { data } = await query;
     if (data) {
       setHistory(data.map((q: any) => ({
         id: q.id,
