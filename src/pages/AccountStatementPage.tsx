@@ -1711,6 +1711,9 @@ const AccountStatementPage = () => {
             accountBalances={accountBalances}
             contactBalances={contactBalances}
             employeeBalances={employeeBalances}
+            accountTxCounts={accountTxCounts}
+            contactTxCounts={contactTxCounts}
+            employeeTxCounts={employeeTxCounts}
             selectedEntityId={selectedEntityId}
             activeTab={activeTab}
             onSelect={(id, tab) => {
