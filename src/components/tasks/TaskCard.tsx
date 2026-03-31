@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Hand } from "lucide-react";
+import { CheckCircle2, Hand, Crown } from "lucide-react";
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent_important: "مهم ومستعجل",
@@ -23,11 +23,15 @@ export default function TaskCard({ task, priorityColor, currentUserId, onAssign,
   const isOverdue = task.due_date && task.due_date < today && task.status !== "done";
   const isToday = task.due_date === today;
   const isMine = task.assigned_to === currentUserId;
+  const isPortalTask = task.created_by_portal;
 
   return (
     <div
       className="rounded-lg border bg-card p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-      style={{ borderRight: `4px solid ${priorityColor}` }}
+      style={{
+        borderRight: `4px solid ${priorityColor}`,
+        borderLeft: isPortalTask ? '4px solid #1B3A5C' : undefined,
+      }}
       onClick={onClick}
     >
       {/* Badges */}
