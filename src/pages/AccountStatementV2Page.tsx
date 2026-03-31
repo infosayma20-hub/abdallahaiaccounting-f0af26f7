@@ -120,6 +120,8 @@ const AccountStatementV2Page = () => {
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [chequesOpen, setChequesOpen] = useState(false);
   const [agingOpen, setAgingOpen] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
