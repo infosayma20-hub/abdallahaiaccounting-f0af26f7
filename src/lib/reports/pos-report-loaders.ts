@@ -93,7 +93,7 @@ export async function loadPOSSalesByCategory(uid: string, dateFrom: string, date
     if (!catMap[key]) catMap[key] = { category: cat, product: l.product_name, qty: 0, revenue: 0, cost: 0 };
     catMap[key].qty += l.qty;
     catMap[key].revenue += l.total;
-    catMap[key].cost += l.cost_price * l.qty;
+    catMap[key].cost += (l.cost_price || 0) * l.qty;
   });
   const totalRevenue = Object.values(catMap).reduce((s, c) => s + c.revenue, 0);
   setData(Object.values(catMap).map(c => ({

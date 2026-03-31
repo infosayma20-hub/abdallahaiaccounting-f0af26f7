@@ -28,15 +28,24 @@ export async function loadDSOReport(uid: string, dateFrom: string, dateTo: strin
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).in("contact_type", contactTypes);
   if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: true });
   const today = new Date();
   setData(contacts.map(c => {
-    const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale")));
-    const receipts = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("receipt")));
+    const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale") || t.transaction_type === "pos_sale")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+    const receipts = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type === "receipt")).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
     const invCount = sales.length;
     const paidCount = receipts.length;
+    // Calculate days between each sale and the next receipt for that customer
     const collDays: number[] = [];
-    sales.forEach((s, i) => { if (receipts[i]) collDays.push(differenceInDays(new Date(receipts[i].transaction_date), new Date(s.transaction_date))); });
+    let receiptIdx = 0;
+    sales.forEach(s => {
+      // Find the first receipt that came after this sale
+      while (receiptIdx < receipts.length && receipts[receiptIdx].transaction_date < s.transaction_date) receiptIdx++;
+      if (receiptIdx < receipts.length) {
+        collDays.push(differenceInDays(new Date(receipts[receiptIdx].transaction_date), new Date(s.transaction_date)));
+        receiptIdx++;
+      }
+    });
     const avgDays = collDays.length > 0 ? Math.round(collDays.reduce((a, b) => a + b, 0) / collDays.length) : 0;
     const lateDays = collDays.filter(d => d > 30);
     const avgLate = lateDays.length > 0 ? Math.round(lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : 0;
