@@ -392,6 +392,7 @@ const AccountStatementPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
   // URL params
@@ -404,11 +405,34 @@ const AccountStatementPage = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1400);
   const sidebarCollapsed = windowWidth < 1280;
   const [showMobileEntitySheet, setShowMobileEntitySheet] = useState(false);
+  const [statementToolbarHeight, setStatementToolbarHeight] = useState(0);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const node = toolbarRef.current;
+    if (!node) return;
+
+    const updateToolbarHeight = () => {
+      const nextHeight = Math.ceil(node.getBoundingClientRect().height);
+      setStatementToolbarHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+    };
+
+    updateToolbarHeight();
+    const frame = window.requestAnimationFrame(updateToolbarHeight);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateToolbarHeight) : null;
+    observer?.observe(node);
+    window.addEventListener("resize", updateToolbarHeight);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener("resize", updateToolbarHeight);
+    };
   }, []);
 
   // State
@@ -1598,10 +1622,12 @@ const AccountStatementPage = () => {
   );
 
   // ─── RENDER ───
+  const stickyOffsetTop = statementToolbarHeight || 72;
+
   return (
-    <div className="min-h-screen flex flex-col" dir="rtl" style={{ background: "#F5F7FA" }}>
+    <div className="min-h-screen flex flex-col overflow-visible" dir="rtl" style={{ background: "#F5F7FA" }}>
       {/* ─── TOP BAR ─── */}
-      <div className="sticky top-0 z-50 no-print" style={{ background: "#ffffff", borderBottom: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "12px 24px" }}>
+      <div ref={toolbarRef} className="sticky top-0 z-50 no-print w-full" style={{ background: "#ffffff", borderBottom: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "12px 24px" }}>
         {/* Row 1: Nav + Actions + Date Range */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1702,7 +1728,7 @@ const AccountStatementPage = () => {
       </div>
       {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) — only when no entity selected ─── */}
       {!selectedEntityId && (
-      <div className="sticky z-40 no-print" style={{ top: 57, background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
+      <div className="sticky z-40 no-print w-full" style={{ top: stickyOffsetTop, background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
           <AdvancedEntitySearch
             entityList={entityList}
             allContacts={contacts}
@@ -1730,11 +1756,11 @@ const AccountStatementPage = () => {
       )}
 
       {/* ─── BODY: Full width main content ─── */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-visible">
 
         {/* ─── MAIN CONTENT ─── */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div ref={printRef} className="print-area flex-1">
+        <div className="flex-1 flex flex-col min-w-0 overflow-visible">
+          <div ref={printRef} className="print-area flex-1 overflow-visible">
 
             {/* Professional Print View (hidden until print/PDF) */}
             <div id="statement-print-wrapper" className="print-only">
@@ -1967,7 +1993,7 @@ const AccountStatementPage = () => {
                     </div>
 
                     {/* 4 KPI Cards — redesigned with colored left border */}
-                    <div className="sticky z-30 no-print" style={{ top: 57, background: "#F5F7FA", borderBottom: "1px solid #E2E8F0", padding: "12px 20px", boxShadow: "0 2px 4px rgba(0,0,0,0.04)" }}>
+                    <div className="sticky z-30 no-print w-full" style={{ top: stickyOffsetTop, background: "#F5F7FA", borderBottom: "1px solid #E2E8F0", padding: "12px 20px", boxShadow: "0 2px 4px rgba(0,0,0,0.04)" }}>
                       <div className={cn("grid gap-4", isMobile ? "grid-cols-2" : "grid-cols-4")}>
                         {/* Opening Balance */}
                         <div className="bg-white dark:bg-card overflow-hidden" style={{ borderRadius: "10px", padding: "16px 20px", borderRight: "4px solid #94A3B8", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
