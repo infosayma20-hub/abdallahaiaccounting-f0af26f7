@@ -339,7 +339,12 @@ export default function WorkshopsPage() {
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    const debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    // Determine debit account: use cash box GL code if selected, otherwise default
+    let debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    if (!isCheque && paymentForm.cash_box_id) {
+      const selectedBox = cashBoxes.find(b => b.id === paymentForm.cash_box_id);
+      if (selectedBox?.gl_account_code) debitCode = selectedBox.gl_account_code;
+    }
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
