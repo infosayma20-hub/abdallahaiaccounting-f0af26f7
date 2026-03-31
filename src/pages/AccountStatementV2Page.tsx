@@ -3,12 +3,14 @@ import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
-  Filter,
+  Filter, Download,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { generateStatementPDF } from "@/utils/generateStatementPDF";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import StatementPrintView from "@/components/StatementPrintView";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -118,6 +120,8 @@ const AccountStatementV2Page = () => {
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [chequesOpen, setChequesOpen] = useState(false);
   const [agingOpen, setAgingOpen] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
@@ -310,6 +314,75 @@ const AccountStatementV2Page = () => {
 
   const selectEntity = (id: string) => setSelectedEntityId(id);
 
+  // ─── PDF PREVIEW ───
+  const handlePreviewPDF = useCallback(() => {
+    if (!selectedEntityId || rows.length === 0) return;
+    setShowPdfModal(true);
+  }, [selectedEntityId, rows]);
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (!selectedEntityId || filteredRows.length === 0) return;
+    setPdfGenerating(true);
+    try {
+      const entityType = isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد";
+      const entityPhone = isAccountsTab ? undefined : isEmployeesTab ? selectedEmployee?.phone || undefined : selectedContact?.phone || undefined;
+      const entityCode = isAccountsTab ? selectedAccount?.account_code : isEmployeesTab ? selectedEmployee?.account_code || undefined : selectedContact?.linked_account_code || undefined;
+
+      const doc = generateStatementPDF(
+        {
+          entityName: selectedEntityName,
+          entityType,
+          entityPhone,
+          entityCode,
+          dateFrom,
+          dateTo,
+          statementNumber: `SOA-${Date.now()}`,
+          currency: statementCurrency,
+          openingBalance,
+          closingBalance,
+          totalDebit,
+          totalCredit,
+          rows: filteredRows.map(r => ({
+            date: r.date,
+            description: r.description,
+            reference: r.reference,
+            debit: r.debit,
+            credit: r.credit,
+            balance: r.balance,
+          })),
+          agingData,
+        },
+        {
+          name: companyInfo.name,
+          phone: companyInfo.phone,
+          email: companyInfo.email,
+          address: companyInfo.address,
+          tax_number: companyInfo.tax_number,
+          logo_url: companyInfo.logo_url,
+        }
+      );
+
+      doc.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
+      toast({ title: "تم تحميل PDF بنجاح ✓" });
+    } catch (err) {
+      console.error("PDF download error:", err);
+      toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
+    } finally {
+      setPdfGenerating(false);
+    }
+  }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, toast]);
+
+  const handlePrintStatement = useCallback(() => {
+    const printContent = document.getElementById("statement-preview-doc");
+    if (!printContent) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`<html dir="rtl"><head><title>كشف حساب - ${selectedEntityName}</title><style>@media print { @page { size: A4; margin: 10mm; } body { font-family: Arial, sans-serif; } }</style></head><body>${printContent.innerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  }, [selectedEntityName]);
+
   // Balance color helper
   const balColor = (val: number) => {
     if (val === 0) return "#6B7280";
@@ -355,6 +428,13 @@ const AccountStatementV2Page = () => {
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
+            <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={!selectedEntityId || rows.length === 0 || pdfGenerating} className="h-8 gap-1.5 text-xs">
+              {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+              معاينة PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowPdfModal(true); setTimeout(handlePrintStatement, 300); }} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+              <Printer className="w-3.5 h-3.5" /> طباعة
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
             </Button>
@@ -373,9 +453,6 @@ const AccountStatementV2Page = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => navigate("/account-statement" + window.location.search)}>
-              ← النسخة الكلاسيكية
-            </Button>
           </div>
         </div>
       </div>
@@ -627,6 +704,53 @@ const AccountStatementV2Page = () => {
           </>
         )}
       </div>
+
+      {/* ─── PDF PREVIEW MODAL ─── */}
+      {showPdfModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column" }}>
+          <div style={{ background: "#1B3A5C", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }} dir="rtl">
+            <span style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
+              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle" }} />
+              معاينة كشف الحساب
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
+                {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
+              </Button>
+              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
+                <Printer className="w-3.5 h-3.5" /> طباعة
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setShowPdfModal(false)}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
+            <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+              <StatementPrintView
+                isPreview
+                company={companyInfo}
+                contact={{
+                  name: selectedEntityName,
+                  type: isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد",
+                  phone: isAccountsTab ? "" : isEmployeesTab ? selectedEmployee?.phone || "" : selectedContact?.phone || "",
+                  address: selectedContact?.address || "",
+                  email: selectedContact?.email || "",
+                }}
+                rows={filteredRows}
+                openingBalance={openingBalance}
+                closingBalance={closingBalance}
+                totalDebit={totalDebit}
+                totalCredit={totalCredit}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                contactCode={selectedEntityCode}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
