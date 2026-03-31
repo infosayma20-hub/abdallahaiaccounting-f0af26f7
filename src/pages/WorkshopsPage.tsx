@@ -763,7 +763,7 @@ export default function WorkshopsPage() {
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
                 const { data: settings } = await supabase.from("company_settings").select("company_name, phone, email, address, logo_url, tax_number").eq("user_id", user!.id).maybeSingle();
-                const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(" + ");
+                const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => { const wt = WORKSHOP_TYPES.find(x => x.value === t); if (wt) return wt.label; const ct = customWsTypes.find(c => `custom_${c.id}` === t); return ct?.name || t; }).join(" + ");
                 // Build payment schedule from actual payments
                 const contractPayments = payments.map(p => ({
                   description: (p as any).description || "دفعة",
