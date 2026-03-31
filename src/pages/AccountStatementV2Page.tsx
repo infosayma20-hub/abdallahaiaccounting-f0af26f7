@@ -428,6 +428,13 @@ const AccountStatementV2Page = () => {
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
+            <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={!selectedEntityId || rows.length === 0 || pdfGenerating} className="h-8 gap-1.5 text-xs">
+              {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+              معاينة PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowPdfModal(true); setTimeout(handlePrintStatement, 300); }} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+              <Printer className="w-3.5 h-3.5" /> طباعة
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
             </Button>
@@ -446,8 +453,6 @@ const AccountStatementV2Page = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => navigate("/account-statement" + window.location.search)}>
-              ← النسخة الكلاسيكية
             </Button>
           </div>
         </div>
