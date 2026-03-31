@@ -2332,12 +2332,12 @@ const AccountStatementPage = () => {
                                       {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
                                       {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                       {isColVisible("debit") && (
-                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
+                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? `text-[10px] ${isDebitNature ? "text-emerald-500/70" : "text-red-500/70"}` : `font-semibold ${isDebitNature ? "text-emerald-600" : "text-red-600"}`)}>
                                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                                         </td>
                                       )}
                                       {isColVisible("credit") && (
-                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
+                                        <td className={cn("px-3 py-2 text-left tabular-nums whitespace-nowrap", isSubRow ? `text-[10px] ${isDebitNature ? "text-red-500/70" : "text-emerald-500/70"}` : `font-semibold ${isDebitNature ? "text-red-600" : "text-emerald-600"}`)}>
                                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                                         </td>
                                       )}
