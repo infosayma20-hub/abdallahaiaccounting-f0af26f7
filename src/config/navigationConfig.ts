@@ -57,6 +57,11 @@ export const navigationSections: NavSection[] = [
         color: "text-purple-600", bgColor: "bg-purple-500/10", path: "/smart-accountant", isDirect: true,
         keywords: ["محاسب", "ذكاء", "تحليل", "ai"],
       },
+      {
+        id: "print-templates", label: "نماذج للطباعة", description: "أنشئ وطبع نماذج احترافية مرتبطة ببيانات شركتك", module: "print", icon: FileSpreadsheet,
+        color: "text-orange-600", bgColor: "bg-orange-500/10", path: "/print-templates", isDirect: true,
+        keywords: ["نماذج", "طباعة", "عرض سعر", "عقد", "مطالبة", "إشعار"],
+      },
     ],
   },
 
