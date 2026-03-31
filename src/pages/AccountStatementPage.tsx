@@ -2360,14 +2360,16 @@ const AccountStatementPage = () => {
                                   {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
                                   {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
-                                  {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm whitespace-nowrap">{fmtAmount(totalDebit, statementCurrency)}</td>}
-                                  {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm whitespace-nowrap">{fmtAmount(totalCredit, statementCurrency)}</td>}
+                                  {isColVisible("debit") && <td className={cn("px-3 py-3.5 text-left tabular-nums font-bold text-sm whitespace-nowrap", isDebitNature ? "text-emerald-300" : "text-red-300")}>{fmtAmount(totalDebit, statementCurrency)}</td>}
+                                  {isColVisible("credit") && <td className={cn("px-3 py-3.5 text-left tabular-nums font-bold text-sm whitespace-nowrap", isDebitNature ? "text-red-300" : "text-emerald-300")}>{fmtAmount(totalCredit, statementCurrency)}</td>}
                                   {isColVisible("balance") && (
                                     <td className="px-3 py-3.5 text-left whitespace-nowrap">
                                       <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
-                                        closingBalance > 0 ? "text-red-300 bg-red-500/20" :
-                                        closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
-                                        "text-white/70"
+                                        (() => {
+                                          if (closingBalance === 0) return "text-white/70";
+                                          const isNormalSide = closingBalance > 0 ? isDebitNature : !isDebitNature;
+                                          return isNormalSide ? "text-emerald-300 bg-emerald-500/20" : "text-red-300 bg-red-500/20";
+                                        })()
                                       )}>
                                         {fmtAmount(closingBalance, statementCurrency)}
                                       </span>
