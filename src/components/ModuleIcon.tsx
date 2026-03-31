@@ -3,7 +3,7 @@ import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
   Monitor, Puzzle, LayoutGrid, Sparkles, FileCheck, UserCog, ClipboardList, Plane,
-  Building2, Wrench,
+  Building2, Wrench, Printer,
 } from "lucide-react";
 
 interface ModuleIconProps {
