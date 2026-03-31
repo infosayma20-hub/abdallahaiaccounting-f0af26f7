@@ -46,6 +46,8 @@ interface BankAccount {
   name: string;
   bank_name: string;
   gl_account_code: string | null;
+  incoming_checks_account_code?: string | null;
+  outgoing_checks_account_code?: string | null;
   currency?: string | null;
 }
 
@@ -437,7 +439,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const load = async () => {
       const [cbRes, baRes] = await Promise.all([
         supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code, currency, incoming_checks_account_code, outgoing_checks_account_code").eq("user_id", user.id).eq("is_active", true),
       ]);
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
@@ -644,9 +646,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         if (selectedChequeBankAccount) {
           const ba = bankAccounts.find(b => b.id === selectedChequeBankAccount);
           if (isReceipt) {
-            depositAccountCode = "1150"; // incoming cheques
+            depositAccountCode = ba?.incoming_checks_account_code || "1150"; // incoming cheques
           } else {
-            depositAccountCode = ba?.gl_account_code || "1160"; // outgoing cheques
+            depositAccountCode = ba?.outgoing_checks_account_code || "1160"; // outgoing cheques
           }
           bankAccountId = selectedChequeBankAccount;
         } else {
