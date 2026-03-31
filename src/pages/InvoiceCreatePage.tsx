@@ -1271,7 +1271,34 @@ const InvoiceCreatePage = () => {
                 </div>
 
                 {/* Price */}
-                <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                <div className="relative">
+                  {(() => {
+                    const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+                    const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
+                    const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
+                    const diff = item.unitPrice - storedPrice;
+                    const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
+                    return (
+                      <>
+                        <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
+                        {showWarning && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-help">
+                                <TriangleAlert className="h-3.5 w-3.5 text-amber-500" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] rounded-lg shadow-md p-2.5 max-w-[220px] space-y-0.5" dir="rtl">
+                              <p className="font-semibold">⚠️ السعر أعلى من سعر الشراء المعتاد</p>
+                              <p>سعر الشراء المثبت: {fmtCurrency(storedPrice)}</p>
+                              <p>الفرق: {fmtCurrency(diff)} ({pct}% أعلى)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
 
                 {/* Discount */}
                 <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
