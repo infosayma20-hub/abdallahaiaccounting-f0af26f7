@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
         user_id: authUserId, display_name: fullName, role: "portal", invited_by: adminUserId, company_id: adminCompanyId,
       }, { onConflict: "user_id" });
 
+      // Safety — remove any 'admin' role that may have been auto-assigned by trigger
+      await supabase.from("user_roles").delete().eq("user_id", authUserId).eq("role", "admin");
+
       return respond({ success: true });
     }
 
