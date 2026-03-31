@@ -1835,8 +1835,28 @@ const AccountStatementPage = () => {
                           <p className="text-[10px] text-muted-foreground font-semibold mb-1">صادر إلى</p>
                           <h2 className="text-lg font-bold text-foreground mb-1">{selectedEntityName}</h2>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="secondary" className="text-[10px]">
-                              {isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type}
+                            <Badge variant="outline" className={cn("text-[10px]", (() => {
+                              const type = isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type;
+                              const t = (type || "").toLowerCase();
+                              if (["asset", "أصول", "أصل"].includes(t)) return "bg-blue-500/10 text-blue-700 border-blue-500/30";
+                              if (["liability", "التزامات", "التزام", "خصوم"].includes(t)) return "bg-orange-500/10 text-orange-700 border-orange-500/30";
+                              if (["equity", "owner's equity", "حقوق ملكية", "حقوق الملكية", "رأس مال"].includes(t)) return "bg-purple-500/10 text-purple-700 border-purple-500/30";
+                              if (["revenue", "إيرادات", "إيراد", "دخل"].includes(t)) return "bg-emerald-500/10 text-emerald-700 border-emerald-500/30";
+                              if (["purchases", "مشتريات"].includes(t)) return "bg-amber-500/10 text-amber-700 border-amber-500/30";
+                              if (["expenses", "expense", "مصروفات", "مصروف", "المصروفات", "مصاريف"].includes(t)) return "bg-red-500/10 text-red-700 border-red-500/30";
+                              return "bg-muted text-muted-foreground";
+                            })())}>
+                              {(() => {
+                                const type = isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type;
+                                const t = (type || "").toLowerCase();
+                                if (["asset", "أصول", "أصل"].includes(t)) return "أصول";
+                                if (["liability", "التزامات", "التزام", "خصوم"].includes(t)) return "التزامات";
+                                if (["equity", "owner's equity", "حقوق ملكية", "حقوق الملكية", "رأس مال"].includes(t)) return "حقوق ملكية";
+                                if (["revenue", "إيرادات", "إيراد", "دخل"].includes(t)) return "إيرادات";
+                                if (["purchases", "مشتريات"].includes(t)) return "مشتريات";
+                                if (["expenses", "expense", "مصروفات", "مصروف", "المصروفات", "مصاريف"].includes(t)) return "مصروفات";
+                                return type || "—";
+                              })()}
                             </Badge>
                             {selectedContact?.contact_class && (
                               <Badge className={cn("text-[10px]",
