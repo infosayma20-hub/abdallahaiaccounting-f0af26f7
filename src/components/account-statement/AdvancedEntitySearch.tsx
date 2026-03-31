@@ -127,7 +127,7 @@ export default function AdvancedEntitySearch({
           key: "accounts", label: "الحسابات", emoji: "📊",
           items: accs.slice(0, 15).map(a => ({
             id: a.id, name: a.account_name, code: a.account_code,
-            balance: accountBalances[a.id] || 0, tab: "accounts" as EntityTab,
+            balance: accountBalances[a.id] || 0, txCount: accountTxCounts[a.id] || 0, tab: "accounts" as EntityTab,
           })),
         });
       }
