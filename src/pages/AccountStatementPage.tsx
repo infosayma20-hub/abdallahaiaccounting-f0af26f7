@@ -1691,7 +1691,8 @@ const AccountStatementPage = () => {
           </div>
         </div>
       </div>
-      {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) ─── */}
+      {/* ─── ADVANCED SEARCH BAR (sticky below toolbar) — only when no entity selected ─── */}
+      {!selectedEntityId && (
       <div className="sticky z-40 no-print" style={{ top: 57, background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "10px 24px" }}>
           <AdvancedEntitySearch
             entityList={entityList}
@@ -1714,6 +1715,7 @@ const AccountStatementPage = () => {
             loading={loading}
           />
       </div>
+      )}
 
       {/* ─── BODY: Full width main content ─── */}
       <div className="flex flex-1 min-h-0">
