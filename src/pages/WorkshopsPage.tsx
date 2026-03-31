@@ -1751,6 +1751,7 @@ export default function WorkshopsPage() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setView("inventory")}><Package className="h-4 w-4 ml-1" /> مخزون المواد</Button>
             <Button variant="outline" onClick={() => setView("reports")}><BarChart3 className="h-4 w-4 ml-1" /> التقارير</Button>
+            <Button variant="outline" onClick={() => setShowQuotationDialog(true)} className="gap-1.5"><FileText className="h-4 w-4" /> عرض سعر</Button>
             <Button onClick={() => setShowNewWorkshop(true)} className="gap-2"><Plus className="h-4 w-4" /> ورشة جديدة</Button>
           </div>
         </div>
@@ -2197,6 +2198,30 @@ export default function WorkshopsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Quotation Dialog (main page level) ── */}
+      <QuotationDialog
+        open={showQuotationDialog}
+        onOpenChange={setShowQuotationDialog}
+        workshopId={selectedWorkshop?.id || ""}
+        workshopName={selectedWorkshop?.name || ""}
+        clientName={selectedWorkshop?.customer_name || ""}
+        budget={selectedWorkshop?.total_budget || 0}
+        userId={user!.id}
+        companyName={settings.company_name || "الشركة"}
+        logoUrl={settings.logo_url || ""}
+        onPreview={(data) => {
+          setQuotationPreviewData(data);
+          setShowQuotationPreview(true);
+        }}
+      />
+
+      {/* ── Quotation Preview (main page level) ── */}
+      <QuotationPreview
+        open={showQuotationPreview}
+        onOpenChange={setShowQuotationPreview}
+        data={quotationPreviewData}
+      />
     </div>
   );
 }

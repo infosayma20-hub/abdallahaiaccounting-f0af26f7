@@ -86,12 +86,15 @@ const QuotationDialog = ({
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
-    const { data } = await supabase
+    let query = supabase
       .from("quotations")
       .select("*")
       .eq("user_id", userId)
-      .eq("workshop_id", workshopId)
       .order("created_at", { ascending: false });
+    if (workshopId) {
+      query = query.eq("workshop_id", workshopId);
+    }
+    const { data } = await query;
     if (data) {
       setHistory(data.map((q: any) => ({
         id: q.id,
@@ -175,7 +178,7 @@ const QuotationDialog = ({
       const quoteNumber = await generateQuoteNumber();
       const { error } = await supabase.from("quotations").insert({
         user_id: userId,
-        workshop_id: workshopId,
+        workshop_id: workshopId || null,
         quote_number: quoteNumber,
         client_name: clientNameField,
         client_address: clientAddress,
