@@ -101,7 +101,7 @@ export default function TaskBoardPage() {
     dueToday: tasks.filter(t => t.due_date === today && t.status !== "done" && t.status !== "cancelled").length,
   };
 
-  if (!taskUser) return null;
+  if (authLoading || taskAuthLoading || !taskUser) return <LoadingScreen />;
 
   return (
     <div className="min-h-[80vh]" dir="rtl">
