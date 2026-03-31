@@ -494,7 +494,7 @@ Deno.serve(async (req) => {
         .from("contacts")
         .select("id, contact_name, contact_type, opening_balance")
         .eq("user_id", linkedUserId)
-        .in("contact_type", ["supplier", "both"])
+        .in("contact_type", ["supplier", "both", "مورد", "عميل ومورد"])
         .order("contact_name");
 
       const contactIds = (contacts || []).map((c: any) => c.id);
