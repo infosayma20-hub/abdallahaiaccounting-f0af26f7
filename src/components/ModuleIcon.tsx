@@ -43,6 +43,7 @@ const moduleColors: Record<string, { accent: string; bg: string; gradient?: stri
   reps:        { accent: "#EA580C", bg: "rgba(234,88,12,0.12)", gradient: "linear-gradient(135deg, #EA580C, #F97316)" },
   tasks:       { accent: "#1B3A5C", bg: "rgba(27,58,92,0.12)", gradient: "linear-gradient(135deg, #1B3A5C, #2D5A8E)" },
   travel:      { accent: "#0891B2", bg: "rgba(8,145,178,0.12)", gradient: "linear-gradient(135deg, #0891B2, #06B6D4)" },
+  print:       { accent: "#EA580C", bg: "rgba(234,88,12,0.12)", gradient: "linear-gradient(135deg, #EA580C, #F97316)" },
 };
 
 const sizes = {
