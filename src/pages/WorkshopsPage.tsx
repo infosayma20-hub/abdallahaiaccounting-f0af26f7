@@ -540,7 +540,7 @@ export default function WorkshopsPage() {
       credit_account_code: "1130",
       amount: amountILS,
       currency: currencyLabel,
-      transaction_type: "workshop_payment",
+      transaction_type: "workshop_receipt",
       contact_id: selectedWorkshop.contact_id || null,
       reference: `WS-PAY-${selectedWorkshop.name.substring(0, 15)}`,
       payment_method: isCheque ? "شيك" : paymentForm.payment_method,
