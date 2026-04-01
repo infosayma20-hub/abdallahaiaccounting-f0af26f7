@@ -1024,7 +1024,7 @@ export default function WorkshopsPage() {
                         setPaymentForm({
                           amount: p.amount, payment_method: p.payment_method, description: p.description || "",
                           payment_date: p.payment_date, cheque_bank: "", deposit_bank_id: null,
-                          currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null,
+                          currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null,
                         });
                         setChequeRows([]);
                         setView("new-payment");
