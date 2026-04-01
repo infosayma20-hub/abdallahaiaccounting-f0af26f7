@@ -95,8 +95,8 @@ const SmartAccountantPage = () => {
 
         const totalSales = sumByCode(plTx, 'credit_account_code', '4');
         const totalExpenses = sumByCode(plTx, 'debit_account_code', '5');
-        const cashDebit = sumByCode(txs, 'debit_account_code', '1110');
-        const cashCredit = sumByCode(txs, 'credit_account_code', '1110');
+        const cashDebit = sumByCode(txs, 'debit_account_code', '111');
+        const cashCredit = sumByCode(txs, 'credit_account_code', '111');
         const bankDebit = sumByCode(txs, 'debit_account_code', '1120');
         const bankCredit = sumByCode(txs, 'credit_account_code', '1120');
         const recDebit = sumByCode(txs, 'debit_account_code', '1130');

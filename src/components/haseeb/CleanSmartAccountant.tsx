@@ -388,7 +388,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
   // Color coding for welcome numbers
   const cashColor = "#006D8F"; // teal
   const profitColor = data.netProfit >= 0 ? "#16A34A" : "#DC2626";
-  const receivablesColor = data.receivables > 0 ? "#DC2626" : "#16A34A";
+  const receivablesColor = data.receivables >= 0 ? "#16A34A" : "#DC2626";
 
   return (
     <>
