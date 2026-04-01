@@ -8295,6 +8295,7 @@ export type Database = {
           notes: string | null
           pos_category_id: string | null
           pos_sort_order: number | null
+          print_station_ids: string[] | null
           purchase_account_code: string | null
           quantity: number
           sales_account_code: string | null
@@ -8327,6 +8328,7 @@ export type Database = {
           notes?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          print_station_ids?: string[] | null
           purchase_account_code?: string | null
           quantity?: number
           sales_account_code?: string | null
@@ -8359,6 +8361,7 @@ export type Database = {
           notes?: string | null
           pos_category_id?: string | null
           pos_sort_order?: number | null
+          print_station_ids?: string[] | null
           purchase_account_code?: string | null
           quantity?: number
           sales_account_code?: string | null
