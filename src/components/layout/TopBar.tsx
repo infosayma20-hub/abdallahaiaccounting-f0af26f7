@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useTheme } from "@/hooks/useTheme";
@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { NotificationsPanel, useNotifications } from "@/components/NotificationsPanel";
 import { FinixLogo } from "@/components/ui/FinixLogo";
+import { useLockedModules } from "@/hooks/useLockedModules";
+import { toast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -220,6 +222,17 @@ const QUICK_ITEMS = [
 const QuickAccessButton = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { isRouteLocked, getLockedModuleName } = useLockedModules();
+
+  const handleNavigate = (path: string) => {
+    if (isRouteLocked(path)) {
+      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      setOpen(false);
+      return;
+    }
+    navigate(path);
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -259,7 +272,7 @@ const QuickAccessButton = () => {
           {QUICK_ITEMS.map((item) => (
             <button
               key={item.path}
-              onClick={() => { navigate(item.path); setOpen(false); }}
+              onClick={() => handleNavigate(item.path)}
               className="flex items-center gap-2.5 text-right transition-colors group"
               style={{ padding: "10px 12px", borderRadius: 8 }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#F8F9FA"; }}

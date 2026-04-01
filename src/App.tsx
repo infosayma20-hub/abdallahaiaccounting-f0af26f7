@@ -12,6 +12,7 @@ import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import RoleGuard from "./components/RoleGuard";
+const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
@@ -216,11 +217,11 @@ const App = () => (
               <Route path="/malaki/settings" element={<Navigate to="/portal/settings" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
-              <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
-              <Route path="/pos/floor-plan" element={<ProtectedRoute><FloorPlanPage /></ProtectedRoute>} />
-              <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
-              <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
-              <Route path="/pos/kitchen" element={<ProtectedRoute><KitchenDisplayPage /></ProtectedRoute>} />
+              <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/floor-plan" element={<ProtectedRoute><ModuleGuard><FloorPlanPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><ModuleGuard><FloorPlanEditorPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/modifiers" element={<ProtectedRoute><ModuleGuard><ModifierManagerPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/*" element={
@@ -275,8 +276,8 @@ const App = () => (
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
-                      <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
-                      <Route path="/employee-forms-management" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard>} />
+                      <Route path="/employees" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard></ModuleGuard>} />
+                      <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
@@ -377,9 +378,9 @@ const App = () => (
                       <Route path="/support/tickets" element={<SupportTicketsPage />} />
                       <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
-                      <Route path="/pos-users" element={<POSUserManagementPage />} />
-                      <Route path="/pos-customers" element={<POSCustomerDatabasePage />} />
-                      <Route path="/pos-reports" element={<POSReportsPage />} />
+                      <Route path="/pos-users" element={<ModuleGuard><POSUserManagementPage /></ModuleGuard>} />
+                      <Route path="/pos-customers" element={<ModuleGuard><POSCustomerDatabasePage /></ModuleGuard>} />
+                      <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />

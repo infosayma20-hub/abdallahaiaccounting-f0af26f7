@@ -1,9 +1,11 @@
 import { useState } from "react";
 import amwaliMarkNavy from "@/assets/amwali-mark-navy.png";
 import { useNavigate } from "react-router-dom";
-import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield } from "lucide-react";
+import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { useLockedModules } from "@/hooks/useLockedModules";
+import { toast } from "@/hooks/use-toast";
 
 export interface QuickAccessItem {
   id: string;
@@ -68,6 +70,15 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
   const navigate = useNavigate();
   const [items, setItems] = useState<QuickAccessItem[]>(loadConfig);
   const [showCustomize, setShowCustomize] = useState(false);
+  const { isRouteLocked, getLockedModuleName } = useLockedModules();
+
+  const handleNavigate = (path: string) => {
+    if (!isSuperAdmin && isRouteLocked(path)) {
+      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      return;
+    }
+    navigate(path);
+  };
 
   // Filter out admin-only items if user is not super admin
   const visibleItems = isSuperAdmin 
@@ -119,7 +130,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
           {enabled.map((item) => (
             <button
               key={item.id}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavigate(item.path)}
               className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-150 group"
               style={{
                 background: "rgba(255,255,255,0.05)",
