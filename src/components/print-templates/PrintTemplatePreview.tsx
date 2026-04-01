@@ -516,21 +516,22 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <div className="overflow-y-auto p-6" style={{ background: "#E5E7EB", maxHeight: embedded ? "60vh" : "calc(95vh - 50px)" }}>
         <div
           ref={printRef}
+          id="print-preview"
           style={{
             maxWidth: 780, margin: "0 auto", background: "white",
             boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4,
-            padding: "40px 48px", direction: "rtl", fontFamily: theme.fontFamily,
+            padding: "32px 40px", direction: "rtl", fontFamily: theme.fontFamily,
             fontSize: 11, color: theme.textColor, position: "relative", overflow: "hidden",
           }}
         >
-          {/* Watermark — large centered */}
+          {/* Watermark — clipped to this container */}
           {isCustom && theme.showWatermark && (
             <div style={{
               position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
               opacity: 0.06, zIndex: 0, pointerEvents: "none",
-              width: "70%", textAlign: "center",
+              width: "60%", textAlign: "center",
             }}>
-              <img src="/logos/doulia-kitchen-logo.png" alt="" style={{ width: "100%", maxWidth: 450, objectFit: "contain" }} />
+              <img src="/logos/doulia-kitchen-logo.png" alt="" style={{ width: "100%", maxWidth: 280, objectFit: "contain" }} />
             </div>
           )}
 
