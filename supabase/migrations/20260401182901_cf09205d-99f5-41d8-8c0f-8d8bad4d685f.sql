@@ -1,0 +1,1 @@
+UPDATE public.transactions SET transaction_type = 'workshop_receipt' WHERE transaction_type = 'workshop_payment';
