@@ -434,9 +434,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
             setAmount(String(data.amount || data.amount_ils || ""));
             setNotes(data.notes || data.description || "");
-            setCheckNumber(data.cheque_number || "");
-            setCheckDate(data.cheque_due_date || "");
-            setCheckBank(data.cheque_bank_name || "");
+            if (data.cheque_number) {
+              setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || "") }]);
+            }
             setEditVoucherStatus(data.status || "posted");
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
             if (data.currency && data.currency !== "ILS") {
