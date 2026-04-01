@@ -1,9 +1,23 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useSubscriptionGuard() {
   const { subscription, loading, refresh } = useSubscription();
+  const { user } = useAuth();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .maybeSingle()
+      .then(({ data }) => setIsSuperAdmin(!!data));
+  }, [user?.id]);
   const hasAutoExpired = useRef(false);
 
   const daysLeft = subscription?.daysLeft ?? 999;
@@ -45,9 +59,10 @@ export function useSubscriptionGuard() {
     loading,
     daysLeft,
     isTrial,
-    isTrialExpired: isTrialExpired || isStatusExpired,
-    isExpired: isExpired || isStatusExpired,
-    isPaidActive,
+    isTrialExpired: isSuperAdmin ? false : (isTrialExpired || isStatusExpired),
+    isExpired: isSuperAdmin ? false : (isExpired || isStatusExpired),
+    isPaidActive: isSuperAdmin ? true : isPaidActive,
+    isSuperAdmin,
     refresh,
     fetchUserDataCounts,
   };
