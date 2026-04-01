@@ -285,8 +285,8 @@ const BankAccountsPage = () => {
                     <Landmark className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>إضافة حساب بنكي</h2>
-                    <p className="text-xs text-white/60">تعريف حساب بنكي جديد وربطه بشجرة الحسابات</p>
+                     <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editingBankId ? "تعديل حساب بنكي" : "إضافة حساب بنكي"}</h2>
+                     <p className="text-xs text-white/60">{editingBankId ? "تعديل بيانات الحساب البنكي" : "تعريف حساب بنكي جديد وربطه بشجرة الحسابات"}</p>
                   </div>
                 </div>
                 <button onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-white/20 transition-colors">
