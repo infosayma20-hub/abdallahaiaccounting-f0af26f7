@@ -577,7 +577,7 @@ export default function PortalTasksTab({ theme }: Props) {
                     <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
                     <select value={editAssignedTo} onChange={e => setEditAssignedTo(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
                       <option value="">بدون تعيين</option>
-                      {taskUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                      {employees.map(emp => <option key={emp.employee_id} value={emp.employee_id}>{emp.full_name}</option>)}
                     </select>
                   </div>
                   <div>
