@@ -6,7 +6,7 @@ import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Save, Eye, Printer, Undo2, Redo2 } from "lucide-react";
+import { ArrowRight, Save, Undo2, Redo2 } from "lucide-react";
 import { DesignElement, TemplateDesign, createDefaultDesign } from "@/components/print-templates/designer/types";
 import DesignerSidebar from "@/components/print-templates/designer/DesignerSidebar";
 import DesignerCanvas from "@/components/print-templates/designer/DesignerCanvas";
@@ -43,6 +43,11 @@ const TemplateDesignerPage = () => {
     });
   }, [pushHistory]);
 
+  // Direct update without history (for real-time drag)
+  const updateDesignDirect = useCallback((updater: (d: TemplateDesign) => TemplateDesign) => {
+    setDesign(prev => updater(prev));
+  }, []);
+
   const undo = () => {
     if (historyIdx > 0) {
       setHistoryIdx(historyIdx - 1);
@@ -60,6 +65,14 @@ const TemplateDesignerPage = () => {
 
   const updateElement = (id: string, updates: Partial<DesignElement>) => {
     updateDesign(d => ({
+      ...d,
+      elements: d.elements.map(e => e.id === id ? { ...e, ...updates } : e),
+    }));
+  };
+
+  // For drag/resize — no history push until mouseup
+  const updateElementDirect = (id: string, updates: Partial<DesignElement>) => {
+    updateDesignDirect(d => ({
       ...d,
       elements: d.elements.map(e => e.id === id ? { ...e, ...updates } : e),
     }));
@@ -146,25 +159,23 @@ const TemplateDesignerPage = () => {
 
       {/* 3-Panel Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Right Sidebar — Elements */}
         <DesignerSidebar
           design={design}
           onAddElement={addElement}
           onUpdateDesign={updateDesign}
         />
 
-        {/* Center — Canvas */}
         <DesignerCanvas
           design={design}
           selectedId={selectedId}
           onSelect={setSelectedId}
           onRemove={removeElement}
           onMove={moveElement}
+          onUpdateElement={updateElementDirect}
           logoBase64={logoBase64}
           companyName={companyName}
         />
 
-        {/* Left — Properties */}
         <DesignerProperties
           element={selectedElement}
           design={design}
