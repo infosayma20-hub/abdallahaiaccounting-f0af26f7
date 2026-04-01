@@ -302,11 +302,11 @@ export default function PortalTasksTab({ theme }: Props) {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start' }}>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || !title.trim() || !assignedTo}
+                disabled={submitting || !title.trim()}
                 style={{
                   background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
                   padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  opacity: submitting || !title.trim() || !assignedTo ? 0.5 : 1,
+                  opacity: submitting || !title.trim() ? 0.5 : 1,
                   fontFamily: 'Tajawal, sans-serif',
                 }}
               >
