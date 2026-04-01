@@ -1,8 +1,11 @@
 import { useState } from "react";
 import amwaliMarkNavy from "@/assets/amwali-mark-navy.png";
 import { useNavigate } from "react-router-dom";
-import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield } from "lucide-react";
+import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { useLockedModules } from "@/hooks/useLockedModules";
+import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 
 export interface QuickAccessItem {
