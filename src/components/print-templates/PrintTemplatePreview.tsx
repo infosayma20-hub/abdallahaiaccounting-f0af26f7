@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, X } from "lucide-react";
+import { Printer, X } from "lucide-react";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { getThemeForUser, type PrintTheme, DEFAULT_THEME } from "@/lib/print-themes";
