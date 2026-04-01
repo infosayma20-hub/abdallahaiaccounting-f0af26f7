@@ -113,17 +113,17 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
 
     // Auto-create account if needed
     if (autoCreateAccount && !editBox) {
-      // Fetch ALL existing 111x codes to find a truly unique next code
+      // Fetch ALL existing 1110x codes (5-digit pattern under parent 1110)
       const { data: existing } = await supabase.from("accounts")
         .select("account_code").eq("user_id", user.id)
-        .like("account_code", "111%").order("account_code", { ascending: true });
+        .like("account_code", "1110%").order("account_code", { ascending: true });
       
       const usedCodes = new Set((existing || []).map(a => a.account_code));
       let nextNum = 1;
-      while (usedCodes.has(`111${String(nextNum).padStart(2, "0")}`)) {
+      while (usedCodes.has(`1110${nextNum}`)) {
         nextNum++;
       }
-      glCode = `111${String(nextNum).padStart(2, "0")}`;
+      glCode = `1110${nextNum}`;
 
       const { error: accErr } = await supabase.from("accounts").insert({
         user_id: user.id,
