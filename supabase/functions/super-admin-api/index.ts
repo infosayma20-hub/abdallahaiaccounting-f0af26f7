@@ -656,8 +656,7 @@ Deno.serve(async (req) => {
 
       const { error } = await admin
         .from("company_settings")
-        .update({ hidden_apps: hidden_apps || [] })
-        .eq("user_id", target_user_id);
+        .upsert({ user_id: target_user_id, hidden_apps: hidden_apps || [] }, { onConflict: "user_id" });
 
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
