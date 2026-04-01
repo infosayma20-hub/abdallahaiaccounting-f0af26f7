@@ -1049,7 +1049,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </tbody>
         </table>
       </div>` : "";
-      </div>` : "";
 
     const categoryLabel = !isReceipt && partyType === "employee" && empCategory ? empCategory : "";
 
