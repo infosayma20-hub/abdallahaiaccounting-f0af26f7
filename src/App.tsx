@@ -12,6 +12,7 @@ import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import RoleGuard from "./components/RoleGuard";
+const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 
 // Lazy-loaded pages for code splitting
 const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
