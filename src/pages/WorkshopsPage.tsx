@@ -380,7 +380,7 @@ export default function WorkshopsPage() {
     setChequeRows(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
   };
 
-  /* ── Add Partial Payment ── */
+  /* ── Add or Edit Partial Payment ── */
   const handleAddPayment = async () => {
     if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
     const isCheque = paymentForm.payment_method === "شيك";
@@ -396,6 +396,40 @@ export default function WorkshopsPage() {
       const selectedBox = cashBoxes.find(b => b.id === paymentForm.cash_box_id);
       if (selectedBox?.gl_account_code) debitCode = selectedBox.gl_account_code;
     }
+
+    // ── EDIT MODE ──
+    if (editingPayment) {
+      // Update the linked transaction
+      if (editingPayment.linked_transaction_id) {
+        await supabase.from("transactions").update({
+          transaction_date: paymentForm.payment_date,
+          description: paymentForm.description || `دفعة ورشة من ${selectedWorkshop.customer_name || "زبون"} - ${selectedWorkshop.name}`,
+          debit_account_code: debitCode,
+          amount: amountILS,
+          currency: currencyLabel,
+          payment_method: isCheque ? "شيك" : paymentForm.payment_method,
+          ...(paymentForm.currency !== "ILS" ? { foreign_amount: paymentForm.amount, exchange_rate: paymentForm.exchange_rate } : { foreign_amount: null, exchange_rate: null }),
+        } as any).eq("id", editingPayment.linked_transaction_id);
+      }
+
+      // Update the payment record
+      const { error } = await supabase.from("workshop_payments").update({
+        amount: amountILS,
+        payment_method: isCheque ? "شيك" : paymentForm.payment_method,
+        payment_date: paymentForm.payment_date,
+        description: paymentForm.description || null,
+      } as any).eq("id", editingPayment.id);
+
+      if (error) { toast.error(error.message); return; }
+      toast.success("✅ تم تعديل الدفعة بنجاح");
+      setEditingPayment(null);
+      setView("workshops");
+      setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
+      loadCosts(selectedWorkshop.id);
+      return;
+    }
+
+    // ── NEW MODE ──
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
