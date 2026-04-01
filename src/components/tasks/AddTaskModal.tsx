@@ -65,8 +65,6 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
       payload.user_id = user.id;
       payload.created_by = taskUser.id;
       if (assignTo && assignTo !== "none") {
-        payload.assigned_to = assignTo;
-        payload.assigned_at = new Date().toISOString();
         payload.status = "in_progress";
       }
       const { data } = await supabase.from("tasks").insert(payload).select("id").single();
