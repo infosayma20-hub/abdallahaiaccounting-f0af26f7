@@ -257,9 +257,9 @@ const BankAccountsPage = () => {
                   <Button variant="ghost" size="sm" className="text-xs flex-1" onClick={() => navigate(`/account-statement?code=${bank.gl_account_code || "1120"}`)}>
                     <FileText className="h-3 w-3 ml-1" />كشف حساب
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    <Settings className="h-3 w-3" />
-                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => openEditModal(bank)}>
+                     <Settings className="h-3 w-3" />
+                   </Button>
                 </div>
               </CardContent>
             </Card>
