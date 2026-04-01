@@ -221,13 +221,22 @@ const PrintTemplatesPage = () => {
               )}
               <h3 className="text-[13px] font-semibold text-[#0D1B2E] dark:text-foreground">{template.title}</h3>
               <p className="text-[11px] text-[#6B7280] mt-0.5 mb-3">{template.description}</p>
-              <button
-                className="w-8 h-8 rounded-full bg-[#0D1B2E] text-white flex items-center justify-center text-lg transition-transform group-hover:scale-110"
-                title="إنشاء نموذج جديد"
-                onClick={e => { e.stopPropagation(); handleCreate(template); }}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  className="w-8 h-8 rounded-full bg-[#0D1B2E] text-white flex items-center justify-center text-lg transition-transform hover:scale-110"
+                  title="إنشاء نموذج جديد"
+                  onClick={e => { e.stopPropagation(); handleCreate(template); }}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button
+                  className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center transition-transform hover:scale-110 hover:bg-primary/10 hover:text-primary"
+                  title="تخصيص التصميم"
+                  onClick={e => { e.stopPropagation(); navigate(`/print-templates/designer/${template.type}`); }}
+                >
+                  <Palette className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           );
         })}
