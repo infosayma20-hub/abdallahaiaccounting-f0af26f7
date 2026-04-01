@@ -130,9 +130,31 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [paymentMethod, setPaymentMethod] = useState("نقدي");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [checkNumber, setCheckNumber] = useState("");
-  const [checkDate, setCheckDate] = useState("");
-  const [checkBank, setCheckBank] = useState("");
+  const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string }[]>([]);
+
+  const addCheque = () => setCheques(prev => {
+    const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
+    const lastDate = prev.length > 0 ? prev[prev.length - 1].date : "";
+    const lastBank = prev.length > 0 ? prev[prev.length - 1].bank : "";
+    // Auto-increment cheque number
+    const match = lastNum.match(/(\d+)$/);
+    const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
+    // Auto-increment date by 30 days
+    let nextDate = lastDate;
+    if (lastDate) {
+      const d = new Date(lastDate);
+      d.setDate(d.getDate() + 30);
+      nextDate = d.toISOString().split("T")[0];
+    }
+    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "" }];
+  });
+  const removeCheque = (idx: number) => setCheques(prev => prev.filter((_, i) => i !== idx));
+  const updateCheque = (idx: number, field: string, value: string) => setCheques(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
+
+  // Backward compat helpers
+  const checkNumber = cheques[0]?.number || "";
+  const checkDate = cheques[0]?.date || "";
+  const checkBank = cheques[0]?.bank || "";
 
   // Currency
   const [currency, setCurrency] = useState("ILS");
@@ -387,9 +409,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setPaymentMethod(data.payment_method || "نقدي");
             setAmount(String(data.amount || ""));
             setNotes(data.notes || "");
-            setCheckNumber(data.check_number || "");
-            setCheckDate(data.check_date || "");
-            setCheckBank(data.bank_name || "");
+            if (data.check_number) {
+              setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || "") }]);
+            }
             setEditVoucherStatus(data.status || "posted");
             if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
@@ -412,9 +434,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
             setAmount(String(data.amount || data.amount_ils || ""));
             setNotes(data.notes || data.description || "");
-            setCheckNumber(data.cheque_number || "");
-            setCheckDate(data.cheque_due_date || "");
-            setCheckBank(data.cheque_bank_name || "");
+            if (data.cheque_number) {
+              setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || "") }]);
+            }
             setEditVoucherStatus(data.status || "posted");
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
             if (data.currency && data.currency !== "ILS") {
@@ -888,19 +910,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
-        if (paymentMethod === "شيك" && !asDraft && checkNumber) {
-          await supabase.from("cheques").insert({
+        if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
+          const chequeRows = cheques.filter(c => c.number).map(c => ({
             user_id: user.id,
             cheque_type: "وارد" as const,
-            cheque_number: checkNumber,
-            cheque_date: checkDate || paymentDate,
-            amount: amountNum,
+            cheque_number: c.number,
+            cheque_date: c.date || paymentDate,
+            amount: Number(c.amount) || amountNum,
             party_name: selectedContact?.contact_name || "",
-            bank_name: checkBank,
+            bank_name: c.bank,
             status: "مسجل" as const,
             currency: currencyLabel,
             source_bank_account_id: selectedChequeBankAccount || null,
-          });
+          }));
+          if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
 
         toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`);
@@ -944,19 +967,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (voucherError) throw voucherError;
 
-        if (paymentMethod === "شيك" && !asDraft && checkNumber) {
-          await supabase.from("cheques").insert({
+        if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
+          const chequeRows = cheques.filter(c => c.number).map(c => ({
             user_id: user.id,
             cheque_type: "صادر" as const,
-            cheque_number: checkNumber,
-            cheque_date: checkDate || paymentDate,
-            amount: amountNum,
+            cheque_number: c.number,
+            cheque_date: c.date || paymentDate,
+            amount: Number(c.amount) || amountNum,
             party_name: selectedContact?.contact_name || selectedGlAccount?.account_name || "",
-            bank_name: checkBank,
+            bank_name: c.bank,
             status: "مسجل" as const,
             currency: currencyLabel,
             source_bank_account_id: selectedChequeBankAccount || null,
-          });
+          }));
+          if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
 
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
@@ -999,12 +1023,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
     const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط لا غير`;
 
-    const chequeHtml = paymentMethod === "شيك" ? `
+    const chequeHtml = paymentMethod === "شيك" && cheques.length > 0 ? `
       <div style="margin-top:16px;">
-        <div style="font-size:11px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">بيانات الشيك</div>
+        <div style="font-size:11px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">بيانات الشيكات (${cheques.length})</div>
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
           <thead>
             <tr style="background:#1B3A5C;">
+              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">#</th>
               <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">رقم الشيك</th>
               <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">تاريخ الاستحقاق</th>
               <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">اسم البنك</th>
@@ -1012,12 +1037,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </tr>
           </thead>
           <tbody>
-            <tr style="border-bottom:1px solid #edf0f4;">
-              <td style="padding:6px 10px;">${checkNumber || "—"}</td>
-              <td style="padding:6px 10px;">${checkDate ? new Date(checkDate).toLocaleDateString("ar-PS") : "—"}</td>
-              <td style="padding:6px 10px;">${checkBank || "—"}</td>
-              <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(amt)}</td>
-            </tr>
+            ${cheques.map((c, i) => `
+              <tr style="border-bottom:1px solid #edf0f4;">
+                <td style="padding:6px 10px;">${i + 1}</td>
+                <td style="padding:6px 10px;">${c.number || "—"}</td>
+                <td style="padding:6px 10px;">${c.date ? new Date(c.date).toLocaleDateString("ar-PS") : "—"}</td>
+                <td style="padding:6px 10px;">${c.bank || "—"}</td>
+                <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(Number(c.amount) || 0)}</td>
+              </tr>
+            `).join("")}
           </tbody>
         </table>
       </div>` : "";
@@ -1181,7 +1209,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <button onClick={() => navigate(listPath)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
               العودة للسندات
             </button>
-            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheckNumber(""); setCheckDate(""); setCheckBank(""); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
+            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheques([]); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               {isReceipt ? "سند قبض جديد" : "سند صرف جديد"}
             </button>
           </div>
@@ -1562,30 +1590,60 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           </div>
 
-          {/* Cheque details */}
+          {/* Cheque details - Multi cheque */}
           {paymentMethod === "شيك" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border/30">
-              <div>
-                <Label className="text-xs mb-1.5 block">رقم الشيك</Label>
-                <Input value={checkNumber} onChange={e => setCheckNumber(e.target.value)} placeholder="رقم الشيك" />
+            <div className="pt-2 border-t border-border/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold flex items-center gap-1.5">
+                  <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
+                  بيانات الشيكات ({cheques.length})
+                </Label>
+                <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
+                  <Plus className="h-3 w-3" /> إضافة شيك
+                </button>
               </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">تاريخ الشيك</Label>
-                <Input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">اسم البنك</Label>
-                <Select value={checkBank} onValueChange={setCheckBank}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر البنك" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {cheques.length === 0 && (
+                <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                  اضغط "إضافة شيك" لإدخال بيانات الشيك
+                </div>
+              )}
+              {cheques.map((chq, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-end bg-secondary/30 rounded-lg p-3">
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">رقم الشيك</Label>
+                    <Input value={chq.number} onChange={e => updateCheque(idx, "number", e.target.value)} placeholder="رقم الشيك" className="h-9 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">تاريخ الاستحقاق</Label>
+                    <Input type="date" value={chq.date} onChange={e => updateCheque(idx, "date", e.target.value)} className="h-9 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">اسم البنك</Label>
+                    <Select value={chq.bank} onValueChange={v => updateCheque(idx, "bank", v)}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="اختر البنك" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">المبلغ</Label>
+                    <Input type="number" value={chq.amount} onChange={e => updateCheque(idx, "amount", e.target.value)} placeholder="0.00" className="h-9 text-xs font-mono" />
+                  </div>
+                  <button type="button" onClick={() => removeCheque(idx)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors mb-0.5">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {cheques.length > 1 && (
+                <div className="text-left text-xs font-mono font-bold text-primary pt-1">
+                  إجمالي الشيكات: {CURRENCIES.find(c => c.value === currency)?.symbol || "₪"}{cheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
