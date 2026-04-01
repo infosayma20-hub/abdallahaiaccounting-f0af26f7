@@ -476,14 +476,15 @@ export default function PortalTasksTab({ theme }: Props) {
       {selectedTask && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 0,
         }} onClick={() => setSelectedTask(null)}>
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: t.card, borderRadius: 16, width: '100%', maxWidth: 520,
-              padding: 24, direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)', color: t.text,
+              background: t.card, borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520,
+              padding: '20px 16px', direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.2)', color: t.text,
+              maxHeight: '90vh', overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
