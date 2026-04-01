@@ -210,7 +210,7 @@ export default function PortalTasksTab({ theme }: Props) {
     }
   };
 
-    if (filter === 'all') return true;
+    const filtered = tasks.filter(task => {
     if (filter === 'done') return task.status === 'done';
     if (filter === 'open') return task.status === 'open' || task.status === 'in_progress';
     if (filter === 'overdue') {
