@@ -119,6 +119,7 @@ const ContactsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterClass, setFilterClass] = useState<string | null>(null);
