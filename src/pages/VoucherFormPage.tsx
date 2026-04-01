@@ -1023,12 +1023,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
     const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط لا غير`;
 
-    const chequeHtml = paymentMethod === "شيك" ? `
+    const chequeHtml = paymentMethod === "شيك" && cheques.length > 0 ? `
       <div style="margin-top:16px;">
-        <div style="font-size:11px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">بيانات الشيك</div>
+        <div style="font-size:11px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">بيانات الشيكات (${cheques.length})</div>
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
           <thead>
             <tr style="background:#1B3A5C;">
+              <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">#</th>
               <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">رقم الشيك</th>
               <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">تاريخ الاستحقاق</th>
               <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">اسم البنك</th>
@@ -1036,14 +1037,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </tr>
           </thead>
           <tbody>
-            <tr style="border-bottom:1px solid #edf0f4;">
-              <td style="padding:6px 10px;">${checkNumber || "—"}</td>
-              <td style="padding:6px 10px;">${checkDate ? new Date(checkDate).toLocaleDateString("ar-PS") : "—"}</td>
-              <td style="padding:6px 10px;">${checkBank || "—"}</td>
-              <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(amt)}</td>
-            </tr>
+            ${cheques.map((c, i) => `
+              <tr style="border-bottom:1px solid #edf0f4;">
+                <td style="padding:6px 10px;">${i + 1}</td>
+                <td style="padding:6px 10px;">${c.number || "—"}</td>
+                <td style="padding:6px 10px;">${c.date ? new Date(c.date).toLocaleDateString("ar-PS") : "—"}</td>
+                <td style="padding:6px 10px;">${c.bank || "—"}</td>
+                <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(Number(c.amount) || 0)}</td>
+              </tr>
+            `).join("")}
           </tbody>
         </table>
+      </div>` : "";
       </div>` : "";
 
     const categoryLabel = !isReceipt && partyType === "employee" && empCategory ? empCategory : "";
