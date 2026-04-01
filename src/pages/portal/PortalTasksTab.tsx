@@ -79,18 +79,32 @@ export default function PortalTasksTab({ theme }: Props) {
         .eq('user_id', ownerId)
         .order('created_at', { ascending: false });
 
-      // Fetch task_users for this owner (employees in task system)
-      const { data: tusers } = await supabase
-        .from('task_users')
-        .select('*')
+      // Fetch company employees for this owner
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('id, name, email')
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
-      // Only use task_users for assignment (FK references task_users table)
-      const userList = (tusers || []).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
+      // Fetch existing task_users to map employee assignments
+      const { data: tusers } = await supabase
+        .from('task_users')
+        .select('id, full_name, email')
+        .eq('user_id', ownerId)
+        .eq('is_active', true);
+
+      // Build employee list with their task_user_id if exists
+      const empList = (emps || []).map(emp => {
+        const matched = (tusers || []).find(tu =>
+          (emp.email && tu.email && tu.email.toLowerCase() === emp.email.toLowerCase()) ||
+          tu.full_name?.trim() === emp.name?.trim()
+        );
+        return { employee_id: emp.id, full_name: emp.name, email: emp.email, task_user_id: matched?.id || null };
+      });
 
       setTasks(tasksData || []);
-      setTaskUsers(userList);
+      setEmployees(empList);
+      setTaskUsers(tusers || []);
     } catch (err) {
       console.error(err);
     } finally {
