@@ -109,6 +109,7 @@ const BankAccountsPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
 
   // Form
   const [bankName, setBankName] = useState("");
