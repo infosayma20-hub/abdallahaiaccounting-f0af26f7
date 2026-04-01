@@ -21,7 +21,7 @@ const TEMPLATE_TITLES: Record<string, string> = {
   POA: "تفويض رسمي", CLR: "خطاب إخلاء طرف",
 };
 
-const PrintTemplatePreview = ({ open, onOpenChange, document: doc }: Props) => {
+const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = false }: Props) => {
   const printRef = useRef<HTMLDivElement>(null);
   const { logoBase64, companyName, companyPhone, companyEmail, companyAddress, taxNumber } = useCompanyLogo();
 
