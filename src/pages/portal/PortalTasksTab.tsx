@@ -431,7 +431,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الأولوية</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الحالة</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الاستحقاق</th>
-              </tr>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: t.textMuted, fontSize: 11, width: 80 }}>إجراءات</th>
             </thead>
             <tbody>
               {filtered.map((task, i) => {
