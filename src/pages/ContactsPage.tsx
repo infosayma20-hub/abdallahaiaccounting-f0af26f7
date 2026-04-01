@@ -263,7 +263,7 @@ const ContactsPage = () => {
       }
 
       toast({ title: "تم إضافة جهة الاتصال بنجاح" });
-      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "credit" });
+      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "debit" });
       setShowAddDialog(false);
       fetchContacts();
     } catch (err: any) {
