@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Printer, FileText, Plus, Eye, Trash2 } from "lucide-react";
+import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import PrintTemplateModal from "@/components/print-templates/PrintTemplateModal";
 import PrintTemplatePreview from "@/components/print-templates/PrintTemplatePreview";
@@ -26,17 +26,42 @@ export interface TemplateConfig {
   category: string;
 }
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  quo: Tag,
+  con: Handshake,
+  dem: FileText,
+  dn: PlusCircle,
+  cn: MinusCircle,
+  rcp: Receipt,
+  sup: Truck,
+  od: Clock,
+  poa: UserCheck,
+  clr: BadgeCheck,
+};
+
+const ICON_COLOR_MAP: Record<string, string> = {
+  dn: "text-red-600",
+  cn: "text-green-600",
+};
+
+const CATEGORY_BADGE: Record<string, { label: string; classes: string }> = {
+  financial: { label: "مالية", classes: "bg-blue-100 text-blue-700" },
+  contracts: { label: "عقود", classes: "bg-[#E8EDF3] text-finix-navy" },
+  notices: { label: "إشعارات", classes: "bg-amber-100 text-amber-700" },
+  correspondence: { label: "مراسلات", classes: "bg-gray-100 text-gray-600" },
+};
+
 const TEMPLATES: TemplateConfig[] = [
-  { id: "quo", type: "QUO", prefix: "QUO", icon: "📄", title: "عرض سعر", description: "عروض أسعار احترافية للعملاء", category: "financial" },
-  { id: "con", type: "CON", prefix: "CON", icon: "📋", title: "عقد بيع", description: "عقود وتعاقدات مع العملاء", category: "contracts" },
-  { id: "dem", type: "DEM", prefix: "DEM", icon: "💰", title: "مطالبة مالية", description: "مطالبة بالرصيد المستحق", category: "financial" },
-  { id: "dn", type: "DN", prefix: "DN", icon: "➕", title: "إشعار دين", description: "إضافة مبلغ على حساب العميل", category: "notices" },
-  { id: "cn", type: "CN", prefix: "CN", icon: "➖", title: "إشعار دائن", description: "خصم مبلغ من حساب العميل", category: "notices" },
-  { id: "rcp", type: "RCP", prefix: "RCP", icon: "📦", title: "وصل استلام", description: "إثبات استلام بضاعة أو مبلغ", category: "financial" },
-  { id: "sup", type: "SUP", prefix: "SUP", icon: "🚚", title: "عقد توريد", description: "عقود مع الموردين", category: "contracts" },
-  { id: "od", type: "OD", prefix: "OD", icon: "⚠️", title: "إشعار تأخر سداد", description: "تذكير رسمي بالسداد", category: "notices" },
-  { id: "poa", type: "POA", prefix: "POA", icon: "📝", title: "تفويض رسمي", description: "تفويض موظف لإجراء معاملة", category: "correspondence" },
-  { id: "clr", type: "CLR", prefix: "CLR", icon: "🤝", title: "خطاب إخلاء طرف", description: "إغلاق تعامل رسمي مع جهة", category: "correspondence" },
+  { id: "quo", type: "QUO", prefix: "QUO", icon: "", title: "عرض سعر", description: "عروض أسعار احترافية للعملاء", category: "financial" },
+  { id: "con", type: "CON", prefix: "CON", icon: "", title: "عقد بيع", description: "عقود وتعاقدات مع العملاء", category: "contracts" },
+  { id: "dem", type: "DEM", prefix: "DEM", icon: "", title: "مطالبة مالية", description: "مطالبة بالرصيد المستحق", category: "financial" },
+  { id: "dn", type: "DN", prefix: "DN", icon: "", title: "إشعار دين", description: "إضافة مبلغ على حساب العميل", category: "notices" },
+  { id: "cn", type: "CN", prefix: "CN", icon: "", title: "إشعار دائن", description: "خصم مبلغ من حساب العميل", category: "notices" },
+  { id: "rcp", type: "RCP", prefix: "RCP", icon: "", title: "وصل استلام", description: "إثبات استلام بضاعة أو مبلغ", category: "financial" },
+  { id: "sup", type: "SUP", prefix: "SUP", icon: "", title: "عقد توريد", description: "عقود مع الموردين", category: "contracts" },
+  { id: "od", type: "OD", prefix: "OD", icon: "", title: "إشعار تأخر سداد", description: "تذكير رسمي بالسداد", category: "notices" },
+  { id: "poa", type: "POA", prefix: "POA", icon: "", title: "تفويض رسمي", description: "تفويض موظف لإجراء معاملة", category: "correspondence" },
+  { id: "clr", type: "CLR", prefix: "CLR", icon: "", title: "خطاب إخلاء طرف", description: "إغلاق تعامل رسمي مع جهة", category: "correspondence" },
 ];
 
 const PrintTemplatesPage = () => {
@@ -140,28 +165,38 @@ const PrintTemplatesPage = () => {
 
       {/* Templates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(template => (
-          <div
-            key={template.id}
-            className="bg-card border border-border rounded-xl p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow"
-          >
-            <div className="w-12 h-12 rounded-full bg-[#0D1B2E] flex items-center justify-center text-2xl mb-3">
-              {template.icon}
+        {filtered.map(template => {
+          const IconComp = ICON_MAP[template.id] || FileText;
+          const iconColor = ICON_COLOR_MAP[template.id] || "text-finix-navy";
+          const badge = CATEGORY_BADGE[template.category];
+          return (
+            <div
+              key={template.id}
+              className="bg-white dark:bg-card border border-[#E5E7EB] dark:border-border rounded-xl p-6 flex flex-col items-center text-center transition-all hover:border-finix-navy hover:shadow-sm"
+            >
+              <div className={`w-10 h-10 rounded-[10px] bg-[#F0F4FF] dark:bg-muted flex items-center justify-center mb-3`}>
+                <IconComp className={`w-5 h-5 ${iconColor}`} />
+              </div>
+              {badge && (
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 ${badge.classes}`}>
+                  {badge.label}
+                </span>
+              )}
+              <h3 className="text-[15px] font-semibold text-finix-navy dark:text-foreground">{template.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">{template.description}</p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handleCreate(template)}>
+                  <Plus className="w-3.5 h-3.5 ml-1" />
+                  إنشاء
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handlePreviewTemplate(template)}>
+                  <Eye className="w-3.5 h-3.5 ml-1" />
+                  معاينة
+                </Button>
+              </div>
             </div>
-            <h3 className="text-[15px] font-semibold text-[#0D1B2E] dark:text-foreground">{template.title}</h3>
-            <p className="text-xs text-muted-foreground mt-1 mb-4">{template.description}</p>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => handleCreate(template)}>
-                <Plus className="w-3.5 h-3.5 ml-1" />
-                إنشاء
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handlePreviewTemplate(template)}>
-                <Eye className="w-3.5 h-3.5 ml-1" />
-                معاينة
-              </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Recent Documents */}
