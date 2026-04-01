@@ -1391,7 +1391,7 @@ export default function WorkshopsPage() {
                       { key: "بنك", icon: "🏦", label: "بنك" },
                       { key: "شيك", icon: "📋", label: "شيكات" },
                     ].map(m => (
-                      <button key={m.key} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m.key }))}
+                      <button key={m.key} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m.key, cash_box_id: null, bank_account_id: null }))}
                         className="flex items-center justify-center gap-2 text-sm font-bold transition-all"
                         style={{
                           borderRadius: 10,
