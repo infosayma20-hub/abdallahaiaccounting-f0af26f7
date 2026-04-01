@@ -1406,8 +1406,8 @@ export default function WorkshopsPage() {
                   </div>
                 </div>
 
-                {/* Cash Box Selector — for cash and bank methods */}
-                {paymentForm.payment_method !== "شيك" && (
+                {/* Cash Box / Bank Account Selector */}
+                {paymentForm.payment_method === "نقدي" && (
                   <div className="space-y-2">
                     <Label className="text-sm font-bold">الصندوق</Label>
                     <select
@@ -1415,9 +1415,9 @@ export default function WorkshopsPage() {
                       onChange={e => setPaymentForm(f => ({ ...f, cash_box_id: e.target.value || null }))}
                       className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
                     >
-                      <option value="">الصندوق الافتراضي ({paymentForm.payment_method === "بنك" ? "1120" : "1110"})</option>
+                      <option value="">-- اختر الصندوق --</option>
                       {cashBoxes
-                        .filter(b => paymentForm.payment_method === "بنك" ? b.type === "بنكية" : b.type !== "بنكية")
+                        .filter(b => b.type !== "بنكية" && b.gl_account_code !== "1110" && b.gl_account_code !== "1120")
                         .map(b => (
                           <option key={b.id} value={b.id}>
                             {b.name} {b.gl_account_code ? `(${b.gl_account_code})` : ""} {b.currency && b.currency !== "ILS" ? `— ${b.currency}` : ""}
@@ -1425,6 +1425,27 @@ export default function WorkshopsPage() {
                         ))
                       }
                     </select>
+                  </div>
+                )}
+
+                {paymentForm.payment_method === "بنك" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold">الحساب البنكي</Label>
+                    <select
+                      value={paymentForm.bank_account_id || ""}
+                      onChange={e => setPaymentForm(f => ({ ...f, bank_account_id: e.target.value || null }))}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
+                    >
+                      <option value="">-- اختر الحساب البنكي --</option>
+                      {bankAccounts.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} — {b.bank_name} {b.gl_account_code ? `(${b.gl_account_code})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {bankAccounts.length === 0 && (
+                      <p className="text-xs text-destructive">لا توجد حسابات بنكية. أضف حساباً من صفحة البنوك أولاً.</p>
+                    )}
                   </div>
                 )}
               </div>
