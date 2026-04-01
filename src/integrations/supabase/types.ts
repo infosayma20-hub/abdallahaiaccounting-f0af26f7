@@ -7973,6 +7973,39 @@ export type Database = {
           },
         ]
       }
+      print_templates_designs: {
+        Row: {
+          created_at: string | null
+          design_json: Json
+          id: string
+          is_default: boolean | null
+          name: string
+          template_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          design_json?: Json
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          template_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          design_json?: Json
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          template_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       procurement_items: {
         Row: {
           category_id: string | null

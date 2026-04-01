@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon, Sparkles } from "lucide-react";
+import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon, Sparkles, Palette } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import PrintTemplateModal from "@/components/print-templates/PrintTemplateModal";
 import PrintTemplatePreview from "@/components/print-templates/PrintTemplatePreview";
@@ -74,6 +75,7 @@ const TEMPLATES: TemplateConfig[] = [
 ];
 
 const PrintTemplatesPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -219,13 +221,22 @@ const PrintTemplatesPage = () => {
               )}
               <h3 className="text-[13px] font-semibold text-[#0D1B2E] dark:text-foreground">{template.title}</h3>
               <p className="text-[11px] text-[#6B7280] mt-0.5 mb-3">{template.description}</p>
-              <button
-                className="w-8 h-8 rounded-full bg-[#0D1B2E] text-white flex items-center justify-center text-lg transition-transform group-hover:scale-110"
-                title="إنشاء نموذج جديد"
-                onClick={e => { e.stopPropagation(); handleCreate(template); }}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  className="w-8 h-8 rounded-full bg-[#0D1B2E] text-white flex items-center justify-center text-lg transition-transform hover:scale-110"
+                  title="إنشاء نموذج جديد"
+                  onClick={e => { e.stopPropagation(); handleCreate(template); }}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button
+                  className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center transition-transform hover:scale-110 hover:bg-primary/10 hover:text-primary"
+                  title="تخصيص التصميم"
+                  onClick={e => { e.stopPropagation(); navigate(`/print-templates/designer/${template.type}`); }}
+                >
+                  <Palette className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           );
         })}

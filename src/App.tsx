@@ -68,6 +68,7 @@ const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage")
 const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDashboardPage"));
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
 const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
+const TemplateDesignerPage = lazy(() => import("./pages/TemplateDesignerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const IndustryTemplatesPage = lazy(() => import("./pages/IndustryTemplatesPage"));
 const CustomizationRequestPage = lazy(() => import("./pages/CustomizationRequestPage"));
@@ -415,6 +416,7 @@ const App = () => (
                       <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
+                      <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
                       <Route path="/help" element={<HelpCenterPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
