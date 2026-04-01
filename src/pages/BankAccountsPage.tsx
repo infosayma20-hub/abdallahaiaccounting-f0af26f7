@@ -409,8 +409,8 @@ const BankAccountsPage = () => {
                 onClick={handleSave}
                 disabled={saving}
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Landmark className="h-4 w-4" />}
-                حفظ الحساب البنكي
+                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Landmark className="h-4 w-4" />}
+                 {editingBankId ? "تحديث الحساب البنكي" : "حفظ الحساب البنكي"}
               </Button>
             </div>
           </div>
