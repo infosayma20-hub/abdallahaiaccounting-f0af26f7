@@ -18,6 +18,7 @@ import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
 import TopSellingWidget from "@/components/dashboard/TopSellingWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
+import CustomizeDashboardDialog, { loadWidgetConfig, type DashboardWidgetConfig } from "@/components/dashboard/CustomizeDashboardDialog";
 
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import AccountStatementModal from "@/components/AccountStatementModal";
@@ -93,6 +94,9 @@ const HomeDashboard = () => {
   const [privacyMode, setPrivacyMode] = useState(() => {
     try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
   });
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [widgetConfig, setWidgetConfig] = useState<DashboardWidgetConfig[]>(loadWidgetConfig());
+  const isVisible = (id: string) => widgetConfig.find(w => w.id === id)?.visible !== false;
 
   // Setup wizard - now handled by /setup route, no longer needed here
 
@@ -153,7 +157,7 @@ const HomeDashboard = () => {
             onPeriodChange={dashboard.setPeriod}
             lastUpdated={dashboard.lastUpdated}
             onRefresh={dashboard.refresh}
-            onCustomize={() => {}}
+            onCustomize={() => setCustomizeOpen(true)}
             loading={dashboard.loading}
             privacyMode={privacyMode}
             onTogglePrivacy={() => {
@@ -163,33 +167,24 @@ const HomeDashboard = () => {
             }}
           />
           <div className={privacyMode ? "select-none pointer-events-none col-span-12 grid grid-cols-12 gap-4" : "col-span-12 grid grid-cols-12 gap-4"}>
-            {/* W2: KPI Row */}
-            <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />
+            {isVisible("kpis") && <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />}
 
-            {/* W3: Revenue vs Expenses Chart */}
-            <RevenueExpenseChart
-              data={dashboard.chartData}
-              grouping={dashboard.chartGrouping}
-              onGroupingChange={dashboard.setChartGrouping}
-              loading={dashboard.loading}
-            />
+            {isVisible("revenue-chart") && (
+              <RevenueExpenseChart
+                data={dashboard.chartData}
+                grouping={dashboard.chartGrouping}
+                onGroupingChange={dashboard.setChartGrouping}
+                loading={dashboard.loading}
+              />
+            )}
 
-            {/* Recent Activity - beside revenue chart */}
-            <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
-
-            {/* Top Selling Items */}
-            <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
-
-            {/* W5: Cash Flow */}
-            <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
-
-            {/* Row: Aging + Inventory + Cheques (4+4+4) */}
-            <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
-            <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
-            <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
-
-            {/* Exchange Rates */}
-            <ExchangeRatesWidget />
+            {isVisible("recent-activity") && <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />}
+            {isVisible("top-selling") && <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />}
+            {isVisible("cash-flow") && <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />}
+            {isVisible("aging") && <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />}
+            {isVisible("inventory") && <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />}
+            {isVisible("cheques") && <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />}
+            {isVisible("exchange-rates") && <ExchangeRatesWidget />}
           </div>
         </div>
       </div>
@@ -208,6 +203,7 @@ const HomeDashboard = () => {
       <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AccountStatementModal open={showAccountStatement} onClose={() => setShowAccountStatement(false)} />
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />
+      <CustomizeDashboardDialog open={customizeOpen} onOpenChange={setCustomizeOpen} onApply={setWidgetConfig} />
     </div>
   );
 };
