@@ -174,20 +174,47 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
       return;
     }
 
-    // Post opening balance journal entry
-    if (!editBox && Number(openingBalance) > 0 && glCode) {
+    // Post opening balance journal entry (create or update)
+    const obAmount = Number(openingBalance) || 0;
+    const finalGlCode = glCode || boxData.gl_account_code;
+    if (finalGlCode && obAmount > 0) {
+      const obCurrency = currency === "ILS" ? "شيكل" : currency === "USD" ? "دولار" : "دينار";
+      if (editBox) {
+        // Delete old opening balance transaction for this box, then insert new one
+        const { data: oldTxs } = await supabase.from("transactions")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("debit_account_code", finalGlCode)
+          .eq("transaction_type", "opening_balance")
+          .eq("is_opening_balance", true)
+          .eq("is_deleted", false);
+        if (oldTxs && oldTxs.length > 0) {
+          await supabase.from("transactions")
+            .update({ is_deleted: true })
+            .in("id", oldTxs.map(t => t.id));
+        }
+      }
       await supabase.from("transactions").insert({
         user_id: user.id,
         transaction_date: openingDate,
         description: `رصيد افتتاحي — ${name.trim()}`,
-        debit_account_code: glCode,
+        debit_account_code: finalGlCode,
         credit_account_code: "3200",
-        amount: Number(openingBalance),
-        currency: currency === "ILS" ? "شيكل" : currency === "USD" ? "دولار" : "دينار",
+        amount: obAmount,
+        currency: obCurrency,
         transaction_type: "opening_balance",
         is_opening_balance: true,
-        idempotency_key: `OB-CASHBOX-${Date.now()}`,
+        idempotency_key: `OB-CASHBOX-${finalGlCode}-${Date.now()}`,
       });
+    } else if (editBox && finalGlCode && obAmount === 0) {
+      // If opening balance removed during edit, soft-delete old transaction
+      await supabase.from("transactions")
+        .update({ is_deleted: true })
+        .eq("user_id", user.id)
+        .eq("debit_account_code", finalGlCode)
+        .eq("transaction_type", "opening_balance")
+        .eq("is_opening_balance", true)
+        .eq("is_deleted", false);
     }
 
     const msgs = [`✅ تم ${editBox ? "تحديث" : "إنشاء"} صندوق ${name.trim()} بنجاح`];
