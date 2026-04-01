@@ -10,7 +10,7 @@ const breadcrumbRoutes: Record<string, string> = {
   "المحاسبة": "/apps",
   "المبيعات": "/invoices",
   "المشتريات": "/purchase-invoices",
-  "المالية": "/finance",
+  "المالية": "/apps",
   "التقارير": "/reports",
   "شجرة الحسابات": "/accounts",
   "الفواتير": "/invoices",
