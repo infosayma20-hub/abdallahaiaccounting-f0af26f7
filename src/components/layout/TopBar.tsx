@@ -10,7 +10,6 @@ import { NotificationsPanel, useNotifications } from "@/components/Notifications
 import { FinixLogo } from "@/components/ui/FinixLogo";
 import { useLockedModules } from "@/hooks/useLockedModules";
 import { toast } from "@/hooks/use-toast";
-import { FinixLogo } from "@/components/ui/FinixLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
