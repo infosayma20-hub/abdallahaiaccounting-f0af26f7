@@ -131,7 +131,7 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
           {enabled.map((item) => (
             <button
               key={item.id}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavigate(item.path)}
               className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-150 group"
               style={{
                 background: "rgba(255,255,255,0.05)",
