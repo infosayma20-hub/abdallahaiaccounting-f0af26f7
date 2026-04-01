@@ -249,7 +249,13 @@ export default function PortalTasksTab({ theme }: Props) {
     return true;
   });
 
-  const getEmployeeName = (id: string) => taskUsers.find(u => u.id === id)?.full_name || '—';
+  const getEmployeeName = (id: string) => {
+    const tu = taskUsers.find((u: any) => u.id === id);
+    if (tu) return tu.full_name;
+    const emp = employees.find(e => e.task_user_id === id);
+    if (emp) return emp.full_name;
+    return '—';
+  };
 
   if (loading) {
     return (
