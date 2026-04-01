@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon } from "lucide-react";
+import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import PrintTemplateModal from "@/components/print-templates/PrintTemplateModal";
 import PrintTemplatePreview from "@/components/print-templates/PrintTemplatePreview";
+import { isDoulia } from "@/lib/print-themes";
+import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 
 const TEMPLATE_CATEGORIES = [
   { key: "all", label: "الكل" },
