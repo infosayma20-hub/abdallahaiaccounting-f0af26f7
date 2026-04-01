@@ -82,24 +82,23 @@ export default function PortalTasksTab({ theme }: Props) {
       // Fetch company employees for this owner
       const { data: emps } = await supabase
         .from('employees')
-        .select('id, name, email')
+        .select('id, full_name, email')
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
       // Fetch existing task_users to map employee assignments
       const { data: tusers } = await supabase
         .from('task_users')
-        .select('id, full_name, email')
+        .select('id, full_name')
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
       // Build employee list with their task_user_id if exists
-      const empList = (emps || []).map(emp => {
-        const matched = (tusers || []).find(tu =>
-          (emp.email && tu.email && tu.email.toLowerCase() === emp.email.toLowerCase()) ||
-          tu.full_name?.trim() === emp.name?.trim()
+      const empList = (emps || []).map((emp: any) => {
+        const matched = (tusers || []).find((tu: any) =>
+          tu.full_name?.trim() === emp.full_name?.trim()
         );
-        return { employee_id: emp.id, full_name: emp.name, email: emp.email, task_user_id: matched?.id || null };
+        return { employee_id: emp.id, full_name: emp.full_name, email: emp.email, task_user_id: matched?.id || null };
       });
 
       setTasks(tasksData || []);
