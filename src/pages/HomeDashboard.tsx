@@ -157,7 +157,7 @@ const HomeDashboard = () => {
             onPeriodChange={dashboard.setPeriod}
             lastUpdated={dashboard.lastUpdated}
             onRefresh={dashboard.refresh}
-            onCustomize={() => {}}
+            onCustomize={() => setCustomizeOpen(true)}
             loading={dashboard.loading}
             privacyMode={privacyMode}
             onTogglePrivacy={() => {
