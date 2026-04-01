@@ -900,6 +900,20 @@ const ContactsPage = () => {
               <Label className="text-xs">العنوان</Label>
               <Input value={editData.address || ""} onChange={(e) => setEditData((p: any) => ({ ...p, address: e.target.value }))} dir="rtl" />
             </div>
+            <div>
+              <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
+              <Input type="number" placeholder="0" value={editData.opening_balance || ""} onChange={(e) => setEditData((p: any) => ({ ...p, opening_balance: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">طبيعة الرصيد</Label>
+              <Select value={editData.balance_direction || "credit"} onValueChange={(v) => setEditData((p: any) => ({ ...p, balance_direction: v }))} dir="rtl">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="debit">مدين (له عندنا)</SelectItem>
+                  <SelectItem value="credit">دائن (علينا له)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2">
               <Label className="text-xs">ملاحظات</Label>
               <Textarea value={editData.notes || ""} onChange={(e) => setEditData((p: any) => ({ ...p, notes: e.target.value }))} dir="rtl" rows={2} />
