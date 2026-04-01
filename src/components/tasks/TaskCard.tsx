@@ -54,7 +54,11 @@ export default function TaskCard({ task, priorityColor, currentUserId, onAssign,
           <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: prio.color }} />
           {prio.label}
         </Badge>
-        {task.category && <Badge variant="outline" className="text-[10px] h-5">{task.category}</Badge>}
+        {task.category && (
+          <Badge className="text-[10px] h-5 gap-1" style={CATEGORY_COLORS[task.category] ? { background: CATEGORY_COLORS[task.category].bg, color: CATEGORY_COLORS[task.category].color, border: 'none' } : undefined} variant={CATEGORY_COLORS[task.category] ? undefined : "outline"}>
+            {CATEGORY_COLORS[task.category]?.icon} {task.category}
+          </Badge>
+        )}
         {task.status === "in_progress" && <Badge className="text-[10px] h-5" style={{ background: "#378ADD" }}>قيد الإنجاز</Badge>}
       </div>
 
