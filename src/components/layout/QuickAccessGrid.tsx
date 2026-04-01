@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { useLockedModules } from "@/hooks/useLockedModules";
 import { toast } from "@/hooks/use-toast";
-import { Switch } from "@/components/ui/switch";
 
 export interface QuickAccessItem {
   id: string;
