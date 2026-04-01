@@ -79,18 +79,31 @@ export default function PortalTasksTab({ theme }: Props) {
         .eq('user_id', ownerId)
         .order('created_at', { ascending: false });
 
-      // Fetch task_users for this owner (employees in task system)
-      const { data: tusers } = await supabase
-        .from('task_users')
-        .select('*')
+      // Fetch company employees for this owner
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('id, full_name, email')
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
-      // Only use task_users for assignment (FK references task_users table)
-      const userList = (tusers || []).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
+      // Fetch existing task_users to map employee assignments
+      const { data: tusers } = await supabase
+        .from('task_users')
+        .select('id, full_name')
+        .eq('user_id', ownerId)
+        .eq('is_active', true);
+
+      // Build employee list with their task_user_id if exists
+      const empList = (emps || []).map((emp: any) => {
+        const matched = (tusers || []).find((tu: any) =>
+          tu.full_name?.trim() === emp.full_name?.trim()
+        );
+        return { employee_id: emp.id, full_name: emp.full_name, email: emp.email, task_user_id: matched?.id || null };
+      });
 
       setTasks(tasksData || []);
-      setTaskUsers(userList);
+      setEmployees(empList);
+      setTaskUsers(tusers || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -120,10 +133,36 @@ export default function PortalTasksTab({ theme }: Props) {
     return () => { supabase.removeChannel(channel); };
   }, [linkedUserId, fetchData]);
 
+  // Resolve or create task_user for an employee
+  const resolveTaskUserId = async (employeeId: string): Promise<string | null> => {
+    if (!employeeId || !linkedUserId) return null;
+    const emp = employees.find(e => e.employee_id === employeeId);
+    if (!emp) return null;
+    if (emp.task_user_id) return emp.task_user_id;
+
+    // Auto-create task_user for this employee
+    const colors = ['#E24B4A','#378ADD','#EF9F27','#22C55E','#7C3AED','#0891B2'];
+    const { data, error } = await supabase.from('task_users').insert({
+      full_name: emp.full_name,
+      user_id: linkedUserId,
+      password_hash: 'portal-managed',
+      avatar_color: colors[Math.floor(Math.random() * colors.length)],
+      role: 'employee',
+      is_active: true,
+    } as any).select('id').single();
+    if (error || !data) return null;
+    return data.id;
+  };
+
   const handleSubmit = async () => {
     if (!title.trim() || !linkedUserId) return;
     setSubmitting(true);
     try {
+      let taskUserId: string | null = null;
+      if (assignedTo) {
+        taskUserId = await resolveTaskUserId(assignedTo);
+      }
+
       const { error } = await supabase.from('tasks').insert({
         user_id: linkedUserId,
         title: title.trim(),
@@ -132,8 +171,8 @@ export default function PortalTasksTab({ theme }: Props) {
         status: 'open',
         category: category || null,
         due_date: dueDate || null,
-        assigned_to: assignedTo || null,
-        assigned_at: assignedTo ? new Date().toISOString() : null,
+        assigned_to: taskUserId,
+        assigned_at: taskUserId ? new Date().toISOString() : null,
         created_by_portal: true,
         assigned_by_name: adminName,
         is_visible_to_all: true,
@@ -156,7 +195,8 @@ export default function PortalTasksTab({ theme }: Props) {
     setEditTitle(task.title || '');
     setEditDescription(task.description || '');
     setEditPriority(task.priority || 'normal');
-    setEditAssignedTo(task.assigned_to || '');
+    const matchedEmp = employees.find(e => e.task_user_id === task.assigned_to);
+    setEditAssignedTo(matchedEmp?.employee_id || '');
     setEditDueDate(task.due_date || '');
     setEditCategory(task.category || '');
     setEditStatus(task.status || 'open');
@@ -167,12 +207,16 @@ export default function PortalTasksTab({ theme }: Props) {
     if (!selectedTask || !linkedUserId) return;
     setEditSaving(true);
     try {
+      let taskUserId: string | null = null;
+      if (editAssignedTo) {
+        taskUserId = await resolveTaskUserId(editAssignedTo);
+      }
       const { error } = await supabase.from('tasks').update({
         title: editTitle.trim(),
         description: editDescription.trim() || null,
         priority: editPriority,
-        assigned_to: editAssignedTo || null,
-        assigned_at: editAssignedTo ? new Date().toISOString() : null,
+        assigned_to: taskUserId,
+        assigned_at: taskUserId ? new Date().toISOString() : null,
         due_date: editDueDate || null,
         category: editCategory || null,
         status: editStatus,
@@ -210,7 +254,13 @@ export default function PortalTasksTab({ theme }: Props) {
     return true;
   });
 
-  const getEmployeeName = (id: string) => taskUsers.find(u => u.id === id)?.full_name || '—';
+  const getEmployeeName = (id: string) => {
+    const tu = taskUsers.find((u: any) => u.id === id);
+    if (tu) return tu.full_name;
+    const emp = employees.find(e => e.task_user_id === id);
+    if (emp) return emp.full_name;
+    return '—';
+  };
 
   if (loading) {
     return (
@@ -311,8 +361,8 @@ export default function PortalTasksTab({ theme }: Props) {
               }}
             >
               <option value="">اختر موظف...</option>
-              {taskUsers.map(u => (
-                <option key={u.id} value={u.id}>{u.full_name}</option>
+              {employees.map(emp => (
+                <option key={emp.employee_id} value={emp.employee_id}>{emp.full_name}</option>
               ))}
             </select>
 
@@ -532,7 +582,7 @@ export default function PortalTasksTab({ theme }: Props) {
                     <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
                     <select value={editAssignedTo} onChange={e => setEditAssignedTo(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
                       <option value="">بدون تعيين</option>
-                      {taskUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                      {employees.map(emp => <option key={emp.employee_id} value={emp.employee_id}>{emp.full_name}</option>)}
                     </select>
                   </div>
                   <div>
