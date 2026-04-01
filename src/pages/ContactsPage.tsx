@@ -782,7 +782,7 @@ const ContactsPage = () => {
             </div>
             <div>
               <Label className="text-xs">النوع</Label>
-              <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v }))} dir="rtl">
+              <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v, balance_direction: v === "مورد" ? "credit" : "debit" }))} dir="rtl">
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-background z-50">
                   {contactTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
