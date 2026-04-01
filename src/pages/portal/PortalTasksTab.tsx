@@ -351,7 +351,7 @@ export default function PortalTasksTab({ theme }: Props) {
                   }}
                 >
                   <option value="">بدون فئة</option>
-                  {["ضريبية", "محاسبية", "تدقيق", "إدارية", "ورشة", "أخرى"].map(c => (
+                  {["كرستا ونواقص", "ضريبية", "محاسبية", "تدقيق", "إدارية", "ورشة", "أخرى"].map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
