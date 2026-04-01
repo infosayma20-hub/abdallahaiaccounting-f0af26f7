@@ -195,7 +195,8 @@ export default function PortalTasksTab({ theme }: Props) {
     setEditTitle(task.title || '');
     setEditDescription(task.description || '');
     setEditPriority(task.priority || 'normal');
-    setEditAssignedTo(task.assigned_to || '');
+    const matchedEmp = employees.find(e => e.task_user_id === task.assigned_to);
+    setEditAssignedTo(matchedEmp?.employee_id || '');
     setEditDueDate(task.due_date || '');
     setEditCategory(task.category || '');
     setEditStatus(task.status || 'open');
