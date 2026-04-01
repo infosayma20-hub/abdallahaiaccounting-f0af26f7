@@ -18,6 +18,7 @@ import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
 import TopSellingWidget from "@/components/dashboard/TopSellingWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
+import CustomizeDashboardDialog, { loadWidgetConfig, type DashboardWidgetConfig } from "@/components/dashboard/CustomizeDashboardDialog";
 
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import AccountStatementModal from "@/components/AccountStatementModal";
