@@ -35,6 +35,8 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
   const [vatEnabled, setVatEnabled] = useState(false);
   const [validityDays, setValidityDays] = useState(30);
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [quoSpecs, setQuoSpecs] = useState("");
+  const [quoProjectDesc, setQuoProjectDesc] = useState("");
 
   // CON fields
   const [workDescription, setWorkDescription] = useState("");
