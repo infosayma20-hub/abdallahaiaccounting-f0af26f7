@@ -49,15 +49,15 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <style>
         @page { size: A4; margin: 0; }
         * { box-sizing: border-box; }
-        body { font-family: ${theme.fontFamily}; direction: rtl; font-size: 11px; color: ${theme.textColor}; margin: 0; padding: 15mm 20mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { font-family: ${theme.fontFamily}; direction: rtl; font-size: 11px; color: ${theme.textColor}; margin: 0; padding: 12mm 18mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid #E5E7EB; }
-        th { font-weight: 600; border-top: 1px solid ${theme.primaryColor}; border-bottom: 1px solid ${theme.primaryColor}; font-size: 10px; }
-        .sig-line { border-top: 1px solid #9CA3AF; width: 150px; margin-top: 40px; padding-top: 4px; text-align: center; font-size: 10px; color: #6B7280; }
-        .amount-block { text-align: center; margin: 24px 0; padding: 16px; }
+        th, td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #E5E7EB; font-size: 10px; }
+        th { font-weight: 600; border-top: 1px solid ${theme.primaryColor}; border-bottom: 1px solid ${theme.primaryColor}; font-size: 9px; }
+        .sig-line { border-top: 1px solid #9CA3AF; width: 150px; margin-top: 30px; padding-top: 4px; text-align: center; font-size: 10px; color: #6B7280; }
+        .amount-block { text-align: center; margin: 14px 0; padding: 10px; }
         .amount-value { font-size: ${theme.amountFontSize}px; font-weight: 800; color: ${theme.amountColor}; }
-        .amount-words { font-size: 12px; color: #666; font-style: italic; margin-top: 4px; }
-        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: ${theme.watermarkOpacity}; z-index: 0; pointer-events: none; }
+        .amount-words { font-size: 11px; color: #666; font-style: italic; margin-top: 4px; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: ${theme.watermarkOpacity}; z-index: 0; pointer-events: none; }
       </style></head><body>${content.innerHTML}</body></html>`);
     w.document.close();
     setTimeout(() => { w.print(); w.close(); }, 300);
