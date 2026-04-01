@@ -143,7 +143,7 @@ const ContactsPage = () => {
   const [newContact, setNewContact] = useState({
     name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "",
     contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "",
-    opening_balance: "", balance_direction: "credit" as "debit" | "credit",
+    opening_balance: "", balance_direction: "debit" as "debit" | "credit",
   });
 
   // Set filter from URL params
