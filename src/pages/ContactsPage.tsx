@@ -143,7 +143,7 @@ const ContactsPage = () => {
   const [newContact, setNewContact] = useState({
     name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "",
     contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "",
-    opening_balance: "", balance_direction: "credit" as "debit" | "credit",
+    opening_balance: "", balance_direction: "debit" as "debit" | "credit",
   });
 
   // Set filter from URL params
@@ -263,7 +263,7 @@ const ContactsPage = () => {
       }
 
       toast({ title: "تم إضافة جهة الاتصال بنجاح" });
-      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "credit" });
+      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "debit" });
       setShowAddDialog(false);
       fetchContacts();
     } catch (err: any) {
@@ -782,7 +782,7 @@ const ContactsPage = () => {
             </div>
             <div>
               <Label className="text-xs">النوع</Label>
-              <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v }))} dir="rtl">
+              <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v, balance_direction: v === "مورد" ? "credit" : "debit" }))} dir="rtl">
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-background z-50">
                   {contactTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
