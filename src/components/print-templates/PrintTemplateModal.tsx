@@ -22,6 +22,7 @@ interface Props {
 
 const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) => {
   const { user } = useAuth();
+  const showExtendedFields = isDoulia(user?.email);
   const [contactName, setContactName] = useState("");
   const [contactAddress, setContactAddress] = useState("");
   const [docDate, setDocDate] = useState(new Date().toISOString().split("T")[0]);
