@@ -52,10 +52,10 @@ const ICON_BG_MAP: Record<string, string> = {
 };
 
 const CATEGORY_BADGE: Record<string, { label: string; classes: string }> = {
-  financial: { label: "مالية", classes: "bg-blue-100 text-blue-700" },
-  contracts: { label: "عقود", classes: "bg-[#E8EDF3] text-finix-navy" },
-  notices: { label: "إشعارات", classes: "bg-amber-100 text-amber-700" },
-  correspondence: { label: "مراسلات", classes: "bg-gray-100 text-gray-600" },
+  financial: { label: "مالية", classes: "bg-[#DBEAFE] text-[#1E40AF]" },
+  contracts: { label: "عقود", classes: "bg-[#EDE9FE] text-[#5B21B6]" },
+  notices: { label: "إشعارات", classes: "bg-[#FEF3C7] text-[#92400E]" },
+  correspondence: { label: "مراسلات", classes: "bg-[#F3F4F6] text-[#374151]" },
 };
 
 const TEMPLATES: TemplateConfig[] = [
