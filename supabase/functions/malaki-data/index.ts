@@ -128,13 +128,135 @@ Deno.serve(async (req) => {
       return respond({ success: true });
     }
 
-    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed"].includes(action)) {
+    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview"].includes(action)) {
       return respond({
         success: true,
         needsSetup: true,
         message: "يجب ربط البوابة بحساب QOYOD أولاً",
         sales: null,
         liquidity: null,
+      });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // ACTION: overview — Full accounting KPIs for portal dashboard
+    // ══════════════════════════════════════════════════════
+    if (action === "overview") {
+      const { period = "month" } = body;
+      const now = new Date();
+      const toStr = now.toISOString().split("T")[0];
+      let fromStr: string;
+      switch (period) {
+        case "today": fromStr = toStr; break;
+        case "week": { const d = new Date(now); d.setDate(d.getDate() - d.getDay()); fromStr = d.toISOString().split("T")[0]; break; }
+        case "year": fromStr = `${now.getFullYear()}-01-01`; break;
+        default: fromStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      }
+
+      // Fetch transactions, contacts, cheques in parallel
+      const [txRes, contactRes, chqRes, recentTxRes] = await Promise.all([
+        supabase.from("transactions")
+          .select("transaction_date, debit_account_code, credit_account_code, amount, is_opening_balance, transaction_type, contact_id")
+          .eq("user_id", linkedUserId).eq("is_deleted", false).limit(5000),
+        supabase.from("contacts")
+          .select("id, contact_name, contact_type, current_balance")
+          .eq("user_id", linkedUserId).eq("is_active", true),
+        supabase.from("cheques")
+          .select("id, cheque_date, amount, party_name, cheque_type, status")
+          .eq("user_id", linkedUserId),
+        supabase.from("transactions")
+          .select("id, transaction_date, description, amount, debit_account_code, credit_account_code, created_at")
+          .eq("user_id", linkedUserId).eq("is_deleted", false)
+          .order("created_at", { ascending: false }).limit(10),
+      ]);
+
+      const allTx = txRes.data || [];
+      const contacts = contactRes.data || [];
+      const cheques = chqRes.data || [];
+      const recentTx = recentTxRes.data || [];
+
+      const plTx = allTx.filter(t => !t.is_opening_balance && t.transaction_type !== "رصيد ابتدائي");
+      const periodTx = plTx.filter(t => t.transaction_date >= fromStr && t.transaction_date <= toStr);
+
+      // KPIs
+      const revenue = periodTx.filter(t => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+      const purchases = periodTx.filter(t => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
+      const genExp = periodTx.filter(t => { const c = t.debit_account_code || ""; return (c.startsWith("5") && !c.startsWith("51") && !c.startsWith("52")) || c.startsWith("6"); }).reduce((s, t) => s + (t.amount || 0), 0);
+      const expenses = purchases + genExp;
+      const netProfit = revenue - expenses;
+
+      // Balance sheet (cumulative)
+      const recDr = allTx.filter(t => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+      const recCr = allTx.filter(t => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+      const receivables = recDr - recCr;
+
+      const payCr = allTx.filter(t => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+      const payDr = allTx.filter(t => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+      const payables = payCr - payDr;
+
+      const cashDr = allTx.filter(t => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+      const cashCr = allTx.filter(t => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+      const cashBalance = cashDr - cashCr;
+
+      // Cash flow
+      const inflows = periodTx.filter(t => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+      const outflows = periodTx.filter(t => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+
+      // Daily chart data for current period
+      const chartBuckets: Record<string, { revenue: number; expenses: number }> = {};
+      periodTx.forEach(tx => {
+        const key = tx.transaction_date;
+        if (!chartBuckets[key]) chartBuckets[key] = { revenue: 0, expenses: 0 };
+        if (tx.credit_account_code?.startsWith("4")) chartBuckets[key].revenue += tx.amount || 0;
+        const dc = tx.debit_account_code || "";
+        if (dc.startsWith("5") || dc.startsWith("6")) chartBuckets[key].expenses += tx.amount || 0;
+      });
+      const chartData = Object.entries(chartBuckets).sort(([a], [b]) => a.localeCompare(b)).map(([d, v]) => ({
+        date: d, revenue: v.revenue, expenses: v.expenses, profit: v.revenue - v.expenses,
+      }));
+
+      // Upcoming cheques
+      const upcomingCheques = cheques
+        .filter(c => c.status !== "محصل" && c.status !== "ملغي")
+        .map(c => ({ ...c, daysRemaining: Math.floor((new Date(c.cheque_date).getTime() - now.getTime()) / 86400000) }))
+        .sort((a, b) => a.daysRemaining - b.daysRemaining)
+        .slice(0, 6);
+
+      // Recent activity
+      const recentActivity = recentTx.map(tx => {
+        const txDate = new Date(tx.created_at || tx.transaction_date);
+        const diffMin = Math.floor((now.getTime() - txDate.getTime()) / 60000);
+        const diffHr = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHr / 24);
+        let timeAgo = "الآن";
+        if (diffDay > 0) timeAgo = diffDay === 1 ? "أمس" : `منذ ${diffDay} أيام`;
+        else if (diffHr > 0) timeAgo = `منذ ${diffHr} ساعة`;
+        else if (diffMin > 0) timeAgo = `منذ ${diffMin} دقيقة`;
+        const dc = tx.debit_account_code || "";
+        const cc = tx.credit_account_code || "";
+        let type = "other";
+        if (cc.startsWith("4") || dc === "1110" || dc === "1120") type = "income";
+        if (dc.startsWith("5") || dc.startsWith("6")) type = "expense";
+        return { id: tx.id, description: tx.description || "عملية", amount: tx.amount || 0, type, timeAgo };
+      });
+
+      // Top debtors/creditors
+      const topDebtors = contacts.filter(c => c.contact_type === "عميل" && (c.current_balance || 0) > 0)
+        .sort((a, b) => (b.current_balance || 0) - (a.current_balance || 0)).slice(0, 5)
+        .map(c => ({ name: c.contact_name, balance: c.current_balance }));
+      const topCreditors = contacts.filter(c => c.contact_type === "مورد" && (c.current_balance || 0) > 0)
+        .sort((a, b) => (b.current_balance || 0) - (a.current_balance || 0)).slice(0, 5)
+        .map(c => ({ name: c.contact_name, balance: c.current_balance }));
+
+      return respond({
+        success: true,
+        kpis: { revenue, expenses, netProfit, cashBalance, receivables, payables },
+        cashFlow: { inflows, outflows, net: inflows - outflows },
+        chartData,
+        recentActivity,
+        upcomingCheques,
+        topDebtors,
+        topCreditors,
       });
     }
 
