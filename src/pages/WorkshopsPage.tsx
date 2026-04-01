@@ -680,12 +680,21 @@ export default function WorkshopsPage() {
   /* ── Save Edit Workshop ── */
   const handleEditWorkshop = async () => {
     if (!editingWorkshop || !wsForm.name.trim()) { toast.error("اسم الورشة مطلوب"); return; }
+    
+    // Auto-create/update contact
+    let contactId = wsForm.contact_id;
+    if (wsForm.customer_name?.trim() && !contactId) {
+      contactId = await ensureContact(wsForm.customer_name, wsForm.customer_phone || null, wsForm.address || null, null);
+    } else if (contactId && wsForm.customer_name?.trim()) {
+      await ensureContact(wsForm.customer_name, wsForm.customer_phone || null, wsForm.address || null, contactId);
+    }
+
     const { error } = await supabase.from("workshops").update({
       name: wsForm.name, customer_name: wsForm.customer_name || null,
       customer_phone: wsForm.customer_phone || null, address: wsForm.address || null,
       description: wsForm.description || null, total_budget: wsForm.total_budget || 0,
       start_date: wsForm.start_date || null, expected_end_date: wsForm.expected_end_date || null,
-      contact_id: wsForm.contact_id || null, area_sqm: wsForm.area_sqm || null,
+      contact_id: contactId || null, area_sqm: wsForm.area_sqm || null,
       workshop_type: wsForm.workshop_type || "kitchen", image_url: wsForm.image_url || null,
       updated_at: new Date().toISOString(),
     } as any).eq("id", editingWorkshop.id);
@@ -696,7 +705,7 @@ export default function WorkshopsPage() {
     setWsForm(defaultWsForm());
     loadWorkshops();
     if (selectedWorkshop?.id === editingWorkshop.id) {
-      setSelectedWorkshop({ ...editingWorkshop, ...wsForm, area_sqm: wsForm.area_sqm || null, contact_id: wsForm.contact_id || null, image_url: wsForm.image_url || null } as any);
+      setSelectedWorkshop({ ...editingWorkshop, ...wsForm, area_sqm: wsForm.area_sqm || null, contact_id: contactId || null, image_url: wsForm.image_url || null } as any);
     }
   };
 
