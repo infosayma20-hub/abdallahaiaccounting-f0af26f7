@@ -2,11 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Hand, Crown } from "lucide-react";
 
-const PRIORITY_LABELS: Record<string, string> = {
-  urgent_important: "مهم ومستعجل",
-  important: "مهم",
-  urgent: "مستعجل",
-  normal: "عادي",
+const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  urgent_important: { label: "مهم ومستعجل", color: "#E24B4A" },
+  important: { label: "مهم", color: "#378ADD" },
+  urgent: { label: "مستعجل", color: "#EF9F27" },
+  normal: { label: "عادي", color: "#888780" },
 };
 
 interface TaskCardProps {
@@ -19,6 +19,7 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task, priorityColor, currentUserId, onAssign, onClick, onComplete }: TaskCardProps) {
+  const prio = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const today = new Date().toISOString().split("T")[0];
   const isOverdue = task.due_date && task.due_date < today && task.status !== "done";
   const isToday = task.due_date === today;
@@ -44,6 +45,10 @@ export default function TaskCard({ task, priorityColor, currentUserId, onAssign,
       )}
       {/* Badges */}
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        <Badge className="text-[10px] h-5 gap-1" style={{ background: `${prio.color}20`, color: prio.color, border: 'none' }}>
+          <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: prio.color }} />
+          {prio.label}
+        </Badge>
         {task.category && <Badge variant="outline" className="text-[10px] h-5">{task.category}</Badge>}
         {task.status === "in_progress" && <Badge className="text-[10px] h-5" style={{ background: "#378ADD" }}>قيد الإنجاز</Badge>}
       </div>
