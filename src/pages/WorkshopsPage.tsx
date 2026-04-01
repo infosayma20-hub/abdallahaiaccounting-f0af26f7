@@ -1255,11 +1255,11 @@ export default function WorkshopsPage() {
         <div className="w-full px-6 md:px-12 py-6 pb-28">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <Button variant="ghost" size="icon" onClick={() => setView("workshops")}>
+            <Button variant="ghost" size="icon" onClick={() => { setView("workshops"); setEditingPayment(null); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">تسجيل دفعة جديدة</h1>
+              <h1 className="text-xl font-bold text-foreground">{editingPayment ? "تعديل الدفعة" : "تسجيل دفعة جديدة"}</h1>
               <p className="text-sm text-muted-foreground">{selectedWorkshop.name} › {selectedWorkshop.customer_name || "بدون زبون"}</p>
             </div>
           </div>
