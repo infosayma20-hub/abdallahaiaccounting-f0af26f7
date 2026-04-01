@@ -109,6 +109,7 @@ const BankAccountsPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
 
   // Form
   const [bankName, setBankName] = useState("");
@@ -145,7 +146,26 @@ const BankAccountsPage = () => {
     setAccountNumber(""); setAccountType("current"); setCurrency("ILS");
     setGlAccountCode("1120"); setCommissionAccountCode(""); setOpeningBalance("");
     setOpeningBalanceDate(new Date().toISOString().split("T")[0]);
-    setMinBalanceAlert(""); setNotes("");
+    setMinBalanceAlert(""); setNotes(""); setEditingBankId(null);
+  };
+
+  const openEditModal = (bank: any) => {
+    const isPredefined = PALESTINIAN_BANKS.includes(bank.bank_name);
+    setBankName(isPredefined ? bank.bank_name : "أخرى");
+    setCustomBankName(isPredefined ? "" : bank.bank_name);
+    setBranch(bank.branch || "");
+    setAccountName(bank.name || "");
+    setAccountNumber(bank.account_number || "");
+    setAccountType(bank.account_type || "current");
+    setCurrency(bank.currency || "ILS");
+    setGlAccountCode(bank.gl_account_code || "1120");
+    setCommissionAccountCode(bank.commission_account_code || "");
+    setOpeningBalance(bank.opening_balance?.toString() || "");
+    setOpeningBalanceDate(bank.opening_balance_date || new Date().toISOString().split("T")[0]);
+    setMinBalanceAlert(bank.min_balance_alert?.toString() || "");
+    setNotes(bank.notes || "");
+    setEditingBankId(bank.id);
+    setModalOpen(true);
   };
 
   const handleSave = async () => {
@@ -157,8 +177,7 @@ const BankAccountsPage = () => {
     }
 
     setSaving(true);
-    const { error } = await supabase.from("bank_accounts").insert({
-      user_id: user.id,
+    const payload = {
       name: accountName,
       bank_name: finalBankName,
       branch: branch || null,
@@ -171,12 +190,16 @@ const BankAccountsPage = () => {
       opening_balance_date: openingBalanceDate || null,
       min_balance_alert: minBalanceAlert ? Number(minBalanceAlert) : null,
       notes: notes || null,
-    });
+    };
+
+    const { error } = editingBankId
+      ? await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", user.id)
+      : await supabase.from("bank_accounts").insert({ ...payload, user_id: user.id });
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `✅ تم إضافة حساب ${finalBankName} بنجاح` });
+      toast({ title: editingBankId ? `✅ تم تعديل حساب ${finalBankName} بنجاح` : `✅ تم إضافة حساب ${finalBankName} بنجاح` });
       setModalOpen(false);
       resetForm();
       fetchBanks();
@@ -234,9 +257,9 @@ const BankAccountsPage = () => {
                   <Button variant="ghost" size="sm" className="text-xs flex-1" onClick={() => navigate(`/account-statement?code=${bank.gl_account_code || "1120"}`)}>
                     <FileText className="h-3 w-3 ml-1" />كشف حساب
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    <Settings className="h-3 w-3" />
-                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => openEditModal(bank)}>
+                     <Settings className="h-3 w-3" />
+                   </Button>
                 </div>
               </CardContent>
             </Card>
@@ -262,8 +285,8 @@ const BankAccountsPage = () => {
                     <Landmark className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>إضافة حساب بنكي</h2>
-                    <p className="text-xs text-white/60">تعريف حساب بنكي جديد وربطه بشجرة الحسابات</p>
+                     <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editingBankId ? "تعديل حساب بنكي" : "إضافة حساب بنكي"}</h2>
+                     <p className="text-xs text-white/60">{editingBankId ? "تعديل بيانات الحساب البنكي" : "تعريف حساب بنكي جديد وربطه بشجرة الحسابات"}</p>
                   </div>
                 </div>
                 <button onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-white/20 transition-colors">
@@ -386,8 +409,8 @@ const BankAccountsPage = () => {
                 onClick={handleSave}
                 disabled={saving}
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Landmark className="h-4 w-4" />}
-                حفظ الحساب البنكي
+                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Landmark className="h-4 w-4" />}
+                 {editingBankId ? "تحديث الحساب البنكي" : "حفظ الحساب البنكي"}
               </Button>
             </div>
           </div>
