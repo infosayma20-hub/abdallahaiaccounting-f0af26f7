@@ -972,11 +972,36 @@ export default function WorkshopsPage() {
             ) : (
               <div className="space-y-1.5">
                 {payments.map(p => (
-                  <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                  <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border group">
                     <span className="text-emerald-600 font-bold">+{p.amount.toLocaleString()} ₪</span>
                     <span className="text-muted-foreground">{p.payment_method}</span>
                     <span className="flex-1 text-muted-foreground truncate">{p.description}</span>
                     <span className="text-muted-foreground/60">{p.payment_date}</span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                        setEditingPayment(p);
+                        setPaymentForm({
+                          amount: p.amount, payment_method: p.payment_method, description: p.description || "",
+                          payment_date: p.payment_date, cheque_bank: "", deposit_bank_id: null,
+                          currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null,
+                        });
+                        setChequeRows([]);
+                        setView("new-payment");
+                      }}>
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={async () => {
+                        if (!confirm("هل تريد حذف هذه الدفعة؟")) return;
+                        if (p.linked_transaction_id) {
+                          await supabase.from("transactions").update({ is_deleted: true } as any).eq("id", p.linked_transaction_id);
+                        }
+                        await supabase.from("workshop_payments").delete().eq("id", p.id);
+                        toast.success("تم حذف الدفعة");
+                        loadCosts(selectedWorkshop!.id);
+                      }}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 <div className="mt-2">
