@@ -165,28 +165,38 @@ const PrintTemplatesPage = () => {
 
       {/* Templates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(template => (
-          <div
-            key={template.id}
-            className="bg-card border border-border rounded-xl p-5 flex flex-col items-center text-center hover:shadow-md transition-shadow"
-          >
-            <div className="w-12 h-12 rounded-full bg-[#0D1B2E] flex items-center justify-center text-2xl mb-3">
-              {template.icon}
+        {filtered.map(template => {
+          const IconComp = ICON_MAP[template.id] || FileText;
+          const iconColor = ICON_COLOR_MAP[template.id] || "text-finix-navy";
+          const badge = CATEGORY_BADGE[template.category];
+          return (
+            <div
+              key={template.id}
+              className="bg-white dark:bg-card border border-[#E5E7EB] dark:border-border rounded-xl p-6 flex flex-col items-center text-center transition-all hover:border-finix-navy hover:shadow-sm"
+            >
+              <div className={`w-10 h-10 rounded-[10px] bg-[#F0F4FF] dark:bg-muted flex items-center justify-center mb-3`}>
+                <IconComp className={`w-5 h-5 ${iconColor}`} />
+              </div>
+              {badge && (
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 ${badge.classes}`}>
+                  {badge.label}
+                </span>
+              )}
+              <h3 className="text-[15px] font-semibold text-finix-navy dark:text-foreground">{template.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">{template.description}</p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handleCreate(template)}>
+                  <Plus className="w-3.5 h-3.5 ml-1" />
+                  إنشاء
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handlePreviewTemplate(template)}>
+                  <Eye className="w-3.5 h-3.5 ml-1" />
+                  معاينة
+                </Button>
+              </div>
             </div>
-            <h3 className="text-[15px] font-semibold text-[#0D1B2E] dark:text-foreground">{template.title}</h3>
-            <p className="text-xs text-muted-foreground mt-1 mb-4">{template.description}</p>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => handleCreate(template)}>
-                <Plus className="w-3.5 h-3.5 ml-1" />
-                إنشاء
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handlePreviewTemplate(template)}>
-                <Eye className="w-3.5 h-3.5 ml-1" />
-                معاينة
-              </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Recent Documents */}
