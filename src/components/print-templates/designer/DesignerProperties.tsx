@@ -255,6 +255,7 @@ const DesignerProperties = ({ element, design, onUpdateStyle, onUpdateElement }:
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-3">
           {renderZonePicker()}
+          {renderPositionProps()}
           {renderTextProps()}
           {element.type === 'divider' && renderDividerProps()}
           {element.type === 'image' && renderImageProps()}
