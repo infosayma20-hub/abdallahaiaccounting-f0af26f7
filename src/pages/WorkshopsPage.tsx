@@ -167,6 +167,7 @@ export default function WorkshopsPage() {
   const [costFilter, setCostFilter] = useState("all");
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   
+  const [editingPayment, setEditingPayment] = useState<WorkshopPayment | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [customerBalance, setCustomerBalance] = useState(0);
   const [invItems, setInvItems] = useState<any[]>([]);
