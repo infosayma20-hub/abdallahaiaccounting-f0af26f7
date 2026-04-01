@@ -235,7 +235,7 @@ const ContactsPage = () => {
       });
       if (error) throw error;
       toast({ title: "تم إضافة جهة الاتصال بنجاح" });
-      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "" });
+      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "credit" });
       setShowAddDialog(false);
       fetchContacts();
     } catch (err: any) {
