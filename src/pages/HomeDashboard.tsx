@@ -94,6 +94,9 @@ const HomeDashboard = () => {
   const [privacyMode, setPrivacyMode] = useState(() => {
     try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
   });
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [widgetConfig, setWidgetConfig] = useState<DashboardWidgetConfig[]>(loadWidgetConfig());
+  const isVisible = (id: string) => widgetConfig.find(w => w.id === id)?.visible !== false;
 
   // Setup wizard - now handled by /setup route, no longer needed here
 
