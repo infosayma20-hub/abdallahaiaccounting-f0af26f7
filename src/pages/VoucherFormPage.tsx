@@ -1203,7 +1203,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <button onClick={() => navigate(listPath)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
               العودة للسندات
             </button>
-            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheckNumber(""); setCheckDate(""); setCheckBank(""); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
+            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheques([]); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               {isReceipt ? "سند قبض جديد" : "سند صرف جديد"}
             </button>
           </div>
