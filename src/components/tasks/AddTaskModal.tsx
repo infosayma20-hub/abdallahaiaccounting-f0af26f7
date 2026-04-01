@@ -19,7 +19,7 @@ const PRIORITIES = [
   { value: "normal", label: "عادي", color: "#888780" },
 ];
 
-const CATEGORIES = ["ضريبية", "محاسبية", "تدقيق", "إدارية", "أخرى"];
+const CATEGORIES = ["كرستا ونواقص", "ضريبية", "محاسبية", "تدقيق", "إدارية", "ورشة", "أخرى"];
 
 interface Props {
   open: boolean;

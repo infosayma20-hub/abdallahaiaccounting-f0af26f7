@@ -351,7 +351,7 @@ export default function PortalTasksTab({ theme }: Props) {
                   }}
                 >
                   <option value="">بدون فئة</option>
-                  {["ضريبية", "محاسبية", "تدقيق", "إدارية", "ورشة", "أخرى"].map(c => (
+                  {["كرستا ونواقص", "ضريبية", "محاسبية", "تدقيق", "إدارية", "ورشة", "أخرى"].map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
@@ -451,6 +451,21 @@ export default function PortalTasksTab({ theme }: Props) {
                   <span style={{ fontWeight: 600, color: prio?.color, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: prio?.color }} />{prio?.label}
                   </span>
+                  {task.category === 'كرستا ونواقص' && (
+                    <span style={{ padding: '2px 8px', borderRadius: 12, background: '#7C3AED15', color: '#7C3AED', fontWeight: 600 }}>
+                      🔧 كرستا ونواقص
+                    </span>
+                  )}
+                  {task.category === 'ورشة' && (
+                    <span style={{ padding: '2px 8px', borderRadius: 12, background: '#0891B215', color: '#0891B2', fontWeight: 600 }}>
+                      🏭 ورشة
+                    </span>
+                  )}
+                  {task.category && !['كرستا ونواقص', 'ورشة'].includes(task.category) && (
+                    <span style={{ padding: '2px 8px', borderRadius: 12, background: `${t.inputBg}`, color: t.textMuted, fontWeight: 600 }}>
+                      {task.category}
+                    </span>
+                  )}
                   <span style={{ padding: '2px 8px', borderRadius: 12, background: task.created_by_portal ? `${PRIMARY}15` : `${ACCENT}15`, color: task.created_by_portal ? PRIMARY : ACCENT, fontWeight: 600 }}>
                     {task.created_by_portal ? '👑 المدير' : '👤 موظف'}
                   </span>

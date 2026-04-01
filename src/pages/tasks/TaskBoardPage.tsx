@@ -170,7 +170,7 @@ export default function TaskBoardPage() {
           <SelectTrigger className="w-32 h-7 text-xs"><SelectValue placeholder="الفئة" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">كل الفئات</SelectItem>
-            {["ضريبية", "محاسبية", "تدقيق", "إدارية", "أخرى"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {["كرستا ونواقص", "ضريبية", "محاسبية", "تدقيق", "إدارية", "ورشة", "أخرى"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>

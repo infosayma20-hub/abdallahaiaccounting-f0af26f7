@@ -9,6 +9,11 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   normal: { label: "عادي", color: "#888780" },
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; color: string; icon: string }> = {
+  "كرستا ونواقص": { bg: "#7C3AED20", color: "#7C3AED", icon: "🔧" },
+  "ورشة": { bg: "#0891B220", color: "#0891B2", icon: "🏭" },
+};
+
 interface TaskCardProps {
   task: any;
   priorityColor: string;
@@ -49,7 +54,11 @@ export default function TaskCard({ task, priorityColor, currentUserId, onAssign,
           <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: prio.color }} />
           {prio.label}
         </Badge>
-        {task.category && <Badge variant="outline" className="text-[10px] h-5">{task.category}</Badge>}
+        {task.category && (
+          <Badge className="text-[10px] h-5 gap-1" style={CATEGORY_COLORS[task.category] ? { background: CATEGORY_COLORS[task.category].bg, color: CATEGORY_COLORS[task.category].color, border: 'none' } : undefined} variant={CATEGORY_COLORS[task.category] ? undefined : "outline"}>
+            {CATEGORY_COLORS[task.category]?.icon} {task.category}
+          </Badge>
+        )}
         {task.status === "in_progress" && <Badge className="text-[10px] h-5" style={{ background: "#378ADD" }}>قيد الإنجاز</Badge>}
       </div>
 

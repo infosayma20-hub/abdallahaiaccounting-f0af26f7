@@ -62,7 +62,13 @@ export default function TaskDisplayPage() {
             <div key={task.id} className="rounded-xl border bg-card p-5 shadow-sm" style={{ borderRight: `5px solid ${p.color}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Badge style={{ background: p.color + "20", color: p.color, border: "none" }} className="text-xs">{p.icon} {p.label}</Badge>
-                {task.category && <Badge variant="outline" className="text-xs">{task.category}</Badge>}
+                {task.category && (
+                  task.category === "كرستا ونواقص"
+                    ? <Badge className="text-xs" style={{ background: '#7C3AED20', color: '#7C3AED', border: 'none' }}>🔧 {task.category}</Badge>
+                    : task.category === "ورشة"
+                    ? <Badge className="text-xs" style={{ background: '#0891B220', color: '#0891B2', border: 'none' }}>🏭 {task.category}</Badge>
+                    : <Badge variant="outline" className="text-xs">{task.category}</Badge>
+                )}
               </div>
               <h2 className="text-lg font-bold mb-2">{task.title}</h2>
               {task.description && <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{task.description}</p>}
