@@ -229,9 +229,9 @@ export function useDashboardData() {
     const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
     const payables = payCr - payDr;
 
-    // Cash = cash account (1110) + bank (1120)
-    const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
-    const cashCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    // Cash = all cash boxes (111x) + all bank accounts (112x)
+    const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
+    const cashCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
     const cashBalance = cashDr - cashCr;
 
     return { revenue, expenses, netProfit, receivables, payables, cashBalance };
