@@ -45,6 +45,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${title}</title>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
       <style>
         @page { size: A4; margin: 15mm 20mm; }
         * { box-sizing: border-box; }
