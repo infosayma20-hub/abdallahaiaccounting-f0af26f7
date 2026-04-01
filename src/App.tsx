@@ -12,6 +12,7 @@ import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import RoleGuard from "./components/RoleGuard";
+import InvoicesPage from "./pages/InvoicesPage";
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 
 // Lazy-loaded pages for code splitting
@@ -33,7 +34,6 @@ const TrialBalancePage = lazy(() => import("./pages/TrialBalancePage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
-const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
 const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
