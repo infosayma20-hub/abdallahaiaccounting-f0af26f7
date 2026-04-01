@@ -75,6 +75,7 @@ const TEMPLATES: TemplateConfig[] = [
 ];
 
 const PrintTemplatesPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
