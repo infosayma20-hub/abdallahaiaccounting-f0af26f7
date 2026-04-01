@@ -92,9 +92,10 @@ export default function PortalDashboard() {
       };
 
   const tabs = [
+    { key: 'overview' as const, label: '📊 لوحة المعلومات', visible: true },
     { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
     { key: 'tasks' as const, label: '📋 المهام', visible: true },
-    { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
+    { key: 'sales' as const, label: '🛒 المبيعات', visible: user.can_see_sales },
     { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
     { key: 'requests' as const, label: '📝 الطلبات', visible: true },
     { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
