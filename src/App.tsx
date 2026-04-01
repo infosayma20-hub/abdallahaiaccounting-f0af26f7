@@ -276,8 +276,8 @@ const App = () => (
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
-                      <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
-                      <Route path="/employee-forms-management" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard>} />
+                      <Route path="/employees" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard></ModuleGuard>} />
+                      <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
