@@ -800,6 +800,20 @@ const ContactsPage = () => {
               <Label className="text-xs">العنوان</Label>
               <Input placeholder="العنوان" value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" />
             </div>
+            <div>
+              <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
+              <Input type="number" placeholder="0" value={newContact.opening_balance} onChange={(e) => setNewContact(p => ({ ...p, opening_balance: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">طبيعة الرصيد</Label>
+              <Select value={newContact.balance_direction} onValueChange={(v: "debit" | "credit") => setNewContact(p => ({ ...p, balance_direction: v }))} dir="rtl">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="debit">مدين (له عندنا)</SelectItem>
+                  <SelectItem value="credit">دائن (علينا له)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2">
               <Label className="text-xs">ملاحظات</Label>
               <Textarea placeholder="ملاحظات..." value={newContact.notes} onChange={(e) => setNewContact(p => ({ ...p, notes: e.target.value }))} dir="rtl" rows={2} />
