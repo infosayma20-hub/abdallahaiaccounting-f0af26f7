@@ -206,12 +206,16 @@ export default function PortalTasksTab({ theme }: Props) {
     if (!selectedTask || !linkedUserId) return;
     setEditSaving(true);
     try {
+      let taskUserId: string | null = null;
+      if (editAssignedTo) {
+        taskUserId = await resolveTaskUserId(editAssignedTo);
+      }
       const { error } = await supabase.from('tasks').update({
         title: editTitle.trim(),
         description: editDescription.trim() || null,
         priority: editPriority,
-        assigned_to: editAssignedTo || null,
-        assigned_at: editAssignedTo ? new Date().toISOString() : null,
+        assigned_to: taskUserId,
+        assigned_at: taskUserId ? new Date().toISOString() : null,
         due_date: editDueDate || null,
         category: editCategory || null,
         status: editStatus,
