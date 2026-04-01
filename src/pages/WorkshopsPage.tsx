@@ -1400,7 +1400,7 @@ export default function WorkshopsPage() {
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={() => { setView("workshops"); setEditingPayment(null); }}>
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowRight className="h-5 w-5" />
             </Button>
             <div>
               <h1 className="text-xl font-bold text-foreground">{editingPayment ? "تعديل الدفعة" : "تسجيل دفعة جديدة"}</h1>
