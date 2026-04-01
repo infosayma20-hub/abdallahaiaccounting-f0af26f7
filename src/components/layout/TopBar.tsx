@@ -272,7 +272,7 @@ const QuickAccessButton = () => {
           {QUICK_ITEMS.map((item) => (
             <button
               key={item.path}
-              onClick={() => { navigate(item.path); setOpen(false); }}
+              onClick={() => handleNavigate(item.path)}
               className="flex items-center gap-2.5 text-right transition-colors group"
               style={{ padding: "10px 12px", borderRadius: 8 }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#F8F9FA"; }}
