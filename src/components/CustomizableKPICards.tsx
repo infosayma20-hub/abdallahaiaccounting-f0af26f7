@@ -149,7 +149,8 @@ const CustomizableKPICards = ({
   const hasReceivables = receivables > 0;
   const hasIncome = totalIncome > 0;
   const collectionRate = hasIncome && hasReceivables ? Math.round((totalIncome / (totalIncome + receivables)) * 100) : hasIncome ? 100 : 0;
-  const debtToCash = cashBalance > 0 ? payables / cashBalance : payables > 0 ? 999 : 0;
+  const absPayables = Math.abs(payables); // payables is negative
+  const debtToCash = cashBalance > 0 ? absPayables / cashBalance : absPayables > 0 ? 999 : 0;
 
   const sparkData = useMemo(() => {
     const base = [30, 45, 35, 60, 50, 70, 65];
