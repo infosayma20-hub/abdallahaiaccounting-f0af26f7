@@ -466,36 +466,35 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   // Signature block
   const renderSignatures = () => {
     if (isCustom && theme.signatureStyle === "formal") {
-      // For contracts, show two-column
       if (type === "CON") {
         return (
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 30 }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ borderTop: "1px solid #9CA3AF", width: 180, paddingTop: 6, fontSize: 10, color: "#6B7280" }}>الطرف الأول / البائع</div>
-              <div style={{ fontSize: 9, marginTop: 2 }}>{companyName}</div>
+              <div style={{ borderTop: "1px solid #9CA3AF", width: 160, paddingTop: 4, fontSize: 9, color: "#6B7280" }}>الطرف الأول / البائع</div>
+              <div style={{ fontSize: 8, marginTop: 2 }}>{companyName}</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ borderTop: "1px solid #9CA3AF", width: 180, paddingTop: 6, fontSize: 10, color: "#6B7280" }}>الطرف الثاني / المشتري</div>
-              <div style={{ fontSize: 9, marginTop: 2 }}>{doc.contact_name || "—"}</div>
+              <div style={{ borderTop: "1px solid #9CA3AF", width: 160, paddingTop: 4, fontSize: 9, color: "#6B7280" }}>الطرف الثاني / المشتري</div>
+              <div style={{ fontSize: 8, marginTop: 2 }}>{doc.contact_name || "—"}</div>
             </div>
           </div>
         );
       }
       return (
-        <div style={{ marginTop: 60, textAlign: "center" }}>
-          <div style={{ borderTop: "1px solid #9CA3AF", width: 220, margin: "0 auto", paddingTop: 6, fontSize: 11, color: "#6B7280" }}>
+        <div style={{ marginTop: 30, textAlign: "center" }}>
+          <div style={{ borderTop: "1px solid #9CA3AF", width: 200, margin: "0 auto", paddingTop: 4, fontSize: 10, color: "#6B7280" }}>
             {theme.signatureText}
           </div>
-          <div style={{ fontSize: 10, marginTop: 4, color: theme.primaryColor, fontWeight: 600 }}>{companyName}</div>
+          <div style={{ fontSize: 9, marginTop: 2, color: theme.primaryColor, fontWeight: 600 }}>{companyName}</div>
         </div>
       );
     }
 
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
-        <div style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>توقيع المستلم</div>
-        <div style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>ختم الشركة</div>
-        <div style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>المدير</div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 30 }}>
+        <div style={{ borderTop: "1px solid #9CA3AF", width: 140, paddingTop: 4, textAlign: "center", fontSize: 9, color: "#6B7280" }}>توقيع المستلم</div>
+        <div style={{ borderTop: "1px solid #9CA3AF", width: 140, paddingTop: 4, textAlign: "center", fontSize: 9, color: "#6B7280" }}>ختم الشركة</div>
+        <div style={{ borderTop: "1px solid #9CA3AF", width: 140, paddingTop: 4, textAlign: "center", fontSize: 9, color: "#6B7280" }}>المدير</div>
       </div>
     );
   };
