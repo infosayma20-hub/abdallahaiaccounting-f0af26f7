@@ -167,33 +167,24 @@ const HomeDashboard = () => {
             }}
           />
           <div className={privacyMode ? "select-none pointer-events-none col-span-12 grid grid-cols-12 gap-4" : "col-span-12 grid grid-cols-12 gap-4"}>
-            {/* W2: KPI Row */}
-            <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />
+            {isVisible("kpis") && <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />}
 
-            {/* W3: Revenue vs Expenses Chart */}
-            <RevenueExpenseChart
-              data={dashboard.chartData}
-              grouping={dashboard.chartGrouping}
-              onGroupingChange={dashboard.setChartGrouping}
-              loading={dashboard.loading}
-            />
+            {isVisible("revenue-chart") && (
+              <RevenueExpenseChart
+                data={dashboard.chartData}
+                grouping={dashboard.chartGrouping}
+                onGroupingChange={dashboard.setChartGrouping}
+                loading={dashboard.loading}
+              />
+            )}
 
-            {/* Recent Activity - beside revenue chart */}
-            <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
-
-            {/* Top Selling Items */}
-            <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
-
-            {/* W5: Cash Flow */}
-            <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
-
-            {/* Row: Aging + Inventory + Cheques (4+4+4) */}
-            <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
-            <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
-            <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
-
-            {/* Exchange Rates */}
-            <ExchangeRatesWidget />
+            {isVisible("recent-activity") && <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />}
+            {isVisible("top-selling") && <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />}
+            {isVisible("cash-flow") && <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />}
+            {isVisible("aging") && <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />}
+            {isVisible("inventory") && <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />}
+            {isVisible("cheques") && <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />}
+            {isVisible("exchange-rates") && <ExchangeRatesWidget />}
           </div>
         </div>
       </div>
