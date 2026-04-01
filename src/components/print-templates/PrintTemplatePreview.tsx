@@ -47,9 +47,9 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
       <style>
-        @page { size: A4; margin: 15mm 20mm; }
+        @page { size: A4; margin: 0; }
         * { box-sizing: border-box; }
-        body { font-family: ${theme.fontFamily}; direction: rtl; font-size: 11px; color: ${theme.textColor}; margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { font-family: ${theme.fontFamily}; direction: rtl; font-size: 11px; color: ${theme.textColor}; margin: 0; padding: 15mm 20mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid #E5E7EB; }
         th { font-weight: 600; border-top: 1px solid ${theme.primaryColor}; border-bottom: 1px solid ${theme.primaryColor}; font-size: 10px; }
