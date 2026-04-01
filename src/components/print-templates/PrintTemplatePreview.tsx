@@ -6,9 +6,7 @@ import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { getThemeForUser, type PrintTheme, DEFAULT_THEME } from "@/lib/print-themes";
 import { amountToArabicWords } from "@/lib/arabic-number-words";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// PDF imports removed — print only
 
 interface Props {
   open: boolean;
