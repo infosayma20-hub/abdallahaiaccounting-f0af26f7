@@ -391,9 +391,14 @@ export default function WorkshopsPage() {
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    // Determine debit account: use cash box GL code if selected, otherwise default
+    // Determine debit account based on payment method and selected account
     let debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
-    if (!isCheque && paymentForm.cash_box_id) {
+    if (isCheque) {
+      // cheques always go to 1150
+    } else if (paymentForm.payment_method === "بنك" && paymentForm.bank_account_id) {
+      const selectedBank = bankAccounts.find(b => b.id === paymentForm.bank_account_id);
+      if (selectedBank?.gl_account_code) debitCode = selectedBank.gl_account_code;
+    } else if (paymentForm.cash_box_id) {
       const selectedBox = cashBoxes.find(b => b.id === paymentForm.cash_box_id);
       if (selectedBox?.gl_account_code) debitCode = selectedBox.gl_account_code;
     }
