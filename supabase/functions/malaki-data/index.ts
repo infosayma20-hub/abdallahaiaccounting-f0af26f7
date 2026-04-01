@@ -190,13 +190,13 @@ Deno.serve(async (req) => {
       const payDr = allTx.filter(t => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
       const payables = payCr - payDr;
 
-      const cashDr = allTx.filter(t => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
-      const cashCr = allTx.filter(t => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+      const cashDr = allTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
+      const cashCr = allTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
       const cashBalance = cashDr - cashCr;
 
       // Cash flow
-      const inflows = periodTx.filter(t => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
-      const outflows = periodTx.filter(t => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+      const inflows = periodTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
+      const outflows = periodTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
 
       // Daily chart data for current period
       const chartBuckets: Record<string, { revenue: number; expenses: number }> = {};
