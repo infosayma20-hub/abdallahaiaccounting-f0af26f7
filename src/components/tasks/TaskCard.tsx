@@ -9,6 +9,11 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   normal: { label: "عادي", color: "#888780" },
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; color: string; icon: string }> = {
+  "كرستا ونواقص": { bg: "#7C3AED20", color: "#7C3AED", icon: "🔧" },
+  "ورشة": { bg: "#0891B220", color: "#0891B2", icon: "🏭" },
+};
+
 interface TaskCardProps {
   task: any;
   priorityColor: string;
