@@ -54,6 +54,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
       due_date: dueDate || null,
       due_time: dueTime ? dueTime + ":00" : null,
       is_visible_to_all: visibleToAll,
+      ...(assignTo && assignTo !== "none" ? { assigned_to: assignTo, assigned_at: new Date().toISOString() } : { assigned_to: null, assigned_at: null }),
     };
 
     if (editTask) {
