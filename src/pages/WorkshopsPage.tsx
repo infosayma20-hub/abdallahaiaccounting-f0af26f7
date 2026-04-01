@@ -267,8 +267,45 @@ export default function WorkshopsPage() {
   const loadWorkshops = async () => {
     setLoading(true);
     const { data } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
-    setWorkshops((data as any) || []);
+    const ws = (data as any) || [];
+    setWorkshops(ws);
     setLoading(false);
+
+    // Auto-sync: create contacts for workshops missing contact_id
+    const missingContact = ws.filter((w: any) => w.customer_name?.trim() && !w.contact_id);
+    if (missingContact.length > 0 && user) {
+      for (const w of missingContact) {
+        // Check if contact already exists
+        const { data: existing } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("contact_name", w.customer_name.trim())
+          .eq("contact_type", "عميل")
+          .limit(1);
+
+        let cId: string | null = null;
+        if (existing && existing.length > 0) {
+          cId = existing[0].id;
+        } else {
+          const { data: newC } = await supabase.from("contacts").insert({
+            user_id: user.id,
+            contact_name: w.customer_name.trim(),
+            contact_type: "عميل",
+            phone: w.customer_phone || null,
+            address: w.address || null,
+            linked_account_code: "1130",
+            is_active: true,
+          }).select("id").single();
+          cId = newC?.id || null;
+        }
+        if (cId) {
+          await supabase.from("workshops").update({ contact_id: cId } as any).eq("id", w.id);
+        }
+      }
+      // Reload after sync
+      const { data: refreshed } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
+      setWorkshops((refreshed as any) || []);
+    }
   };
 
   const loadContacts = async () => {
@@ -336,9 +373,66 @@ export default function WorkshopsPage() {
     }
   };
 
+  /* ── Ensure contact exists in contacts table ── */
+  const ensureContact = async (customerName: string, customerPhone: string | null, address: string | null, existingContactId: string | null): Promise<string | null> => {
+    if (!customerName?.trim()) return existingContactId;
+    
+    // If contact_id already set, update it with latest info
+    if (existingContactId) {
+      await supabase.from("contacts").update({
+        phone: customerPhone || null,
+        address: address || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existingContactId);
+      return existingContactId;
+    }
+
+    // Check if a contact with same name already exists for this user
+    const { data: existing } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("contact_name", customerName.trim())
+      .eq("contact_type", "عميل")
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      // Update existing contact with latest info
+      await supabase.from("contacts").update({
+        phone: customerPhone || null,
+        address: address || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing[0].id);
+      return existing[0].id;
+    }
+
+    // Create new contact
+    const { data: newContact, error } = await supabase.from("contacts").insert({
+      user_id: user!.id,
+      contact_name: customerName.trim(),
+      contact_type: "عميل",
+      phone: customerPhone || null,
+      address: address || null,
+      linked_account_code: "1130",
+      is_active: true,
+    }).select("id").single();
+
+    if (error) {
+      console.error("Error creating contact:", error);
+      return null;
+    }
+    return newContact?.id || null;
+  };
+
   /* ── Create Workshop ── */
   const handleCreateWorkshop = async () => {
     if (!wsForm.name.trim()) { toast.error("اسم الورشة مطلوب"); return; }
+    
+    // Auto-create contact if customer name provided but no contact_id
+    let contactId = wsForm.contact_id;
+    if (wsForm.customer_name?.trim() && !contactId) {
+      contactId = await ensureContact(wsForm.customer_name, wsForm.customer_phone || null, wsForm.address || null, null);
+    }
+
     const { error } = await supabase.from("workshops").insert({
       user_id: user!.id, name: wsForm.name,
       customer_name: wsForm.customer_name || null,
@@ -346,7 +440,7 @@ export default function WorkshopsPage() {
       address: wsForm.address || null, description: wsForm.description || null,
       total_budget: wsForm.total_budget || 0, start_date: wsForm.start_date || null,
       expected_end_date: wsForm.expected_end_date || null,
-      contact_id: wsForm.contact_id || null,
+      contact_id: contactId || null,
       area_sqm: wsForm.area_sqm || null,
       workshop_type: wsForm.workshop_type || "kitchen",
       image_url: wsForm.image_url || null,
@@ -623,12 +717,21 @@ export default function WorkshopsPage() {
   /* ── Save Edit Workshop ── */
   const handleEditWorkshop = async () => {
     if (!editingWorkshop || !wsForm.name.trim()) { toast.error("اسم الورشة مطلوب"); return; }
+    
+    // Auto-create/update contact
+    let contactId = wsForm.contact_id;
+    if (wsForm.customer_name?.trim() && !contactId) {
+      contactId = await ensureContact(wsForm.customer_name, wsForm.customer_phone || null, wsForm.address || null, null);
+    } else if (contactId && wsForm.customer_name?.trim()) {
+      await ensureContact(wsForm.customer_name, wsForm.customer_phone || null, wsForm.address || null, contactId);
+    }
+
     const { error } = await supabase.from("workshops").update({
       name: wsForm.name, customer_name: wsForm.customer_name || null,
       customer_phone: wsForm.customer_phone || null, address: wsForm.address || null,
       description: wsForm.description || null, total_budget: wsForm.total_budget || 0,
       start_date: wsForm.start_date || null, expected_end_date: wsForm.expected_end_date || null,
-      contact_id: wsForm.contact_id || null, area_sqm: wsForm.area_sqm || null,
+      contact_id: contactId || null, area_sqm: wsForm.area_sqm || null,
       workshop_type: wsForm.workshop_type || "kitchen", image_url: wsForm.image_url || null,
       updated_at: new Date().toISOString(),
     } as any).eq("id", editingWorkshop.id);
@@ -639,7 +742,7 @@ export default function WorkshopsPage() {
     setWsForm(defaultWsForm());
     loadWorkshops();
     if (selectedWorkshop?.id === editingWorkshop.id) {
-      setSelectedWorkshop({ ...editingWorkshop, ...wsForm, area_sqm: wsForm.area_sqm || null, contact_id: wsForm.contact_id || null, image_url: wsForm.image_url || null } as any);
+      setSelectedWorkshop({ ...editingWorkshop, ...wsForm, area_sqm: wsForm.area_sqm || null, contact_id: contactId || null, image_url: wsForm.image_url || null } as any);
     }
   };
 
