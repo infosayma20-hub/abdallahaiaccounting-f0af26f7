@@ -397,14 +397,32 @@ const AccountStatementV2Page = () => {
       <div className="shrink-0 border-b" style={{ borderColor: "#E5E7EB", padding: "10px 24px", background: "white" }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {/* LEFT: breadcrumb + entity */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/finance")} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <ArrowRight className="w-5 h-5" style={{ color: "#374151" }} />
-            </button>
+            <div className="flex items-center gap-3">
+            {(() => {
+              const fromCode = new URLSearchParams(window.location.search).get("code");
+              const backTo = fromCode ? "/trial-balance" : "/finance";
+              return (
+                <button onClick={() => navigate(backTo)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                  <ArrowRight className="w-5 h-5" style={{ color: "#374151" }} />
+                </button>
+              );
+            })()}
             <div className="flex items-center gap-1.5 text-xs" style={{ color: "#6B7280" }}>
-              <span>المحاسبة</span>
-              <ChevronLeft className="w-3 h-3" />
-              <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
+              {new URLSearchParams(window.location.search).get("code") ? (
+                <>
+                  <button onClick={() => navigate("/apps")} className="hover:underline cursor-pointer">المحاسبة</button>
+                  <ChevronLeft className="w-3 h-3" />
+                  <button onClick={() => navigate("/trial-balance")} className="hover:underline cursor-pointer">ميزان المراجعة</button>
+                  <ChevronLeft className="w-3 h-3" />
+                  <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
+                </>
+              ) : (
+                <>
+                  <span>المحاسبة</span>
+                  <ChevronLeft className="w-3 h-3" />
+                  <span className="font-bold text-sm" style={{ color: "#111827" }}>كشف الحساب</span>
+                </>
+              )}
             </div>
             {selectedEntityId && (
               <div className="flex items-center gap-2 mr-3 px-3 py-1.5 rounded-lg" style={{ background: "#F3F4F6" }}>
