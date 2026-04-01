@@ -654,9 +654,26 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { error } = await admin
+      // Check if row exists, insert if not, then update
+      const { data: existing } = await admin
         .from("company_settings")
-        .upsert({ user_id: target_user_id, hidden_apps: hidden_apps || [] }, { onConflict: "user_id" });
+        .select("id")
+        .eq("user_id", target_user_id)
+        .maybeSingle();
+
+      let error;
+      if (!existing) {
+        const res = await admin
+          .from("company_settings")
+          .insert({ user_id: target_user_id, hidden_apps: hidden_apps || [] });
+        error = res.error;
+      } else {
+        const res = await admin
+          .from("company_settings")
+          .update({ hidden_apps: hidden_apps || [] })
+          .eq("user_id", target_user_id);
+        error = res.error;
+      }
 
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
