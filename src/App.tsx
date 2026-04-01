@@ -68,6 +68,7 @@ const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage")
 const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDashboardPage"));
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
 const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
+const TemplateDesignerPage = lazy(() => import("./pages/TemplateDesignerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const IndustryTemplatesPage = lazy(() => import("./pages/IndustryTemplatesPage"));
 const CustomizationRequestPage = lazy(() => import("./pages/CustomizationRequestPage"));
