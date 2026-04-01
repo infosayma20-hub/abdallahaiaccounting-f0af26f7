@@ -49,15 +49,15 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <style>
         @page { size: A4; margin: 0; }
         * { box-sizing: border-box; }
-        body { font-family: ${theme.fontFamily}; direction: rtl; font-size: 11px; color: ${theme.textColor}; margin: 0; padding: 15mm 20mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { font-family: ${theme.fontFamily}; direction: rtl; font-size: 11px; color: ${theme.textColor}; margin: 0; padding: 12mm 18mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid #E5E7EB; }
-        th { font-weight: 600; border-top: 1px solid ${theme.primaryColor}; border-bottom: 1px solid ${theme.primaryColor}; font-size: 10px; }
-        .sig-line { border-top: 1px solid #9CA3AF; width: 150px; margin-top: 40px; padding-top: 4px; text-align: center; font-size: 10px; color: #6B7280; }
-        .amount-block { text-align: center; margin: 24px 0; padding: 16px; }
+        th, td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #E5E7EB; font-size: 10px; }
+        th { font-weight: 600; border-top: 1px solid ${theme.primaryColor}; border-bottom: 1px solid ${theme.primaryColor}; font-size: 9px; }
+        .sig-line { border-top: 1px solid #9CA3AF; width: 150px; margin-top: 30px; padding-top: 4px; text-align: center; font-size: 10px; color: #6B7280; }
+        .amount-block { text-align: center; margin: 14px 0; padding: 10px; }
         .amount-value { font-size: ${theme.amountFontSize}px; font-weight: 800; color: ${theme.amountColor}; }
-        .amount-words { font-size: 12px; color: #666; font-style: italic; margin-top: 4px; }
-        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: ${theme.watermarkOpacity}; z-index: 0; pointer-events: none; }
+        .amount-words { font-size: 11px; color: #666; font-style: italic; margin-top: 4px; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: ${theme.watermarkOpacity}; z-index: 0; pointer-events: none; }
       </style></head><body>${content.innerHTML}</body></html>`);
     w.document.close();
     setTimeout(() => { w.print(); w.close(); }, 300);
@@ -105,14 +105,14 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   // Doulia-specific body renderers with premium styling
   const renderDouliQuotationBody = () => (
     <>
-      <p style={{ fontSize: 14, lineHeight: 2.2, marginBottom: 16 }}>
+      <p style={{ fontSize: 12, lineHeight: 2, marginBottom: 10 }}>
         يسرنا في <strong>{companyName}</strong> أن نضع بين أيديكم عرض سعر
         {data.work_description ? ` على ${data.work_description}` : " لتنفيذ الأعمال المطلوبة"}:
       </p>
       {data.specs && (
-        <div style={{ background: theme.lightBg, padding: "12px 16px", borderRadius: 8, marginBottom: 16, position: "relative", overflow: "hidden" }}>
-          <div style={{ fontWeight: 700, marginBottom: 6, textDecoration: "underline", fontSize: 13 }}>المواصفات</div>
-          <div style={{ whiteSpace: "pre-line", lineHeight: 2 }}>{data.specs}</div>
+        <div style={{ background: theme.lightBg, padding: "8px 12px", borderRadius: 6, marginBottom: 10, position: "relative", overflow: "hidden" }}>
+          <div style={{ fontWeight: 700, marginBottom: 4, textDecoration: "underline", fontSize: 12 }}>المواصفات</div>
+          <div style={{ whiteSpace: "pre-line", lineHeight: 1.8, fontSize: 11 }}>{data.specs}</div>
         </div>
       )}
       {data.items?.length > 0 && (
@@ -127,7 +127,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       )}
       {renderTotals()}
       {renderAmountBlock(data.total || data.subtotal || 0)}
-      {data.payment_terms && <p style={{ marginTop: 12 }}><strong>شروط الدفع:</strong> {data.payment_terms}</p>}
+      {data.payment_terms && <p style={{ marginTop: 8 }}><strong>شروط الدفع:</strong> {data.payment_terms}</p>}
       {data.validity_days && <p>هذا العرض ساري لمدة <strong>{data.validity_days} يوماً</strong> من تاريخ الإصدار.</p>}
     </>
   );
@@ -187,7 +187,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
 
   // Shared components
   const renderTotals = () => (
-    <div style={{ marginTop: 12, fontSize: 11 }}>
+    <div style={{ marginTop: 8, fontSize: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}><span>المجموع الفرعي:</span><span>₪{fmt(data.subtotal || 0)}</span></div>
       {data.discount_percent > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>الخصم ({data.discount_percent}%):</span><span>-₪{fmt((data.subtotal || 0) * data.discount_percent / 100)}</span></div>}
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: `1px solid ${theme.primaryColor}`, paddingTop: 4, marginTop: 4 }}><span>الإجمالي النهائي:</span><span>₪{fmt(data.total || 0)}</span></div>
@@ -197,14 +197,14 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const renderAmountBlock = (amount: number) => {
     if (!amount || !isCustom) return null;
     return (
-      <div style={{ textAlign: "center", margin: "24px 0", padding: "16px 0" }}>
-        <div style={{ borderTop: `2px solid ${theme.primaryColor}`, borderBottom: `2px solid ${theme.primaryColor}`, padding: "16px 0", margin: "0 auto", maxWidth: 500 }}>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>و عليه يكون السعر النهائي المطلوب كاملاً</div>
+      <div style={{ textAlign: "center", margin: "14px 0", padding: "10px 0" }}>
+        <div style={{ borderTop: `2px solid ${theme.primaryColor}`, borderBottom: `2px solid ${theme.primaryColor}`, padding: "10px 0", margin: "0 auto", maxWidth: 500 }}>
+          <div style={{ fontSize: 11, marginBottom: 4 }}>و عليه يكون السعر النهائي المطلوب كاملاً</div>
           <div style={{ fontSize: theme.amountFontSize, fontWeight: 800, color: theme.amountColor }}>
             ({fmtInt(amount)}) {currency}
           </div>
           {theme.showAmountInWords && (
-            <div style={{ fontSize: 12, color: "#666", fontStyle: "italic", marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: "#666", fontStyle: "italic", marginTop: 4 }}>
               {amountToArabicWords(amount, currency)}
             </div>
           )}
@@ -353,36 +353,42 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
         <>
           {/* Navy header bar */}
           <div style={{
-            background: "#1B2B4B", color: "#FFFFFF", margin: "-40px -48px 0", padding: "24px 48px",
+            background: "#1B2B4B", color: "#FFFFFF", margin: "-32px -40px 0", padding: "14px 28px",
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "'Amiri', 'Cairo', serif", fontSize: 32, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
-              <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>{companyName || "AMWALI"}</div>
-              {theme.tagline && <div style={{ fontSize: 11, opacity: 0.8 }}>{theme.tagline}</div>}
+              <div style={{ fontFamily: "'Amiri', 'Cairo', serif", fontSize: 26, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{companyName || "AMWALI"}</div>
+              {theme.tagline && <div style={{ fontSize: 10, opacity: 0.8 }}>{theme.tagline}</div>}
             </div>
             <div style={{ textAlign: "left" }}>
-              <img
-                src="/logos/doulia-kitchen-logo.png"
-                alt="Doulia Kitchen"
-                style={{ width: 80, height: 80, objectFit: "contain" }}
-                onError={(e) => {
-                  const t = e.currentTarget;
-                  t.style.display = "none";
-                  const fallback = t.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "flex";
-                }}
-              />
               <div style={{
-                display: "none", width: 80, height: 80, background: "#1B2B4B", border: "2px solid rgba(255,255,255,0.3)",
-                borderRadius: 8, color: "white", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700,
+                backgroundColor: '#FFFFFF', padding: '5px', borderRadius: '6px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '72px', height: '72px',
+              }}>
+                <img
+                  src="/logos/doulia-kitchen-logo.png"
+                  alt="Doulia Kitchen"
+                  style={{ width: 62, height: 62, objectFit: "contain", display: "block" }}
+                  onError={(e) => {
+                    const t = e.currentTarget;
+                    t.parentElement!.style.display = "none";
+                    const fallback = t.parentElement!.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = "flex";
+                  }}
+                />
+              </div>
+              <div style={{
+                display: "none", width: 72, height: 72, background: "#1B2B4B", border: "2px solid rgba(255,255,255,0.3)",
+                borderRadius: 6, color: "white", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700,
               }}>DK</div>
               {theme.showEnglishName && (
-                <div style={{ fontSize: 10, fontWeight: 600, textAlign: "center", marginTop: 4, opacity: 0.8 }}>® {theme.englishName}</div>
+                <div style={{ fontSize: 9, fontWeight: 600, textAlign: "center", marginTop: 2, opacity: 0.8 }}>® {theme.englishName}</div>
               )}
             </div>
           </div>
-          <hr style={{ border: "none", borderTop: `${theme.separatorWeight}px solid #1B2B4B`, margin: "0 -48px 16px" }} />
+          <hr style={{ border: "none", borderTop: `${theme.separatorWeight}px solid #1B2B4B`, margin: "0 -40px 10px" }} />
         </>
       );
     }
@@ -438,7 +444,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const renderFooter = () => {
     if (isCustom && theme.footerStyle === "branded") {
       return (
-        <div style={{ background: theme.primaryColor, color: "white", margin: "24px -48px -40px", padding: "10px 48px", display: "flex", justifyContent: "space-between", fontSize: 9 }}>
+        <div style={{ background: theme.primaryColor, color: "white", margin: "16px -40px -32px", padding: "8px 28px", display: "flex", justifyContent: "space-between", fontSize: 9 }}>
           <span>{companyName}</span>
           <span>{companyPhone || ""}</span>
           <span>تاريخ الطباعة: {new Date().toLocaleDateString("en-GB")}</span>
@@ -460,36 +466,35 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   // Signature block
   const renderSignatures = () => {
     if (isCustom && theme.signatureStyle === "formal") {
-      // For contracts, show two-column
       if (type === "CON") {
         return (
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 30 }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ borderTop: "1px solid #9CA3AF", width: 180, paddingTop: 6, fontSize: 10, color: "#6B7280" }}>الطرف الأول / البائع</div>
-              <div style={{ fontSize: 9, marginTop: 2 }}>{companyName}</div>
+              <div style={{ borderTop: "1px solid #9CA3AF", width: 160, paddingTop: 4, fontSize: 9, color: "#6B7280" }}>الطرف الأول / البائع</div>
+              <div style={{ fontSize: 8, marginTop: 2 }}>{companyName}</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ borderTop: "1px solid #9CA3AF", width: 180, paddingTop: 6, fontSize: 10, color: "#6B7280" }}>الطرف الثاني / المشتري</div>
-              <div style={{ fontSize: 9, marginTop: 2 }}>{doc.contact_name || "—"}</div>
+              <div style={{ borderTop: "1px solid #9CA3AF", width: 160, paddingTop: 4, fontSize: 9, color: "#6B7280" }}>الطرف الثاني / المشتري</div>
+              <div style={{ fontSize: 8, marginTop: 2 }}>{doc.contact_name || "—"}</div>
             </div>
           </div>
         );
       }
       return (
-        <div style={{ marginTop: 60, textAlign: "center" }}>
-          <div style={{ borderTop: "1px solid #9CA3AF", width: 220, margin: "0 auto", paddingTop: 6, fontSize: 11, color: "#6B7280" }}>
+        <div style={{ marginTop: 30, textAlign: "center" }}>
+          <div style={{ borderTop: "1px solid #9CA3AF", width: 200, margin: "0 auto", paddingTop: 4, fontSize: 10, color: "#6B7280" }}>
             {theme.signatureText}
           </div>
-          <div style={{ fontSize: 10, marginTop: 4, color: theme.primaryColor, fontWeight: 600 }}>{companyName}</div>
+          <div style={{ fontSize: 9, marginTop: 2, color: theme.primaryColor, fontWeight: 600 }}>{companyName}</div>
         </div>
       );
     }
 
     return (
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
-        <div style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>توقيع المستلم</div>
-        <div style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>ختم الشركة</div>
-        <div style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>المدير</div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 30 }}>
+        <div style={{ borderTop: "1px solid #9CA3AF", width: 140, paddingTop: 4, textAlign: "center", fontSize: 9, color: "#6B7280" }}>توقيع المستلم</div>
+        <div style={{ borderTop: "1px solid #9CA3AF", width: 140, paddingTop: 4, textAlign: "center", fontSize: 9, color: "#6B7280" }}>ختم الشركة</div>
+        <div style={{ borderTop: "1px solid #9CA3AF", width: 140, paddingTop: 4, textAlign: "center", fontSize: 9, color: "#6B7280" }}>المدير</div>
       </div>
     );
   };
@@ -510,21 +515,22 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <div className="overflow-y-auto p-6" style={{ background: "#E5E7EB", maxHeight: embedded ? "60vh" : "calc(95vh - 50px)" }}>
         <div
           ref={printRef}
+          id="print-preview"
           style={{
             maxWidth: 780, margin: "0 auto", background: "white",
             boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4,
-            padding: "40px 48px", direction: "rtl", fontFamily: theme.fontFamily,
+            padding: "32px 40px", direction: "rtl", fontFamily: theme.fontFamily,
             fontSize: 11, color: theme.textColor, position: "relative", overflow: "hidden",
           }}
         >
-          {/* Watermark — large centered */}
+          {/* Watermark — clipped to this container */}
           {isCustom && theme.showWatermark && (
             <div style={{
               position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
               opacity: 0.06, zIndex: 0, pointerEvents: "none",
-              width: "70%", textAlign: "center",
+              width: "60%", textAlign: "center",
             }}>
-              <img src="/logos/doulia-kitchen-logo.png" alt="" style={{ width: "100%", maxWidth: 450, objectFit: "contain" }} />
+              <img src="/logos/doulia-kitchen-logo.png" alt="" style={{ width: "100%", maxWidth: 280, objectFit: "contain" }} />
             </div>
           )}
 
