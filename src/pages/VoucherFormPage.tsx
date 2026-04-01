@@ -130,9 +130,31 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [paymentMethod, setPaymentMethod] = useState("نقدي");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [checkNumber, setCheckNumber] = useState("");
-  const [checkDate, setCheckDate] = useState("");
-  const [checkBank, setCheckBank] = useState("");
+  const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string }[]>([]);
+
+  const addCheque = () => setCheques(prev => {
+    const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
+    const lastDate = prev.length > 0 ? prev[prev.length - 1].date : "";
+    const lastBank = prev.length > 0 ? prev[prev.length - 1].bank : "";
+    // Auto-increment cheque number
+    const match = lastNum.match(/(\d+)$/);
+    const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
+    // Auto-increment date by 30 days
+    let nextDate = lastDate;
+    if (lastDate) {
+      const d = new Date(lastDate);
+      d.setDate(d.getDate() + 30);
+      nextDate = d.toISOString().split("T")[0];
+    }
+    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "" }];
+  });
+  const removeCheque = (idx: number) => setCheques(prev => prev.filter((_, i) => i !== idx));
+  const updateCheque = (idx: number, field: string, value: string) => setCheques(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
+
+  // Backward compat helpers
+  const checkNumber = cheques[0]?.number || "";
+  const checkDate = cheques[0]?.date || "";
+  const checkBank = cheques[0]?.bank || "";
 
   // Currency
   const [currency, setCurrency] = useState("ILS");
