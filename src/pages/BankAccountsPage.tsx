@@ -146,7 +146,26 @@ const BankAccountsPage = () => {
     setAccountNumber(""); setAccountType("current"); setCurrency("ILS");
     setGlAccountCode("1120"); setCommissionAccountCode(""); setOpeningBalance("");
     setOpeningBalanceDate(new Date().toISOString().split("T")[0]);
-    setMinBalanceAlert(""); setNotes("");
+    setMinBalanceAlert(""); setNotes(""); setEditingBankId(null);
+  };
+
+  const openEditModal = (bank: any) => {
+    const isPredefined = PALESTINIAN_BANKS.includes(bank.bank_name);
+    setBankName(isPredefined ? bank.bank_name : "أخرى");
+    setCustomBankName(isPredefined ? "" : bank.bank_name);
+    setBranch(bank.branch || "");
+    setAccountName(bank.name || "");
+    setAccountNumber(bank.account_number || "");
+    setAccountType(bank.account_type || "current");
+    setCurrency(bank.currency || "ILS");
+    setGlAccountCode(bank.gl_account_code || "1120");
+    setCommissionAccountCode(bank.commission_account_code || "");
+    setOpeningBalance(bank.opening_balance?.toString() || "");
+    setOpeningBalanceDate(bank.opening_balance_date || new Date().toISOString().split("T")[0]);
+    setMinBalanceAlert(bank.min_balance_alert?.toString() || "");
+    setNotes(bank.notes || "");
+    setEditingBankId(bank.id);
+    setModalOpen(true);
   };
 
   const handleSave = async () => {
