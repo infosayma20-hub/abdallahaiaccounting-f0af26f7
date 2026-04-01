@@ -105,14 +105,14 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   // Doulia-specific body renderers with premium styling
   const renderDouliQuotationBody = () => (
     <>
-      <p style={{ fontSize: 14, lineHeight: 2.2, marginBottom: 16 }}>
+      <p style={{ fontSize: 12, lineHeight: 2, marginBottom: 10 }}>
         يسرنا في <strong>{companyName}</strong> أن نضع بين أيديكم عرض سعر
         {data.work_description ? ` على ${data.work_description}` : " لتنفيذ الأعمال المطلوبة"}:
       </p>
       {data.specs && (
-        <div style={{ background: theme.lightBg, padding: "12px 16px", borderRadius: 8, marginBottom: 16, position: "relative", overflow: "hidden" }}>
-          <div style={{ fontWeight: 700, marginBottom: 6, textDecoration: "underline", fontSize: 13 }}>المواصفات</div>
-          <div style={{ whiteSpace: "pre-line", lineHeight: 2 }}>{data.specs}</div>
+        <div style={{ background: theme.lightBg, padding: "8px 12px", borderRadius: 6, marginBottom: 10, position: "relative", overflow: "hidden" }}>
+          <div style={{ fontWeight: 700, marginBottom: 4, textDecoration: "underline", fontSize: 12 }}>المواصفات</div>
+          <div style={{ whiteSpace: "pre-line", lineHeight: 1.8, fontSize: 11 }}>{data.specs}</div>
         </div>
       )}
       {data.items?.length > 0 && (
@@ -127,7 +127,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       )}
       {renderTotals()}
       {renderAmountBlock(data.total || data.subtotal || 0)}
-      {data.payment_terms && <p style={{ marginTop: 12 }}><strong>شروط الدفع:</strong> {data.payment_terms}</p>}
+      {data.payment_terms && <p style={{ marginTop: 8 }}><strong>شروط الدفع:</strong> {data.payment_terms}</p>}
       {data.validity_days && <p>هذا العرض ساري لمدة <strong>{data.validity_days} يوماً</strong> من تاريخ الإصدار.</p>}
     </>
   );
