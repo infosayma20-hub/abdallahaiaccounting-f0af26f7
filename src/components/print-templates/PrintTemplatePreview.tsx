@@ -187,7 +187,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
 
   // Shared components
   const renderTotals = () => (
-    <div style={{ marginTop: 12, fontSize: 11 }}>
+    <div style={{ marginTop: 8, fontSize: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}><span>المجموع الفرعي:</span><span>₪{fmt(data.subtotal || 0)}</span></div>
       {data.discount_percent > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>الخصم ({data.discount_percent}%):</span><span>-₪{fmt((data.subtotal || 0) * data.discount_percent / 100)}</span></div>}
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: `1px solid ${theme.primaryColor}`, paddingTop: 4, marginTop: 4 }}><span>الإجمالي النهائي:</span><span>₪{fmt(data.total || 0)}</span></div>
@@ -197,14 +197,14 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const renderAmountBlock = (amount: number) => {
     if (!amount || !isCustom) return null;
     return (
-      <div style={{ textAlign: "center", margin: "24px 0", padding: "16px 0" }}>
-        <div style={{ borderTop: `2px solid ${theme.primaryColor}`, borderBottom: `2px solid ${theme.primaryColor}`, padding: "16px 0", margin: "0 auto", maxWidth: 500 }}>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>و عليه يكون السعر النهائي المطلوب كاملاً</div>
+      <div style={{ textAlign: "center", margin: "14px 0", padding: "10px 0" }}>
+        <div style={{ borderTop: `2px solid ${theme.primaryColor}`, borderBottom: `2px solid ${theme.primaryColor}`, padding: "10px 0", margin: "0 auto", maxWidth: 500 }}>
+          <div style={{ fontSize: 11, marginBottom: 4 }}>و عليه يكون السعر النهائي المطلوب كاملاً</div>
           <div style={{ fontSize: theme.amountFontSize, fontWeight: 800, color: theme.amountColor }}>
             ({fmtInt(amount)}) {currency}
           </div>
           {theme.showAmountInWords && (
-            <div style={{ fontSize: 12, color: "#666", fontStyle: "italic", marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: "#666", fontStyle: "italic", marginTop: 4 }}>
               {amountToArabicWords(amount, currency)}
             </div>
           )}
