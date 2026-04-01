@@ -656,6 +656,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error("الرجاء اختيار الجهة");
       return;
     }
+    // Validate cheque amounts total
+    if (paymentMethod === "شيك" && cheques.length > 0 && !asDraft) {
+      const chequesTotal = cheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+      const diff = Math.abs(chequesTotal - amountNum);
+      if (diff > 0.01 && cheques.some(c => Number(c.amount) > 0)) {
+        toast.error(`إجمالي الشيكات (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`);
+        return;
+      }
+    }
     setSaving(true);
 
     try {
