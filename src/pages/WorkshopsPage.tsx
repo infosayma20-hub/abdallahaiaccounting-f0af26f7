@@ -167,6 +167,7 @@ export default function WorkshopsPage() {
   const [costFilter, setCostFilter] = useState("all");
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   
+  const [editingPayment, setEditingPayment] = useState<WorkshopPayment | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [customerBalance, setCustomerBalance] = useState(0);
   const [invItems, setInvItems] = useState<any[]>([]);
@@ -379,7 +380,7 @@ export default function WorkshopsPage() {
     setChequeRows(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
   };
 
-  /* ── Add Partial Payment ── */
+  /* ── Add or Edit Partial Payment ── */
   const handleAddPayment = async () => {
     if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
     const isCheque = paymentForm.payment_method === "شيك";
@@ -395,6 +396,40 @@ export default function WorkshopsPage() {
       const selectedBox = cashBoxes.find(b => b.id === paymentForm.cash_box_id);
       if (selectedBox?.gl_account_code) debitCode = selectedBox.gl_account_code;
     }
+
+    // ── EDIT MODE ──
+    if (editingPayment) {
+      // Update the linked transaction
+      if (editingPayment.linked_transaction_id) {
+        await supabase.from("transactions").update({
+          transaction_date: paymentForm.payment_date,
+          description: paymentForm.description || `دفعة ورشة من ${selectedWorkshop.customer_name || "زبون"} - ${selectedWorkshop.name}`,
+          debit_account_code: debitCode,
+          amount: amountILS,
+          currency: currencyLabel,
+          payment_method: isCheque ? "شيك" : paymentForm.payment_method,
+          ...(paymentForm.currency !== "ILS" ? { foreign_amount: paymentForm.amount, exchange_rate: paymentForm.exchange_rate } : { foreign_amount: null, exchange_rate: null }),
+        } as any).eq("id", editingPayment.linked_transaction_id);
+      }
+
+      // Update the payment record
+      const { error } = await supabase.from("workshop_payments").update({
+        amount: amountILS,
+        payment_method: isCheque ? "شيك" : paymentForm.payment_method,
+        payment_date: paymentForm.payment_date,
+        description: paymentForm.description || null,
+      } as any).eq("id", editingPayment.id);
+
+      if (error) { toast.error(error.message); return; }
+      toast.success("✅ تم تعديل الدفعة بنجاح");
+      setEditingPayment(null);
+      setView("workshops");
+      setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
+      loadCosts(selectedWorkshop.id);
+      return;
+    }
+
+    // ── NEW MODE ──
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
@@ -959,6 +994,7 @@ export default function WorkshopsPage() {
                 <Receipt className="h-3.5 w-3.5" /> الدفعات المقبوضة
               </h3>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
+                setEditingPayment(null);
                 setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
                 setChequeRows([]);
                 setView("new-payment");
@@ -971,11 +1007,36 @@ export default function WorkshopsPage() {
             ) : (
               <div className="space-y-1.5">
                 {payments.map(p => (
-                  <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                  <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border group">
                     <span className="text-emerald-600 font-bold">+{p.amount.toLocaleString()} ₪</span>
                     <span className="text-muted-foreground">{p.payment_method}</span>
                     <span className="flex-1 text-muted-foreground truncate">{p.description}</span>
                     <span className="text-muted-foreground/60">{p.payment_date}</span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                        setEditingPayment(p);
+                        setPaymentForm({
+                          amount: p.amount, payment_method: p.payment_method, description: p.description || "",
+                          payment_date: p.payment_date, cheque_bank: "", deposit_bank_id: null,
+                          currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null,
+                        });
+                        setChequeRows([]);
+                        setView("new-payment");
+                      }}>
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={async () => {
+                        if (!confirm("هل تريد حذف هذه الدفعة؟")) return;
+                        if (p.linked_transaction_id) {
+                          await supabase.from("transactions").update({ is_deleted: true } as any).eq("id", p.linked_transaction_id);
+                        }
+                        await supabase.from("workshop_payments").delete().eq("id", p.id);
+                        toast.success("تم حذف الدفعة");
+                        loadCosts(selectedWorkshop!.id);
+                      }}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 <div className="mt-2">
@@ -1229,11 +1290,11 @@ export default function WorkshopsPage() {
         <div className="w-full px-6 md:px-12 py-6 pb-28">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <Button variant="ghost" size="icon" onClick={() => setView("workshops")}>
+            <Button variant="ghost" size="icon" onClick={() => { setView("workshops"); setEditingPayment(null); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">تسجيل دفعة جديدة</h1>
+              <h1 className="text-xl font-bold text-foreground">{editingPayment ? "تعديل الدفعة" : "تسجيل دفعة جديدة"}</h1>
               <p className="text-sm text-muted-foreground">{selectedWorkshop.name} › {selectedWorkshop.customer_name || "بدون زبون"}</p>
             </div>
           </div>
