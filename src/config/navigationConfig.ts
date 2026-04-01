@@ -246,7 +246,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "tasks", label: "إدارة المهام", description: "تنظيم المهام، التكليفات، والمتابعة", module: "tasks", icon: ClipboardList,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/10", path: "/tasks", isDirect: true,
+        color: "text-sky-400", bgColor: "bg-sky-400/10", path: "/tasks", isDirect: true,
         enableSetting: "has_tasks",
         keywords: ["مهام", "تكليف", "متابعة", "tasks"],
       },
