@@ -85,12 +85,24 @@ const alertConfig: Record<string, { icon: typeof AlertTriangle; color: string; b
 
 // CreditBar component
 const CreditBar = ({ balance, limit }: { balance: number; limit: number }) => {
-  if (!limit || limit <= 0) return <span className="text-xs text-muted-foreground">—</span>;
-  const pct = (balance / limit) * 100;
+  const absBalance = Math.abs(balance);
+  const isNeg = balance < 0;
+  
+  if (!limit || limit <= 0) {
+    // No credit limit — just show balance
+    if (balance === 0) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <span className={`text-xs font-semibold tabular-nums ${isNeg ? 'text-red-600' : 'text-emerald-600'}`}>
+        {isNeg ? '-' : ''}₪{absBalance.toLocaleString()}
+      </span>
+    );
+  }
+  
+  const pct = (absBalance / limit) * 100;
   return (
     <div className="space-y-0.5">
-      <span className={`text-xs font-semibold tabular-nums ${pct > 100 ? 'text-red-600' : pct > 80 ? 'text-amber-600' : 'text-foreground'}`}>
-        ₪{balance?.toLocaleString() || 0}
+      <span className={`text-xs font-semibold tabular-nums ${isNeg ? 'text-red-600' : pct > 100 ? 'text-red-600' : pct > 80 ? 'text-amber-600' : 'text-foreground'}`}>
+        {isNeg ? '-' : ''}₪{absBalance.toLocaleString()}
       </span>
       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
         <div
