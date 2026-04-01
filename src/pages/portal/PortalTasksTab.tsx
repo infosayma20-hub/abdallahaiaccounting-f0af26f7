@@ -411,7 +411,7 @@ export default function PortalTasksTab({ theme }: Props) {
         ))}
       </div>
 
-      {/* Tasks Table */}
+      {/* Tasks */}
       {filtered.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: 40, color: t.textMuted, fontSize: 13,
@@ -420,84 +420,117 @@ export default function PortalTasksTab({ theme }: Props) {
           لا توجد مهام مسندة
         </div>
       ) : (
-        <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${t.border}` }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: isDark ? '#1A2332' : '#F1F5F9' }}>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>#</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>عنوان المهمة</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الموظف</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>المصدر</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الأولوية</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الحالة</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الاستحقاق</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: t.textMuted, fontSize: 11, width: 80 }}>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((task, i) => {
-                const prio = PRIORITY_OPTIONS.find(p => p.value === task.priority);
-                const status = STATUS_LABELS[task.status] || STATUS_LABELS.open;
-                const today = new Date().toISOString().split('T')[0];
-                const isOverdue = task.due_date && task.due_date < today && task.status !== 'done' && task.status !== 'cancelled';
-                return (
-                  <tr key={task.id} style={{ borderTop: `1px solid ${t.border}`, background: t.card }}>
-                    <td style={{ padding: '10px 12px', color: t.textMuted }}>{i + 1}</td>
-                    <td style={{ padding: '10px 12px', fontWeight: 600 }}>{task.title}</td>
-                    <td style={{ padding: '10px 12px' }}>{getEmployeeName(task.assigned_to)}</td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12,
-                        background: task.created_by_portal ? `${PRIMARY}15` : `${ACCENT}15`,
-                        color: task.created_by_portal ? PRIMARY : ACCENT,
-                      }}>
-                        {task.created_by_portal ? '👑 المدير' : '👤 موظف'}
+        <>
+          {/* Mobile Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} className="md:!hidden">
+            {filtered.map((task, i) => {
+              const prio = PRIORITY_OPTIONS.find(p => p.value === task.priority);
+              const status = STATUS_LABELS[task.status] || STATUS_LABELS.open;
+              const today = new Date().toISOString().split('T')[0];
+              const isOverdue = task.due_date && task.due_date < today && task.status !== 'done' && task.status !== 'cancelled';
+              return (
+                <div key={task.id} style={{
+                  background: t.card, borderRadius: 12, padding: 14,
+                  border: `1px solid ${t.border}`, borderRight: `4px solid ${prio?.color || '#888'}`,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, flex: 1, wordBreak: 'break-word' as const }}>{task.title}</div>
+                    <div style={{ display: 'flex', gap: 2, flexShrink: 0, marginRight: 8 }}>
+                      <button onClick={() => openTaskDetail(task, false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, padding: 4 }}><Eye size={16} /></button>
+                      <button onClick={() => openTaskDetail(task, true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF9F27', padding: 4 }}><Pencil size={16} /></button>
+                      <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E24B4A', padding: 4 }}><Trash2 size={16} /></button>
+                    </div>
+                  </div>
+                  {task.description && (
+                    <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 8, lineHeight: 1.6, whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const }}>
+                      {task.description}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, alignItems: 'center', fontSize: 10 }}>
+                    <span style={{ fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: `${status.color}15`, color: status.color, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      {task.status === 'done' && <CheckCircle2 size={10} />}{status.label}
+                    </span>
+                    <span style={{ fontWeight: 600, color: prio?.color, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: prio?.color }} />{prio?.label}
+                    </span>
+                    <span style={{ padding: '2px 8px', borderRadius: 12, background: task.created_by_portal ? `${PRIMARY}15` : `${ACCENT}15`, color: task.created_by_portal ? PRIMARY : ACCENT, fontWeight: 600 }}>
+                      {task.created_by_portal ? '👑 المدير' : '👤 موظف'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: t.textMuted }}>
+                    <span>👤 {getEmployeeName(task.assigned_to)}</span>
+                    {task.due_date && (
+                      <span style={{ color: isOverdue ? '#E24B4A' : t.textMuted }}>
+                        📅 {task.due_date}{isOverdue && ' ⚠️'}
                       </span>
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        fontSize: 10, fontWeight: 600, color: prio?.color,
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: prio?.color }} />
-                        {prio?.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12,
-                        background: `${status.color}15`, color: status.color,
-                        display: 'inline-flex', alignItems: 'center', gap: 3,
-                      }}>
-                        {task.status === 'done' && <CheckCircle2 size={10} />}
-                        {status.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 12px', color: isOverdue ? '#E24B4A' : t.textMuted, fontSize: 11 }}>
-                      {task.due_date || '—'}
-                      {isOverdue && ' ⚠️'}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                        <button onClick={() => openTaskDetail(task, false)} title="عرض" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, padding: 4 }}>
-                          <Eye size={14} />
-                        </button>
-                        <button onClick={() => openTaskDetail(task, true)} title="تعديل" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF9F27', padding: 4 }}>
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteTask(task.id)} title="حذف" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E24B4A', padding: 4 }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
+          {/* Desktop Table */}
+          <div className="hidden md:!block" style={{ borderRadius: 12, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', minWidth: 800, borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: isDark ? '#1A2332' : '#F1F5F9' }}>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>#</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>عنوان المهمة</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الموظف</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>المصدر</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الأولوية</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الحالة</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الاستحقاق</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: t.textMuted, fontSize: 11, width: 80 }}>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((task, i) => {
+                    const prio = PRIORITY_OPTIONS.find(p => p.value === task.priority);
+                    const status = STATUS_LABELS[task.status] || STATUS_LABELS.open;
+                    const today = new Date().toISOString().split('T')[0];
+                    const isOverdue = task.due_date && task.due_date < today && task.status !== 'done' && task.status !== 'cancelled';
+                    return (
+                      <tr key={task.id} style={{ borderTop: `1px solid ${t.border}`, background: t.card }}>
+                        <td style={{ padding: '10px 12px', color: t.textMuted }}>{i + 1}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{task.title}</td>
+                        <td style={{ padding: '10px 12px' }}>{getEmployeeName(task.assigned_to)}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: task.created_by_portal ? `${PRIMARY}15` : `${ACCENT}15`, color: task.created_by_portal ? PRIMARY : ACCENT }}>
+                            {task.created_by_portal ? '👑 المدير' : '👤 موظف'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: prio?.color }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: prio?.color }} />{prio?.label}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: `${status.color}15`, color: status.color, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            {task.status === 'done' && <CheckCircle2 size={10} />}{status.label}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', color: isOverdue ? '#E24B4A' : t.textMuted, fontSize: 11 }}>
+                          {task.due_date || '—'}{isOverdue && ' ⚠️'}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                            <button onClick={() => openTaskDetail(task, false)} title="عرض" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, padding: 4 }}><Eye size={14} /></button>
+                            <button onClick={() => openTaskDetail(task, true)} title="تعديل" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF9F27', padding: 4 }}><Pencil size={14} /></button>
+                            <button onClick={() => handleDeleteTask(task.id)} title="حذف" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E24B4A', padding: 4 }}><Trash2 size={14} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
       {/* View/Edit Modal */}
       {selectedTask && (
         <div style={{
