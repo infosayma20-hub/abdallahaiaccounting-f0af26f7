@@ -910,19 +910,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
-        if (paymentMethod === "شيك" && !asDraft && checkNumber) {
-          await supabase.from("cheques").insert({
+        if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
+          const chequeRows = cheques.filter(c => c.number).map(c => ({
             user_id: user.id,
             cheque_type: "وارد" as const,
-            cheque_number: checkNumber,
-            cheque_date: checkDate || paymentDate,
-            amount: amountNum,
+            cheque_number: c.number,
+            cheque_date: c.date || paymentDate,
+            amount: Number(c.amount) || amountNum,
             party_name: selectedContact?.contact_name || "",
-            bank_name: checkBank,
+            bank_name: c.bank,
             status: "مسجل" as const,
             currency: currencyLabel,
             source_bank_account_id: selectedChequeBankAccount || null,
-          });
+          }));
+          if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
 
         toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`);
