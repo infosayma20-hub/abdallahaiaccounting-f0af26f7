@@ -353,36 +353,42 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
         <>
           {/* Navy header bar */}
           <div style={{
-            background: "#1B2B4B", color: "#FFFFFF", margin: "-40px -48px 0", padding: "24px 48px",
+            background: "#1B2B4B", color: "#FFFFFF", margin: "-32px -40px 0", padding: "14px 28px",
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "'Amiri', 'Cairo', serif", fontSize: 32, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
-              <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>{companyName || "AMWALI"}</div>
-              {theme.tagline && <div style={{ fontSize: 11, opacity: 0.8 }}>{theme.tagline}</div>}
+              <div style={{ fontFamily: "'Amiri', 'Cairo', serif", fontSize: 26, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{companyName || "AMWALI"}</div>
+              {theme.tagline && <div style={{ fontSize: 10, opacity: 0.8 }}>{theme.tagline}</div>}
             </div>
             <div style={{ textAlign: "left" }}>
-              <img
-                src="/logos/doulia-kitchen-logo.png"
-                alt="Doulia Kitchen"
-                style={{ width: 80, height: 80, objectFit: "contain" }}
-                onError={(e) => {
-                  const t = e.currentTarget;
-                  t.style.display = "none";
-                  const fallback = t.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "flex";
-                }}
-              />
               <div style={{
-                display: "none", width: 80, height: 80, background: "#1B2B4B", border: "2px solid rgba(255,255,255,0.3)",
-                borderRadius: 8, color: "white", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700,
+                backgroundColor: '#FFFFFF', padding: '5px', borderRadius: '6px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '72px', height: '72px',
+              }}>
+                <img
+                  src="/logos/doulia-kitchen-logo.png"
+                  alt="Doulia Kitchen"
+                  style={{ width: 62, height: 62, objectFit: "contain", display: "block" }}
+                  onError={(e) => {
+                    const t = e.currentTarget;
+                    t.parentElement!.style.display = "none";
+                    const fallback = t.parentElement!.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = "flex";
+                  }}
+                />
+              </div>
+              <div style={{
+                display: "none", width: 72, height: 72, background: "#1B2B4B", border: "2px solid rgba(255,255,255,0.3)",
+                borderRadius: 6, color: "white", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700,
               }}>DK</div>
               {theme.showEnglishName && (
-                <div style={{ fontSize: 10, fontWeight: 600, textAlign: "center", marginTop: 4, opacity: 0.8 }}>® {theme.englishName}</div>
+                <div style={{ fontSize: 9, fontWeight: 600, textAlign: "center", marginTop: 2, opacity: 0.8 }}>® {theme.englishName}</div>
               )}
             </div>
           </div>
-          <hr style={{ border: "none", borderTop: `${theme.separatorWeight}px solid #1B2B4B`, margin: "0 -48px 16px" }} />
+          <hr style={{ border: "none", borderTop: `${theme.separatorWeight}px solid #1B2B4B`, margin: "0 -40px 10px" }} />
         </>
       );
     }
