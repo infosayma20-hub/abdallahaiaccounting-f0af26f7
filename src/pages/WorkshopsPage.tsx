@@ -267,8 +267,45 @@ export default function WorkshopsPage() {
   const loadWorkshops = async () => {
     setLoading(true);
     const { data } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
-    setWorkshops((data as any) || []);
+    const ws = (data as any) || [];
+    setWorkshops(ws);
     setLoading(false);
+
+    // Auto-sync: create contacts for workshops missing contact_id
+    const missingContact = ws.filter((w: any) => w.customer_name?.trim() && !w.contact_id);
+    if (missingContact.length > 0 && user) {
+      for (const w of missingContact) {
+        // Check if contact already exists
+        const { data: existing } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("contact_name", w.customer_name.trim())
+          .eq("contact_type", "عميل")
+          .limit(1);
+
+        let cId: string | null = null;
+        if (existing && existing.length > 0) {
+          cId = existing[0].id;
+        } else {
+          const { data: newC } = await supabase.from("contacts").insert({
+            user_id: user.id,
+            contact_name: w.customer_name.trim(),
+            contact_type: "عميل",
+            phone: w.customer_phone || null,
+            address: w.address || null,
+            linked_account_code: "1130",
+            is_active: true,
+          }).select("id").single();
+          cId = newC?.id || null;
+        }
+        if (cId) {
+          await supabase.from("workshops").update({ contact_id: cId } as any).eq("id", w.id);
+        }
+      }
+      // Reload after sync
+      const { data: refreshed } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
+      setWorkshops((refreshed as any) || []);
+    }
   };
 
   const loadContacts = async () => {
