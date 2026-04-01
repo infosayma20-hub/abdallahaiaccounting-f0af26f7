@@ -454,11 +454,12 @@ export function useDashboardData() {
   // Cash flow data
   const cashFlowData = useMemo(() => {
     const periodTx = filterByRange(plTx, range);
+    const isCashAccount = (code: string) => code?.startsWith("1110") || code?.startsWith("1120");
     const inflows = periodTx
-      .filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120")
+      .filter((t) => isCashAccount(t.debit_account_code))
       .reduce((s, t) => s + (t.amount || 0), 0);
     const outflows = periodTx
-      .filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120")
+      .filter((t) => isCashAccount(t.credit_account_code))
       .reduce((s, t) => s + (t.amount || 0), 0);
 
     // Monthly expense rate for runway
