@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 /** Map Arabic breadcrumb labels → routes */
 const breadcrumbRoutes: Record<string, string> = {
   "الرئيسية": "/dashboard",
-  "المحاسبة": "/finance",
+  "المحاسبة": "/apps",
   "المبيعات": "/invoices",
   "المشتريات": "/purchase-invoices",
   "المالية": "/finance",
