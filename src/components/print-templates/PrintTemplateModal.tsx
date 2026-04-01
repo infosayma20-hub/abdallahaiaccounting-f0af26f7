@@ -143,7 +143,13 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
     switch (template.type) {
       case "QUO":
         return (
-          <div className="space-y-4">
+           <div className="space-y-4">
+            {showExtendedFields && (
+              <div className="space-y-3">
+                <div><Label>وصف المشروع / المطبخ</Label><Input value={quoProjectDesc} onChange={e => setQuoProjectDesc(e.target.value)} placeholder="مثال: مطبخ فيلا ألمنيوم 12 متر" /></div>
+                <div><Label>المواصفات التفصيلية</Label><Textarea value={quoSpecs} onChange={e => setQuoSpecs(e.target.value)} rows={4} placeholder="أدخل مواصفات المشروع بالتفصيل..." /></div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="font-semibold">بنود عرض السعر</Label>
               {items.map((item, i) => (
