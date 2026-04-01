@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Crown, CheckCircle2, Clock, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Crown, CheckCircle2, Clock, AlertTriangle, Search, X, Eye, Pencil, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const PRIMARY = '#1B3A5C';
