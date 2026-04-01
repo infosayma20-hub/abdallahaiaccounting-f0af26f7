@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import type { TemplateConfig } from "@/pages/PrintTemplatesPage";
 import PrintTemplatePreview from "./PrintTemplatePreview";
+import { isDoulia } from "@/lib/print-themes";
 
 interface Props {
   open: boolean;
