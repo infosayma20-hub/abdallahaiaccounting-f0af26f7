@@ -161,7 +161,55 @@ export default function PortalTasksTab({ theme }: Props) {
     }
   };
 
-  const filtered = tasks.filter(task => {
+  const openTaskDetail = (task: any, edit = false) => {
+    setSelectedTask(task);
+    setEditTitle(task.title || '');
+    setEditDescription(task.description || '');
+    setEditPriority(task.priority || 'normal');
+    setEditAssignedTo(task.assigned_to || '');
+    setEditDueDate(task.due_date || '');
+    setEditCategory(task.category || '');
+    setEditStatus(task.status || 'open');
+    setEditMode(edit);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!selectedTask || !linkedUserId) return;
+    setEditSaving(true);
+    try {
+      const { error } = await supabase.from('tasks').update({
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        priority: editPriority,
+        assigned_to: editAssignedTo || null,
+        assigned_at: editAssignedTo ? new Date().toISOString() : null,
+        due_date: editDueDate || null,
+        category: editCategory || null,
+        status: editStatus,
+      }).eq('id', selectedTask.id).eq('user_id', linkedUserId);
+      if (error) throw error;
+      toast({ title: 'تم تحديث المهمة ✅' });
+      setSelectedTask(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err.message, variant: 'destructive' });
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!linkedUserId || !confirm('هل تريد حذف هذه المهمة نهائياً؟')) return;
+    try {
+      await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', linkedUserId);
+      toast({ title: 'تم حذف المهمة' });
+      setSelectedTask(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err.message, variant: 'destructive' });
+    }
+  };
+
     if (filter === 'all') return true;
     if (filter === 'done') return task.status === 'done';
     if (filter === 'open') return task.status === 'open' || task.status === 'in_progress';
