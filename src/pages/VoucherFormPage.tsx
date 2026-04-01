@@ -916,12 +916,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             cheque_type: "وارد" as const,
             cheque_number: c.number,
             cheque_date: c.date || paymentDate,
-            amount: Number(c.amount) || amountNum,
+            amount: Number(c.amount) || 0,
             party_name: selectedContact?.contact_name || "",
             bank_name: c.bank,
             status: "مسجل" as const,
             currency: currencyLabel,
             source_bank_account_id: selectedChequeBankAccount || null,
+            receipt_voucher_id: receipt?.id || null,
+            contact_id: selectedContact?.id || null,
           }));
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
