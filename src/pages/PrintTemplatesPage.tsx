@@ -40,8 +40,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const ICON_COLOR_MAP: Record<string, string> = {
-  dn: "text-red-600",
-  cn: "text-green-600",
+  dn: "text-[#DC2626]",
+  cn: "text-[#059669]",
+  od: "text-[#D97706]",
+};
+
+const ICON_BG_MAP: Record<string, string> = {
+  dn: "bg-[#FEF2F2]",
+  cn: "bg-[#ECFDF5]",
+  od: "bg-[#FFFBEB]",
 };
 
 const CATEGORY_BADGE: Record<string, { label: string; classes: string }> = {
