@@ -517,13 +517,14 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
             fontSize: 11, color: theme.textColor, position: "relative", overflow: "hidden",
           }}
         >
-          {/* Watermark */}
-          {isCustom && theme.showWatermark && logoBase64 && (
+          {/* Watermark — large centered */}
+          {isCustom && theme.showWatermark && (
             <div style={{
               position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-              opacity: theme.watermarkOpacity, zIndex: 0, pointerEvents: "none",
+              opacity: 0.06, zIndex: 0, pointerEvents: "none",
+              width: "70%", textAlign: "center",
             }}>
-              <img src={logoBase64} alt="" style={{ width: 200, height: 200, objectFit: "contain" }} />
+              <img src="/logos/doulia-kitchen-logo.png" alt="" style={{ width: "100%", maxWidth: 450, objectFit: "contain" }} />
             </div>
           )}
 
