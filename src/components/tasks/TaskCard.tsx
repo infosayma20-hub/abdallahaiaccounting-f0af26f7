@@ -2,11 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Hand, Crown } from "lucide-react";
 
-const PRIORITY_LABELS: Record<string, string> = {
-  urgent_important: "مهم ومستعجل",
-  important: "مهم",
-  urgent: "مستعجل",
-  normal: "عادي",
+const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  urgent_important: { label: "مهم ومستعجل", color: "#E24B4A" },
+  important: { label: "مهم", color: "#378ADD" },
+  urgent: { label: "مستعجل", color: "#EF9F27" },
+  normal: { label: "عادي", color: "#888780" },
 };
 
 interface TaskCardProps {
