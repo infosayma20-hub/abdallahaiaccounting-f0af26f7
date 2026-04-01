@@ -10,6 +10,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   document: any;
+  embedded?: boolean;
 }
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
