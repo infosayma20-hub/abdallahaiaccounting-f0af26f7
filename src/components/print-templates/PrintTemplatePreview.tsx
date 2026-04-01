@@ -10,6 +10,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   document: any;
+  embedded?: boolean;
 }
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -20,7 +21,7 @@ const TEMPLATE_TITLES: Record<string, string> = {
   POA: "تفويض رسمي", CLR: "خطاب إخلاء طرف",
 };
 
-const PrintTemplatePreview = ({ open, onOpenChange, document: doc }: Props) => {
+const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = false }: Props) => {
   const printRef = useRef<HTMLDivElement>(null);
   const { logoBase64, companyName, companyPhone, companyEmail, companyAddress, taxNumber } = useCompanyLogo();
 
@@ -260,94 +261,97 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc }: Props) => {
     }
   };
 
+  const innerContent = (
+    <>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
+        <span className="text-sm font-medium">معاينة {title}</span>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handlePDF}><Download className="w-3.5 h-3.5 ml-1" /> تحميل PDF</Button>
+          <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
+          {!embedded && <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="w-4 h-4" /></Button>}
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div className="overflow-y-auto p-6" style={{ background: "#E5E7EB", maxHeight: embedded ? "60vh" : "calc(95vh - 50px)" }}>
+        <div
+          ref={printRef}
+          style={{
+            maxWidth: 780, margin: "0 auto", background: "white",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4,
+            padding: "40px 48px", direction: "rtl", fontFamily: "'Cairo', Arial, sans-serif",
+            fontSize: 11, color: "#111827",
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{companyName || "AMWALI"}</div>
+              <div style={{ fontSize: 9, color: "#6B7280" }}>{[companyPhone, companyEmail].filter(Boolean).join(" | ")}</div>
+              {companyAddress && <div style={{ fontSize: 9, color: "#6B7280" }}>{companyAddress}</div>}
+              {taxNumber && <div style={{ fontSize: 9, color: "#6B7280" }}>الرقم الضريبي: {taxNumber}</div>}
+            </div>
+            {logoBase64 ? (
+              <img src={logoBase64} alt="logo" style={{ height: 50, objectFit: "contain" }} />
+            ) : (
+              <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#0D1B2E", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700 }}>
+                {(companyName || "A").charAt(0)}
+              </div>
+            )}
+          </div>
+
+          <hr style={{ border: "none", borderTop: "1.5px solid #111827", margin: "8px 0 16px" }} />
+
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{title}</div>
+            <div style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>
+              رقم: {doc.document_number} &nbsp;|&nbsp; التاريخ: {doc.document_date}
+            </div>
+          </div>
+
+          {doc.contact_name && doc.contact_name !== "—" && (
+            <div style={{ marginBottom: 16, padding: "8px 12px", background: "#F9FAFB", borderRadius: 4 }}>
+              <div style={{ fontSize: 10, color: "#6B7280" }}>مقدَّم إلى:</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{doc.contact_name}</div>
+              {data.contact_address && <div style={{ fontSize: 10, color: "#6B7280" }}>{data.contact_address}</div>}
+            </div>
+          )}
+
+          <div style={{ lineHeight: 1.8, fontSize: 11 }}>
+            {renderBody()}
+          </div>
+
+          {data.notes && (
+            <div style={{ marginTop: 16, padding: "8px 12px", background: "#F9FAFB", borderRadius: 4, fontSize: 10 }}>
+              <strong>ملاحظات:</strong> {data.notes}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
+            <div className="sig-line" style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>توقيع المستلم</div>
+            <div className="sig-line" style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>ختم الشركة</div>
+            <div className="sig-line" style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>المدير</div>
+          </div>
+
+          <hr style={{ border: "none", borderTop: "1px solid #E5E7EB", margin: "24px 0 8px" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: "#9CA3AF" }}>
+            <span>{companyName}</span>
+            <span>تاريخ الطباعة: {new Date().toLocaleDateString("en-GB")}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="rounded-lg overflow-hidden border border-border">{innerContent}</div>;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
-          <span className="text-sm font-medium">معاينة {title}</span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={handlePDF}><Download className="w-3.5 h-3.5 ml-1" /> تحميل PDF</Button>
-            <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
-            <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="w-4 h-4" /></Button>
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div className="overflow-y-auto p-6" style={{ background: "#E5E7EB", maxHeight: "calc(95vh - 50px)" }}>
-          <div
-            ref={printRef}
-            style={{
-              maxWidth: 780, margin: "0 auto", background: "white",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4,
-              padding: "40px 48px", direction: "rtl", fontFamily: "'Cairo', Arial, sans-serif",
-              fontSize: 11, color: "#111827",
-            }}
-          >
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{companyName || "AMWALI"}</div>
-                <div style={{ fontSize: 9, color: "#6B7280" }}>{[companyPhone, companyEmail].filter(Boolean).join(" | ")}</div>
-                {companyAddress && <div style={{ fontSize: 9, color: "#6B7280" }}>{companyAddress}</div>}
-                {taxNumber && <div style={{ fontSize: 9, color: "#6B7280" }}>الرقم الضريبي: {taxNumber}</div>}
-              </div>
-              {logoBase64 ? (
-                <img src={logoBase64} alt="logo" style={{ height: 50, objectFit: "contain" }} />
-              ) : (
-                <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#0D1B2E", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700 }}>
-                  {(companyName || "A").charAt(0)}
-                </div>
-              )}
-            </div>
-
-            {/* Separator */}
-            <hr style={{ border: "none", borderTop: "1.5px solid #111827", margin: "8px 0 16px" }} />
-
-            {/* Document Info */}
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{title}</div>
-              <div style={{ fontSize: 10, color: "#6B7280", marginTop: 4 }}>
-                رقم: {doc.document_number} &nbsp;|&nbsp; التاريخ: {doc.document_date}
-              </div>
-            </div>
-
-            {/* Recipient */}
-            {doc.contact_name && doc.contact_name !== "—" && (
-              <div style={{ marginBottom: 16, padding: "8px 12px", background: "#F9FAFB", borderRadius: 4 }}>
-                <div style={{ fontSize: 10, color: "#6B7280" }}>مقدَّم إلى:</div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{doc.contact_name}</div>
-                {data.contact_address && <div style={{ fontSize: 10, color: "#6B7280" }}>{data.contact_address}</div>}
-              </div>
-            )}
-
-            {/* Body */}
-            <div style={{ lineHeight: 1.8, fontSize: 11 }}>
-              {renderBody()}
-            </div>
-
-            {/* Notes */}
-            {data.notes && (
-              <div style={{ marginTop: 16, padding: "8px 12px", background: "#F9FAFB", borderRadius: 4, fontSize: 10 }}>
-                <strong>ملاحظات:</strong> {data.notes}
-              </div>
-            )}
-
-            {/* Signatures */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 60 }}>
-              <div className="sig-line" style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>توقيع المستلم</div>
-              <div className="sig-line" style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>ختم الشركة</div>
-              <div className="sig-line" style={{ borderTop: "1px solid #9CA3AF", width: 150, paddingTop: 4, textAlign: "center", fontSize: 10, color: "#6B7280" }}>المدير</div>
-            </div>
-
-            {/* Footer */}
-            <hr style={{ border: "none", borderTop: "1px solid #E5E7EB", margin: "24px 0 8px" }} />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: "#9CA3AF" }}>
-              <span>{companyName}</span>
-              <span>تاريخ الطباعة: {new Date().toLocaleDateString("en-GB")}</span>
-            </div>
-          </div>
-        </div>
+        {innerContent}
       </DialogContent>
     </Dialog>
   );

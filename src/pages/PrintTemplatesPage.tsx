@@ -40,15 +40,22 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const ICON_COLOR_MAP: Record<string, string> = {
-  dn: "text-red-600",
-  cn: "text-green-600",
+  dn: "text-[#DC2626]",
+  cn: "text-[#059669]",
+  od: "text-[#D97706]",
+};
+
+const ICON_BG_MAP: Record<string, string> = {
+  dn: "bg-[#FEF2F2]",
+  cn: "bg-[#ECFDF5]",
+  od: "bg-[#FFFBEB]",
 };
 
 const CATEGORY_BADGE: Record<string, { label: string; classes: string }> = {
-  financial: { label: "مالية", classes: "bg-blue-100 text-blue-700" },
-  contracts: { label: "عقود", classes: "bg-[#E8EDF3] text-finix-navy" },
-  notices: { label: "إشعارات", classes: "bg-amber-100 text-amber-700" },
-  correspondence: { label: "مراسلات", classes: "bg-gray-100 text-gray-600" },
+  financial: { label: "مالية", classes: "bg-[#DBEAFE] text-[#1E40AF]" },
+  contracts: { label: "عقود", classes: "bg-[#EDE9FE] text-[#5B21B6]" },
+  notices: { label: "إشعارات", classes: "bg-[#FEF3C7] text-[#92400E]" },
+  correspondence: { label: "مراسلات", classes: "bg-[#F3F4F6] text-[#374151]" },
 };
 
 const TEMPLATES: TemplateConfig[] = [
@@ -164,36 +171,35 @@ const PrintTemplatesPage = () => {
       </div>
 
       {/* Templates Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {filtered.map(template => {
           const IconComp = ICON_MAP[template.id] || FileText;
-          const iconColor = ICON_COLOR_MAP[template.id] || "text-finix-navy";
+          const iconColor = ICON_COLOR_MAP[template.id] || "text-[#0D1B2E]";
+          const iconBg = ICON_BG_MAP[template.id] || "bg-[#EEF2FF]";
           const badge = CATEGORY_BADGE[template.category];
           return (
             <div
               key={template.id}
-              className="bg-white dark:bg-card border border-[#E5E7EB] dark:border-border rounded-xl p-6 flex flex-col items-center text-center transition-all hover:border-finix-navy hover:shadow-sm"
+              className="group bg-white dark:bg-card border border-[#E5E7EB] dark:border-border rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-200 hover:border-[#0D1B2E] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-0.5"
+              onClick={() => handleCreate(template)}
             >
-              <div className={`w-10 h-10 rounded-[10px] bg-[#F0F4FF] dark:bg-muted flex items-center justify-center mb-3`}>
-                <IconComp className={`w-5 h-5 ${iconColor}`} />
+              <div className={`w-20 h-20 rounded-2xl ${iconBg} dark:bg-muted flex items-center justify-center mb-3 transition-colors group-hover:brightness-95`}>
+                <IconComp className={`w-16 h-16 ${iconColor}`} strokeWidth={1.5} />
               </div>
               {badge && (
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 ${badge.classes}`}>
                   {badge.label}
                 </span>
               )}
-              <h3 className="text-[15px] font-semibold text-finix-navy dark:text-foreground">{template.title}</h3>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">{template.description}</p>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleCreate(template)}>
-                  <Plus className="w-3.5 h-3.5 ml-1" />
-                  إنشاء
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handlePreviewTemplate(template)}>
-                  <Eye className="w-3.5 h-3.5 ml-1" />
-                  معاينة
-                </Button>
-              </div>
+              <h3 className="text-[13px] font-semibold text-[#0D1B2E] dark:text-foreground">{template.title}</h3>
+              <p className="text-[11px] text-[#6B7280] mt-0.5 mb-3">{template.description}</p>
+              <button
+                className="w-8 h-8 rounded-full bg-[#0D1B2E] text-white flex items-center justify-center text-lg transition-transform group-hover:scale-110"
+                title="إنشاء نموذج جديد"
+                onClick={e => { e.stopPropagation(); handleCreate(template); }}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
           );
         })}

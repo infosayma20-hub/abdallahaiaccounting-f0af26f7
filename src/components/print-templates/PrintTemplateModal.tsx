@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import type { TemplateConfig } from "@/pages/PrintTemplatesPage";
+import PrintTemplatePreview from "./PrintTemplatePreview";
 
 interface Props {
   open: boolean;
@@ -285,40 +286,92 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
     }
   };
 
+  const [activeTab, setActiveTab] = useState<"create" | "preview">("create");
+
+  // Reset tab when modal opens
+  useEffect(() => {
+    if (open) setActiveTab("create");
+  }, [open]);
+
+  const previewDoc = {
+    template_type: template.type,
+    data: {},
+    document_number: `${template.prefix}-0000`,
+    document_date: new Date().toISOString().split("T")[0],
+    contact_name: "—",
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg">
-            {template.icon} إنشاء {template.title}
+            {template.title}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
-          {/* Common fields */}
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>المستلم / الجهة</Label><Input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="اسم العميل أو الجهة" /></div>
-            <div><Label>التاريخ</Label><Input type="date" value={docDate} onChange={e => setDocDate(e.target.value)} /></div>
-          </div>
-
-          {(template.type === "QUO" || template.type === "CON" || template.type === "DEM" || template.type === "SUP" || template.type === "CLR") && (
-            <div><Label>العنوان / الجهة</Label><Input value={contactAddress} onChange={e => setContactAddress(e.target.value)} /></div>
-          )}
-
-          {/* Template-specific fields */}
-          {renderFields()}
-
-          {/* Notes */}
-          <div><Label>ملاحظات إضافية (اختياري)</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} /></div>
-
-          {/* Actions */}
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "جاري الحفظ..." : `إنشاء ${template.title}`}
-            </Button>
-          </div>
+        {/* Tab bar */}
+        <div className="flex gap-1 border-b border-border mb-3">
+          <button
+            onClick={() => setActiveTab("create")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "create"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            إنشاء جديد
+          </button>
+          <button
+            onClick={() => setActiveTab("preview")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "preview"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            معاينة نموذج فارغ
+          </button>
         </div>
+
+        {activeTab === "create" ? (
+          <div className="space-y-4">
+            {/* Common fields */}
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>المستلم / الجهة</Label><Input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="اسم العميل أو الجهة" /></div>
+              <div><Label>التاريخ</Label><Input type="date" value={docDate} onChange={e => setDocDate(e.target.value)} /></div>
+            </div>
+
+            {(template.type === "QUO" || template.type === "CON" || template.type === "DEM" || template.type === "SUP" || template.type === "CLR") && (
+              <div><Label>العنوان / الجهة</Label><Input value={contactAddress} onChange={e => setContactAddress(e.target.value)} /></div>
+            )}
+
+            {/* Template-specific fields */}
+            {renderFields()}
+
+            {/* Notes */}
+            <div><Label>ملاحظات إضافية (اختياري)</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} /></div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "جاري الحفظ..." : `إنشاء ${template.title}`}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-[400px]">
+            <PrintTemplatePreview
+              open={true}
+              onOpenChange={() => setActiveTab("create")}
+              document={previewDoc}
+              embedded={true}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
