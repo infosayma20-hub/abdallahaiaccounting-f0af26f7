@@ -194,6 +194,7 @@ export default function WorkshopsPage() {
     cheque_bank: "", deposit_bank_id: null as string | null,
     currency: "ILS", exchange_rate: 1, cheque_count: 1,
     cash_box_id: null as string | null,
+    bank_account_id: null as string | null,
   });
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string; gl_account_code: string | null; currency: string | null }[]>([]);
   type ChequeRow = { number: string; drawer: string; bank: string; date: string; amount: number };
@@ -390,9 +391,14 @@ export default function WorkshopsPage() {
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    // Determine debit account: use cash box GL code if selected, otherwise default
+    // Determine debit account based on payment method and selected account
     let debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
-    if (!isCheque && paymentForm.cash_box_id) {
+    if (isCheque) {
+      // cheques always go to 1150
+    } else if (paymentForm.payment_method === "بنك" && paymentForm.bank_account_id) {
+      const selectedBank = bankAccounts.find(b => b.id === paymentForm.bank_account_id);
+      if (selectedBank?.gl_account_code) debitCode = selectedBank.gl_account_code;
+    } else if (paymentForm.cash_box_id) {
       const selectedBox = cashBoxes.find(b => b.id === paymentForm.cash_box_id);
       if (selectedBox?.gl_account_code) debitCode = selectedBox.gl_account_code;
     }
@@ -424,7 +430,7 @@ export default function WorkshopsPage() {
       toast.success("✅ تم تعديل الدفعة بنجاح");
       setEditingPayment(null);
       setView("workshops");
-      setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
+      setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null });
       loadCosts(selectedWorkshop.id);
       return;
     }
@@ -517,7 +523,7 @@ export default function WorkshopsPage() {
 
     setShowPaymentDialog(false);
     setView("workshops");
-    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null };
+    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null };
     setPaymentForm(resetForm as any);
     setChequeRows([]);
     loadCosts(selectedWorkshop.id);
@@ -995,7 +1001,7 @@ export default function WorkshopsPage() {
               </h3>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
                 setEditingPayment(null);
-                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
+                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null });
                 setChequeRows([]);
                 setView("new-payment");
               }}>
@@ -1018,7 +1024,7 @@ export default function WorkshopsPage() {
                         setPaymentForm({
                           amount: p.amount, payment_method: p.payment_method, description: p.description || "",
                           payment_date: p.payment_date, cheque_bank: "", deposit_bank_id: null,
-                          currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null,
+                          currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null,
                         });
                         setChequeRows([]);
                         setView("new-payment");
@@ -1385,7 +1391,7 @@ export default function WorkshopsPage() {
                       { key: "بنك", icon: "🏦", label: "بنك" },
                       { key: "شيك", icon: "📋", label: "شيكات" },
                     ].map(m => (
-                      <button key={m.key} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m.key }))}
+                      <button key={m.key} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m.key, cash_box_id: null, bank_account_id: null }))}
                         className="flex items-center justify-center gap-2 text-sm font-bold transition-all"
                         style={{
                           borderRadius: 10,
@@ -1400,8 +1406,8 @@ export default function WorkshopsPage() {
                   </div>
                 </div>
 
-                {/* Cash Box Selector — for cash and bank methods */}
-                {paymentForm.payment_method !== "شيك" && (
+                {/* Cash Box / Bank Account Selector */}
+                {paymentForm.payment_method === "نقدي" && (
                   <div className="space-y-2">
                     <Label className="text-sm font-bold">الصندوق</Label>
                     <select
@@ -1409,9 +1415,9 @@ export default function WorkshopsPage() {
                       onChange={e => setPaymentForm(f => ({ ...f, cash_box_id: e.target.value || null }))}
                       className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
                     >
-                      <option value="">الصندوق الافتراضي ({paymentForm.payment_method === "بنك" ? "1120" : "1110"})</option>
+                      <option value="">-- اختر الصندوق --</option>
                       {cashBoxes
-                        .filter(b => paymentForm.payment_method === "بنك" ? b.type === "بنكية" : b.type !== "بنكية")
+                        .filter(b => b.type !== "بنكية" && b.gl_account_code !== "1110" && b.gl_account_code !== "1120")
                         .map(b => (
                           <option key={b.id} value={b.id}>
                             {b.name} {b.gl_account_code ? `(${b.gl_account_code})` : ""} {b.currency && b.currency !== "ILS" ? `— ${b.currency}` : ""}
@@ -1419,6 +1425,27 @@ export default function WorkshopsPage() {
                         ))
                       }
                     </select>
+                  </div>
+                )}
+
+                {paymentForm.payment_method === "بنك" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold">الحساب البنكي</Label>
+                    <select
+                      value={paymentForm.bank_account_id || ""}
+                      onChange={e => setPaymentForm(f => ({ ...f, bank_account_id: e.target.value || null }))}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-3 text-sm h-12"
+                    >
+                      <option value="">-- اختر الحساب البنكي --</option>
+                      {bankAccounts.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} — {b.bank_name} {b.gl_account_code ? `(${b.gl_account_code})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {bankAccounts.length === 0 && (
+                      <p className="text-xs text-destructive">لا توجد حسابات بنكية. أضف حساباً من صفحة البنوك أولاً.</p>
+                    )}
                   </div>
                 )}
               </div>
