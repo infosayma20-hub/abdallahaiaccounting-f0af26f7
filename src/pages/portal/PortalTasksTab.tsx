@@ -86,21 +86,11 @@ export default function PortalTasksTab({ theme }: Props) {
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
-      // Fetch employees for this owner
-      const { data: emps } = await supabase
-        .from('employees')
-        .select('id, full_name, department, job_title')
-        .eq('user_id', ownerId)
-        .eq('is_active', true)
-        .order('full_name');
-
-      // Merge: use employees as primary, fallback to task_users
-      const empList = (emps || []).map(e => ({ id: e.id, full_name: e.full_name, source: 'employee' }));
-      const tuserList = (tusers || []).filter(t => !empList.some(e => e.full_name === t.full_name)).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
-      const merged = [...empList, ...tuserList];
+      // Only use task_users for assignment (FK references task_users table)
+      const userList = (tusers || []).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
 
       setTasks(tasksData || []);
-      setTaskUsers(merged);
+      setTaskUsers(userList);
     } catch (err) {
       console.error(err);
     } finally {
