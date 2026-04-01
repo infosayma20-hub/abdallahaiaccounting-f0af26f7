@@ -177,8 +177,7 @@ const BankAccountsPage = () => {
     }
 
     setSaving(true);
-    const { error } = await supabase.from("bank_accounts").insert({
-      user_id: user.id,
+    const payload = {
       name: accountName,
       bank_name: finalBankName,
       branch: branch || null,
@@ -191,12 +190,16 @@ const BankAccountsPage = () => {
       opening_balance_date: openingBalanceDate || null,
       min_balance_alert: minBalanceAlert ? Number(minBalanceAlert) : null,
       notes: notes || null,
-    });
+    };
+
+    const { error } = editingBankId
+      ? await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", user.id)
+      : await supabase.from("bank_accounts").insert({ ...payload, user_id: user.id });
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `✅ تم إضافة حساب ${finalBankName} بنجاح` });
+      toast({ title: editingBankId ? `✅ تم تعديل حساب ${finalBankName} بنجاح` : `✅ تم إضافة حساب ${finalBankName} بنجاح` });
       setModalOpen(false);
       resetForm();
       fetchBanks();
