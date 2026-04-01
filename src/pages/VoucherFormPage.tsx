@@ -1584,30 +1584,60 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           </div>
 
-          {/* Cheque details */}
+          {/* Cheque details - Multi cheque */}
           {paymentMethod === "شيك" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border/30">
-              <div>
-                <Label className="text-xs mb-1.5 block">رقم الشيك</Label>
-                <Input value={checkNumber} onChange={e => setCheckNumber(e.target.value)} placeholder="رقم الشيك" />
+            <div className="pt-2 border-t border-border/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold flex items-center gap-1.5">
+                  <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
+                  بيانات الشيكات ({cheques.length})
+                </Label>
+                <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
+                  <Plus className="h-3 w-3" /> إضافة شيك
+                </button>
               </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">تاريخ الشيك</Label>
-                <Input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">اسم البنك</Label>
-                <Select value={checkBank} onValueChange={setCheckBank}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر البنك" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {cheques.length === 0 && (
+                <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                  اضغط "إضافة شيك" لإدخال بيانات الشيك
+                </div>
+              )}
+              {cheques.map((chq, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-end bg-secondary/30 rounded-lg p-3">
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">رقم الشيك</Label>
+                    <Input value={chq.number} onChange={e => updateCheque(idx, "number", e.target.value)} placeholder="رقم الشيك" className="h-9 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">تاريخ الاستحقاق</Label>
+                    <Input type="date" value={chq.date} onChange={e => updateCheque(idx, "date", e.target.value)} className="h-9 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">اسم البنك</Label>
+                    <Select value={chq.bank} onValueChange={v => updateCheque(idx, "bank", v)}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="اختر البنك" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] mb-1 block text-muted-foreground">المبلغ</Label>
+                    <Input type="number" value={chq.amount} onChange={e => updateCheque(idx, "amount", e.target.value)} placeholder="0.00" className="h-9 text-xs font-mono" />
+                  </div>
+                  <button type="button" onClick={() => removeCheque(idx)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors mb-0.5">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {cheques.length > 1 && (
+                <div className="text-left text-xs font-mono font-bold text-primary pt-1">
+                  إجمالي الشيكات: {CURRENCIES.find(c => c.value === currency)?.symbol || "₪"}{cheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
