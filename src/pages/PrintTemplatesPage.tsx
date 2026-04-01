@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon } from "lucide-react";
+import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, MinusCircle, PlusCircle, UserCheck, Clock, Truck, BadgeCheck, LucideIcon, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import PrintTemplateModal from "@/components/print-templates/PrintTemplateModal";
 import PrintTemplatePreview from "@/components/print-templates/PrintTemplatePreview";
+import { isDoulia } from "@/lib/print-themes";
+import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 
 const TEMPLATE_CATEGORIES = [
   { key: "all", label: "الكل" },
@@ -131,8 +133,32 @@ const PrintTemplatesPage = () => {
     closed: "مغلق",
   };
 
+  const { logoBase64, companyName: brandName } = useCompanyLogo();
+  const showBrandBanner = isDoulia(user?.email);
+
   return (
     <div className="space-y-6">
+      {/* Branded Banner for Doulia Kitchen */}
+      {showBrandBanner && (
+        <div
+          className="flex items-center gap-3 rounded-xl px-5 py-3"
+          style={{ background: "linear-gradient(135deg, #1B2B4B, #2A3F6B)", color: "white" }}
+        >
+          {logoBase64 ? (
+            <img src={logoBase64} alt="logo" className="h-8 w-8 object-contain rounded" />
+          ) : (
+            <div className="w-8 h-8 rounded bg-white/20 flex items-center justify-center text-sm font-bold">DK</div>
+          )}
+          <div className="flex-1">
+            <div className="text-sm font-bold">{brandName || "الشركة الدولية للمطابخ"}</div>
+            <div className="text-[11px] opacity-80 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              قوالبك مخصصة بهوية شركتك ✨
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">

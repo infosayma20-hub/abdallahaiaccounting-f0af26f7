@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import type { TemplateConfig } from "@/pages/PrintTemplatesPage";
 import PrintTemplatePreview from "./PrintTemplatePreview";
+import { isDoulia } from "@/lib/print-themes";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ interface Props {
 
 const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) => {
   const { user } = useAuth();
+  const showExtendedFields = isDoulia(user?.email);
   const [contactName, setContactName] = useState("");
   const [contactAddress, setContactAddress] = useState("");
   const [docDate, setDocDate] = useState(new Date().toISOString().split("T")[0]);
@@ -33,6 +35,8 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
   const [vatEnabled, setVatEnabled] = useState(false);
   const [validityDays, setValidityDays] = useState(30);
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [quoSpecs, setQuoSpecs] = useState("");
+  const [quoProjectDesc, setQuoProjectDesc] = useState("");
 
   // CON fields
   const [workDescription, setWorkDescription] = useState("");
@@ -86,7 +90,7 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
 
   const buildData = () => {
     switch (template.type) {
-      case "QUO": return { items, discount_percent: discountPercent, vat_enabled: vatEnabled, validity_days: validityDays, payment_terms: paymentTerms, subtotal, total, notes, contact_address: contactAddress };
+      case "QUO": return { items, discount_percent: discountPercent, vat_enabled: vatEnabled, validity_days: validityDays, payment_terms: paymentTerms, subtotal, total, notes, contact_address: contactAddress, specs: quoSpecs, work_description: quoProjectDesc };
       case "CON": return { work_description: workDescription, contract_value: contractValue, execution_period: executionPeriod, warranty_terms: warrantyTerms, notes, contact_address: contactAddress };
       case "DEM": return { amount, response_days: responseDays, notes, contact_address: contactAddress };
       case "DN": return { amount, reason, ref_invoice: refInvoice, notes };
@@ -139,7 +143,13 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
     switch (template.type) {
       case "QUO":
         return (
-          <div className="space-y-4">
+           <div className="space-y-4">
+            {showExtendedFields && (
+              <div className="space-y-3">
+                <div><Label>وصف المشروع / المطبخ</Label><Input value={quoProjectDesc} onChange={e => setQuoProjectDesc(e.target.value)} placeholder="مثال: مطبخ فيلا ألمنيوم 12 متر" /></div>
+                <div><Label>المواصفات التفصيلية</Label><Textarea value={quoSpecs} onChange={e => setQuoSpecs(e.target.value)} rows={4} placeholder="أدخل مواصفات المشروع بالتفصيل..." /></div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="font-semibold">بنود عرض السعر</Label>
               {items.map((item, i) => (
