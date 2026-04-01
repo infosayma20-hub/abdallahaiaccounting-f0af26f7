@@ -523,7 +523,7 @@ export default function WorkshopsPage() {
 
     setShowPaymentDialog(false);
     setView("workshops");
-    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null };
+    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null };
     setPaymentForm(resetForm as any);
     setChequeRows([]);
     loadCosts(selectedWorkshop.id);
