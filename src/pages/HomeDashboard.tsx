@@ -203,6 +203,7 @@ const HomeDashboard = () => {
       <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AccountStatementModal open={showAccountStatement} onClose={() => setShowAccountStatement(false)} />
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />
+      <CustomizeDashboardDialog open={customizeOpen} onOpenChange={setCustomizeOpen} onApply={setWidgetConfig} />
     </div>
   );
 };
