@@ -938,8 +938,8 @@ const ContactsPage = () => {
               <Select value={editData.balance_direction || "credit"} onValueChange={(v) => setEditData((p: any) => ({ ...p, balance_direction: v }))} dir="rtl">
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="debit">مدين (له عندنا)</SelectItem>
-                  <SelectItem value="credit">دائن (علينا له)</SelectItem>
+                  <SelectItem value="debit">مدين (إلنا رصيد)</SelectItem>
+                  <SelectItem value="credit">دائن (علينا دين)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
