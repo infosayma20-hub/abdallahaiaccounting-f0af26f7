@@ -142,7 +142,8 @@ const ContactsPage = () => {
   const [overdueLoading, setOverdueLoading] = useState(false);
   const [newContact, setNewContact] = useState({
     name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "",
-    contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: ""
+    contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "",
+    opening_balance: "", balance_direction: "credit" as "debit" | "credit",
   });
 
   // Set filter from URL params
@@ -233,8 +234,36 @@ const ContactsPage = () => {
         notes: newContact.notes || null,
       });
       if (error) throw error;
+      
+      // Create opening balance transaction if amount provided
+      const obAmount = parseFloat(newContact.opening_balance);
+      if (obAmount > 0) {
+        // Get the newly created contact ID
+        const { data: newC } = await supabase.from('contacts').select('id').eq('user_id', user.id).eq('contact_name', newContact.name.trim()).order('created_at', { ascending: false }).limit(1).single();
+        if (newC) {
+          const isDebit = newContact.balance_direction === "debit";
+          const contactAccountCode = newContact.type === "مورد" ? "2110" : "1130";
+          await supabase.from('transactions').insert({
+            user_id: user.id,
+            transaction_date: new Date().toISOString().split('T')[0],
+            description: `رصيد افتتاحي - ${newContact.name.trim()}`,
+            debit_account_code: isDebit ? contactAccountCode : "3400",
+            credit_account_code: isDebit ? "3400" : contactAccountCode,
+            amount: obAmount,
+            currency: "شيكل",
+            transaction_type: "opening_balance",
+            is_opening_balance: true,
+            contact_id: newC.id,
+            idempotency_key: `OB-CONTACT-${newC.id}`,
+          });
+          // Update contact current_balance
+          const balanceVal = isDebit ? obAmount : -obAmount;
+          await supabase.from('contacts').update({ current_balance: balanceVal }).eq('id', newC.id);
+        }
+      }
+
       toast({ title: "تم إضافة جهة الاتصال بنجاح" });
-      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "" });
+      setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "credit" });
       setShowAddDialog(false);
       fetchContacts();
     } catch (err: any) {
@@ -265,6 +294,35 @@ const ContactsPage = () => {
         contact_segment: editData.contact_segment || null,
       }).eq('id', editContact.id);
       if (error) throw error;
+
+      // Handle opening balance if provided in edit
+      const obAmount = parseFloat(editData.opening_balance);
+      if (obAmount > 0) {
+        // Delete any existing opening balance transaction for this contact
+        const { data: existingOB } = await supabase.from('transactions')
+          .select('id').eq('contact_id', editContact.id).eq('is_opening_balance', true).limit(1);
+        if (existingOB && existingOB.length > 0) {
+          await supabase.from('transactions').update({ is_deleted: true } as any).eq('id', existingOB[0].id);
+        }
+        const isDebit = editData.balance_direction === "debit";
+        const contactAccountCode = editData.contact_type === "مورد" ? "2110" : "1130";
+        await supabase.from('transactions').insert({
+          user_id: user!.id,
+          transaction_date: new Date().toISOString().split('T')[0],
+          description: `رصيد افتتاحي - ${editData.contact_name.trim()}`,
+          debit_account_code: isDebit ? contactAccountCode : "3400",
+          credit_account_code: isDebit ? "3400" : contactAccountCode,
+          amount: obAmount,
+          currency: "شيكل",
+          transaction_type: "opening_balance",
+          is_opening_balance: true,
+          contact_id: editContact.id,
+          idempotency_key: `OB-CONTACT-${editContact.id}-${Date.now()}`,
+        });
+        const balanceVal = isDebit ? obAmount : -obAmount;
+        await supabase.from('contacts').update({ current_balance: balanceVal }).eq('id', editContact.id);
+      }
+
       toast({ title: "تم تعديل جهة الاتصال بنجاح" });
       setEditContact(null);
       fetchContacts();
@@ -771,6 +829,20 @@ const ContactsPage = () => {
               <Label className="text-xs">العنوان</Label>
               <Input placeholder="العنوان" value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" />
             </div>
+            <div>
+              <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
+              <Input type="number" placeholder="0" value={newContact.opening_balance} onChange={(e) => setNewContact(p => ({ ...p, opening_balance: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">طبيعة الرصيد</Label>
+              <Select value={newContact.balance_direction} onValueChange={(v: "debit" | "credit") => setNewContact(p => ({ ...p, balance_direction: v }))} dir="rtl">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="debit">مدين (له عندنا)</SelectItem>
+                  <SelectItem value="credit">دائن (علينا له)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2">
               <Label className="text-xs">ملاحظات</Label>
               <Textarea placeholder="ملاحظات..." value={newContact.notes} onChange={(e) => setNewContact(p => ({ ...p, notes: e.target.value }))} dir="rtl" rows={2} />
@@ -856,6 +928,20 @@ const ContactsPage = () => {
             <div className="col-span-2">
               <Label className="text-xs">العنوان</Label>
               <Input value={editData.address || ""} onChange={(e) => setEditData((p: any) => ({ ...p, address: e.target.value }))} dir="rtl" />
+            </div>
+            <div>
+              <Label className="text-xs">الرصيد الافتتاحي ₪</Label>
+              <Input type="number" placeholder="0" value={editData.opening_balance || ""} onChange={(e) => setEditData((p: any) => ({ ...p, opening_balance: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">طبيعة الرصيد</Label>
+              <Select value={editData.balance_direction || "credit"} onValueChange={(v) => setEditData((p: any) => ({ ...p, balance_direction: v }))} dir="rtl">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="debit">مدين (له عندنا)</SelectItem>
+                  <SelectItem value="credit">دائن (علينا له)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="col-span-2">
               <Label className="text-xs">ملاحظات</Label>
