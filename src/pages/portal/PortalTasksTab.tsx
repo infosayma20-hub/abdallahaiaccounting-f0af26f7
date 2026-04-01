@@ -74,8 +74,21 @@ export default function PortalTasksTab({ theme }: Props) {
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
+      // Fetch employees for this owner
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('id, full_name, department, job_title')
+        .eq('user_id', ownerId)
+        .eq('is_active', true)
+        .order('full_name');
+
+      // Merge: use employees as primary, fallback to task_users
+      const empList = (emps || []).map(e => ({ id: e.id, full_name: e.full_name, source: 'employee' }));
+      const tuserList = (tusers || []).filter(t => !empList.some(e => e.full_name === t.full_name)).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
+      const merged = [...empList, ...tuserList];
+
       setTasks(tasksData || []);
-      setTaskUsers(tusers || []);
+      setTaskUsers(merged);
     } catch (err) {
       console.error(err);
     } finally {
@@ -240,7 +253,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
+                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف <span style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>(اختياري)</span></label>
                 <select
                   value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
                   style={{
@@ -289,11 +302,11 @@ export default function PortalTasksTab({ theme }: Props) {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start' }}>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || !title.trim() || !assignedTo}
+                disabled={submitting || !title.trim()}
                 style={{
                   background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
                   padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  opacity: submitting || !title.trim() || !assignedTo ? 0.5 : 1,
+                  opacity: submitting || !title.trim() ? 0.5 : 1,
                   fontFamily: 'Tajawal, sans-serif',
                 }}
               >
