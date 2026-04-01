@@ -227,7 +227,7 @@ export function useDashboardData() {
 
     const payCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
     const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-    const payables = payCr - payDr;
+    const payables = payDr - payCr; // negative = money owed to suppliers
 
     // Cash = all cash boxes (111x) + all bank accounts (112x)
     const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
