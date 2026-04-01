@@ -1,14 +1,12 @@
 import { useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, X } from "lucide-react";
+import { Printer, X } from "lucide-react";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { getThemeForUser, type PrintTheme, DEFAULT_THEME } from "@/lib/print-themes";
 import { amountToArabicWords } from "@/lib/arabic-number-words";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// PDF imports removed — print only
 
 interface Props {
   open: boolean;
@@ -63,44 +61,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     setTimeout(() => { w.print(); w.close(); }, 300);
   };
 
-  const handlePDF = async () => {
-    const element = printRef.current;
-    if (!element) return;
-    
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // Handle multi-page if content is taller than A4
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      if (pdfHeight <= pageHeight) {
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      } else {
-        let remainingHeight = pdfHeight;
-        let position = 0;
-        while (remainingHeight > 0) {
-          pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-          remainingHeight -= pageHeight;
-          position -= pageHeight;
-          if (remainingHeight > 0) pdf.addPage();
-        }
-      }
-      
-      pdf.save(`${doc.document_number || title}.pdf`);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-    }
-  };
+  // PDF download removed — print only
 
   // Doulia-specific body renderers with premium styling
   const renderDouliQuotationBody = () => (
@@ -505,7 +466,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
         <span className="text-sm font-medium">معاينة {title}</span>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handlePDF}><Download className="w-3.5 h-3.5 ml-1" /> تحميل PDF</Button>
+          <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
           <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
           {!embedded && <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="w-4 h-4" /></Button>}
         </div>
