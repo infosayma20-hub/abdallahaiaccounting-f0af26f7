@@ -173,9 +173,40 @@ const ContactsPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('contacts').select('*').eq('user_id', user.id).order('contact_name');
+      const [{ data: contactData, error }, { data: txData }] = await Promise.all([
+        supabase.from('contacts').select('*').eq('user_id', user.id).order('contact_name'),
+        supabase.from('transactions').select('id, amount, debit_account_code, credit_account_code, contact_id, transaction_date, description')
+          .eq('user_id', user.id).eq('is_deleted', false),
+      ]);
       if (error) throw error;
-      setContacts((data as any[]) || []);
+      const txs = txData || [];
+      setTransactions(txs);
+
+      // Compute balances from transactions for each contact
+      const balanceMap: Record<string, number> = {};
+      const lastTxMap: Record<string, string> = {};
+      for (const tx of txs) {
+        if (!tx.contact_id) continue;
+        if (!balanceMap[tx.contact_id]) balanceMap[tx.contact_id] = 0;
+        // For customers (1130): debit increases balance (money owed to us), credit decreases
+        // For suppliers (2110): credit increases balance (money we owe), debit decreases
+        if (tx.debit_account_code === "1130") balanceMap[tx.contact_id] += (tx.amount || 0);
+        if (tx.credit_account_code === "1130") balanceMap[tx.contact_id] -= (tx.amount || 0);
+        if (tx.credit_account_code === "2110") balanceMap[tx.contact_id] -= (tx.amount || 0);
+        if (tx.debit_account_code === "2110") balanceMap[tx.contact_id] += (tx.amount || 0);
+        // Track last transaction date
+        if (!lastTxMap[tx.contact_id] || tx.transaction_date > lastTxMap[tx.contact_id]) {
+          lastTxMap[tx.contact_id] = tx.transaction_date;
+        }
+      }
+
+      // Enrich contacts with computed balances
+      const enriched = (contactData || []).map((c: any) => ({
+        ...c,
+        current_balance: balanceMap[c.id] ?? c.current_balance ?? 0,
+        last_transaction_date: lastTxMap[c.id] || c.last_transaction_date,
+      }));
+      setContacts(enriched);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
