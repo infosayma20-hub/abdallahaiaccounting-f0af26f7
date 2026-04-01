@@ -62,132 +62,43 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     setTimeout(() => { w.print(); w.close(); }, 300);
   };
 
-  const handlePDF = () => {
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const W = pdf.internal.pageSize.width;
-    let y = 20;
-
-    // Header
-    pdf.setFontSize(14);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(companyName || "AMWALI", W / 2, y, { align: "center" });
-    y += 8;
+  const handlePDF = async () => {
+    const element = printRef.current;
+    if (!element) return;
     
-    if (isCustom && theme.showEnglishName) {
-      pdf.setFontSize(10);
-      pdf.text(theme.englishName, W / 2, y, { align: "center" });
-      y += 5;
-    }
-    
-    pdf.setFontSize(8);
-    pdf.setFont("helvetica", "normal");
-    const info = [companyPhone, companyEmail, companyAddress].filter(Boolean).join(" | ");
-    if (info) { pdf.text(info, W / 2, y, { align: "center" }); y += 5; }
-    if (taxNumber) { pdf.text(`Tax: ${taxNumber}`, W / 2, y, { align: "center" }); y += 5; }
-
-    // Separator
-    const [r, g, b] = hexToRgb(theme.primaryColor);
-    pdf.setDrawColor(r, g, b);
-    pdf.setLineWidth(theme.separatorWeight * 0.3);
-    pdf.line(20, y, W - 20, y);
-    y += 8;
-
-    // Title
-    pdf.setFontSize(13);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(title, W / 2, y, { align: "center" });
-    y += 8;
-
-    // Doc info
-    pdf.setFontSize(9);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`${doc.document_number || ""}`, W - 20, y, { align: "right" });
-    pdf.text(`${doc.document_date || ""}`, 20, y);
-    y += 6;
-    if (doc.contact_name) { pdf.text(`${doc.contact_name}`, W - 20, y, { align: "right" }); y += 6; }
-
-    // Items table for QUO/SUP
-    if ((type === "QUO" || type === "SUP") && data.items?.length) {
-      const rows = data.items.map((it: any, i: number) => [
-        String(i + 1), it.description || "", String(it.quantity || 0), `${fmt(it.unit_price || 0)}`, `${fmt((it.quantity || 0) * (it.unit_price || 0))}`,
-      ]);
-      autoTable(pdf, {
-        startY: y,
-        head: [["#", "البند", "الكمية", "سعر الوحدة", "الإجمالي"]],
-        body: rows,
-        theme: "plain",
-        headStyles: { fontSize: 9, fontStyle: "bold", halign: "center", lineWidth: { top: 0.3, bottom: 0.3 }, lineColor: [r, g, b] },
-        bodyStyles: { fontSize: 9, halign: "center" },
-        margin: { left: 20, right: 20 },
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
       });
-      y = (pdf as any).lastAutoTable?.finalY + 5 || y + 30;
-
-      if (data.subtotal) { pdf.text(`المجموع الفرعي: ${fmt(data.subtotal)}`, W - 20, y, { align: "right" }); y += 5; }
-      if (data.discount_percent > 0) { pdf.text(`الخصم (${data.discount_percent}%): -${fmt(data.subtotal * data.discount_percent / 100)}`, W - 20, y, { align: "right" }); y += 5; }
-      if (data.total) {
-        pdf.setFont("helvetica", "bold");
-        if (isCustom) {
-          const [ar, ag, ab] = hexToRgb(theme.amountColor);
-          pdf.setTextColor(ar, ag, ab);
-        }
-        pdf.text(`الإجمالي: ${fmt(data.total)}`, W - 20, y, { align: "right" });
-        pdf.setTextColor(0, 0, 0);
-        y += 5;
-      }
-    }
-
-    // Amount for DEM/DN/CN/OD/RCP
-    if (data.amount && type !== "QUO" && type !== "SUP") {
-      pdf.setFontSize(isCustom ? 14 : 11);
-      pdf.setFont("helvetica", "bold");
-      if (isCustom) {
-        const [ar, ag, ab] = hexToRgb(theme.amountColor);
-        pdf.setTextColor(ar, ag, ab);
-      }
-      pdf.text(`المبلغ: ${fmt(data.amount)}`, W / 2, y, { align: "center" });
-      pdf.setTextColor(0, 0, 0);
-      y += 8;
       
-      if (theme.showAmountInWords) {
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "italic");
-        pdf.text(amountToArabicWords(data.amount, currency), W / 2, y, { align: "center" });
-        y += 8;
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Handle multi-page if content is taller than A4
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      if (pdfHeight <= pageHeight) {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      } else {
+        let remainingHeight = pdfHeight;
+        let position = 0;
+        while (remainingHeight > 0) {
+          pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+          remainingHeight -= pageHeight;
+          position -= pageHeight;
+          if (remainingHeight > 0) pdf.addPage();
+        }
       }
+      
+      pdf.save(`${doc.document_number || title}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
     }
-
-    // Notes
-    if (data.notes) {
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.text(`ملاحظات: ${data.notes}`, W - 20, y, { align: "right" });
-      y += 10;
-    }
-
-    // Signatures
-    const sigY = Math.max(y + 20, 240);
-    pdf.setDrawColor(156, 163, 175);
-    pdf.setLineWidth(0.2);
-    pdf.line(20, sigY, 70, sigY);
-    pdf.line(W / 2 - 25, sigY, W / 2 + 25, sigY);
-    pdf.line(W - 70, sigY, W - 20, sigY);
-    pdf.setFontSize(8);
-    pdf.text("توقيع المستلم", 45, sigY + 5, { align: "center" });
-    pdf.text("ختم الشركة", W / 2, sigY + 5, { align: "center" });
-    pdf.text(theme.signatureText, W - 45, sigY + 5, { align: "center" });
-
-    // Footer
-    if (theme.footerStyle === "branded") {
-      const fY = pdf.internal.pageSize.height - 10;
-      pdf.setFillColor(r, g, b);
-      pdf.rect(0, fY - 8, W, 18, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(7);
-      pdf.text(`${companyName} | ${companyPhone || ""} | ${new Date().toLocaleDateString("en-GB")}`, W / 2, fY - 2, { align: "center" });
-      pdf.setTextColor(0, 0, 0);
-    }
-
-    pdf.save(`${doc.document_number || title}.pdf`);
   };
 
   // Doulia-specific body renderers with premium styling
