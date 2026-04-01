@@ -444,7 +444,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const renderFooter = () => {
     if (isCustom && theme.footerStyle === "branded") {
       return (
-        <div style={{ background: theme.primaryColor, color: "white", margin: "24px -48px -40px", padding: "10px 48px", display: "flex", justifyContent: "space-between", fontSize: 9 }}>
+        <div style={{ background: theme.primaryColor, color: "white", margin: "16px -40px -32px", padding: "8px 28px", display: "flex", justifyContent: "space-between", fontSize: 9 }}>
           <span>{companyName}</span>
           <span>{companyPhone || ""}</span>
           <span>تاريخ الطباعة: {new Date().toLocaleDateString("en-GB")}</span>
