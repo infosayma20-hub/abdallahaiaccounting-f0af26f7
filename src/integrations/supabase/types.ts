@@ -227,6 +227,48 @@ export type Database = {
         }
         Relationships: []
       }
+      add_ons: {
+        Row: {
+          addon_key: string
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name_ar: string
+          name_en: string
+          price_per_unit_annual: number
+          price_per_unit_monthly: number
+          sort_order: number | null
+          unit_label: string
+        }
+        Insert: {
+          addon_key: string
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar: string
+          name_en: string
+          price_per_unit_annual?: number
+          price_per_unit_monthly?: number
+          sort_order?: number | null
+          unit_label: string
+        }
+        Update: {
+          addon_key?: string
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name_ar?: string
+          name_en?: string
+          price_per_unit_annual?: number
+          price_per_unit_monthly?: number
+          sort_order?: number | null
+          unit_label?: string
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           created_at: string
@@ -6253,6 +6295,7 @@ export type Database = {
       }
       plans: {
         Row: {
+          ai_limit: number | null
           annual_discount_pct: number
           annual_price: number | null
           created_at: string
@@ -6261,7 +6304,9 @@ export type Database = {
           features: Json
           id: string
           is_active: boolean
+          is_featured: boolean | null
           limits: Json | null
+          max_branches: number | null
           max_companies: number
           max_users: number
           monthly_price: number
@@ -6272,6 +6317,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_limit?: number | null
           annual_discount_pct?: number
           annual_price?: number | null
           created_at?: string
@@ -6280,7 +6326,9 @@ export type Database = {
           features?: Json
           id?: string
           is_active?: boolean
+          is_featured?: boolean | null
           limits?: Json | null
+          max_branches?: number | null
           max_companies?: number
           max_users?: number
           monthly_price?: number
@@ -6291,6 +6339,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_limit?: number | null
           annual_discount_pct?: number
           annual_price?: number | null
           created_at?: string
@@ -6299,7 +6348,9 @@ export type Database = {
           features?: Json
           id?: string
           is_active?: boolean
+          is_featured?: boolean | null
           limits?: Json | null
+          max_branches?: number | null
           max_companies?: number
           max_users?: number
           monthly_price?: number
