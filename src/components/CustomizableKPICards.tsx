@@ -149,7 +149,8 @@ const CustomizableKPICards = ({
   const hasReceivables = receivables > 0;
   const hasIncome = totalIncome > 0;
   const collectionRate = hasIncome && hasReceivables ? Math.round((totalIncome / (totalIncome + receivables)) * 100) : hasIncome ? 100 : 0;
-  const debtToCash = cashBalance > 0 ? payables / cashBalance : payables > 0 ? 999 : 0;
+  const absPayables = Math.abs(payables); // payables is negative
+  const debtToCash = cashBalance > 0 ? absPayables / cashBalance : absPayables > 0 ? 999 : 0;
 
   const sparkData = useMemo(() => {
     const base = [30, 45, 35, 60, 50, 70, 65];
@@ -252,15 +253,15 @@ const CustomizableKPICards = ({
       icon: Landmark,
       value: payables,
       prefix: "₪",
-      status: payables === 0 ? "green" : payables > cashBalance ? "red" : "yellow",
-      trendLabel: payables > 0 ? "مستحقات قائمة" : "لا التزامات",
-      trend: payables > 0 ? "down" : "neutral",
+      status: absPayables === 0 ? "green" : absPayables > cashBalance ? "red" : "yellow",
+      trendLabel: absPayables > 0 ? "مستحقات قائمة" : "لا التزامات",
+      trend: absPayables > 0 ? "down" : "neutral",
       linkTo: "/contacts?type=supplier",
       subItems: [
-        { label: "مستحق خلال 30 يوم", value: `₪${payables.toLocaleString()}` },
+        { label: "مستحق خلال 30 يوم", value: `₪${absPayables.toLocaleString()}` },
         { label: "نسبة الدين للنقد", value: debtToCash < 1 ? `${Math.round(debtToCash * 100)}%` : debtToCash === 0 ? "0%" : ">100%" },
       ],
-      aiInsight: payables === 0 ? "لا توجد التزامات مسجلة حالياً" : debtToCash < 1 ? `${Math.round(debtToCash * 100)}% من التزاماتك مغطاة بالنقد` : "التزاماتك تتجاوز السيولة — خطط للسداد",
+      aiInsight: absPayables === 0 ? "لا توجد التزامات مسجلة حالياً" : debtToCash < 1 ? `${Math.round(debtToCash * 100)}% من التزاماتك مغطاة بالنقد` : "التزاماتك تتجاوز السيولة — خطط للسداد",
       sparkData: sparkData.debt,
     },
   ];

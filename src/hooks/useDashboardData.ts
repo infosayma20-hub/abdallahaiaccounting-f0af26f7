@@ -227,7 +227,7 @@ export function useDashboardData() {
 
     const payCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
     const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-    const payables = payCr - payDr;
+    const payables = payDr - payCr; // negative = money owed to suppliers
 
     // Cash = all cash boxes (111x) + all bank accounts (112x)
     const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
@@ -315,10 +315,11 @@ export function useDashboardData() {
   // Health score
   const healthScore = useMemo(() => {
     const { revenue, expenses, receivables, payables, cashBalance } = kpis;
+    const absPayables = Math.abs(payables); // payables is negative, use absolute for ratios
     const profitMargin = revenue > 0 ? ((revenue - expenses) / revenue) * 100 : 0;
-    const currentRatio = payables > 0 ? cashBalance / payables : cashBalance > 0 ? 3 : 0;
+    const currentRatio = absPayables > 0 ? cashBalance / absPayables : cashBalance > 0 ? 3 : 0;
     const collectionEff = (revenue > 0 && receivables >= 0) ? Math.max(0, Math.min(100, ((revenue - receivables) / revenue) * 100)) : 100;
-    const debtRatio = (cashBalance + receivables) > 0 ? payables / (cashBalance + receivables) : 0;
+    const debtRatio = (cashBalance + receivables) > 0 ? absPayables / (cashBalance + receivables) : 0;
 
     let score = 50;
     if (profitMargin > 15) score += 15; else if (profitMargin > 5) score += 8; else if (profitMargin < 0) score -= 15;
