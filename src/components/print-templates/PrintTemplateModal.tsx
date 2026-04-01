@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import type { TemplateConfig } from "@/pages/PrintTemplatesPage";
+import PrintTemplatePreview from "./PrintTemplatePreview";
 
 interface Props {
   open: boolean;
