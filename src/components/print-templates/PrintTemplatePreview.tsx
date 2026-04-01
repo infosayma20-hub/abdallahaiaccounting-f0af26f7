@@ -466,7 +466,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
         <span className="text-sm font-medium">معاينة {title}</span>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handlePDF}><Download className="w-3.5 h-3.5 ml-1" /> تحميل PDF</Button>
+          <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
           <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
           {!embedded && <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="w-4 h-4" /></Button>}
         </div>
