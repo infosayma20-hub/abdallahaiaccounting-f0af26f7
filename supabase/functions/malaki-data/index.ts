@@ -71,19 +71,15 @@ Deno.serve(async (req) => {
         .eq("linked_user_id", linkedUserId)
         .single();
       portalSettings = settings;
-    }
 
-    // Fallback: try global settings (legacy)
-    if (!portalSettings) {
-      const { data: settings } = await supabase
-        .from("malaki_portal_settings")
-        .select("*")
-        .limit(1)
-        .single();
-      portalSettings = settings;
-      // Only use this if linkedUserId wasn't resolved
-      if (!linkedUserId && portalSettings?.linked_user_id) {
-        linkedUserId = portalSettings.linked_user_id;
+      // Auto-create portal settings if none exist for this owner
+      if (!portalSettings) {
+        const { data: newSettings } = await supabase
+          .from("malaki_portal_settings")
+          .insert({ linked_user_id: linkedUserId })
+          .select("*")
+          .single();
+        portalSettings = newSettings;
       }
     }
 
