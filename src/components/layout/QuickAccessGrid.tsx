@@ -71,6 +71,15 @@ const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridPro
   const navigate = useNavigate();
   const [items, setItems] = useState<QuickAccessItem[]>(loadConfig);
   const [showCustomize, setShowCustomize] = useState(false);
+  const { isRouteLocked, getLockedModuleName } = useLockedModules();
+
+  const handleNavigate = (path: string) => {
+    if (!isSuperAdmin && isRouteLocked(path)) {
+      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      return;
+    }
+    navigate(path);
+  };
 
   // Filter out admin-only items if user is not super admin
   const visibleItems = isSuperAdmin 
