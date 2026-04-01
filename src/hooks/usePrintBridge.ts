@@ -1,8 +1,16 @@
 /**
- * Print Bridge Hook — thin React wrapper around print-bridge-client.ts
+ * Print Bridge Hook v3 — supports station-based routing
  */
 import { useCallback } from "react";
-import { sendToBridge, checkBridgeStatus, bridgePrintAll as _bridgePrintAll, bridgeOpenDrawer } from "@/lib/print-bridge-client";
+import {
+  sendToBridge,
+  sendRoutedPrint,
+  checkBridgeStatus,
+  checkBridgeHealth,
+  testPrinterConnection,
+  bridgePrintAll as _bridgePrintAll,
+  bridgeOpenDrawer,
+} from "@/lib/print-bridge-client";
 import { toast } from "sonner";
 
 export interface PrintItem {
@@ -12,8 +20,11 @@ export interface PrintItem {
   price: number;
   note?: string;
   stationId?: string;
+  /** Which printer key this item routes to */
   printerKey?: "kitchen" | "grill" | "pizza" | "none";
   modifiers?: { option_name: string; extra_price?: number }[];
+  /** Station IDs from product.print_station_ids */
+  print_station_ids?: string[];
 }
 
 /** Maps station IDs to their printer IDs in pos_printers */
@@ -48,6 +59,14 @@ export function usePrintBridge() {
     return checkBridgeStatus();
   }, []);
 
+  const getHealth = useCallback(async () => {
+    return checkBridgeHealth();
+  }, []);
+
+  const testPrinter = useCallback(async (ip: string, port: number) => {
+    return testPrinterConnection(ip, port);
+  }, []);
+
   const printReceipt = useCallback(async (order: PrintOrder) => {
     return sendToBridge("receipt", order);
   }, []);
@@ -75,9 +94,14 @@ export function usePrintBridge() {
       });
   }, []);
 
+  /** Print with station-based routing — items are grouped by station */
+  const printRouted = useCallback(async (order: PrintOrder) => {
+    return sendRoutedPrint(order);
+  }, []);
+
   const openDrawer = useCallback(() => {
     bridgeOpenDrawer();
   }, []);
 
-  return { checkBridge, printReceipt, printKitchen, printAll, openDrawer };
+  return { checkBridge, getHealth, testPrinter, printReceipt, printKitchen, printAll, printRouted, openDrawer };
 }

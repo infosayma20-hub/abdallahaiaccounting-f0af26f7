@@ -1,6 +1,6 @@
 /**
- * Standalone Print Bridge client — can be used outside React components.
- * All printing goes through the local bridge service (no browser dialogs).
+ * Print Bridge Client v3 — supports station-based routing
+ * and Arabic encoding instructions for the local bridge.
  */
 
 import type { PrintOrder } from "@/hooks/usePrintBridge";
@@ -8,10 +8,6 @@ import type { PrintOrder } from "@/hooks/usePrintBridge";
 const BRIDGE_URL = "http://192.168.1.65:3001";
 
 type PrintType = "receipt" | "kitchen" | "both";
-type BridgeTargetAddressSpace = "local" | "loopback";
-type BridgeRequestInit = RequestInit & {
-  targetAddressSpace?: BridgeTargetAddressSpace;
-};
 
 interface BridgeResult {
   success: boolean;
@@ -40,13 +36,13 @@ function getBridgeBlockedMessage() {
   if (isEmbeddedPreview()) {
     return "المعاينة المدمجة داخل Lovable تمنع Chrome من الوصول إلى الشبكة المحلية. افتح التطبيق في تبويب مستقل ثم جرّب الطباعة.";
   }
-
   if (window.isSecureContext) {
     return "Chrome حظر الوصول إلى Print Bridge المحلي. اسمح بالوصول للشبكة المحلية/المحتوى غير الآمن لهذا الموقع ثم أعد المحاولة.";
   }
-
   return "تعذر الوصول إلى Print Bridge على 192.168.1.65:3001. تأكد أن الخدمة تعمل على نفس الشبكة والجهاز.";
 }
+
+type BridgeRequestInit = RequestInit & { targetAddressSpace?: string };
 
 async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
   try {
@@ -63,6 +59,7 @@ async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
   }
 }
 
+/** Send a print job — type can be receipt, kitchen, or both */
 export async function sendToBridge(type: PrintType, order: PrintOrder): Promise<BridgeResult> {
   const response = await bridgeFetch("/print", {
     method: "POST",
@@ -71,6 +68,50 @@ export async function sendToBridge(type: PrintType, order: PrintOrder): Promise<
     signal: AbortSignal.timeout(8000),
   });
   return response.json();
+}
+
+/** Send station-routed kitchen tickets — one per station with filtered items */
+export async function sendRoutedPrint(order: PrintOrder): Promise<BridgeResult> {
+  const response = await bridgeFetch("/print-routed", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ order }),
+    signal: AbortSignal.timeout(12000),
+  });
+  return response.json();
+}
+
+/** Test a specific printer by IP */
+export async function testPrinterConnection(ip: string, port: number): Promise<boolean> {
+  try {
+    const res = await bridgeFetch("/test-printer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip, port }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await res.json();
+    return data.success === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Check bridge health + printer statuses */
+export async function checkBridgeHealth(): Promise<{
+  online: boolean;
+  printers?: { name: string; ip: string; connected: boolean }[];
+}> {
+  try {
+    const res = await bridgeFetch("/health", {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return { online: false };
+    const data = await res.json();
+    return { online: true, printers: data.printers || [] };
+  } catch {
+    return { online: false };
+  }
 }
 
 export async function checkBridgeStatus(): Promise<boolean> {
@@ -92,7 +133,7 @@ export function getPrintBridgeBlockedMessage() {
   return getBridgeBlockedMessage();
 }
 
-/** Fire-and-forget print (silent, no await needed) */
+/** Fire-and-forget: prints receipt + routed kitchen tickets */
 export function bridgePrintAll(order: PrintOrder): void {
   sendToBridge("both", order).catch(() => {
     console.warn("Print bridge unavailable");
