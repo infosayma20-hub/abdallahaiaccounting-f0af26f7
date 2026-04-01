@@ -26,17 +26,42 @@ export interface TemplateConfig {
   category: string;
 }
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  quo: Tag,
+  con: Handshake,
+  dem: FileText,
+  dn: PlusCircle,
+  cn: MinusCircle,
+  rcp: Receipt,
+  sup: Truck,
+  od: Clock,
+  poa: UserCheck,
+  clr: BadgeCheck,
+};
+
+const ICON_COLOR_MAP: Record<string, string> = {
+  dn: "text-red-600",
+  cn: "text-green-600",
+};
+
+const CATEGORY_BADGE: Record<string, { label: string; classes: string }> = {
+  financial: { label: "مالية", classes: "bg-blue-100 text-blue-700" },
+  contracts: { label: "عقود", classes: "bg-[#E8EDF3] text-finix-navy" },
+  notices: { label: "إشعارات", classes: "bg-amber-100 text-amber-700" },
+  correspondence: { label: "مراسلات", classes: "bg-gray-100 text-gray-600" },
+};
+
 const TEMPLATES: TemplateConfig[] = [
-  { id: "quo", type: "QUO", prefix: "QUO", icon: "📄", title: "عرض سعر", description: "عروض أسعار احترافية للعملاء", category: "financial" },
-  { id: "con", type: "CON", prefix: "CON", icon: "📋", title: "عقد بيع", description: "عقود وتعاقدات مع العملاء", category: "contracts" },
-  { id: "dem", type: "DEM", prefix: "DEM", icon: "💰", title: "مطالبة مالية", description: "مطالبة بالرصيد المستحق", category: "financial" },
-  { id: "dn", type: "DN", prefix: "DN", icon: "➕", title: "إشعار دين", description: "إضافة مبلغ على حساب العميل", category: "notices" },
-  { id: "cn", type: "CN", prefix: "CN", icon: "➖", title: "إشعار دائن", description: "خصم مبلغ من حساب العميل", category: "notices" },
-  { id: "rcp", type: "RCP", prefix: "RCP", icon: "📦", title: "وصل استلام", description: "إثبات استلام بضاعة أو مبلغ", category: "financial" },
-  { id: "sup", type: "SUP", prefix: "SUP", icon: "🚚", title: "عقد توريد", description: "عقود مع الموردين", category: "contracts" },
-  { id: "od", type: "OD", prefix: "OD", icon: "⚠️", title: "إشعار تأخر سداد", description: "تذكير رسمي بالسداد", category: "notices" },
-  { id: "poa", type: "POA", prefix: "POA", icon: "📝", title: "تفويض رسمي", description: "تفويض موظف لإجراء معاملة", category: "correspondence" },
-  { id: "clr", type: "CLR", prefix: "CLR", icon: "🤝", title: "خطاب إخلاء طرف", description: "إغلاق تعامل رسمي مع جهة", category: "correspondence" },
+  { id: "quo", type: "QUO", prefix: "QUO", icon: "", title: "عرض سعر", description: "عروض أسعار احترافية للعملاء", category: "financial" },
+  { id: "con", type: "CON", prefix: "CON", icon: "", title: "عقد بيع", description: "عقود وتعاقدات مع العملاء", category: "contracts" },
+  { id: "dem", type: "DEM", prefix: "DEM", icon: "", title: "مطالبة مالية", description: "مطالبة بالرصيد المستحق", category: "financial" },
+  { id: "dn", type: "DN", prefix: "DN", icon: "", title: "إشعار دين", description: "إضافة مبلغ على حساب العميل", category: "notices" },
+  { id: "cn", type: "CN", prefix: "CN", icon: "", title: "إشعار دائن", description: "خصم مبلغ من حساب العميل", category: "notices" },
+  { id: "rcp", type: "RCP", prefix: "RCP", icon: "", title: "وصل استلام", description: "إثبات استلام بضاعة أو مبلغ", category: "financial" },
+  { id: "sup", type: "SUP", prefix: "SUP", icon: "", title: "عقد توريد", description: "عقود مع الموردين", category: "contracts" },
+  { id: "od", type: "OD", prefix: "OD", icon: "", title: "إشعار تأخر سداد", description: "تذكير رسمي بالسداد", category: "notices" },
+  { id: "poa", type: "POA", prefix: "POA", icon: "", title: "تفويض رسمي", description: "تفويض موظف لإجراء معاملة", category: "correspondence" },
+  { id: "clr", type: "CLR", prefix: "CLR", icon: "", title: "خطاب إخلاء طرف", description: "إغلاق تعامل رسمي مع جهة", category: "correspondence" },
 ];
 
 const PrintTemplatesPage = () => {
