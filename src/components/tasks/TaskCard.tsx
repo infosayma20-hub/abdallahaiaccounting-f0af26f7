@@ -49,8 +49,8 @@ export default function TaskCard({ task, priorityColor, currentUserId, onAssign,
       </div>
 
       {/* Title */}
-      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{task.title}</h3>
-      {task.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{task.description}</p>}
+      <h3 className="font-bold text-base mb-1">{task.title}</h3>
+      {task.description && <p className="text-sm text-muted-foreground mb-2 whitespace-pre-wrap">{task.description}</p>}
 
       {/* Due date */}
       {task.due_date && (
