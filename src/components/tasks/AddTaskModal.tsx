@@ -115,18 +115,16 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
             <div><Label>الوقت</Label><Input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} /></div>
           </div>
 
-          {!editTask && (
-            <div>
-              <Label>تكليف مباشر (اختياري)</Label>
-              <Select value={assignTo} onValueChange={setAssignTo}>
-                <SelectTrigger><SelectValue placeholder="بدون تكليف" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون تكليف</SelectItem>
-                  {taskUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div>
+            <Label>تكليف مباشر (اختياري)</Label>
+            <Select value={assignTo} onValueChange={setAssignTo}>
+              <SelectTrigger><SelectValue placeholder="بدون تكليف" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">بدون تكليف</SelectItem>
+                {taskUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex items-center gap-2">
             <Checkbox id="visible" checked={visibleToAll} onCheckedChange={v => setVisibleToAll(v as boolean)} />
