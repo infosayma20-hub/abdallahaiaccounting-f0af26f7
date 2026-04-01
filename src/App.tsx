@@ -217,11 +217,11 @@ const App = () => (
               <Route path="/malaki/settings" element={<Navigate to="/portal/settings" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
-              <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
-              <Route path="/pos/floor-plan" element={<ProtectedRoute><FloorPlanPage /></ProtectedRoute>} />
-              <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
-              <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
-              <Route path="/pos/kitchen" element={<ProtectedRoute><KitchenDisplayPage /></ProtectedRoute>} />
+              <Route path="/pos" element={<ProtectedRoute><ModuleGuard><POSPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/floor-plan" element={<ProtectedRoute><ModuleGuard><FloorPlanPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><ModuleGuard><FloorPlanEditorPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/modifiers" element={<ProtectedRoute><ModuleGuard><ModifierManagerPage /></ModuleGuard></ProtectedRoute>} />
+              <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/*" element={
