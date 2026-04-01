@@ -90,7 +90,7 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) =>
 
   const buildData = () => {
     switch (template.type) {
-      case "QUO": return { items, discount_percent: discountPercent, vat_enabled: vatEnabled, validity_days: validityDays, payment_terms: paymentTerms, subtotal, total, notes, contact_address: contactAddress };
+      case "QUO": return { items, discount_percent: discountPercent, vat_enabled: vatEnabled, validity_days: validityDays, payment_terms: paymentTerms, subtotal, total, notes, contact_address: contactAddress, specs: quoSpecs, work_description: quoProjectDesc };
       case "CON": return { work_description: workDescription, contract_value: contractValue, execution_period: executionPeriod, warranty_terms: warrantyTerms, notes, contact_address: contactAddress };
       case "DEM": return { amount, response_days: responseDays, notes, contact_address: contactAddress };
       case "DN": return { amount, reason, ref_invoice: refInvoice, notes };
