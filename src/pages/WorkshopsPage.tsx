@@ -430,7 +430,7 @@ export default function WorkshopsPage() {
       toast.success("✅ تم تعديل الدفعة بنجاح");
       setEditingPayment(null);
       setView("workshops");
-      setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null });
+      setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1, cash_box_id: null, bank_account_id: null });
       loadCosts(selectedWorkshop.id);
       return;
     }
