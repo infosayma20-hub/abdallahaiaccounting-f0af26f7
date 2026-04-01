@@ -222,6 +222,17 @@ const QUICK_ITEMS = [
 const QuickAccessButton = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { isRouteLocked, getLockedModuleName } = useLockedModules();
+
+  const handleNavigate = (path: string) => {
+    if (isRouteLocked(path)) {
+      toast({ title: "🔒 موديل مقفل", description: `${getLockedModuleName(path)} غير متاح في حسابك الحالي`, variant: "destructive" });
+      setOpen(false);
+      return;
+    }
+    navigate(path);
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
