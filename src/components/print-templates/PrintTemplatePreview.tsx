@@ -61,44 +61,7 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     setTimeout(() => { w.print(); w.close(); }, 300);
   };
 
-  const handlePDF = async () => {
-    const element = printRef.current;
-    if (!element) return;
-    
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // Handle multi-page if content is taller than A4
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      if (pdfHeight <= pageHeight) {
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      } else {
-        let remainingHeight = pdfHeight;
-        let position = 0;
-        while (remainingHeight > 0) {
-          pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-          remainingHeight -= pageHeight;
-          position -= pageHeight;
-          if (remainingHeight > 0) pdf.addPage();
-        }
-      }
-      
-      pdf.save(`${doc.document_number || title}.pdf`);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-    }
-  };
+  // PDF download removed — print only
 
   // Doulia-specific body renderers with premium styling
   const renderDouliQuotationBody = () => (
