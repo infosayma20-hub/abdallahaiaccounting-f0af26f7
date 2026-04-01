@@ -476,9 +476,19 @@ export default function PortalTasksTab({ theme }: Props) {
                       {task.due_date || '—'}
                       {isOverdue && ' ⚠️'}
                     </td>
-                  </tr>
-                );
-              })}
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                        <button onClick={() => openTaskDetail(task, false)} title="عرض" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, padding: 4 }}>
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => openTaskDetail(task, true)} title="تعديل" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF9F27', padding: 4 }}>
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => handleDeleteTask(task.id)} title="حذف" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E24B4A', padding: 4 }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
             </tbody>
           </table>
         </div>
