@@ -58,7 +58,8 @@ const DesignerSidebar = ({ design, onAddElement, onUpdateDesign }: Props) => {
       zone: 'body',
       content: '',
       variable: v.key,
-      style: { fontSize: 13, color: design.theme.textColor, textAlign: 'right', marginBottom: 4 },
+      x: 0, y: 10, w: 200, h: 22,
+      style: { fontSize: 13, color: design.theme.textColor, textAlign: 'right' },
     });
   };
 
