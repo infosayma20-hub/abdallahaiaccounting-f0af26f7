@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Crown, CheckCircle2, Clock, AlertTriangle, Search } from 'lucide-react';
+import { Plus, Crown, CheckCircle2, Clock, AlertTriangle, Search, X, Eye, Pencil, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const PRIMARY = '#1B3A5C';
@@ -42,6 +42,18 @@ export default function PortalTasksTab({ theme }: Props) {
   const [dueDate, setDueDate] = useState('');
   const [category, setCategory] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // View/Edit state
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPriority, setEditPriority] = useState('normal');
+  const [editAssignedTo, setEditAssignedTo] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editStatus, setEditStatus] = useState('open');
+  const [editSaving, setEditSaving] = useState(false);
 
   const isDark = theme === 'dark';
   const t = isDark
@@ -149,8 +161,56 @@ export default function PortalTasksTab({ theme }: Props) {
     }
   };
 
-  const filtered = tasks.filter(task => {
-    if (filter === 'all') return true;
+  const openTaskDetail = (task: any, edit = false) => {
+    setSelectedTask(task);
+    setEditTitle(task.title || '');
+    setEditDescription(task.description || '');
+    setEditPriority(task.priority || 'normal');
+    setEditAssignedTo(task.assigned_to || '');
+    setEditDueDate(task.due_date || '');
+    setEditCategory(task.category || '');
+    setEditStatus(task.status || 'open');
+    setEditMode(edit);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!selectedTask || !linkedUserId) return;
+    setEditSaving(true);
+    try {
+      const { error } = await supabase.from('tasks').update({
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        priority: editPriority,
+        assigned_to: editAssignedTo || null,
+        assigned_at: editAssignedTo ? new Date().toISOString() : null,
+        due_date: editDueDate || null,
+        category: editCategory || null,
+        status: editStatus,
+      }).eq('id', selectedTask.id).eq('user_id', linkedUserId);
+      if (error) throw error;
+      toast({ title: 'تم تحديث المهمة ✅' });
+      setSelectedTask(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err.message, variant: 'destructive' });
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!linkedUserId || !confirm('هل تريد حذف هذه المهمة نهائياً؟')) return;
+    try {
+      await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', linkedUserId);
+      toast({ title: 'تم حذف المهمة' });
+      setSelectedTask(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err.message, variant: 'destructive' });
+    }
+  };
+
+    const filtered = tasks.filter(task => {
     if (filter === 'done') return task.status === 'done';
     if (filter === 'open') return task.status === 'open' || task.status === 'in_progress';
     if (filter === 'overdue') {
@@ -371,6 +431,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الأولوية</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الحالة</th>
                 <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: t.textMuted, fontSize: 11 }}>الاستحقاق</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: t.textMuted, fontSize: 11, width: 80 }}>إجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -416,11 +477,122 @@ export default function PortalTasksTab({ theme }: Props) {
                       {task.due_date || '—'}
                       {isOverdue && ' ⚠️'}
                     </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                        <button onClick={() => openTaskDetail(task, false)} title="عرض" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, padding: 4 }}>
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => openTaskDetail(task, true)} title="تعديل" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF9F27', padding: 4 }}>
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => handleDeleteTask(task.id)} title="حذف" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E24B4A', padding: 4 }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* View/Edit Modal */}
+      {selectedTask && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }} onClick={() => setSelectedTask(null)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: t.card, borderRadius: 16, width: '100%', maxWidth: 520,
+              padding: 24, direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)', color: t.text,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {editMode ? <><Pencil size={16} style={{ color: '#EF9F27' }} /> تعديل المهمة</> : <><Eye size={16} style={{ color: ACCENT }} /> تفاصيل المهمة</>}
+              </h3>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {!editMode && (
+                  <button onClick={() => setEditMode(true)} style={{ background: `${ACCENT}15`, color: ACCENT, border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+                    <Pencil size={12} /> تعديل
+                  </button>
+                )}
+                <button onClick={() => setSelectedTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textMuted, padding: 4 }}>
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {editMode ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>عنوان المهمة *</label>
+                  <input value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif', direction: 'rtl' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الوصف</label>
+                  <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif', direction: 'rtl', resize: 'vertical' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الحالة</label>
+                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الأولوية</label>
+                    <select value={editPriority} onChange={e => setEditPriority(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
+                      {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
+                    <select value={editAssignedTo} onChange={e => setEditAssignedTo(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
+                      <option value="">بدون تعيين</option>
+                      {taskUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>تاريخ الاستحقاق</label>
+                    <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start', marginTop: 8 }}>
+                  <button onClick={handleUpdateTask} disabled={editSaving || !editTitle.trim()} style={{ background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: editSaving || !editTitle.trim() ? 0.5 : 1, fontFamily: 'Tajawal, sans-serif' }}>
+                    {editSaving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                  </button>
+                  <button onClick={() => setEditMode(false)} style={{ background: 'transparent', color: t.textMuted, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}>
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{selectedTask.title}</div>
+                {selectedTask.description && (
+                  <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.8, background: t.inputBg, padding: 12, borderRadius: 8 }}>
+                    {selectedTask.description}
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12 }}>
+                  <div><span style={{ color: t.textMuted }}>الحالة:</span> <span style={{ fontWeight: 600, color: STATUS_LABELS[selectedTask.status]?.color }}>{STATUS_LABELS[selectedTask.status]?.label || selectedTask.status}</span></div>
+                  <div><span style={{ color: t.textMuted }}>الأولوية:</span> <span style={{ fontWeight: 600, color: PRIORITY_OPTIONS.find(p => p.value === selectedTask.priority)?.color }}>{PRIORITY_OPTIONS.find(p => p.value === selectedTask.priority)?.label || 'عادي'}</span></div>
+                  <div><span style={{ color: t.textMuted }}>الموظف:</span> <span style={{ fontWeight: 600 }}>{getEmployeeName(selectedTask.assigned_to)}</span></div>
+                  <div><span style={{ color: t.textMuted }}>الاستحقاق:</span> <span style={{ fontWeight: 600 }}>{selectedTask.due_date || '—'}</span></div>
+                  <div><span style={{ color: t.textMuted }}>المصدر:</span> <span style={{ fontWeight: 600 }}>{selectedTask.created_by_portal ? '👑 المدير' : '👤 موظف'}</span></div>
+                  <div><span style={{ color: t.textMuted }}>تاريخ الإنشاء:</span> <span style={{ fontWeight: 600 }}>{selectedTask.created_at?.split('T')[0]}</span></div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
