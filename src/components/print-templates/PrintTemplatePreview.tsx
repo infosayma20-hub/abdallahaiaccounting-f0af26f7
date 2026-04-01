@@ -350,26 +350,38 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     if (isCustom && theme.headerStyle === "premium") {
       return (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          {/* Navy header bar */}
+          <div style={{
+            background: "#1B2B4B", color: "#FFFFFF", margin: "-40px -48px 0", padding: "24px 48px",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: theme.primaryColor }}>{title}</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: theme.primaryColor, marginTop: 2 }}>{companyName || "AMWALI"}</div>
-              {theme.tagline && <div style={{ fontSize: 10, color: "#6B7280" }}>{theme.tagline}</div>}
+              <div style={{ fontFamily: "'Amiri', 'Cairo', serif", fontSize: 32, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>{companyName || "AMWALI"}</div>
+              {theme.tagline && <div style={{ fontSize: 11, opacity: 0.8 }}>{theme.tagline}</div>}
             </div>
             <div style={{ textAlign: "left" }}>
-              {logoBase64 ? (
-                <img src={logoBase64} alt="logo" style={{ height: 70, objectFit: "contain" }} />
-              ) : (
-                <div style={{ width: 70, height: 70, borderRadius: 8, background: theme.primaryColor, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700 }}>
-                  {(companyName || "A").charAt(0)}
-                </div>
-              )}
+              <img
+                src="/logos/doulia-kitchen-logo.png"
+                alt="Doulia Kitchen"
+                style={{ width: 80, height: 80, objectFit: "contain" }}
+                onError={(e) => {
+                  const t = e.currentTarget;
+                  t.style.display = "none";
+                  const fallback = t.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+              <div style={{
+                display: "none", width: 80, height: 80, background: "#1B2B4B", border: "2px solid rgba(255,255,255,0.3)",
+                borderRadius: 8, color: "white", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700,
+              }}>DK</div>
               {theme.showEnglishName && (
-                <div style={{ fontSize: 10, color: theme.primaryColor, fontWeight: 600, textAlign: "center", marginTop: 4 }}>{theme.englishName}</div>
+                <div style={{ fontSize: 10, fontWeight: 600, textAlign: "center", marginTop: 4, opacity: 0.8 }}>® {theme.englishName}</div>
               )}
             </div>
           </div>
-          <hr style={{ border: "none", borderTop: `${theme.separatorWeight}px solid ${theme.primaryColor}`, margin: "8px 0 16px" }} />
+          <hr style={{ border: "none", borderTop: `${theme.separatorWeight}px solid #1B2B4B`, margin: "0 -48px 16px" }} />
         </>
       );
     }
