@@ -43,6 +43,18 @@ export default function PortalTasksTab({ theme }: Props) {
   const [category, setCategory] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // View/Edit state
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPriority, setEditPriority] = useState('normal');
+  const [editAssignedTo, setEditAssignedTo] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editStatus, setEditStatus] = useState('open');
+  const [editSaving, setEditSaving] = useState(false);
+
   const isDark = theme === 'dark';
   const t = isDark
     ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', border: 'rgba(230,237,243,0.08)', inputBg: '#0D1117' }
