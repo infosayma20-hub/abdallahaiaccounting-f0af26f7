@@ -133,10 +133,36 @@ export default function PortalTasksTab({ theme }: Props) {
     return () => { supabase.removeChannel(channel); };
   }, [linkedUserId, fetchData]);
 
+  // Resolve or create task_user for an employee
+  const resolveTaskUserId = async (employeeId: string): Promise<string | null> => {
+    if (!employeeId || !linkedUserId) return null;
+    const emp = employees.find(e => e.employee_id === employeeId);
+    if (!emp) return null;
+    if (emp.task_user_id) return emp.task_user_id;
+
+    // Auto-create task_user for this employee
+    const colors = ['#E24B4A','#378ADD','#EF9F27','#22C55E','#7C3AED','#0891B2'];
+    const { data, error } = await supabase.from('task_users').insert({
+      full_name: emp.full_name,
+      user_id: linkedUserId,
+      password_hash: 'portal-managed',
+      avatar_color: colors[Math.floor(Math.random() * colors.length)],
+      role: 'employee',
+      is_active: true,
+    } as any).select('id').single();
+    if (error || !data) return null;
+    return data.id;
+  };
+
   const handleSubmit = async () => {
     if (!title.trim() || !linkedUserId) return;
     setSubmitting(true);
     try {
+      let taskUserId: string | null = null;
+      if (assignedTo) {
+        taskUserId = await resolveTaskUserId(assignedTo);
+      }
+
       const { error } = await supabase.from('tasks').insert({
         user_id: linkedUserId,
         title: title.trim(),
@@ -145,8 +171,8 @@ export default function PortalTasksTab({ theme }: Props) {
         status: 'open',
         category: category || null,
         due_date: dueDate || null,
-        assigned_to: assignedTo || null,
-        assigned_at: assignedTo ? new Date().toISOString() : null,
+        assigned_to: taskUserId,
+        assigned_at: taskUserId ? new Date().toISOString() : null,
         created_by_portal: true,
         assigned_by_name: adminName,
         is_visible_to_all: true,
