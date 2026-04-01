@@ -356,8 +356,8 @@ export default function PortalTasksTab({ theme }: Props) {
               }}
             >
               <option value="">اختر موظف...</option>
-              {taskUsers.map(u => (
-                <option key={u.id} value={u.id}>{u.full_name}</option>
+              {employees.map(emp => (
+                <option key={emp.employee_id} value={emp.employee_id}>{emp.full_name}</option>
               ))}
             </select>
 
