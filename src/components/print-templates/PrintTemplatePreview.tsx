@@ -262,8 +262,8 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden">
+  const previewContent = (
+    <>
         {/* Toolbar */}
         <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
           <span className="text-sm font-medium">معاينة {title}</span>
