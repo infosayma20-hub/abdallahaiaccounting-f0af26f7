@@ -85,12 +85,24 @@ const alertConfig: Record<string, { icon: typeof AlertTriangle; color: string; b
 
 // CreditBar component
 const CreditBar = ({ balance, limit }: { balance: number; limit: number }) => {
-  if (!limit || limit <= 0) return <span className="text-xs text-muted-foreground">—</span>;
-  const pct = (balance / limit) * 100;
+  const absBalance = Math.abs(balance);
+  const isNeg = balance < 0;
+  
+  if (!limit || limit <= 0) {
+    // No credit limit — just show balance
+    if (balance === 0) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <span className={`text-xs font-semibold tabular-nums ${isNeg ? 'text-red-600' : 'text-emerald-600'}`}>
+        {isNeg ? '-' : ''}₪{absBalance.toLocaleString()}
+      </span>
+    );
+  }
+  
+  const pct = (absBalance / limit) * 100;
   return (
     <div className="space-y-0.5">
-      <span className={`text-xs font-semibold tabular-nums ${pct > 100 ? 'text-red-600' : pct > 80 ? 'text-amber-600' : 'text-foreground'}`}>
-        ₪{balance?.toLocaleString() || 0}
+      <span className={`text-xs font-semibold tabular-nums ${isNeg ? 'text-red-600' : pct > 100 ? 'text-red-600' : pct > 80 ? 'text-amber-600' : 'text-foreground'}`}>
+        {isNeg ? '-' : ''}₪{absBalance.toLocaleString()}
       </span>
       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
         <div
@@ -119,6 +131,7 @@ const ContactsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterClass, setFilterClass] = useState<string | null>(null);
@@ -172,9 +185,40 @@ const ContactsPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('contacts').select('*').eq('user_id', user.id).order('contact_name');
+      const [{ data: contactData, error }, { data: txData }] = await Promise.all([
+        supabase.from('contacts').select('*').eq('user_id', user.id).order('contact_name'),
+        supabase.from('transactions').select('id, amount, debit_account_code, credit_account_code, contact_id, transaction_date, description')
+          .eq('user_id', user.id).eq('is_deleted', false),
+      ]);
       if (error) throw error;
-      setContacts((data as any[]) || []);
+      const txs = txData || [];
+      setTransactions(txs);
+
+      // Compute balances from transactions for each contact
+      const balanceMap: Record<string, number> = {};
+      const lastTxMap: Record<string, string> = {};
+      for (const tx of txs) {
+        if (!tx.contact_id) continue;
+        if (!balanceMap[tx.contact_id]) balanceMap[tx.contact_id] = 0;
+        // For customers (1130): debit increases balance (money owed to us), credit decreases
+        // For suppliers (2110): credit increases balance (money we owe), debit decreases
+        if (tx.debit_account_code === "1130") balanceMap[tx.contact_id] += (tx.amount || 0);
+        if (tx.credit_account_code === "1130") balanceMap[tx.contact_id] -= (tx.amount || 0);
+        if (tx.credit_account_code === "2110") balanceMap[tx.contact_id] -= (tx.amount || 0);
+        if (tx.debit_account_code === "2110") balanceMap[tx.contact_id] += (tx.amount || 0);
+        // Track last transaction date
+        if (!lastTxMap[tx.contact_id] || tx.transaction_date > lastTxMap[tx.contact_id]) {
+          lastTxMap[tx.contact_id] = tx.transaction_date;
+        }
+      }
+
+      // Enrich contacts with computed balances
+      const enriched = (contactData || []).map((c: any) => ({
+        ...c,
+        current_balance: balanceMap[c.id] ?? c.current_balance ?? 0,
+        last_transaction_date: lastTxMap[c.id] || c.last_transaction_date,
+      }));
+      setContacts(enriched);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
