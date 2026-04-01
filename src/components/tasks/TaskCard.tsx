@@ -19,6 +19,7 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task, priorityColor, currentUserId, onAssign, onClick, onComplete }: TaskCardProps) {
+  const prio = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const today = new Date().toISOString().split("T")[0];
   const isOverdue = task.due_date && task.due_date < today && task.status !== "done";
   const isToday = task.due_date === today;

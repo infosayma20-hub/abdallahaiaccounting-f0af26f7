@@ -182,30 +182,23 @@ export default function TaskBoardPage() {
         </Select>
       </div>
 
-      {/* Kanban Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {PRIORITY_COLS.map(col => {
-          const colTasks = filtered.filter(t => t.priority === col.key);
+      {/* Tasks Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        {filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-12 col-span-full">لا توجد مهام</p>
+        )}
+        {filtered.map(task => {
+          const p = PRIORITY_COLS.find(c => c.key === task.priority) || PRIORITY_COLS[3];
           return (
-            <div key={col.key} className="space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b-2" style={{ borderColor: col.color }}>
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
-                <span className="font-semibold text-sm">{col.label}</span>
-                <span className="text-xs text-muted-foreground mr-auto tabular-nums">{colTasks.length}</span>
-              </div>
-              {colTasks.map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  priorityColor={col.color}
-                  currentUserId={taskUser.id}
-                  onAssign={() => handleAssign(task.id)}
-                  onClick={() => setSelectedTask(task)}
-                  onComplete={() => setCompleteTask(task)}
-                />
-              ))}
-              {colTasks.length === 0 && <p className="text-xs text-muted-foreground text-center py-8">لا توجد مهام</p>}
-            </div>
+            <TaskCard
+              key={task.id}
+              task={task}
+              priorityColor={p.color}
+              currentUserId={taskUser.id}
+              onAssign={() => handleAssign(task.id)}
+              onClick={() => setSelectedTask(task)}
+              onComplete={() => setCompleteTask(task)}
+            />
           );
         })}
       </div>
