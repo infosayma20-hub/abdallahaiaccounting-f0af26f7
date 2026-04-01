@@ -126,16 +126,31 @@ const DesignerProperties = ({ element, design, onUpdateStyle, onUpdateElement }:
     </>
   );
 
+  const renderPositionProps = () => (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs">X</Label>
+          <Input type="number" value={Math.round(element.x)} onChange={e => onUpdateElement({ x: +e.target.value })} className="text-xs h-7 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs">Y</Label>
+          <Input type="number" value={Math.round(element.y)} onChange={e => onUpdateElement({ y: +e.target.value })} className="text-xs h-7 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs">العرض</Label>
+          <Input type="number" value={Math.round(element.w)} onChange={e => onUpdateElement({ w: +e.target.value })} className="text-xs h-7 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs">الارتفاع</Label>
+          <Input type="number" value={Math.round(element.h)} onChange={e => onUpdateElement({ h: +e.target.value })} className="text-xs h-7 mt-1" />
+        </div>
+      </div>
+    </>
+  );
+
   const renderSpacingProps = () => (
     <>
-      <div>
-        <Label className="text-xs">المسافة العلوية ({s.marginTop || 0}px)</Label>
-        <Slider value={[s.marginTop || 0]} min={0} max={60} step={2} onValueChange={([v]) => onUpdateStyle({ marginTop: v })} className="mt-1" />
-      </div>
-      <div>
-        <Label className="text-xs">المسافة السفلية ({s.marginBottom || 0}px)</Label>
-        <Slider value={[s.marginBottom || 0]} min={0} max={60} step={2} onValueChange={([v]) => onUpdateStyle({ marginBottom: v })} className="mt-1" />
-      </div>
       {(element.type === 'textbox' || element.type === 'colorstrip') && (
         <div>
           <Label className="text-xs">الحشو الداخلي ({s.padding || 0}px)</Label>
@@ -240,6 +255,7 @@ const DesignerProperties = ({ element, design, onUpdateStyle, onUpdateElement }:
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-3">
           {renderZonePicker()}
+          {renderPositionProps()}
           {renderTextProps()}
           {element.type === 'divider' && renderDividerProps()}
           {element.type === 'image' && renderImageProps()}

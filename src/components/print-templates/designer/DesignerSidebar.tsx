@@ -36,19 +36,17 @@ const DesignerSidebar = ({ design, onAddElement, onUpdateDesign }: Props) => {
       id: genId(),
       type: block.type,
       zone: block.zone,
-      content: block.type === 'text' ? 'نص جديد' : block.type === 'textbox' ? 'صندوق نص' : '',
+      content: block.type === 'text' ? 'نص جديد' : block.type === 'textbox' ? 'صندوق نص' : block.type === 'signature' ? 'ختم الشركة وتوقيع المدير' : '',
+      x: 0, y: 10, w: block.type === 'divider' ? 545 : block.type === 'table' ? 545 : block.type === 'totals' ? 545 : 200, h: block.type === 'table' ? 80 : block.type === 'colorstrip' ? 40 : 24,
       style: {
         fontSize: 13,
         color: design.theme.textColor,
         textAlign: 'right',
-        marginBottom: 8,
-        ...(block.type === 'divider' ? { borderColor: design.theme.primaryColor, borderWidth: 1, marginTop: 8 } : {}),
+        ...(block.type === 'divider' ? { borderColor: design.theme.primaryColor, borderWidth: 1 } : {}),
         ...(block.type === 'colorstrip' ? { backgroundColor: design.theme.primaryColor, height: 40, color: '#FFFFFF' } : {}),
         ...(block.type === 'textbox' ? { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 4, padding: 12 } : {}),
-        ...(block.type === 'signature' ? { marginTop: 48 } : {}),
       },
       ...(block.type === 'table' ? { tableColumns: ['#', 'البند', 'الكمية', 'سعر الوحدة', 'الإجمالي'] } : {}),
-      ...(block.type === 'signature' ? { content: 'ختم الشركة وتوقيع المدير' } : {}),
     };
     onAddElement(el);
   };
@@ -60,7 +58,8 @@ const DesignerSidebar = ({ design, onAddElement, onUpdateDesign }: Props) => {
       zone: 'body',
       content: '',
       variable: v.key,
-      style: { fontSize: 13, color: design.theme.textColor, textAlign: 'right', marginBottom: 4 },
+      x: 0, y: 10, w: 200, h: 22,
+      style: { fontSize: 13, color: design.theme.textColor, textAlign: 'right' },
     });
   };
 
