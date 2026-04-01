@@ -86,21 +86,11 @@ export default function PortalTasksTab({ theme }: Props) {
         .eq('user_id', ownerId)
         .eq('is_active', true);
 
-      // Fetch employees for this owner
-      const { data: emps } = await supabase
-        .from('employees')
-        .select('id, full_name, department, job_title')
-        .eq('user_id', ownerId)
-        .eq('is_active', true)
-        .order('full_name');
-
-      // Merge: use employees as primary, fallback to task_users
-      const empList = (emps || []).map(e => ({ id: e.id, full_name: e.full_name, source: 'employee' }));
-      const tuserList = (tusers || []).filter(t => !empList.some(e => e.full_name === t.full_name)).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
-      const merged = [...empList, ...tuserList];
+      // Only use task_users for assignment (FK references task_users table)
+      const userList = (tusers || []).map(t => ({ id: t.id, full_name: t.full_name, source: 'task_user' }));
 
       setTasks(tasksData || []);
-      setTaskUsers(merged);
+      setTaskUsers(userList);
     } catch (err) {
       console.error(err);
     } finally {
@@ -257,87 +247,85 @@ export default function PortalTasksTab({ theme }: Props) {
       {showForm && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 0,
         }} onClick={() => setShowForm(false)}>
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: t.card, borderRadius: 12, padding: 24, width: '100%', maxWidth: 480,
-              border: `1px solid ${t.border}`, color: t.text,
+              background: t.card, borderRadius: '16px 16px 0 0', padding: '20px 16px', width: '100%', maxWidth: 520,
+              border: `1px solid ${t.border}`, borderBottom: 'none', color: t.text,
               fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
+              maxHeight: '90vh', overflowY: 'auto',
             }}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
               <Crown size={16} style={{ color: ACCENT }} /> إسناد مهمة جديدة
             </h3>
 
-            {/* Title */}
             <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>عنوان المهمة *</label>
             <input
               value={title} onChange={e => setTitle(e.target.value)}
               placeholder="أدخل عنوان المهمة..."
               style={{
-                width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
-                background: t.inputBg, color: t.text, fontSize: 13, marginBottom: 12,
-                fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
+                width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                background: t.inputBg, color: t.text, fontSize: 14, marginBottom: 12,
+                fontFamily: 'Tajawal, sans-serif', direction: 'rtl', boxSizing: 'border-box',
               }}
             />
 
-            {/* Description */}
             <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الوصف / التفاصيل</label>
             <textarea
               value={description} onChange={e => setDescription(e.target.value)}
               placeholder="تفاصيل إضافية..."
               rows={3}
               style={{
-                width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
-                background: t.inputBg, color: t.text, fontSize: 13, marginBottom: 12,
-                fontFamily: 'Tajawal, sans-serif', direction: 'rtl', resize: 'vertical',
+                width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                background: t.inputBg, color: t.text, fontSize: 14, marginBottom: 12,
+                fontFamily: 'Tajawal, sans-serif', direction: 'rtl', resize: 'vertical', boxSizing: 'border-box',
               }}
             />
 
-            {/* Priority + Assignee */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الأولوية *</label>
-                <select
-                  value={priority} onChange={e => setPriority(e.target.value)}
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
-                    background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
-                  }}
-                >
-                  {PRIORITY_OPTIONS.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف <span style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>(اختياري)</span></label>
-                <select
-                  value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
-                    background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
-                  }}
-                >
-                  <option value="">اختر موظف...</option>
-                  {taskUsers.map(u => (
-                    <option key={u.id} value={u.id}>{u.full_name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            {/* Priority */}
+            <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الأولوية *</label>
+            <select
+              value={priority} onChange={e => setPriority(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                background: t.inputBg, color: t.text, fontSize: 14, fontFamily: 'Tajawal, sans-serif',
+                marginBottom: 12, boxSizing: 'border-box',
+              }}
+            >
+              {PRIORITY_OPTIONS.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
 
-            {/* Due date + Category */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            {/* Employee */}
+            <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف <span style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>(اختياري)</span></label>
+            <select
+              value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                background: t.inputBg, color: t.text, fontSize: 14, fontFamily: 'Tajawal, sans-serif',
+                marginBottom: 12, boxSizing: 'border-box',
+              }}
+            >
+              <option value="">اختر موظف...</option>
+              {taskUsers.map(u => (
+                <option key={u.id} value={u.id}>{u.full_name}</option>
+              ))}
+            </select>
+
+            {/* Date + Category */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>تاريخ الاستحقاق</label>
                 <input
                   type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
                   style={{
-                    width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                    width: '100%', padding: '10px 8px', borderRadius: 8, border: `1px solid ${t.border}`,
                     background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
@@ -346,8 +334,9 @@ export default function PortalTasksTab({ theme }: Props) {
                 <select
                   value={category} onChange={e => setCategory(e.target.value)}
                   style={{
-                    width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
+                    width: '100%', padding: '10px 8px', borderRadius: 8, border: `1px solid ${t.border}`,
                     background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <option value="">بدون فئة</option>
@@ -359,13 +348,13 @@ export default function PortalTasksTab({ theme }: Props) {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !title.trim()}
                 style={{
-                  background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
-                  padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  flex: 1, background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
+                  padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                   opacity: submitting || !title.trim() ? 0.5 : 1,
                   fontFamily: 'Tajawal, sans-serif',
                 }}
@@ -375,8 +364,8 @@ export default function PortalTasksTab({ theme }: Props) {
               <button
                 onClick={() => setShowForm(false)}
                 style={{
-                  background: 'transparent', color: t.textMuted, border: `1px solid ${t.border}`,
-                  borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer',
+                  flex: 1, background: 'transparent', color: t.textMuted, border: `1px solid ${t.border}`,
+                  borderRadius: 8, padding: '12px 20px', fontSize: 14, cursor: 'pointer',
                   fontFamily: 'Tajawal, sans-serif',
                 }}
               >
@@ -487,14 +476,15 @@ export default function PortalTasksTab({ theme }: Props) {
       {selectedTask && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 0,
         }} onClick={() => setSelectedTask(null)}>
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: t.card, borderRadius: 16, width: '100%', maxWidth: 520,
-              padding: 24, direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)', color: t.text,
+              background: t.card, borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520,
+              padding: '20px 16px', direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.2)', color: t.text,
+              maxHeight: '90vh', overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
