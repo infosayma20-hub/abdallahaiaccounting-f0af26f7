@@ -234,6 +234,34 @@ const ContactsPage = () => {
         notes: newContact.notes || null,
       });
       if (error) throw error;
+      
+      // Create opening balance transaction if amount provided
+      const obAmount = parseFloat(newContact.opening_balance);
+      if (obAmount > 0) {
+        // Get the newly created contact ID
+        const { data: newC } = await supabase.from('contacts').select('id').eq('user_id', user.id).eq('contact_name', newContact.name.trim()).order('created_at', { ascending: false }).limit(1).single();
+        if (newC) {
+          const isDebit = newContact.balance_direction === "debit";
+          const contactAccountCode = newContact.type === "مورد" ? "2110" : "1130";
+          await supabase.from('transactions').insert({
+            user_id: user.id,
+            transaction_date: new Date().toISOString().split('T')[0],
+            description: `رصيد افتتاحي - ${newContact.name.trim()}`,
+            debit_account_code: isDebit ? contactAccountCode : "3400",
+            credit_account_code: isDebit ? "3400" : contactAccountCode,
+            amount: obAmount,
+            currency: "شيكل",
+            transaction_type: "opening_balance",
+            is_opening_balance: true,
+            contact_id: newC.id,
+            idempotency_key: `OB-CONTACT-${newC.id}`,
+          });
+          // Update contact current_balance
+          const balanceVal = isDebit ? obAmount : -obAmount;
+          await supabase.from('contacts').update({ current_balance: balanceVal }).eq('id', newC.id);
+        }
+      }
+
       toast({ title: "تم إضافة جهة الاتصال بنجاح" });
       setNewContact({ name: "", type: "عميل", phone: "", email: "", address: "", tax_number: "", contact_class: "C", credit_limit: "", payment_terms_days: "30", industry: "", website: "", notes: "", opening_balance: "", balance_direction: "credit" });
       setShowAddDialog(false);
