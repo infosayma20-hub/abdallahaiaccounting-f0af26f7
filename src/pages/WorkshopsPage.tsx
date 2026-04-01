@@ -194,6 +194,7 @@ export default function WorkshopsPage() {
     cheque_bank: "", deposit_bank_id: null as string | null,
     currency: "ILS", exchange_rate: 1, cheque_count: 1,
     cash_box_id: null as string | null,
+    bank_account_id: null as string | null,
   });
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string; gl_account_code: string | null; currency: string | null }[]>([]);
   type ChequeRow = { number: string; drawer: string; bank: string; date: string; amount: number };
