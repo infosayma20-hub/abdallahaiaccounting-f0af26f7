@@ -59,9 +59,10 @@ export function useSubscriptionGuard() {
     loading,
     daysLeft,
     isTrial,
-    isTrialExpired: isTrialExpired || isStatusExpired,
-    isExpired: isExpired || isStatusExpired,
-    isPaidActive,
+    isTrialExpired: isSuperAdmin ? false : (isTrialExpired || isStatusExpired),
+    isExpired: isSuperAdmin ? false : (isExpired || isStatusExpired),
+    isPaidActive: isSuperAdmin ? true : isPaidActive,
+    isSuperAdmin,
     refresh,
     fetchUserDataCounts,
   };
