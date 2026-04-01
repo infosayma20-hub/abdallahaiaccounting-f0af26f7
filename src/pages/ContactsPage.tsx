@@ -295,15 +295,17 @@ const ContactsPage = () => {
       }).eq('id', editContact.id);
       if (error) throw error;
 
-      // Handle opening balance if provided in edit
-      const obAmount = parseFloat(editData.opening_balance);
+      // Handle opening balance in edit — always clean up old OB first
+      const obAmount = parseFloat(editData.opening_balance) || 0;
+      // Soft-delete ALL existing opening balance transactions for this contact
+      const { data: existingOBs } = await supabase.from('transactions')
+        .select('id').eq('contact_id', editContact.id).eq('is_opening_balance', true).eq('is_deleted', false);
+      if (existingOBs && existingOBs.length > 0) {
+        await supabase.from('transactions')
+          .update({ is_deleted: true } as any)
+          .in('id', existingOBs.map(t => t.id));
+      }
       if (obAmount > 0) {
-        // Delete any existing opening balance transaction for this contact
-        const { data: existingOB } = await supabase.from('transactions')
-          .select('id').eq('contact_id', editContact.id).eq('is_opening_balance', true).limit(1);
-        if (existingOB && existingOB.length > 0) {
-          await supabase.from('transactions').update({ is_deleted: true } as any).eq('id', existingOB[0].id);
-        }
         const isDebit = editData.balance_direction === "debit";
         const contactAccountCode = editData.contact_type === "مورد" ? "2110" : "1130";
         await supabase.from('transactions').insert({
@@ -321,6 +323,9 @@ const ContactsPage = () => {
         });
         const balanceVal = isDebit ? obAmount : -obAmount;
         await supabase.from('contacts').update({ current_balance: balanceVal }).eq('id', editContact.id);
+      } else {
+        // Reset balance if OB removed
+        await supabase.from('contacts').update({ current_balance: 0 }).eq('id', editContact.id);
       }
 
       toast({ title: "تم تعديل جهة الاتصال بنجاح" });
