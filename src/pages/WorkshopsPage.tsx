@@ -433,7 +433,7 @@ export default function WorkshopsPage() {
       contactId = await ensureContact(wsForm.customer_name, wsForm.customer_phone || null, wsForm.address || null, null);
     }
 
-    const { error } = await supabase.from("workshops").insert({
+    const { data: wsData, error } = await supabase.from("workshops").insert({
       user_id: user!.id, name: wsForm.name,
       customer_name: wsForm.customer_name || null,
       customer_phone: wsForm.customer_phone || null,
@@ -444,8 +444,25 @@ export default function WorkshopsPage() {
       area_sqm: wsForm.area_sqm || null,
       workshop_type: wsForm.workshop_type || "kitchen",
       image_url: wsForm.image_url || null,
-    } as any);
+    } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
+
+    // Create revenue recognition entry: Debit 1130 (receivables) / Credit 4200 (revenue)
+    if ((wsForm.total_budget || 0) > 0 && contactId) {
+      await supabase.from("transactions").insert({
+        user_id: user!.id,
+        transaction_date: wsForm.start_date || format(new Date(), "yyyy-MM-dd"),
+        description: `إيرادات ورشة ${wsForm.customer_name || wsForm.name}`,
+        debit_account_code: "1130",
+        credit_account_code: "4200",
+        amount: wsForm.total_budget,
+        currency: "شيكل",
+        transaction_type: "workshop_revenue",
+        contact_id: contactId,
+        reference: `WS-REV-${(wsData as any)?.id?.substring(0, 8) || ""}`,
+      } as any);
+    }
+
     toast.success("تم إنشاء الورشة بنجاح");
     setShowNewWorkshop(false);
     setWsForm(defaultWsForm());
