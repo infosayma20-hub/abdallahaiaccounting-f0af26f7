@@ -1896,7 +1896,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             )}
 
             {/* Distribution Summary */}
-            {amountNum > 0 && (
+            {amountNum > 0 && (() => {
+              const hasMultiCurrency = invoices.some(i => i.selected && isInvCurrencyDifferent(i));
+              return (
               <div className={`rounded-xl p-4 space-y-2 text-xs ${unallocated === 0 && totalAllocated > 0 ? "bg-primary/5 border border-primary/20" : unallocated > 0 ? "bg-warning/5 border border-warning/20" : "bg-destructive/5 border border-destructive/20"}`}>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{amountLabel}:</span>
@@ -1906,6 +1908,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   <span className="text-muted-foreground">الموزَّع على الفواتير:</span>
                   <span className="font-mono">({currencySymbol}{formatAmount(totalAllocated)})</span>
                 </div>
+                {hasMultiCurrency && (
+                  <div className="flex items-center gap-1.5 text-warning text-[10px] bg-warning/10 rounded-lg px-2 py-1">
+                    <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                    المبالغ المخصصة محوّلة بسعر صرف الفاتورة الأصلي
+                  </div>
+                )}
                 <div className="border-t border-border/30 pt-2 flex justify-between font-bold">
                   <span>المبلغ غير الموزَّع:</span>
                   <span className="font-mono">{currencySymbol}{formatAmount(Math.abs(unallocated))}</span>
@@ -1923,7 +1931,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   <p className="flex items-center gap-1.5 text-muted-foreground"><Info className="h-3.5 w-3.5" /> لم يتم ربط أي فاتورة — سيُسجل كدفعة على الحساب</p>
                 )}
               </div>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
       )}
