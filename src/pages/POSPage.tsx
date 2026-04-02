@@ -4318,7 +4318,7 @@ const POSPage = () => {
             {/* Totals */}
             <div className="px-3 py-3">
               {cartTotals.tax > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(13,27,46,0.5)' }}>
                   <span>الضريبة</span>
                   <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
                 </div>
