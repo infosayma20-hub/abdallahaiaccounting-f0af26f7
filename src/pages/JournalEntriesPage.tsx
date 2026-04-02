@@ -273,14 +273,38 @@ const JournalEntriesPage = () => {
     });
   };
 
+  // Auto-detect transaction_type based on account codes
+  const inferTransactionType = (debit: string, credit: string, currentType: string): string => {
+    // Employee-related: debit to employee account (1130) from cash/bank
+    if (debit.startsWith("113") && (credit.startsWith("111") || credit.startsWith("112"))) return "employee_advance";
+    // Expense: debit to expense account (5xxx) from cash/bank
+    if (debit.startsWith("5") && (credit.startsWith("111") || credit.startsWith("112"))) return "payment";
+    // Payment voucher: debit to liability/payable from cash/bank
+    if (debit.startsWith("2") && (credit.startsWith("111") || credit.startsWith("112"))) return "payment";
+    // Receipt voucher: debit to cash/bank from receivable/revenue
+    if ((debit.startsWith("111") || debit.startsWith("112")) && (credit.startsWith("113") || credit.startsWith("4"))) return "receipt";
+    // Sale: credit to revenue (4xxx)
+    if (credit.startsWith("4")) return "sale";
+    // Purchase: debit to purchases/inventory
+    if (debit.startsWith("51") || debit.startsWith("114")) return "purchase";
+    // Opening balance
+    if (debit.startsWith("34") || credit.startsWith("34")) return "opening_balance";
+    return currentType;
+  };
+
   const handleSave = async () => {
     if (!editingTx || !user) return;
     setSaving(true);
     try {
+      const finalType = inferTransactionType(
+        editFields.debit_account_code,
+        editFields.credit_account_code,
+        editFields.transaction_type
+      );
       const { error } = await supabase.from("transactions")
         .update({
           description: editFields.description,
-          transaction_type: editFields.transaction_type,
+          transaction_type: finalType,
           amount: Number(editFields.amount),
           currency: editFields.currency,
           transaction_date: editFields.transaction_date,
