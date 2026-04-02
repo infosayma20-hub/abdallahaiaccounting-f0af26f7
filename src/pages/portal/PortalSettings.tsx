@@ -122,13 +122,13 @@ export default function PortalSettings() {
     border: '1px solid #ddd',
     borderRadius: 10, padding: '0 14px',
     color: '#333', fontSize: 14,
-    fontFamily: 'Tajawal, sans-serif', outline: 'none',
+    fontFamily: "'Cairo', sans-serif", outline: 'none',
   };
 
   return (
     <div style={{
       minHeight: '100vh', background: '#F5F5F5', color: '#333',
-      fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
+      fontFamily: "'Cairo', sans-serif", direction: 'rtl',
     }}>
       {/* Header */}
       <div style={{
@@ -140,7 +140,7 @@ export default function PortalSettings() {
         <button onClick={() => navigate('/portal/dashboard')} style={{
           background: 'none', border: 'none', color: GOLD, cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 4, fontSize: 14,
-          fontFamily: 'Tajawal, sans-serif',
+          fontFamily: "'Cairo', sans-serif",
         }}>
           <ArrowRight size={18} /> رجوع
         </button>
@@ -160,7 +160,7 @@ export default function PortalSettings() {
           </div>
           <input value={linkedUserId} onChange={e => setLinkedUserId(e.target.value)}
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            style={{ ...inputStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
+            style={{ ...inputStyle, fontFamily: 'Cairo', sans-serif, fontSize: 12 }}
           />
         </div>
 
@@ -192,7 +192,7 @@ export default function PortalSettings() {
           background: `linear-gradient(135deg, ${GOLD}, #8B5E00)`,
           borderRadius: 12, border: 'none', color: 'white',
           fontSize: 15, fontWeight: 700, cursor: 'pointer',
-          fontFamily: 'Tajawal, sans-serif',
+          fontFamily: "'Cairo', sans-serif",
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           marginBottom: 24,
         }}>
@@ -213,7 +213,7 @@ export default function PortalSettings() {
             <button onClick={() => setShowAddUser(true)} style={{
               background: 'rgba(212,160,23,0.12)', border: '1px solid rgba(212,160,23,0.3)',
               borderRadius: 8, padding: '6px 14px', color: GOLD, fontSize: 12, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Tajawal, sans-serif',
+              display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Cairo', sans-serif",
             }}>
               <Plus size={14} /> إضافة مستخدم
             </button>
@@ -280,7 +280,7 @@ export default function PortalSettings() {
                       <td style={{ padding: '8px 12px', fontSize: 12, color: '#888', width: 120 }}>{row.label}</td>
                       <td style={{
                         padding: '8px 12px', fontSize: 14, fontWeight: 600,
-                        fontFamily: row.mono ? 'JetBrains Mono, monospace' : 'Tajawal, sans-serif',
+                        fontFamily: "'Cairo', sans-serif",
                         color: '#1a1a1a', letterSpacing: row.mono ? 1 : 0,
                         userSelect: 'all',
                       }}>{row.value}</td>
@@ -309,7 +309,7 @@ export default function PortalSettings() {
               <tbody>
                 {users.map(u => (
                   <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#333' }}>{u.username}</td>
+                    <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'Cairo', sans-serif, color: '#333' }}>{u.username}</td>
                     <td style={{ padding: '10px 12px', fontSize: 13, color: '#333' }}>{u.full_name}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
@@ -320,7 +320,7 @@ export default function PortalSettings() {
                         {u.role === 'owner' ? 'مالك' : u.role === 'manager' ? 'مدير' : 'مشاهد'}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 12px', fontSize: 11, color: '#999', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <td style={{ padding: '10px 12px', fontSize: 11, color: '#999', fontFamily: 'Cairo', sans-serif }}>
                       {u.last_login ? new Date(u.last_login).toLocaleDateString('ar') : '—'}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
