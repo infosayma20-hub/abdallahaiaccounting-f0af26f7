@@ -4336,7 +4336,7 @@ const POSPage = () => {
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
                   className="text-[20px] font-bold tabular-nums"
-                  style={{ color: 'white' }}
+                  style={{ color: '#0D1B2E' }}
                 >
                   ₪{cartTotals.total.toFixed(2)}
                 </motion.span>
