@@ -4117,8 +4117,8 @@ const POSPage = () => {
             <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
-                  <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>ابدأ بإضافة المنتجات</p>
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(13,27,46,0.15)' }} />
+                  <p className="text-sm" style={{ color: 'rgba(13,27,46,0.35)' }}>ابدأ بإضافة المنتجات</p>
                 </div>
               ) : (
                 <div>
