@@ -371,8 +371,8 @@ const TransactionsPage = () => {
   };
 
   const SortIcon = ({ field }: { field: string }) => {
-    if (sortField !== field) return <span className="text-[#94A3B8] text-[10px]">⇅</span>;
-    return <span className="text-[#1A56DB] text-[10px]">{sortAsc ? "↑" : "↓"}</span>;
+    if (sortField !== field) return <span className="opacity-40 text-[10px]">⇅</span>;
+    return <span className="text-white text-[10px] font-bold">{sortAsc ? "↑" : "↓"}</span>;
   };
 
   // ━━ Selection ━━
