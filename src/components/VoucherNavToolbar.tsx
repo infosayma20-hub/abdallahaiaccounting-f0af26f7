@@ -22,6 +22,8 @@ interface VoucherNavToolbarProps {
   onNewSimilar?: () => void;
   /** Called when user clicks print */
   onPrint?: () => void;
+  /** Called when user clicks delete */
+  onDelete?: () => void;
   /** Whether toolbar should show (hide on create-new mode with no saved entry) */
   showNavigation?: boolean;
 }
