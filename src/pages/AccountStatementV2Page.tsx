@@ -117,7 +117,8 @@ const AccountStatementV2Page = () => {
   const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [activePeriod, setActivePeriod] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState("all");
+  const [displayCurrency, setDisplayCurrency] = useState("ILS");
+  const [currentExchangeRate, setCurrentExchangeRate] = useState<Record<string, number>>({});
   const [txTypeFilter, setTxTypeFilter] = useState("all");
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [chequesOpen, setChequesOpen] = useState(false);
