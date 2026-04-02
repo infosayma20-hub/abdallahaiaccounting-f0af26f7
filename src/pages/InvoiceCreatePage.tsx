@@ -1338,7 +1338,7 @@ const InvoiceCreatePage = () => {
                               <CommandItem
                                 key={p.id}
                                 value={`${p.name} ${p.barcode || ""}`}
-                                onSelect={() => selectProduct(item.id, p.id)}
+                                onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }}
                                 className="text-[11px] flex items-center justify-between gap-2"
                               >
                                 <span>{p.name}</span>
