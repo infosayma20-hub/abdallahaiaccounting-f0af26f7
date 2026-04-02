@@ -154,7 +154,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "طلب مشتريات", path: "/procurement/orders/new" },
               { label: "الطلبيات", path: "/procurement/orders" },
-              { label: "فواتير المشتريات", path: "/procurement/invoices" },
+              { label: "فواتير المشتريات", path: "/invoices?type=purchase" },
             ],
           },
           {
