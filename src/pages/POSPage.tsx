@@ -4878,7 +4878,7 @@ const POSPage = () => {
                                   value={manualChangeAmount !== null ? manualChangeAmount : displayChangeAmount.toFixed(2)}
                                   onChange={(e) => setManualChangeAmount(e.target.value)}
                                   onFocus={(e) => { if (manualChangeAmount === null) setManualChangeAmount(displayChangeAmount.toFixed(2)); e.target.select(); }}
-                                  className="w-24 text-left text-2xl font-black tabular-nums bg-transparent border-none outline-none focus:ring-1 focus:ring-green-400 rounded px-1"
+                                  className="w-32 text-left text-xl font-black tabular-nums bg-transparent border-none outline-none focus:ring-1 focus:ring-green-400 rounded px-1"
                                   style={{ color: '#16a34a', fontFamily: 'Cairo, sans-serif' }} dir="ltr"
                                 />
                               </div>
