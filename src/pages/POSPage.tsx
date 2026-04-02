@@ -2299,7 +2299,7 @@ const POSPage = () => {
         if (existingOrder) {
           // Use existing order - update its totals and delete old lines
           await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
-          await supabase.from("pos_orders").update({
+           await supabase.from("pos_orders").update({
             customer_name: customerName || null,
             customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
@@ -2309,6 +2309,7 @@ const POSPage = () => {
             order_type: activeOrder.orderType,
             delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
             pos_customer_id: activeOrder.posCustomerId || null,
+            order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
           } as any).eq("id", existingOrder.id);
