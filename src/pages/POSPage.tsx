@@ -4416,7 +4416,7 @@ const POSPage = () => {
                 <button
                   onClick={() => setShowDispatchLog(true)}
                   className="w-full h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  style={{ background: 'rgba(13,27,46,0.08)', color: '#0D1B2E' }}
                 >
                   <ClipboardList className="h-3 w-3" />
                   سجل المحوّلة
