@@ -1756,6 +1756,24 @@ const InvoiceCreatePage = () => {
           <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAddRep(false)}>إلغاء</Button><Button onClick={handleQuickAddRep}>إضافة المندوب</Button></div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> حذف الفاتورة
+            </DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من حذف الفاتورة رقم {nextInvoiceNumber}؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>إلغاء</Button>
+            <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); handleDeleteInvoice(); }}>تأكيد الحذف</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
