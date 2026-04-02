@@ -231,6 +231,14 @@ const VoucherNavToolbar = ({
 
         <div className="flex-1" />
 
+        {/* Delete */}
+        {onDelete && currentRef && (
+          <Button variant="outline" size="sm" onClick={onDelete}
+            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30">
+            <Trash2 className="h-3.5 w-3.5" /> حذف
+          </Button>
+        )}
+
         {/* New Similar */}
         {onNewSimilar && currentRef && (
           <Button variant="outline" size="sm" onClick={onNewSimilar}
