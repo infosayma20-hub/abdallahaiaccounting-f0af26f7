@@ -3997,7 +3997,7 @@ const POSPage = () => {
                   {orders.length > 1 && (
                     <span
                       onClick={(e) => { e.stopPropagation(); removeOrder(idx); }}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all text-[#0D1B2E]/40"
                     >
                       <X className="h-2.5 w-2.5" />
                     </span>
