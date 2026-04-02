@@ -504,14 +504,14 @@ const FinanceJournalPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-primary text-primary-foreground">
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الرقم" field="ref_number" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="date" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">النوع</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">الوصف</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
-                  <th className="px-3 py-3 w-10"></th>
+                <tr className="bg-muted/50">
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الرقم" field="ref_number" /></th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="التاريخ" field="date" /></th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">النوع</th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">الوصف</th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="المبلغ" field="amount" /></th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الحالة" field="status" /></th>
+                  <th className="px-3 py-2.5 w-10 border-b border-border"></th>
                 </tr>
               </thead>
               <tbody>
