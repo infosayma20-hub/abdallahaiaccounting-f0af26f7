@@ -20,7 +20,7 @@ export function Table({ children, className, ...props }: React.HTMLAttributes<HT
 }
 
 export function TableHeader({ children, className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead style={{ background: 'hsl(var(--muted))' }} className={className} {...props}>{children}</thead>;
+  return <thead style={{ background: 'hsl(var(--muted))', borderRadius: '12px 12px 0 0' }} className={className} {...props}>{children}</thead>;
 }
 
 export function TableRow({ children, className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
