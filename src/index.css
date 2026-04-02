@@ -1145,3 +1145,11 @@ table tbody td {
 table tbody tr:hover td {
   background: #F8F9FA;
 }
+
+/* ── Global thead border-radius (RTL) ── */
+thead th:first-child { border-radius: 0 12px 0 0 !important; }
+thead th:last-child  { border-radius: 12px 0 0 0 !important; }
+thead, thead tr, thead th {
+  background: #F1F5F9 !important;
+  background-color: #F1F5F9 !important;
+}
