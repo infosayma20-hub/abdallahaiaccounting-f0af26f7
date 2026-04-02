@@ -366,17 +366,14 @@ const InvoicesPage = () => {
     c => c.contact_name.trim() === form.contactName.trim()
   );
 
-  const createContactInAirtable = async (name: string) => {
+  const createContactInDB = async (name: string) => {
     if (!user) return;
     try {
-      await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
-        {
-          method: "POST",
-          headers: await getAuthHeadersJson(),
-          body: JSON.stringify({ contactName: name, contactType: form.type === "sales" ? "عميل" : "مورد" }),
-        }
-      );
+      await supabase.from("contacts").upsert({
+        user_id: user.id,
+        contact_name: name,
+        contact_type: form.type === "sales" ? "عميل" : "مورد",
+      }, { onConflict: "user_id,contact_name" });
       fetchContacts();
     } catch (err) { console.error(err); }
   };
