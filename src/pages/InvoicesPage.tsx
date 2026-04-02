@@ -270,7 +270,28 @@ const InvoicesPage = () => {
   const fetchContacts = async () => {
     if (!user) return;
     const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
-    setContacts((data as Contact[]) || []);
+    const contactsList = (data as Contact[]) || [];
+    
+    // Fetch balances for each contact from invoices
+    const { data: invData } = await supabase
+      .from("invoices")
+      .select("contact_name, total_amount, paid_amount")
+      .eq("user_id", user.id)
+      .eq("is_deleted", false);
+    
+    const balanceMap: Record<string, number> = {};
+    ((invData as any[]) || []).forEach((inv: any) => {
+      const name = inv.contact_name;
+      if (!name) return;
+      const remaining = Number(inv.total_amount || 0) - Number(inv.paid_amount || 0);
+      balanceMap[name] = (balanceMap[name] || 0) + remaining;
+    });
+    
+    const withBalances = contactsList.map(c => ({
+      ...c,
+      balance: balanceMap[c.contact_name] || 0,
+    }));
+    setContacts(withBalances);
   };
 
   const saveInvoices = (updated: Invoice[]) => {
