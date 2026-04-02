@@ -1194,10 +1194,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     .amount-value { font-size: 28px; font-weight: 800; color: #1B3A5C; font-family: 'Cairo', sans-serif; }
     .amount-words { font-size: 10px; color: #666; margin-top: 2px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Cairo', sans-serif; }
-    thead tr { background: #0D1B2A; }
-    thead th { padding: 6px 10px; color: #4A9EE8; text-align: right; font-weight: 600; font-size: 10px; }
+    thead tr { background: #f1f5f9; }
+    thead th { padding: 8px 10px; color: #475569; text-align: right; font-weight: 600; font-size: 10px; border-bottom: 2px solid #e2e8f0; }
     thead th.text-left { text-align: left; }
-    tbody td { padding: 5px 10px; font-size: 11px; border-bottom: 1px solid #edf0f4; font-variant-numeric: tabular-nums; }
+    tbody td { padding: 7px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
     .signatures { padding: 24px 28px; display: flex; justify-content: space-around; }
     .sig-block { text-align: center; flex: 1; }
     .sig-line { border-bottom: 1px solid #ccc; width: 140px; margin: 0 auto 6px; }
