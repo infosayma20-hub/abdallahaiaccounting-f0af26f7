@@ -411,15 +411,23 @@ const PricingPage = () => {
           ))}
         </div>
 
-        {addonTotal > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="text-center p-4 rounded-2xl border-2 border-[#4A9EE8] bg-blue-50">
-            <p className="text-sm text-gray-600">إجمالي الإضافات:</p>
-            <p className="text-2xl font-extrabold text-[#0A2342]">
-              ${addonTotal.toFixed(2)} <span className="text-sm font-normal text-gray-400">/ {billing === "annual" ? "سنة" : "شهر"}</span>
-            </p>
-          </motion.div>
-        )}
+        {(() => {
+          const ilsTotal = addons.reduce((sum, a) => {
+            const qty = addonCounts[a.addon_key] || 0;
+            const ilsPrice = addonPricesILS[a.addon_key];
+            if (ilsPrice) return sum + qty * (billing === "annual" ? ilsPrice.annual : ilsPrice.monthly);
+            return sum + qty * (billing === "annual" ? a.price_per_unit_annual : a.price_per_unit_monthly);
+          }, 0);
+          return ilsTotal > 0 ? (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="text-center p-4 rounded-2xl border-2 border-[#4A9EE8] bg-blue-50">
+              <p className="text-sm text-gray-600">إجمالي الإضافات:</p>
+              <p className="text-2xl font-extrabold text-[#0A2342]">
+                ₪{ilsTotal.toLocaleString()} <span className="text-sm font-normal text-gray-400">/ {billing === "annual" ? "سنة" : "شهر"}</span>
+              </p>
+            </motion.div>
+          ) : null;
+        })()}
       </div>
 
       {/* Comparison Table — 3 columns */}
