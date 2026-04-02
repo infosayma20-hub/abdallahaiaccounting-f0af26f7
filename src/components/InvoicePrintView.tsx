@@ -271,7 +271,21 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               <strong style={{ color: "#1B3A5C" }}>الرقم الضريبي:</strong> {invoice.contactTaxNumber}
             </div>
           )}
-        </div>
+          {invoice.contactPhone && (
+            <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>
+              📞 {invoice.contactPhone}
+            </div>
+          )}
+          {invoice.contactEmail && (
+            <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>
+              ✉️ {invoice.contactEmail}
+            </div>
+          )}
+          {invoice.contactAddress && (
+            <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "1px" }}>
+              📍 {invoice.contactAddress}
+            </div>
+          )}
 
         {/* Invoice Details */}
         <div style={{ textAlign: "left", fontSize: "10px" }}>
