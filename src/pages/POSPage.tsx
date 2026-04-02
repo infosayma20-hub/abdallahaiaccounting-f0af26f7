@@ -2317,27 +2317,28 @@ const POSPage = () => {
           orderObj = { id: existingOrder.id };
         } else {
           // Create new order
-          const { data: order, error: orderError } = await supabase
-            .from("pos_orders")
-            .insert({
-              user_id: dataOwnerId,
-              company_id: company.id,
-              session_id: session.id,
-              customer_name: customerName || null,
-              customer_id: activeOrder.customerId || null,
-              subtotal: cartTotals.subtotal,
-              discount_amount: effectiveDiscount,
-              tax_amount: cartTotals.tax,
-              total: effectiveTotal,
-              state: "draft",
-              table_id: activeOrder.tableId,
-              guest_count: activeOrder.guestCount,
-              guest_name: activeOrder.guestName || null,
-              order_type: activeOrder.orderType,
-              delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
-              pos_customer_id: activeOrder.posCustomerId || null,
-              ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
-            } as any)
+           const { data: order, error: orderError } = await supabase
+              .from("pos_orders")
+              .insert({
+                user_id: dataOwnerId,
+                company_id: company.id,
+                session_id: session.id,
+                customer_name: customerName || null,
+                customer_id: activeOrder.customerId || null,
+                subtotal: cartTotals.subtotal,
+                discount_amount: effectiveDiscount,
+                tax_amount: cartTotals.tax,
+                total: effectiveTotal,
+                state: "draft",
+                table_id: activeOrder.tableId,
+                guest_count: activeOrder.guestCount,
+                guest_name: activeOrder.guestName || null,
+                order_type: activeOrder.orderType,
+                delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+                pos_customer_id: activeOrder.posCustomerId || null,
+                order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+                ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
+              } as any)
             .select()
             .single();
           if (orderError) throw orderError;
