@@ -1259,7 +1259,7 @@ const InvoiceCreatePage = () => {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           {/* Table Header */}
-          <div className="hidden lg:grid grid-cols-[30px_1fr_70px_90px_70px_30px_70px_100px_30px] gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground">
+          <div className="hidden lg:grid grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground">
             <span>#</span>
             <span>المنتج / الخدمة</span>
             <span className="text-center">الكمية</span>
