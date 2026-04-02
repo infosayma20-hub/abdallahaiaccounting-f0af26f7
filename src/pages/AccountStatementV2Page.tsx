@@ -180,6 +180,16 @@ const AccountStatementV2Page = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  // ─── Fetch exchange rates for foreign display mode ───
+  useEffect(() => {
+    if (displayCurrency === "ILS" || !user) return;
+    const fetchRate = async () => {
+      const { data: rate } = await supabase.rpc("get_exchange_rate", { p_currency_code: displayCurrency, p_rate_type: "mid" });
+      if (rate) setCurrentExchangeRate(prev => ({ ...prev, [displayCurrency]: Number(rate) }));
+    };
+    fetchRate();
+  }, [displayCurrency, user]);
+
   // ─── Derived State ───
   const selectedAccount = useMemo(() => accounts.find(a => a.id === selectedEntityId), [accounts, selectedEntityId]);
   const selectedContact = useMemo(() => contacts.find(c => c.id === selectedEntityId), [contacts, selectedEntityId]);
