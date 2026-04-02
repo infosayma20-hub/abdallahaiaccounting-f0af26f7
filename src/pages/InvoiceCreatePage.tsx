@@ -329,6 +329,22 @@ const InvoiceCreatePage = () => {
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
 
+      // Set default tax category based on registration type
+      const regType = (taxSettingsRes.data as any)?.registration_type;
+      const detectedTaxCat: TaxCategory = (regType === "exempt" || regType === "unregistered") ? "zero" : "taxable";
+      setDefaultTaxCategory(detectedTaxCat);
+      // Update existing items if not in edit mode and not from duplicate
+      if (!isEditMode && !fromDuplicate) {
+        setForm(prev => ({
+          ...prev,
+          items: prev.items.map(item => ({
+            ...item,
+            taxCategory: detectedTaxCat,
+            taxRate: detectedTaxCat === "taxable" ? 16 : 0,
+          })),
+        }));
+      }
+
       // Generate next invoice number based on current type
       const prefix = form.type === "sales" ? "INV" : "PO";
       const totalCount = invCountRes.count || 0;
