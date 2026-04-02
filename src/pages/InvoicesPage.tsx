@@ -274,7 +274,7 @@ const InvoicesPage = () => {
     
     // Fetch balances for each contact from invoices
     const { data: invData } = await supabase
-      .from("invoices")
+      .from("invoices" as any)
       .select("contact_name, total_amount, paid_amount")
       .eq("user_id", user.id)
       .eq("is_deleted", false);
