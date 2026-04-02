@@ -610,7 +610,7 @@ const InvoiceCreatePage = () => {
     // Debt warning from transaction balance
     const bal = contact.balance || 0;
     if (bal > 0) {
-      setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrency(bal)}${contact.credit_limit ? ` من سقف ${fmtCurrency(contact.credit_limit)}` : ""}`);
+      setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrencyStatic(bal)}${contact.credit_limit ? ` من سقف ${fmtCurrencyStatic(contact.credit_limit)}` : ""}`);
     } else {
       setContactDebtWarning(null);
     }
