@@ -500,9 +500,9 @@ const FinanceJournalPage = () => {
 
       {/* TABLE */}
       {!loading && paged.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الرقم" field="ref_number" /></th>
