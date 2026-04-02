@@ -573,6 +573,24 @@ const AccountStatementV2Page = () => {
 
         {selectedEntityId && (
           <>
+            {/* ─── MIXED CURRENCY WARNING ─── */}
+            {hasMixedCurrencies && (
+              <div className="rounded-lg mb-3 flex items-start gap-2" style={{ background: "#FFFBEB", border: "1px solid #FDE68A", padding: "10px 16px" }}>
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#D97706" }} />
+                <div style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
+                  <strong>تحذير:</strong> هذا الكشف يحتوي حركات بعملات مختلفة. الحركات غير المقيّمة بال{displayCurrencyLabel.split(" ")[0]} محوّلة بسعر صرف اليوم أو معروضة بالشيكل. الرصيد الإجمالي غير دقيق محاسبياً.
+                </div>
+              </div>
+            )}
+
+            {/* ─── FOREIGN DISPLAY NOTE ─── */}
+            {displayCurrency !== "ILS" && !hasMixedCurrencies && (
+              <div className="rounded-lg mb-3 flex items-center gap-2" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "8px 16px" }}>
+                <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#2563EB" }} />
+                <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف اليوم.</span>
+              </div>
+            )}
+
             {/* ─── SUMMARY LINE ─── */}
             <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
               <div className="flex items-center gap-8 flex-wrap text-[13px]">
