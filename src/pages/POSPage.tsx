@@ -4134,7 +4134,7 @@ const POSPage = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2 }}
                         className="py-3 cursor-pointer transition-all"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+                        style={{ borderBottom: '1px solid rgba(13,27,46,0.1)' }}
                         onClick={() => setSelectedCartIndex(isSelected ? null : index)}
                       >
                         {/* Item name + remove */}
