@@ -206,7 +206,7 @@ const InvoicesPage = () => {
       // Fetch from database
       const { data: dbInvoices } = await supabase
         .from("invoices")
-        .select("*, invoice_items(*)")
+        .select("*, invoice_items(*), contacts(tax_number, phone, email, address)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
