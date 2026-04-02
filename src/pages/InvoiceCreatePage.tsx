@@ -153,7 +153,9 @@ const numberToArabicWords = (num: number): string => {
   return parts.length > 0 ? `فقط ${parts.join(" و")} شيكل لا غير` : "صفر شيكل";
 };
 
-const fmtCurrency = (n: number) =>
+const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولار": "$", "دينار": "د.ا", "يورو": "€" };
+
+const fmtCurrencyStatic = (n: number) =>
   `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // ─── Component ───
@@ -247,7 +249,10 @@ const InvoiceCreatePage = () => {
     transferBank: "",
   });
 
-  // ─── Load Duplicate Data ───
+  const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
+  const fmtCurrency = useCallback((n: number) =>
+    `${currSymbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, [currSymbol]);
+
   useEffect(() => {
     if (!fromDuplicate) return;
     const draftKey = "draft_invoice_new";
@@ -605,7 +610,7 @@ const InvoiceCreatePage = () => {
     // Debt warning from transaction balance
     const bal = contact.balance || 0;
     if (bal > 0) {
-      setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrency(bal)}${contact.credit_limit ? ` من سقف ${fmtCurrency(contact.credit_limit)}` : ""}`);
+      setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrencyStatic(bal)}${contact.credit_limit ? ` من سقف ${fmtCurrencyStatic(contact.credit_limit)}` : ""}`);
     } else {
       setContactDebtWarning(null);
     }
@@ -1256,7 +1261,7 @@ const InvoiceCreatePage = () => {
                 <div className="mt-2">
                   <label className="text-[10px] text-muted-foreground mb-0.5 block">سعر الصرف</label>
                   <Input type="number" step="0.01" value={form.exchangeRate} onChange={e => setForm(p => ({ ...p, exchangeRate: Number(e.target.value) }))} className="rounded-xl text-xs h-8" dir="ltr" />
-                  <p className="text-[10px] text-muted-foreground mt-0.5">المكافئ بالشيكل: {fmtCurrency(summary.total * form.exchangeRate)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">المكافئ بالشيكل: {fmtCurrencyStatic(summary.total * form.exchangeRate)}</p>
                 </div>
               )}
             </div>
@@ -1394,7 +1399,7 @@ const InvoiceCreatePage = () => {
                               >
                                 <span>{p.name}</span>
                                 <span className="text-[9px] text-muted-foreground tabular-nums">
-                                  {form.type === "sales" ? `₪${p.sell_price}` : `₪${p.buy_price}`} • {p.quantity} {p.unit}
+                                  {form.type === "sales" ? `${currSymbol}${p.sell_price}` : `${currSymbol}${p.buy_price}`} • {p.quantity} {p.unit}
                                 </span>
                               </CommandItem>
                             ))}
@@ -1452,7 +1457,7 @@ const InvoiceCreatePage = () => {
                   className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors"
                   title={item.discountType === "percent" ? "خصم نسبي" : "خصم ثابت"}
                 >
-                  {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : "₪"}
+                  {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : currSymbol}
                 </button>
 
                 {/* Tax Category */}

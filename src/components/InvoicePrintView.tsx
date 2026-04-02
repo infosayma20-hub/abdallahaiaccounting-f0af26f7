@@ -47,8 +47,11 @@ const fmtDate = (d: string) => {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
 };
 
-const fmtAmount = (n: number) =>
-  `₪${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولار": "$", "دينار": "د.ا", "يورو": "€" };
+const CURRENCY_LABELS: Record<string, string> = { "شيكل": "شيكل (₪ ILS)", "دولار": "دولار أمريكي ($ USD)", "دينار": "دينار أردني (د.ا JOD)", "يورو": "يورو (€ EUR)" };
+
+const fmtAmountWithSymbol = (n: number, symbol: string) =>
+  `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const paymentLabels: Record<string, string> = {
   cash: "نقداً",
@@ -67,6 +70,9 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const isSales = invoice.type === "sales";
   const today = new Date();
   const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+  const currSymbol = CURRENCY_SYMBOLS[invoice.currency] || "₪";
+  const currLabel = CURRENCY_LABELS[invoice.currency] || CURRENCY_LABELS["شيكل"];
+  const fmtAmount = (n: number) => fmtAmountWithSymbol(n, currSymbol);
 
   // Calculate item-level tax
   const calcItemTotal = (item: InvoiceItem) => {
@@ -255,7 +261,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           )}
         </div>
         <div style={{ fontWeight: 600, color: "#1B3A5C" }}>
-          العملة: شيكل (₪ ILS)
+          العملة: {currLabel}
         </div>
       </div>
 
