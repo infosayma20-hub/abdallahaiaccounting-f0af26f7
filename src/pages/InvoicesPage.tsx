@@ -990,7 +990,22 @@ const InvoicesPage = () => {
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
               </CardTitle>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-2">
+                {/* Tax-inclusive toggle */}
+                <div className="flex items-center bg-muted/50 rounded-lg p-0.5 text-[10px]">
+                  <button
+                    onClick={() => setForm(p => ({ ...p, pricesInclusive: false }))}
+                    className={`px-2 py-1 rounded-md transition-all ${!form.pricesInclusive ? "bg-background shadow-sm text-foreground font-semibold" : "text-muted-foreground"}`}
+                  >
+                    الأسعار صافية
+                  </button>
+                  <button
+                    onClick={() => setForm(p => ({ ...p, pricesInclusive: true }))}
+                    className={`px-2 py-1 rounded-md transition-all ${form.pricesInclusive ? "bg-background shadow-sm text-foreground font-semibold" : "text-muted-foreground"}`}
+                  >
+                    شاملة الضريبة
+                  </button>
+                </div>
                 <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
                   <Plus className="h-3 w-3" /> صنف جديد
                 </Button>
