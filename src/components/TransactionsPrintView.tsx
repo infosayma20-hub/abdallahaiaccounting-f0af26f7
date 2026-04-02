@@ -52,7 +52,8 @@ const typeLabels: Record<string, string> = {
   opening_balance: "رصيد افتتاحي",
   manual: "قيد يدوي",
   cheque_collection: "تحصيل شيك",
-  journal: "قيد يومية",
+  journal: "سند صرف",
+  workshop_receipt: "دفعة ورشة",
 };
 
 const fmtAmount = (n: number) =>
