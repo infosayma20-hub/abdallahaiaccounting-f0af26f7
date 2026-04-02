@@ -44,9 +44,16 @@ const sections = [
 ];
 
 const SettingsPage = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("company");
   const [search, setSearch] = useState("");
+  const [taxOwnerId, setTaxOwnerId] = useState("");
   const { settings, loading, saving, hasChanges, updateSettings, saveSettings, resetToDefaults } = useCompanySettings();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => setTaxOwnerId(data || user.id));
+  }, [user]);
 
   const filteredSections = useMemo(() => {
     if (!search) return sections;
