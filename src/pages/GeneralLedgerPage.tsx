@@ -30,6 +30,7 @@ type SortDir = "asc" | "desc";
 const PER_PAGE = 15;
 
 const GeneralLedgerPage = () => {
+  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
