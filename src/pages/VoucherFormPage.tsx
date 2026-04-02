@@ -1724,8 +1724,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                           <td className="p-2.5 font-mono font-medium text-foreground">{inv.invoice_number || "-"}</td>
                           <td className="p-2.5 text-muted-foreground">{inv.invoice_date}</td>
                           <td className="p-2.5 text-muted-foreground">{inv.due_date || "-"}</td>
-                          <td className="p-2.5 text-left font-mono">₪{formatAmount(inv.total_amount)}</td>
-                          <td className="p-2.5 text-left font-mono font-bold">₪{formatAmount(remaining)}</td>
+                          <td className="p-2.5 text-left font-mono">{getInvSymbol(inv)}{formatAmount(inv.total_amount)}</td>
+                          <td className="p-2.5 text-left font-mono font-bold">{getInvSymbol(inv)}{formatAmount(remaining)}</td>
                           <td className="p-2.5">
                             <span className={`${getOverdueColor(days)} text-[10px]`}>
                               {getOverdueIcon(days)} {getOverdueLabel(days)}
