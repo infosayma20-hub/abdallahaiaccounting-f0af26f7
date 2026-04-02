@@ -106,7 +106,8 @@ const createEmptyItem = (): InvoiceItem => ({
   unitPrice: 0,
   discount: 0,
   discountType: "percent",
-  taxRate: 0,
+  taxRate: 16,
+  taxCategory: "taxable",
   unitOfMeasure: "قطعة",
   subtotal: 0,
 });
