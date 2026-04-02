@@ -439,7 +439,7 @@ export async function loadEmployeeWithdrawals(uid: string, dateFrom: string, dat
   setData(rows);
 }
 
-
+export async function loadAssetRegister(uid: string, setData: SetData) {
   const { data: assets } = await supabase.from("assets").select("id, asset_number, name_ar, acquisition_cost, accumulated_depreciation, net_book_value, status, acquisition_date, location").eq("user_id", uid).order("asset_number");
   setData(assets || []);
 }
