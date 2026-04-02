@@ -280,7 +280,7 @@ export default function PortalSettings() {
                       <td style={{ padding: '8px 12px', fontSize: 12, color: '#888', width: 120 }}>{row.label}</td>
                       <td style={{
                         padding: '8px 12px', fontSize: 14, fontWeight: 600,
-                        fontFamily: row.mono ? 'Cairo', sans-serif : 'Tajawal, sans-serif',
+                        fontFamily: "'Cairo', sans-serif",
                         color: '#1a1a1a', letterSpacing: row.mono ? 1 : 0,
                         userSelect: 'all',
                       }}>{row.value}</td>
