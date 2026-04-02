@@ -151,9 +151,8 @@ const AccountStatementV2Page = () => {
       const empList = ((empData as any[]) || []).map((emp: any) => {
         const nn = normalizeArabicName(emp.full_name);
         const linked = allAccounts.find(a => {
-          const isEmpRec = a.account_type === "أصول" || a.account_type === "asset";
           const na = normalizeArabicName((a.account_name || "").replace(/^ذمم\s*موظف\s*[-–]\s*/, "").replace(/^ذمم\s+/, ""));
-          return isEmpRec && na === nn;
+          return na === nn;
         });
         return { ...emp, account_code: linked?.account_code || null } as EmployeeEntity;
       });

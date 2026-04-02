@@ -185,13 +185,18 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       setVouchers(mapped);
       setContacts(cRes.data || []);
     } else {
-      const [vRes, cRes] = await Promise.all([
+      const [vRes, cRes, txRes] = await Promise.all([
         supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+        supabase.from("transactions").select("id, debit_account_code").eq("user_id", user.id).eq("is_deleted", false),
       ]);
+      const txMap = new Map<string, string>();
+      for (const tx of (txRes.data || [])) {
+        txMap.set(tx.id, tx.debit_account_code || "");
+      }
       setVouchers((vRes.data || []).map((v: any) => ({
         ...v,
-        account_code: "—",
+        account_code: v.linked_transaction_id ? (txMap.get(v.linked_transaction_id) || "—") : "—",
         allocated_total: 0,
       })));
       setContacts(cRes.data || []);
