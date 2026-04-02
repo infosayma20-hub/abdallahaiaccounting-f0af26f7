@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Check, X, ChevronDown, ChevronUp, Shield, Star, Minus, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentModal from "@/components/billing/PaymentModal";
+import PlanAppsSection from "@/components/pricing/PlanAppsSection";
 
 type BillingCycle = "monthly" | "annual";
 
