@@ -392,7 +392,54 @@ export async function loadEmployeeDirectory(uid: string, setData: SetData) {
   setData(employees || []);
 }
 
-export async function loadAssetRegister(uid: string, setData: SetData) {
+export async function loadEmployeeWithdrawals(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+  const { data: vouchers } = await supabase
+    .from("vouchers")
+    .select("id, ref_number, date, description, amount, amount_ils, employee_id, linked_transaction_id")
+    .eq("user_id", uid)
+    .eq("type", "payment")
+    .not("employee_id", "is", null)
+    .eq("status", "posted")
+    .gte("date", dateFrom)
+    .lte("date", dateTo)
+    .order("date", { ascending: false });
+
+  const { data: employees } = await supabase
+    .from("employees")
+    .select("id, full_name")
+    .eq("user_id", uid);
+
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("id, expense_category")
+    .eq("user_id", uid)
+    .eq("is_deleted", false);
+
+  const empMap = Object.fromEntries((employees || []).map(e => [e.id, e.full_name]));
+  const txMap = Object.fromEntries((transactions || []).map(t => [t.id, (t as any).expense_category]));
+
+  const rows = (vouchers || []).map(v => {
+    // Try to get category from linked transaction, fallback to parsing description
+    let category = v.linked_transaction_id ? txMap[v.linked_transaction_id] : null;
+    if (!category && v.description) {
+      const desc = v.description;
+      const cats = ["سلفة", "رواتب", "أكل", "عجز", "مشتريات", "توصيل", "مخالفة"];
+      category = cats.find(c => desc.startsWith(c)) || "أخرى";
+    }
+    return {
+      date: v.date,
+      ref_number: v.ref_number,
+      employee_name: empMap[v.employee_id!] || "—",
+      category: category || "أخرى",
+      description: v.description || "",
+      amount: v.amount_ils || v.amount || 0,
+    };
+  });
+
+  setData(rows);
+}
+
+
   const { data: assets } = await supabase.from("assets").select("id, asset_number, name_ar, acquisition_cost, accumulated_depreciation, net_book_value, status, acquisition_date, location").eq("user_id", uid).order("asset_number");
   setData(assets || []);
 }
