@@ -664,6 +664,9 @@ const TransactionsPage = () => {
         </div>
       </div>
 
+      {/* ━━ Print Area Start ━━ */}
+      <div id="print-area">
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
