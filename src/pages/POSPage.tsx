@@ -3969,7 +3969,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#E8F0FE' }}>
           {/* Order Tabs */}
           <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0">
             {orders.map((order, idx) => {
@@ -3981,15 +3981,15 @@ const POSPage = () => {
                   onClick={() => setActiveOrderIndex(idx)}
                   className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all ${
                     isActive
-                      ? "text-[#0D1B2E]"
-                      : "text-white/50 hover:text-white/70"
+                      ? "text-white"
+                      : "text-[#0D1B2E]/50 hover:text-[#0D1B2E]/70"
                   }`}
-                  style={isActive ? { background: 'white' } : {}}
+                  style={isActive ? { background: '#0D1B2E' } : {}}
                 >
                   <span>{order.customerName || order.name}</span>
                   {itemCount > 0 && (
                     <span className={`text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
-                      isActive ? "bg-[#0D1B2E]/10 text-[#0D1B2E]" : "bg-white/10 text-white/50"
+                      isActive ? "bg-white/20 text-white" : "bg-[#0D1B2E]/10 text-[#0D1B2E]/50"
                     }`}>
                       {itemCount}
                     </span>
@@ -3997,7 +3997,7 @@ const POSPage = () => {
                   {orders.length > 1 && (
                     <span
                       onClick={(e) => { e.stopPropagation(); removeOrder(idx); }}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all text-[#0D1B2E]/40"
                     >
                       <X className="h-2.5 w-2.5" />
                     </span>
@@ -4012,8 +4012,8 @@ const POSPage = () => {
                 setOrders(prev => [...prev, newOrder]);
                 setActiveOrderIndex(orders.length);
               }}
-              className="h-8 w-8 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors shrink-0 rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.08)' }}
+              className="h-8 w-8 flex items-center justify-center text-[#0D1B2E]/40 hover:text-[#0D1B2E]/70 transition-colors shrink-0 rounded-lg"
+              style={{ background: 'rgba(13,27,46,0.08)' }}
               title="طلب جديد"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -4055,7 +4055,7 @@ const POSPage = () => {
                   className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
                   style={isActive
                     ? { background: '#1d4ed8', color: 'white' }
-                    : { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }
+                    : { background: 'transparent', border: '1px solid rgba(13,27,46,0.2)', color: 'rgba(13,27,46,0.6)' }
                   }
                 >
                   {labels[type]}
@@ -4067,13 +4067,13 @@ const POSPage = () => {
           {/* Customer info */}
           <div className="px-3 pb-1 shrink-0">
             {activeOrder.customerName && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#0D1B2E]/60 mb-1">
                 <User className="h-3 w-3" />
                 <span>{activeOrder.customerName}</span>
               </div>
             )}
             {activeOrder.tableName && (
-              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#93c5fd' }}>
+              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#1d4ed8' }}>
                 <UtensilsCrossed className="h-3 w-3" />
                 <span>{activeOrder.tableName}</span>
               </div>
@@ -4090,7 +4090,7 @@ const POSPage = () => {
                   }
                 }}
                 className="text-[11px] transition-colors flex items-center gap-1"
-                style={{ color: '#fca5a5' }}
+                style={{ color: '#dc2626' }}
               >
                 <Trash2 className="h-3 w-3" />
                 إفراغ
@@ -4117,8 +4117,8 @@ const POSPage = () => {
             <div className="px-3">
               {cart.length === 0 ? (
                 <div className="py-16 text-center">
-                  <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>ابدأ بإضافة المنتجات</p>
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4" style={{ color: 'rgba(13,27,46,0.15)' }} />
+                  <p className="text-sm" style={{ color: 'rgba(13,27,46,0.35)' }}>ابدأ بإضافة المنتجات</p>
                 </div>
               ) : (
                 <div>
@@ -4134,16 +4134,16 @@ const POSPage = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2 }}
                         className="py-3 cursor-pointer transition-all"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+                        style={{ borderBottom: '1px solid rgba(13,27,46,0.1)' }}
                         onClick={() => setSelectedCartIndex(isSelected ? null : index)}
                       >
                         {/* Item name + remove */}
                         <div className="flex items-start justify-between gap-1 mb-1.5">
-                          <p className="text-[14px] font-medium truncate leading-tight" style={{ color: 'white' }}>{item.name}</p>
+                          <p className="text-[14px] font-medium truncate leading-tight" style={{ color: '#0D1B2E' }}>{item.name}</p>
                           {(isAdmin || posPerms.can_remove_cart_items) && (
                             <button
                               className="p-0.5 transition-colors shrink-0"
-                              style={{ color: 'rgba(255,255,255,0.3)' }}
+                              style={{ color: 'rgba(13,27,46,0.3)' }}
                               onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
                             >
                               <X className="h-3.5 w-3.5" />
@@ -4156,27 +4156,27 @@ const POSPage = () => {
                             <div
                               className="flex items-center h-[28px] rounded-md overflow-hidden transition-all"
                               style={{
-                                background: 'rgba(255,255,255,0.08)',
-                                border: '1px solid rgba(255,255,255,0.15)',
+                                background: 'rgba(13,27,46,0.06)',
+                                border: '1px solid rgba(13,27,46,0.15)',
                                 width: '70px',
                               }}
                             >
-                              <span className="shrink-0 pl-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>₪</span>
+                              <span className="shrink-0 pl-2" style={{ color: 'rgba(13,27,46,0.35)', fontSize: '11px' }}>₪</span>
                               <input
                                 type="number"
                                 inputMode="decimal"
                                 className="w-full min-w-0 bg-transparent border-none outline-none text-center font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                style={{ color: 'white', fontSize: '14px', padding: '0 4px', direction: 'ltr' }}
+                                style={{ color: '#0D1B2E', fontSize: '14px', padding: '0 4px', direction: 'ltr' }}
                                 value={item.unit_price}
                                 onWheel={e => (e.target as HTMLElement).blur()}
                                 onClick={e => e.stopPropagation()}
                                 onFocus={e => {
                                   const container = e.currentTarget.parentElement;
-                                  if (container) { container.style.borderColor = '#3b82f6'; container.style.background = 'rgba(59,130,246,0.1)'; }
+                                  if (container) { container.style.borderColor = '#3b82f6'; container.style.background = 'rgba(59,130,246,0.08)'; }
                                 }}
                                 onBlur={e => {
                                   const container = e.currentTarget.parentElement;
-                                  if (container) { container.style.borderColor = 'rgba(255,255,255,0.15)'; container.style.background = 'rgba(255,255,255,0.08)'; }
+                                  if (container) { container.style.borderColor = 'rgba(13,27,46,0.15)'; container.style.background = 'rgba(13,27,46,0.06)'; }
                                 }}
                                 onChange={e => {
                                   const v = parseFloat(e.target.value);
@@ -4185,20 +4185,20 @@ const POSPage = () => {
                               />
                             </div>
                           ) : (
-                            <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                            <span className="text-[14px] tabular-nums" style={{ color: '#0D1B2E' }}>₪{item.total.toFixed(2)}</span>
                           )}
                           <div className="flex items-center gap-0">
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
-                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
+                              style={{ background: 'rgba(13,27,46,0.1)', color: '#0D1B2E' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: 'white' }}>{item.qty}</span>
+                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: '#0D1B2E' }}>{item.qty}</span>
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
-                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
+                              style={{ background: 'rgba(13,27,46,0.1)', color: '#0D1B2E' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
                             >
                               <Plus className="h-3 w-3" />
@@ -4257,7 +4257,7 @@ const POSPage = () => {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="shrink-0" style={{ borderTop: '1px solid rgba(13,27,46,0.12)' }}>
             {/* Delivery address */}
             {activeOrder.orderType === "delivery" && (
               <div className="px-3 pt-2">
@@ -4266,16 +4266,16 @@ const POSPage = () => {
                   onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
                   placeholder="📍 عنوان التوصيل..."
                   className="h-7 text-[11px]"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+                  style={{ background: 'rgba(13,27,46,0.05)', border: '1px solid rgba(13,27,46,0.15)', color: '#0D1B2E' }}
                 />
               </div>
             )}
 
             {/* Table picker dropdown */}
             {showTablePicker && (
-              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
+              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: 'white', borderColor: 'rgba(13,27,46,0.15)' }}>
                 {availableTables.length === 0 && (
-                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
+                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(13,27,46,0.4)' }}>جاري التحميل...</p>
                 )}
                 {activeOrder.tableId && (
                   <button
@@ -4284,7 +4284,7 @@ const POSPage = () => {
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
-                    style={{ color: '#fca5a5' }}
+                    style={{ color: '#dc2626' }}
                   >
                     <X className="h-3 w-3" />
                     إلغاء الطاولة
@@ -4304,8 +4304,8 @@ const POSPage = () => {
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
                     style={{
-                      color: t.id === activeOrder.tableId ? '#93c5fd' : t.status === "occupied" ? '#fca5a5' : 'rgba(255,255,255,0.7)',
-                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.15)' : 'transparent',
+                      color: t.id === activeOrder.tableId ? '#1d4ed8' : t.status === "occupied" ? '#dc2626' : 'rgba(13,27,46,0.7)',
+                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.1)' : 'transparent',
                     }}
                   >
                     <span>{t.name}</span>
@@ -4318,25 +4318,25 @@ const POSPage = () => {
             {/* Totals */}
             <div className="px-3 py-3">
               {cartTotals.tax > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: 'rgba(13,27,46,0.5)' }}>
                   <span>الضريبة</span>
                   <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
                 </div>
               )}
               {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#fca5a5' }}>
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#dc2626' }}>
                   <span>الخصم</span>
                   <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between items-baseline">
-                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>الإجمالي</span>
+                <span className="text-[13px]" style={{ color: 'rgba(13,27,46,0.5)' }}>الإجمالي</span>
                 <motion.span
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
                   className="text-[20px] font-bold tabular-nums"
-                  style={{ color: 'white' }}
+                  style={{ color: '#0D1B2E' }}
                 >
                   ₪{cartTotals.total.toFixed(2)}
                 </motion.span>
@@ -4368,7 +4368,7 @@ const POSPage = () => {
                   onClick={handleSaveToTable}
                   disabled={savingToTable || cart.length === 0}
                   className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  style={{ background: 'rgba(13,27,46,0.08)', color: '#0D1B2E' }}
                 >
                   F10 حفظ
                 </button>
@@ -4377,7 +4377,7 @@ const POSPage = () => {
                     onClick={handleSendToKitchen}
                     disabled={cart.length === 0}
                     className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
-                    style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                    style={{ background: 'rgba(13,27,46,0.08)', color: '#0D1B2E' }}
                   >
                     F9 طباعة
                   </button>
@@ -4387,7 +4387,7 @@ const POSPage = () => {
                     onClick={() => setShowCallCenterDispatch(true)}
                     disabled={!session || cart.length === 0}
                     className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
-                    style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                    style={{ background: 'rgba(13,27,46,0.08)', color: '#0D1B2E' }}
                   >
                     تحويل
                   </button>
@@ -4416,7 +4416,7 @@ const POSPage = () => {
                 <button
                   onClick={() => setShowDispatchLog(true)}
                   className="w-full h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all relative"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  style={{ background: 'rgba(13,27,46,0.08)', color: '#0D1B2E' }}
                 >
                   <ClipboardList className="h-3 w-3" />
                   سجل المحوّلة
