@@ -4055,7 +4055,7 @@ const POSPage = () => {
                   className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-all text-center"
                   style={isActive
                     ? { background: '#1d4ed8', color: 'white' }
-                    : { background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }
+                    : { background: 'transparent', border: '1px solid rgba(13,27,46,0.2)', color: 'rgba(13,27,46,0.6)' }
                   }
                 >
                   {labels[type]}
