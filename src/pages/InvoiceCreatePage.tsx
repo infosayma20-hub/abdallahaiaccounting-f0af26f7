@@ -934,36 +934,39 @@ const InvoiceCreatePage = () => {
   };
 
   // ─── Print Preview ───
-  const handlePrint = () => {
-    const previewInvoice = {
-      type: form.type,
-      invoiceNumber: "معاينة",
-      date: form.date,
-      dueDate: form.dueDate,
-      contactName: form.contactName || "—",
-      items: form.items.map(i => ({
-        description: i.description || "—",
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
-        taxRate: i.taxRate,
-        subtotal: calcItemSubtotal(i),
-      })),
-      notes: form.notes,
-      status: "draft",
-      paymentMethod: form.paymentMethod,
-      subtotal: summary.subtotal,
-      totalDiscount: summary.totalDiscount,
-      totalTax: summary.totalTax,
-      total: summary.total,
-      paidAmount: summary.paidAmount,
-      remainingAmount: summary.remainingAmount,
-      currency: form.currency,
-    };
+  const buildPrintInvoice = () => ({
+    type: form.type,
+    invoiceNumber: nextInvoiceNumber,
+    date: form.date,
+    dueDate: form.dueDate,
+    contactName: form.contactName || "—",
+    contactTaxNumber: customerOverrides.tax_number || selectedContact?.tax_number,
+    items: form.items.map(i => ({
+      description: i.description || "—",
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
+      taxRate: i.taxRate,
+      taxCategory: i.taxCategory,
+      subtotal: calcItemSubtotal(i),
+    })),
+    notes: form.notes,
+    status: isEditMode ? "sent" : "draft",
+    paymentMethod: form.paymentMethod,
+    subtotal: summary.subtotal,
+    totalDiscount: summary.totalDiscount,
+    totalTax: summary.totalTax,
+    total: summary.total,
+    paidAmount: summary.paidAmount,
+    remainingAmount: summary.remainingAmount,
+    currency: form.currency,
+  });
 
+  const handlePrint = () => {
+    const previewInvoice = buildPrintInvoice();
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<html dir="rtl"><head><title>معاينة الفاتورة</title>
+    win.document.write(`<html dir="rtl"><head><title>فاتورة ${previewInvoice.invoiceNumber}</title>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { @page { margin: 8mm; size: A4; } }</style>
     </head><body><div id="print-root"></div></body></html>`);
@@ -972,10 +975,33 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel="معاينة" />);
-        /* view only — no browser print */
+        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode ? "أصلية" : "معاينة"} />);
+        setTimeout(() => win.print(), 500);
       }
     }, 200);
+  };
+
+  // ─── Delete Invoice ───
+  const handleDeleteInvoice = async () => {
+    if (!editInvoiceId || !user) return;
+    try {
+      const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", editInvoiceId);
+      if (error) throw error;
+      toast({ title: "تم حذف الفاتورة بنجاح" });
+      navigate("/invoices");
+    } catch (err: any) {
+      toast({ title: "خطأ في حذف الفاتورة", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // ─── New Similar ───
+  const handleNewSimilar = () => {
+    const params = new URLSearchParams();
+    params.set("type", form.type);
+    params.set("from_duplicate", "true");
+    if (form.contactId) params.set("contact_id", form.contactId);
+    if (form.contactName) params.set("contact_name", form.contactName);
+    navigate(`/invoices/new?${params.toString()}`);
   };
 
   // WhatsApp send
