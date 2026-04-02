@@ -886,7 +886,7 @@ const InvoicesPage = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {/* Invoice Number */}
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
@@ -896,6 +896,11 @@ const InvoicesPage = () => {
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">التاريخ</label>
                 <Input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              </div>
+              {/* Due Date */}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
+                <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
               </div>
             </div>
 
