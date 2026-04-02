@@ -1425,9 +1425,9 @@ const InvoicesPage = () => {
             <FileText className="h-10 w-10 text-muted-foreground/40" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد فواتير بعد</h3>
-          <p className="text-xs text-muted-foreground mb-4">أنشئ أول فاتورة مبيعات أو مشتريات</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate("/invoices/new")}>
-            <Plus className="h-4 w-4" /> إنشاء فاتورة
+          <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? "أنشئ أول فاتورة مشتريات" : "أنشئ أول فاتورة مبيعات أو مشتريات"}</p>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { setForm(p => ({ ...p, type: filterType === "purchase" ? "purchase" : "sales" })); setShowCreatePage(true); }}>
+            <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
           </Button>
         </div>
       )}
