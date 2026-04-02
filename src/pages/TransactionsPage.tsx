@@ -108,13 +108,14 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   exchange_diff:      { label: "فروق عملة",      bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
   opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
   manual:             { label: "قيد يدوي",       bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
-  journal:            { label: "قيد يومية",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  journal:            { label: "سند صرف",        bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
   // عقود ومقاولات
   contract:           { label: "عقد مقاولة",     bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
   contract_payment:   { label: "دفعة عقد",       bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
   // ورشات ومناجر
   workshop_cost:      { label: "تكلفة ورشة",     bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
   workshop_payment:   { label: "دفعة ورشة",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  workshop_receipt:   { label: "دفعة ورشة",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
   workshop_invoice:   { label: "فاتورة ورشة",    bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
   workshop_inventory: { label: "مخزون ورشة",     bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
   workshop_revenue:   { label: "إيرادات ورشة",   bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
