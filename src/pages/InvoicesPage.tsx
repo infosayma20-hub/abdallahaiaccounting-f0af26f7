@@ -1134,46 +1134,66 @@ const InvoicesPage = () => {
           </CardContent>
         </Card>
 
-        {/* ─── SECTION 3: Invoice Summary ─── */}
+        {/* ─── SECTION 3: Invoice Summary (VAT Breakdown) ─── */}
         <Card className="border-0 shadow-sm rounded-2xl bg-gradient-to-br from-card to-primary/5 border border-primary/10">
           <CardContent className="p-4 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">الإجمالي الفرعي</span>
-              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.subtotal.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">المجموع الصافي (قبل الضريبة)</span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.subtotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             {summary.totalDiscount > 0 && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-destructive">الخصم</span>
-                <span className="text-sm font-semibold text-destructive tabular-nums">-₪{summary.totalDiscount.toLocaleString()}</span>
+                <span className="text-xs text-destructive">الخصم الإجمالي</span>
+                <span className="text-sm font-semibold text-destructive tabular-nums">-₪{summary.totalDiscount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               </div>
             )}
-            {summary.totalTax > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">الصافي بعد الخصم</span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.netBeforeTax.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            </div>
+            <Separator className="my-1" />
+
+            {/* VAT Breakdown */}
+            {summary.taxableTax > 0 && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">الضريبة</span>
-                <span className="text-sm font-semibold text-foreground tabular-nums">+₪{summary.totalTax.toLocaleString()}</span>
+                <span className="text-xs text-muted-foreground">ضريبة القيمة المضافة 16%</span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">+₪{summary.taxableTax.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               </div>
             )}
+            {summary.exemptNet > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground/70">مبيعات معفاة</span>
+                <span className="text-xs text-muted-foreground tabular-nums">₪{summary.exemptNet.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            {summary.zeroNet > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground/70">مبيعات بنسبة صفر</span>
+                <span className="text-xs text-muted-foreground tabular-nums">₪{summary.zeroNet.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+
             <Separator className="my-1" />
             <div className="flex justify-between items-center">
-              <span className="text-base font-bold text-foreground">الإجمالي النهائي</span>
-              <span className="text-2xl font-black text-primary tabular-nums glow-green">₪{summary.total.toLocaleString()}</span>
+              <span className="text-base font-bold text-foreground">الإجمالي شامل الضريبة</span>
+              <span className="text-2xl font-black text-primary tabular-nums glow-green">₪{summary.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             <Separator className="my-1" />
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">المدفوع</span>
-              <span className="text-sm font-semibold text-primary tabular-nums">₪{summary.paidAmount.toLocaleString()}</span>
+              <span className="text-sm font-semibold text-primary tabular-nums">₪{summary.paidAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">المتبقي</span>
               <span className={`text-sm font-bold tabular-nums ${summary.remainingAmount > 0 ? "text-destructive" : "text-primary"}`}>
-                ₪{summary.remainingAmount.toLocaleString()}
+                ₪{summary.remainingAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex items-center gap-2 pt-1">
               <Badge variant="outline" className="text-[10px] gap-1">
                 {paymentLabels[form.paymentMethod]}
               </Badge>
-              {form.paymentMethod === "credit" && form.dueDate && (
+              {form.dueDate && (
                 <Badge variant="outline" className="text-[10px] gap-1 text-warning border-warning/30">
                   <Clock className="h-3 w-3" /> استحقاق: {form.dueDate}
                 </Badge>
