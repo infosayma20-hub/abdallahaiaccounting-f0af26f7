@@ -2567,7 +2567,7 @@ const POSPage = () => {
       if (posCustomerId) {
         const { data: pcData } = await supabase
           .from("pos_customers")
-          .select("total_visits, total_spent")
+          .select("total_visits, total_spent, total_discounts")
           .eq("id", posCustomerId)
           .single();
         if (pcData) {
@@ -2576,6 +2576,7 @@ const POSPage = () => {
             .update({
               total_visits: ((pcData as any).total_visits || 0) + 1,
               total_spent: ((pcData as any).total_spent || 0) + effectiveTotal,
+              total_discounts: ((pcData as any).total_discounts || 0) + effectiveDiscount,
               last_visit: new Date().toISOString(),
             } as any)
             .eq("id", posCustomerId);
