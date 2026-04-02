@@ -1075,9 +1075,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const dateFormatted = new Date(paymentDate).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
     const typeLabel = isReceipt ? "سند قبض" : "سند صرف";
-    const typeBadge = isReceipt ? "Receipt Voucher" : "Payment Voucher";
+    const typeBadge = typeLabel;
+    const typeBadgeEn = isReceipt ? "Receipt Voucher" : "Payment Voucher";
 
-    const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط لا غير`;
+    const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط`;
 
     const chequeHtml = paymentMethod === "شيك" && cheques.length > 0 ? `
       <div style="margin-top:16px;">
@@ -1115,8 +1116,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         <td style="padding:5px 10px;font-size:11px;">${inv.invoice_number || "—"}</td>
         <td style="padding:5px 10px;font-size:11px;">${notes || (isReceipt ? "سند قبض" : "سند صرف")}</td>
         <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${fmtAmt(inv.allocatedAmount || 0)}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">—</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? "" : currencySymbol + fmtAmt(inv.allocatedAmount || 0)}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? currencySymbol + fmtAmt(inv.allocatedAmount || 0) : "—"}</td>
       </tr>`).join("");
 
     const tableBody = linkedInvs.length > 0 ? invoiceRows : `
@@ -1125,8 +1126,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         <td style="padding:5px 10px;font-size:11px;">${savedReceiptNumber || refNumber || "—"}</td>
         <td style="padding:5px 10px;font-size:11px;">${notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel)}</td>
         <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? "" : fmtAmt(amt)}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? fmtAmt(amt) : ""}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? "" : currencySymbol + fmtAmt(amt)}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? currencySymbol + fmtAmt(amt) : ""}</td>
       </tr>`;
 
     const depositLabel = depositType === "cash_box"
@@ -1193,10 +1194,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     .amount-value { font-size: 28px; font-weight: 800; color: #1B3A5C; font-family: 'Cairo', sans-serif; }
     .amount-words { font-size: 10px; color: #666; margin-top: 2px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Cairo', sans-serif; }
-    thead tr { background: #0D1B2A; }
-    thead th { padding: 6px 10px; color: #4A9EE8; text-align: right; font-weight: 600; font-size: 10px; }
+    thead tr { background: #f1f5f9; }
+    thead th { padding: 8px 10px; color: #475569; text-align: right; font-weight: 600; font-size: 10px; border-bottom: 2px solid #e2e8f0; }
     thead th.text-left { text-align: left; }
-    tbody td { padding: 5px 10px; font-size: 11px; border-bottom: 1px solid #edf0f4; font-variant-numeric: tabular-nums; }
+    tbody td { padding: 7px 10px; font-size: 11px; border-bottom: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
     .signatures { padding: 24px 28px; display: flex; justify-content: space-around; }
     .sig-block { text-align: center; flex: 1; }
     .sig-line { border-bottom: 1px solid #ccc; width: 140px; margin: 0 auto 6px; }
@@ -1218,11 +1220,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- HEADER -->
   <div class="voucher-header">
     <div>
-      <div class="company-name">${settings.company_name || "AMWALI"}</div>
-      <div class="company-address">${settings.address || ""}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${settings.logo_url ? `<img src="${settings.logo_url}" style="height:40px;width:auto;border-radius:4px;" />` : ""}
+        <div>
+          <div class="company-name">${settings.company_name || "AMWALI"}</div>
+          <div class="company-address">${settings.address || ""}</div>
+        </div>
+      </div>
     </div>
     <div style="text-align:left;">
       <div class="badge">${typeBadge}</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:1px;">${typeBadgeEn}</div>
       <div class="voucher-num">${savedReceiptNumber || refNumber || ""}</div>
     </div>
   </div>
@@ -1292,7 +1300,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   <!-- FOOTER -->
   <div class="voucher-footer">
-    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
+    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""} ${settings.tax_number ? "| رقم ضريبي: " + settings.tax_number : ""}</div>
     <div class="footer-brand">AMWALI ERP Software</div>
   </div>
 </div>
