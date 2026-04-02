@@ -489,6 +489,7 @@ const AccountStatementV2Page = () => {
                 <span className="text-sm">{selectedEntityEmoji}</span>
                 <span className="text-sm font-semibold" style={{ color: "#111827" }}>{selectedEntityName}</span>
                 {selectedEntityCode && <span className="text-xs" style={{ color: "#6B7280" }}>— {selectedEntityCode}</span>}
+                {displayCurrency !== "ILS" && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "#DBEAFE", color: "#1E40AF", fontWeight: 600 }}>— {displayCurrencyLabel}</span>}
                 <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1" style={{ color: "#1E40AF" }}>تغيير</button>
               </div>
             )}
