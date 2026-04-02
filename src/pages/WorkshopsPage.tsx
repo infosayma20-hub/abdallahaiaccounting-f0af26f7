@@ -215,7 +215,7 @@ export default function WorkshopsPage() {
   const [newWsTypeName, setNewWsTypeName] = useState("");
   const [savingWsType, setSavingWsType] = useState(false);
   const [deleteWsTypeId, setDeleteWsTypeId] = useState<string | null>(null);
-
+  const [workshopPaymentsMap, setWorkshopPaymentsMap] = useState<Record<string, number>>({});
   const loadCustomWsTypes = async () => {
     const { data } = await supabase.from("custom_workshop_types" as any).select("id, name, icon").eq("is_active", true).order("created_at");
     setCustomWsTypes((data as any[]) || []);
