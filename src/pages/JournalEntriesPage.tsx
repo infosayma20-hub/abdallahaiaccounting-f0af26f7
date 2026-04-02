@@ -107,7 +107,6 @@ const typeStyle: Record<string, string> = {
   "سند صرف": "bg-destructive/10 text-destructive",
   "سند قبض": "bg-primary/10 text-primary",
   "قيد يومية": "bg-destructive/10 text-destructive",
-  "دفعة ورشة": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   "فاتورة مشتريات": "bg-accent text-accent-foreground",
   "فاتورة مبيعات": "bg-primary/10 text-primary",
   "راتب": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
