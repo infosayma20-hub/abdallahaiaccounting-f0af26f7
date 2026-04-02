@@ -1,0 +1,1 @@
+UPDATE transactions SET transaction_type = 'payment' WHERE id = 'fee2e086-0319-48ee-af39-3e5ac2b68ab6' AND description = 'مصروف مستلزمات مكتب';
