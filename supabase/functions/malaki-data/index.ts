@@ -623,7 +623,7 @@ Deno.serve(async (req) => {
           const chunk = contactIds.slice(i, i + 200);
           let q = supabase
             .from("transactions")
-            .select("id, contact_id, amount, debit_account_code, credit_account_code, transaction_date, description")
+            .select("id, contact_id, amount, debit_account_code, credit_account_code, transaction_date, description, transaction_type")
             .eq("user_id", linkedUserId)
             .eq("is_deleted", false)
             .in("contact_id", chunk);
@@ -638,19 +638,24 @@ Deno.serve(async (req) => {
 
       const supplierData = (contacts || []).map((c: any) => {
         const contactTxs = transactions.filter(t => t.contact_id === c.id);
+        let openingBalance = 0;
         let totalPurchases = 0;
         let totalPayments = 0;
 
         for (const tx of contactTxs) {
-          if (tx.debit_account_code?.startsWith("5") || tx.credit_account_code === "2110") {
+          const isOpening = tx.transaction_type === "opening_balance" || tx.transaction_type === "opening";
+
+          if (isOpening) {
+            openingBalance += tx.amount || 0;
+          } else if (tx.debit_account_code?.startsWith("5") || tx.credit_account_code === "2110") {
             totalPurchases += tx.amount || 0;
           }
-          if (tx.debit_account_code === "2110") {
+
+          if (!isOpening && tx.debit_account_code === "2110") {
             totalPayments += tx.amount || 0;
           }
         }
 
-        const openingBalance = c.current_balance || 0;
         const closingBalance = openingBalance + totalPurchases - totalPayments;
 
         return {
