@@ -940,6 +940,17 @@ const InvoicesPage = () => {
               )}
             </div>
 
+            {/* Tax Number */}
+            <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">الرقم الضريبي {form.type === "sales" ? "للعميل" : "للمورد"}</label>
+              <Input
+                placeholder="الرقم الضريبي (إن وجد)"
+                value={form.contactTaxNumber}
+                onChange={e => setForm(p => ({ ...p, contactTaxNumber: e.target.value }))}
+                className="rounded-xl text-sm"
+              />
+            </div>
+
             {/* Payment Method */}
             <div className="grid grid-cols-2 gap-3">
               <div>
