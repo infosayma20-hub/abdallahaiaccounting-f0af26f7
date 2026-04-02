@@ -524,8 +524,7 @@ const TransactionsPage = () => {
   };
 
   const handlePrint = () => {
-    // No browser print dialog — use PDF export instead
-    toast({ title: "استخدم تصدير PDF للطباعة" });
+    window.print();
   };
 
   const companyInfo = useMemo(() => ({
