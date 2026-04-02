@@ -1329,7 +1329,7 @@ const InvoiceCreatePage = () => {
                             <CommandItem onSelect={() => { setShowQuickAdd(true); setOpenProductPopover(null); }} className="text-primary font-semibold text-[11px] gap-1.5">
                               <Plus className="h-3 w-3" /> تعريف منتج جديد
                             </CommandItem>
-                            <CommandItem onSelect={() => { updateItem(item.id, "productId", ""); }} className="text-muted-foreground text-[11px] gap-1.5">
+                            <CommandItem onSelect={() => { updateItem(item.id, "productId", ""); setOpenProductPopover(null); }} className="text-muted-foreground text-[11px] gap-1.5">
                               ✏️ إدخال يدوي
                             </CommandItem>
                           </CommandGroup>
