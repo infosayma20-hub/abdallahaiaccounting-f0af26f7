@@ -1049,6 +1049,7 @@ const InvoiceCreatePage = () => {
                     value={contactSearch}
                     onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); }}
                     onFocus={() => setShowContactDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
                   />
                 </div>
