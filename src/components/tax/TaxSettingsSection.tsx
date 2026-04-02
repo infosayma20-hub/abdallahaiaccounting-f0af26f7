@@ -52,8 +52,8 @@ export default function TaxSettingsSection({ ownerId }: Props) {
         fiscal_year_start: 1,
         report_due_day: 15,
         prices_include_tax: false,
-        output_tax_account_code: "2141",
-        input_tax_account_code: "1441",
+        output_tax_account_code: "2190",
+        input_tax_account_code: "1180",
         payable_tax_account_code: "2142",
         refundable_tax_account_code: "1442",
         is_active: true,
@@ -139,11 +139,11 @@ export default function TaxSettingsSection({ ownerId }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>حساب ضريبة المبيعات المستحقة</Label>
-            <Input value={settings?.output_tax_account_code || "2141"} onChange={e => setSettings({ ...settings, output_tax_account_code: e.target.value })} />
+            <Input value={settings?.output_tax_account_code || "2190"} onChange={e => setSettings({ ...settings, output_tax_account_code: e.target.value })} />
           </div>
           <div>
             <Label>حساب ضريبة المدخلات القابلة للخصم</Label>
-            <Input value={settings?.input_tax_account_code || "1441"} onChange={e => setSettings({ ...settings, input_tax_account_code: e.target.value })} />
+            <Input value={settings?.input_tax_account_code || "1180"} onChange={e => setSettings({ ...settings, input_tax_account_code: e.target.value })} />
           </div>
           <div>
             <Label>حساب ضريبة واجبة التوريد</Label>
