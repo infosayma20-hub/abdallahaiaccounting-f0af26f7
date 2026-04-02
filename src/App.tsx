@@ -145,6 +145,7 @@ const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPr
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
+const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 
 const queryClient = new QueryClient();
 
