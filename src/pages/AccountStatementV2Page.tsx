@@ -28,7 +28,7 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
 
@@ -244,7 +244,16 @@ const AccountStatementV2Page = () => {
 
     const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
     const isForeignCash = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
+    // For foreign cash accounts (1111-1114), show foreign_amount; for everything else, always show ILS amount
     const getAmt = (tx: Transaction) => (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) ? tx.foreign_amount : (tx.amount || 0);
+    const getForeignDetail = (tx: Transaction): string | undefined => {
+      if (isForeignCash) return undefined; // foreign cash accounts show in their native currency
+      if (tx.foreign_amount && tx.foreign_amount > 0 && tx.exchange_rate && tx.exchange_rate !== 1 && normalizeCurrency(tx.currency) !== "شيكل") {
+        const sym = getCurrencySymbol(tx.currency);
+        return `(${sym}${tx.foreign_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${tx.exchange_rate})`;
+      }
+      return undefined;
+    };
 
     let openBal = 0;
     const periodTx: Transaction[] = [];
@@ -265,7 +274,8 @@ const AccountStatementV2Page = () => {
       running += debit - credit; sD += debit; sC += credit;
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: normalizeCurrency(tx.currency), payment_method: tx.payment_method || null, dueDate };
+      const rowCurrency = isForeignCash ? normalizeCurrency(tx.currency) : "شيكل";
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx) };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency, contacts, selectedContact]);
@@ -629,8 +639,14 @@ const AccountStatementV2Page = () => {
                         <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>{row.description}</td>
                         <td style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
                         <td style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280" }}>{getTypeBadge(row.transaction_type)}</td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>{row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}</td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>{row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                          {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
+                          {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
+                        </td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                          {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
+                          {row.credit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
+                        </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {fmtAmount(row.balance, row.currency)}
                           <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
