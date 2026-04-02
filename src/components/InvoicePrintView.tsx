@@ -338,8 +338,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
                   <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtAmount(calc.afterDiscount)}</td>
-                  <td style={{ padding: "5px 4px", textAlign: "center", fontSize: "8px", color: "#6B7280" }}>
-                    {item.taxRate > 0 ? `${item.taxRate}%` : "—"}
+                  <td style={{ padding: "5px 4px", textAlign: "center", fontSize: "8px", color: "#6B7280", fontFeatureSettings: "'tnum'" }}>
+                    {calc.category === "taxable" ? fmtAmount(calc.tax) : calc.category === "zero" ? "0%" : "معفى"}
                   </td>
                   <td style={{ padding: "5px 4px", textAlign: "center", fontWeight: 700, color: "#1B3A5C", fontFeatureSettings: "'tnum'" }}>
                     {fmtAmount(calc.total)}
