@@ -276,7 +276,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
             border: `1px solid ${notificationsEnabled ? 'rgba(34,197,94,0.3)' : 'rgba(42,123,155,0.25)'}`,
             borderRadius: 8, padding: '4px 8px', color: notificationsEnabled ? t.green : t.accent, fontSize: 11,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3,
-            fontFamily: 'Tajawal, sans-serif',
+            fontFamily: "'Cairo', sans-serif",
             WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
           }}>
             {notificationsEnabled ? <Bell size={11} /> : <BellOff size={11} />}
@@ -286,7 +286,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
             background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
             borderRadius: 8, padding: '5px 12px', color: t.accent, fontSize: 11,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-            fontFamily: 'Tajawal, sans-serif',
+            fontFamily: "'Cairo', sans-serif",
           }}>
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> تحديث
           </button>
@@ -308,7 +308,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
               color: preset === p.key ? 'white' : t.accent,
               border: `1px solid ${preset === p.key ? t.accent : t.accent + '40'}`,
               borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+              cursor: 'pointer', fontFamily: "'Cairo', sans-serif",
             }}
           >
             {p.label}
@@ -332,7 +332,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
               style={{
                 background: t.card, border: `1px solid ${t.border}`, borderRadius: 8,
                 padding: '4px 8px', fontSize: 11, color: t.text,
-                fontFamily: 'Tajawal, sans-serif',
+                fontFamily: "'Cairo', sans-serif",
               }}
             />
           </div>
@@ -345,7 +345,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
               style={{
                 background: t.card, border: `1px solid ${t.border}`, borderRadius: 8,
                 padding: '4px 8px', fontSize: 11, color: t.text,
-                fontFamily: 'Tajawal, sans-serif',
+                fontFamily: "'Cairo', sans-serif",
               }}
             />
           </div>
