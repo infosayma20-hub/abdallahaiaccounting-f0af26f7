@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 // useSearchParams imported below with useNavigate
 import PageHeader from "@/components/layout/PageHeader";
 
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send, TrendingUp } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -967,8 +967,11 @@ const InvoicesPage = () => {
             <p style={{ fontSize: 12, color: "#6B7280" }}>فواتير المشتريات</p>
           </div>
           <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 12, padding: "16px 20px", textAlign: "center" }}>
-            <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: "#1B3A5C" }}>₪{netTotal.toLocaleString()}</p>
-            <p style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>صافي الحركة</p>
+            <div className="mx-auto mb-2 flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: 8, background: netTotal >= 0 ? "#ECFDF5" : "#FEF2F2" }}>
+              <TrendingUp className="h-[18px] w-[18px]" style={{ color: netTotal >= 0 ? "#10B981" : "#EF4444" }} />
+            </div>
+            <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 600, color: netTotal >= 0 ? "#10B981" : "#EF4444" }}>₪{netTotal.toLocaleString()}</p>
+            <p style={{ fontSize: 12, color: "#6B7280" }}>صافي الحركة</p>
           </div>
         </div>
       )}
