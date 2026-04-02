@@ -150,7 +150,7 @@ const ExportPage = () => {
         <head>
           <title>تقرير مالي</title>
           <style>
-            * { margin:0; padding:0; box-sizing:border-box; font-family:'IBM Plex Sans Arabic','Segoe UI',sans-serif; }
+            * { margin:0; padding:0; box-sizing:border-box; font-family:'Cairo',sans-serif; }
             body { padding:30px; color:#1a1a2e; }
             @media print { body { padding:15px; } }
           </style>

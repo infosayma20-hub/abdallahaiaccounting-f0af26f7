@@ -45,7 +45,7 @@ const ContractPrintView = React.forwardRef<HTMLDivElement, Props>(({ data, class
   const remaining = (data.contract_value || 0) - (data.total_expenses || 0);
 
   return (
-    <div ref={ref} className={className} style={{ fontFamily: "'IBM Plex Sans Arabic', 'Cairo', sans-serif", direction: "rtl", color: "#1a1a1a", background: "white" }}>
+    <div ref={ref} className={className} style={{ fontFamily: "'Cairo', sans-serif", direction: "rtl", color: "#1a1a1a", background: "white" }}>
       <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 40px 40px" }}>
         {/* Top accent bar */}
         <div style={{ height: 6, background: "linear-gradient(90deg, #1B3A5C, #2d6a4f, #1B3A5C)", borderRadius: "0 0 3px 3px" }} />

@@ -165,7 +165,7 @@ export default function BranchDisplayPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "#0a0e1a", fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+        style={{ background: "#0a0e1a", fontFamily: "'Cairo', sans-serif" }}
       >
         <RefreshCw className="h-12 w-12 animate-spin text-emerald-400" />
       </div>
@@ -177,7 +177,7 @@ export default function BranchDisplayPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: "#0a0e1a", fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+        style={{ background: "#0a0e1a", fontFamily: "'Cairo', sans-serif" }}
         dir="rtl"
       >
         <div className="text-center space-y-6">
@@ -204,7 +204,7 @@ export default function BranchDisplayPage() {
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden select-none cursor-default"
       style={{
         background: "radial-gradient(ellipse at 50% 0%, #0f1a2e 0%, #080d18 50%, #050810 100%)",
-        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
       }}
       dir="rtl"
       onDoubleClick={toggleFullscreen}

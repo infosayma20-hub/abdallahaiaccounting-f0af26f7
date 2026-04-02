@@ -103,7 +103,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         maxWidth: "794px",
         margin: "0 auto",
         padding: "0",
-        fontFamily: "'IBM Plex Sans Arabic', 'Cairo', 'Segoe UI', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
         direction: "rtl",
         fontSize: "11px",
         lineHeight: 1.5,
