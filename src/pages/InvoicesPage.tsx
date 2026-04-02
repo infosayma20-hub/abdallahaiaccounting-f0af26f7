@@ -352,15 +352,28 @@ const InvoicesPage = () => {
       items: prev.items.map(item => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
+        if (field === "taxCategory") {
+          const cat = TAX_CATEGORY_OPTIONS.find(o => o.value === value);
+          updated.taxRate = cat ? cat.rate : 0;
+        }
         if (field === "description" && typeof value === "string") {
           const prod = products.find(p => p.name === value);
           if (prod) {
             updated.productId = prod.id;
             const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
             if (price > 0) updated.unitPrice = price;
+            // Auto-set tax from product
+            const prodTaxRate = Number(prod.tax_rate || 0);
+            if (prodTaxRate > 0) {
+              updated.taxCategory = "taxable";
+              updated.taxRate = 16;
+            } else {
+              updated.taxCategory = "taxable";
+              updated.taxRate = 16;
+            }
           }
         }
-        updated.subtotal = calcItemSubtotal(updated);
+        updated.subtotal = calcItemSubtotal(updated, prev.pricesInclusive);
         return updated;
       }),
     }));
