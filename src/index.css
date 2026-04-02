@@ -319,8 +319,13 @@
   font-family: 'Cairo', sans-serif !important;
 }
 .font-mono, [style*="JetBrains"] {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Cairo', sans-serif !important;
   font-variant-numeric: tabular-nums;
+}
+
+/* Ensure all table numbers use Cairo */
+table td, table th, .tabular-nums {
+  font-family: 'Cairo', sans-serif !important;
 }
 
 /* POS page — lighter font weights to match app style */
