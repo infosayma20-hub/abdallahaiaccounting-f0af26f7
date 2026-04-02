@@ -47,8 +47,11 @@ const fmtDate = (d: string) => {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
 };
 
-const fmtAmount = (n: number) =>
-  `₪${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولار": "$", "دينار": "د.ا", "يورو": "€" };
+const CURRENCY_LABELS: Record<string, string> = { "شيكل": "شيكل (₪ ILS)", "دولار": "دولار أمريكي ($ USD)", "دينار": "دينار أردني (د.ا JOD)", "يورو": "يورو (€ EUR)" };
+
+const fmtAmountWithSymbol = (n: number, symbol: string) =>
+  `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const paymentLabels: Record<string, string> = {
   cash: "نقداً",
