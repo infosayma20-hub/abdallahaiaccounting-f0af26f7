@@ -4190,7 +4190,7 @@ const POSPage = () => {
                           <div className="flex items-center gap-0">
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
-                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
+                              style={{ background: 'rgba(13,27,46,0.1)', color: '#0D1B2E' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
                             >
                               <Minus className="h-3 w-3" />
