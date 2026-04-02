@@ -1028,7 +1028,7 @@ const InvoicesPage = () => {
               {form.items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-1 items-center bg-muted/20 rounded-xl p-2">
                   {/* Product */}
-                  <div className="col-span-4 relative">
+                  <div className="col-span-3 relative">
                     <Select
                       value={item.productId || "__manual__"}
                       onValueChange={val => {
