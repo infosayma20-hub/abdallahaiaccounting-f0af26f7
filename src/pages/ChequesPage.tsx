@@ -100,6 +100,7 @@ type SortDir = 'asc' | 'desc';
 
 const ChequesPage = () => {
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
