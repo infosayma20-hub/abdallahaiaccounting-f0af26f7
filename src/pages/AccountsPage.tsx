@@ -466,7 +466,7 @@ const AccountsPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         {/* Summary Cards */}
         {!loading && accounts.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {typeOrder.filter(t => typeCounts[t]).map(t => (
               <div key={t} className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-center">
                 <p className="text-[10px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">{typeLabels[t]}</p>
