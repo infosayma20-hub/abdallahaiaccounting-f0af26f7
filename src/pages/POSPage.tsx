@@ -4324,7 +4324,7 @@ const POSPage = () => {
                 </div>
               )}
               {cartTotals.discount > 0 && (
-                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#fca5a5' }}>
+                <div className="flex justify-between text-[11px] mb-1" style={{ color: '#dc2626' }}>
                   <span>الخصم</span>
                   <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
                 </div>
