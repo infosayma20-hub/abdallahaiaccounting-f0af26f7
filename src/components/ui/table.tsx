@@ -5,8 +5,9 @@ export function Table({ children, className, ...props }: React.HTMLAttributes<HT
     <div style={{
       borderRadius: '12px',
       border: '1px solid hsl(var(--border))',
-      overflow: 'hidden'
-    }}>
+      overflow: 'hidden',
+      borderCollapse: 'separate'
+    } as React.CSSProperties}>
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',
