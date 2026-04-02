@@ -4368,7 +4368,7 @@ const POSPage = () => {
                   onClick={handleSaveToTable}
                   disabled={savingToTable || cart.length === 0}
                   className="flex-1 h-10 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1 transition-all disabled:opacity-40"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'white' }}
+                  style={{ background: 'rgba(13,27,46,0.08)', color: '#0D1B2E' }}
                 >
                   F10 حفظ
                 </button>
