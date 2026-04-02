@@ -400,6 +400,7 @@ const InvoiceCreatePage = () => {
         }
 
         const mappedItems: InvoiceItem[] = (data.invoice_items || []).map((item: any) => {
+          const rate = Number(item.tax_rate) || 0;
           const normalized: InvoiceItem = {
             id: item.id || crypto.randomUUID(),
             productId: item.product_id || undefined,
@@ -408,7 +409,8 @@ const InvoiceCreatePage = () => {
             unitPrice: Number(item.unit_price) || 0,
             discount: Number(item.discount) || 0,
             discountType: item.discount_type === "amount" ? "amount" : "percent",
-            taxRate: Number(item.tax_rate) || 0,
+            taxRate: rate,
+            taxCategory: item.tax_category || (rate > 0 ? "taxable" : "exempt"),
             unitOfMeasure: item.unit_of_measure || "قطعة",
             subtotal: Number(item.total_amount) || 0,
           };
