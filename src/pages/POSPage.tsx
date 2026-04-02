@@ -4166,7 +4166,7 @@ const POSPage = () => {
                                 type="number"
                                 inputMode="decimal"
                                 className="w-full min-w-0 bg-transparent border-none outline-none text-center font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                style={{ color: 'white', fontSize: '14px', padding: '0 4px', direction: 'ltr' }}
+                                style={{ color: '#0D1B2E', fontSize: '14px', padding: '0 4px', direction: 'ltr' }}
                                 value={item.unit_price}
                                 onWheel={e => (e.target as HTMLElement).blur()}
                                 onClick={e => e.stopPropagation()}
