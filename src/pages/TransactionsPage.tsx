@@ -767,7 +767,7 @@ const TransactionsPage = () => {
               </colgroup>
               <thead className="sticky top-0 z-10">
                 <tr className="bg-[hsl(var(--primary))] text-white">
-                  <th className="px-2 py-3.5 text-center rounded-ss-lg">
+                  <th className="px-2 py-3.5 text-center">
                     <Checkbox
                       checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                       onCheckedChange={toggleSelectAll}
@@ -786,7 +786,7 @@ const TransactionsPage = () => {
                   <th className="px-3 py-3.5 text-right text-[11px] font-bold tracking-wide cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("credit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="credit" /> دائن ₪</div>
                   </th>
-                  <th className="px-3 py-3.5 w-10 rounded-se-lg"></th>
+                  <th className="px-3 py-3.5 w-10"></th>
                 </tr>
               </thead>
               <tbody>
