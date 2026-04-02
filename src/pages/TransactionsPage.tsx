@@ -989,6 +989,8 @@ const TransactionsPage = () => {
         </div>
       )}
 
+      </div>{/* ━━ End Print Area ━━ */}
+
       {/* ━━━ Edit Dialog ━━━ */}
       <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
