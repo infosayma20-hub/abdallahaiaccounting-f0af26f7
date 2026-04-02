@@ -1266,7 +1266,7 @@ const InvoiceCreatePage = () => {
             <span className="text-center">السعر</span>
             <span className="text-center">الخصم</span>
             <span></span>
-            <span className="text-center">ضريبة%</span>
+            <span className="text-center">تصنيف الضريبة</span>
             <span className="text-center">الإجمالي</span>
             <span></span>
           </div>
