@@ -253,14 +253,37 @@ const AccountStatementV2Page = () => {
       resolveDebitCredit = (tx) => ({ isDebit: contactAccountCodes.includes(tx.debit_account_code), isCredit: contactAccountCodes.includes(tx.credit_account_code) });
     }
 
-    if (selectedCurrency !== "all") related = related.filter(tx => normalizeCurrency(tx.currency) === selectedCurrency);
-
     const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
     const isForeignCash = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
-    // For foreign cash accounts (1111-1114), show foreign_amount; for everything else, always show ILS amount
-    const getAmt = (tx: Transaction) => (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) ? tx.foreign_amount : (tx.amount || 0);
+    const isForeignDisplay = displayCurrency !== "ILS" && !isForeignCash;
+    const dispCurrName = codeToCurrencyName[displayCurrency] || "شيكل";
+    const dispRate = currentExchangeRate[displayCurrency] || 1;
+
+    // Get display amount based on currency mode
+    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean } => {
+      if (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) {
+        return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
+      }
+      if (!isForeignDisplay) {
+        // ILS mode: always use amount (ILS)
+        return { amount: tx.amount || 0, isConverted: false, isMismatch: false };
+      }
+      // Foreign display mode
+      const txCurrCode = currencyNameToCode[normalizeCurrency(tx.currency)] || "ILS";
+      if (txCurrCode === displayCurrency && tx.foreign_amount && tx.foreign_amount > 0) {
+        // Same currency — use foreign_amount directly
+        return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
+      }
+      if (txCurrCode === "ILS" && dispRate > 0) {
+        // ILS transaction — convert to foreign using current rate
+        return { amount: (tx.amount || 0) / dispRate, isConverted: true, isMismatch: false };
+      }
+      // Different foreign currency — show as ILS amount (mismatch)
+      return { amount: tx.amount || 0, isConverted: false, isMismatch: true };
+    };
+
     const getForeignDetail = (tx: Transaction): string | undefined => {
-      if (isForeignCash) return undefined; // foreign cash accounts show in their native currency
+      if (isForeignCash || isForeignDisplay) return undefined;
       if (tx.foreign_amount && tx.foreign_amount > 0 && tx.exchange_rate && tx.exchange_rate !== 1 && normalizeCurrency(tx.currency) !== "شيكل") {
         const sym = getCurrencySymbol(tx.currency);
         return `(${sym}${tx.foreign_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${tx.exchange_rate})`;
@@ -273,7 +296,7 @@ const AccountStatementV2Page = () => {
     for (const tx of related) {
       const { isDebit, isCredit } = resolveDebitCredit(tx);
       if (!isDebit && !isCredit) continue;
-      const amt = getAmt(tx);
+      const { amount: amt } = getDisplayAmt(tx);
       if (dateFrom && tx.transaction_date < dateFrom) { if (isDebit) openBal += amt; if (isCredit) openBal -= amt; }
       else if (!dateTo || tx.transaction_date <= dateTo) periodTx.push(tx);
     }
@@ -281,17 +304,17 @@ const AccountStatementV2Page = () => {
     let running = openBal, sD = 0, sC = 0;
     const result: StatementRow[] = periodTx.map(tx => {
       const { isDebit } = resolveDebitCredit(tx);
-      const amt = getAmt(tx);
+      const { amount: amt, isConverted, isMismatch } = getDisplayAmt(tx);
       const debit = isDebit ? amt : 0;
       const credit = !isDebit ? amt : 0;
       running += debit - credit; sD += debit; sC += credit;
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
-      const rowCurrency = isForeignCash ? normalizeCurrency(tx.currency) : "شيكل";
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx) };
+      const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
-  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency, contacts, selectedContact]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
 
   const statementCurrency = useMemo(() => {
     if (rows.length > 0) { const f: Record<string, number> = {}; rows.forEach(r => { f[r.currency] = (f[r.currency] || 0) + 1; }); const s = Object.entries(f).sort((a, b) => b[1] - a[1]); return s[0]?.[0] || "شيكل"; }
