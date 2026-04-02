@@ -60,6 +60,10 @@ interface Invoice {
   dueDate?: string;
   contactName: string;
   contactId?: string | null;
+  contactTaxNumber?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactAddress?: string;
   items: InvoiceItem[];
   notes: string;
   status: "draft" | "sent" | "paid";
