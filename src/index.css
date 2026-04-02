@@ -217,7 +217,7 @@
 
   /* Typography hierarchy */
   h1 {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     font-size: 1.75rem;
     font-weight: 500;
     line-height: 1.4;
@@ -225,14 +225,14 @@
   }
 
   h2 {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     font-size: 1.25rem;
     font-weight: 500;
     line-height: 1.5;
   }
 
   h3 {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     font-size: 1.05rem;
     font-weight: 500;
     line-height: 1.5;
