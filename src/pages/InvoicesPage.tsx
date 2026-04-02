@@ -168,7 +168,7 @@ const InvoicesPage = () => {
   };
 
   const [form, setForm] = useState({
-    type: "sales" as "sales" | "purchase",
+    type: (initialType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
@@ -1289,7 +1289,7 @@ const InvoicesPage = () => {
 
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      <PageHeader title="الفواتير" breadcrumb={["المبيعات", "الفواتير"]} />
+      <PageHeader title={filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير"} breadcrumb={[filterType === "purchase" ? "المشتريات" : "المبيعات", "الفواتير"]} />
       {/* Actions */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
@@ -1425,9 +1425,9 @@ const InvoicesPage = () => {
             <FileText className="h-10 w-10 text-muted-foreground/40" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد فواتير بعد</h3>
-          <p className="text-xs text-muted-foreground mb-4">أنشئ أول فاتورة مبيعات أو مشتريات</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate("/invoices/new")}>
-            <Plus className="h-4 w-4" /> إنشاء فاتورة
+          <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? "أنشئ أول فاتورة مشتريات" : "أنشئ أول فاتورة مبيعات أو مشتريات"}</p>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { setForm(p => ({ ...p, type: filterType === "purchase" ? "purchase" : "sales" })); setShowCreatePage(true); }}>
+            <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
           </Button>
         </div>
       )}
@@ -1610,9 +1610,9 @@ const InvoicesPage = () => {
       {invoices.length > 0 && (
         <Button
           className="fixed bottom-20 left-4 rounded-2xl gap-2 shadow-lg shadow-primary/30 z-40"
-          onClick={() => navigate("/invoices/new")}
+          onClick={() => { setForm(p => ({ ...p, type: filterType === "purchase" ? "purchase" : "sales" })); setShowCreatePage(true); }}
         >
-          <Plus className="h-4 w-4" /> إنشاء فاتورة
+          <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
         </Button>
       )}
 
