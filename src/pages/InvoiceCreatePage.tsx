@@ -194,6 +194,7 @@ const InvoiceCreatePage = () => {
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showQuickAddRep, setShowQuickAddRep] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
@@ -933,36 +934,39 @@ const InvoiceCreatePage = () => {
   };
 
   // ─── Print Preview ───
-  const handlePrint = () => {
-    const previewInvoice = {
-      type: form.type,
-      invoiceNumber: "معاينة",
-      date: form.date,
-      dueDate: form.dueDate,
-      contactName: form.contactName || "—",
-      items: form.items.map(i => ({
-        description: i.description || "—",
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
-        taxRate: i.taxRate,
-        subtotal: calcItemSubtotal(i),
-      })),
-      notes: form.notes,
-      status: "draft",
-      paymentMethod: form.paymentMethod,
-      subtotal: summary.subtotal,
-      totalDiscount: summary.totalDiscount,
-      totalTax: summary.totalTax,
-      total: summary.total,
-      paidAmount: summary.paidAmount,
-      remainingAmount: summary.remainingAmount,
-      currency: form.currency,
-    };
+  const buildPrintInvoice = () => ({
+    type: form.type,
+    invoiceNumber: nextInvoiceNumber,
+    date: form.date,
+    dueDate: form.dueDate,
+    contactName: form.contactName || "—",
+    contactTaxNumber: customerOverrides.tax_number || selectedContact?.tax_number,
+    items: form.items.map(i => ({
+      description: i.description || "—",
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
+      taxRate: i.taxRate,
+      taxCategory: i.taxCategory,
+      subtotal: calcItemSubtotal(i),
+    })),
+    notes: form.notes,
+    status: isEditMode ? "sent" : "draft",
+    paymentMethod: form.paymentMethod,
+    subtotal: summary.subtotal,
+    totalDiscount: summary.totalDiscount,
+    totalTax: summary.totalTax,
+    total: summary.total,
+    paidAmount: summary.paidAmount,
+    remainingAmount: summary.remainingAmount,
+    currency: form.currency,
+  });
 
+  const handlePrint = () => {
+    const previewInvoice = buildPrintInvoice();
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<html dir="rtl"><head><title>معاينة الفاتورة</title>
+    win.document.write(`<html dir="rtl"><head><title>فاتورة ${previewInvoice.invoiceNumber}</title>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { @page { margin: 8mm; size: A4; } }</style>
     </head><body><div id="print-root"></div></body></html>`);
@@ -971,10 +975,33 @@ const InvoiceCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel="معاينة" />);
-        /* view only — no browser print */
+        root.render(<InvoicePrintView invoice={previewInvoice} settings={companySettings} copyLabel={isEditMode ? "أصلية" : "معاينة"} />);
+        setTimeout(() => win.print(), 500);
       }
     }, 200);
+  };
+
+  // ─── Delete Invoice ───
+  const handleDeleteInvoice = async () => {
+    if (!editInvoiceId || !user) return;
+    try {
+      const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", editInvoiceId);
+      if (error) throw error;
+      toast({ title: "تم حذف الفاتورة بنجاح" });
+      navigate("/invoices");
+    } catch (err: any) {
+      toast({ title: "خطأ في حذف الفاتورة", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // ─── New Similar ───
+  const handleNewSimilar = () => {
+    const params = new URLSearchParams();
+    params.set("type", form.type);
+    params.set("from_duplicate", "true");
+    if (form.contactId) params.set("contact_id", form.contactId);
+    if (form.contactName) params.set("contact_name", form.contactName);
+    navigate(`/invoices/new?${params.toString()}`);
   };
 
   // WhatsApp send
@@ -1020,6 +1047,8 @@ const InvoiceCreatePage = () => {
         voucherType="invoice"
         currentRef={isEditMode ? nextInvoiceNumber : undefined}
         onPrint={handlePrint}
+        onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
+        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
         showNavigation={isEditMode}
       />
 
@@ -1725,6 +1754,24 @@ const InvoiceCreatePage = () => {
             <div><label className="text-xs text-muted-foreground">نسبة العمولة %</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
           </div>
           <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAddRep(false)}>إلغاء</Button><Button onClick={handleQuickAddRep}>إضافة المندوب</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> حذف الفاتورة
+            </DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من حذف الفاتورة رقم {nextInvoiceNumber}؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>إلغاء</Button>
+            <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); handleDeleteInvoice(); }}>تأكيد الحذف</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

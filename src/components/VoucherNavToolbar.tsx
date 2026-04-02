@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft,
-  Search, Plus, Copy, Printer, X
+  Search, Plus, Copy, Printer, X, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,8 @@ interface VoucherNavToolbarProps {
   onNewSimilar?: () => void;
   /** Called when user clicks print */
   onPrint?: () => void;
+  /** Called when user clicks delete */
+  onDelete?: () => void;
   /** Whether toolbar should show (hide on create-new mode with no saved entry) */
   showNavigation?: boolean;
 }
@@ -41,6 +43,7 @@ const VoucherNavToolbar = ({
   onNew,
   onNewSimilar,
   onPrint,
+  onDelete,
   showNavigation = true,
 }: VoucherNavToolbarProps) => {
   const navigate = useNavigate();
@@ -227,6 +230,14 @@ const VoucherNavToolbar = ({
         )}
 
         <div className="flex-1" />
+
+        {/* Delete */}
+        {onDelete && currentRef && (
+          <Button variant="outline" size="sm" onClick={onDelete}
+            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30">
+            <Trash2 className="h-3.5 w-3.5" /> حذف
+          </Button>
+        )}
 
         {/* New Similar */}
         {onNewSimilar && currentRef && (
