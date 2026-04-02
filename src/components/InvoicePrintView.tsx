@@ -70,6 +70,9 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const isSales = invoice.type === "sales";
   const today = new Date();
   const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+  const currSymbol = CURRENCY_SYMBOLS[invoice.currency] || "₪";
+  const currLabel = CURRENCY_LABELS[invoice.currency] || CURRENCY_LABELS["شيكل"];
+  const fmtAmount = (n: number) => fmtAmountWithSymbol(n, currSymbol);
 
   // Calculate item-level tax
   const calcItemTotal = (item: InvoiceItem) => {
