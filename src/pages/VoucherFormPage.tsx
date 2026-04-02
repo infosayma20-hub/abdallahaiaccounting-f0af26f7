@@ -1193,6 +1193,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const getInvSymbol = (inv: Invoice) => {
+    const c = inv.currency || "شيكل";
+    if (c === "دولار" || c === "USD") return "$";
+    if (c === "دينار" || c === "JOD") return "د.أ";
+    if (c === "يورو" || c === "EUR") return "€";
+    return "₪";
+  };
 
   if (editLoading) {
     return (
