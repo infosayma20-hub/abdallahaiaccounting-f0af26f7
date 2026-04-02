@@ -53,6 +53,7 @@ const PAPER_WIDTHS = [
 const PRINT_CATEGORIES = [
   { value: "receipt", label: "إيصال البيع" },
   { value: "kitchen", label: "تذكرة المطبخ" },
+  { value: "kitchen_ticket", label: "تذكرة مطبخ" },
   { value: "bar", label: "تذكرة البار" },
   { value: "report", label: "تقارير الوردية" },
 ];
