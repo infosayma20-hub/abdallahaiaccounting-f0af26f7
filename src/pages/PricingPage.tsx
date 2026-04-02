@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Check, X, ChevronDown, ChevronUp, Shield, Star, Minus, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentModal from "@/components/billing/PaymentModal";
+import PlanAppsSection from "@/components/pricing/PlanAppsSection";
 
 type BillingCycle = "monthly" | "annual";
 
@@ -327,6 +328,9 @@ const PricingPage = () => {
           )}
         </div>
       </div>
+
+      {/* Plan Apps Visual Section */}
+      <PlanAppsSection currentPlanKey={subscription?.plan_key} />
 
       {/* Add-ons Section */}
       <div className="max-w-4xl mx-auto px-5 py-16">
