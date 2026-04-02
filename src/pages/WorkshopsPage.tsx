@@ -266,9 +266,18 @@ export default function WorkshopsPage() {
 
   const loadWorkshops = async () => {
     setLoading(true);
-    const { data } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: payData }] = await Promise.all([
+      supabase.from("workshops").select("*").order("created_at", { ascending: false }),
+      supabase.from("workshop_payments").select("workshop_id, amount"),
+    ]);
     const ws = (data as any) || [];
     setWorkshops(ws);
+    // Build payments map
+    const pMap: Record<string, number> = {};
+    ((payData as any) || []).forEach((p: any) => {
+      pMap[p.workshop_id] = (pMap[p.workshop_id] || 0) + (p.amount || 0);
+    });
+    setWorkshopPaymentsMap(pMap);
     setLoading(false);
 
     // Auto-sync: create contacts for workshops missing contact_id
