@@ -609,6 +609,8 @@ const InvoiceCreatePage = () => {
           description: prod.name,
           unitPrice: price > 0 ? price : it.unitPrice,
           unitOfMeasure: prod.unit || "قطعة",
+          taxCategory: "taxable" as TaxCategory,
+          taxRate: 16,
         };
         updated.subtotal = calcItemSubtotal(updated);
         return updated;
