@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/layout/PageHeader";
-import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch } from "lucide-react";
+import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch, Receipt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +22,7 @@ import SecuritySettingsSection from "@/components/settings/SecuritySettingsSecti
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
+import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const sections = [
@@ -37,12 +40,20 @@ const sections = [
   { id: "print", label: "الطباعة", icon: Printer, ready: true, keywords: "طباعة طابعة ورق إيصال فاتورة" },
   { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true, keywords: "بوابة إدارة تقارير مراقبة" },
   { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true, keywords: "ذكاء اصطناعي مساعد حسيب" },
+  { id: "tax", label: "الضريبة", icon: Receipt, ready: true, keywords: "ضريبة قيمة مضافة VAT تقرير دوري" },
 ];
 
 const SettingsPage = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("company");
   const [search, setSearch] = useState("");
+  const [taxOwnerId, setTaxOwnerId] = useState("");
   const { settings, loading, saving, hasChanges, updateSettings, saveSettings, resetToDefaults } = useCompanySettings();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => setTaxOwnerId(data || user.id));
+  }, [user]);
 
   const filteredSections = useMemo(() => {
     if (!search) return sections;
@@ -87,6 +98,8 @@ const SettingsPage = () => {
         return <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />;
       case "ai":
         return <AISettingsSection settings={settings} onChange={updateSettings} />;
+      case "tax":
+        return <TaxSettingsInline ownerId={taxOwnerId} />;
       default:
         return (
           <div className="flex items-center justify-center h-64 text-muted-foreground">

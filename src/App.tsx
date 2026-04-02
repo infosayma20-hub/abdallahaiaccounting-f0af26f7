@@ -145,6 +145,7 @@ const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPr
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
+const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 
 const queryClient = new QueryClient();
 
@@ -419,6 +420,7 @@ const App = () => (
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
+                      <Route path="/tax" element={<TaxCenterPage />} />
                       <Route path="/help" element={<HelpCenterPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

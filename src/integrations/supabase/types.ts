@@ -10101,6 +10101,228 @@ export type Database = {
           },
         ]
       }
+      tax_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          rate: number | null
+          tax_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          rate?: number | null
+          tax_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          rate?: number | null
+          tax_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tax_ledger: {
+        Row: {
+          created_at: string | null
+          id: string
+          invoice_number: string | null
+          is_deductible: boolean | null
+          net_amount: number | null
+          notes: string | null
+          party_name: string | null
+          party_tax_number: string | null
+          period_month: number
+          period_year: number
+          reference_id: string | null
+          reference_type: string
+          tax_amount: number | null
+          tax_category: string | null
+          tax_rate: number | null
+          tax_type: string
+          transaction_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invoice_number?: string | null
+          is_deductible?: boolean | null
+          net_amount?: number | null
+          notes?: string | null
+          party_name?: string | null
+          party_tax_number?: string | null
+          period_month: number
+          period_year: number
+          reference_id?: string | null
+          reference_type: string
+          tax_amount?: number | null
+          tax_category?: string | null
+          tax_rate?: number | null
+          tax_type: string
+          transaction_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invoice_number?: string | null
+          is_deductible?: boolean | null
+          net_amount?: number | null
+          notes?: string | null
+          party_name?: string | null
+          party_tax_number?: string | null
+          period_month?: number
+          period_year?: number
+          reference_id?: string | null
+          reference_type?: string
+          tax_amount?: number | null
+          tax_category?: string | null
+          tax_rate?: number | null
+          tax_type?: string
+          transaction_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tax_settings: {
+        Row: {
+          created_at: string | null
+          fiscal_year_start: number | null
+          id: string
+          input_tax_account_code: string | null
+          is_active: boolean | null
+          output_tax_account_code: string | null
+          payable_tax_account_code: string | null
+          prices_include_tax: boolean | null
+          refundable_tax_account_code: string | null
+          registration_type: string | null
+          report_due_day: number | null
+          tax_name: string | null
+          tax_number: string | null
+          tax_rate: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          fiscal_year_start?: number | null
+          id?: string
+          input_tax_account_code?: string | null
+          is_active?: boolean | null
+          output_tax_account_code?: string | null
+          payable_tax_account_code?: string | null
+          prices_include_tax?: boolean | null
+          refundable_tax_account_code?: string | null
+          registration_type?: string | null
+          report_due_day?: number | null
+          tax_name?: string | null
+          tax_number?: string | null
+          tax_rate?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          fiscal_year_start?: number | null
+          id?: string
+          input_tax_account_code?: string | null
+          is_active?: boolean | null
+          output_tax_account_code?: string | null
+          payable_tax_account_code?: string | null
+          prices_include_tax?: boolean | null
+          refundable_tax_account_code?: string | null
+          registration_type?: string | null
+          report_due_day?: number | null
+          tax_name?: string | null
+          tax_number?: string | null
+          tax_rate?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tax_submissions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          input_tax: number | null
+          net_tax: number | null
+          notes: string | null
+          output_tax: number | null
+          payment_amount: number | null
+          payment_date: string | null
+          payment_reference: string | null
+          period_month: number
+          period_year: number
+          refund_amount: number | null
+          status: string | null
+          submission_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          input_tax?: number | null
+          net_tax?: number | null
+          notes?: string | null
+          output_tax?: number | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          period_month: number
+          period_year: number
+          refund_amount?: number | null
+          status?: string | null
+          submission_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          input_tax?: number | null
+          net_tax?: number | null
+          notes?: string | null
+          output_tax?: number | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          period_month?: number
+          period_year?: number
+          refund_amount?: number | null
+          status?: string | null
+          submission_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       termination_records: {
         Row: {
           advance_balance: number | null
