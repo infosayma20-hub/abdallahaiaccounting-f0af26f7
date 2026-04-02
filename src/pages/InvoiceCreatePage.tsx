@@ -171,6 +171,7 @@ const InvoiceCreatePage = () => {
   const prefillAmount = searchParams.get("amount");
   const prefillNotes = searchParams.get("notes");
   const workshopId = searchParams.get("workshop_id");
+  const prefillType = searchParams.get("type"); // "sales" or "purchase"
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
