@@ -43,6 +43,7 @@ const VoucherNavToolbar = ({
   onNew,
   onNewSimilar,
   onPrint,
+  onDelete,
   showNavigation = true,
 }: VoucherNavToolbarProps) => {
   const navigate = useNavigate();
