@@ -1,0 +1,1 @@
+UPDATE public.vouchers SET status = 'cancelled' WHERE ref_number = 'QV-2026-0001' AND linked_transaction_id IS NULL AND EXISTS (SELECT 1 FROM public.transactions WHERE reference = 'QV-2026-0001' AND is_deleted = true);
