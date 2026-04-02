@@ -1010,12 +1010,33 @@ const InvoiceCreatePage = () => {
 
   // ─── New Similar ───
   const handleNewSimilar = () => {
+    // Save full form data to localStorage for the new page to pick up
+    const duplicateData = {
+      _sourceRef: form.type === "sales" ? `INV-${searchParams.get("edit") || ""}` : `PO-${searchParams.get("edit") || ""}`,
+      type: form.type,
+      contactName: form.contactName,
+      contactId: form.contactId,
+      contactSearch: form.contactName,
+      paymentTerms: form.paymentTerms,
+      paymentMethod: form.paymentMethod,
+      currency: form.currency,
+      exchangeRate: form.exchangeRate,
+      notes: form.notes,
+      notesInternal: form.notesInternal,
+      salespersonId: form.salespersonId,
+      billingAddress: form.billingAddress,
+      taxInclusive: form.taxInclusive,
+      items: form.items.map(item => ({
+        ...item,
+        id: crypto.randomUUID(), // new IDs for the copy
+      })),
+    };
+    localStorage.setItem("draft_invoice_new", JSON.stringify(duplicateData));
     const params = new URLSearchParams();
     params.set("type", form.type);
     params.set("from_duplicate", "true");
-    if (form.contactId) params.set("contact_id", form.contactId);
-    if (form.contactName) params.set("contact_name", form.contactName);
     navigate(`/invoices/new?${params.toString()}`);
+    toast({ title: "تم نسخ بيانات الفاتورة — راجع وعدّل قبل الحفظ ✓" });
   };
 
   // WhatsApp send
