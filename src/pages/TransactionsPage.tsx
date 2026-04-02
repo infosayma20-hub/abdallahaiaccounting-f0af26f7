@@ -786,7 +786,7 @@ const TransactionsPage = () => {
                   <th className="px-3 py-3.5 text-right text-[11px] font-bold tracking-wide cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("credit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="credit" /> دائن ₪</div>
                   </th>
-                  <th className="px-3 py-3.5 w-10 rounded-tl-lg"></th>
+                  <th className="px-3 py-3.5 w-10 rounded-ss-lg"></th>
                 </tr>
               </thead>
               <tbody>
