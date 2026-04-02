@@ -131,7 +131,7 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "العمليات",
             children: [
-              { label: "الفواتير", path: "/invoices" },
+              { label: "الفواتير", path: "/invoices?type=sales" },
               { label: "الطلبيات", path: "/orders" },
               { label: "سندات القبض", path: "/finance/receipts" },
             ],
@@ -154,7 +154,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "طلب مشتريات", path: "/procurement/orders/new" },
               { label: "الطلبيات", path: "/procurement/orders" },
-              { label: "فواتير المشتريات", path: "/procurement/invoices" },
+              { label: "فواتير المشتريات", path: "/invoices?type=purchase" },
             ],
           },
           {
