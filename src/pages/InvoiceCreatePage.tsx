@@ -1261,7 +1261,7 @@ const InvoiceCreatePage = () => {
                 <div className="mt-2">
                   <label className="text-[10px] text-muted-foreground mb-0.5 block">سعر الصرف</label>
                   <Input type="number" step="0.01" value={form.exchangeRate} onChange={e => setForm(p => ({ ...p, exchangeRate: Number(e.target.value) }))} className="rounded-xl text-xs h-8" dir="ltr" />
-                  <p className="text-[10px] text-muted-foreground mt-0.5">المكافئ بالشيكل: {fmtCurrency(summary.total * form.exchangeRate)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">المكافئ بالشيكل: {fmtCurrencyStatic(summary.total * form.exchangeRate)}</p>
                 </div>
               )}
             </div>
