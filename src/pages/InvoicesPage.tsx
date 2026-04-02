@@ -1257,7 +1257,7 @@ const InvoicesPage = () => {
       {invoices.length > 0 && (
         <Button
           className="fixed bottom-20 left-4 rounded-2xl gap-2 shadow-lg shadow-primary/30 z-40"
-          onClick={() => { setForm(p => ({ ...p, type: filterType === "purchase" ? "purchase" : "sales" })); setShowCreatePage(true); }}
+          onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}
         >
           <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
         </Button>

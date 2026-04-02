@@ -315,7 +315,13 @@ const InvoiceCreatePage = () => {
         if (tx.debit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
       });
       
-      const contactsWithBalance = contactsList.map(c => ({ ...c, balance: balanceMap[c.id] || 0 }));
+      const contactsWithBalance = contactsList.map(c => {
+        const isSupplier = c.contact_type === "مورد";
+        const balance = isSupplier 
+          ? (supplierBalanceMap[c.id] || 0) 
+          : (customerBalanceMap[c.id] || 0);
+        return { ...c, balance };
+      });
       setContacts(contactsWithBalance);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
