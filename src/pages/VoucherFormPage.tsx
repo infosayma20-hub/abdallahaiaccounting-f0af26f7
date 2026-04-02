@@ -1260,7 +1260,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
     const path = isReceipt ? "/finance/receipt/new?from_duplicate=true" : "/finance/payment/new?from_duplicate=true";
     navigate(path);
-    toast({ title: "تم نسخ بيانات السند — أدخل المبلغ وارتبط بالفواتير ✓" });
+    toast.success("تم نسخ بيانات السند — أدخل المبلغ وارتبط بالفواتير");
   };
 
   return (
