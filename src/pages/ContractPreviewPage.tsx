@@ -47,8 +47,8 @@ export default function ContractPreviewPage() {
     const printWindow = window.open("", "_blank");
     if (!printWindow || !printRef.current) return;
     printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>عقد اتفاق - ${contract?.project_name || ""}</title>
-      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-      <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:'IBM Plex Sans Arabic','Cairo',sans-serif; direction:rtl; } @media print { @page { size:A4; margin:15mm; } }</style>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+      <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:'Cairo',sans-serif; direction:rtl; } @media print { @page { size:A4; margin:15mm; } }</style>
     </head><body>`);
     printWindow.document.write(printRef.current.innerHTML);
     printWindow.document.write("</body></html>");

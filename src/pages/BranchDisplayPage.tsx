@@ -204,7 +204,7 @@ export default function BranchDisplayPage() {
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden select-none cursor-default"
       style={{
         background: "radial-gradient(ellipse at 50% 0%, #0f1a2e 0%, #080d18 50%, #050810 100%)",
-        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'Cairo', sans-serif",
       }}
       dir="rtl"
       onDoubleClick={toggleFullscreen}

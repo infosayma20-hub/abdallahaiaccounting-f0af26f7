@@ -973,7 +973,7 @@ export default function WorkshopsPage() {
                   <html dir="rtl"><head><title>معاينة طباعة - ${selectedWorkshop.name}</title>
                   <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif; padding: 24px; direction: rtl; color: #1a1a1a; }
+                    body { font-family: 'Cairo', sans-serif; padding: 24px; direction: rtl; color: #1a1a1a; }
                     h1 { font-size: 22px; margin-bottom: 4px; }
                     .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
                     .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }

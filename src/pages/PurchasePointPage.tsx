@@ -370,7 +370,7 @@ const PurchasePointPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#F8F9FB] overflow-hidden" dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+    <div className="h-screen flex flex-col bg-[#F8F9FB] overflow-hidden" dir="rtl" style={{ fontFamily: "'Cairo', sans-serif" }}>
       {/* Header */}
       <header className="bg-white border-b border-[#E2E8F0] px-4 py-2.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
