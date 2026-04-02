@@ -4304,8 +4304,8 @@ const POSPage = () => {
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2"
                     style={{
-                      color: t.id === activeOrder.tableId ? '#93c5fd' : t.status === "occupied" ? '#fca5a5' : 'rgba(255,255,255,0.7)',
-                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.15)' : 'transparent',
+                      color: t.id === activeOrder.tableId ? '#1d4ed8' : t.status === "occupied" ? '#dc2626' : 'rgba(13,27,46,0.7)',
+                      background: t.id === activeOrder.tableId ? 'rgba(59,130,246,0.1)' : 'transparent',
                     }}
                   >
                     <span>{t.name}</span>
