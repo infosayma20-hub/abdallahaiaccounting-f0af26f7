@@ -4284,7 +4284,7 @@ const POSPage = () => {
                       setShowTablePicker(false);
                     }}
                     className="w-full text-right text-xs px-3 py-2 rounded-md flex items-center gap-2"
-                    style={{ color: '#fca5a5' }}
+                    style={{ color: '#dc2626' }}
                   >
                     <X className="h-3 w-3" />
                     إلغاء الطاولة
