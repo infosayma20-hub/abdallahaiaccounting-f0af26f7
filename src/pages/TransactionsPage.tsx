@@ -127,7 +127,7 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
 function TypeBadge({ type }: { type: string }) {
   const c = typeBadgeConfig[type] || { label: type || "—", bg: "bg-[#F3F4F6]", text: "text-[#374151]" };
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${c.bg} ${c.text}`}>
+    <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${c.bg} ${c.text}`}>
       {c.label}
     </span>
   );
@@ -607,101 +607,94 @@ const TransactionsPage = () => {
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title="تقرير الحركات المحاسبية" breadcrumb={["المحاسبة", "الحركات المحاسبية"]} />
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-muted-foreground">
           {filteredTransactions.length} قيد • <span className="text-primary font-medium">مدين: ₪{totalDebit.toFixed(2)}</span> • <span className="text-success font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => setShowTrash(true)}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowTrash(true)}>
             <Archive className="w-3.5 h-3.5" /> المحذوفات
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handleExportExcel}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={handleExportExcel}>
             <Download className="w-3.5 h-3.5" /> Excel
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handlePrint}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={handlePrint}>
             <Printer className="w-3.5 h-3.5" /> طباعة
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Metrics Bar */}
+      <div className="flex divide-x divide-border rounded-xl border border-border bg-background overflow-hidden mb-6" dir="ltr">
         {[
-          { label: "إجمالي القيود", value: filteredTransactions.length, icon: CalendarDays, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: "المدين", value: `₪${totalDebit.toFixed(2)}`, icon: ArrowRight, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: "الدائن", value: `₪${totalCredit.toFixed(2)}`, icon: ArrowRight, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
-          { label: "التوازن", value: isBalanced ? "✅ متطابق" : `⚠️ فرق: ₪${Math.abs(totalDebit - totalCredit).toFixed(2)}`, icon: CheckSquare, color: isBalanced ? "text-emerald-500" : "text-destructive", bg: isBalanced ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-destructive/5 border-destructive/10" },
+          { label: "إجمالي القيود", value: String(filteredTransactions.length) },
+          { label: "المدين", value: `₪${totalDebit.toFixed(2)}` },
+          { label: "الدائن", value: `₪${totalCredit.toFixed(2)}` },
+          { label: "التوازن", value: isBalanced ? "✅ متطابق" : `⚠️ ₪${Math.abs(totalDebit - totalCredit).toFixed(2)}` },
         ].map((k, i) => (
-          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
-                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
-              </div>
-              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
-            </div>
+          <div key={i} className="flex-1 px-5 py-4 text-center" dir="rtl">
+            <p className="text-[11px] text-muted-foreground tracking-wide mb-1">{k.label}</p>
+            <p className="text-lg font-medium text-foreground">{k.value}</p>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-3 space-y-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input
-              placeholder="ابحث بالمرجع، الوصف، الحساب..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+      <div className="space-y-3 mb-4">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="ابحث بالمرجع، الوصف، الحساب..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pr-9 h-9 text-sm"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
 
-          {/* Type pills + date/account filters */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-              <button onClick={() => setTypeFilter("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${typeFilter === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                الكل
+        {/* Type pills + date/account filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 flex-1">
+            <button onClick={() => setTypeFilter("all")} className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${typeFilter === "all" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}>
+              الكل
+            </button>
+            {uniqueTypes.slice(0, 8).map(t => (
+              <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${typeFilter === t ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}>
+                {typeBadgeConfig[t]?.label || t}
               </button>
-              {uniqueTypes.slice(0, 8).map(t => (
-                <button key={t} onClick={() => setTypeFilter(t)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${typeFilter === t ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                  {typeBadgeConfig[t]?.label || t}
-                </button>
-              ))}
-            </div>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-[140px] rounded-xl text-xs h-9">
-                <SelectValue placeholder="الفترة" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                <SelectItem value="all">كل الفترات</SelectItem>
-                <SelectItem value="today">اليوم</SelectItem>
-                <SelectItem value="this_week">هذا الأسبوع</SelectItem>
-                <SelectItem value="this_month">هذا الشهر</SelectItem>
-                <SelectItem value="last_month">الشهر السابق</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={accountFilter} onValueChange={setAccountFilter}>
-              <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
-                <SelectValue placeholder="كل الحسابات" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-48">
-                <SelectItem value="all">كل الحسابات</SelectItem>
-                {usedAccounts.map(a => (
-                  <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-[11px] text-muted-foreground mr-auto">{filteredTransactions.length} قيد</span>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-[140px] text-xs h-9">
+              <SelectValue placeholder="الفترة" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">كل الفترات</SelectItem>
+              <SelectItem value="today">اليوم</SelectItem>
+              <SelectItem value="this_week">هذا الأسبوع</SelectItem>
+              <SelectItem value="this_month">هذا الشهر</SelectItem>
+              <SelectItem value="last_month">الشهر السابق</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-[180px] text-xs h-9">
+              <SelectValue placeholder="كل الحسابات" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50 max-h-48">
+              <SelectItem value="all">كل الحسابات</SelectItem>
+              {usedAccounts.map(a => (
+                <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-[11px] text-muted-foreground mr-auto">{filteredTransactions.length} قيد</span>
+        </div>
+      </div>
 
       {/* Bulk selection bar */}
       {selectedIds.size > 0 && (
@@ -752,7 +745,7 @@ const TransactionsPage = () => {
 
       {/* TABLE */}
       {!loading && !error && paginatedTransactions.length > 0 && (
-        <div className="border border-border/50 overflow-hidden shadow-sm">
+        <div className="border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed">
               <colgroup>
@@ -766,27 +759,26 @@ const TransactionsPage = () => {
                 <col className="w-[4%]" />
               </colgroup>
               <thead className="sticky top-0 z-10">
-                <tr className="bg-[#1B2559] text-white">
-                  <th className="px-2 py-3.5 text-center">
+                <tr className="bg-muted/50">
+                  <th className="w-9 px-3 py-2.5 border-b border-border">
                     <Checkbox
                       checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                       onCheckedChange={toggleSelectAll}
-                      className="border-white/40 data-[state=checked]:bg-white data-[state=checked]:text-[#1B2559]"
                     />
                   </th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("date")}>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>
                     <div className="flex items-center gap-1.5">التاريخ <SortIcon field="date" /></div>
                   </th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold">المرجع</th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold">الوصف / الحسابات</th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold">النوع</th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("debit")}>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">المرجع</th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">الوصف / الحسابات</th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">النوع</th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("debit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="debit" /> مدين ₪</div>
                   </th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("credit")}>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("credit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="credit" /> دائن ₪</div>
                   </th>
-                  <th className="px-3 py-3.5 w-10"></th>
+                  <th className="px-3 py-2.5 w-10 border-b border-border"></th>
                 </tr>
               </thead>
               <tbody>
@@ -796,20 +788,20 @@ const TransactionsPage = () => {
                   return (
                     <tr key={tx.id} className="contents">
                       <tr
-                        className={`group border-b border-border/50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} ${isSelected ? "bg-primary/5" : ""} hover:bg-primary/5`}
+                        className={`group border-b border-border/50 transition-colors cursor-pointer hover:bg-muted/30 ${isSelected ? "bg-primary/5" : ""}`}
                         onClick={() => toggleExpand(tx.id)}
                       >
-                        <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
-                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+                        <td className="w-9 px-3 py-3" onClick={e => e.stopPropagation()}>
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} className="opacity-0 group-hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity" />
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-xs text-foreground tabular-nums">{formatDate(tx.transaction_date)}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{formatDate(tx.transaction_date)}</span>
                         </td>
                         <td className="px-3 py-3 overflow-hidden">
                           <button
                             onClick={e => { e.stopPropagation(); openEdit(tx); }}
                             title={tx.reference || ""}
-                            className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0 truncate block max-w-full text-right"
+                            className="text-muted-foreground hover:text-foreground hover:underline font-mono text-[11px] cursor-pointer bg-transparent border-none p-0 truncate block max-w-full text-right"
                           >
                             {tx.reference || "—"}
                           </button>
@@ -817,22 +809,22 @@ const TransactionsPage = () => {
                         <td className="px-3 py-3 overflow-hidden max-w-0">
                           <div className="flex items-center gap-1.5 min-w-0" title={tx.description || ""}>
                             <ChevronRightIcon className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
-                            <span className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
+                            <span className="text-sm text-foreground truncate">{tx.description || "بدون وصف"}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
                           <TypeBadge type={tx.transaction_type} />
                         </td>
                         <td className="px-3 py-3 text-left">
-                          <span className="font-mono font-semibold text-sm text-primary">₪{tx.amount?.toFixed(2)}</span>
+                          <span className="font-mono text-xs font-medium text-foreground">{tx.amount?.toFixed(2)}</span>
                         </td>
                         <td className="px-3 py-3 text-left">
-                          <span className="font-mono font-semibold text-sm text-emerald-500">₪{tx.amount?.toFixed(2)}</span>
+                          <span className="font-mono text-xs font-medium text-emerald-600">{tx.amount?.toFixed(2)}</span>
                         </td>
                         <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                 <MoreVertical className="w-4 h-4" />
                               </button>
                             </DropdownMenuTrigger>

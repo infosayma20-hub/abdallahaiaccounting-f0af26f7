@@ -336,12 +336,12 @@ const GeneralLedgerPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-primary text-primary-foreground">
-                  <th className="px-3 py-3 text-right text-xs font-semibold w-[110px]"><SortHeader label="التاريخ" field="date" /></th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold min-w-[250px]"><SortHeader label="البيان" field="description" /></th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold w-[120px]"><SortHeader label="مدين (₪)" field="debit" /></th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold w-[120px]"><SortHeader label="دائن (₪)" field="credit" /></th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold w-[130px]"><SortHeader label="الرصيد (₪)" field="balance" /></th>
+                <tr className="bg-muted/50">
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border w-[110px]"><SortHeader label="التاريخ" field="date" /></th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border min-w-[250px]"><SortHeader label="البيان" field="description" /></th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border w-[120px]"><SortHeader label="مدين (₪)" field="debit" /></th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border w-[120px]"><SortHeader label="دائن (₪)" field="credit" /></th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border w-[130px]"><SortHeader label="الرصيد (₪)" field="balance" /></th>
                 </tr>
               </thead>
               <tbody>
