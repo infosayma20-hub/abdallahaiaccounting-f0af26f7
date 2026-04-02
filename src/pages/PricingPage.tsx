@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, ChevronDown, ChevronUp, Shield, Star, Minus, Plus } from "lucide-react";
+import { Check, X, ChevronDown, ChevronUp, Shield, Minus, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentModal from "@/components/billing/PaymentModal";
 import PlanAppsSection from "@/components/pricing/PlanAppsSection";
@@ -40,59 +40,105 @@ interface Addon {
 
 const taglines: Record<string, string> = {
   starter: "للأعمال الصغيرة والناشئة",
-  growth: "للشركات النامية",
-  professional: "للشركات المتوسطة",
-  business: "للمؤسسات المتنامية",
+  professional: "للشركات المتوسطة والنامية",
   enterprise: "للمؤسسات الكبيرة",
 };
 
 const planIcons: Record<string, { emoji: string; bg: string }> = {
   starter: { emoji: "🌱", bg: "bg-green-100" },
-  growth: { emoji: "📈", bg: "bg-blue-100" },
   professional: { emoji: "🚀", bg: "bg-[#FDF6E3]" },
-  business: { emoji: "🏗️", bg: "bg-purple-100" },
   enterprise: { emoji: "🏢", bg: "bg-[#0A2342]" },
+};
+
+// Fallback features if DB doesn't return them
+const fallbackFeatures: Record<string, string[]> = {
+  starter: [
+    "المحاسبة الأساسية",
+    "حتى 500 معاملة شهرياً",
+    "فواتير المبيعات والمشتريات",
+    "10 تقارير أساسية",
+    "مستخدمان",
+    "شركة واحدة",
+    "المحاسب الذكي (50 رسالة/يوم)",
+    "دعم بريد إلكتروني",
+  ],
+  professional: [
+    "كل مميزات Starter",
+    "معاملات غير محدودة",
+    "حتى 10 مستخدمين",
+    "حتى 3 شركات",
+    "جميع التقارير (63+ تقرير)",
+    "تحليلات متقدمة وKPI",
+    "نقطة البيع POS",
+    "إدارة المخزون",
+    "الموارد البشرية",
+    "إدارة الورشات",
+    "الأصول الثابتة",
+    "المحاسب الذكي بلا حدود",
+    "تحليل مستندات بالذكاء",
+    "دعم أولوية 24/7",
+  ],
+  enterprise: [
+    "كل مميزات Professional",
+    "مستخدمون وشركات غير محدودين",
+    "إدارة متعددة الفروع",
+    "صلاحيات متقدمة",
+    "تكامل API",
+    "White-label",
+    "تقارير مخصصة + SLA",
+    "مدير حساب مخصص",
+    "تدريب شخصي",
+    "اتفاقية مستوى خدمة SLA",
+  ],
+};
+
+const fallbackPrices: Record<string, { monthly: number; annual: number; maxUsers: number; maxCompanies: number }> = {
+  starter: { monthly: 19, annual: 182, maxUsers: 2, maxCompanies: 1 },
+  professional: { monthly: 39, annual: 374, maxUsers: 10, maxCompanies: 3 },
+  enterprise: { monthly: 79, annual: 758, maxUsers: -1, maxCompanies: -1 },
 };
 
 const comparisonData = [
   { category: "المحاسبة الأساسية", features: [
-    { label: "شجرة الحسابات", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "دفتر اليومية والقيود", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "ميزان المراجعة", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "المعاملات الشهرية", starter: "500", growth: "غير محدود", professional: "غير محدود", business: "غير محدود", enterprise: "غير محدود" },
+    { label: "شجرة الحسابات", starter: true, professional: true, enterprise: true },
+    { label: "دفتر اليومية والقيود", starter: true, professional: true, enterprise: true },
+    { label: "ميزان المراجعة", starter: true, professional: true, enterprise: true },
+    { label: "المعاملات الشهرية", starter: "500", professional: "غير محدود", enterprise: "غير محدود" },
   ]},
   { category: "المبيعات والمشتريات", features: [
-    { label: "فواتير المبيعات", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "فواتير المشتريات", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "إدارة الزبائن والموردين", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "نقطة البيع POS", starter: false, growth: true, professional: true, business: true, enterprise: true },
-    { label: "إدارة المخزون", starter: false, growth: true, professional: true, business: true, enterprise: true },
+    { label: "فواتير المبيعات", starter: true, professional: true, enterprise: true },
+    { label: "فواتير المشتريات", starter: true, professional: true, enterprise: true },
+    { label: "إدارة الزبائن والموردين", starter: true, professional: true, enterprise: true },
+    { label: "نقطة البيع POS", starter: false, professional: true, enterprise: true },
+    { label: "إدارة المخزون", starter: false, professional: true, enterprise: true },
   ]},
   { category: "التقارير والتحليلات", features: [
-    { label: "التقارير الأساسية", starter: "10", growth: "30+", professional: "63+", business: "غير محدود", enterprise: "غير محدود" },
-    { label: "قائمة الدخل والميزانية", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "تحليلات متقدمة و KPI", starter: false, growth: true, professional: true, business: true, enterprise: true },
-    { label: "تقارير مخصصة", starter: false, growth: false, professional: false, business: true, enterprise: true },
+    { label: "التقارير الأساسية", starter: "10", professional: "63+", enterprise: "غير محدود" },
+    { label: "قائمة الدخل والميزانية", starter: true, professional: true, enterprise: true },
+    { label: "تحليلات متقدمة و KPI", starter: false, professional: true, enterprise: true },
+    { label: "تقارير مخصصة", starter: false, professional: false, enterprise: true },
   ]},
   { category: "الذكاء الاصطناعي", features: [
-    { label: "المحاسب الذكي", starter: "50 رسالة/يوم", growth: "غير محدود", professional: "غير محدود", business: "غير محدود", enterprise: "غير محدود" },
-    { label: "تحليل مستندات بالذكاء", starter: false, growth: true, professional: true, business: true, enterprise: true },
+    { label: "المحاسب الذكي", starter: "50 رسالة/يوم", professional: "غير محدود", enterprise: "غير محدود" },
+    { label: "تحليل مستندات بالذكاء", starter: false, professional: true, enterprise: true },
   ]},
   { category: "الإدارة والصلاحيات", features: [
-    { label: "عدد المستخدمين", starter: "2", growth: "3", professional: "10", business: "غير محدود", enterprise: "غير محدود" },
-    { label: "عدد الشركات", starter: "1", growth: "1", professional: "3", business: "غير محدود", enterprise: "غير محدود" },
-    { label: "إدارة الموارد البشرية", starter: false, growth: false, professional: true, business: true, enterprise: true },
-    { label: "صلاحيات متقدمة", starter: false, growth: false, professional: false, business: true, enterprise: true },
-    { label: "إدارة متعددة الفروع", starter: false, growth: false, professional: false, business: true, enterprise: true },
-    { label: "تكامل API", starter: false, growth: false, professional: true, business: true, enterprise: true },
-    { label: "White-label", starter: false, growth: false, professional: false, business: false, enterprise: true },
+    { label: "عدد المستخدمين", starter: "2", professional: "10", enterprise: "غير محدود" },
+    { label: "عدد الشركات", starter: "1", professional: "3", enterprise: "غير محدود" },
+    { label: "إدارة الموارد البشرية", starter: false, professional: true, enterprise: true },
+    { label: "إدارة الورشات", starter: false, professional: true, enterprise: true },
+    { label: "الأصول الثابتة", starter: false, professional: true, enterprise: true },
+    { label: "صلاحيات متقدمة", starter: false, professional: false, enterprise: true },
+    { label: "إدارة متعددة الفروع", starter: false, professional: false, enterprise: true },
+    { label: "تكامل API", starter: false, professional: false, enterprise: true },
+    { label: "White-label", starter: false, professional: false, enterprise: true },
   ]},
   { category: "الدعم الفني", features: [
-    { label: "دعم بريد إلكتروني", starter: true, growth: true, professional: true, business: true, enterprise: true },
-    { label: "دعم أولوية 24/7", starter: false, growth: false, professional: true, business: true, enterprise: true },
-    { label: "مدير حساب مخصص", starter: false, growth: false, professional: false, business: false, enterprise: true },
-    { label: "تدريب شخصي", starter: false, growth: false, professional: false, business: false, enterprise: true },
-    { label: "SLA اتفاقية مستوى خدمة", starter: false, growth: false, professional: false, business: false, enterprise: true },
+    { label: "دعم بريد إلكتروني", starter: true, professional: true, enterprise: true },
+    { label: "دعم أولوية 24/7", starter: false, professional: true, enterprise: true },
+    { label: "مدير حساب مخصص", starter: false, professional: false, enterprise: true },
+    { label: "تدريب شخصي", starter: false, professional: false, enterprise: true },
+    { label: "SLA اتفاقية مستوى خدمة", starter: false, professional: false, enterprise: true },
   ]},
 ];
 
@@ -102,11 +148,11 @@ const faqData = [
   { q: "هل بياناتي آمنة؟", a: "بالتأكيد! نستخدم تشفير SSL 256-bit ونسخ احتياطية يومية. بياناتك محمية بأعلى معايير الأمان." },
   { q: "هل يمكنني الترقية أو التخفيض لاحقاً؟", a: "نعم، يمكنك تغيير خطتك في أي وقت. عند الترقية يتم احتساب الفرق تناسبياً، وعند التخفيض يتم التطبيق من الدورة القادمة." },
   { q: "ما هي طرق الدفع المتاحة؟", a: "نقبل بطاقات Visa و Mastercard وPayPal. كما يمكن الدفع بالتحويل البنكي للخطط المؤسسية." },
-  { q: "ما الفرق بين Growth و Professional؟", a: "Growth مناسبة للشركات الصغيرة التي تحتاج تقارير متقدمة (3 مستخدمين). Professional للشركات المتوسطة مع POS وإدارة مخزون وموارد بشرية (10 مستخدمين، 3 شركات)." },
+  { q: "ما الفرق بين Professional و Enterprise؟", a: "Professional مناسبة للشركات المتوسطة مع POS وإدارة مخزون وموارد بشرية (10 مستخدمين، 3 شركات). Enterprise للمؤسسات الكبيرة مع فروع متعددة، White-label، مدير حساب مخصص، وSLA." },
   { q: "هل يمكنني إلغاء الإضافات لاحقاً؟", a: "نعم، يمكنك إضافة أو إلغاء أي إضافة في أي وقت. سيتم تعديل الفاتورة تناسبياً." },
 ];
 
-const PLAN_KEYS = ["starter", "growth", "professional", "business", "enterprise"] as const;
+const PLAN_KEYS_3 = ["starter", "professional", "enterprise"] as const;
 
 const PricingPage = () => {
   const navigate = useNavigate();
@@ -141,8 +187,41 @@ const PricingPage = () => {
     });
   }, []);
 
+  // Filter to only 3 plans, with fallbacks
+  const displayPlans = useMemo(() => {
+    return PLAN_KEYS_3.map(key => {
+      const dbPlan = plans.find(p => p.plan_key === key);
+      const fb = fallbackPrices[key];
+      if (dbPlan) {
+        return {
+          ...dbPlan,
+          features: dbPlan.features.length > 0 ? dbPlan.features : fallbackFeatures[key],
+          monthly_price: dbPlan.monthly_price || fb.monthly,
+          annual_price: dbPlan.annual_price || fb.annual,
+          max_users: dbPlan.max_users ?? fb.maxUsers,
+          max_companies: dbPlan.max_companies ?? fb.maxCompanies,
+        };
+      }
+      // Full fallback
+      return {
+        id: key,
+        plan_key: key,
+        name: key.charAt(0).toUpperCase() + key.slice(1),
+        name_ar: key === "starter" ? "المبتدئ" : key === "professional" ? "الاحترافي" : "المؤسسي",
+        monthly_price: fb.monthly,
+        annual_price: fb.annual,
+        features: fallbackFeatures[key],
+        limits: {},
+        max_users: fb.maxUsers,
+        max_companies: fb.maxCompanies,
+        max_branches: key === "enterprise" ? -1 : 1,
+        is_featured: key === "professional",
+        ai_limit: key === "starter" ? 50 : null,
+      } as Plan;
+    });
+  }, [plans]);
+
   const getPrice = (plan: Plan) => billing === "annual" ? Math.round(plan.annual_price / 12 * 100) / 100 : plan.monthly_price;
-  const getAnnualTotal = (plan: Plan) => plan.annual_price;
 
   const addonTotal = useMemo(() => {
     return addons.reduce((sum, a) => {
@@ -155,24 +234,20 @@ const PricingPage = () => {
     setAddonCounts(prev => ({ ...prev, [key]: Math.max(0, (prev[key] || 0) + delta) }));
   };
 
-  const getButtonText = (plan: Plan) => {
-    if (!user) return "ابدأ التجربة المجانية";
-    if (subscription?.plan_key === plan.plan_key) return "خطتك الحالية ✓";
-    if (subscription?.isTrial) return "ترقية الآن";
-    return "اشترك الآن";
-  };
-
   const isCurrentPlan = (plan: Plan) => subscription?.plan_key === plan.plan_key;
+
+  const getButtonText = (plan: Plan) => {
+    if (isCurrentPlan(plan)) return "خطتك الحالية ✓";
+    if (plan.plan_key === "starter") return "ابدأ مجاناً";
+    if (plan.plan_key === "enterprise") return "تواصل معنا";
+    return "ابدأ الآن";
+  };
 
   const handleSelect = (plan: Plan) => {
     if (isCurrentPlan(plan)) return;
     if (!user) { navigate(`/auth?plan=${plan.plan_key}`); return; }
     setPaymentModal({ plan, cycle: billing });
   };
-
-  // Show top 3 plans on cards, then Business + Enterprise below
-  const mainPlans = plans.filter(p => ["starter", "growth", "professional"].includes(p.plan_key));
-  const extraPlans = plans.filter(p => ["business", "enterprise"].includes(p.plan_key));
 
   return (
     <div className="min-h-screen" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
@@ -209,123 +284,81 @@ const PricingPage = () => {
             </button>
           </div>
 
-          {/* Main Plan Cards (3) */}
-          {!loading && (
-            <div className="flex flex-col lg:flex-row gap-5 justify-center max-w-[1100px] mx-auto">
-              {mainPlans.map((plan, i) => {
-                const isFeatured = plan.is_featured;
-                const icon = planIcons[plan.plan_key] || planIcons.starter;
-                const price = getPrice(plan);
-                const isCurrent = isCurrentPlan(plan);
+          {/* 3 Plan Cards */}
+          <div className="flex flex-col lg:flex-row gap-5 justify-center max-w-[1100px] mx-auto">
+            {displayPlans.map((plan, i) => {
+              const isFeatured = plan.plan_key === "professional";
+              const icon = planIcons[plan.plan_key] || planIcons.starter;
+              const price = getPrice(plan);
+              const isCurrent = isCurrentPlan(plan);
 
-                return (
-                  <motion.div key={plan.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.4 }}
-                    className={`relative flex-1 rounded-3xl p-8 bg-white transition-all duration-200 ${isFeatured ? "border-2 border-[#4A9EE8] lg:scale-[1.04] shadow-[0_8px_40px_rgba(10,35,66,0.2)] z-10" : "border-2 border-transparent shadow-[0_4px_20px_rgba(10,35,66,0.1)] hover:-translate-y-1"}`}>
-                    {isFeatured && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4A9EE8] to-[#7BB8F0] text-[#0A2342] px-5 py-1 rounded-full text-xs font-bold whitespace-nowrap">⭐ الأكثر شيوعاً</div>
-                    )}
+              return (
+                <motion.div key={plan.plan_key} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.4 }}
+                  className={`relative flex-1 rounded-3xl p-8 bg-white transition-all duration-200 ${isFeatured ? "border-2 border-[#4A9EE8] lg:scale-[1.04] shadow-[0_8px_40px_rgba(10,35,66,0.2)] z-10" : "border-2 border-transparent shadow-[0_4px_20px_rgba(10,35,66,0.1)] hover:-translate-y-1"}`}>
+                  {isFeatured && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4A9EE8] to-[#7BB8F0] text-[#0A2342] px-5 py-1 rounded-full text-xs font-bold whitespace-nowrap">⭐ الأكثر شيوعاً</div>
+                  )}
 
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-[#0A2342]">{plan.name}</h3>
-                        <p className="text-sm text-gray-500">{plan.name_ar}</p>
-                        <p className="text-xs text-gray-400 mt-1">{taglines[plan.plan_key]}</p>
-                      </div>
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${icon.bg}`}>{icon.emoji}</div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-[#0A2342]">{plan.name}</h3>
+                      <p className="text-sm text-gray-500">{plan.name_ar}</p>
+                      <p className="text-xs text-gray-400 mt-1">{taglines[plan.plan_key]}</p>
                     </div>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${icon.bg}`}>{icon.emoji}</div>
+                  </div>
 
-                    <div className="mb-5">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl text-gray-400">$</span>
-                        <motion.span key={`${plan.id}-${billing}`} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-5xl font-extrabold text-[#0A2342]">
-                          {billing === "annual" ? price.toFixed(2) : plan.monthly_price}
-                        </motion.span>
-                        <span className="text-sm text-gray-400">/شهر</span>
-                      </div>
-                      {billing === "annual" && (
-                        <>
-                          <p className="text-sm text-gray-400 line-through mt-1">بدل ${plan.monthly_price}/شهر</p>
-                          <p className="text-xs text-green-600 font-medium">يُدفع ${plan.annual_price} سنوياً (وفر 20%)</p>
-                        </>
-                      )}
-                      <p className="text-[11px] text-gray-400 mt-1">غير شامل ضريبة القيمة المضافة</p>
-                    </div>
-
-                    <div className="h-px bg-gray-100 my-5" />
-
-                    {/* Limits summary */}
-                    <div className="flex gap-4 mb-4 text-xs text-gray-500">
-                      <span>👥 {plan.max_users === -1 ? "غ.م" : plan.max_users} مستخدم</span>
-                      <span>🏢 {plan.max_companies === -1 ? "غ.م" : plan.max_companies} شركة</span>
-                    </div>
-
-                    <ul className="space-y-2.5 mb-6">
-                      {plan.features.map((f: string, fi: number) => (
-                        <li key={fi} className="flex items-start gap-2.5 text-[13px] text-gray-700">
-                          <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button onClick={() => handleSelect(plan)} disabled={isCurrent}
-                      className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${isCurrent ? "bg-gray-100 text-gray-400 cursor-default" : isFeatured ? "bg-gradient-to-r from-[#4A9EE8] to-[#B8972E] text-white shadow-[0_4px_15px_rgba(74,158,232,0.4)] hover:scale-[1.02]" : "border-2 border-[#0A2342] text-[#0A2342] hover:bg-[#0A2342] hover:text-white"}`}>
-                      {getButtonText(plan)}
-                    </button>
-                    {!isCurrent && (
-                      <p className="text-[11px] text-green-600 text-center mt-3">✓ 14 يوم مجاناً — لا حاجة لبطاقة ائتمان</p>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Business + Enterprise Cards */}
-          {!loading && extraPlans.length > 0 && (
-            <div className="flex flex-col lg:flex-row gap-5 justify-center max-w-[800px] mx-auto mt-6">
-              {extraPlans.map((plan, i) => {
-                const icon = planIcons[plan.plan_key] || planIcons.enterprise;
-                const price = getPrice(plan);
-                const isCurrent = isCurrentPlan(plan);
-
-                return (
-                  <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.1 }}
-                    className="flex-1 rounded-3xl p-7 bg-white border-2 border-transparent shadow-[0_4px_20px_rgba(10,35,66,0.1)] hover:-translate-y-1 transition-all">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-[#0A2342]">{plan.name}</h3>
-                        <p className="text-sm text-gray-500">{plan.name_ar}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{taglines[plan.plan_key]}</p>
-                      </div>
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${icon.bg}`}>{icon.emoji}</div>
-                    </div>
-                    <div className="flex items-baseline gap-1 mb-3">
-                      <span className="text-xl text-gray-400">$</span>
-                      <span className="text-4xl font-extrabold text-[#0A2342]">{billing === "annual" ? price.toFixed(2) : plan.monthly_price}</span>
+                  <div className="mb-5">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl text-gray-400">$</span>
+                      <motion.span key={`${plan.plan_key}-${billing}`} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-5xl font-extrabold text-[#0A2342]">
+                        {billing === "annual" ? price.toFixed(2) : plan.monthly_price}
+                      </motion.span>
                       <span className="text-sm text-gray-400">/شهر</span>
                     </div>
-                    {billing === "annual" && <p className="text-xs text-green-600 mb-3">يُدفع ${plan.annual_price} سنوياً (وفر 20%)</p>}
-                    <div className="flex gap-3 mb-4 text-xs text-gray-500">
-                      <span>👥 غير محدود</span>
-                      <span>🏢 غير محدود</span>
-                    </div>
-                    <ul className="space-y-2 mb-5">
-                      {plan.features.slice(0, 5).map((f: string, fi: number) => (
-                        <li key={fi} className="flex items-start gap-2 text-[12px] text-gray-700">
-                          <Check className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" /><span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button onClick={() => handleSelect(plan)} disabled={isCurrent}
-                      className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${isCurrent ? "bg-gray-100 text-gray-400" : "border-2 border-[#0A2342] text-[#0A2342] hover:bg-[#0A2342] hover:text-white"}`}>
-                      {getButtonText(plan)}
-                    </button>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
+                    {billing === "annual" && (
+                      <>
+                        <p className="text-sm text-gray-400 line-through mt-1">بدل ${plan.monthly_price}/شهر</p>
+                        <p className="text-xs text-green-600 font-medium">يُدفع ${plan.annual_price} سنوياً (وفر 20%)</p>
+                      </>
+                    )}
+                    <p className="text-[11px] text-gray-400 mt-1">غير شامل ضريبة القيمة المضافة</p>
+                  </div>
+
+                  <div className="h-px bg-gray-100 my-5" />
+
+                  {/* Limits summary */}
+                  <div className="flex gap-4 mb-4 text-xs text-gray-500">
+                    <span>👥 {plan.max_users === -1 ? "غير محدود" : plan.max_users} مستخدم</span>
+                    <span>🏢 {plan.max_companies === -1 ? "غير محدود" : plan.max_companies} شركة</span>
+                  </div>
+
+                  <ul className="space-y-2.5 mb-6">
+                    {plan.features.map((f: string, fi: number) => (
+                      <li key={fi} className="flex items-start gap-2.5 text-[13px] text-gray-700">
+                        <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button onClick={() => handleSelect(plan)} disabled={isCurrent}
+                    className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
+                      isCurrent
+                        ? "bg-gray-100 text-gray-400 cursor-default"
+                        : isFeatured
+                          ? "bg-[#0D1B2E] text-white shadow-[0_4px_15px_rgba(13,27,46,0.4)] hover:scale-[1.02]"
+                          : "border-2 border-[#0A2342] text-[#0A2342] hover:bg-[#0A2342] hover:text-white"
+                    }`}>
+                    {getButtonText(plan)}
+                  </button>
+                  {!isCurrent && (
+                    <p className="text-[11px] text-green-600 text-center mt-3">✓ 14 يوم مجاناً — لا حاجة لبطاقة ائتمان</p>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -366,7 +399,6 @@ const PricingPage = () => {
           ))}
         </div>
 
-        {/* Total Calculator */}
         {addonTotal > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="text-center p-4 rounded-2xl border-2 border-[#4A9EE8] bg-blue-50">
@@ -378,18 +410,18 @@ const PricingPage = () => {
         )}
       </div>
 
-      {/* Comparison Table */}
-      <div className="max-w-6xl mx-auto px-5 py-16">
+      {/* Comparison Table — 3 columns */}
+      <div className="max-w-5xl mx-auto px-5 py-16">
         <h3 className="text-xl font-bold text-[#0A2342] text-center mb-8">مقارنة تفصيلية بين الخطط</h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b-2 border-gray-200" style={{ backgroundColor: "#1B3A5C" }}>
-                <th className="py-3 px-3 text-right text-white font-medium w-[20%]">الميزة</th>
-                {PLAN_KEYS.map(pk => (
+                <th className="py-3 px-3 text-right text-white font-medium w-[30%]">الميزة</th>
+                {PLAN_KEYS_3.map(pk => (
                   <th key={pk} className={`py-3 px-3 text-center font-bold ${pk === "professional" ? "text-[#4A9EE8]" : "text-white"}`}>
-                    {plans.find(p => p.plan_key === pk)?.name_ar || pk}
+                    {pk === "starter" ? "المبتدئ" : pk === "professional" ? "الاحترافي" : "المؤسسي"}
                   </th>
                 ))}
               </tr>
@@ -398,12 +430,12 @@ const PricingPage = () => {
               {comparisonData.map((group, gi) => (
                 <>
                   <tr key={`cat-${gi}`} className="bg-gray-50">
-                    <td colSpan={6} className="py-2.5 px-3 font-bold text-[#0A2342] text-[13px]">{group.category}</td>
+                    <td colSpan={4} className="py-2.5 px-3 font-bold text-[#0A2342] text-[13px]">{group.category}</td>
                   </tr>
                   {group.features.map((f, fi) => (
                     <tr key={`f-${gi}-${fi}`} className="border-b border-gray-100">
                       <td className="py-2.5 px-3 text-gray-600">{f.label}</td>
-                      {PLAN_KEYS.map(pk => (
+                      {PLAN_KEYS_3.map(pk => (
                         <td key={pk} className="py-2.5 px-3 text-center">
                           {typeof (f as any)[pk] === "boolean" ? (
                             (f as any)[pk] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-gray-300 mx-auto" />
