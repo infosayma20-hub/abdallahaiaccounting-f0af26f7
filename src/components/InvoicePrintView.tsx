@@ -31,6 +31,7 @@ interface InvoiceData {
   paidAmount: number;
   remainingAmount: number;
   currency: string;
+  terms?: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
 }
 
