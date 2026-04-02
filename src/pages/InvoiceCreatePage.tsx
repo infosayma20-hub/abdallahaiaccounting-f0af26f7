@@ -249,7 +249,10 @@ const InvoiceCreatePage = () => {
     transferBank: "",
   });
 
-  // ─── Load Duplicate Data ───
+  const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
+  const fmtCurrency = useCallback((n: number) =>
+    `${currSymbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, [currSymbol]);
+
   useEffect(() => {
     if (!fromDuplicate) return;
     const draftKey = "draft_invoice_new";
