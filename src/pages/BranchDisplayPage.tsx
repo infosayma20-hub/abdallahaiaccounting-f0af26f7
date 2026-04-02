@@ -177,7 +177,7 @@ export default function BranchDisplayPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: "#0a0e1a", fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+        style={{ background: "#0a0e1a", fontFamily: "'Cairo', sans-serif" }}
         dir="rtl"
       >
         <div className="text-center space-y-6">
