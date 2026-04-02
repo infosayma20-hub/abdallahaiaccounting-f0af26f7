@@ -1071,21 +1071,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const invoiceRows = linkedInvs.map(inv => `
       <tr style="border-bottom:1px solid #edf0f4;">
         <td style="padding:5px 10px;font-size:11px;">${inv.invoice_date}</td>
-        <td style="padding:5px 10px;font-size:11px;font-family:monospace;">${inv.invoice_number || "—"}</td>
+        <td style="padding:5px 10px;font-size:11px;">${inv.invoice_number || "—"}</td>
         <td style="padding:5px 10px;font-size:11px;">${notes || (isReceipt ? "سند قبض" : "سند صرف")}</td>
         <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;font-family:monospace;">${fmtAmt(inv.allocatedAmount || 0)}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${fmtAmt(inv.allocatedAmount || 0)}</td>
         <td style="padding:5px 10px;font-size:11px;text-align:left;">—</td>
       </tr>`).join("");
 
     const tableBody = linkedInvs.length > 0 ? invoiceRows : `
       <tr style="border-bottom:1px solid #edf0f4;">
         <td style="padding:5px 10px;font-size:11px;">${dateFormatted}</td>
-        <td style="padding:5px 10px;font-size:11px;font-family:monospace;">${savedReceiptNumber || refNumber || "—"}</td>
+        <td style="padding:5px 10px;font-size:11px;">${savedReceiptNumber || refNumber || "—"}</td>
         <td style="padding:5px 10px;font-size:11px;">${notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel)}</td>
         <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;font-family:monospace;">${isReceipt ? "" : fmtAmt(amt)}</td>
-        <td style="padding:5px 10px;font-size:11px;text-align:left;font-family:monospace;">${isReceipt ? fmtAmt(amt) : ""}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? "" : fmtAmt(amt)}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? fmtAmt(amt) : ""}</td>
       </tr>`;
 
     const depositLabel = depositType === "cash_box"
