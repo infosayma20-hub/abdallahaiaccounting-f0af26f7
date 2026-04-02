@@ -322,6 +322,16 @@ const AccountStatementV2Page = () => {
     return "شيكل";
   }, [rows, isAccountsTab, selectedAccount]);
 
+  const hasMixedCurrencies = useMemo(() => {
+    if (displayCurrency === "ILS") return false;
+    return rows.some(r => r.isConverted || r.isMismatch);
+  }, [rows, displayCurrency]);
+
+  const displayCurrencyLabel = useMemo(() => {
+    const entry = DISPLAY_CURRENCIES.find(c => c.value === displayCurrency);
+    return entry ? entry.label.replace("عرض بال", "").replace(" (افتراضي)", "") : "شيكل ₪";
+  }, [displayCurrency]);
+
   const filteredRows = useMemo(() => {
     let r = rows;
     if (txTypeFilter !== "all") r = r.filter(x => x.transaction_type.includes(txTypeFilter));
