@@ -219,7 +219,7 @@ const AppsLauncher = () => {
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
   return (
-    <div style={{ minHeight: "100%", background: "#f1f5f9" }} dir="rtl">
+    <div style={{ minHeight: "100%", background: "#f1f5f9", margin: "-1.25rem", marginBottom: 0 }} className="lg:-m-8 lg:mb-0" dir="rtl">
       
       <div className="max-w-5xl mx-auto px-8 pb-8" style={{ paddingTop: 48 }}>
         {/* Title */}
