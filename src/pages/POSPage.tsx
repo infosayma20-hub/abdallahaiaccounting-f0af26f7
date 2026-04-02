@@ -4154,8 +4154,17 @@ const POSPage = () => {
                         {/* Price + Qty row */}
                         <div className="flex items-center justify-between">
                           {(isAdmin || posPerms.can_edit_prices) ? (
-                            <div className="flex items-center gap-1">
-                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>₪</span>
+                            <div
+                              className="flex items-center gap-1.5 px-2.5"
+                              style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: '20px',
+                                height: '30px',
+                                transition: 'border-color 0.2s, background 0.2s',
+                              }}
+                            >
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>₪</span>
                               <input
                                 type="number"
                                 inputMode="decimal"
@@ -4163,21 +4172,20 @@ const POSPage = () => {
                                 style={{
                                   color: 'white',
                                   fontSize: '14px',
-                                  width: '55px',
-                                  padding: '2px 0',
+                                  width: '45px',
+                                  padding: 0,
                                   direction: 'ltr',
-                                  borderBottom: '1px solid rgba(255,255,255,0.15)',
-                                  borderRadius: 0,
-                                  transition: 'border-color 0.2s',
                                 }}
                                 value={item.unit_price}
                                 onWheel={e => (e.target as HTMLElement).blur()}
                                 onClick={e => e.stopPropagation()}
                                 onFocus={e => {
-                                  e.currentTarget.style.borderBottomColor = '#3b82f6';
+                                  const c = e.currentTarget.parentElement;
+                                  if (c) { c.style.borderColor = '#3b82f6'; c.style.background = 'rgba(59,130,246,0.1)'; }
                                 }}
                                 onBlur={e => {
-                                  e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.15)';
+                                  const c = e.currentTarget.parentElement;
+                                  if (c) { c.style.borderColor = 'rgba(255,255,255,0.15)'; c.style.background = 'rgba(255,255,255,0.08)'; }
                                 }}
                                 onChange={e => {
                                   const v = parseFloat(e.target.value);
