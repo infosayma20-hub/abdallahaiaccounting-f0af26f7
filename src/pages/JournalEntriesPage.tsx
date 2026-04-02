@@ -590,7 +590,7 @@ const JournalEntriesPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["سند صرف", "سند قبض", "قيد يومية", "فاتورة مشتريات", "فاتورة مبيعات", "receipt", "payment", "salary"].map(t => (
+                    {["سند صرف", "سند قبض", "قيد يومية", "فاتورة مشتريات", "فاتورة مبيعات", "receipt", "payment", "salary", "employee_advance", "employee_payment", "expense", "workshop_cost", "workshop_receipt", "cash_transfer"].map(t => (
                       <SelectItem key={t} value={t}>{typeDisplayMap[t] || t}</SelectItem>
                     ))}
                   </SelectContent>
