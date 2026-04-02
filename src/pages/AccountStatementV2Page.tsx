@@ -595,10 +595,10 @@ const AccountStatementV2Page = () => {
 
                 <div className="w-px h-5" style={{ background: "#E5E7EB" }} />
 
-                {/* Currency filter */}
-                <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                  <SelectTrigger className="h-7 w-28 text-[11px] border-gray-200"><SelectValue /></SelectTrigger>
-                  <SelectContent>{CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                {/* Currency display mode */}
+                <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
+                  <SelectTrigger className="h-7 w-40 text-[11px] border-gray-200"><SelectValue /></SelectTrigger>
+                  <SelectContent>{DISPLAY_CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
 
                 {/* Type filter */}
