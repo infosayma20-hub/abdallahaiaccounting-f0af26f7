@@ -1227,7 +1227,20 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
-              <Select value={form.currency} onValueChange={v => setForm(p => ({ ...p, currency: v }))}>
+              <Select value={form.currency} onValueChange={async (v) => {
+                setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
+                if (v !== "شيكل" && user) {
+                  const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                  const code = codeMap[v];
+                  if (code) {
+                    const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", user.id).maybeSingle();
+                    if (curr) {
+                      const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", user.id).order("rate_date", { ascending: false }).limit(1).maybeSingle();
+                      if (rate?.sell_rate) setForm(p => ({ ...p, exchangeRate: Number(rate.sell_rate) }));
+                    }
+                  }
+                }
+              }}>
                 <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
