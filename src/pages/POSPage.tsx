@@ -4273,9 +4273,9 @@ const POSPage = () => {
 
             {/* Table picker dropdown */}
             {showTablePicker && (
-              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
+              <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: 'white', borderColor: 'rgba(13,27,46,0.15)' }}>
                 {availableTables.length === 0 && (
-                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
+                  <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(13,27,46,0.4)' }}>جاري التحميل...</p>
                 )}
                 {activeOrder.tableId && (
                   <button
