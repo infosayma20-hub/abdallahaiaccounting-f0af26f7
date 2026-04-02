@@ -153,7 +153,9 @@ const numberToArabicWords = (num: number): string => {
   return parts.length > 0 ? `فقط ${parts.join(" و")} شيكل لا غير` : "صفر شيكل";
 };
 
-const fmtCurrency = (n: number) =>
+const CURRENCY_SYMBOLS: Record<string, string> = { "شيكل": "₪", "دولار": "$", "دينار": "د.ا", "يورو": "€" };
+
+const fmtCurrencyStatic = (n: number) =>
   `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // ─── Component ───
