@@ -101,7 +101,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             border: `1px solid ${t.border}`,
           }}>
             <div style={{ fontSize: 9, color: t.textMuted, marginBottom: 2 }}>{k.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: 'Cairo', sans-serif }}>{k.value}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: "'Cairo', sans-serif" }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -215,11 +215,11 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {r.amount && (
-                        <span style={{ fontSize: 12, fontFamily: 'Cairo', sans-serif, color: ACCENT }}>
+                        <span style={{ fontSize: 12, fontFamily: "'Cairo', sans-serif", color: ACCENT }}>
                           ₪{r.amount.toLocaleString()}
                         </span>
                       )}
-                      <span style={{ fontSize: 10, color: t.textFaint, fontFamily: 'Cairo', sans-serif }}>
+                      <span style={{ fontSize: 10, color: t.textFaint, fontFamily: "'Cairo', sans-serif" }}>
                         {new Date(r.createdAt).toLocaleDateString('ar', { day: '2-digit', month: '2-digit' })}
                       </span>
                     </div>

@@ -77,7 +77,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
         background: t.chipBg, borderRadius: 8,
         border: `1px solid ${t.border}`,
         fontSize: 10, color: t.textMuted,
-        fontFamily: 'Cairo', sans-serif,
+        fontFamily: "'Cairo', sans-serif",
         display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
       }}>
         💱 1 دينار = ₪{rates.jod}
@@ -109,7 +109,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                 </div>
                 <div style={{
                   fontSize: 18, fontWeight: 700,
-                  fontFamily: 'Cairo', sans-serif, color: 'white',
+                  fontFamily: "'Cairo', sans-serif", color: 'white',
                 }}>
                   {fmtAmt(total, currency)}
                 </div>
@@ -140,7 +140,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>بما يعادل:</div>
           <div style={{
             fontSize: 20, fontWeight: 700,
-            fontFamily: 'Cairo', sans-serif, color: 'white',
+            fontFamily: "'Cairo', sans-serif", color: 'white',
           }}>
             ₪ {totalILS.toLocaleString('en', { minimumFractionDigits: 2 })}
           </div>
@@ -173,7 +173,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                     </div>
                     <div style={{
                       fontSize: 16, fontWeight: 700,
-                      fontFamily: 'Cairo', sans-serif,
+                      fontFamily: "'Cairo', sans-serif",
                       color: box.balance === 0 ? t.textFaint : ACCENT,
                     }}>
                       {box.balance === 0 ? '—' : fmtAmt(box.balance, box.currency)}
@@ -187,7 +187,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
                   <span style={{ fontSize: 11, color: t.textMuted }}>الإجمالي بالشيكل:</span>
-                  <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'Cairo', sans-serif, color: t.text }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: t.text }}>
                     ₪ {branchTotal.toLocaleString('en', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
