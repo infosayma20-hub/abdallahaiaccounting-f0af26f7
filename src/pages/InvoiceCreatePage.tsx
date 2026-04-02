@@ -1311,7 +1311,7 @@ const InvoiceCreatePage = () => {
 
                 {/* Product */}
                 <div className="space-y-1">
-                  <Popover>
+                  <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
                     <PopoverTrigger asChild>
                       <button className="w-full flex items-center justify-between rounded-lg text-[11px] h-8 border-0 bg-background px-3 hover:bg-muted/50 transition-colors text-right">
                         <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
