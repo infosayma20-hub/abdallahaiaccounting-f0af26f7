@@ -192,14 +192,30 @@ const BankAccountsPage = () => {
       notes: notes || null,
     };
 
-    const { error } = editingBankId
-      ? await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", user.id)
-      : await supabase.from("bank_accounts").insert({ ...payload, user_id: user.id });
+    const isNew = !editingBankId;
+    const { error } = isNew
+      ? await supabase.from("bank_accounts").insert({ ...payload, user_id: user.id })
+      : await supabase.from("bank_accounts").update(payload).eq("id", editingBankId).eq("user_id", user.id);
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: editingBankId ? `✅ تم تعديل حساب ${finalBankName} بنجاح` : `✅ تم إضافة حساب ${finalBankName} بنجاح` });
+      // Create opening balance transaction for new bank accounts
+      if (isNew && Number(openingBalance) > 0 && glAccountCode) {
+        const obDate = openingBalanceDate || new Date().toISOString().split("T")[0];
+        await supabase.from("transactions").insert({
+          user_id: user.id,
+          transaction_date: obDate,
+          description: `رصيد افتتاحي — ${accountName}`,
+          debit_account_code: glAccountCode,
+          credit_account_code: "3200",
+          amount: Number(openingBalance),
+          currency: currency || "ILS",
+          transaction_type: "opening_balance",
+          idempotency_key: `BANK-OB-${Date.now()}`,
+        });
+      }
+      toast({ title: isNew ? `✅ تم إضافة حساب ${finalBankName} بنجاح` : `✅ تم تعديل حساب ${finalBankName} بنجاح` });
       setModalOpen(false);
       resetForm();
       fetchBanks();
