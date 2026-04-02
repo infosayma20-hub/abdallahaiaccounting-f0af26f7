@@ -844,9 +844,14 @@ const ChequesPage = () => {
           </button>
         ))}
         {cheques.length > 0 && (
-          <Button variant="ghost" size="sm" className="mr-auto gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={exportExcel}>
-            <Download className="h-3.5 w-3.5" /> Excel
-          </Button>
+          <div className="mr-auto flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={handlePrint}>
+              <Printer className="h-3.5 w-3.5" /> طباعة
+            </Button>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={exportExcel}>
+              <Download className="h-3.5 w-3.5" /> Excel
+            </Button>
+          </div>
         )}
       </div>
 
