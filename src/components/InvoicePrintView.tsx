@@ -17,6 +17,9 @@ interface InvoiceData {
   dueDate?: string;
   contactName: string;
   contactTaxNumber?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactAddress?: string;
   items: InvoiceItem[];
   notes: string;
   status: string;
