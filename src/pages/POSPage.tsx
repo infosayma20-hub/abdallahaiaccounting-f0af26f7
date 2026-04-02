@@ -4090,7 +4090,7 @@ const POSPage = () => {
                   }
                 }}
                 className="text-[11px] transition-colors flex items-center gap-1"
-                style={{ color: '#fca5a5' }}
+                style={{ color: '#dc2626' }}
               >
                 <Trash2 className="h-3 w-3" />
                 إفراغ
