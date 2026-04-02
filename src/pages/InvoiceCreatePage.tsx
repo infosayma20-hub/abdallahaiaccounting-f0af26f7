@@ -1348,13 +1348,13 @@ const InvoiceCreatePage = () => {
                   {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : "₪"}
                 </button>
 
-                {/* Tax */}
-                <Select value={String(item.taxRate)} onValueChange={v => updateItem(item.id, "taxRate", Number(v))}>
+                {/* Tax Category */}
+                <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
                   <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">0%</SelectItem>
-                    <SelectItem value="16">16%</SelectItem>
-                    <SelectItem value="17">17%</SelectItem>
+                    {TAX_CATEGORY_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
