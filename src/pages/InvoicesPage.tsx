@@ -60,6 +60,10 @@ interface Invoice {
   dueDate?: string;
   contactName: string;
   contactId?: string | null;
+  contactTaxNumber?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactAddress?: string;
   items: InvoiceItem[];
   notes: string;
   status: "draft" | "sent" | "paid";
@@ -202,7 +206,7 @@ const InvoicesPage = () => {
       // Fetch from database
       const { data: dbInvoices } = await supabase
         .from("invoices")
-        .select("*, invoice_items(*)")
+        .select("*, invoice_items(*), contacts(tax_number, phone, email, address)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -214,6 +218,10 @@ const InvoicesPage = () => {
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
         contactId: inv.contact_id || null,
+        contactTaxNumber: inv.contacts?.tax_number || '',
+        contactPhone: inv.contacts?.phone || '',
+        contactEmail: inv.contacts?.email || '',
+        contactAddress: inv.contacts?.address || inv.billing_address || '',
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,

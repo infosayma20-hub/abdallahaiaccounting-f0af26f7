@@ -941,6 +941,9 @@ const InvoiceCreatePage = () => {
     dueDate: form.dueDate,
     contactName: form.contactName || "—",
     contactTaxNumber: customerOverrides.tax_number || selectedContact?.tax_number,
+    contactPhone: customerOverrides.phone || selectedContact?.phone,
+    contactEmail: customerOverrides.email || selectedContact?.email,
+    contactAddress: customerOverrides.address || selectedContact?.address,
     items: form.items.map(i => ({
       description: i.description || "—",
       quantity: i.quantity,
