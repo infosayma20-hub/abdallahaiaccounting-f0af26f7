@@ -1399,7 +1399,7 @@ const InvoiceCreatePage = () => {
                               >
                                 <span>{p.name}</span>
                                 <span className="text-[9px] text-muted-foreground tabular-nums">
-                                  {form.type === "sales" ? `₪${p.sell_price}` : `₪${p.buy_price}`} • {p.quantity} {p.unit}
+                                  {form.type === "sales" ? `${currSymbol}${p.sell_price}` : `${currSymbol}${p.buy_price}`} • {p.quantity} {p.unit}
                                 </span>
                               </CommandItem>
                             ))}
