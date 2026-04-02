@@ -85,6 +85,7 @@ const createEmptyItem = (): InvoiceItem => ({
 
 const InvoicesPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
@@ -98,7 +99,8 @@ const InvoicesPage = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">("all");
+  const initialType = searchParams.get("type") === "purchase" ? "purchase" : searchParams.get("type") === "sales" ? "sales" : "all";
+  const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">(initialType);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreatePage, setShowCreatePage] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
