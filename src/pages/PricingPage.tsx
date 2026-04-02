@@ -84,7 +84,7 @@ const fallbackFeatures: Record<string, string[]> = {
     "إدارة متعددة الفروع",
     "صلاحيات متقدمة",
     "تكامل API",
-    "White-label",
+    
     "تقارير مخصصة + SLA",
     "مدير حساب مخصص",
     "تدريب شخصي",
