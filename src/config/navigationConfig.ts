@@ -131,7 +131,7 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "العمليات",
             children: [
-              { label: "الفواتير", path: "/invoices" },
+              { label: "الفواتير", path: "/invoices?type=sales" },
               { label: "الطلبيات", path: "/orders" },
               { label: "سندات القبض", path: "/finance/receipts" },
             ],
