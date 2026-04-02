@@ -1142,6 +1142,12 @@ const InvoicesPage = () => {
                             </Button>
                           </TooltipTrigger><TooltipContent side="top"><p className="text-xs">عرض</p></TooltipContent></Tooltip>
 
+                          <Tooltip><TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDirectPrint(inv)}>
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">طباعة</p></TooltipContent></Tooltip>
+
                           {canEdit({ status: inv.status }) && (
                             <Tooltip><TooltipTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate(`/invoices/new?edit=${inv.id}`)}>
