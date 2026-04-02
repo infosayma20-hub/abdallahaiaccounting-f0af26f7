@@ -35,7 +35,7 @@ const enterpriseApps: AppChip[] = [
   { id: "branches", label: "تعدد الفروع والشركات", moduleKey: "settings" },
   { id: "ecommerce", label: "المتاجر الإلكترونية", moduleKey: "ecommerce" },
   { id: "travel", label: "مالية السياحة والسفر", moduleKey: "travel" },
-  { id: "whitelabel", label: "White-label", moduleKey: "customization" },
+  
   { id: "api", label: "تكامل API", moduleKey: "customization" },
   { id: "manager", label: "مدير حساب مخصص", moduleKey: "reps" },
   { id: "sla", label: "تقارير مخصصة + SLA", moduleKey: "reports" },
