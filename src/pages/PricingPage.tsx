@@ -92,6 +92,14 @@ const fallbackFeatures: Record<string, string[]> = {
   ],
 };
 
+// ILS prices for add-ons (overrides DB values)
+const addonPricesILS: Record<string, { annual: number; monthly: number }> = {
+  pos: { annual: 2200, monthly: Math.round(2200 / 12) },
+  payroll: { annual: 440, monthly: Math.round(440 / 12) },
+  websites: { annual: 1760, monthly: Math.round(1760 / 12) },
+  users: { annual: 880, monthly: Math.round(880 / 12) },
+};
+
 const fallbackPrices: Record<string, { monthly: number; annual: number; maxUsers: number; maxCompanies: number }> = {
   starter: { monthly: 19, annual: 182, maxUsers: 2, maxCompanies: 1 },
   professional: { monthly: 39, annual: 374, maxUsers: 10, maxCompanies: 3 },
@@ -382,7 +390,11 @@ const PricingPage = () => {
               </div>
               <div className="text-left shrink-0">
                 <p className="font-bold text-[#0A2342] text-sm">
-                  ${billing === "annual" ? addon.price_per_unit_annual.toFixed(2) : addon.price_per_unit_monthly.toFixed(2)} ₪
+                  ₪{(() => {
+                    const ilsPrice = addonPricesILS[addon.addon_key];
+                    if (ilsPrice) return billing === "annual" ? ilsPrice.annual.toLocaleString() : ilsPrice.monthly.toLocaleString();
+                    return billing === "annual" ? addon.price_per_unit_annual.toFixed(0) : addon.price_per_unit_monthly.toFixed(0);
+                  })()}
                 </p>
                 <p className="text-[10px] text-gray-400">{billing === "annual" ? "/ سنة" : "/ شهر"}</p>
               </div>
@@ -399,15 +411,23 @@ const PricingPage = () => {
           ))}
         </div>
 
-        {addonTotal > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="text-center p-4 rounded-2xl border-2 border-[#4A9EE8] bg-blue-50">
-            <p className="text-sm text-gray-600">إجمالي الإضافات:</p>
-            <p className="text-2xl font-extrabold text-[#0A2342]">
-              ${addonTotal.toFixed(2)} <span className="text-sm font-normal text-gray-400">/ {billing === "annual" ? "سنة" : "شهر"}</span>
-            </p>
-          </motion.div>
-        )}
+        {(() => {
+          const ilsTotal = addons.reduce((sum, a) => {
+            const qty = addonCounts[a.addon_key] || 0;
+            const ilsPrice = addonPricesILS[a.addon_key];
+            if (ilsPrice) return sum + qty * (billing === "annual" ? ilsPrice.annual : ilsPrice.monthly);
+            return sum + qty * (billing === "annual" ? a.price_per_unit_annual : a.price_per_unit_monthly);
+          }, 0);
+          return ilsTotal > 0 ? (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="text-center p-4 rounded-2xl border-2 border-[#4A9EE8] bg-blue-50">
+              <p className="text-sm text-gray-600">إجمالي الإضافات:</p>
+              <p className="text-2xl font-extrabold text-[#0A2342]">
+                ₪{ilsTotal.toLocaleString()} <span className="text-sm font-normal text-gray-400">/ {billing === "annual" ? "سنة" : "شهر"}</span>
+              </p>
+            </motion.div>
+          ) : null;
+        })()}
       </div>
 
       {/* Comparison Table — 3 columns */}
