@@ -884,6 +884,7 @@ const ChequesPage = () => {
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">الإصدار</th>
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الاستحقاق" field="cheque_date" /></th>
+                  <th className="px-2 py-3 text-right text-xs font-semibold">المتبقي</th>
                   <th className="px-2 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
                   <th className="px-2 py-3 text-right text-xs font-semibold">إجراءات</th>
                 </tr>
