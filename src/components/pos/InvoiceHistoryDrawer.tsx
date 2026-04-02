@@ -881,14 +881,14 @@ export default function InvoiceHistoryDrawer({
               {loadingDetail ? (
                 <div className="py-8 text-center text-sm text-gray-400">جاري التحميل...</div>
               ) : (
-                <div className="mt-2">
-                  <table className="w-full text-xs">
+                <div className="mt-2 rounded-xl border border-border overflow-hidden">
+                  <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr style={{ background: "#0A2342", color: "white" }}>
-                        <th className="py-2 px-3 text-right font-medium rounded-tr-lg">الصنف</th>
+                        <th className="py-2 px-3 text-right font-medium">الصنف</th>
                         <th className="py-2 px-3 text-center font-medium">الكمية</th>
                         <th className="py-2 px-3 text-center font-medium">السعر</th>
-                        <th className="py-2 px-3 text-left font-medium rounded-tl-lg">الإجمالي</th>
+                        <th className="py-2 px-3 text-left font-medium">الإجمالي</th>
                       </tr>
                     </thead>
                     <tbody>

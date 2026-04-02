@@ -564,9 +564,9 @@ const InventoryPage = () => {
 
       {/* TABLE */}
       {!loading && paged.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm border-collapse">
               {/* Header */}
               <thead>
                 <tr className="bg-primary text-primary-foreground">

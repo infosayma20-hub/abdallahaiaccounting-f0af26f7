@@ -500,9 +500,9 @@ const FinanceJournalPage = () => {
 
       {/* TABLE */}
       {!loading && paged.length > 0 && (
-        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الرقم" field="ref_number" /></th>
@@ -773,8 +773,8 @@ const FinanceJournalPage = () => {
             </div>
 
             {/* Journal Lines Table */}
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-muted/50 text-xs text-muted-foreground">
                     <th className="text-right py-2.5 px-3 w-10">#</th>

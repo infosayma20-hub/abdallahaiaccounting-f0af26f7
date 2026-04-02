@@ -752,9 +752,9 @@ const TransactionsPage = () => {
 
       {/* TABLE */}
       {!loading && !error && paginatedTransactions.length > 0 && (
-        <div className="border border-border/50 overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm table-fixed">
+            <table className="w-full text-sm table-fixed border-collapse">
               <colgroup>
                 <col className="w-[3%]" />
                 <col className="w-[10%]" />
