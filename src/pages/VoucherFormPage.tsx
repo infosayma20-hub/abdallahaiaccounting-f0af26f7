@@ -1075,9 +1075,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const dateFormatted = new Date(paymentDate).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
     const typeLabel = isReceipt ? "سند قبض" : "سند صرف";
-    const typeBadge = isReceipt ? "Receipt Voucher" : "Payment Voucher";
+    const typeBadge = typeLabel;
+    const typeBadgeEn = isReceipt ? "Receipt Voucher" : "Payment Voucher";
 
-    const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط لا غير`;
+    const amountInWords = `${Math.floor(amt)} ${currencyLabel}${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط`;
 
     const chequeHtml = paymentMethod === "شيك" && cheques.length > 0 ? `
       <div style="margin-top:16px;">
