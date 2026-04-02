@@ -481,7 +481,7 @@ const InvoicesPage = () => {
       return;
     }
     setCreating(true);
-    if (isNewContact) await createContactInAirtable(form.contactName.trim());
+    if (isNewContact) await createContactInDB(form.contactName.trim());
 
     const paymentMethodAr = form.paymentMethod === 'cash' ? 'نقدي' : form.paymentMethod === 'transfer' ? 'بنك' : form.paymentMethod === 'cheque' ? 'شيك' : 'آجل';
 
