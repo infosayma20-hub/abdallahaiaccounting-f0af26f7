@@ -160,7 +160,7 @@ export default function PortalSettings() {
           </div>
           <input value={linkedUserId} onChange={e => setLinkedUserId(e.target.value)}
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            style={{ ...inputStyle, fontFamily: 'Cairo', sans-serif, fontSize: 12 }}
+            style={{ ...inputStyle, fontFamily: "'Cairo', sans-serif", fontSize: 12 }}
           />
         </div>
 
@@ -309,7 +309,7 @@ export default function PortalSettings() {
               <tbody>
                 {users.map(u => (
                   <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'Cairo', sans-serif, color: '#333' }}>{u.username}</td>
+                    <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: "'Cairo', sans-serif", color: '#333' }}>{u.username}</td>
                     <td style={{ padding: '10px 12px', fontSize: 13, color: '#333' }}>{u.full_name}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
@@ -320,7 +320,7 @@ export default function PortalSettings() {
                         {u.role === 'owner' ? 'مالك' : u.role === 'manager' ? 'مدير' : 'مشاهد'}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 12px', fontSize: 11, color: '#999', fontFamily: 'Cairo', sans-serif }}>
+                    <td style={{ padding: '10px 12px', fontSize: 11, color: '#999', fontFamily: "'Cairo', sans-serif" }}>
                       {u.last_login ? new Date(u.last_login).toLocaleDateString('ar') : '—'}
                     </td>
                     <td style={{ padding: '10px 12px' }}>

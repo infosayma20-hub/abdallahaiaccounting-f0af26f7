@@ -61,7 +61,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
     border: `1px solid ${t.inputBorder}`,
     borderRadius: 10, padding: '0 12px',
     color: t.text, fontSize: 13, outline: 'none',
-    fontFamily: 'Cairo', sans-serif,
+    fontFamily: "'Cairo', sans-serif",
     width: '100%',
   };
 
@@ -121,7 +121,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                 border: `1px solid ${t.border}`,
               }}>
                 <div style={{ fontSize: 9, color: t.textMuted, marginBottom: 2 }}>{k.label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: 'Cairo', sans-serif }}>{k.value}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: "'Cairo', sans-serif" }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -168,7 +168,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                         background: t.subCard, borderRadius: 8, padding: '6px 8px',
                       }}>
                         <div style={{ fontSize: 9, color: t.textFaint, marginBottom: 2 }}>{item.label}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Cairo', sans-serif, color: item.color }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: item.color }}>
                           {item.value}
                         </div>
                       </div>
@@ -192,7 +192,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                   ].map(item => (
                     <div key={item.label}>
                       <div style={{ fontSize: 9, color: t.textFaint, marginBottom: 2 }}>{item.label}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Cairo', sans-serif, color: item.color }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: item.color }}>
                         {item.value}
                       </div>
                     </div>

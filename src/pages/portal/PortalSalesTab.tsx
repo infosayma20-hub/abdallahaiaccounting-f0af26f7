@@ -33,7 +33,7 @@ function KPICard({ icon, label, value, sub, accent, t }: {
       </div>
       <div style={{
         fontSize: accent ? 22 : 18, fontWeight: 700,
-        fontFamily: 'Cairo', sans-serif,
+        fontFamily: "'Cairo', sans-serif",
         color: accent ? ACCENT : t.text,
       }}>{value}</div>
       {sub && <div style={{ fontSize: 9, color: t.textFaint, marginTop: 3 }}>{sub}</div>}
@@ -71,7 +71,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
           </div>
         </div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Cairo', sans-serif, color: 'white' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: 'white' }}>
             {fmt(branch.totalSales)}
           </div>
           <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{branch.orderCount} طلب</div>
@@ -127,10 +127,10 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
-                <div style={{ fontSize: 10, fontFamily: 'Cairo', sans-serif, color: t.textMuted }}>
+                <div style={{ fontSize: 10, fontFamily: "'Cairo', sans-serif", color: t.textMuted }}>
                   {meal.quantity}×
                 </div>
-                <div style={{ fontSize: 10, fontFamily: 'Cairo', sans-serif, color: ACCENT }}>
+                <div style={{ fontSize: 10, fontFamily: "'Cairo', sans-serif", color: ACCENT }}>
                   {fmt(meal.revenue)}
                 </div>
               </div>
@@ -195,7 +195,7 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
           <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{group.groupName}</div>
         </div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'Cairo', sans-serif, color: 'white' }}>{fmt(group.totalSales)}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: 'white' }}>{fmt(group.totalSales)}</div>
           <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{group.orderCount} طلب • متوسط {fmt(group.avgOrder)}</div>
         </div>
       </div>
@@ -205,7 +205,7 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
         {group.cashBoxes.map(cb => (
           <div key={cb.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
             <span style={{ color: t.text }}>{cb.name}</span>
-            <span style={{ fontFamily: 'Cairo', sans-serif, color: ACCENT }}>{fmt(cb.sales)} ({cb.orders})</span>
+            <span style={{ fontFamily: "'Cairo', sans-serif", color: ACCENT }}>{fmt(cb.sales)} ({cb.orders})</span>
           </div>
         ))}
       </div>
@@ -227,8 +227,8 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
-                <div style={{ fontSize: 10, fontFamily: 'Cairo', sans-serif, color: t.textMuted }}>{meal.quantity}×</div>
-                <div style={{ fontSize: 10, fontFamily: 'Cairo', sans-serif, color: ACCENT }}>{fmt(meal.revenue)}</div>
+                <div style={{ fontSize: 10, fontFamily: "'Cairo', sans-serif", color: t.textMuted }}>{meal.quantity}×</div>
+                <div style={{ fontSize: 10, fontFamily: "'Cairo', sans-serif", color: ACCENT }}>{fmt(meal.revenue)}</div>
               </div>
             </div>
           ))}
@@ -275,15 +275,15 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
       }}>
         <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 10, color: t.textMuted }}>عدد الأصناف</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: ACCENT, fontFamily: 'Cairo', sans-serif }}>{allItems.length}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: ACCENT, fontFamily: "'Cairo', sans-serif" }}>{allItems.length}</div>
         </div>
         <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 10, color: t.textMuted }}>إجمالي الكميات</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: t.text, fontFamily: 'Cairo', sans-serif }}>{totalItems}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: t.text, fontFamily: "'Cairo', sans-serif" }}>{totalItems}</div>
         </div>
         <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 10, color: t.textMuted }}>إجمالي الإيراد</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: ACCENT, fontFamily: 'Cairo', sans-serif }}>{fmt(totalRevenue)}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: ACCENT, fontFamily: "'Cairo', sans-serif" }}>{fmt(totalRevenue)}</div>
         </div>
       </div>
 
@@ -331,8 +331,8 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0, minWidth: 70 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Cairo', sans-serif, color: t.text }}>{item.quantity}×</div>
-                <div style={{ fontSize: 10, fontFamily: 'Cairo', sans-serif, color: ACCENT }}>{fmt(item.revenue)}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: t.text }}>{item.quantity}×</div>
+                <div style={{ fontSize: 10, fontFamily: "'Cairo', sans-serif", color: ACCENT }}>{fmt(item.revenue)}</div>
               </div>
             </div>
           ))}
@@ -512,7 +512,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
             style={{
               background: t.card, border: `1px solid ${t.border}`,
               borderRadius: 8, padding: '6px 10px', fontSize: 11,
-              color: t.text, fontFamily: 'Cairo', sans-serif,
+              color: t.text, fontFamily: "'Cairo', sans-serif",
               outline: 'none',
             }}
           />
@@ -526,7 +526,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
             style={{
               background: t.card, border: `1px solid ${t.border}`,
               borderRadius: 8, padding: '6px 10px', fontSize: 11,
-              color: t.text, fontFamily: 'Cairo', sans-serif,
+              color: t.text, fontFamily: "'Cairo', sans-serif",
               outline: 'none',
             }}
           />
