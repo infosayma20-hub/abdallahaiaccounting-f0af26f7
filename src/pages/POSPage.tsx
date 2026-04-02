@@ -2299,7 +2299,7 @@ const POSPage = () => {
         if (existingOrder) {
           // Use existing order - update its totals and delete old lines
           await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
-          await supabase.from("pos_orders").update({
+           await supabase.from("pos_orders").update({
             customer_name: customerName || null,
             customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
@@ -2309,6 +2309,7 @@ const POSPage = () => {
             order_type: activeOrder.orderType,
             delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
             pos_customer_id: activeOrder.posCustomerId || null,
+            order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
           } as any).eq("id", existingOrder.id);
@@ -2316,9 +2317,38 @@ const POSPage = () => {
           orderObj = { id: existingOrder.id };
         } else {
           // Create new order
-          const { data: order, error: orderError } = await supabase
-            .from("pos_orders")
-            .insert({
+           const { data: order, error: orderError } = await supabase
+              .from("pos_orders")
+              .insert({
+                user_id: dataOwnerId,
+                company_id: company.id,
+                session_id: session.id,
+                customer_name: customerName || null,
+                customer_id: activeOrder.customerId || null,
+                subtotal: cartTotals.subtotal,
+                discount_amount: effectiveDiscount,
+                tax_amount: cartTotals.tax,
+                total: effectiveTotal,
+                state: "draft",
+                table_id: activeOrder.tableId,
+                guest_count: activeOrder.guestCount,
+                guest_name: activeOrder.guestName || null,
+                order_type: activeOrder.orderType,
+                delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+                pos_customer_id: activeOrder.posCustomerId || null,
+                order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
+                ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
+              } as any)
+            .select()
+            .single();
+          if (orderError) throw orderError;
+          orderId = order.id;
+          orderObj = order;
+        }
+      } else {
+        const { data: order, error: orderError } = await supabase
+          .from("pos_orders")
+           .insert({
               user_id: dataOwnerId,
               company_id: company.id,
               session_id: session.id,
@@ -2329,39 +2359,12 @@ const POSPage = () => {
               tax_amount: cartTotals.tax,
               total: effectiveTotal,
               state: "draft",
-              table_id: activeOrder.tableId,
-              guest_count: activeOrder.guestCount,
-              guest_name: activeOrder.guestName || null,
               order_type: activeOrder.orderType,
               delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
               pos_customer_id: activeOrder.posCustomerId || null,
+              order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             } as any)
-            .select()
-            .single();
-          if (orderError) throw orderError;
-          orderId = order.id;
-          orderObj = order;
-        }
-      } else {
-        const { data: order, error: orderError } = await supabase
-          .from("pos_orders")
-          .insert({
-            user_id: dataOwnerId,
-            company_id: company.id,
-            session_id: session.id,
-            customer_name: customerName || null,
-            customer_id: activeOrder.customerId || null,
-            subtotal: cartTotals.subtotal,
-            discount_amount: effectiveDiscount,
-            tax_amount: cartTotals.tax,
-            total: effectiveTotal,
-            state: "draft",
-            order_type: activeOrder.orderType,
-            delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
-            pos_customer_id: activeOrder.posCustomerId || null,
-            ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
-          } as any)
           .select()
           .single();
         if (orderError) throw orderError;
