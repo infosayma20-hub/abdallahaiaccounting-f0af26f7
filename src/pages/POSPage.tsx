@@ -4156,8 +4156,8 @@ const POSPage = () => {
                             <div
                               className="flex items-center h-[28px] rounded-md overflow-hidden transition-all"
                               style={{
-                                background: 'rgba(255,255,255,0.08)',
-                                border: '1px solid rgba(255,255,255,0.15)',
+                                background: 'rgba(13,27,46,0.06)',
+                                border: '1px solid rgba(13,27,46,0.15)',
                                 width: '70px',
                               }}
                             >
