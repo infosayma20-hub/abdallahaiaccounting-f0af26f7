@@ -258,9 +258,9 @@ const PricingPage = () => {
   };
 
   return (
-    <div className="min-h-screen" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      {/* Hero gradient */}
-      <div className="relative" style={{ background: "linear-gradient(180deg, #050F1E 0%, #0A2342 50%, #F4F7FA 50%)" }}>
+    <div className="min-h-screen bg-white" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      {/* Hero — Light Mode */}
+      <div className="relative bg-[#F8FAFB]">
         {reason === "trial_expired" && (
           <div className="bg-red-500 text-white text-center py-3 text-sm font-medium">
             ❌ انتهت فترتك التجريبية — اشترك الآن للاستمرار
@@ -269,24 +269,24 @@ const PricingPage = () => {
 
         <div className="max-w-7xl mx-auto px-5 pt-8 pb-8">
           <div className="mb-6">
-            <BackButton fallback="/apps" className="bg-white/10 hover:bg-white/20" />
+            <BackButton fallback="/apps" className="bg-gray-100 hover:bg-gray-200" />
           </div>
 
           {/* Header */}
           <div className="text-center mb-10">
-            <h1 className="text-[32px] font-extrabold text-white mb-3">
-              <span className="text-[hsl(43,55%,54%)]">AMWALI</span>
+            <h1 className="text-[32px] font-extrabold text-[#0D1B2E] mb-3">
+              AMWALI
             </h1>
-            <h2 className="text-[32px] font-extrabold text-white mb-3">اختر الخطة المناسبة لعملك</h2>
-            <p className="text-base text-white/70">ابدأ مجاناً لمدة 14 يوماً — لا حاجة لبطاقة ائتمان</p>
+            <h2 className="text-[32px] font-extrabold text-[#0D1B2E] mb-3">اختر الخطة المناسبة لعملك</h2>
+            <p className="text-base text-gray-500">ابدأ مجاناً لمدة 14 يوماً — لا حاجة لبطاقة ائتمان</p>
           </div>
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-3 mb-12">
-            <button onClick={() => setBilling("monthly")} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${billing === "monthly" ? "bg-[#4A9EE8] text-[#0A2342]" : "bg-white/10 text-white/70 hover:bg-white/20"}`}>
+            <button onClick={() => setBilling("monthly")} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${billing === "monthly" ? "bg-[#0D1B2E] text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300"}`}>
               شهري
             </button>
-            <button onClick={() => setBilling("annual")} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${billing === "annual" ? "bg-[#4A9EE8] text-[#0A2342]" : "bg-white/10 text-white/70 hover:bg-white/20"}`}>
+            <button onClick={() => setBilling("annual")} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${billing === "annual" ? "bg-[#0D1B2E] text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300"}`}>
               سنوي
               <span className="bg-green-500 text-white text-[11px] px-2 py-0.5 rounded-full">وفر حتى 20% 🏷️</span>
             </button>
