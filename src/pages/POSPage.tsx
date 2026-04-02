@@ -4073,7 +4073,7 @@ const POSPage = () => {
               </div>
             )}
             {activeOrder.tableName && (
-              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#93c5fd' }}>
+              <div className="flex items-center gap-1.5 text-[11px] mb-1" style={{ color: '#1d4ed8' }}>
                 <UtensilsCrossed className="h-3 w-3" />
                 <span>{activeOrder.tableName}</span>
               </div>
