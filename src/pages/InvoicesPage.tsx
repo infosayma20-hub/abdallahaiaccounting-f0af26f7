@@ -281,29 +281,23 @@ const InvoicesPage = () => {
       .eq("is_deleted", false)
       .in("contact_id", contactIds);
     
-    const balanceMap: Record<string, number> = {};
+    const customerBalanceMap: Record<string, number> = {};
+    const supplierBalanceMap: Record<string, number> = {};
     ((txData as any[]) || []).forEach((tx: any) => {
       const cid = tx.contact_id;
       if (!cid) return;
       const amt = Number(tx.amount || 0);
-      // For customers (1130): debit increases balance (they owe us), credit decreases
-      if (tx.debit_account_code === "1130") {
-        balanceMap[cid] = (balanceMap[cid] || 0) + amt;
-      } else if (tx.credit_account_code === "1130") {
-        balanceMap[cid] = (balanceMap[cid] || 0) - amt;
-      }
-      // For suppliers (2100): credit increases balance (we owe them), debit decreases
-      if (tx.credit_account_code === "2100") {
-        balanceMap[cid] = (balanceMap[cid] || 0) + amt;
-      } else if (tx.debit_account_code === "2100") {
-        balanceMap[cid] = (balanceMap[cid] || 0) - amt;
-      }
+      if (tx.debit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
+      if (tx.credit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
+      if (tx.credit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
+      if (tx.debit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
     });
     
-    const withBalances = contactsList.map(c => ({
-      ...c,
-      balance: balanceMap[c.id] || 0,
-    }));
+    const withBalances = contactsList.map(c => {
+      const isSupplier = c.contact_type === "مورد";
+      const balance = isSupplier ? (supplierBalanceMap[c.id] || 0) : (customerBalanceMap[c.id] || 0);
+      return { ...c, balance };
+    });
     setContacts(withBalances);
   };
 
