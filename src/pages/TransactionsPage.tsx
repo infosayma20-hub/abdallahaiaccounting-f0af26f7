@@ -766,26 +766,26 @@ const TransactionsPage = () => {
                 <col className="w-[4%]" />
               </colgroup>
               <thead className="sticky top-0 z-10">
-                <tr className="bg-muted/60 border-b-2 border-border">
-                  <th className="px-2 py-3 text-center">
+                <tr className="border-b-[3px] border-primary">
+                  <th className="px-2 py-3 text-center bg-background">
                     <Checkbox
                       checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                       onCheckedChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="px-3 py-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-foreground bg-background cursor-pointer select-none hover:text-primary transition-colors" onClick={() => toggleSort("date")}>
                     <div className="flex items-center gap-1.5">التاريخ <SortIcon field="date" /></div>
                   </th>
-                  <th className="px-3 py-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider">المرجع</th>
-                  <th className="px-3 py-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider">الوصف / الحسابات</th>
-                  <th className="px-3 py-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider">النوع</th>
-                  <th className="px-3 py-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("debit")}>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-foreground bg-background">المرجع</th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-foreground bg-background">الوصف / الحسابات</th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-foreground bg-background">النوع</th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-foreground bg-background cursor-pointer select-none hover:text-primary transition-colors" onClick={() => toggleSort("debit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="debit" /> مدين ₪</div>
                   </th>
-                  <th className="px-3 py-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("credit")}>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold text-foreground bg-background cursor-pointer select-none hover:text-primary transition-colors" onClick={() => toggleSort("credit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="credit" /> دائن ₪</div>
                   </th>
-                  <th className="px-3 py-3 w-10"></th>
+                  <th className="px-3 py-3 w-10 bg-background"></th>
                 </tr>
               </thead>
               <tbody>
