@@ -1015,11 +1015,11 @@ const InvoicesPage = () => {
           <CardContent className="px-3 pb-4">
             {/* Table Header */}
             <div className="grid grid-cols-12 gap-1 px-1 mb-2">
-              <span className="col-span-4 text-[10px] font-semibold text-muted-foreground">المنتج</span>
+              <span className="col-span-3 text-[10px] font-semibold text-muted-foreground">المنتج</span>
               <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">الكمية</span>
               <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">السعر</span>
               <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">خصم</span>
-              <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">ضريبة%</span>
+              <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">تصنيف الضريبة</span>
               <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">الإجمالي</span>
               <span className="col-span-1"></span>
             </div>
