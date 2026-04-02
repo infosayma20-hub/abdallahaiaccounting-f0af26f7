@@ -1457,7 +1457,7 @@ const InvoiceCreatePage = () => {
                   className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors"
                   title={item.discountType === "percent" ? "خصم نسبي" : "خصم ثابت"}
                 >
-                  {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : "₪"}
+                  {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : currSymbol}
                 </button>
 
                 {/* Tax Category */}
