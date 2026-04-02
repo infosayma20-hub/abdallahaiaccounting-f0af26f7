@@ -127,7 +127,7 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
 function TypeBadge({ type }: { type: string }) {
   const c = typeBadgeConfig[type] || { label: type || "—", bg: "bg-[#F3F4F6]", text: "text-[#374151]" };
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${c.bg} ${c.text}`}>
+    <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${c.bg} ${c.text}`}>
       {c.label}
     </span>
   );
