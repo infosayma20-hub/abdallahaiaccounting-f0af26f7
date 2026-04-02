@@ -208,13 +208,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <span
             style={{
               display: "inline-block",
-              background: copyLabel === "أصلية" ? "#DC2626" : "#6B7280",
-              color: "white",
+              background: copyLabel === "أصلية" ? "#EEF2FF" : "#F3F4F6",
+              color: copyLabel === "أصلية" ? "#1B3A5C" : "#6B7280",
               padding: "3px 20px",
               borderRadius: "4px",
               fontSize: "10px",
               fontWeight: 700,
               letterSpacing: "1px",
+              border: `1px solid ${copyLabel === "أصلية" ? "#C7D2FE" : "#D1D5DB"}`,
             }}
           >
             {copyLabel === "أصلية" ? "نسخة أصلية" : `نسخة ${copyLabel}`}
