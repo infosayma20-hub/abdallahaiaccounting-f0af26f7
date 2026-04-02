@@ -423,32 +423,32 @@ const OrdersPage = () => {
           </div>
 
           {/* Orders Table */}
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">رقم الطلبية</TableHead>
-                  <TableHead className="text-right">العميل</TableHead>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">الإجمالي</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right">الدفع</TableHead>
-                  <TableHead className="text-right">المصدر</TableHead>
-                  <TableHead className="text-right">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr style={{ background: '#0D1B2E', color: '#fff' }}>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">رقم الطلبية</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">العميل</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">التاريخ</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">الإجمالي</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">الدفع</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">المصدر</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell></TableRow>
+                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</TableCell></TableRow>
-                ) : filtered.map(o => (
-                  <TableRow key={o.id}>
-                    <TableCell className="font-mono text-xs">{o.order_number || "—"}</TableCell>
-                    <TableCell className="font-medium">{o.customer_name}</TableCell>
-                    <TableCell className="text-xs">{fmtDateDisplay(o.order_date)}</TableCell>
-                    <TableCell className="font-medium">{Number(o.total).toLocaleString()} ₪</TableCell>
-                    <TableCell>
+                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</td></tr>
+                ) : filtered.map((o, i) => (
+                  <tr key={o.id} className="border-b transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', background: i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                    <td className="px-3 py-3 font-mono text-xs" style={{ color: '#64748B' }}>{o.order_number || "—"}</td>
+                    <td className="px-3 py-3 text-sm font-semibold" style={{ color: '#1E293B' }}>{o.customer_name}</td>
+                    <td className="px-3 py-3 text-xs" style={{ color: '#64748B' }}>{fmtDateDisplay(o.order_date)}</td>
+                    <td className="px-3 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{Number(o.total).toLocaleString()} ₪</td>
+                    <td className="px-3 py-3">
                       <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
                         <SelectTrigger className={`h-7 text-xs w-[120px] border-0 ${statusColors[o.status] || ""}`}>
                           <SelectValue />
@@ -457,8 +457,8 @@ const OrdersPage = () => {
                           {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="px-3 py-3">
                       <Badge
                         variant={o.payment_status === "مدفوع" ? "default" : "secondary"}
                         className="text-[10px] cursor-pointer"
@@ -466,9 +466,9 @@ const OrdersPage = () => {
                       >
                         {o.payment_status}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">{o.source}</TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="px-3 py-3 text-xs" style={{ color: '#64748B' }}>{o.source}</td>
+                    <td className="px-3 py-3">
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="عرض التفاصيل"
                           onClick={() => { setShowDetail(o); fetchOrderItems(o.id); }}>
@@ -491,12 +491,12 @@ const OrdersPage = () => {
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </Card>
+                </tbody>
+              </table>
+            </div>
         </TabsContent>
 
         {/* ═══════ Reports Tab ═══════ */}
