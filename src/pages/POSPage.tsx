@@ -3969,7 +3969,7 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#0D1B2E' }}>
+        <div className="pos-order-panel w-[320px] flex flex-col shrink-0" style={{ background: '#E8F0FE' }}>
           {/* Order Tabs */}
           <div className="flex items-center gap-1 px-3 pt-3 pb-2 shrink-0">
             {orders.map((order, idx) => {
