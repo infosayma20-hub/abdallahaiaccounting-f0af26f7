@@ -1273,7 +1273,7 @@ const InvoiceCreatePage = () => {
 
           <div className="space-y-2">
             {form.items.map((item, idx) => (
-              <div key={item.id} className="lg:grid lg:grid-cols-[30px_1fr_70px_90px_70px_30px_70px_100px_30px] gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0">
+              <div key={item.id} className="lg:grid lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0">
                 {/* Row number */}
                 <span className="hidden lg:block text-[10px] text-muted-foreground font-mono text-center">{idx + 1}</span>
 
