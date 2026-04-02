@@ -9,9 +9,10 @@ import {
   Clock, AlertTriangle, Ban, RefreshCw, ChevronDown,
   Building2, Calendar, Hash, User, Banknote,
   ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
-  ArrowUpDown, Zap, Download,
+  ArrowUpDown, Zap, Download, Printer,
   ChevronLeft, ChevronRight, Loader2, X, Send
 } from "lucide-react";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
