@@ -1099,9 +1099,20 @@ const InvoicesPage = () => {
                   <div className="col-span-1">
                     <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
                   </div>
-                  {/* Tax */}
-                  <div className="col-span-1">
-                    <Input type="number" min={0} max={100} value={item.taxRate} onChange={e => updateItem(item.id, "taxRate", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  {/* Tax Category Dropdown */}
+                  <div className="col-span-2">
+                    <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
+                      <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TAX_CATEGORY_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-[11px]">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   {/* Subtotal */}
                   <div className="col-span-2 text-center">
