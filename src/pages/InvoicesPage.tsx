@@ -1047,8 +1047,10 @@ const InvoicesPage = () => {
                             items: prev.items.map(it => {
                               if (it.id !== item.id) return it;
                               const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
-                              const updated = { ...it, productId: prod.id, description: prod.name, unitPrice: price > 0 ? price : it.unitPrice };
-                              updated.subtotal = calcItemSubtotal(updated);
+                              const prodTaxRate = Number(prod.tax_rate || 0);
+                              const taxCat: TaxCategory = prodTaxRate > 0 ? "taxable" : "taxable";
+                              const updated = { ...it, productId: prod.id, description: prod.name, unitPrice: price > 0 ? price : it.unitPrice, taxCategory: taxCat, taxRate: taxCat === "taxable" ? 16 : 0 };
+                              updated.subtotal = calcItemSubtotal(updated, prev.pricesInclusive);
                               return updated;
                             }),
                           }));
