@@ -308,7 +308,11 @@ const JournalNewPage = () => {
         }
         
         if (txns.length > 0) {
-          await supabase.from("transactions").insert(txns);
+          const { data: txData } = await supabase.from("transactions").insert(txns).select("id").limit(1);
+          // Link the first transaction to the voucher for cascade delete support
+          if (txData && txData.length > 0) {
+            await supabase.from("vouchers").update({ linked_transaction_id: txData[0].id }).eq("id", voucher.id);
+          }
         }
       }
 
