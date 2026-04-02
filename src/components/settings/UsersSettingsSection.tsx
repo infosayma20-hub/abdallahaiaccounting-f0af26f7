@@ -390,11 +390,11 @@ const UsersSettingsSection = () => {
             <span className="w-1 h-5 bg-primary rounded-full" />
             مصفوفة الصلاحيات
           </h3>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
-                  <th className="p-3 text-right font-semibold rounded-tr-xl">الدور / الوحدة</th>
+                  <th className="p-3 text-right font-semibold">الدور / الوحدة</th>
                   {MODULES.map(m => (
                     <th key={m.key} className="p-3 text-center font-semibold">{m.label}</th>
                   ))}
