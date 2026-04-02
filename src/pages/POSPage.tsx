@@ -4266,7 +4266,7 @@ const POSPage = () => {
                   onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
                   placeholder="📍 عنوان التوصيل..."
                   className="h-7 text-[11px]"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+                  style={{ background: 'rgba(13,27,46,0.05)', border: '1px solid rgba(13,27,46,0.15)', color: '#0D1B2E' }}
                 />
               </div>
             )}
