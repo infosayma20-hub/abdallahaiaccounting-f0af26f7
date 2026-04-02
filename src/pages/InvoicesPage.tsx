@@ -284,11 +284,22 @@ const InvoicesPage = () => {
     return `${prefix}-${String(num).padStart(4, "0")}`;
   };
 
-  // Calculate item subtotal
-  const calcItemSubtotal = (item: InvoiceItem) => {
+  // Calculate item subtotal with tax-inclusive support
+  const calcItemSubtotal = (item: InvoiceItem, inclusive = form.pricesInclusive) => {
+    if (item.taxCategory === "exempt") {
+      const base = item.quantity * item.unitPrice;
+      return base - item.discount;
+    }
+    const rate = item.taxCategory === "taxable" ? 16 : 0;
+    if (inclusive) {
+      const grossBase = item.quantity * item.unitPrice;
+      const afterDiscount = grossBase - item.discount;
+      // Price already includes tax
+      return afterDiscount;
+    }
     const base = item.quantity * item.unitPrice;
     const afterDiscount = base - item.discount;
-    const tax = afterDiscount * (item.taxRate / 100);
+    const tax = afterDiscount * (rate / 100);
     return afterDiscount + tax;
   };
 
