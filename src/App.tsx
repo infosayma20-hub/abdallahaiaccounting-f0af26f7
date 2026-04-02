@@ -150,6 +150,13 @@ const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 
 const queryClient = new QueryClient();
 
+// Wrapper to force remount InvoiceCreatePage when edit param changes
+const InvoiceCreatePageWrapper = () => {
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit") || "new";
+  return <InvoiceCreatePage key={editId} />;
+};
+
 // Minimal inline spinner for auth checks and lazy loading
 const AuthCheckSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
