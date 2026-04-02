@@ -332,7 +332,7 @@ export default function AdvancedEntitySearch({
                         </div>
                         <span className={cn(
                           "text-xs font-bold tabular-nums shrink-0 mr-3",
-                          balColor(item.balance, item.txCount)
+                          balColor(item.balance, item.txCount, item.tab)
                         )}>
                           {fmtBal(item.balance, item.txCount)}
                           {item.balance !== 0 && (
