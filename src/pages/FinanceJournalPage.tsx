@@ -773,8 +773,8 @@ const FinanceJournalPage = () => {
             </div>
 
             {/* Journal Lines Table */}
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-muted/50 text-xs text-muted-foreground">
                     <th className="text-right py-2.5 px-3 w-10">#</th>
