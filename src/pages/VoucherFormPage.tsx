@@ -1300,7 +1300,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   <!-- FOOTER -->
   <div class="voucher-footer">
-    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
+    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""} ${settings.tax_number ? "| رقم ضريبي: " + settings.tax_number : ""}</div>
     <div class="footer-brand">AMWALI ERP Software</div>
   </div>
 </div>
