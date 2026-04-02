@@ -168,7 +168,7 @@ const InvoicesPage = () => {
   };
 
   const [form, setForm] = useState({
-    type: "sales" as "sales" | "purchase",
+    type: (initialType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
