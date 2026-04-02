@@ -79,13 +79,14 @@ const CustomerDataModal = ({
     let customerId: string | null = existingCustomer?.id || null;
 
     if (!customerId) {
+      // Create customer record with zero stats — handleCompleteOrder will increment visits/spent
       const insertData: any = {
         user_id: dataOwnerId,
         name: customerName || null,
         whatsapp: contactValue || null,
-        total_visits: 1,
-        total_spent: subtotal - discountAmount,
-        total_discounts: discountAmount,
+        total_visits: 0,
+        total_spent: 0,
+        total_discounts: 0,
         last_visit: new Date().toISOString(),
         marketing_consent: true,
         consent_date: new Date().toISOString(),
@@ -97,14 +98,11 @@ const CustomerDataModal = ({
         .single();
       customerId = data?.id || null;
     } else {
+      // Only update name — visits/spent/discounts are updated by handleCompleteOrder
       await supabase
         .from("pos_customers")
         .update({
           name: customerName || existingCustomer?.name,
-          total_visits: (existingCustomer?.total_visits || 0) + 1,
-          total_spent: (existingCustomer?.total_spent || 0) + (subtotal - discountAmount),
-          total_discounts: discountAmount,
-          last_visit: new Date().toISOString(),
         } as any)
         .eq("id", customerId);
     }
