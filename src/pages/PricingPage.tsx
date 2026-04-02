@@ -302,9 +302,9 @@ const PricingPage = () => {
 
               return (
                 <motion.div key={plan.plan_key} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.4 }}
-                  className={`relative flex-1 rounded-3xl p-8 bg-white transition-all duration-200 ${isFeatured ? "border-2 border-[#4A9EE8] lg:scale-[1.04] shadow-[0_8px_40px_rgba(10,35,66,0.2)] z-10" : "border-2 border-transparent shadow-[0_4px_20px_rgba(10,35,66,0.1)] hover:-translate-y-1"}`}>
+                  className={`relative flex-1 rounded-3xl p-8 bg-white transition-all duration-200 ${isFeatured ? "border-2 border-[#0D1B2E] lg:scale-[1.04] shadow-[0_8px_40px_rgba(10,35,66,0.15)] z-10" : "border border-gray-200 shadow-[0_4px_20px_rgba(10,35,66,0.06)] hover:-translate-y-1"}`}>
                   {isFeatured && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4A9EE8] to-[#7BB8F0] text-[#0A2342] px-5 py-1 rounded-full text-xs font-bold whitespace-nowrap">⭐ الأكثر شيوعاً</div>
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0D1B2E] text-white px-5 py-1 rounded-full text-xs font-bold whitespace-nowrap">⭐ الأكثر شيوعاً</div>
                   )}
 
                   <div className="flex items-start justify-between mb-4">
