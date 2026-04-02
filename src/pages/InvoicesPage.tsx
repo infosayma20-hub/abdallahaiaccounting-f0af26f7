@@ -268,7 +268,7 @@ const InvoicesPage = () => {
 
   const fetchContacts = async () => {
     if (!user) return;
-    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone").eq("user_id", user.id).order("contact_name");
+    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
     setContacts((data as Contact[]) || []);
   };
 
