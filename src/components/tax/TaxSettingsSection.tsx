@@ -109,8 +109,8 @@ export default function TaxSettingsSection({ ownerId }: Props) {
             <Select value={settings?.registration_type || "licensed"} onValueChange={v => setSettings({ ...settings, registration_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="licensed">مشتغل مرخص (دورة {">"} 20,000 دينار)</SelectItem>
-                <SelectItem value="exempt">مشتغل معفى (دورة ≤ 20,000 دينار)</SelectItem>
+                <SelectItem value="licensed">مشتغل مرخص</SelectItem>
+                <SelectItem value="exempt">مشتغل معفى</SelectItem>
                 <SelectItem value="unregistered">غير مسجل</SelectItem>
               </SelectContent>
             </Select>
