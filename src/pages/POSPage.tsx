@@ -4176,7 +4176,7 @@ const POSPage = () => {
                                 }}
                                 onBlur={e => {
                                   const container = e.currentTarget.parentElement;
-                                  if (container) { container.style.borderColor = 'rgba(255,255,255,0.15)'; container.style.background = 'rgba(255,255,255,0.08)'; }
+                                  if (container) { container.style.borderColor = 'rgba(13,27,46,0.15)'; container.style.background = 'rgba(13,27,46,0.06)'; }
                                 }}
                                 onChange={e => {
                                   const v = parseFloat(e.target.value);
