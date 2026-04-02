@@ -218,6 +218,10 @@ const InvoicesPage = () => {
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
         contactId: inv.contact_id || null,
+        contactTaxNumber: inv.contacts?.tax_number || '',
+        contactPhone: inv.contacts?.phone || '',
+        contactEmail: inv.contacts?.email || '',
+        contactAddress: inv.contacts?.address || inv.billing_address || '',
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,
