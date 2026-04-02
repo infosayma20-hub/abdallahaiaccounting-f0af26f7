@@ -34,7 +34,10 @@ interface Contact {
   contact_name: string;
   contact_type: string;
   phone?: string;
+  tax_number?: string;
 }
+
+type TaxCategory = "taxable" | "zero" | "exempt";
 
 interface InvoiceItem {
   id: string;
@@ -44,6 +47,7 @@ interface InvoiceItem {
   unitPrice: number;
   discount: number;
   taxRate: number;
+  taxCategory: TaxCategory;
   subtotal: number;
 }
 
@@ -76,9 +80,16 @@ const createEmptyItem = (): InvoiceItem => ({
   quantity: 1,
   unitPrice: 0,
   discount: 0,
-  taxRate: 0,
+  taxRate: 16,
+  taxCategory: "taxable",
   subtotal: 0,
 });
+
+const TAX_CATEGORY_OPTIONS: { value: TaxCategory; label: string; rate: number }[] = [
+  { value: "taxable", label: "خاضع للضريبة 16%", rate: 16 },
+  { value: "zero", label: "بنسبة صفر 0%", rate: 0 },
+  { value: "exempt", label: "معفى من الضريبة", rate: 0 },
+];
 
 const InvoicesPage = () => {
   const navigate = useNavigate();
@@ -167,6 +178,7 @@ const InvoicesPage = () => {
   const [form, setForm] = useState({
     type: (initialType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
+    contactTaxNumber: "",
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentMethod: "cash" as "cash" | "transfer" | "cheque" | "credit",
@@ -179,6 +191,7 @@ const InvoicesPage = () => {
     chequeNotes: "",
     transferRef: "",
     transferBank: "",
+    pricesInclusive: false,
   });
 
   const fetchInvoices = async () => {
@@ -255,7 +268,7 @@ const InvoicesPage = () => {
 
   const fetchContacts = async () => {
     if (!user) return;
-    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone").eq("user_id", user.id).order("contact_name");
+    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
     setContacts((data as Contact[]) || []);
   };
 
@@ -271,28 +284,67 @@ const InvoicesPage = () => {
     return `${prefix}-${String(num).padStart(4, "0")}`;
   };
 
-  // Calculate item subtotal
-  const calcItemSubtotal = (item: InvoiceItem) => {
+  // Calculate item subtotal with tax-inclusive support
+  const calcItemSubtotal = (item: InvoiceItem, inclusive = form.pricesInclusive) => {
+    if (item.taxCategory === "exempt") {
+      const base = item.quantity * item.unitPrice;
+      return base - item.discount;
+    }
+    const rate = item.taxCategory === "taxable" ? 16 : 0;
+    if (inclusive) {
+      const grossBase = item.quantity * item.unitPrice;
+      const afterDiscount = grossBase - item.discount;
+      // Price already includes tax
+      return afterDiscount;
+    }
     const base = item.quantity * item.unitPrice;
     const afterDiscount = base - item.discount;
-    const tax = afterDiscount * (item.taxRate / 100);
+    const tax = afterDiscount * (rate / 100);
     return afterDiscount + tax;
   };
 
-  // Summary calculations
+  // Summary calculations with VAT breakdown
   const summary = useMemo(() => {
-    const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-    const totalDiscount = form.items.reduce((s, i) => s + i.discount, 0);
-    const afterDiscount = subtotal - totalDiscount;
-    const totalTax = form.items.reduce((s, i) => {
-      const base = i.quantity * i.unitPrice - i.discount;
-      return s + base * (i.taxRate / 100);
-    }, 0);
-    const total = afterDiscount + totalTax;
+    let netBeforeTax = 0;
+    let totalDiscount = 0;
+    let taxableTax = 0;
+    let taxableNet = 0;
+    let zeroNet = 0;
+    let exemptNet = 0;
+
+    form.items.forEach(i => {
+      const gross = i.quantity * i.unitPrice;
+      totalDiscount += i.discount;
+      const afterDiscount = gross - i.discount;
+      
+      if (i.taxCategory === "exempt") {
+        exemptNet += afterDiscount;
+        netBeforeTax += afterDiscount;
+      } else if (i.taxCategory === "zero") {
+        zeroNet += afterDiscount;
+        netBeforeTax += afterDiscount;
+      } else {
+        // taxable
+        if (form.pricesInclusive) {
+          const netVal = afterDiscount / 1.16;
+          const taxVal = afterDiscount - netVal;
+          taxableNet += netVal;
+          taxableTax += taxVal;
+          netBeforeTax += netVal;
+        } else {
+          taxableNet += afterDiscount;
+          taxableTax += afterDiscount * 0.16;
+          netBeforeTax += afterDiscount;
+        }
+      }
+    });
+
+    const totalTax = taxableTax;
+    const total = netBeforeTax + totalTax;
     const paidAmount = form.paymentMethod === "credit" ? 0 : total;
     const remainingAmount = total - paidAmount;
-    return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount };
-  }, [form.items, form.paymentMethod]);
+    return { subtotal: netBeforeTax + totalDiscount, totalDiscount, netBeforeTax, totalTax, taxableNet, taxableTax, zeroNet, exemptNet, total, paidAmount, remainingAmount };
+  }, [form.items, form.paymentMethod, form.pricesInclusive]);
 
   const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
     setForm(prev => ({
@@ -300,15 +352,28 @@ const InvoicesPage = () => {
       items: prev.items.map(item => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
+        if (field === "taxCategory") {
+          const cat = TAX_CATEGORY_OPTIONS.find(o => o.value === value);
+          updated.taxRate = cat ? cat.rate : 0;
+        }
         if (field === "description" && typeof value === "string") {
           const prod = products.find(p => p.name === value);
           if (prod) {
             updated.productId = prod.id;
             const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
             if (price > 0) updated.unitPrice = price;
+            // Auto-set tax from product
+            const prodTaxRate = Number(prod.tax_rate || 0);
+            if (prodTaxRate > 0) {
+              updated.taxCategory = "taxable";
+              updated.taxRate = 16;
+            } else {
+              updated.taxCategory = "taxable";
+              updated.taxRate = 16;
+            }
           }
         }
-        updated.subtotal = calcItemSubtotal(updated);
+        updated.subtotal = calcItemSubtotal(updated, prev.pricesInclusive);
         return updated;
       }),
     }));
@@ -325,12 +390,11 @@ const InvoicesPage = () => {
     c.contact_name.includes(contactSearch)
   );
 
-  const selectContact = (name: string) => {
-    setForm(prev => ({ ...prev, contactName: name }));
-    setContactSearch(name);
+  const selectContact = (contact: Contact) => {
+    setForm(prev => ({ ...prev, contactName: contact.contact_name, contactTaxNumber: contact.tax_number || "" }));
+    setContactSearch(contact.contact_name);
     setShowContactDropdown(false);
-    // Check debt
-    checkContactDebt(name);
+    checkContactDebt(contact.contact_name);
   };
 
   const checkContactDebt = async (name: string) => {
@@ -500,7 +564,7 @@ const InvoicesPage = () => {
         invoice_type: form.type === 'sales' ? 'sale' : 'purchase',
         contact_name: form.contactName,
         invoice_date: form.date,
-        due_date: form.paymentMethod === "credit" ? form.dueDate : null,
+        due_date: form.dueDate || null,
         subtotal: summary.subtotal,
         discount_amount: summary.totalDiscount,
         tax_amount: summary.totalTax,
@@ -533,6 +597,29 @@ const InvoicesPage = () => {
 
         if (!asDraft) {
           await updateInventory(form.items, form.type);
+
+          // Insert into tax_ledger for VAT tracking
+          if (summary.totalTax > 0) {
+            const invoiceDate = new Date(form.date);
+            await supabase.from("tax_ledger").insert({
+              user_id: user!.id,
+              tax_type: form.type === "sales" ? "output" : "input",
+              net_amount: summary.netBeforeTax,
+              tax_rate: 16,
+              tax_amount: summary.totalTax,
+              reference_type: form.type === "sales" ? "invoice" : "purchase",
+              reference_id: dbInv.id,
+              invoice_number: dbInv.invoice_number,
+              party_name: form.contactName,
+              party_tax_number: form.contactTaxNumber || null,
+              transaction_date: form.date,
+              period_year: invoiceDate.getFullYear(),
+              period_month: invoiceDate.getMonth() + 1,
+              tax_category: "taxable",
+              is_deductible: form.type === "purchase",
+            } as any);
+          }
+
           if (form.paymentMethod === "cheque") {
             const invoice: Invoice = {
               id: dbInv.id,
@@ -575,11 +662,11 @@ const InvoicesPage = () => {
 
   const resetForm = () => {
     setForm({
-      type: "sales", contactName: "", date: new Date().toISOString().split("T")[0],
+      type: "sales", contactName: "", contactTaxNumber: "", date: new Date().toISOString().split("T")[0],
       dueDate: "", paymentMethod: "cash", currency: "شيكل", notes: "",
       items: [createEmptyItem()],
       chequeNumber: "", chequeBank: "", chequeDueDate: "", chequeNotes: "",
-      transferRef: "", transferBank: "",
+      transferRef: "", transferBank: "", pricesInclusive: false,
     });
     setContactSearch("");
     setContactDebtWarning(null);
@@ -799,7 +886,7 @@ const InvoicesPage = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {/* Invoice Number */}
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
@@ -809,6 +896,11 @@ const InvoicesPage = () => {
               <div>
                 <label className="text-[11px] text-muted-foreground mb-1 block font-medium">التاريخ</label>
                 <Input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              </div>
+              {/* Due Date */}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
+                <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
               </div>
             </div>
 
@@ -830,7 +922,7 @@ const InvoicesPage = () => {
               {showContactDropdown && contactSearch && filteredContacts.length > 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
                   {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => selectContact(c.contact_name)} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
+                    <button key={c.id} onClick={() => selectContact(c)} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
                       <span>{c.contact_name}</span>
                       <Badge variant="outline" className="text-[9px]">{c.contact_type}</Badge>
                     </button>
@@ -846,6 +938,17 @@ const InvoicesPage = () => {
                   <p className="text-[10px] text-warning font-medium">{contactDebtWarning}</p>
                 </div>
               )}
+            </div>
+
+            {/* Tax Number */}
+            <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">الرقم الضريبي {form.type === "sales" ? "للعميل" : "للمورد"}</label>
+              <Input
+                placeholder="الرقم الضريبي (إن وجد)"
+                value={form.contactTaxNumber}
+                onChange={e => setForm(p => ({ ...p, contactTaxNumber: e.target.value }))}
+                className="rounded-xl text-sm"
+              />
             </div>
 
             {/* Payment Method */}
@@ -875,12 +978,6 @@ const InvoicesPage = () => {
                     {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {form.paymentMethod === "credit" && (
-                  <div className="mt-2">
-                    <label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الاستحقاق</label>
-                    <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-xs h-8" dir="ltr" />
-                  </div>
-                )}
               </div>
             </div>
           </CardContent>
@@ -893,7 +990,22 @@ const InvoicesPage = () => {
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
               </CardTitle>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-2">
+                {/* Tax-inclusive toggle */}
+                <div className="flex items-center bg-muted/50 rounded-lg p-0.5 text-[10px]">
+                  <button
+                    onClick={() => setForm(p => ({ ...p, pricesInclusive: false }))}
+                    className={`px-2 py-1 rounded-md transition-all ${!form.pricesInclusive ? "bg-background shadow-sm text-foreground font-semibold" : "text-muted-foreground"}`}
+                  >
+                    الأسعار صافية
+                  </button>
+                  <button
+                    onClick={() => setForm(p => ({ ...p, pricesInclusive: true }))}
+                    className={`px-2 py-1 rounded-md transition-all ${form.pricesInclusive ? "bg-background shadow-sm text-foreground font-semibold" : "text-muted-foreground"}`}
+                  >
+                    شاملة الضريبة
+                  </button>
+                </div>
                 <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
                   <Plus className="h-3 w-3" /> صنف جديد
                 </Button>
@@ -903,11 +1015,11 @@ const InvoicesPage = () => {
           <CardContent className="px-3 pb-4">
             {/* Table Header */}
             <div className="grid grid-cols-12 gap-1 px-1 mb-2">
-              <span className="col-span-4 text-[10px] font-semibold text-muted-foreground">المنتج</span>
+              <span className="col-span-3 text-[10px] font-semibold text-muted-foreground">المنتج</span>
               <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">الكمية</span>
               <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">السعر</span>
               <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">خصم</span>
-              <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">ضريبة%</span>
+              <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">تصنيف الضريبة</span>
               <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">الإجمالي</span>
               <span className="col-span-1"></span>
             </div>
@@ -916,7 +1028,7 @@ const InvoicesPage = () => {
               {form.items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-1 items-center bg-muted/20 rounded-xl p-2">
                   {/* Product */}
-                  <div className="col-span-4 relative">
+                  <div className="col-span-3 relative">
                     <Select
                       value={item.productId || "__manual__"}
                       onValueChange={val => {
@@ -935,8 +1047,10 @@ const InvoicesPage = () => {
                             items: prev.items.map(it => {
                               if (it.id !== item.id) return it;
                               const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
-                              const updated = { ...it, productId: prod.id, description: prod.name, unitPrice: price > 0 ? price : it.unitPrice };
-                              updated.subtotal = calcItemSubtotal(updated);
+                              const prodTaxRate = Number(prod.tax_rate || 0);
+                              const taxCat: TaxCategory = prodTaxRate > 0 ? "taxable" : "taxable";
+                              const updated = { ...it, productId: prod.id, description: prod.name, unitPrice: price > 0 ? price : it.unitPrice, taxCategory: taxCat, taxRate: taxCat === "taxable" ? 16 : 0 };
+                              updated.subtotal = calcItemSubtotal(updated, prev.pricesInclusive);
                               return updated;
                             }),
                           }));
@@ -987,9 +1101,20 @@ const InvoicesPage = () => {
                   <div className="col-span-1">
                     <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
                   </div>
-                  {/* Tax */}
-                  <div className="col-span-1">
-                    <Input type="number" min={0} max={100} value={item.taxRate} onChange={e => updateItem(item.id, "taxRate", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  {/* Tax Category Dropdown */}
+                  <div className="col-span-2">
+                    <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
+                      <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TAX_CATEGORY_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-[11px]">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   {/* Subtotal */}
                   <div className="col-span-2 text-center">
@@ -1011,46 +1136,66 @@ const InvoicesPage = () => {
           </CardContent>
         </Card>
 
-        {/* ─── SECTION 3: Invoice Summary ─── */}
+        {/* ─── SECTION 3: Invoice Summary (VAT Breakdown) ─── */}
         <Card className="border-0 shadow-sm rounded-2xl bg-gradient-to-br from-card to-primary/5 border border-primary/10">
           <CardContent className="p-4 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">الإجمالي الفرعي</span>
-              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.subtotal.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">المجموع الصافي (قبل الضريبة)</span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.subtotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             {summary.totalDiscount > 0 && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-destructive">الخصم</span>
-                <span className="text-sm font-semibold text-destructive tabular-nums">-₪{summary.totalDiscount.toLocaleString()}</span>
+                <span className="text-xs text-destructive">الخصم الإجمالي</span>
+                <span className="text-sm font-semibold text-destructive tabular-nums">-₪{summary.totalDiscount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               </div>
             )}
-            {summary.totalTax > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">الصافي بعد الخصم</span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.netBeforeTax.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            </div>
+            <Separator className="my-1" />
+
+            {/* VAT Breakdown */}
+            {summary.taxableTax > 0 && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">الضريبة</span>
-                <span className="text-sm font-semibold text-foreground tabular-nums">+₪{summary.totalTax.toLocaleString()}</span>
+                <span className="text-xs text-muted-foreground">ضريبة القيمة المضافة 16%</span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">+₪{summary.taxableTax.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
               </div>
             )}
+            {summary.exemptNet > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground/70">مبيعات معفاة</span>
+                <span className="text-xs text-muted-foreground tabular-nums">₪{summary.exemptNet.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            {summary.zeroNet > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground/70">مبيعات بنسبة صفر</span>
+                <span className="text-xs text-muted-foreground tabular-nums">₪{summary.zeroNet.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+
             <Separator className="my-1" />
             <div className="flex justify-between items-center">
-              <span className="text-base font-bold text-foreground">الإجمالي النهائي</span>
-              <span className="text-2xl font-black text-primary tabular-nums glow-green">₪{summary.total.toLocaleString()}</span>
+              <span className="text-base font-bold text-foreground">الإجمالي شامل الضريبة</span>
+              <span className="text-2xl font-black text-primary tabular-nums glow-green">₪{summary.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             <Separator className="my-1" />
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">المدفوع</span>
-              <span className="text-sm font-semibold text-primary tabular-nums">₪{summary.paidAmount.toLocaleString()}</span>
+              <span className="text-sm font-semibold text-primary tabular-nums">₪{summary.paidAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">المتبقي</span>
               <span className={`text-sm font-bold tabular-nums ${summary.remainingAmount > 0 ? "text-destructive" : "text-primary"}`}>
-                ₪{summary.remainingAmount.toLocaleString()}
+                ₪{summary.remainingAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex items-center gap-2 pt-1">
               <Badge variant="outline" className="text-[10px] gap-1">
                 {paymentLabels[form.paymentMethod]}
               </Badge>
-              {form.paymentMethod === "credit" && form.dueDate && (
+              {form.dueDate && (
                 <Badge variant="outline" className="text-[10px] gap-1 text-warning border-warning/30">
                   <Clock className="h-3 w-3" /> استحقاق: {form.dueDate}
                 </Badge>
