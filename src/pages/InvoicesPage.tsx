@@ -303,20 +303,48 @@ const InvoicesPage = () => {
     return afterDiscount + tax;
   };
 
-  // Summary calculations
+  // Summary calculations with VAT breakdown
   const summary = useMemo(() => {
-    const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-    const totalDiscount = form.items.reduce((s, i) => s + i.discount, 0);
-    const afterDiscount = subtotal - totalDiscount;
-    const totalTax = form.items.reduce((s, i) => {
-      const base = i.quantity * i.unitPrice - i.discount;
-      return s + base * (i.taxRate / 100);
-    }, 0);
-    const total = afterDiscount + totalTax;
+    let netBeforeTax = 0;
+    let totalDiscount = 0;
+    let taxableTax = 0;
+    let taxableNet = 0;
+    let zeroNet = 0;
+    let exemptNet = 0;
+
+    form.items.forEach(i => {
+      const gross = i.quantity * i.unitPrice;
+      totalDiscount += i.discount;
+      const afterDiscount = gross - i.discount;
+      
+      if (i.taxCategory === "exempt") {
+        exemptNet += afterDiscount;
+        netBeforeTax += afterDiscount;
+      } else if (i.taxCategory === "zero") {
+        zeroNet += afterDiscount;
+        netBeforeTax += afterDiscount;
+      } else {
+        // taxable
+        if (form.pricesInclusive) {
+          const netVal = afterDiscount / 1.16;
+          const taxVal = afterDiscount - netVal;
+          taxableNet += netVal;
+          taxableTax += taxVal;
+          netBeforeTax += netVal;
+        } else {
+          taxableNet += afterDiscount;
+          taxableTax += afterDiscount * 0.16;
+          netBeforeTax += afterDiscount;
+        }
+      }
+    });
+
+    const totalTax = taxableTax;
+    const total = netBeforeTax + totalTax;
     const paidAmount = form.paymentMethod === "credit" ? 0 : total;
     const remainingAmount = total - paidAmount;
-    return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount };
-  }, [form.items, form.paymentMethod]);
+    return { subtotal: netBeforeTax + totalDiscount, totalDiscount, netBeforeTax, totalTax, taxableNet, taxableTax, zeroNet, exemptNet, total, paidAmount, remainingAmount };
+  }, [form.items, form.paymentMethod, form.pricesInclusive]);
 
   const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
     setForm(prev => ({
