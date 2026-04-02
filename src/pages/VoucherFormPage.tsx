@@ -1099,46 +1099,118 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
     const printHtml = `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
-<head><meta charset="utf-8"><title>${typeLabel}</title></head>
-<body style="margin:0;padding:20px;font-family:'Segoe UI',Tahoma,sans-serif;background:#f5f5f5;">
-<div style="max-width:700px;margin:0 auto;background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+<head>
+  <meta charset="utf-8">
+  <title>${typeLabel}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', Arial, sans-serif;
+      direction: rtl;
+      color: #1a2332;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .voucher-container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .voucher-header {
+      background: linear-gradient(135deg, #0D1B2A 0%, #1B3A5C 100%);
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .company-name { font-size: 18px; font-weight: 700; color: #4A9EE8; }
+    .company-address { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .badge { background: #4A9EE8; color: #0D1B2A; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .voucher-num { font-size: 11px; color: #fff; margin-top: 4px; }
+    .info-row {
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #edf0f4;
+    }
+    .info-label { font-size: 10px; color: #888; }
+    .info-value { font-size: 12px; font-weight: 600; }
+    .amount-section {
+      padding: 16px 28px;
+      text-align: center;
+      border-bottom: 1px solid #edf0f4;
+    }
+    .amount-label { font-size: 10px; color: #888; margin-bottom: 4px; }
+    .amount-value { font-size: 28px; font-weight: 800; color: #1B3A5C; font-family: 'Cairo', sans-serif; }
+    .amount-words { font-size: 10px; color: #666; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Cairo', sans-serif; }
+    thead tr { background: #0D1B2A; }
+    thead th { padding: 6px 10px; color: #4A9EE8; text-align: right; font-weight: 600; font-size: 10px; }
+    thead th.text-left { text-align: left; }
+    tbody td { padding: 5px 10px; font-size: 11px; border-bottom: 1px solid #edf0f4; font-variant-numeric: tabular-nums; }
+    .signatures { padding: 24px 28px; display: flex; justify-content: space-around; }
+    .sig-block { text-align: center; flex: 1; }
+    .sig-line { border-bottom: 1px solid #ccc; width: 140px; margin: 0 auto 6px; }
+    .sig-label { font-size: 10px; color: #888; }
+    .voucher-footer {
+      background: #f7f8fa;
+      border-top: 1px solid #edf0f4;
+      padding: 10px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-info { font-size: 9px; color: #aaa; }
+    .footer-brand { font-size: 9px; color: #4A9EE8; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="voucher-container">
   <!-- HEADER -->
-  <div style="background:linear-gradient(135deg,#0D1B2A 0%,#1B3A5C 100%);padding:20px 28px;display:flex;justify-content:space-between;align-items:center;">
+  <div class="voucher-header">
     <div>
-      <div style="font-size:18px;font-weight:700;color:#4A9EE8;">${settings.company_name || "AMWALI"}</div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:2px;">${settings.address || ""}</div>
+      <div class="company-name">${settings.company_name || "AMWALI"}</div>
+      <div class="company-address">${settings.address || ""}</div>
     </div>
     <div style="text-align:left;">
-      <div style="background:#4A9EE8;color:#0D1B2A;padding:4px 12px;border-radius:4px;font-size:10px;font-weight:700;">${typeBadge}</div>
-      <div style="font-size:11px;color:#fff;margin-top:4px;">${savedReceiptNumber || refNumber || ""}</div>
+      <div class="badge">${typeBadge}</div>
+      <div class="voucher-num">${savedReceiptNumber || refNumber || ""}</div>
     </div>
   </div>
 
   <!-- INFO -->
-  <div style="padding:16px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;">
+  <div class="info-row">
     <div>
-      <div style="font-size:10px;color:#888;">التاريخ</div>
-      <div style="font-size:12px;font-weight:600;">${dateFormatted}</div>
+      <div class="info-label">التاريخ</div>
+      <div class="info-value">${dateFormatted}</div>
     </div>
     <div>
-      <div style="font-size:10px;color:#888;">${isReceipt ? "استلمنا من" : "صرفنا إلى"}</div>
-      <div style="font-size:12px;font-weight:600;">${partyName}</div>
+      <div class="info-label">${isReceipt ? "استلمنا من" : "صرفنا إلى"}</div>
+      <div class="info-value">${partyName}</div>
     </div>
     <div>
-      <div style="font-size:10px;color:#888;">طريقة الدفع</div>
-      <div style="font-size:12px;font-weight:600;">${paymentMethod}</div>
+      <div class="info-label">طريقة الدفع</div>
+      <div class="info-value">${paymentMethod}</div>
     </div>
     <div>
-      <div style="font-size:10px;color:#888;">${isReceipt ? "الإيداع في" : "الدفع من"}</div>
-      <div style="font-size:12px;font-weight:600;">${depositLabel}</div>
+      <div class="info-label">${isReceipt ? "الإيداع في" : "الدفع من"}</div>
+      <div class="info-value">${depositLabel}</div>
     </div>
   </div>
 
   <!-- AMOUNT -->
-  <div style="padding:16px 28px;text-align:center;border-bottom:1px solid #edf0f4;">
-    <div style="font-size:10px;color:#888;margin-bottom:4px;">${amountLabel}</div>
-    <div style="font-size:28px;font-weight:800;color:#1B3A5C;font-family:monospace;">${currencySymbol}${fmtAmt(amt)}</div>
-    <div style="font-size:10px;color:#666;margin-top:2px;">${amountInWords}</div>
+  <div class="amount-section">
+    <div class="amount-label">${amountLabel}</div>
+    <div class="amount-value">${currencySymbol}${fmtAmt(amt)}</div>
+    <div class="amount-words">${amountInWords}</div>
     ${currencyLine}
   </div>
 
@@ -1146,15 +1218,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   <!-- TABLE -->
   <div style="padding:16px 28px;">
-    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+    <table>
       <thead>
-        <tr style="background:#0D1B2A;">
-          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">التاريخ</th>
-          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">رقم المستند</th>
-          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">البيان</th>
-          <th style="padding:6px 10px;color:#4A9EE8;text-align:right;font-weight:600;">النوع</th>
-          <th style="padding:6px 10px;color:#4A9EE8;text-align:left;font-weight:600;">مدين</th>
-          <th style="padding:6px 10px;color:#4A9EE8;text-align:left;font-weight:600;">دائن</th>
+        <tr>
+          <th>التاريخ</th>
+          <th>رقم المستند</th>
+          <th>البيان</th>
+          <th>النوع</th>
+          <th class="text-left">مدين</th>
+          <th class="text-left">دائن</th>
         </tr>
       </thead>
       <tbody>${tableBody}</tbody>
@@ -1162,27 +1234,33 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   </div>
 
   <!-- SIGNATURES -->
-  <div style="padding:24px 28px;display:flex;justify-content:space-around;">
-    <div style="text-align:center;flex:1;">
-      <div style="border-bottom:1px solid #ccc;width:140px;margin:0 auto 6px;"></div>
-      <div style="font-size:10px;color:#888;">المحاسب</div>
+  <div class="signatures">
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-label">المحاسب</div>
     </div>
-    <div style="text-align:center;flex:1;">
-      <div style="border-bottom:1px solid #ccc;width:140px;margin:0 auto 6px;"></div>
-      <div style="font-size:10px;color:#888;">المدير المالي</div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-label">المدير المالي</div>
     </div>
-    <div style="text-align:center;flex:1;">
-      <div style="border-bottom:1px solid #ccc;width:140px;margin:0 auto 6px;"></div>
-      <div style="font-size:10px;color:#888;">${isReceipt ? "المستلم" : "المستفيد"}</div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-label">${isReceipt ? "المستلم" : "المستفيد"}</div>
     </div>
   </div>
 
   <!-- FOOTER -->
-  <div style="background:#f7f8fa;border-top:1px solid #edf0f4;padding:10px 28px;display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-size:9px;color:#aaa;">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
-    <div style="font-size:9px;color:#4A9EE8;font-weight:600;">AMWALI ERP Software</div>
+  <div class="voucher-footer">
+    <div class="footer-info">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
+    <div class="footer-brand">AMWALI ERP Software</div>
   </div>
 </div>
+
+<script>
+  document.fonts.ready.then(function() {
+    setTimeout(function() { window.print(); }, 300);
+  });
+</script>
 </body>
 </html>`;
 
