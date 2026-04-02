@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 // useSearchParams imported below with useNavigate
 import PageHeader from "@/components/layout/PageHeader";
-import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
+
 import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -31,12 +31,9 @@ import * as XLSX from "xlsx";
 
 interface Contact {
   id: string;
-  fields: {
-    "Contact Name"?: string;
-    "Contact Type"?: string;
-    "Phone"?: string;
-    "Company"?: string;
-  };
+  contact_name: string;
+  contact_type: string;
+  phone?: string;
 }
 
 interface InvoiceItem {
@@ -258,16 +255,8 @@ const InvoicesPage = () => {
 
   const fetchContacts = async () => {
     if (!user) return;
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
-        { headers: await getAuthHeaders() }
-      );
-      const data = await res.json();
-      setContacts(data?.records || []);
-    } catch (err) {
-      console.error(err);
-    }
+    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone").eq("user_id", user.id).order("contact_name");
+    setContacts((data as Contact[]) || []);
   };
 
   const saveInvoices = (updated: Invoice[]) => {
@@ -333,7 +322,7 @@ const InvoicesPage = () => {
   };
 
   const filteredContacts = contacts.filter(c =>
-    (c.fields["Contact Name"] || "").includes(contactSearch)
+    c.contact_name.includes(contactSearch)
   );
 
   const selectContact = (name: string) => {
@@ -347,12 +336,20 @@ const InvoicesPage = () => {
   const checkContactDebt = async (name: string) => {
     if (!user) return;
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contact-transactions?clientId=${user.id}&contactName=${encodeURIComponent(name)}`,
-        { headers: await getAuthHeaders() }
-      );
-      const data = await res.json();
-      const balance = data?.balance || 0;
+      const { data } = await supabase
+        .from("transactions")
+        .select("debit_account_code, credit_account_code, amount")
+        .eq("user_id", user.id)
+        .eq("is_deleted", false)
+        .or(`debit_account_code.eq.1130,credit_account_code.eq.1130`)
+        .ilike("description", `%${name}%`);
+      
+      let balance = 0;
+      (data || []).forEach(t => {
+        if (t.debit_account_code === "1130") balance += Number(t.amount || 0);
+        if (t.credit_account_code === "1130") balance -= Number(t.amount || 0);
+      });
+      
       if (balance > 0) {
         setContactDebtWarning(`⚠️ هذا العميل عليه رصيد مستحق: ₪${balance.toLocaleString()}`);
       } else {
@@ -374,20 +371,17 @@ const InvoicesPage = () => {
   };
 
   const isNewContact = form.contactName.trim() !== "" && !contacts.some(
-    c => (c.fields["Contact Name"] || "").trim() === form.contactName.trim()
+    c => c.contact_name.trim() === form.contactName.trim()
   );
 
-  const createContactInAirtable = async (name: string) => {
+  const createContactInDB = async (name: string) => {
     if (!user) return;
     try {
-      await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
-        {
-          method: "POST",
-          headers: await getAuthHeadersJson(),
-          body: JSON.stringify({ contactName: name, contactType: form.type === "sales" ? "عميل" : "مورد" }),
-        }
-      );
+      await supabase.from("contacts").upsert({
+        user_id: user.id,
+        contact_name: name,
+        contact_type: form.type === "sales" ? "عميل" : "مورد",
+      }, { onConflict: "user_id,contact_name" });
       fetchContacts();
     } catch (err) { console.error(err); }
   };
@@ -495,7 +489,7 @@ const InvoicesPage = () => {
       return;
     }
     setCreating(true);
-    if (isNewContact) await createContactInAirtable(form.contactName.trim());
+    if (isNewContact) await createContactInDB(form.contactName.trim());
 
     const paymentMethodAr = form.paymentMethod === 'cash' ? 'نقدي' : form.paymentMethod === 'transfer' ? 'بنك' : form.paymentMethod === 'cheque' ? 'شيك' : 'آجل';
 
@@ -836,9 +830,9 @@ const InvoicesPage = () => {
               {showContactDropdown && contactSearch && filteredContacts.length > 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
                   {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => selectContact(c.fields["Contact Name"] || "")} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
-                      <span>{c.fields["Contact Name"]}</span>
-                      <Badge variant="outline" className="text-[9px]">{c.fields["Contact Type"]}</Badge>
+                    <button key={c.id} onClick={() => selectContact(c.contact_name)} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
+                      <span>{c.contact_name}</span>
+                      <Badge variant="outline" className="text-[9px]">{c.contact_type}</Badge>
                     </button>
                   ))}
                 </div>
