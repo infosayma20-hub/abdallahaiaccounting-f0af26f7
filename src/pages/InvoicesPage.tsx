@@ -363,7 +363,7 @@ const InvoicesPage = () => {
   };
 
   const isNewContact = form.contactName.trim() !== "" && !contacts.some(
-    c => (c.fields["Contact Name"] || "").trim() === form.contactName.trim()
+    c => c.contact_name.trim() === form.contactName.trim()
   );
 
   const createContactInAirtable = async (name: string) => {
