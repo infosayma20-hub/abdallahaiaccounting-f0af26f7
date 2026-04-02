@@ -111,6 +111,29 @@ export const navigationSections: NavSection[] = [
           },
         ],
       },
+      {
+        id: "tax", label: "المحاسبة الضريبية", description: "ضريبة القيمة المضافة، التقارير الدورية، والتقديمات", module: "tax", icon: Receipt,
+        color: "text-rose-600", bgColor: "bg-rose-500/10", path: "/tax",
+        keywords: ["ضريبة", "ضريبي", "قيمة مضافة", "VAT", "تقرير دوري"],
+        groups: [
+          {
+            groupLabel: "مركز الضريبة",
+            children: [
+              { label: "لوحة الضريبة", path: "/tax" },
+              { label: "التقرير الدوري", path: "/tax" },
+              { label: "ضريبة المبيعات", path: "/tax" },
+              { label: "ضريبة المشتريات", path: "/tax" },
+              { label: "التقديمات", path: "/tax" },
+            ],
+          },
+          {
+            groupLabel: "الإعدادات",
+            children: [
+              { label: "إعدادات الضريبة", path: "/tax" },
+            ],
+          },
+        ],
+      },
     ],
   },
 
