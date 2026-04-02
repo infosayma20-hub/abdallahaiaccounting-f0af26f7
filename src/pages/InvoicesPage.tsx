@@ -322,7 +322,7 @@ const InvoicesPage = () => {
   };
 
   const filteredContacts = contacts.filter(c =>
-    (c.fields["Contact Name"] || "").includes(contactSearch)
+    c.contact_name.includes(contactSearch)
   );
 
   const selectContact = (name: string) => {
