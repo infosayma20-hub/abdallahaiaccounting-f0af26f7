@@ -122,7 +122,7 @@ const FinanceJournalPage = () => {
     if (!user) return;
     setLoading(true);
     const [vRes, aRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }),
+      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "journal").neq("status", "cancelled").order("created_at", { ascending: false }),
       supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
       supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).neq("is_archived", true),
     ]);
