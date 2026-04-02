@@ -171,6 +171,7 @@ const InvoiceCreatePage = () => {
   const prefillAmount = searchParams.get("amount");
   const prefillNotes = searchParams.get("notes");
   const workshopId = searchParams.get("workshop_id");
+  const prefillType = searchParams.get("type"); // "sales" or "purchase"
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
@@ -182,6 +183,7 @@ const InvoiceCreatePage = () => {
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
+  const [defaultTaxCategory, setDefaultTaxCategory] = useState<TaxCategory>("taxable");
 
   // Contact search
   const [contactSearch, setContactSearch] = useState("");
@@ -219,7 +221,7 @@ const InvoiceCreatePage = () => {
 
   // Form state
   const [form, setForm] = useState({
-    type: "sales" as "sales" | "purchase",
+    type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
     contactId: null as string | null,
     date: new Date().toISOString().split("T")[0],
@@ -285,12 +287,13 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes, invCountRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes, invCountRes, taxSettingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
         supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("tax_settings").select("registration_type").eq("user_id", user.id).maybeSingle(),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       
@@ -300,22 +303,48 @@ const InvoiceCreatePage = () => {
         ? await supabase.from("transactions").select("contact_id, debit_account_code, credit_account_code, amount").eq("user_id", user.id).eq("is_deleted", false).in("contact_id", contactIds)
         : { data: [] };
       
-      const balanceMap: Record<string, number> = {};
+      // Build per-contact balances: customers use 1130, suppliers use 2110
+      const customerBalanceMap: Record<string, number> = {};
+      const supplierBalanceMap: Record<string, number> = {};
       ((txData as any[]) || []).forEach((tx: any) => {
         const cid = tx.contact_id;
         if (!cid) return;
         const amt = Number(tx.amount || 0);
-        if (tx.debit_account_code === "1130") balanceMap[cid] = (balanceMap[cid] || 0) + amt;
-        else if (tx.credit_account_code === "1130") balanceMap[cid] = (balanceMap[cid] || 0) - amt;
-        if (tx.credit_account_code === "2100") balanceMap[cid] = (balanceMap[cid] || 0) + amt;
-        else if (tx.debit_account_code === "2100") balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+        // Customer receivables (1130): debit = they owe us more, credit = they paid
+        if (tx.debit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
+        if (tx.credit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
+        // Supplier payables (2110): credit = we owe them more, debit = we paid
+        if (tx.credit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
+        if (tx.debit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
       });
       
-      const contactsWithBalance = contactsList.map(c => ({ ...c, balance: balanceMap[c.id] || 0 }));
+      const contactsWithBalance = contactsList.map(c => {
+        const isSupplier = c.contact_type === "مورد";
+        const balance = isSupplier 
+          ? (supplierBalanceMap[c.id] || 0) 
+          : (customerBalanceMap[c.id] || 0);
+        return { ...c, balance };
+      });
       setContacts(contactsWithBalance);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
+
+      // Set default tax category based on registration type
+      const regType = (taxSettingsRes.data as any)?.registration_type;
+      const detectedTaxCat: TaxCategory = (regType === "exempt" || regType === "unregistered") ? "zero" : "taxable";
+      setDefaultTaxCategory(detectedTaxCat);
+      // Update existing items if not in edit mode and not from duplicate
+      if (!isEditMode && !fromDuplicate) {
+        setForm(prev => ({
+          ...prev,
+          items: prev.items.map(item => ({
+            ...item,
+            taxCategory: detectedTaxCat,
+            taxRate: detectedTaxCat === "taxable" ? 16 : 0,
+          })),
+        }));
+      }
 
       // Generate next invoice number based on current type
       const prefix = form.type === "sales" ? "INV" : "PO";
@@ -619,7 +648,7 @@ const InvoiceCreatePage = () => {
     }));
   };
 
-  const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, createEmptyItem()] }));
+  const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }] }));
   const removeItem = (id: string) => {
     if (form.items.length <= 1) return;
     setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
@@ -1049,6 +1078,7 @@ const InvoiceCreatePage = () => {
                     value={contactSearch}
                     onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); }}
                     onFocus={() => setShowContactDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
                   />
                 </div>
