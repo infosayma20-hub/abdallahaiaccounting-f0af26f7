@@ -1243,9 +1243,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handleNewSimilar = () => {
     const draftData = {
       _sourceRef: refNumber || savedReceiptNumber,
-      paymentDate,
+      paymentDate: new Date().toISOString().split("T")[0],
       paymentMethod,
-      amount,
+      amount: "", // reset amount
       currency,
       exchangeRate,
       notes,
@@ -1258,8 +1258,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       selectedEmployeeId: selectedEmployee?.id || "",
     };
     localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
-    if (isReceipt) navigate("/finance/receipt/new?from_duplicate=true");
-    else navigate("/finance/payment/new?from_duplicate=true");
+    const path = isReceipt ? "/finance/receipt/new?from_duplicate=true" : "/finance/payment/new?from_duplicate=true";
+    navigate(path);
+    toast.success("تم نسخ بيانات السند — أدخل المبلغ وارتبط بالفواتير");
   };
 
   return (
