@@ -4143,7 +4143,7 @@ const POSPage = () => {
                           {(isAdmin || posPerms.can_remove_cart_items) && (
                             <button
                               className="p-0.5 transition-colors shrink-0"
-                              style={{ color: 'rgba(255,255,255,0.3)' }}
+                              style={{ color: 'rgba(13,27,46,0.3)' }}
                               onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
                             >
                               <X className="h-3.5 w-3.5" />
