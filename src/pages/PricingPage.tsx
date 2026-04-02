@@ -390,7 +390,11 @@ const PricingPage = () => {
               </div>
               <div className="text-left shrink-0">
                 <p className="font-bold text-[#0A2342] text-sm">
-                  ${billing === "annual" ? addon.price_per_unit_annual.toFixed(2) : addon.price_per_unit_monthly.toFixed(2)} ₪
+                  ₪{(() => {
+                    const ilsPrice = addonPricesILS[addon.addon_key];
+                    if (ilsPrice) return billing === "annual" ? ilsPrice.annual.toLocaleString() : ilsPrice.monthly.toLocaleString();
+                    return billing === "annual" ? addon.price_per_unit_annual.toFixed(0) : addon.price_per_unit_monthly.toFixed(0);
+                  })()}
                 </p>
                 <p className="text-[10px] text-gray-400">{billing === "annual" ? "/ سنة" : "/ شهر"}</p>
               </div>
