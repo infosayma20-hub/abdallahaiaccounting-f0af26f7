@@ -274,7 +274,8 @@ const AccountStatementV2Page = () => {
       running += debit - credit; sD += debit; sC += credit;
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: normalizeCurrency(tx.currency), payment_method: tx.payment_method || null, dueDate };
+      const rowCurrency = isForeignCash ? normalizeCurrency(tx.currency) : "شيكل";
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx) };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency, contacts, selectedContact]);
