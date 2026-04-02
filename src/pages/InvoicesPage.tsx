@@ -1073,7 +1073,7 @@ const InvoicesPage = () => {
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد فواتير بعد</h3>
           <p className="text-xs text-muted-foreground mb-4">{filterType === "purchase" ? "أنشئ أول فاتورة مشتريات" : "أنشئ أول فاتورة مبيعات أو مشتريات"}</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { setForm(p => ({ ...p, type: filterType === "purchase" ? "purchase" : "sales" })); setShowCreatePage(true); }}>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
             <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
           </Button>
         </div>
