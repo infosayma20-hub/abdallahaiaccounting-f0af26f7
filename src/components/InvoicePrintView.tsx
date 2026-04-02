@@ -187,6 +187,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
             {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
             {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
+            {settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
         </div>
 
@@ -207,13 +208,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <span
             style={{
               display: "inline-block",
-              background: copyLabel === "أصلية" ? "#DC2626" : "#6B7280",
-              color: "white",
+              background: copyLabel === "أصلية" ? "#EEF2FF" : "#F3F4F6",
+              color: copyLabel === "أصلية" ? "#1B3A5C" : "#6B7280",
               padding: "3px 20px",
               borderRadius: "4px",
               fontSize: "10px",
               fontWeight: 700,
               letterSpacing: "1px",
+              border: `1px solid ${copyLabel === "أصلية" ? "#C7D2FE" : "#D1D5DB"}`,
             }}
           >
             {copyLabel === "أصلية" ? "نسخة أصلية" : `نسخة ${copyLabel}`}
@@ -249,7 +251,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           )}
         </div>
         <div style={{ fontWeight: 600, color: "#1B3A5C" }}>
-          العملة: شيكل إسرائيلي (₪ ILS)
+          العملة: شيكل (₪ ILS)
         </div>
       </div>
 
@@ -448,7 +450,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
 
       {/* ━━━ LEGAL NOTICE ━━━ */}
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
-        هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
+        هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة — رقم القرار بقانون: (26) لسنة 2024م • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
       </div>
 
       {/* ━━━ FOOTER - SIGNATURES ━━━ */}
