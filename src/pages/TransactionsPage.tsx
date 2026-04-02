@@ -607,39 +607,34 @@ const TransactionsPage = () => {
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title="تقرير الحركات المحاسبية" breadcrumb={["المحاسبة", "الحركات المحاسبية"]} />
       {/* Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-muted-foreground">
           {filteredTransactions.length} قيد • <span className="text-primary font-medium">مدين: ₪{totalDebit.toFixed(2)}</span> • <span className="text-success font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => setShowTrash(true)}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowTrash(true)}>
             <Archive className="w-3.5 h-3.5" /> المحذوفات
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handleExportExcel}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={handleExportExcel}>
             <Download className="w-3.5 h-3.5" /> Excel
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handlePrint}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={handlePrint}>
             <Printer className="w-3.5 h-3.5" /> طباعة
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Metrics Bar */}
+      <div className="flex divide-x divide-border rounded-xl border border-border bg-background overflow-hidden mb-6" dir="ltr">
         {[
-          { label: "إجمالي القيود", value: filteredTransactions.length, icon: CalendarDays, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: "المدين", value: `₪${totalDebit.toFixed(2)}`, icon: ArrowRight, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: "الدائن", value: `₪${totalCredit.toFixed(2)}`, icon: ArrowRight, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
-          { label: "التوازن", value: isBalanced ? "✅ متطابق" : `⚠️ فرق: ₪${Math.abs(totalDebit - totalCredit).toFixed(2)}`, icon: CheckSquare, color: isBalanced ? "text-emerald-500" : "text-destructive", bg: isBalanced ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-destructive/5 border-destructive/10" },
+          { label: "إجمالي القيود", value: String(filteredTransactions.length) },
+          { label: "المدين", value: `₪${totalDebit.toFixed(2)}` },
+          { label: "الدائن", value: `₪${totalCredit.toFixed(2)}` },
+          { label: "التوازن", value: isBalanced ? "✅ متطابق" : `⚠️ ₪${Math.abs(totalDebit - totalCredit).toFixed(2)}` },
         ].map((k, i) => (
-          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
-                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
-              </div>
-              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
-            </div>
+          <div key={i} className="flex-1 px-5 py-4 text-center" dir="rtl">
+            <p className="text-[11px] text-muted-foreground tracking-wide mb-1">{k.label}</p>
+            <p className="text-lg font-medium text-foreground">{k.value}</p>
           </div>
         ))}
       </div>
