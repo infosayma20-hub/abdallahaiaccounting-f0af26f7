@@ -3,8 +3,9 @@ import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2, Download
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2, Download, Printer
 } from "lucide-react";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
 import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
