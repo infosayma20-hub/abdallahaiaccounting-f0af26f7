@@ -424,20 +424,21 @@ const OrdersPage = () => {
 
           {/* Orders Table */}
           <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">رقم الطلبية</TableHead>
-                  <TableHead className="text-right">العميل</TableHead>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">الإجمالي</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right">الدفع</TableHead>
-                  <TableHead className="text-right">المصدر</TableHead>
-                  <TableHead className="text-right">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr style={{ background: '#0D1B2E', color: '#fff' }}>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">رقم الطلبية</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">العميل</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">التاريخ</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">الإجمالي</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">الدفع</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">المصدر</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {loading ? (
                   <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">جاري التحميل...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
