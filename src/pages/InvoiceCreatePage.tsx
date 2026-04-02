@@ -647,7 +647,7 @@ const InvoiceCreatePage = () => {
     }));
   };
 
-  const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, createEmptyItem()] }));
+  const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }] }));
   const removeItem = (id: string) => {
     if (form.items.length <= 1) return;
     setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
