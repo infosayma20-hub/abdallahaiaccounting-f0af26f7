@@ -38,6 +38,7 @@ const sections = [
   { id: "print", label: "الطباعة", icon: Printer, ready: true, keywords: "طباعة طابعة ورق إيصال فاتورة" },
   { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true, keywords: "بوابة إدارة تقارير مراقبة" },
   { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true, keywords: "ذكاء اصطناعي مساعد حسيب" },
+  { id: "tax", label: "الضريبة", icon: Receipt, ready: true, keywords: "ضريبة قيمة مضافة VAT تقرير دوري" },
 ];
 
 const SettingsPage = () => {
