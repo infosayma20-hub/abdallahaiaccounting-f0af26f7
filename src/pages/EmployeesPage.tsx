@@ -643,14 +643,14 @@ const EmployeesPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/50">
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border min-w-[200px]"><SortHeader label="الموظف" field="full_name" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الفرع" field="department" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الوظيفة" field="job_title" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="تاريخ التعيين" field="start_date" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الراتب الأساسي" field="base_salary" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الحالة" field="is_active" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">إجراءات</th>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px]"><SortHeader label="الموظف" field="full_name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفرع" field="department" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوظيفة" field="job_title" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="تاريخ التعيين" field="start_date" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الراتب الأساسي" field="base_salary" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="is_active" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
                 </tr>
               </thead>
               <tbody>

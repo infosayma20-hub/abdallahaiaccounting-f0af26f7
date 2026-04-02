@@ -430,17 +430,17 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/50">
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="رقم السند" field="ref_number" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="التاريخ" field="date" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label={contactLabel} field="contact_name" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">البيان</th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="طريقة الدفع" field="payment_label" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">الحساب</th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="المبلغ" field="amount_display" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">غير مخصص</th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الحالة" field="status_label" /></th>
-                  <th className="px-3 py-2.5 w-10 border-b border-border"></th>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم السند" field="ref_number" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="date" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label={contactLabel} field="contact_name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">البيان</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="طريقة الدفع" field="payment_label" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الحساب</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount_display" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">غير مخصص</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status_label" /></th>
+                  <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody>

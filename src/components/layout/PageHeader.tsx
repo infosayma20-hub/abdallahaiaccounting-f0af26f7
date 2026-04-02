@@ -1,8 +1,10 @@
 /**
- * PageHeader — Clean minimal page header with breadcrumbs.
+ * PageHeader — Qoyod-style full-width navy banner for page titles.
+ * Breadcrumbs are right-aligned and clickable for navigation.
  */
 import { useNavigate } from "react-router-dom";
 
+/** Map Arabic breadcrumb labels → routes */
 const breadcrumbRoutes: Record<string, string> = {
   "الرئيسية": "/dashboard",
   "المحاسبة": "/apps",
@@ -49,24 +51,27 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   };
 
   return (
-    <div className="mb-6">
+    <div>
       {breadcrumb && breadcrumb.length > 0 && (
-        <div className="flex items-center gap-1 justify-start flex-wrap mb-1" dir="rtl">
+        <div className="mb-3 flex items-center gap-1 justify-start flex-wrap" dir="rtl"
+          style={{ fontSize: 13 }}
+        >
           {breadcrumb.map((item, i) => {
             const isLast = i === breadcrumb.length - 1;
             const hasRoute = !isLast && breadcrumbRoutes[item];
             return (
-              <span key={i} className="flex items-center gap-1 text-xs">
-                {i > 0 && <span className="mx-1 text-muted-foreground/50">/</span>}
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <span className="mx-1" style={{ color: "#9CA3AF" }}>/</span>}
                 {hasRoute ? (
                   <button
                     onClick={() => handleCrumbClick(item)}
-                    className="text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer"
+                    className="hover:underline transition-colors cursor-pointer"
+                    style={{ color: "#6B7280" }}
                   >
                     {item}
                   </button>
                 ) : (
-                  <span className={isLast ? "text-foreground font-medium" : "text-muted-foreground"}>
+                  <span style={{ color: isLast ? "#1B3A5C" : "#6B7280", fontWeight: isLast ? 500 : 400 }}>
                     {item}
                   </span>
                 )}
@@ -75,7 +80,30 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
           })}
         </div>
       )}
-      <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+      <div
+        className="w-full flex items-center justify-between overflow-hidden"
+        style={{
+          backgroundColor: "#1B3A5C",
+          borderRadius: 12,
+          borderTop: "3px solid #5B9BD5",
+          padding: "10px 20px",
+          height: 44,
+          margin: "0 0 16px 0",
+        }}
+      >
+        <h1
+          className="text-right"
+          style={{
+            fontFamily: "Tajawal, sans-serif",
+            fontSize: 18,
+            fontWeight: 500,
+            color: "#FFFFFF",
+            lineHeight: 1,
+          }}
+        >
+          {title}
+        </h1>
+      </div>
     </div>
   );
 }

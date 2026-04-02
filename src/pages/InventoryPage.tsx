@@ -567,21 +567,22 @@ const InventoryPage = () => {
         <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
+              {/* Header */}
               <thead>
-                <tr className="bg-muted/50">
-                  <th className="px-3 py-2.5 text-right w-10 border-b border-border">
-                    <Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} />
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right w-10">
+                    <Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
                   </th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الكود" field="sku" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="اسم الصنف" field="name" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الفئة" field="category" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الكمية" field="quantity" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="سعر الشراء" field="buy_price" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="سعر البيع" field="sell_price" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border"><SortHeader label="الوحدة" field="unit" /></th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">الحالة</th>
-                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">إجراءات</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="سعر البيع" field="sell_price" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوحدة" field="unit" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
