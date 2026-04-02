@@ -35,6 +35,7 @@ interface Contact {
   contact_type: string;
   phone?: string;
   tax_number?: string;
+  balance?: number;
 }
 
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -269,7 +270,28 @@ const InvoicesPage = () => {
   const fetchContacts = async () => {
     if (!user) return;
     const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
-    setContacts((data as Contact[]) || []);
+    const contactsList = (data as Contact[]) || [];
+    
+    // Fetch balances for each contact from invoices
+    const { data: invData } = await supabase
+      .from("invoices" as any)
+      .select("contact_name, total_amount, paid_amount")
+      .eq("user_id", user.id)
+      .eq("is_deleted", false);
+    
+    const balanceMap: Record<string, number> = {};
+    ((invData as any[]) || []).forEach((inv: any) => {
+      const name = inv.contact_name;
+      if (!name) return;
+      const remaining = Number(inv.total_amount || 0) - Number(inv.paid_amount || 0);
+      balanceMap[name] = (balanceMap[name] || 0) + remaining;
+    });
+    
+    const withBalances = contactsList.map(c => ({
+      ...c,
+      balance: balanceMap[c.contact_name] || 0,
+    }));
+    setContacts(withBalances);
   };
 
   const saveInvoices = (updated: Invoice[]) => {
@@ -386,9 +408,10 @@ const InvoicesPage = () => {
     setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
   };
 
-  const filteredContacts = contacts.filter(c =>
-    c.contact_name.includes(contactSearch)
-  );
+  const filteredContacts = contacts.filter(c => {
+    const matchesSearch = !contactSearch || c.contact_name.includes(contactSearch);
+    return matchesSearch;
+  });
 
   const selectContact = (contact: Contact) => {
     setForm(prev => ({ ...prev, contactName: contact.contact_name, contactTaxNumber: contact.tax_number || "" }));
@@ -919,12 +942,17 @@ const InvoicesPage = () => {
                   className="rounded-xl text-sm pr-9"
                 />
               </div>
-              {showContactDropdown && contactSearch && filteredContacts.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
+              {showContactDropdown && filteredContacts.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
                   {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => selectContact(c)} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
+                    <button key={c.id} onClick={() => selectContact(c)} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-mono text-[10px] ${(c.balance || 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                          {(c.balance || 0).toLocaleString("en", { minimumFractionDigits: 2 })} ₪
+                        </span>
+                        <Badge variant="outline" className="text-[9px]">{c.contact_type}</Badge>
+                      </div>
                       <span>{c.contact_name}</span>
-                      <Badge variant="outline" className="text-[9px]">{c.contact_type}</Badge>
                     </button>
                   ))}
                 </div>
