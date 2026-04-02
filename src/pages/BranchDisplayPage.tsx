@@ -165,7 +165,7 @@ export default function BranchDisplayPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "#0a0e1a", fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+        style={{ background: "#0a0e1a", fontFamily: "'Cairo', sans-serif" }}
       >
         <RefreshCw className="h-12 w-12 animate-spin text-emerald-400" />
       </div>
