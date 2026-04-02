@@ -6,6 +6,7 @@ interface InvoiceItem {
   unitPrice: number;
   discount: number;
   taxRate: number;
+  taxCategory?: "taxable" | "zero" | "exempt";
   subtotal: number;
 }
 
@@ -15,6 +16,7 @@ interface InvoiceData {
   date: string;
   dueDate?: string;
   contactName: string;
+  contactTaxNumber?: string;
   items: InvoiceItem[];
   notes: string;
   status: string;
@@ -32,7 +34,7 @@ interface InvoiceData {
 interface InvoicePrintViewProps {
   invoice: InvoiceData;
   settings: CompanySettings;
-  copyLabel?: string; // "أصلية" | "نسخة"
+  copyLabel?: string;
 }
 
 const fmtDate = (d: string) => {
