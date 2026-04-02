@@ -404,7 +404,7 @@ const AccountStatementV2Page = () => {
             <div className="flex items-center gap-3">
             {(() => {
               const fromCode = new URLSearchParams(window.location.search).get("code");
-              const backTo = fromCode ? "/trial-balance" : "/finance";
+              const backTo = fromCode ? "/trial-balance" : "/apps";
               return (
                 <button onClick={() => navigate(backTo)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
                   <ArrowRight className="w-5 h-5" style={{ color: "#374151" }} />
