@@ -4067,7 +4067,7 @@ const POSPage = () => {
           {/* Customer info */}
           <div className="px-3 pb-1 shrink-0">
             {activeOrder.customerName && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#0D1B2E]/60 mb-1">
                 <User className="h-3 w-3" />
                 <span>{activeOrder.customerName}</span>
               </div>
