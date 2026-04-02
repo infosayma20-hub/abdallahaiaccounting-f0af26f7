@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer, FileSpreadsheet, Send } from "lucide-react";
+import { Printer, FileSpreadsheet, Send, Receipt } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { ownerId: string; }
