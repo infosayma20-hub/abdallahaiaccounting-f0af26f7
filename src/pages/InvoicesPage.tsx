@@ -272,16 +272,21 @@ const InvoicesPage = () => {
     const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
     const contactsList = (data as Contact[]) || [];
     
-    // Fetch balances for each contact from invoices
-    const { data: invData } = await supabase
-      .from("invoices" as any)
-      .select("contact_name, total_amount, paid_amount")
-      .eq("user_id", user.id)
-      .eq("is_deleted", false);
+    // Fetch balances from both invoices and purchase_invoices
+    const [{ data: invData }, { data: purData }] = await Promise.all([
+      supabase.from("invoices" as any).select("contact_name, total_amount, paid_amount").eq("user_id", user.id),
+      supabase.from("purchase_invoices" as any).select("supplier_name, total_amount, paid_amount").eq("user_id", user.id),
+    ]);
     
     const balanceMap: Record<string, number> = {};
     ((invData as any[]) || []).forEach((inv: any) => {
       const name = inv.contact_name;
+      if (!name) return;
+      const remaining = Number(inv.total_amount || 0) - Number(inv.paid_amount || 0);
+      balanceMap[name] = (balanceMap[name] || 0) + remaining;
+    });
+    ((purData as any[]) || []).forEach((inv: any) => {
+      const name = inv.supplier_name;
       if (!name) return;
       const remaining = Number(inv.total_amount || 0) - Number(inv.paid_amount || 0);
       balanceMap[name] = (balanceMap[name] || 0) + remaining;
