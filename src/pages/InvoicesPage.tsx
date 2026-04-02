@@ -978,12 +978,6 @@ const InvoicesPage = () => {
                     {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {form.paymentMethod === "credit" && (
-                  <div className="mt-2">
-                    <label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الاستحقاق</label>
-                    <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-xs h-8" dir="ltr" />
-                  </div>
-                )}
               </div>
             </div>
           </CardContent>
