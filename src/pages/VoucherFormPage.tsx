@@ -617,6 +617,47 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, allocatedAmount: val } : inv));
   };
 
+  /** Convert invoice remaining to voucher currency */
+  const getInvRemainingInVoucherCurrency = (inv: Invoice): number => {
+    const rawRemaining = Math.max(0, (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0));
+    const invCurr = inv.currency || "شيكل";
+    const invIsILS = invCurr === "شيكل" || invCurr === "ILS";
+    const voucherIsILS = currency === "ILS";
+
+    // Same currency
+    if ((invIsILS && voucherIsILS) || (!invIsILS && !voucherIsILS && invCurr === currency)) {
+      return rawRemaining;
+    }
+    // Invoice is foreign, voucher is ILS → multiply by invoice exchange rate
+    if (!invIsILS && voucherIsILS) {
+      return rawRemaining * (inv.exchange_rate || 1);
+    }
+    // Invoice is ILS, voucher is foreign → divide by voucher exchange rate
+    if (invIsILS && !voucherIsILS) {
+      return exchangeRate > 0 ? rawRemaining / exchangeRate : rawRemaining;
+    }
+    // Both foreign but different → convert via ILS
+    const invInILS = rawRemaining * (inv.exchange_rate || 1);
+    return exchangeRate > 0 ? invInILS / exchangeRate : invInILS;
+  };
+
+  const isInvCurrencyDifferent = (inv: Invoice): boolean => {
+    const invCurr = inv.currency || "شيكل";
+    const invIsILS = invCurr === "شيكل" || invCurr === "ILS";
+    const voucherIsILS = currency === "ILS";
+    if (invIsILS && voucherIsILS) return false;
+    if (!invIsILS && !voucherIsILS && invCurr === currency) return false;
+    return true;
+  };
+
+  const getInvCurrencySymbol = (inv: Invoice): string => {
+    const c = inv.currency || "شيكل";
+    if (c === "دولار" || c === "USD") return "$";
+    if (c === "دينار" || c === "JOD") return "د.أ";
+    if (c === "يورو" || c === "EUR") return "€";
+    return "₪";
+  };
+
   const getDaysOverdue = (dueDate: string | null) => {
     if (!dueDate) return 0;
     return Math.floor((Date.now() - new Date(dueDate).getTime()) / 86400000);
