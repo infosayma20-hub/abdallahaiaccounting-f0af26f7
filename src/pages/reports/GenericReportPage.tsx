@@ -236,6 +236,15 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "salary", label: "الراتب", type: "currency" },
           { key: "employment_status", label: "الحالة", type: "badge" },
         ];
+      case "employee-withdrawals":
+        return [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "ref_number", label: "رقم السند", type: "text" },
+          { key: "employee_name", label: "الموظف", type: "text" },
+          { key: "category", label: "نوع العملية", type: "badge", filterType: "select", filterOptions: ["سلفة", "رواتب", "أكل", "عجز", "مشتريات", "توصيل", "مخالفة", "أخرى"] },
+          { key: "description", label: "الوصف", type: "text" },
+          { key: "amount", label: "المبلغ", type: "currency" },
+        ];
       case "sales-by-product": case "order-performance":
         return [
           { key: "name", label: "الصنف", type: "text" },
