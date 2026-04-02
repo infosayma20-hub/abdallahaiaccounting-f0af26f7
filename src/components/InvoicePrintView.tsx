@@ -376,8 +376,21 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Tax */}
           {totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
-              <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة ({settings.vat_rate || 16}%)</span>
+              <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة 16%</span>
               <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>+{fmtAmount(totalTax)}</span>
+            </div>
+          )}
+          {/* Exempt breakdown */}
+          {exemptNetTotal > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "9px" }}>
+              <span style={{ color: "#9CA3AF" }}>مبيعات معفاة من الضريبة</span>
+              <span style={{ color: "#9CA3AF", fontFeatureSettings: "'tnum'" }}>{fmtAmount(exemptNetTotal)}</span>
+            </div>
+          )}
+          {zeroNetTotal > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "9px" }}>
+              <span style={{ color: "#9CA3AF" }}>مبيعات بنسبة صفر</span>
+              <span style={{ color: "#9CA3AF", fontFeatureSettings: "'tnum'" }}>{fmtAmount(zeroNetTotal)}</span>
             </div>
           )}
           {/* Grand Total */}
