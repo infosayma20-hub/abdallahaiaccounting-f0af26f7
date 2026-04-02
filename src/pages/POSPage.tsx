@@ -4012,8 +4012,8 @@ const POSPage = () => {
                 setOrders(prev => [...prev, newOrder]);
                 setActiveOrderIndex(orders.length);
               }}
-              className="h-8 w-8 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors shrink-0 rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.08)' }}
+              className="h-8 w-8 flex items-center justify-center text-[#0D1B2E]/40 hover:text-[#0D1B2E]/70 transition-colors shrink-0 rounded-lg"
+              style={{ background: 'rgba(13,27,46,0.08)' }}
               title="طلب جديد"
             >
               <Plus className="h-3.5 w-3.5" />
