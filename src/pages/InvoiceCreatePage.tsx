@@ -221,7 +221,7 @@ const InvoiceCreatePage = () => {
 
   // Form state
   const [form, setForm] = useState({
-    type: "sales" as "sales" | "purchase",
+    type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
     contactId: null as string | null,
     date: new Date().toISOString().split("T")[0],
