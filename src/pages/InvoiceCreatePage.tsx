@@ -1199,8 +1199,13 @@ const InvoiceCreatePage = () => {
                   <Input value={customerOverrides.address} onChange={e => setCustomerOverrides(p => ({ ...p, address: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" />
                 </div>
               </div>
-              {(!customerOverrides.phone && !customerOverrides.email && !customerOverrides.tax_number && !customerOverrides.address) && (
-                <a href={`/contacts`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline">
+              {selectedContact && (
+                <a href={`/contacts?edit=${selectedContact.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline justify-end">
+                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل
+                </a>
+              )}
+              {!selectedContact && (!customerOverrides.phone && !customerOverrides.email && !customerOverrides.tax_number && !customerOverrides.address) && (
+                <a href="/contacts" target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline justify-end">
                   <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل
                 </a>
               )}
