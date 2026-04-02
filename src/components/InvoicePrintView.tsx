@@ -286,8 +286,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               📍 {invoice.contactAddress}
             </div>
           )}
+        </div>
 
-        {/* Invoice Details */}
         <div style={{ textAlign: "left", fontSize: "10px" }}>
           {[
             { label: "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
