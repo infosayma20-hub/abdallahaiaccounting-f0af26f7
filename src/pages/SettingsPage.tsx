@@ -20,6 +20,7 @@ import SecuritySettingsSection from "@/components/settings/SecuritySettingsSecti
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
+import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const sections = [
