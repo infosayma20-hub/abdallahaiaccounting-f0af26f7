@@ -4172,7 +4172,7 @@ const POSPage = () => {
                                 onClick={e => e.stopPropagation()}
                                 onFocus={e => {
                                   const container = e.currentTarget.parentElement;
-                                  if (container) { container.style.borderColor = '#3b82f6'; container.style.background = 'rgba(59,130,246,0.1)'; }
+                                  if (container) { container.style.borderColor = '#3b82f6'; container.style.background = 'rgba(59,130,246,0.08)'; }
                                 }}
                                 onBlur={e => {
                                   const container = e.currentTarget.parentElement;
