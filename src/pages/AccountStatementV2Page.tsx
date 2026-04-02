@@ -309,6 +309,70 @@ const AccountStatementV2Page = () => {
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
   }, [rows, selectedEntityId, isAccountsTab]);
 
+  // ─── YEAR COMPARISON ───
+  const yearComparisonData = useMemo(() => {
+    if (!showYearComparison || !selectedEntityId || !dateFrom || !dateTo) return null;
+
+    const fromDate = parseISO(dateFrom);
+    const toDate = parseISO(dateTo);
+    const prevFrom = format(subYears(fromDate, 1), "yyyy-MM-dd");
+    const prevTo = format(subYears(toDate, 1), "yyyy-MM-dd");
+    const currentYear = fromDate.getFullYear();
+    const prevYear = currentYear - 1;
+
+    let related: Transaction[];
+    let resolveDebitCredit: (tx: Transaction) => { isDebit: boolean; isCredit: boolean };
+
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+      resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      const code = selectedEmployee.account_code;
+      related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+      resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+    } else {
+      const contactName = selectedContact?.contact_name?.trim() || "";
+      const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
+      const contactAccountCodes = ["1130", "2110", "2180"];
+      related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+      resolveDebitCredit = (tx) => ({ isDebit: contactAccountCodes.includes(tx.debit_account_code), isCredit: contactAccountCodes.includes(tx.credit_account_code) });
+    }
+
+    let curDebit = 0, curCredit = 0, curCount = 0;
+    let prevDebit = 0, prevCredit = 0, prevCount = 0;
+
+    for (const tx of related) {
+      const { isDebit, isCredit } = resolveDebitCredit(tx);
+      if (!isDebit && !isCredit) continue;
+      const amt = tx.amount || 0;
+      if (tx.transaction_date >= dateFrom && tx.transaction_date <= dateTo) {
+        curCount++;
+        if (isDebit) curDebit += amt;
+        if (isCredit) curCredit += amt;
+      } else if (tx.transaction_date >= prevFrom && tx.transaction_date <= prevTo) {
+        prevCount++;
+        if (isDebit) prevDebit += amt;
+        if (isCredit) prevCredit += amt;
+      }
+    }
+
+    const curNet = curDebit - curCredit;
+    const prevNet = prevDebit - prevCredit;
+    const debitChange = prevDebit > 0 ? ((curDebit - prevDebit) / prevDebit) * 100 : curDebit > 0 ? 100 : 0;
+    const creditChange = prevCredit > 0 ? ((curCredit - prevCredit) / prevCredit) * 100 : curCredit > 0 ? 100 : 0;
+    const netChange = prevNet !== 0 ? ((curNet - prevNet) / Math.abs(prevNet)) * 100 : curNet !== 0 ? 100 : 0;
+
+    return {
+      currentYear, prevYear,
+      currentPeriod: `${fmtDate(dateFrom)} - ${fmtDate(dateTo)}`,
+      prevPeriod: `${fmtDate(prevFrom)} - ${fmtDate(prevTo)}`,
+      curDebit, curCredit, curNet, curCount,
+      prevDebit, prevCredit, prevNet, prevCount,
+      debitChange, creditChange, netChange,
+    };
+  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, contacts]);
+
   // ─── EXPORT ───
   const handleExport = () => {
     if (!filteredRows.length || !selectedEntityName) return;
