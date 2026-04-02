@@ -640,63 +640,61 @@ const TransactionsPage = () => {
       </div>
 
       {/* Toolbar */}
-      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-3 space-y-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input
-              placeholder="ابحث بالمرجع، الوصف، الحساب..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+      <div className="space-y-3 mb-4">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="ابحث بالمرجع، الوصف، الحساب..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pr-9 h-9 text-sm"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
 
-          {/* Type pills + date/account filters */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
-              <button onClick={() => setTypeFilter("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${typeFilter === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                الكل
+        {/* Type pills + date/account filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 flex-1">
+            <button onClick={() => setTypeFilter("all")} className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${typeFilter === "all" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}>
+              الكل
+            </button>
+            {uniqueTypes.slice(0, 8).map(t => (
+              <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${typeFilter === t ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}>
+                {typeBadgeConfig[t]?.label || t}
               </button>
-              {uniqueTypes.slice(0, 8).map(t => (
-                <button key={t} onClick={() => setTypeFilter(t)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${typeFilter === t ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                  {typeBadgeConfig[t]?.label || t}
-                </button>
-              ))}
-            </div>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-[140px] rounded-xl text-xs h-9">
-                <SelectValue placeholder="الفترة" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                <SelectItem value="all">كل الفترات</SelectItem>
-                <SelectItem value="today">اليوم</SelectItem>
-                <SelectItem value="this_week">هذا الأسبوع</SelectItem>
-                <SelectItem value="this_month">هذا الشهر</SelectItem>
-                <SelectItem value="last_month">الشهر السابق</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={accountFilter} onValueChange={setAccountFilter}>
-              <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
-                <SelectValue placeholder="كل الحسابات" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-48">
-                <SelectItem value="all">كل الحسابات</SelectItem>
-                {usedAccounts.map(a => (
-                  <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-[11px] text-muted-foreground mr-auto">{filteredTransactions.length} قيد</span>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-[140px] text-xs h-9">
+              <SelectValue placeholder="الفترة" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">كل الفترات</SelectItem>
+              <SelectItem value="today">اليوم</SelectItem>
+              <SelectItem value="this_week">هذا الأسبوع</SelectItem>
+              <SelectItem value="this_month">هذا الشهر</SelectItem>
+              <SelectItem value="last_month">الشهر السابق</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-[180px] text-xs h-9">
+              <SelectValue placeholder="كل الحسابات" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50 max-h-48">
+              <SelectItem value="all">كل الحسابات</SelectItem>
+              {usedAccounts.map(a => (
+                <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-[11px] text-muted-foreground mr-auto">{filteredTransactions.length} قيد</span>
+        </div>
+      </div>
 
       {/* Bulk selection bar */}
       {selectedIds.size > 0 && (
