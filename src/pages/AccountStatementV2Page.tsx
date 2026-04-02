@@ -355,6 +355,70 @@ const AccountStatementV2Page = () => {
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
   }, [rows, selectedEntityId, isAccountsTab]);
 
+  // ─── YEAR COMPARISON ───
+  const yearComparisonData = useMemo(() => {
+    if (!showYearComparison || !selectedEntityId || !dateFrom || !dateTo) return null;
+
+    const fromDate = parseISO(dateFrom);
+    const toDate = parseISO(dateTo);
+    const prevFrom = format(subYears(fromDate, 1), "yyyy-MM-dd");
+    const prevTo = format(subYears(toDate, 1), "yyyy-MM-dd");
+    const currentYear = fromDate.getFullYear();
+    const prevYear = currentYear - 1;
+
+    let related: Transaction[];
+    let resolveDebitCredit: (tx: Transaction) => { isDebit: boolean; isCredit: boolean };
+
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+      resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      const code = selectedEmployee.account_code;
+      related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+      resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+    } else {
+      const contactName = selectedContact?.contact_name?.trim() || "";
+      const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
+      const contactAccountCodes = ["1130", "2110", "2180"];
+      related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
+      resolveDebitCredit = (tx) => ({ isDebit: contactAccountCodes.includes(tx.debit_account_code), isCredit: contactAccountCodes.includes(tx.credit_account_code) });
+    }
+
+    let curDebit = 0, curCredit = 0, curCount = 0;
+    let prevDebit = 0, prevCredit = 0, prevCount = 0;
+
+    for (const tx of related) {
+      const { isDebit, isCredit } = resolveDebitCredit(tx);
+      if (!isDebit && !isCredit) continue;
+      const amt = tx.amount || 0;
+      if (tx.transaction_date >= dateFrom && tx.transaction_date <= dateTo) {
+        curCount++;
+        if (isDebit) curDebit += amt;
+        if (isCredit) curCredit += amt;
+      } else if (tx.transaction_date >= prevFrom && tx.transaction_date <= prevTo) {
+        prevCount++;
+        if (isDebit) prevDebit += amt;
+        if (isCredit) prevCredit += amt;
+      }
+    }
+
+    const curNet = curDebit - curCredit;
+    const prevNet = prevDebit - prevCredit;
+    const debitChange = prevDebit > 0 ? ((curDebit - prevDebit) / prevDebit) * 100 : curDebit > 0 ? 100 : 0;
+    const creditChange = prevCredit > 0 ? ((curCredit - prevCredit) / prevCredit) * 100 : curCredit > 0 ? 100 : 0;
+    const netChange = prevNet !== 0 ? ((curNet - prevNet) / Math.abs(prevNet)) * 100 : curNet !== 0 ? 100 : 0;
+
+    return {
+      currentYear, prevYear,
+      currentPeriod: `${fmtDate(dateFrom)} - ${fmtDate(dateTo)}`,
+      prevPeriod: `${fmtDate(prevFrom)} - ${fmtDate(prevTo)}`,
+      curDebit, curCredit, curNet, curCount,
+      prevDebit, prevCredit, prevNet, prevCount,
+      debitChange, creditChange, netChange,
+    };
+  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, isAccountsTab, isEmployeesTab, selectedAccount, selectedEmployee, selectedContact, contacts]);
+
   // ─── EXPORT ───
   const handleExport = () => {
     if (!filteredRows.length || !selectedEntityName) return;
@@ -804,7 +868,52 @@ const AccountStatementV2Page = () => {
               </Collapsible>
             )}
 
-            {/* ─── FOOTER LINE ─── */}
+            {/* ─── YEAR COMPARISON ─── */}
+            {showYearComparison && yearComparisonData && (
+              <div className="rounded-lg mb-4 overflow-hidden" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+                <div className="flex items-center justify-between px-4 py-3" style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                  <span className="text-sm font-semibold" style={{ color: "#374151" }}>📊 مقارنة سنوية</span>
+                  <span className="text-[10px]" style={{ color: "#9CA3AF" }}>{yearComparisonData.currentYear} مقابل {yearComparisonData.prevYear}</span>
+                </div>
+                <div style={{ padding: 16 }}>
+                  <table className="w-full" style={{ tableLayout: "fixed" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
+                        <th className="text-right" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>البيان</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF" }}>{yearComparisonData.currentYear} (الحالي)</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>{yearComparisonData.prevYear} (السابق)</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>التغيير %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { label: "إجمالي المدين", cur: yearComparisonData.curDebit, prev: yearComparisonData.prevDebit, change: yearComparisonData.debitChange },
+                        { label: "إجمالي الدائن", cur: yearComparisonData.curCredit, prev: yearComparisonData.prevCredit, change: yearComparisonData.creditChange },
+                        { label: "صافي الرصيد", cur: yearComparisonData.curNet, prev: yearComparisonData.prevNet, change: yearComparisonData.netChange },
+                        { label: "عدد الحركات", cur: yearComparisonData.curCount, prev: yearComparisonData.prevCount, change: yearComparisonData.prevCount > 0 ? ((yearComparisonData.curCount - yearComparisonData.prevCount) / yearComparisonData.prevCount) * 100 : yearComparisonData.curCount > 0 ? 100 : 0 },
+                      ].map((item, idx) => (
+                        <tr key={item.label} style={{ borderBottom: idx < 3 ? "1px solid #F3F4F6" : "none", background: idx === 2 ? "#F9FAFB" : "transparent" }}>
+                          <td className="text-right" style={{ padding: "10px 12px", fontSize: 11, fontWeight: idx === 2 ? 700 : 400, color: "#374151" }}>{item.label}</td>
+                          <td className="text-center" style={{ padding: "10px 12px", fontSize: 12, fontWeight: 600, color: "#111827", fontFamily: "tabular-nums" }}>
+                            {idx === 3 ? item.cur : fmtAmount(item.cur, statementCurrency)}
+                          </td>
+                          <td className="text-center" style={{ padding: "10px 12px", fontSize: 12, color: "#6B7280", fontFamily: "tabular-nums" }}>
+                            {idx === 3 ? item.prev : fmtAmount(item.prev, statementCurrency)}
+                          </td>
+                          <td className="text-center" style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, fontFamily: "tabular-nums", color: item.change > 0 ? "#059669" : item.change < 0 ? "#DC2626" : "#6B7280" }}>
+                            {item.change === 0 ? "—" : `${item.change > 0 ? "↑" : "↓"} ${Math.abs(item.change).toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-3 text-center" style={{ fontSize: 9, color: "#9CA3AF" }}>
+                    الفترة الحالية: {yearComparisonData.currentPeriod} | الفترة السابقة: {yearComparisonData.prevPeriod}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
               إجمالي الحركات: {filteredRows.length} قيد | مدين: {fmtAmount(totalDebit, statementCurrency)} | دائن: {fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: {fmtAmount(closingBalance, statementCurrency)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"}) | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
               {displayCurrency !== "ILS" && currentExchangeRate[displayCurrency] && (
