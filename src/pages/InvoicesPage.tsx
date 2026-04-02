@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+// useSearchParams imported below with useNavigate
 import PageHeader from "@/components/layout/PageHeader";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil, MoreHorizontal, Download, Mail, Send } from "lucide-react";
@@ -19,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +85,7 @@ const createEmptyItem = (): InvoiceItem => ({
 
 const InvoicesPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
@@ -97,7 +99,8 @@ const InvoicesPage = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">("all");
+  const initialType = searchParams.get("type") === "purchase" ? "purchase" : searchParams.get("type") === "sales" ? "sales" : "all";
+  const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">(initialType);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreatePage, setShowCreatePage] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
