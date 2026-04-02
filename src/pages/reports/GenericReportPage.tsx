@@ -20,7 +20,7 @@ import {
   loadDeadStockReport, loadProductProfitability, loadFinancialKPIs, loadMonthComparison,
   loadForeignBalances, loadTotalPurchases, loadPurchaseInvoiceRegister, loadBySupplier,
   loadSupplierPayments, loadPurchaseReturns, loadSupplierComparison, loadInventoryValuation,
-  loadStockMovement, loadBelowReorder, loadEmployeeDirectory, loadAssetRegister,
+  loadStockMovement, loadBelowReorder, loadEmployeeDirectory, loadEmployeeWithdrawals, loadAssetRegister,
   loadMonthlyDepreciation, loadDepreciationSchedule, loadFullyDepreciated, loadAssetDisposal,
   loadAssetsByLocation, loadExchangeRates, loadCurrencyConversions, loadExchangeGainLoss,
   loadAllOrders, loadGenericTransactions,
