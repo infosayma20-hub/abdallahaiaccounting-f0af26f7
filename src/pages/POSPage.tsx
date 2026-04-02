@@ -3981,15 +3981,15 @@ const POSPage = () => {
                   onClick={() => setActiveOrderIndex(idx)}
                   className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all ${
                     isActive
-                      ? "text-[#0D1B2E]"
-                      : "text-white/50 hover:text-white/70"
+                      ? "text-white"
+                      : "text-[#0D1B2E]/50 hover:text-[#0D1B2E]/70"
                   }`}
-                  style={isActive ? { background: 'white' } : {}}
+                  style={isActive ? { background: '#0D1B2E' } : {}}
                 >
                   <span>{order.customerName || order.name}</span>
                   {itemCount > 0 && (
                     <span className={`text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
-                      isActive ? "bg-[#0D1B2E]/10 text-[#0D1B2E]" : "bg-white/10 text-white/50"
+                      isActive ? "bg-white/20 text-white" : "bg-[#0D1B2E]/10 text-[#0D1B2E]/50"
                     }`}>
                       {itemCount}
                     </span>
