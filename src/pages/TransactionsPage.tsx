@@ -524,7 +524,51 @@ const TransactionsPage = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    const rows = filteredTransactions.map(tx => `
+      <tr>
+        <td>${fmtDateDisplay(tx.transaction_date)}</td>
+        <td>${tx.reference || "—"}</td>
+        <td>${tx.description || "بدون وصف"}</td>
+        <td>${tx.transaction_type === "journal" ? "يدوي" : tx.transaction_type === "auto" ? "آلي" : tx.transaction_type || ""}</td>
+        <td class="text-left font-mono text-primary">₪${tx.amount?.toFixed(2)}</td>
+        <td class="text-left font-mono text-green">₪${tx.amount?.toFixed(2)}</td>
+      </tr>
+    `).join("");
+
+    const contentHtml = `
+      <div class="print-header">
+        <div>
+          <div class="company-name">${settings.company_name || "الشركة"}</div>
+          <div class="report-title">تقرير الحركات المحاسبية</div>
+        </div>
+        <div class="print-date">${filterLabel}</div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-card"><div class="summary-label">إجمالي القيود</div><div class="summary-value">${filteredTransactions.length}</div></div>
+        <div class="summary-card"><div class="summary-label">المدين</div><div class="summary-value text-primary">₪${totalDebit.toFixed(2)}</div></div>
+        <div class="summary-card"><div class="summary-label">الدائن</div><div class="summary-value green">₪${totalCredit.toFixed(2)}</div></div>
+        <div class="summary-card"><div class="summary-label">التوازن</div><div class="summary-value ${isBalanced ? 'green' : 'red'}">${isBalanced ? "متطابق ✅" : `فرق: ₪${Math.abs(totalDebit - totalCredit).toFixed(2)}`}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>التاريخ</th><th>المرجع</th><th>الوصف</th><th>النوع</th><th>مدين ₪</th><th>دائن ₪</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="4" style="text-align:right">المجموع (${filteredTransactions.length} قيد)</td>
+          <td class="text-left font-mono font-bold text-primary">₪${totalDebit.toFixed(2)}</td>
+          <td class="text-left font-mono font-bold text-green">₪${totalCredit.toFixed(2)}</td>
+        </tr></tfoot>
+      </table>
+    `;
+
+    import("@/lib/printUtils").then(({ printReport }) => {
+      printReport({
+        title: "تقرير الحركات المحاسبية",
+        companyName: settings.company_name || "الشركة",
+        contentHtml,
+      });
+    });
   };
 
   const companyInfo = useMemo(() => ({

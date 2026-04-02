@@ -376,10 +376,15 @@ const AccountStatementV2Page = () => {
     if (!printContent) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    printWindow.document.write(`<html dir="rtl"><head><title>كشف حساب - ${selectedEntityName}</title><style>@media print { @page { size: A4; margin: 10mm; } body { font-family: Arial, sans-serif; } }</style></head><body>${printContent.innerHTML}</body></html>`);
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>كشف حساب - ${selectedEntityName}</title><style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+      @media print { @page { size: A4; margin: 0; } }
+      * { box-sizing: border-box; }
+      body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; padding: 15mm 20mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    </style></head><body>${printContent.innerHTML}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 600);
   }, [selectedEntityName]);
 
   // Balance color helper
