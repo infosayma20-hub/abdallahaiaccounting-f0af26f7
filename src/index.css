@@ -314,11 +314,11 @@
   }
 }
 
-/* Global override: replace JetBrains Mono everywhere (inline styles included) */
+/* Global override: Cairo everywhere, replace JetBrains Mono and Tajawal */
 * {
-  font-family: inherit;
+  font-family: 'Cairo', sans-serif !important;
 }
-[style*="JetBrains"] {
+.font-mono, [style*="JetBrains"] {
   font-family: 'Inter', sans-serif !important;
   font-variant-numeric: tabular-nums;
 }
