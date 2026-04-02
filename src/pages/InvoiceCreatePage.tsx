@@ -219,6 +219,8 @@ const InvoiceCreatePage = () => {
     }
   }, [defaultTerms]);
 
+  const [openProductPopover, setOpenProductPopover] = useState<string | null>(null);
+
   // Form state
   const [form, setForm] = useState({
     type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
@@ -1309,7 +1311,7 @@ const InvoiceCreatePage = () => {
 
                 {/* Product */}
                 <div className="space-y-1">
-                  <Popover>
+                  <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
                     <PopoverTrigger asChild>
                       <button className="w-full flex items-center justify-between rounded-lg text-[11px] h-8 border-0 bg-background px-3 hover:bg-muted/50 transition-colors text-right">
                         <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
@@ -1324,10 +1326,10 @@ const InvoiceCreatePage = () => {
                         <CommandList>
                           <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج</CommandEmpty>
                           <CommandGroup>
-                            <CommandItem onSelect={() => { setShowQuickAdd(true); }} className="text-primary font-semibold text-[11px] gap-1.5">
+                            <CommandItem onSelect={() => { setShowQuickAdd(true); setOpenProductPopover(null); }} className="text-primary font-semibold text-[11px] gap-1.5">
                               <Plus className="h-3 w-3" /> تعريف منتج جديد
                             </CommandItem>
-                            <CommandItem onSelect={() => { updateItem(item.id, "productId", ""); }} className="text-muted-foreground text-[11px] gap-1.5">
+                            <CommandItem onSelect={() => { updateItem(item.id, "productId", ""); setOpenProductPopover(null); }} className="text-muted-foreground text-[11px] gap-1.5">
                               ✏️ إدخال يدوي
                             </CommandItem>
                           </CommandGroup>
@@ -1336,7 +1338,7 @@ const InvoiceCreatePage = () => {
                               <CommandItem
                                 key={p.id}
                                 value={`${p.name} ${p.barcode || ""}`}
-                                onSelect={() => selectProduct(item.id, p.id)}
+                                onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }}
                                 className="text-[11px] flex items-center justify-between gap-2"
                               >
                                 <span>{p.name}</span>
