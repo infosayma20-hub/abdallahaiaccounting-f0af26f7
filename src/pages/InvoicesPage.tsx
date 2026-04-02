@@ -34,7 +34,10 @@ interface Contact {
   contact_name: string;
   contact_type: string;
   phone?: string;
+  tax_number?: string;
 }
+
+type TaxCategory = "taxable" | "zero" | "exempt";
 
 interface InvoiceItem {
   id: string;
@@ -44,6 +47,7 @@ interface InvoiceItem {
   unitPrice: number;
   discount: number;
   taxRate: number;
+  taxCategory: TaxCategory;
   subtotal: number;
 }
 
