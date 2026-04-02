@@ -92,6 +92,14 @@ const fallbackFeatures: Record<string, string[]> = {
   ],
 };
 
+// ILS prices for add-ons (overrides DB values)
+const addonPricesILS: Record<string, { annual: number; monthly: number }> = {
+  pos: { annual: 2200, monthly: Math.round(2200 / 12) },
+  payroll: { annual: 440, monthly: Math.round(440 / 12) },
+  websites: { annual: 1760, monthly: Math.round(1760 / 12) },
+  users: { annual: 880, monthly: Math.round(880 / 12) },
+};
+
 const fallbackPrices: Record<string, { monthly: number; annual: number; maxUsers: number; maxCompanies: number }> = {
   starter: { monthly: 19, annual: 182, maxUsers: 2, maxCompanies: 1 },
   professional: { monthly: 39, annual: 374, maxUsers: 10, maxCompanies: 3 },
