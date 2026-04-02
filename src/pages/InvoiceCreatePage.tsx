@@ -875,14 +875,19 @@ const InvoiceCreatePage = () => {
         }
 
         const debitCode = form.paymentMethod === "cash" ? "1110" : form.paymentMethod === "transfer" ? "1120" : form.paymentMethod === "cheque" ? "1150" : "1130";
+        const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
+        const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
+
         await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
           debit_account_code: form.type === "sales" ? debitCode : "5110",
           credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2110" : debitCode,
-          amount: summary.total,
+          amount: amountILS,
           currency: form.currency,
+          foreign_amount: isForeign ? summary.total : null,
+          exchange_rate: isForeign ? form.exchangeRate : null,
           transaction_type: form.type === "sales" ? "sale" : "purchase",
           contact_id: contactId,
           reference: dbInv.invoice_number,
