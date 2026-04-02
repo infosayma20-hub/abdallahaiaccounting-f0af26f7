@@ -108,7 +108,7 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   exchange_diff:      { label: "فروق عملة",      bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
   opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
   manual:             { label: "قيد يدوي",       bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
-  journal:            { label: "قيد يومية",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  journal:            { label: "سند صرف",        bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
   // عقود ومقاولات
   contract:           { label: "عقد مقاولة",     bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
   contract_payment:   { label: "دفعة عقد",       bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
