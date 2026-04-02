@@ -585,6 +585,10 @@ const InvoiceCreatePage = () => {
       items: prev.items.map(item => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
+        if (field === "taxCategory") {
+          const cat = TAX_CATEGORY_OPTIONS.find(o => o.value === value);
+          updated.taxRate = cat ? cat.rate : 0;
+        }
         updated.subtotal = calcItemSubtotal(updated);
         return updated;
       }),
