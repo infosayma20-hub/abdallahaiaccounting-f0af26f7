@@ -261,7 +261,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           )}
         </div>
         <div style={{ fontWeight: 600, color: "#1B3A5C" }}>
-          العملة: شيكل (₪ ILS)
+          العملة: {currLabel}
         </div>
       </div>
 
