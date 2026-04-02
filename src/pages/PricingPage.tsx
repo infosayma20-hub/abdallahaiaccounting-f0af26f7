@@ -139,7 +139,7 @@ const comparisonData = [
     { label: "صلاحيات متقدمة", starter: false, professional: false, enterprise: true },
     { label: "إدارة متعددة الفروع", starter: false, professional: false, enterprise: true },
     { label: "تكامل API", starter: false, professional: false, enterprise: true },
-    { label: "White-label", starter: false, professional: false, enterprise: true },
+    
   ]},
   { category: "الدعم الفني", features: [
     { label: "دعم بريد إلكتروني", starter: true, professional: true, enterprise: true },
