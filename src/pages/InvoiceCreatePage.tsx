@@ -851,6 +851,26 @@ const InvoiceCreatePage = () => {
         } as any);
       }
 
+      // Tax ledger integration
+      if (!asDraft && summary.totalTax > 0) {
+        const invoiceDate = new Date(form.date);
+        await supabase.from("tax_ledger" as any).insert({
+          user_id: user.id,
+          tax_type: form.type === "sales" ? "output" : "input",
+          net_amount: summary.subtotal - summary.totalDiscount,
+          tax_rate: 16,
+          tax_amount: summary.totalTax,
+          total_amount: summary.total,
+          reference_type: form.type === "sales" ? "invoice" : "purchase",
+          reference_id: dbInv.id,
+          reference_number: dbInv.invoice_number,
+          contact_name: form.contactName,
+          description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}`,
+          transaction_date: form.date,
+          period_year: invoiceDate.getFullYear(),
+          period_month: invoiceDate.getMonth() + 1,
+        } as any);
+
       await supabase.from("invoice_activity_log").insert({
         invoice_id: dbInv.id,
         user_id: user.id,
