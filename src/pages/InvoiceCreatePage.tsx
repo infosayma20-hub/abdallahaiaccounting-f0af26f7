@@ -963,6 +963,7 @@ const InvoiceCreatePage = () => {
     paidAmount: summary.paidAmount,
     remainingAmount: summary.remainingAmount,
     currency: form.currency,
+    terms: invoiceTerms || "",
   });
 
   const handlePrint = () => {

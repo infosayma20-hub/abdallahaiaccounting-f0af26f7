@@ -31,6 +31,7 @@ interface InvoiceData {
   paidAmount: number;
   remainingAmount: number;
   currency: string;
+  terms?: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
 }
 
@@ -465,7 +466,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         </div>
       )}
 
-      {/* ━━━ LEGAL NOTICE ━━━ */}
+      {/* ━━━ TERMS & CONDITIONS ━━━ */}
+      {invoice.terms && (
+        <div style={{ margin: "0 28px 8px", padding: "8px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", fontSize: "10px" }}>
+          <div style={{ fontWeight: 700, color: "#1B3A5C", marginBottom: "4px" }}>الشروط والأحكام:</div>
+          <div style={{ color: "#4B5563", whiteSpace: "pre-line", lineHeight: 1.6 }}>{invoice.terms}</div>
+        </div>
+      )}
+
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
         هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة — رقم القرار بقانون: (26) لسنة 2024م • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
       </div>
