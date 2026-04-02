@@ -1047,6 +1047,8 @@ const InvoiceCreatePage = () => {
         voucherType="invoice"
         currentRef={isEditMode ? nextInvoiceNumber : undefined}
         onPrint={handlePrint}
+        onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
+        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
         showNavigation={isEditMode}
       />
 
