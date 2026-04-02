@@ -799,7 +799,52 @@ const AccountStatementV2Page = () => {
               </Collapsible>
             )}
 
-            {/* ─── FOOTER LINE ─── */}
+            {/* ─── YEAR COMPARISON ─── */}
+            {showYearComparison && yearComparisonData && (
+              <div className="rounded-lg mb-4 overflow-hidden" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+                <div className="flex items-center justify-between px-4 py-3" style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                  <span className="text-sm font-semibold" style={{ color: "#374151" }}>📊 مقارنة سنوية</span>
+                  <span className="text-[10px]" style={{ color: "#9CA3AF" }}>{yearComparisonData.currentYear} مقابل {yearComparisonData.prevYear}</span>
+                </div>
+                <div style={{ padding: 16 }}>
+                  <table className="w-full" style={{ tableLayout: "fixed" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
+                        <th className="text-right" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>البيان</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF" }}>{yearComparisonData.currentYear} (الحالي)</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>{yearComparisonData.prevYear} (السابق)</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>التغيير %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { label: "إجمالي المدين", cur: yearComparisonData.curDebit, prev: yearComparisonData.prevDebit, change: yearComparisonData.debitChange },
+                        { label: "إجمالي الدائن", cur: yearComparisonData.curCredit, prev: yearComparisonData.prevCredit, change: yearComparisonData.creditChange },
+                        { label: "صافي الرصيد", cur: yearComparisonData.curNet, prev: yearComparisonData.prevNet, change: yearComparisonData.netChange },
+                        { label: "عدد الحركات", cur: yearComparisonData.curCount, prev: yearComparisonData.prevCount, change: yearComparisonData.prevCount > 0 ? ((yearComparisonData.curCount - yearComparisonData.prevCount) / yearComparisonData.prevCount) * 100 : yearComparisonData.curCount > 0 ? 100 : 0 },
+                      ].map((item, idx) => (
+                        <tr key={item.label} style={{ borderBottom: idx < 3 ? "1px solid #F3F4F6" : "none", background: idx === 2 ? "#F9FAFB" : "transparent" }}>
+                          <td className="text-right" style={{ padding: "10px 12px", fontSize: 11, fontWeight: idx === 2 ? 700 : 400, color: "#374151" }}>{item.label}</td>
+                          <td className="text-center" style={{ padding: "10px 12px", fontSize: 12, fontWeight: 600, color: "#111827", fontFamily: "tabular-nums" }}>
+                            {idx === 3 ? item.cur : fmtAmount(item.cur, statementCurrency)}
+                          </td>
+                          <td className="text-center" style={{ padding: "10px 12px", fontSize: 12, color: "#6B7280", fontFamily: "tabular-nums" }}>
+                            {idx === 3 ? item.prev : fmtAmount(item.prev, statementCurrency)}
+                          </td>
+                          <td className="text-center" style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, fontFamily: "tabular-nums", color: item.change > 0 ? "#059669" : item.change < 0 ? "#DC2626" : "#6B7280" }}>
+                            {item.change === 0 ? "—" : `${item.change > 0 ? "↑" : "↓"} ${Math.abs(item.change).toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-3 text-center" style={{ fontSize: 9, color: "#9CA3AF" }}>
+                    الفترة الحالية: {yearComparisonData.currentPeriod} | الفترة السابقة: {yearComparisonData.prevPeriod}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
               إجمالي الحركات: {filteredRows.length} قيد | مدين: {fmtAmount(totalDebit, statementCurrency)} | دائن: {fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: {fmtAmount(closingBalance, statementCurrency)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"}) | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
             </div>
