@@ -377,12 +377,11 @@ const InvoicesPage = () => {
     c.contact_name.includes(contactSearch)
   );
 
-  const selectContact = (name: string) => {
-    setForm(prev => ({ ...prev, contactName: name }));
-    setContactSearch(name);
+  const selectContact = (contact: Contact) => {
+    setForm(prev => ({ ...prev, contactName: contact.contact_name, contactTaxNumber: contact.tax_number || "" }));
+    setContactSearch(contact.contact_name);
     setShowContactDropdown(false);
-    // Check debt
-    checkContactDebt(name);
+    checkContactDebt(contact.contact_name);
   };
 
   const checkContactDebt = async (name: string) => {
