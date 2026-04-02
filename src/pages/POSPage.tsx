@@ -4157,11 +4157,11 @@ const POSPage = () => {
                             <div
                               className="flex items-center gap-1.5 px-2.5"
                               style={{
-                                background: 'rgba(255,255,255,0.08)',
-                                border: '1px solid rgba(255,255,255,0.15)',
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.2)',
                                 borderRadius: '20px',
                                 height: '30px',
-                                transition: 'border-color 0.2s, background 0.2s',
+                                transition: 'border-color 0.2s',
                               }}
                             >
                               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>₪</span>
