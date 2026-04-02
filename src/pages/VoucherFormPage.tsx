@@ -31,6 +31,8 @@ interface Invoice {
   paid_amount: number | null;
   remaining_amount: number | null;
   status: string | null;
+  currency?: string;
+  exchange_rate?: number;
   selected?: boolean;
   allocatedAmount?: number;
 }
@@ -492,7 +494,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!user || !selectedContact) { setInvoices([]); return; }
     const paymentStatusFilter = ["unpaid", "partial"];
     supabase.from("invoices")
-      .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status")
+      .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate")
       .eq("user_id", user.id)
       .eq("contact_id", selectedContact.id)
       .in("payment_status", paymentStatusFilter)
@@ -1191,6 +1193,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const getInvSymbol = (inv: Invoice) => {
+    const c = inv.currency || "شيكل";
+    if (c === "دولار" || c === "USD") return "$";
+    if (c === "دينار" || c === "JOD") return "د.أ";
+    if (c === "يورو" || c === "EUR") return "€";
+    return "₪";
+  };
 
   if (editLoading) {
     return (
@@ -1715,8 +1724,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                           <td className="p-2.5 font-mono font-medium text-foreground">{inv.invoice_number || "-"}</td>
                           <td className="p-2.5 text-muted-foreground">{inv.invoice_date}</td>
                           <td className="p-2.5 text-muted-foreground">{inv.due_date || "-"}</td>
-                          <td className="p-2.5 text-left font-mono">₪{formatAmount(inv.total_amount)}</td>
-                          <td className="p-2.5 text-left font-mono font-bold">₪{formatAmount(remaining)}</td>
+                          <td className="p-2.5 text-left font-mono">{getInvSymbol(inv)}{formatAmount(inv.total_amount)}</td>
+                          <td className="p-2.5 text-left font-mono font-bold">{getInvSymbol(inv)}{formatAmount(remaining)}</td>
                           <td className="p-2.5">
                             <span className={`${getOverdueColor(days)} text-[10px]`}>
                               {getOverdueIcon(days)} {getOverdueLabel(days)}
