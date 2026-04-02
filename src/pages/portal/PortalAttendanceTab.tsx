@@ -248,7 +248,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
     green: d ? '#22c55e' : '#16a34a',
     red: d ? '#ef4444' : '#dc2626',
     amber: d ? '#f59e0b' : '#d97706',
-    bg: d ? '#0D1117' : '#F0F2F5',
+    bg: d ? '#0D1117' : '#F8FAFC',
     accent: '#2A7B9B',
   };
 
