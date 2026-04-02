@@ -423,7 +423,6 @@ const OrdersPage = () => {
           </div>
 
           {/* Orders Table */}
-          <Card>
             <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
               <table className="w-full border-collapse text-sm">
                 <thead>
