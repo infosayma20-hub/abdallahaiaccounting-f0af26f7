@@ -1220,11 +1220,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- HEADER -->
   <div class="voucher-header">
     <div>
-      <div class="company-name">${settings.company_name || "AMWALI"}</div>
-      <div class="company-address">${settings.address || ""}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${settings.logo_url ? `<img src="${settings.logo_url}" style="height:40px;width:auto;border-radius:4px;" />` : ""}
+        <div>
+          <div class="company-name">${settings.company_name || "AMWALI"}</div>
+          <div class="company-address">${settings.address || ""}</div>
+        </div>
+      </div>
     </div>
     <div style="text-align:left;">
       <div class="badge">${typeBadge}</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.5);margin-top:1px;">${typeBadgeEn}</div>
       <div class="voucher-num">${savedReceiptNumber || refNumber || ""}</div>
     </div>
   </div>
