@@ -870,6 +870,7 @@ const InvoiceCreatePage = () => {
           period_year: invoiceDate.getFullYear(),
           period_month: invoiceDate.getMonth() + 1,
         } as any);
+      }
 
       await supabase.from("invoice_activity_log").insert({
         invoice_id: dbInv.id,
