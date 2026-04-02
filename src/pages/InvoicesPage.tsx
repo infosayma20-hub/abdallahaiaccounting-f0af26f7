@@ -80,9 +80,16 @@ const createEmptyItem = (): InvoiceItem => ({
   quantity: 1,
   unitPrice: 0,
   discount: 0,
-  taxRate: 0,
+  taxRate: 16,
+  taxCategory: "taxable",
   subtotal: 0,
 });
+
+const TAX_CATEGORY_OPTIONS: { value: TaxCategory; label: string; rate: number }[] = [
+  { value: "taxable", label: "خاضع للضريبة 16%", rate: 16 },
+  { value: "zero", label: "بنسبة صفر 0%", rate: 0 },
+  { value: "exempt", label: "معفى من الضريبة", rate: 0 },
+];
 
 const InvoicesPage = () => {
   const navigate = useNavigate();
