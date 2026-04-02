@@ -219,6 +219,8 @@ const InvoiceCreatePage = () => {
     }
   }, [defaultTerms]);
 
+  const [openProductPopover, setOpenProductPopover] = useState<string | null>(null);
+
   // Form state
   const [form, setForm] = useState({
     type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
