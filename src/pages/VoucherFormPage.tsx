@@ -866,7 +866,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           idempotency_key: `PAY-NEW-${Date.now()}`,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
-        }).select("id").single();
+          expense_category: isEmployeePayment ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
+        } as any).select("id").single();
         txId = txData?.id || null;
       }
 

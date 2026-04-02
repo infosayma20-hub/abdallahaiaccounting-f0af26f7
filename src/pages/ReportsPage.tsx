@@ -104,6 +104,7 @@ const sections: ReportSection[] = [
       { slug: "attendance", label: "الحضور والانصراف", description: "سجل الحضور لجميع الموظفين", icon: Clock, path: "/reports/hr-attendance", available: true },
       { slug: "leave-balance", label: "رصيد الإجازات", description: "الرصيد المتبقي لكل موظف", icon: Calculator, path: "/reports/hr-leaves", available: true },
       { slug: "employee-directory", label: "بيانات الموظفين", description: "دليل شامل لجميع الموظفين", icon: Users, path: "/reports/employee-directory", available: true },
+      { slug: "employee-withdrawals", label: "مسحوبات الموظفين", description: "تفصيل مسحوبات كل موظف حسب نوع العملية", icon: Wallet, path: "/reports/employee-withdrawals", available: true },
       { slug: "staff-cost", label: "تكلفة الموظفين حسب القسم", description: "توزيع تكاليف الرواتب مع رسم بياني", icon: PieChart, path: "/reports/hr-staff-cost", available: true },
     ],
   },

@@ -325,6 +325,7 @@ const App = () => (
                       <Route path="/reports/dead-stock" element={<GenericReportPage reportKey="dead-stock" />} />
                       <Route path="/reports/product-profitability" element={<GenericReportPage reportKey="product-profitability" />} />
                       <Route path="/reports/employee-directory" element={<GenericReportPage reportKey="employee-directory" />} />
+                      <Route path="/reports/employee-withdrawals" element={<GenericReportPage reportKey="employee-withdrawals" />} />
                       <Route path="/reports/asset-register" element={<GenericReportPage reportKey="asset-register" />} />
                       <Route path="/reports/monthly-depreciation" element={<GenericReportPage reportKey="monthly-depreciation" />} />
                       <Route path="/reports/depreciation-schedule" element={<GenericReportPage reportKey="depreciation-schedule" />} />

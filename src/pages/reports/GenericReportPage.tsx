@@ -20,7 +20,7 @@ import {
   loadDeadStockReport, loadProductProfitability, loadFinancialKPIs, loadMonthComparison,
   loadForeignBalances, loadTotalPurchases, loadPurchaseInvoiceRegister, loadBySupplier,
   loadSupplierPayments, loadPurchaseReturns, loadSupplierComparison, loadInventoryValuation,
-  loadStockMovement, loadBelowReorder, loadEmployeeDirectory, loadAssetRegister,
+  loadStockMovement, loadBelowReorder, loadEmployeeDirectory, loadEmployeeWithdrawals, loadAssetRegister,
   loadMonthlyDepreciation, loadDepreciationSchedule, loadFullyDepreciated, loadAssetDisposal,
   loadAssetsByLocation, loadExchangeRates, loadCurrencyConversions, loadExchangeGainLoss,
   loadAllOrders, loadGenericTransactions,
@@ -98,6 +98,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "stock-movement": await loadStockMovement(uid, dateFrom, dateTo, setData); break;
         case "below-reorder": await loadBelowReorder(uid, setData); break;
         case "employee-directory": await loadEmployeeDirectory(uid, setData); break;
+        case "employee-withdrawals": await loadEmployeeWithdrawals(uid, dateFrom, dateTo, setData); break;
         case "asset-register": await loadAssetRegister(uid, setData); break;
         case "monthly-depreciation": await loadMonthlyDepreciation(uid, dateFrom, dateTo, setData); break;
         case "depreciation-schedule": await loadDepreciationSchedule(uid, setData); break;
@@ -234,6 +235,15 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "start_date", label: "تاريخ التعيين", type: "date" },
           { key: "salary", label: "الراتب", type: "currency" },
           { key: "employment_status", label: "الحالة", type: "badge" },
+        ];
+      case "employee-withdrawals":
+        return [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "ref_number", label: "رقم السند", type: "text" },
+          { key: "employee_name", label: "الموظف", type: "text" },
+          { key: "category", label: "نوع العملية", type: "badge", filterType: "select", filterOptions: ["سلفة", "رواتب", "أكل", "عجز", "مشتريات", "توصيل", "مخالفة", "أخرى"] },
+          { key: "description", label: "الوصف", type: "text" },
+          { key: "amount", label: "المبلغ", type: "currency" },
         ];
       case "sales-by-product": case "order-performance":
         return [
@@ -564,6 +574,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "ar-aging-detail": case "ap-aging-detail": return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": case "supplier-purchase-analysis": return { totalSales: "sum", total: "sum", invCount: "sum" };
       case "checks-receivable": case "checks-payable": return { amount: "sum" };
+      case "employee-withdrawals": return { amount: "sum" };
       case "customer-statement-all": case "supplier-statement-all": return { debit: "sum", credit: "sum" };
       case "dpo-report": return { totalPurchases: "sum", invCount: "sum" };
       case "invoice-lifecycle": return { total: "sum", paid: "sum", remaining: "sum" };

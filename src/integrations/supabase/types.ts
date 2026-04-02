@@ -10258,6 +10258,7 @@ export type Database = {
           debit_account_code: string
           description: string
           exchange_rate: number | null
+          expense_category: string | null
           foreign_amount: number | null
           id: string
           idempotency_key: string | null
@@ -10282,6 +10283,7 @@ export type Database = {
           debit_account_code: string
           description: string
           exchange_rate?: number | null
+          expense_category?: string | null
           foreign_amount?: number | null
           id?: string
           idempotency_key?: string | null
@@ -10306,6 +10308,7 @@ export type Database = {
           debit_account_code?: string
           description?: string
           exchange_rate?: number | null
+          expense_category?: string | null
           foreign_amount?: number | null
           id?: string
           idempotency_key?: string | null
