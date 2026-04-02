@@ -32,6 +32,14 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
 
 // ─── Types ───
+type TaxCategory = "taxable" | "zero" | "exempt";
+
+const TAX_CATEGORY_OPTIONS: { value: TaxCategory; label: string; rate: number }[] = [
+  { value: "taxable", label: "خاضع للضريبة 16%", rate: 16 },
+  { value: "zero", label: "بنسبة صفر 0%", rate: 0 },
+  { value: "exempt", label: "معفى من الضريبة", rate: 0 },
+];
+
 interface InvoiceItem {
   id: string;
   productId?: string;
@@ -41,6 +49,7 @@ interface InvoiceItem {
   discount: number;
   discountType: "percent" | "amount";
   taxRate: number;
+  taxCategory: TaxCategory;
   unitOfMeasure: string;
   subtotal: number;
 }
