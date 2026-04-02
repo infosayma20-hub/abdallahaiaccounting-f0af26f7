@@ -919,6 +919,15 @@ const ChequesPage = () => {
                         <td className="px-2 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{c.amount.toLocaleString()} ₪</td>
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: '#64748B' }}>{fmtDate(c.created_at?.split('T')[0] || '')}</td>
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
+                        <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days < 0 ? '#DC2626' : days <= 7 ? '#F59E0B' : '#64748B'; })(), fontWeight: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days <= 7 ? 700 : 400; })() }}>
+                          {(() => {
+                            if (!PENDING_STATUSES.includes(c.status)) return '—';
+                            const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
+                            if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
+                            if (days === 0) return 'اليوم';
+                            return `${days} يوم`;
+                          })()}
+                        </td>
                         <td className="px-2 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />{sc.label}
