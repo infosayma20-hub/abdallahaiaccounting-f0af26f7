@@ -98,6 +98,8 @@ const SettingsPage = () => {
         return <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />;
       case "ai":
         return <AISettingsSection settings={settings} onChange={updateSettings} />;
+      case "tax":
+        return <TaxSettingsInline ownerId={taxOwnerId} />;
       default:
         return (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
