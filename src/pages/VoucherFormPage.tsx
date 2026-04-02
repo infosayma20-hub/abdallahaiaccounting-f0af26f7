@@ -31,6 +31,8 @@ interface Invoice {
   paid_amount: number | null;
   remaining_amount: number | null;
   status: string | null;
+  currency?: string;
+  exchange_rate?: number;
   selected?: boolean;
   allocatedAmount?: number;
 }
