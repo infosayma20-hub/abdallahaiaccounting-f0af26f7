@@ -309,6 +309,55 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     });
   };
 
+  const handlePrint = () => {
+    const rows = filtered.map(v => `
+      <tr>
+        <td>${v.ref_number || "—"}</td>
+        <td>${v.date || "—"}</td>
+        <td>${v.contact_name || "—"}</td>
+        <td>${v.description || v.notes || "—"}</td>
+        <td>${v.payment_label || "—"}</td>
+        <td class="font-mono">${v.account_code || "—"}</td>
+        <td class="font-mono font-bold">₪${(v.amount_display || 0).toLocaleString()}</td>
+        <td>${v.status_label || "—"}</td>
+      </tr>
+    `).join("");
+
+    const contentHtml = `
+      <div class="print-header">
+        <div>
+          <div class="company-name">${settings.company_name || "الشركة"}</div>
+          <div class="report-title">${title}</div>
+        </div>
+        <div class="print-date">${filtered.length} سند</div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-card"><div class="summary-label">${isReceipt ? "إجمالي المقبوضات" : "إجمالي المدفوعات"}</div><div class="summary-value ${isReceipt ? 'green' : 'red'}">${fmt(totalAll)}</div></div>
+        <div class="summary-card"><div class="summary-label">هذا الشهر</div><div class="summary-value ${isReceipt ? 'green' : 'red'}">${fmt(totalMonth)}</div></div>
+        <div class="summary-card"><div class="summary-label">عدد السندات</div><div class="summary-value">${vouchers.length}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>رقم السند</th><th>التاريخ</th><th>${contactLabel}</th><th>البيان</th><th>طريقة الدفع</th><th>الحساب</th><th>المبلغ</th><th>الحالة</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="6" style="text-align:right">المجموع (${filtered.length} سند)</td>
+          <td class="font-mono font-bold">${fmt(filtered.reduce((s, v) => s + Number(v.amount_display || 0), 0))}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    `;
+
+    import("@/lib/printUtils").then(({ printReport }) => {
+      printReport({
+        title,
+        companyName: settings.company_name || "الشركة",
+        contentHtml,
+      });
+    });
+  };
+
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title={title} breadcrumb={["المالية", title]} />
