@@ -215,7 +215,7 @@ export default function WorkshopsPage() {
   const [newWsTypeName, setNewWsTypeName] = useState("");
   const [savingWsType, setSavingWsType] = useState(false);
   const [deleteWsTypeId, setDeleteWsTypeId] = useState<string | null>(null);
-
+  const [workshopPaymentsMap, setWorkshopPaymentsMap] = useState<Record<string, number>>({});
   const loadCustomWsTypes = async () => {
     const { data } = await supabase.from("custom_workshop_types" as any).select("id, name, icon").eq("is_active", true).order("created_at");
     setCustomWsTypes((data as any[]) || []);
@@ -266,9 +266,18 @@ export default function WorkshopsPage() {
 
   const loadWorkshops = async () => {
     setLoading(true);
-    const { data } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
+    const [{ data }, { data: payData }] = await Promise.all([
+      supabase.from("workshops").select("*").order("created_at", { ascending: false }),
+      supabase.from("workshop_payments").select("workshop_id, amount"),
+    ]);
     const ws = (data as any) || [];
     setWorkshops(ws);
+    // Build payments map
+    const pMap: Record<string, number> = {};
+    ((payData as any) || []).forEach((p: any) => {
+      pMap[p.workshop_id] = (pMap[p.workshop_id] || 0) + (p.amount || 0);
+    });
+    setWorkshopPaymentsMap(pMap);
     setLoading(false);
 
     // Auto-sync: create contacts for workshops missing contact_id
@@ -1952,10 +1961,11 @@ export default function WorkshopsPage() {
         </div>
 
         {/* Summary KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">الورشات</p><p className="text-2xl font-bold text-foreground">{workshops.length}</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي الميزانيات</p><p className="text-2xl font-bold text-primary">{totalBudgetAll.toLocaleString()}</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">نشطة</p><p className="text-2xl font-bold text-emerald-600">{workshops.filter(w => w.status === "active").length}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي المقبوضات</p><p className="text-2xl font-bold text-emerald-600">{Object.values(workshopPaymentsMap).reduce((s, v) => s + v, 0).toLocaleString()} ₪</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">نشطة</p><p className="text-2xl font-bold text-foreground">{workshops.filter(w => w.status === "active").length}</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-2xl font-bold text-muted-foreground">{workshops.filter(w => w.status === "completed").length}</p></CardContent></Card>
         </div>
 
@@ -2059,6 +2069,14 @@ export default function WorkshopsPage() {
                       }
                     </span>
                     <span>📐 {ws.area_sqm ? `${ws.area_sqm} م²` : "—"}</span>
+                  </div>
+
+                  {/* Payments indicator */}
+                  <div className="px-4 py-2 border-t border-border/50 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">المقبوضات</span>
+                    <strong className={`font-bold ${(workshopPaymentsMap[ws.id] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                      {(workshopPaymentsMap[ws.id] || 0).toLocaleString()} ₪
+                    </strong>
                   </div>
 
                   {/* Actions */}
