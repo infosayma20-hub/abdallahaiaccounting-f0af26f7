@@ -1833,7 +1833,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   </thead>
                   <tbody>
                     {filteredInvoices.map((inv, idx) => {
-                      const remaining = (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0);
+                      const rawRemaining = Math.max(0, (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0));
+                      const convertedRemaining = getInvRemainingInVoucherCurrency(inv);
+                      const isDiffCurrency = isInvCurrencyDifferent(inv);
+                      const invSymbol = getInvCurrencySymbol(inv);
                       const days = getDaysOverdue(inv.due_date);
                       return (
                         <tr key={inv.id} className={`border-t border-border/30 transition-colors ${inv.selected ? "bg-primary/5" : idx % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
@@ -1841,11 +1844,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                             <input type="checkbox" checked={inv.selected || false} onChange={() => toggleInvoice(inv.id)}
                               className="w-4 h-4 rounded border-border accent-primary" />
                           </td>
-                          <td className="p-2.5 font-mono font-medium text-foreground">{inv.invoice_number || "-"}</td>
+                          <td className="p-2.5 font-mono font-medium text-foreground">
+                            {inv.invoice_number || "-"}
+                            {isDiffCurrency && (
+                              <span className="block text-[9px] text-warning font-normal">⚠️ {inv.currency}</span>
+                            )}
+                          </td>
                           <td className="p-2.5 text-muted-foreground">{inv.invoice_date}</td>
                           <td className="p-2.5 text-muted-foreground">{inv.due_date || "-"}</td>
-                          <td className="p-2.5 text-left font-mono">{getInvSymbol(inv)}{formatAmount(inv.total_amount)}</td>
-                          <td className="p-2.5 text-left font-mono font-bold">{getInvSymbol(inv)}{formatAmount(remaining)}</td>
+                          <td className="p-2.5 text-left font-mono">
+                            {invSymbol}{formatAmount(inv.total_amount)}
+                            {isDiffCurrency && (
+                              <span className="block text-[9px] text-muted-foreground">= {currencySymbol}{formatAmount(inv.total_amount * (inv.exchange_rate || 1))}</span>
+                            )}
+                          </td>
+                          <td className="p-2.5 text-left font-mono font-bold">
+                            {invSymbol}{formatAmount(rawRemaining)}
+                            {isDiffCurrency && (
+                              <span className="block text-[9px] text-muted-foreground">= {currencySymbol}{formatAmount(convertedRemaining)}</span>
+                            )}
+                          </td>
                           <td className="p-2.5">
                             <span className={`${getOverdueColor(days)} text-[10px]`}>
                               {getOverdueIcon(days)} {getOverdueLabel(days)}
@@ -1853,8 +1871,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                           </td>
                           <td className="p-2.5">
                             {inv.selected && (
-                              <Input type="number" value={inv.allocatedAmount || ""} onChange={e => updateAllocation(inv.id, parseFloat(e.target.value) || 0)}
-                                className="h-7 text-xs font-mono text-left w-24" min={0} max={remaining} step={0.01} />
+                              <div>
+                                <Input type="number" value={inv.allocatedAmount || ""} onChange={e => updateAllocation(inv.id, parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs font-mono text-left w-24" min={0} max={convertedRemaining} step={0.01} />
+                                {isDiffCurrency && (
+                                  <span className="text-[9px] text-muted-foreground block mt-0.5">
+                                    {invSymbol}{formatAmount(rawRemaining)} × {inv.exchange_rate || 1} = {currencySymbol}{formatAmount(convertedRemaining)}
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>
