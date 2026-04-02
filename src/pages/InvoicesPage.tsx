@@ -336,12 +336,20 @@ const InvoicesPage = () => {
   const checkContactDebt = async (name: string) => {
     if (!user) return;
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contact-transactions?clientId=${user.id}&contactName=${encodeURIComponent(name)}`,
-        { headers: await getAuthHeaders() }
-      );
-      const data = await res.json();
-      const balance = data?.balance || 0;
+      const { data } = await supabase
+        .from("transactions")
+        .select("debit_account_code, credit_account_code, amount")
+        .eq("user_id", user.id)
+        .eq("is_deleted", false)
+        .or(`debit_account_code.eq.1130,credit_account_code.eq.1130`)
+        .ilike("description", `%${name}%`);
+      
+      let balance = 0;
+      (data || []).forEach(t => {
+        if (t.debit_account_code === "1130") balance += Number(t.amount || 0);
+        if (t.credit_account_code === "1130") balance -= Number(t.amount || 0);
+      });
+      
       if (balance > 0) {
         setContactDebtWarning(`⚠️ هذا العميل عليه رصيد مستحق: ₪${balance.toLocaleString()}`);
       } else {
