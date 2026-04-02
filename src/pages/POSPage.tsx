@@ -4315,6 +4315,24 @@ const POSPage = () => {
               </div>
             )}
 
+            {/* Order Note Input */}
+            <div className="px-3 pt-2">
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
+                  placeholder="📝 ملاحظة على الفاتورة..."
+                  className="h-7 text-[11px] flex-1"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+                />
+                {orderNote && (
+                  <button onClick={() => setOrderNote("")} className="text-[10px]" style={{ color: '#fca5a5' }}>
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Totals */}
             <div className="px-3 py-3">
               {cartTotals.tax > 0 && (
