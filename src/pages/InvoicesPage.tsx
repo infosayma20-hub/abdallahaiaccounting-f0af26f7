@@ -178,6 +178,7 @@ const InvoicesPage = () => {
   const [form, setForm] = useState({
     type: (initialType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
+    contactTaxNumber: "",
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentMethod: "cash" as "cash" | "transfer" | "cheque" | "credit",
@@ -190,6 +191,7 @@ const InvoicesPage = () => {
     chequeNotes: "",
     transferRef: "",
     transferBank: "",
+    pricesInclusive: false,
   });
 
   const fetchInvoices = async () => {
