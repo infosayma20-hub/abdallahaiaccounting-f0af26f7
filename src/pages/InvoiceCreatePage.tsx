@@ -227,7 +227,7 @@ const InvoiceCreatePage = () => {
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentTerms: "net_30",
-    paymentMethod: "cash" as "cash" | "transfer" | "cheque" | "credit",
+    paymentMethod: "credit" as "cash" | "transfer" | "cheque" | "credit",
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
