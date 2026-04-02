@@ -9,9 +9,10 @@ import {
   Clock, AlertTriangle, Ban, RefreshCw, ChevronDown,
   Building2, Calendar, Hash, User, Banknote,
   ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
-  ArrowUpDown, Zap, Download,
+  ArrowUpDown, Zap, Download, Printer,
   ChevronLeft, ChevronRight, Loader2, X, Send
 } from "lucide-react";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +100,7 @@ type SortDir = 'asc' | 'desc';
 
 const ChequesPage = () => {
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
   const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -589,6 +591,60 @@ const ChequesPage = () => {
     toast.success("تم تصدير الشيكات بنجاح");
   };
 
+  const handlePrint = () => {
+    if (filtered.length === 0) { toast.error("لا توجد بيانات للطباعة"); return; }
+    const statusLabels: Record<string, string> = { pending: "معلق", deposited: "مودع", cashed: "محصّل", bounced: "مرتجع", endorsed: "مظهّر", cancelled: "ملغي" };
+    const rows = filtered.map(c => `
+      <tr>
+        <td>${c.cheque_type === "وارد" ? "وارد" : "صادر"}</td>
+        <td class="font-mono">${c.cheque_number || "—"}</td>
+        <td>${c.party_name}</td>
+        <td>${c.bank_name || "—"}</td>
+        <td class="font-mono font-bold">₪${c.amount.toLocaleString()}</td>
+        <td>${c.cheque_date || "—"}</td>
+        <td>${c.created_at?.split('T')[0] || "—"}</td>
+        <td>${statusLabels[c.status] || c.status}</td>
+      </tr>
+    `).join("");
+
+    const totalAmount = filtered.reduce((s, c) => s + c.amount, 0);
+
+    const contentHtml = `
+      <div class="print-header">
+        <div>
+          <div class="company-name">${settings.company_name || "الشركة"}</div>
+          <div class="report-title">تقرير إدارة الشيكات</div>
+        </div>
+        <div class="print-date">${filtered.length} شيك</div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-card"><div class="summary-label">إجمالي المبالغ</div><div class="summary-value">₪${totalAmount.toLocaleString()}</div></div>
+        <div class="summary-card"><div class="summary-label">عدد الشيكات</div><div class="summary-value">${filtered.length}</div></div>
+        <div class="summary-card"><div class="summary-label">واردة</div><div class="summary-value">${filtered.filter(c => c.cheque_type === "وارد").length}</div></div>
+        <div class="summary-card"><div class="summary-label">صادرة</div><div class="summary-value">${filtered.filter(c => c.cheque_type === "صادر").length}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>النوع</th><th>رقم الشيك</th><th>الجهة</th><th>البنك</th><th>المبلغ</th><th>الاستحقاق</th><th>الإصدار</th><th>الحالة</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="4" style="text-align:right">المجموع (${filtered.length} شيك)</td>
+          <td class="font-mono font-bold">₪${totalAmount.toLocaleString()}</td>
+          <td colspan="3"></td>
+        </tr></tfoot>
+      </table>
+    `;
+
+    import("@/lib/printUtils").then(({ printReport }) => {
+      printReport({
+        title: "تقرير إدارة الشيكات",
+        companyName: settings.company_name || "الشركة",
+        contentHtml,
+      });
+    });
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
   // =================== FILTERING ===================
@@ -788,9 +844,14 @@ const ChequesPage = () => {
           </button>
         ))}
         {cheques.length > 0 && (
-          <Button variant="ghost" size="sm" className="mr-auto gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={exportExcel}>
-            <Download className="h-3.5 w-3.5" /> Excel
-          </Button>
+          <div className="mr-auto flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={handlePrint}>
+              <Printer className="h-3.5 w-3.5" /> طباعة
+            </Button>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" style={{ color: '#64748B' }} onClick={exportExcel}>
+              <Download className="h-3.5 w-3.5" /> Excel
+            </Button>
+          </div>
         )}
       </div>
 
