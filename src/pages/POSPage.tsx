@@ -4330,7 +4330,7 @@ const POSPage = () => {
                 </div>
               )}
               <div className="flex justify-between items-baseline">
-                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>الإجمالي</span>
+                <span className="text-[13px]" style={{ color: 'rgba(13,27,46,0.5)' }}>الإجمالي</span>
                 <motion.span
                   key={cartTotals.total}
                   initial={{ scale: 1.05 }}
