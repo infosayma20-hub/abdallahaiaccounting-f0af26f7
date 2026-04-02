@@ -944,6 +944,7 @@ const InvoicesPage = () => {
                   value={contactSearch}
                   onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value })); setShowContactDropdown(true); }}
                   onFocus={() => setShowContactDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
                   className="rounded-xl text-sm pr-9"
                 />
               </div>
