@@ -272,29 +272,37 @@ const InvoicesPage = () => {
     const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone, tax_number").eq("user_id", user.id).order("contact_name");
     const contactsList = (data as Contact[]) || [];
     
-    // Fetch balances from both invoices and purchase_invoices
-    const [{ data: invData }, { data: purData }] = await Promise.all([
-      supabase.from("invoices" as any).select("contact_name, total_amount, paid_amount").eq("user_id", user.id),
-      supabase.from("purchase_invoices" as any).select("supplier_name, total_amount, paid_amount").eq("user_id", user.id),
-    ]);
+    // Fetch balances from transactions (account 1130 = customers receivable, 2100 = suppliers payable)
+    const contactIds = contactsList.map(c => c.id);
+    const { data: txData } = await supabase
+      .from("transactions")
+      .select("contact_id, debit_account_code, credit_account_code, amount")
+      .eq("user_id", user.id)
+      .eq("is_deleted", false)
+      .in("contact_id", contactIds);
     
     const balanceMap: Record<string, number> = {};
-    ((invData as any[]) || []).forEach((inv: any) => {
-      const name = inv.contact_name;
-      if (!name) return;
-      const remaining = Number(inv.total_amount || 0) - Number(inv.paid_amount || 0);
-      balanceMap[name] = (balanceMap[name] || 0) + remaining;
-    });
-    ((purData as any[]) || []).forEach((inv: any) => {
-      const name = inv.supplier_name;
-      if (!name) return;
-      const remaining = Number(inv.total_amount || 0) - Number(inv.paid_amount || 0);
-      balanceMap[name] = (balanceMap[name] || 0) + remaining;
+    ((txData as any[]) || []).forEach((tx: any) => {
+      const cid = tx.contact_id;
+      if (!cid) return;
+      const amt = Number(tx.amount || 0);
+      // For customers (1130): debit increases balance (they owe us), credit decreases
+      if (tx.debit_account_code === "1130") {
+        balanceMap[cid] = (balanceMap[cid] || 0) + amt;
+      } else if (tx.credit_account_code === "1130") {
+        balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+      }
+      // For suppliers (2100): credit increases balance (we owe them), debit decreases
+      if (tx.credit_account_code === "2100") {
+        balanceMap[cid] = (balanceMap[cid] || 0) + amt;
+      } else if (tx.debit_account_code === "2100") {
+        balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+      }
     });
     
     const withBalances = contactsList.map(c => ({
       ...c,
-      balance: balanceMap[c.contact_name] || 0,
+      balance: balanceMap[c.id] || 0,
     }));
     setContacts(withBalances);
   };
