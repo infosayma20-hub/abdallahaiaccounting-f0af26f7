@@ -310,16 +310,23 @@ export default function NetworkPrintersManager() {
               </div>
               <p className="text-xs text-muted-foreground font-mono">{p.ip_address}:{p.port}</p>
               <div className="flex items-center gap-1 mt-1 flex-wrap">
-                {(p.print_categories || []).map(cat => (
+                {(p.print_categories || []).filter(cat => cat !== "kitchen_ticket" && cat !== "kitchen").map(cat => (
                   <Badge key={cat} variant="outline" className="text-[9px] px-1 py-0">
                     {PRINT_CATEGORIES.find(c => c.value === cat)?.label || cat}
                   </Badge>
                 ))}
-                {(p.station_ids || []).length > 0 && (
-                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-primary/30 text-primary">
-                    {p.station_ids.length} محطة
-                  </Badge>
-                )}
+                {(p.station_ids || []).length > 0 ? (
+                  (p.station_ids || []).map(sid => {
+                    const st = stations.find(s => s.id === sid);
+                    return (
+                      <Badge key={sid} variant="outline" className="text-[9px] px-1 py-0 border-primary/30 text-primary">
+                        {st ? st.name : sid.slice(0, 6)}
+                      </Badge>
+                    );
+                  })
+                ) : (p.print_categories || []).some(c => c === "kitchen_ticket" || c === "kitchen") ? (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0">تذكرة مطبخ</Badge>
+                ) : null}
                 {p.branch_id && (
                   <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-500/30 text-amber-600">
                     <Building2 className="h-2.5 w-2.5 mr-0.5" />
