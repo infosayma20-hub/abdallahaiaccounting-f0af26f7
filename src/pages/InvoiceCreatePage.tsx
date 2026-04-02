@@ -1071,9 +1071,9 @@ const InvoiceCreatePage = () => {
                         {c.phone && <span className="text-[10px] text-muted-foreground mr-2">{c.phone}</span>}
                       </div>
                       <div className="flex items-center gap-1.5">
-                        {c.current_balance && c.current_balance > 0 && (
-                          <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">{fmtCurrency(c.current_balance)}</Badge>
-                        )}
+                        <span className={`font-mono text-[10px] ${(c.balance || 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                          {(c.balance || 0).toLocaleString("en", { minimumFractionDigits: 2 })} ₪
+                        </span>
                         <Badge variant="outline" className="text-[9px]">{c.contact_type}</Badge>
                       </div>
                     </button>
