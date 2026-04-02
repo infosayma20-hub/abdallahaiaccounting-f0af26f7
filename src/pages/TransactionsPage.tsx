@@ -745,7 +745,7 @@ const TransactionsPage = () => {
 
       {/* TABLE */}
       {!loading && !error && paginatedTransactions.length > 0 && (
-        <div className="border border-border/50 overflow-hidden shadow-sm">
+        <div className="border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed">
               <colgroup>
@@ -759,27 +759,26 @@ const TransactionsPage = () => {
                 <col className="w-[4%]" />
               </colgroup>
               <thead className="sticky top-0 z-10">
-                <tr className="bg-[#1B2559] text-white">
-                  <th className="px-2 py-3.5 text-center">
+                <tr className="bg-muted/50">
+                  <th className="w-9 px-3 py-2.5 border-b border-border">
                     <Checkbox
                       checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                       onCheckedChange={toggleSelectAll}
-                      className="border-white/40 data-[state=checked]:bg-white data-[state=checked]:text-[#1B2559]"
                     />
                   </th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("date")}>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>
                     <div className="flex items-center gap-1.5">التاريخ <SortIcon field="date" /></div>
                   </th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold">المرجع</th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold">الوصف / الحسابات</th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold">النوع</th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("debit")}>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">المرجع</th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">الوصف / الحسابات</th>
+                  <th className="px-3 py-2.5 text-right text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border">النوع</th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("debit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="debit" /> مدين ₪</div>
                   </th>
-                  <th className="px-3 py-3.5 text-right text-[11px] font-semibold cursor-pointer select-none hover:bg-white/10 transition-colors" onClick={() => toggleSort("credit")}>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-muted-foreground tracking-[0.4px] whitespace-nowrap border-b border-border cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("credit")}>
                     <div className="flex items-center justify-end gap-1.5"><SortIcon field="credit" /> دائن ₪</div>
                   </th>
-                  <th className="px-3 py-3.5 w-10"></th>
+                  <th className="px-3 py-2.5 w-10 border-b border-border"></th>
                 </tr>
               </thead>
               <tbody>
@@ -789,7 +788,7 @@ const TransactionsPage = () => {
                   return (
                     <tr key={tx.id} className="contents">
                       <tr
-                        className={`group border-b border-border/50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} ${isSelected ? "bg-primary/5" : ""} hover:bg-primary/5`}
+                        className={`group border-b border-border/50 transition-colors cursor-pointer hover:bg-muted/30 ${isSelected ? "bg-primary/5" : ""}`}
                         onClick={() => toggleExpand(tx.id)}
                       >
                         <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
