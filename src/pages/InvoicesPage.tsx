@@ -791,11 +791,6 @@ const InvoicesPage = () => {
     setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("");
   };
 
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDirectPrint(inv)}>
-                              <Printer className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger><TooltipContent side="top"><p className="text-xs">طباعة</p></TooltipContent></Tooltip>
 
     const updateStatus = async (id: string, status: Invoice["status"]) => {
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
