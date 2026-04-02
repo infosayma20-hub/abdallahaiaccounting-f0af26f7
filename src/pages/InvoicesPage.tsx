@@ -564,7 +564,7 @@ const InvoicesPage = () => {
         invoice_type: form.type === 'sales' ? 'sale' : 'purchase',
         contact_name: form.contactName,
         invoice_date: form.date,
-        due_date: form.paymentMethod === "credit" ? form.dueDate : null,
+        due_date: form.dueDate || null,
         subtotal: summary.subtotal,
         discount_amount: summary.totalDiscount,
         tax_amount: summary.totalTax,
