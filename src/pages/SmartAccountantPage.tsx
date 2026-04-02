@@ -190,25 +190,27 @@ const SmartAccountantPage = () => {
         />
       )}
 
-      <Suspense fallback={
-        <div className="h-screen bg-[#F8FAFC] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-t-transparent border-[#0A2342] rounded-full animate-spin" />
-        </div>
-      }>
-        <CleanSmartAccountant
-          user={user}
-          userName={profileName}
-          data={financialData}
-          cfoMode={cfoMode}
-          onToggleCfo={() => setCfoMode(!cfoMode)}
-          onCheque={(d: any) => { setPendingChequeData(d); setShowChequeDialog(true); }}
-          onJournal={(d: any, a?: any[]) => { setJournalEntryData(d); setJournalEntryAccounts(a || []); setShowJournalEntry(true); }}
-          onTransactionSuccess={() => txToast.trigger()}
-          onBack={() => window.history.length > 2 ? navigate(-1) : navigate('/apps')}
-          onShowHelp={() => setShowHelpPanel(true)}
-          onReplayOnboarding={() => setShowOnboarding(true)}
-        />
-      </Suspense>
+      {!showOnboarding && (
+        <Suspense fallback={
+          <div className="h-screen bg-[#F8FAFC] flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-t-transparent border-[#0A2342] rounded-full animate-spin" />
+          </div>
+        }>
+          <CleanSmartAccountant
+            user={user}
+            userName={profileName}
+            data={financialData}
+            cfoMode={cfoMode}
+            onToggleCfo={() => setCfoMode(!cfoMode)}
+            onCheque={(d: any) => { setPendingChequeData(d); setShowChequeDialog(true); }}
+            onJournal={(d: any, a?: any[]) => { setJournalEntryData(d); setJournalEntryAccounts(a || []); setShowJournalEntry(true); }}
+            onTransactionSuccess={() => txToast.trigger()}
+            onBack={() => window.history.length > 2 ? navigate(-1) : navigate('/apps')}
+            onShowHelp={() => setShowHelpPanel(true)}
+            onReplayOnboarding={() => setShowOnboarding(true)}
+          />
+        </Suspense>
+      )}
 
       {/* Help Panel */}
       <SmartAccountantHelpPanel
