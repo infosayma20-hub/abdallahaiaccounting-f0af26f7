@@ -4161,7 +4161,7 @@ const POSPage = () => {
                                 width: '70px',
                               }}
                             >
-                              <span className="shrink-0 pl-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>₪</span>
+                              <span className="shrink-0 pl-2" style={{ color: 'rgba(13,27,46,0.35)', fontSize: '11px' }}>₪</span>
                               <input
                                 type="number"
                                 inputMode="decimal"
