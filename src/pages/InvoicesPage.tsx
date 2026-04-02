@@ -408,9 +408,10 @@ const InvoicesPage = () => {
     setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
   };
 
-  const filteredContacts = contacts.filter(c =>
-    c.contact_name.includes(contactSearch)
-  );
+  const filteredContacts = contacts.filter(c => {
+    const matchesSearch = !contactSearch || c.contact_name.includes(contactSearch);
+    return matchesSearch;
+  });
 
   const selectContact = (contact: Contact) => {
     setForm(prev => ({ ...prev, contactName: contact.contact_name, contactTaxNumber: contact.tax_number || "" }));
