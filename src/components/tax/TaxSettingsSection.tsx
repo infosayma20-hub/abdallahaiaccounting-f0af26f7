@@ -139,7 +139,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>حساب ضريبة المبيعات المستحقة</Label>
-            <Input value={settings?.output_tax_account_code || "2141"} onChange={e => setSettings({ ...settings, output_tax_account_code: e.target.value })} />
+            <Input value={settings?.output_tax_account_code || "2190"} onChange={e => setSettings({ ...settings, output_tax_account_code: e.target.value })} />
           </div>
           <div>
             <Label>حساب ضريبة المدخلات القابلة للخصم</Label>
