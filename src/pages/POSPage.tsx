@@ -4257,7 +4257,7 @@ const POSPage = () => {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="shrink-0" style={{ borderTop: '1px solid rgba(13,27,46,0.12)' }}>
             {/* Delivery address */}
             {activeOrder.orderType === "delivery" && (
               <div className="px-3 pt-2">
