@@ -503,7 +503,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setInvoices((data || []).map(inv => ({
           ...inv,
           selected: false,
-          allocatedAmount: Math.max(0, (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0)),
+          allocatedAmount: 0,
         })));
       });
   }, [user, selectedContact, isReceipt]);
