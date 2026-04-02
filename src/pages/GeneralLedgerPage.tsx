@@ -1,18 +1,21 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   ArrowRight, Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet,
   X, ArrowUpDown, ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown,
+  Check, ChevronsUpDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface LedgerRow {
   date: string;
@@ -27,6 +30,7 @@ type SortDir = "asc" | "desc";
 const PER_PAGE = 15;
 
 const GeneralLedgerPage = () => {
+  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -230,16 +234,36 @@ const GeneralLedgerPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="space-y-1 sm:col-span-2 lg:col-span-2">
             <label className="text-[11px] text-muted-foreground font-medium">الحساب</label>
-            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-              <SelectTrigger className="h-9 rounded-xl bg-muted/30 border-0 text-sm">
-                <SelectValue placeholder="اختر الحساب..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-60 bg-background z-50">
-                {accountNames.map(name => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={accountPopoverOpen}
+                  className="h-9 w-full rounded-xl bg-muted/30 border-0 text-sm justify-between font-normal">
+                  {selectedAccount || "اختر الحساب..."}
+                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-50" align="start">
+                <Command dir="rtl">
+                  <CommandInput placeholder="ابحث عن حساب..." className="h-9 text-sm" />
+                  <CommandList className="max-h-60">
+                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                    <CommandGroup>
+                      {accountNames.map(name => {
+                        const acc = accounts.find(a => a.account_name === name);
+                        return (
+                          <CommandItem key={name} value={`${acc?.account_code || ''} ${name}`}
+                            onSelect={() => { setSelectedAccount(name); setAccountPopoverOpen(false); }}>
+                            <Check className={cn("ml-2 h-3.5 w-3.5", selectedAccount === name ? "opacity-100" : "opacity-0")} />
+                            <span className="text-muted-foreground text-xs ml-2">{acc?.account_code}</span>
+                            {name}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground font-medium">من تاريخ</label>
