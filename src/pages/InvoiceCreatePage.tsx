@@ -293,7 +293,26 @@ const InvoiceCreatePage = () => {
         supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
-      setContacts(contactsList);
+      
+      // Fetch balances from transactions
+      const contactIds = contactsList.map(c => c.id);
+      const { data: txData } = contactIds.length > 0
+        ? await supabase.from("transactions").select("contact_id, debit_account_code, credit_account_code, amount").eq("user_id", user.id).eq("is_deleted", false).in("contact_id", contactIds)
+        : { data: [] };
+      
+      const balanceMap: Record<string, number> = {};
+      ((txData as any[]) || []).forEach((tx: any) => {
+        const cid = tx.contact_id;
+        if (!cid) return;
+        const amt = Number(tx.amount || 0);
+        if (tx.debit_account_code === "1130") balanceMap[cid] = (balanceMap[cid] || 0) + amt;
+        else if (tx.credit_account_code === "1130") balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+        if (tx.credit_account_code === "2100") balanceMap[cid] = (balanceMap[cid] || 0) + amt;
+        else if (tx.debit_account_code === "2100") balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+      });
+      
+      const contactsWithBalance = contactsList.map(c => ({ ...c, balance: balanceMap[c.id] || 0 }));
+      setContacts(contactsWithBalance);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
