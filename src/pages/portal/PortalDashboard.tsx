@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePortalAuth } from '@/hooks/usePortalAuth';
 import { usePortalData } from '@/hooks/usePortalData';
 import { getBusinessDay, formatArabicTime, formatArabicDate } from '@/lib/portal-business-day';
-import { LogOut, Settings, RefreshCw, Sun, Moon, LayoutDashboard, Users, ClipboardList, ShoppingCart, Droplets, FileText, Building2 } from 'lucide-react';
+import { LogOut, Settings, RefreshCw, Sun, Moon } from 'lucide-react';
 import PortalSalesTab from './PortalSalesTab';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
@@ -13,7 +13,8 @@ import PortalTasksTab from './PortalTasksTab';
 import PortalOverviewTab from './PortalOverviewTab';
 import { supabase } from '@/integrations/supabase/client';
 
-const PRIMARY = '#0D1B2E';
+const PRIMARY = '#1B3A5C';
+const ACCENT = '#2A7B9B';
 
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
@@ -25,6 +26,14 @@ export default function PortalDashboard() {
   const [companyLogo, setCompanyLogo] = useState('');
   const [hasEmployees, setHasEmployees] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
+
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => setClock(new Date()), 1000);
@@ -47,6 +56,7 @@ export default function PortalDashboard() {
 
         const linkedId = settings?.linked_user_id;
         if (linkedId) {
+          // Check if this account has employees
           const { count } = await supabase
             .from('employees')
             .select('id', { count: 'exact', head: true })
@@ -67,26 +77,41 @@ export default function PortalDashboard() {
     localStorage.setItem('portal_theme', next ? 'dark' : 'light');
   };
 
+  const t = darkMode
+    ? {
+        bg: '#0D1117', card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)',
+        textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)',
+        topBar: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`, topBorder: 'rgba(42,123,155,0.3)',
+        tabBg: '#161B22', tabBorder: 'rgba(230,237,243,0.08)',
+      }
+    : {
+        bg: '#F0F2F5', card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)',
+        textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)',
+        topBar: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`, topBorder: 'rgba(42,123,155,0.3)',
+        tabBg: '#FFFFFF', tabBorder: 'rgba(27,58,92,0.08)',
+      };
+
   const tabs = [
-    { key: 'overview' as const, label: 'لوحة المعلومات', icon: LayoutDashboard, visible: true },
-    { key: 'attendance' as const, label: 'الحضور', icon: Users, visible: hasEmployees },
-    { key: 'tasks' as const, label: 'المهام', icon: ClipboardList, visible: true },
-    { key: 'sales' as const, label: 'المبيعات', icon: ShoppingCart, visible: user.can_see_sales },
-    { key: 'liquidity' as const, label: 'السيولة', icon: Droplets, visible: user.can_see_liquidity },
-    { key: 'requests' as const, label: 'الطلبات', icon: FileText, visible: true },
-    { key: 'suppliers' as const, label: 'الموردين', icon: Building2, visible: true },
+    { key: 'overview' as const, label: '📊 لوحة المعلومات', visible: true },
+    { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
+    { key: 'tasks' as const, label: '📋 المهام', visible: true },
+    { key: 'sales' as const, label: '🛒 المبيعات', visible: user.can_see_sales },
+    { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
+    { key: 'requests' as const, label: '📝 الطلبات', visible: true },
+    { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
   ].filter(t => t.visible);
 
   return (
     <div style={{
-      minHeight: '100dvh', background: '#F8FAFC', color: '#1B3A5C',
-      fontFamily: "'Cairo', sans-serif", direction: 'rtl',
+      minHeight: '100dvh', background: t.bg, color: t.text,
+      fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      transition: 'background 0.3s, color 0.3s',
     }}>
       {/* TOP BAR */}
       <div style={{
-        background: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`,
-        borderBottom: '1px solid rgba(42,123,155,0.3)',
+        background: t.topBar,
+        borderBottom: `1px solid ${t.topBorder}`,
         padding: '10px 16px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
@@ -113,7 +138,8 @@ export default function PortalDashboard() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.5)',
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+            color: 'rgba(255,255,255,0.5)',
           }}>
             {formatArabicTime(clock)}
           </div>
@@ -143,41 +169,33 @@ export default function PortalDashboard() {
         </div>
       </div>
 
-      {/* TABS — chip style like main app */}
+      {/* TABS */}
       <div style={{
-        background: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0',
-        display: 'flex', alignItems: 'center', gap: 6,
+        background: t.tabBg,
+        borderBottom: `1px solid ${t.tabBorder}`,
+        display: 'flex', alignItems: 'center',
         overflowX: 'auto', WebkitOverflowScrolling: 'touch',
         msOverflowStyle: 'none', scrollbarWidth: 'none',
         position: 'sticky', top: 56, zIndex: 49,
-        padding: '10px 16px',
       }}>
-        {tabs.map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: '6px 14px',
-                background: isActive ? PRIMARY : '#FFFFFF',
-                color: isActive ? '#FFFFFF' : '#64748B',
-                border: isActive ? 'none' : '1px solid #E2E8F0',
-                borderRadius: 20,
-                fontWeight: isActive ? 600 : 400,
-                fontSize: 12, fontFamily: "'Cairo', sans-serif",
-                cursor: 'pointer', transition: 'all 0.2s',
-                whiteSpace: 'nowrap', flexShrink: 0,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}
-            >
-              <Icon size={14} />
-              {tab.label}
-            </button>
-          );
-        })}
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              height: 44, padding: '0 16px',
+              background: 'none', border: 'none',
+              borderBottom: activeTab === tab.key ? `3px solid ${ACCENT}` : '3px solid transparent',
+              color: activeTab === tab.key ? ACCENT : t.textMuted,
+              fontWeight: activeTab === tab.key ? 700 : 400,
+              fontSize: 12, fontFamily: 'Tajawal, sans-serif',
+              cursor: 'pointer', transition: 'all 0.2s',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* CONTENT */}
@@ -189,7 +207,7 @@ export default function PortalDashboard() {
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: 9, color: 'rgba(27,58,92,0.4)',
+              fontSize: 9, color: t.textFaint,
             }}>
               <RefreshCw size={9} className={dataLoading ? 'animate-spin' : ''} />
               <span>تحديث تلقائي</span>
@@ -199,12 +217,12 @@ export default function PortalDashboard() {
             <button
               onClick={() => refresh()}
               style={{
-                background: 'rgba(42,123,155,0.1)',
-                border: '1px solid rgba(42,123,155,0.25)',
+                background: `rgba(42,123,155,0.1)`,
+                border: `1px solid rgba(42,123,155,0.25)`,
                 borderRadius: 8, padding: '5px 12px',
-                color: '#2A7B9B', fontSize: 11,
+                color: ACCENT, fontSize: 11,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                fontFamily: "'Cairo', sans-serif",
+                fontFamily: 'Tajawal, sans-serif',
               }}
             >
               <RefreshCw size={12} />

@@ -61,7 +61,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
     border: `1px solid ${t.inputBorder}`,
     borderRadius: 10, padding: '0 12px',
     color: t.text, fontSize: 13, outline: 'none',
-    fontFamily: "'Cairo', sans-serif",
+    fontFamily: 'JetBrains Mono, monospace',
     width: '100%',
   };
 
@@ -86,7 +86,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
         width: '100%', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700,
         background: ACCENT,
         border: 'none', color: 'white', cursor: 'pointer',
-        fontFamily: "'Cairo', sans-serif",
+        fontFamily: 'Tajawal, sans-serif',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         marginBottom: 12,
       }}>
@@ -121,7 +121,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                 border: `1px solid ${t.border}`,
               }}>
                 <div style={{ fontSize: 9, color: t.textMuted, marginBottom: 2 }}>{k.label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: "'Cairo', sans-serif" }}>{k.value}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: 'JetBrains Mono, monospace' }}>{k.value}</div>
               </div>
             ))}
           </div>
@@ -139,7 +139,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                 borderRadius: 10, padding: '0 12px',
                 paddingRight: 32,
                 color: t.text, fontSize: 13, outline: 'none',
-                fontFamily: "'Cairo', sans-serif", direction: 'rtl',
+                fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
               }}
             />
           </div>
@@ -168,7 +168,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                         background: t.subCard, borderRadius: 8, padding: '6px 8px',
                       }}>
                         <div style={{ fontSize: 9, color: t.textFaint, marginBottom: 2 }}>{item.label}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: item.color }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: item.color }}>
                           {item.value}
                         </div>
                       </div>
@@ -192,7 +192,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
                   ].map(item => (
                     <div key={item.label}>
                       <div style={{ fontSize: 9, color: t.textFaint, marginBottom: 2 }}>{item.label}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Cairo', sans-serif", color: item.color }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: item.color }}>
                         {item.value}
                       </div>
                     </div>

@@ -101,7 +101,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             border: `1px solid ${t.border}`,
           }}>
             <div style={{ fontSize: 9, color: t.textMuted, marginBottom: 2 }}>{k.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: "'Cairo', sans-serif" }}>{k.value}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: 'JetBrains Mono, monospace' }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -119,7 +119,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             background: filter === f.key ? `rgba(42,123,155,0.15)` : t.chipBg,
             border: `1px solid ${filter === f.key ? `rgba(42,123,155,0.4)` : t.border}`,
             color: filter === f.key ? ACCENT : t.textMuted,
-            cursor: 'pointer', fontFamily: "'Cairo', sans-serif",
+            cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
             whiteSpace: 'nowrap',
           }}>
             {f.label}
@@ -140,7 +140,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             borderRadius: 10, padding: '0 12px 0 12px',
             paddingRight: 32,
             color: t.text, fontSize: 13, outline: 'none',
-            fontFamily: "'Cairo', sans-serif", direction: 'rtl',
+            fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
           }}
         />
       </div>
@@ -215,11 +215,11 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {r.amount && (
-                        <span style={{ fontSize: 12, fontFamily: "'Cairo', sans-serif", color: ACCENT }}>
+                        <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: ACCENT }}>
                           ₪{r.amount.toLocaleString()}
                         </span>
                       )}
-                      <span style={{ fontSize: 10, color: t.textFaint, fontFamily: "'Cairo', sans-serif" }}>
+                      <span style={{ fontSize: 10, color: t.textFaint, fontFamily: 'JetBrains Mono, monospace' }}>
                         {new Date(r.createdAt).toLocaleDateString('ar', { day: '2-digit', month: '2-digit' })}
                       </span>
                     </div>

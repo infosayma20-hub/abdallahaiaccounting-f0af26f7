@@ -524,48 +524,7 @@ const TransactionsPage = () => {
   };
 
   const handlePrint = () => {
-    const printContent = document.getElementById('print-area');
-    if (!printContent) return;
-    const originalBody = document.body.innerHTML;
-    document.body.innerHTML = `
-      <html>
-        <head>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { direction: rtl; font-family: 'Cairo', sans-serif; padding: 20mm 15mm; color: #1a2332; }
-            @page { margin: 0; }
-            .print-header {
-              display: flex; justify-content: space-between; align-items: center;
-              margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #0D1B2E;
-            }
-            .company-name { font-size: 16px; font-weight: 700; color: #0D1B2E; }
-            .report-title { font-size: 14px; color: #64748b; margin-top: 2px; }
-            .summary {
-              display: flex; gap: 24px; margin-bottom: 16px; font-size: 12px;
-            }
-            .summary span { color: #64748b; }
-            .summary strong { color: #0D1B2E; }
-            table { width: 100%; border-collapse: collapse; }
-            th {
-              background: #f1f5f9; padding: 8px 12px; font-size: 11px;
-              border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 600;
-            }
-            td {
-              padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #f1f5f9;
-            }
-            tr:nth-child(even) { background: #fafbfc; }
-            .text-primary { color: #1E40AF; }
-            .text-success, .text-emerald-500 { color: #16A34A; }
-            .text-destructive { color: #DC2626; }
-          </style>
-        </head>
-        <body>${printContent.innerHTML}</body>
-      </html>
-    `;
     window.print();
-    document.body.innerHTML = originalBody;
-    window.location.reload();
   };
 
   const companyInfo = useMemo(() => ({
@@ -663,9 +622,6 @@ const TransactionsPage = () => {
           </Button>
         </div>
       </div>
-
-      {/* ━━ Print Area Start ━━ */}
-      <div id="print-area">
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -988,8 +944,6 @@ const TransactionsPage = () => {
           )}
         </div>
       )}
-
-      </div>{/* ━━ End Print Area ━━ */}
 
       {/* ━━━ Edit Dialog ━━━ */}
       <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>

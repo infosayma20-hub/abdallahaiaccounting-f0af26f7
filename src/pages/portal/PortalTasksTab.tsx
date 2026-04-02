@@ -286,7 +286,7 @@ export default function PortalTasksTab({ theme }: Props) {
           style={{
             background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
             padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Cairo', sans-serif",
+            display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Tajawal, sans-serif',
           }}
         >
           <Plus size={14} /> إسناد مهمة جديدة
@@ -304,7 +304,7 @@ export default function PortalTasksTab({ theme }: Props) {
             style={{
               background: t.card, borderRadius: '16px 16px 0 0', padding: '20px 16px', width: '100%', maxWidth: 520,
               border: `1px solid ${t.border}`, borderBottom: 'none', color: t.text,
-              fontFamily: "'Cairo', sans-serif", direction: 'rtl',
+              fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
               maxHeight: '90vh', overflowY: 'auto',
             }}
           >
@@ -319,7 +319,7 @@ export default function PortalTasksTab({ theme }: Props) {
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
                 background: t.inputBg, color: t.text, fontSize: 14, marginBottom: 12,
-                fontFamily: "'Cairo', sans-serif", direction: 'rtl', boxSizing: 'border-box',
+                fontFamily: 'Tajawal, sans-serif', direction: 'rtl', boxSizing: 'border-box',
               }}
             />
 
@@ -331,7 +331,7 @@ export default function PortalTasksTab({ theme }: Props) {
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
                 background: t.inputBg, color: t.text, fontSize: 14, marginBottom: 12,
-                fontFamily: "'Cairo', sans-serif", direction: 'rtl', resize: 'vertical', boxSizing: 'border-box',
+                fontFamily: 'Tajawal, sans-serif', direction: 'rtl', resize: 'vertical', boxSizing: 'border-box',
               }}
             />
 
@@ -341,7 +341,7 @@ export default function PortalTasksTab({ theme }: Props) {
               value={priority} onChange={e => setPriority(e.target.value)}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
-                background: t.inputBg, color: t.text, fontSize: 14, fontFamily: "'Cairo', sans-serif",
+                background: t.inputBg, color: t.text, fontSize: 14, fontFamily: 'Tajawal, sans-serif',
                 marginBottom: 12, boxSizing: 'border-box',
               }}
             >
@@ -356,7 +356,7 @@ export default function PortalTasksTab({ theme }: Props) {
               value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.border}`,
-                background: t.inputBg, color: t.text, fontSize: 14, fontFamily: "'Cairo', sans-serif",
+                background: t.inputBg, color: t.text, fontSize: 14, fontFamily: 'Tajawal, sans-serif',
                 marginBottom: 12, boxSizing: 'border-box',
               }}
             >
@@ -374,7 +374,7 @@ export default function PortalTasksTab({ theme }: Props) {
                   type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
                   style={{
                     width: '100%', padding: '10px 8px', borderRadius: 8, border: `1px solid ${t.border}`,
-                    background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif",
+                    background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
                     boxSizing: 'border-box',
                   }}
                 />
@@ -385,7 +385,7 @@ export default function PortalTasksTab({ theme }: Props) {
                   value={category} onChange={e => setCategory(e.target.value)}
                   style={{
                     width: '100%', padding: '10px 8px', borderRadius: 8, border: `1px solid ${t.border}`,
-                    background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif",
+                    background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
                     boxSizing: 'border-box',
                   }}
                 >
@@ -406,7 +406,7 @@ export default function PortalTasksTab({ theme }: Props) {
                   flex: 1, background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8,
                   padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                   opacity: submitting || !title.trim() ? 0.5 : 1,
-                  fontFamily: "'Cairo', sans-serif",
+                  fontFamily: 'Tajawal, sans-serif',
                 }}
               >
                 {submitting ? 'جاري الإسناد...' : 'إسناد المهمة'}
@@ -416,7 +416,7 @@ export default function PortalTasksTab({ theme }: Props) {
                 style={{
                   flex: 1, background: 'transparent', color: t.textMuted, border: `1px solid ${t.border}`,
                   borderRadius: 8, padding: '12px 20px', fontSize: 14, cursor: 'pointer',
-                  fontFamily: "'Cairo', sans-serif",
+                  fontFamily: 'Tajawal, sans-serif',
                 }}
               >
                 إلغاء
@@ -442,7 +442,7 @@ export default function PortalTasksTab({ theme }: Props) {
               border: `1px solid ${filter === f.key ? ACCENT : t.border}`,
               background: filter === f.key ? `${ACCENT}15` : 'transparent',
               color: filter === f.key ? ACCENT : t.textMuted,
-              cursor: 'pointer', fontFamily: "'Cairo', sans-serif",
+              cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
             }}
           >
             {f.label}
@@ -532,7 +532,7 @@ export default function PortalTasksTab({ theme }: Props) {
             onClick={e => e.stopPropagation()}
             style={{
               background: t.card, borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520,
-              padding: '20px 16px', direction: 'rtl', fontFamily: "'Cairo', sans-serif",
+              padding: '20px 16px', direction: 'rtl', fontFamily: 'Tajawal, sans-serif',
               boxShadow: '0 -10px 40px rgba(0,0,0,0.2)', color: t.text,
               maxHeight: '90vh', overflowY: 'auto',
             }}
@@ -557,22 +557,22 @@ export default function PortalTasksTab({ theme }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>عنوان المهمة *</label>
-                  <input value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif", direction: 'rtl' }} />
+                  <input value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif', direction: 'rtl' }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الوصف</label>
-                  <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif", direction: 'rtl', resize: 'vertical' }} />
+                  <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif', direction: 'rtl', resize: 'vertical' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الحالة</label>
-                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif" }}>
+                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
                       {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الأولوية</label>
-                    <select value={editPriority} onChange={e => setEditPriority(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif" }}>
+                    <select value={editPriority} onChange={e => setEditPriority(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
                       {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                     </select>
                   </div>
@@ -580,21 +580,21 @@ export default function PortalTasksTab({ theme }: Props) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>الموظف</label>
-                    <select value={editAssignedTo} onChange={e => setEditAssignedTo(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif" }}>
+                    <select value={editAssignedTo} onChange={e => setEditAssignedTo(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }}>
                       <option value="">بدون تعيين</option>
                       {employees.map(emp => <option key={emp.employee_id} value={emp.employee_id}>{emp.full_name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' }}>تاريخ الاستحقاق</label>
-                    <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: "'Cairo', sans-serif" }} />
+                    <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif' }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start', marginTop: 8 }}>
-                  <button onClick={handleUpdateTask} disabled={editSaving || !editTitle.trim()} style={{ background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: editSaving || !editTitle.trim() ? 0.5 : 1, fontFamily: "'Cairo', sans-serif" }}>
+                  <button onClick={handleUpdateTask} disabled={editSaving || !editTitle.trim()} style={{ background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: editSaving || !editTitle.trim() ? 0.5 : 1, fontFamily: 'Tajawal, sans-serif' }}>
                     {editSaving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
                   </button>
-                  <button onClick={() => setEditMode(false)} style={{ background: 'transparent', color: t.textMuted, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontFamily: "'Cairo', sans-serif" }}>
+                  <button onClick={() => setEditMode(false)} style={{ background: 'transparent', color: t.textMuted, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif' }}>
                     إلغاء
                   </button>
                 </div>
