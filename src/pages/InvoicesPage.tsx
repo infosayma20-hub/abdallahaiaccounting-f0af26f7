@@ -597,6 +597,29 @@ const InvoicesPage = () => {
 
         if (!asDraft) {
           await updateInventory(form.items, form.type);
+
+          // Insert into tax_ledger for VAT tracking
+          if (summary.totalTax > 0) {
+            const invoiceDate = new Date(form.date);
+            await supabase.from("tax_ledger").insert({
+              user_id: user!.id,
+              tax_type: form.type === "sales" ? "output" : "input",
+              net_amount: summary.netBeforeTax,
+              tax_rate: 16,
+              tax_amount: summary.totalTax,
+              reference_type: form.type === "sales" ? "invoice" : "purchase",
+              reference_id: dbInv.id,
+              invoice_number: dbInv.invoice_number,
+              party_name: form.contactName,
+              party_tax_number: form.contactTaxNumber || null,
+              transaction_date: form.date,
+              period_year: invoiceDate.getFullYear(),
+              period_month: invoiceDate.getMonth() + 1,
+              tax_category: "taxable",
+              is_deductible: form.type === "purchase",
+            } as any);
+          }
+
           if (form.paymentMethod === "cheque") {
             const invoice: Invoice = {
               id: dbInv.id,
