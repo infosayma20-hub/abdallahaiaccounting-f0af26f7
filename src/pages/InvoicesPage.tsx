@@ -255,16 +255,8 @@ const InvoicesPage = () => {
 
   const fetchContacts = async () => {
     if (!user) return;
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
-        { headers: await getAuthHeaders() }
-      );
-      const data = await res.json();
-      setContacts(data?.records || []);
-    } catch (err) {
-      console.error(err);
-    }
+    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, phone").eq("user_id", user.id).order("contact_name");
+    setContacts((data as Contact[]) || []);
   };
 
   const saveInvoices = (updated: Invoice[]) => {
