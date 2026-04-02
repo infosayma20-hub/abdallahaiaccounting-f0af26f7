@@ -791,17 +791,17 @@ const TransactionsPage = () => {
                         className={`group border-b border-border/50 transition-colors cursor-pointer hover:bg-muted/30 ${isSelected ? "bg-primary/5" : ""}`}
                         onClick={() => toggleExpand(tx.id)}
                       >
-                        <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
-                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+                        <td className="w-9 px-3 py-3" onClick={e => e.stopPropagation()}>
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} className="opacity-0 group-hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity" />
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-xs text-foreground tabular-nums">{formatDate(tx.transaction_date)}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{formatDate(tx.transaction_date)}</span>
                         </td>
                         <td className="px-3 py-3 overflow-hidden">
                           <button
                             onClick={e => { e.stopPropagation(); openEdit(tx); }}
                             title={tx.reference || ""}
-                            className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0 truncate block max-w-full text-right"
+                            className="text-muted-foreground hover:text-foreground hover:underline font-mono text-[11px] cursor-pointer bg-transparent border-none p-0 truncate block max-w-full text-right"
                           >
                             {tx.reference || "—"}
                           </button>
@@ -809,22 +809,22 @@ const TransactionsPage = () => {
                         <td className="px-3 py-3 overflow-hidden max-w-0">
                           <div className="flex items-center gap-1.5 min-w-0" title={tx.description || ""}>
                             <ChevronRightIcon className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
-                            <span className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
+                            <span className="text-sm text-foreground truncate">{tx.description || "بدون وصف"}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
                           <TypeBadge type={tx.transaction_type} />
                         </td>
                         <td className="px-3 py-3 text-left">
-                          <span className="font-mono font-semibold text-sm text-primary">₪{tx.amount?.toFixed(2)}</span>
+                          <span className="font-mono text-xs font-medium text-foreground">{tx.amount?.toFixed(2)}</span>
                         </td>
                         <td className="px-3 py-3 text-left">
-                          <span className="font-mono font-semibold text-sm text-emerald-500">₪{tx.amount?.toFixed(2)}</span>
+                          <span className="font-mono text-xs font-medium text-emerald-600">{tx.amount?.toFixed(2)}</span>
                         </td>
                         <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                 <MoreVertical className="w-4 h-4" />
                               </button>
                             </DropdownMenuTrigger>
