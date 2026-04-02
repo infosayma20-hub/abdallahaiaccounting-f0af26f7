@@ -67,14 +67,14 @@ export default function PortalDashboard() {
     localStorage.setItem('portal_theme', next ? 'dark' : 'light');
   };
 
-  const tabs: { key: typeof activeTab; label: string; icon: typeof LayoutDashboard; visible: boolean }[] = [
-    { key: 'overview', label: 'لوحة المعلومات', icon: LayoutDashboard, visible: true },
-    { key: 'attendance', label: 'الحضور', icon: Users, visible: hasEmployees },
-    { key: 'tasks', label: 'المهام', icon: ClipboardList, visible: true },
-    { key: 'sales', label: 'المبيعات', icon: ShoppingCart, visible: user.can_see_sales },
-    { key: 'liquidity', label: 'السيولة', icon: Droplets, visible: user.can_see_liquidity },
-    { key: 'requests', label: 'الطلبات', icon: FileText, visible: true },
-    { key: 'suppliers', label: 'الموردين', icon: Building2, visible: true },
+  const tabs = [
+    { key: 'overview' as const, label: 'لوحة المعلومات', icon: LayoutDashboard, visible: true },
+    { key: 'attendance' as const, label: 'الحضور', icon: Users, visible: hasEmployees },
+    { key: 'tasks' as const, label: 'المهام', icon: ClipboardList, visible: true },
+    { key: 'sales' as const, label: 'المبيعات', icon: ShoppingCart, visible: user.can_see_sales },
+    { key: 'liquidity' as const, label: 'السيولة', icon: Droplets, visible: user.can_see_liquidity },
+    { key: 'requests' as const, label: 'الطلبات', icon: FileText, visible: true },
+    { key: 'suppliers' as const, label: 'الموردين', icon: Building2, visible: true },
   ].filter(t => t.visible);
 
   return (
