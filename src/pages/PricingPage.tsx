@@ -84,7 +84,7 @@ const fallbackFeatures: Record<string, string[]> = {
     "إدارة متعددة الفروع",
     "صلاحيات متقدمة",
     "تكامل API",
-    "White-label",
+    
     "تقارير مخصصة + SLA",
     "مدير حساب مخصص",
     "تدريب شخصي",
@@ -139,7 +139,7 @@ const comparisonData = [
     { label: "صلاحيات متقدمة", starter: false, professional: false, enterprise: true },
     { label: "إدارة متعددة الفروع", starter: false, professional: false, enterprise: true },
     { label: "تكامل API", starter: false, professional: false, enterprise: true },
-    { label: "White-label", starter: false, professional: false, enterprise: true },
+    
   ]},
   { category: "الدعم الفني", features: [
     { label: "دعم بريد إلكتروني", starter: true, professional: true, enterprise: true },
@@ -156,7 +156,7 @@ const faqData = [
   { q: "هل بياناتي آمنة؟", a: "بالتأكيد! نستخدم تشفير SSL 256-bit ونسخ احتياطية يومية. بياناتك محمية بأعلى معايير الأمان." },
   { q: "هل يمكنني الترقية أو التخفيض لاحقاً؟", a: "نعم، يمكنك تغيير خطتك في أي وقت. عند الترقية يتم احتساب الفرق تناسبياً، وعند التخفيض يتم التطبيق من الدورة القادمة." },
   { q: "ما هي طرق الدفع المتاحة؟", a: "نقبل بطاقات Visa و Mastercard وPayPal. كما يمكن الدفع بالتحويل البنكي للخطط المؤسسية." },
-  { q: "ما الفرق بين Professional و Enterprise؟", a: "Professional مناسبة للشركات المتوسطة مع POS وإدارة مخزون وموارد بشرية (10 مستخدمين، 3 شركات). Enterprise للمؤسسات الكبيرة مع فروع متعددة، White-label، مدير حساب مخصص، وSLA." },
+  { q: "ما الفرق بين Professional و Enterprise؟", a: "Professional مناسبة للشركات المتوسطة مع POS وإدارة مخزون وموارد بشرية (10 مستخدمين، 3 شركات). Enterprise للمؤسسات الكبيرة مع فروع متعددة، مدير حساب مخصص، وSLA." },
   { q: "هل يمكنني إلغاء الإضافات لاحقاً؟", a: "نعم، يمكنك إضافة أو إلغاء أي إضافة في أي وقت. سيتم تعديل الفاتورة تناسبياً." },
 ];
 
