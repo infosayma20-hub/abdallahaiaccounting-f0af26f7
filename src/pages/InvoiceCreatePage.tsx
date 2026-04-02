@@ -32,6 +32,14 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
 
 // ─── Types ───
+type TaxCategory = "taxable" | "zero" | "exempt";
+
+const TAX_CATEGORY_OPTIONS: { value: TaxCategory; label: string; rate: number }[] = [
+  { value: "taxable", label: "خاضع للضريبة 16%", rate: 16 },
+  { value: "zero", label: "بنسبة صفر 0%", rate: 0 },
+  { value: "exempt", label: "معفى من الضريبة", rate: 0 },
+];
+
 interface InvoiceItem {
   id: string;
   productId?: string;
@@ -41,6 +49,7 @@ interface InvoiceItem {
   discount: number;
   discountType: "percent" | "amount";
   taxRate: number;
+  taxCategory: TaxCategory;
   unitOfMeasure: string;
   subtotal: number;
 }
@@ -57,6 +66,7 @@ interface Contact {
   credit_limit?: number;
   tax_number?: string;
   sales_rep_id?: string;
+  balance?: number;
 }
 
 interface SalesRep {
@@ -97,7 +107,8 @@ const createEmptyItem = (): InvoiceItem => ({
   unitPrice: 0,
   discount: 0,
   discountType: "percent",
-  taxRate: 0,
+  taxRate: 16,
+  taxCategory: "taxable",
   unitOfMeasure: "قطعة",
   subtotal: 0,
 });
@@ -282,7 +293,26 @@ const InvoiceCreatePage = () => {
         supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
-      setContacts(contactsList);
+      
+      // Fetch balances from transactions
+      const contactIds = contactsList.map(c => c.id);
+      const { data: txData } = contactIds.length > 0
+        ? await supabase.from("transactions").select("contact_id, debit_account_code, credit_account_code, amount").eq("user_id", user.id).eq("is_deleted", false).in("contact_id", contactIds)
+        : { data: [] };
+      
+      const balanceMap: Record<string, number> = {};
+      ((txData as any[]) || []).forEach((tx: any) => {
+        const cid = tx.contact_id;
+        if (!cid) return;
+        const amt = Number(tx.amount || 0);
+        if (tx.debit_account_code === "1130") balanceMap[cid] = (balanceMap[cid] || 0) + amt;
+        else if (tx.credit_account_code === "1130") balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+        if (tx.credit_account_code === "2100") balanceMap[cid] = (balanceMap[cid] || 0) + amt;
+        else if (tx.debit_account_code === "2100") balanceMap[cid] = (balanceMap[cid] || 0) - amt;
+      });
+      
+      const contactsWithBalance = contactsList.map(c => ({ ...c, balance: balanceMap[c.id] || 0 }));
+      setContacts(contactsWithBalance);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
@@ -390,6 +420,7 @@ const InvoiceCreatePage = () => {
         }
 
         const mappedItems: InvoiceItem[] = (data.invoice_items || []).map((item: any) => {
+          const rate = Number(item.tax_rate) || 0;
           const normalized: InvoiceItem = {
             id: item.id || crypto.randomUUID(),
             productId: item.product_id || undefined,
@@ -398,7 +429,8 @@ const InvoiceCreatePage = () => {
             unitPrice: Number(item.unit_price) || 0,
             discount: Number(item.discount) || 0,
             discountType: item.discount_type === "amount" ? "amount" : "percent",
-            taxRate: Number(item.tax_rate) || 0,
+            taxRate: rate,
+            taxCategory: item.tax_category || (rate > 0 ? "taxable" : "exempt"),
             unitOfMeasure: item.unit_of_measure || "قطعة",
             subtotal: Number(item.total_amount) || 0,
           };
@@ -538,9 +570,10 @@ const InvoiceCreatePage = () => {
       tax_number: contact.tax_number || "",
       address: contact.address || "",
     });
-    // Debt warning
-    if (contact.current_balance && contact.current_balance > 0) {
-      setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrency(contact.current_balance)}${contact.credit_limit ? ` من سقف ${fmtCurrency(contact.credit_limit)}` : ""}`);
+    // Debt warning from transaction balance
+    const bal = contact.balance || 0;
+    if (bal > 0) {
+      setContactDebtWarning(`⚠️ رصيد مستحق: ${fmtCurrency(bal)}${contact.credit_limit ? ` من سقف ${fmtCurrency(contact.credit_limit)}` : ""}`);
     } else {
       setContactDebtWarning(null);
     }
@@ -553,6 +586,10 @@ const InvoiceCreatePage = () => {
       items: prev.items.map(item => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
+        if (field === "taxCategory") {
+          const cat = TAX_CATEGORY_OPTIONS.find(o => o.value === value);
+          updated.taxRate = cat ? cat.rate : 0;
+        }
         updated.subtotal = calcItemSubtotal(updated);
         return updated;
       }),
@@ -573,6 +610,8 @@ const InvoiceCreatePage = () => {
           description: prod.name,
           unitPrice: price > 0 ? price : it.unitPrice,
           unitOfMeasure: prod.unit || "قطعة",
+          taxCategory: "taxable" as TaxCategory,
+          taxRate: 16,
         };
         updated.subtotal = calcItemSubtotal(updated);
         return updated;
@@ -815,6 +854,27 @@ const InvoiceCreatePage = () => {
         } as any);
       }
 
+      // Tax ledger integration
+      if (!asDraft && summary.totalTax > 0) {
+        const invoiceDate = new Date(form.date);
+        await supabase.from("tax_ledger" as any).insert({
+          user_id: user.id,
+          tax_type: form.type === "sales" ? "output" : "input",
+          net_amount: summary.subtotal - summary.totalDiscount,
+          tax_rate: 16,
+          tax_amount: summary.totalTax,
+          total_amount: summary.total,
+          reference_type: form.type === "sales" ? "invoice" : "purchase",
+          reference_id: dbInv.id,
+          reference_number: dbInv.invoice_number,
+          contact_name: form.contactName,
+          description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}`,
+          transaction_date: form.date,
+          period_year: invoiceDate.getFullYear(),
+          period_month: invoiceDate.getMonth() + 1,
+        } as any);
+      }
+
       await supabase.from("invoice_activity_log").insert({
         invoice_id: dbInv.id,
         user_id: user.id,
@@ -1015,9 +1075,9 @@ const InvoiceCreatePage = () => {
                         {c.phone && <span className="text-[10px] text-muted-foreground mr-2">{c.phone}</span>}
                       </div>
                       <div className="flex items-center gap-1.5">
-                        {c.current_balance && c.current_balance > 0 && (
-                          <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">{fmtCurrency(c.current_balance)}</Badge>
-                        )}
+                        <span className={`font-mono text-[10px] ${(c.balance || 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                          {(c.balance || 0).toLocaleString("en", { minimumFractionDigits: 2 })} ₪
+                        </span>
                         <Badge variant="outline" className="text-[9px]">{c.contact_type}</Badge>
                       </div>
                     </button>
@@ -1199,21 +1259,21 @@ const InvoiceCreatePage = () => {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           {/* Table Header */}
-          <div className="hidden lg:grid grid-cols-[30px_1fr_70px_90px_70px_30px_70px_100px_30px] gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground">
+          <div className="hidden lg:grid grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground">
             <span>#</span>
             <span>المنتج / الخدمة</span>
             <span className="text-center">الكمية</span>
             <span className="text-center">السعر</span>
             <span className="text-center">الخصم</span>
             <span></span>
-            <span className="text-center">ضريبة%</span>
+            <span className="text-center">تصنيف الضريبة</span>
             <span className="text-center">الإجمالي</span>
             <span></span>
           </div>
 
           <div className="space-y-2">
             {form.items.map((item, idx) => (
-              <div key={item.id} className="lg:grid lg:grid-cols-[30px_1fr_70px_90px_70px_30px_70px_100px_30px] gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0">
+              <div key={item.id} className="lg:grid lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0">
                 {/* Row number */}
                 <span className="hidden lg:block text-[10px] text-muted-foreground font-mono text-center">{idx + 1}</span>
 
@@ -1312,13 +1372,13 @@ const InvoiceCreatePage = () => {
                   {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : "₪"}
                 </button>
 
-                {/* Tax */}
-                <Select value={String(item.taxRate)} onValueChange={v => updateItem(item.id, "taxRate", Number(v))}>
+                {/* Tax Category */}
+                <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
                   <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">0%</SelectItem>
-                    <SelectItem value="16">16%</SelectItem>
-                    <SelectItem value="17">17%</SelectItem>
+                    {TAX_CATEGORY_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
