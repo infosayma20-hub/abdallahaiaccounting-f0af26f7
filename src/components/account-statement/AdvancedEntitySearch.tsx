@@ -62,8 +62,12 @@ const fmtBal = (n: number, txCount: number) => {
   return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
-const balColor = (n: number, txCount: number) => {
+const balColor = (n: number, txCount: number, tab?: EntityTab) => {
   if (n === 0) return txCount > 0 ? "text-emerald-600" : "text-muted-foreground";
+  // For customers: debit (positive) is normal = green, credit (negative) is abnormal = red
+  // For suppliers: credit (negative) is normal = green, debit (positive) is abnormal = red
+  if (tab === "customers") return n > 0 ? "text-emerald-600" : "text-red-600";
+  if (tab === "suppliers") return n < 0 ? "text-emerald-600" : "text-red-600";
   return n > 0 ? "text-red-600" : "text-emerald-600";
 };
 
@@ -328,7 +332,7 @@ export default function AdvancedEntitySearch({
                         </div>
                         <span className={cn(
                           "text-xs font-bold tabular-nums shrink-0 mr-3",
-                          balColor(item.balance, item.txCount)
+                          balColor(item.balance, item.txCount, item.tab)
                         )}>
                           {fmtBal(item.balance, item.txCount)}
                           {item.balance !== 0 && (
