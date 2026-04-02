@@ -4154,30 +4154,30 @@ const POSPage = () => {
                         {/* Price + Qty row */}
                         <div className="flex items-center justify-between">
                           {(isAdmin || posPerms.can_edit_prices) ? (
-                            <div
-                              className="flex items-center h-[28px] rounded-md overflow-hidden transition-all"
-                              style={{
-                                background: 'rgba(255,255,255,0.08)',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                width: '70px',
-                              }}
-                            >
-                              <span className="shrink-0 pl-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px' }}>₪</span>
+                            <div className="flex items-center gap-1">
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>₪</span>
                               <input
                                 type="number"
                                 inputMode="decimal"
-                                className="w-full min-w-0 bg-transparent border-none outline-none text-center font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                style={{ color: 'white', fontSize: '14px', padding: '0 4px', direction: 'ltr' }}
+                                className="bg-transparent border-none outline-none font-semibold tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                style={{
+                                  color: 'white',
+                                  fontSize: '14px',
+                                  width: '55px',
+                                  padding: '2px 0',
+                                  direction: 'ltr',
+                                  borderBottom: '1px solid rgba(255,255,255,0.15)',
+                                  borderRadius: 0,
+                                  transition: 'border-color 0.2s',
+                                }}
                                 value={item.unit_price}
                                 onWheel={e => (e.target as HTMLElement).blur()}
                                 onClick={e => e.stopPropagation()}
                                 onFocus={e => {
-                                  const container = e.currentTarget.parentElement;
-                                  if (container) { container.style.borderColor = '#3b82f6'; container.style.background = 'rgba(59,130,246,0.1)'; }
+                                  e.currentTarget.style.borderBottomColor = '#3b82f6';
                                 }}
                                 onBlur={e => {
-                                  const container = e.currentTarget.parentElement;
-                                  if (container) { container.style.borderColor = 'rgba(255,255,255,0.15)'; container.style.background = 'rgba(255,255,255,0.08)'; }
+                                  e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.15)';
                                 }}
                                 onChange={e => {
                                   const v = parseFloat(e.target.value);
