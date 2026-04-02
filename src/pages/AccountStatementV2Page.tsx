@@ -70,12 +70,14 @@ const QUICK_PERIODS = [
   { label: "كل الفترات", from: () => "2020-01-01", to: () => format(new Date(), "yyyy-MM-dd") },
 ];
 
-const CURRENCIES = [
-  { value: "all", label: "كل العملات" },
-  { value: "شيكل", label: "₪ شيكل" },
-  { value: "دولار", label: "$ دولار" },
-  { value: "دينار", label: "د.أ دينار" },
+const DISPLAY_CURRENCIES = [
+  { value: "ILS", label: "عرض بالشيكل ₪ (افتراضي)", symbol: "₪" },
+  { value: "USD", label: "عرض بالدولار $", symbol: "$" },
+  { value: "JOD", label: "عرض بالدينار د.أ", symbol: "د.أ" },
+  { value: "EUR", label: "عرض باليورو €", symbol: "€" },
 ];
+const codeToCurrencyName: Record<string, string> = { ILS: "شيكل", USD: "دولار", JOD: "دينار", EUR: "يورو" };
+const currencyNameToCode: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR", "جنيه": "EGP" };
 
 const TX_TYPE_FILTERS = [
   { value: "all", label: "الكل" },
