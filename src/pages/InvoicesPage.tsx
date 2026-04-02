@@ -1289,7 +1289,7 @@ const InvoicesPage = () => {
 
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      <PageHeader title="الفواتير" breadcrumb={["المبيعات", "الفواتير"]} />
+      <PageHeader title={filterType === "purchase" ? "فواتير المشتريات" : filterType === "sales" ? "فواتير المبيعات" : "الفواتير"} breadcrumb={[filterType === "purchase" ? "المشتريات" : "المبيعات", "الفواتير"]} />
       {/* Actions */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
