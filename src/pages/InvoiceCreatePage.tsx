@@ -66,6 +66,7 @@ interface Contact {
   credit_limit?: number;
   tax_number?: string;
   sales_rep_id?: string;
+  balance?: number;
 }
 
 interface SalesRep {
