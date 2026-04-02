@@ -4195,7 +4195,7 @@ const POSPage = () => {
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: 'white' }}>{item.qty}</span>
+                            <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: '#0D1B2E' }}>{item.qty}</span>
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
                               style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
