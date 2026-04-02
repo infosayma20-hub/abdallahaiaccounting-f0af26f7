@@ -98,6 +98,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "stock-movement": await loadStockMovement(uid, dateFrom, dateTo, setData); break;
         case "below-reorder": await loadBelowReorder(uid, setData); break;
         case "employee-directory": await loadEmployeeDirectory(uid, setData); break;
+        case "employee-withdrawals": await loadEmployeeWithdrawals(uid, dateFrom, dateTo, setData); break;
         case "asset-register": await loadAssetRegister(uid, setData); break;
         case "monthly-depreciation": await loadMonthlyDepreciation(uid, dateFrom, dateTo, setData); break;
         case "depreciation-schedule": await loadDepreciationSchedule(uid, setData); break;
