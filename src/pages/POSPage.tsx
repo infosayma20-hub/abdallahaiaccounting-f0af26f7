@@ -4185,7 +4185,7 @@ const POSPage = () => {
                               />
                             </div>
                           ) : (
-                            <span className="text-[14px] tabular-nums" style={{ color: 'white' }}>₪{item.total.toFixed(2)}</span>
+                            <span className="text-[14px] tabular-nums" style={{ color: '#0D1B2E' }}>₪{item.total.toFixed(2)}</span>
                           )}
                           <div className="flex items-center gap-0">
                             <button
