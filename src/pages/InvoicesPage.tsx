@@ -35,6 +35,7 @@ interface Contact {
   contact_type: string;
   phone?: string;
   tax_number?: string;
+  balance?: number;
 }
 
 type TaxCategory = "taxable" | "zero" | "exempt";
