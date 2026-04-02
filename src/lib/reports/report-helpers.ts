@@ -35,6 +35,7 @@ export const reportConfigs: Record<string, { title: string; description: string 
   "stock-movement": { title: "حركة المخزون", description: "حركات الوارد والصادر" },
   "below-reorder": { title: "أصناف تحت الحد الأدنى", description: "منتجات تحتاج إعادة طلب" },
   "employee-directory": { title: "بيانات الموظفين", description: "دليل شامل لجميع الموظفين" },
+  "employee-withdrawals": { title: "مسحوبات الموظفين", description: "تفصيل مسحوبات كل موظف حسب نوع العملية" },
   "asset-register": { title: "سجل الأصول الثابتة", description: "جميع الأصول مع القيمة الدفترية" },
   "monthly-depreciation": { title: "الاستهلاك الشهري", description: "قيمة الاستهلاك المحسوبة لكل أصل" },
   "depreciation-schedule": { title: "جدول الاستهلاك التفصيلي", description: "جدول زمني كامل لاستهلاك كل أصل" },
