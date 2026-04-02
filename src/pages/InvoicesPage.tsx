@@ -31,12 +31,9 @@ import * as XLSX from "xlsx";
 
 interface Contact {
   id: string;
-  fields: {
-    "Contact Name"?: string;
-    "Contact Type"?: string;
-    "Phone"?: string;
-    "Company"?: string;
-  };
+  contact_name: string;
+  contact_type: string;
+  phone?: string;
 }
 
 interface InvoiceItem {
