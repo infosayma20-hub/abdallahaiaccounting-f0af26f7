@@ -549,16 +549,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const toggleInvoice = (id: string) => {
     setInvoices(prev => prev.map(inv => {
       if (inv.id !== id) return inv;
-      const remaining = (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0);
-      return { ...inv, selected: !inv.selected, allocatedAmount: !inv.selected ? Math.min(remaining, Math.max(0, amountNum - totalAllocated + (inv.selected ? (inv.allocatedAmount || 0) : 0))) : 0 };
+      const convertedRemaining = getInvRemainingInVoucherCurrency(inv);
+      return { ...inv, selected: !inv.selected, allocatedAmount: !inv.selected ? Math.min(convertedRemaining, Math.max(0, amountNum - totalAllocated + (inv.selected ? (inv.allocatedAmount || 0) : 0))) : 0 };
     }));
   };
 
   const selectAll = () => {
     let remaining = amountNum;
     setInvoices(prev => prev.map(inv => {
-      const invRemaining = (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0);
-      const alloc = Math.min(invRemaining, remaining);
+      const convertedRemaining = getInvRemainingInVoucherCurrency(inv);
+      const alloc = Math.min(convertedRemaining, remaining);
       remaining -= alloc;
       return { ...inv, selected: alloc > 0, allocatedAmount: alloc > 0 ? alloc : 0 };
     }));
