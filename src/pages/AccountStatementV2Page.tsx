@@ -807,6 +807,9 @@ const AccountStatementV2Page = () => {
             {/* ─── FOOTER LINE ─── */}
             <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
               إجمالي الحركات: {filteredRows.length} قيد | مدين: {fmtAmount(totalDebit, statementCurrency)} | دائن: {fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: {fmtAmount(closingBalance, statementCurrency)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"}) | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
+              {displayCurrency !== "ILS" && currentExchangeRate[displayCurrency] && (
+                <span> | * الحركات المعلّمة بـ ⚡ محوّلة بسعر صرف {currentExchangeRate[displayCurrency]} ₪ لكل {getCurrencySymbol(codeToCurrencyName[displayCurrency])}</span>
+              )}
             </div>
           </>
         )}
