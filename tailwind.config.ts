@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Tajawal"', '"Montserrat"', 'sans-serif'],
-        arabic: ['"Tajawal"', 'sans-serif'],
+        sans: ['"Cairo"', 'sans-serif'],
+        arabic: ['"Cairo"', 'sans-serif'],
         en: ['"Montserrat"', 'sans-serif'],
         mono: ['"Inter"', 'sans-serif'],
         display: ['"Montserrat"', 'sans-serif'],

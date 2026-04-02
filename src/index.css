@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -201,7 +202,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Tajawal', 'Montserrat', sans-serif;
+    font-family: 'Cairo', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.8;
@@ -216,7 +217,7 @@
 
   /* Typography hierarchy */
   h1 {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     font-size: 1.75rem;
     font-weight: 500;
     line-height: 1.4;
@@ -224,14 +225,14 @@
   }
 
   h2 {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     font-size: 1.25rem;
     font-weight: 500;
     line-height: 1.5;
   }
 
   h3 {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cairo', sans-serif;
     font-size: 1.05rem;
     font-weight: 500;
     line-height: 1.5;
@@ -313,11 +314,11 @@
   }
 }
 
-/* Global override: replace JetBrains Mono everywhere (inline styles included) */
+/* Global override: Cairo everywhere, replace JetBrains Mono and Tajawal */
 * {
-  font-family: inherit;
+  font-family: 'Cairo', sans-serif !important;
 }
-[style*="JetBrains"] {
+.font-mono, [style*="JetBrains"] {
   font-family: 'Inter', sans-serif !important;
   font-variant-numeric: tabular-nums;
 }
