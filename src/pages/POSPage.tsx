@@ -4198,7 +4198,7 @@ const POSPage = () => {
                             <span className="w-6 text-center text-[14px] tabular-nums" style={{ color: '#0D1B2E' }}>{item.qty}</span>
                             <button
                               className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
-                              style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
+                              style={{ background: 'rgba(13,27,46,0.1)', color: '#0D1B2E' }}
                               onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
                             >
                               <Plus className="h-3 w-3" />
