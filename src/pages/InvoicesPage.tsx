@@ -588,11 +588,11 @@ const InvoicesPage = () => {
 
   const resetForm = () => {
     setForm({
-      type: "sales", contactName: "", date: new Date().toISOString().split("T")[0],
+      type: "sales", contactName: "", contactTaxNumber: "", date: new Date().toISOString().split("T")[0],
       dueDate: "", paymentMethod: "cash", currency: "شيكل", notes: "",
       items: [createEmptyItem()],
       chequeNumber: "", chequeBank: "", chequeDueDate: "", chequeNotes: "",
-      transferRef: "", transferBank: "",
+      transferRef: "", transferBank: "", pricesInclusive: false,
     });
     setContactSearch("");
     setContactDebtWarning(null);
