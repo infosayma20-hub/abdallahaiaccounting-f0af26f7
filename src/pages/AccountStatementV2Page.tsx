@@ -244,7 +244,16 @@ const AccountStatementV2Page = () => {
 
     const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
     const isForeignCash = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
+    // For foreign cash accounts (1111-1114), show foreign_amount; for everything else, always show ILS amount
     const getAmt = (tx: Transaction) => (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) ? tx.foreign_amount : (tx.amount || 0);
+    const getForeignDetail = (tx: Transaction): string | undefined => {
+      if (isForeignCash) return undefined; // foreign cash accounts show in their native currency
+      if (tx.foreign_amount && tx.foreign_amount > 0 && tx.exchange_rate && tx.exchange_rate !== 1 && normalizeCurrency(tx.currency) !== "شيكل") {
+        const sym = getCurrencySymbol(tx.currency);
+        return `(${sym}${tx.foreign_amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × ${tx.exchange_rate})`;
+      }
+      return undefined;
+    };
 
     let openBal = 0;
     const periodTx: Transaction[] = [];
