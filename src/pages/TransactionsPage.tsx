@@ -767,7 +767,7 @@ const TransactionsPage = () => {
               </colgroup>
               <thead className="sticky top-0 z-10">
                 <tr className="bg-[hsl(var(--primary))] text-white">
-                  <th className="px-2 py-3.5 text-center rounded-ss-lg">
+                  <th className="px-2 py-3.5 text-center">
                     <Checkbox
                       checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                       onCheckedChange={toggleSelectAll}
