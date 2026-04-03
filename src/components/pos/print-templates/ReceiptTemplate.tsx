@@ -17,6 +17,11 @@ interface Props {
   returnPolicyDays?: number;
 }
 
+const currencySymbols: Record<string, string> = {
+  ILS: "₪", USD: "$", EUR: "€", JOD: "د.ا", EGP: "ج.م", GBP: "£", TRY: "₺",
+  شيكل: "₪", دولار: "$", يورو: "€", دينار: "د.ا", جنيه: "ج.م",
+};
+
 const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   order,
   companyName,
@@ -43,8 +48,16 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
     'بطاقة': 'بطاقة', 'card': 'بطاقة',
     'آجل': 'آجل', 'credit': 'آجل',
     'تحويل': 'تحويل', 'transfer': 'تحويل',
+    'employee_account': 'حساب موظف',
   };
   const payLabel = paymentLabels[order.paymentMethod || ''] || order.paymentMethod || 'نقد';
+
+  // Currency symbol for tendered amount (could be foreign)
+  const tenderedCurrSym = currencySymbols[order.currency || 'ILS'] || order.currency || '₪';
+  // Change is always in ILS
+  const changeSym = '₪';
+
+  const isCash = !order.paymentMethod || order.paymentMethod === 'cash' || order.paymentMethod === 'نقد' || order.paymentMethod === 'نقدي';
 
   const S = {
     container: {
@@ -219,17 +232,21 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             {payLabel}
           </span>
         </div>
-        {order.tenderedAmount != null && Number(order.tenderedAmount) > 0 && (
-          <div style={{ ...S.row, fontSize: '12px' }}>
-            <span style={{ color: '#000', fontWeight: 700 }}>المبلغ المستلم</span>
-            <span style={{ fontWeight: 800, color: '#000' }}>₪{Number(order.tenderedAmount).toFixed(2)}</span>
-          </div>
-        )}
-        {order.change != null && Number(order.change) > 0 && (
-          <div style={{ ...S.row, fontSize: '13px', fontWeight: 900 }}>
-            <span style={{ color: '#000' }}>الباقي</span>
-            <span style={{ color: '#000' }}>₪{Number(order.change).toFixed(2)}</span>
-          </div>
+
+        {/* Show tendered + change for cash payments */}
+        {isCash && order.tenderedAmount != null && Number(order.tenderedAmount) > 0 && (
+          <>
+            <div style={{ ...S.row, fontSize: '12px' }}>
+              <span style={{ color: '#000', fontWeight: 700 }}>المبلغ المستلم</span>
+              <span style={{ fontWeight: 800, color: '#000' }}>{tenderedCurrSym}{Number(order.tenderedAmount).toFixed(2)}</span>
+            </div>
+            {order.change != null && Number(order.change) > 0 && (
+              <div style={{ ...S.row, fontSize: '13px', fontWeight: 900 }}>
+                <span style={{ color: '#000' }}>الباقي</span>
+                <span style={{ color: '#000' }}>{changeSym}{Number(order.change).toFixed(2)}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
