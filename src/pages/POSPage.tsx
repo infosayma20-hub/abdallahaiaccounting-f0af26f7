@@ -5427,7 +5427,7 @@ const POSPage = () => {
                       note: item.note || undefined,
                     })),
                   };
-                  sendToBridge("kitchen", stationOrder).catch(() => {});
+                  printStationTicketImage(stationOrder, st.stationId || "", stationOrder.items).catch(() => {});
                 }
               }
               setShowKitchenTicket(false);
