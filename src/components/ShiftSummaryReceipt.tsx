@@ -186,7 +186,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
       paymentMethod: "ملخص وردية",
       orderNote: `توقيع الكاشير: _____________ | توقيع المسؤول: _____________`,
     };
-    sendToBridge("receipt", bridgeOrder).catch(() => {
+    printReceiptImage(bridgeOrder).catch(() => {
       console.warn("Print bridge unavailable");
     });
   };
