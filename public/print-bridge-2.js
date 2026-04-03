@@ -90,25 +90,31 @@ function sendToPrinter(printerKey, data) {
 // RECEIPT TEMPLATE — طابعة الكاشير
 // ═══════════════════════════════════════
 function buildReceipt(order) {
+  const queueNum = order.queue_number || order.queueNumber || order.orderNumber || '---';
+  const branchName = order.branch_name || order.branchName || '';
+  const cashier = order.cashier || '';
+  const orderType = order.order_type || order.orderType || '';
+  const createdAt = order.created_at || order.date || new Date().toISOString();
+  const total = order.total || 0;
+  const payMethod = order.payment_method || order.paymentMethod || '';
+  const isPayCash = payMethod === 'cash' || payMethod === 'نقد' || payMethod === 'نقدي';
+
   const parts = [
-    CMD.INIT,
-    CMD.CODE_PAGE_AR,
-    CMD.ALIGN_CENTER,
-    CMD.BOLD_ON,
-    CMD.SIZE_LARGE,
+    CMD.INIT, CMD.CODE_PAGE_AR, CMD.ALIGN_CENTER,
+    CMD.BOLD_ON, CMD.SIZE_LARGE,
     line('مطاعم الدجاج الملكي'),
     CMD.SIZE_NORMAL,
     line('Malaki Broast Chicken'),
     CMD.BOLD_OFF,
-    line(order.branch_name || ''),
+    line(branchName),
     separator('='),
-    CMD.ALIGN_RIGHT,
-    CMD.BOLD_ON,
-    line(`رقم الطلب: #${order.queue_number}`),
+    CMD.ALIGN_RIGHT, CMD.BOLD_ON,
+    line(`رقم الطلب: #${queueNum}`),
     CMD.BOLD_OFF,
-    line(`التاريخ: ${formatDate(order.created_at)}`),
-    line(`الوقت: ${formatTime(order.created_at)}`),
-    line(`النوع: ${order.order_type === 'takeaway' ? 'تيك أواي' : 'داخل المطعم'}`),
+    line(`الكاشير: ${cashier}`),
+    line(`التاريخ: ${formatDate(createdAt)}`),
+    line(`الوقت: ${formatTime(createdAt)}`),
+    line(`النوع: ${orderType === 'takeaway' ? 'تيك أواي' : orderType === 'توصيل' ? 'توصيل' : 'داخل المطعم'}`),
     separator('-'),
   ];
 
