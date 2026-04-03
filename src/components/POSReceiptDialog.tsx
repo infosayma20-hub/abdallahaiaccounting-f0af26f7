@@ -236,9 +236,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               
               {/* ═══ LOGO ═══ */}
               <div style={{ textAlign: "center", paddingBottom: "2px" }}>
-                {data.logoUrl && (
-                  <img src={data.logoUrl} alt={data.companyName} style={{ maxWidth: "120px", maxHeight: "60px", margin: "0 auto 4px", display: "block", filter: "grayscale(100%) contrast(1.2)" }} />
-                )}
+                <img src={data.logoUrl || '/images/malaky-logo.png'} alt={data.companyName} style={{ maxWidth: "140px", maxHeight: "80px", margin: "0 auto 4px", display: "block" }} />
                 <div style={{ fontSize: "28px", fontWeight: 900, color: "#000", letterSpacing: "1px", lineHeight: 1.2, fontFamily: "'Arial', 'Tahoma', sans-serif" }}>
                   مطعم الملكي
                 </div>
