@@ -119,38 +119,40 @@ function buildReceipt(order) {
   ];
 
   // Items
-  order.items.forEach(item => {
-    const itemLine = `${item.name}  x${item.quantity}`;
-    const priceLine = `${item.total} NIS`;
-    parts.push(CMD.ALIGN_RIGHT);
-    parts.push(line(itemLine));
-    parts.push(CMD.ALIGN_LEFT);
-    parts.push(line(priceLine));
-    if (item.notes) {
-      parts.push(CMD.ALIGN_RIGHT);
-      parts.push(line(`  * ${item.notes}`));
+  (order.items || []).forEach(item => {
+    const itemName = item.name || '';
+    const qty = item.quantity || item.qty || 1;
+    const itemTotal = item.total || item.price * qty || 0;
+    const notes = item.notes || item.note || '';
+    parts.push(CMD.ALIGN_RIGHT, line(`${itemName}  x${qty}`));
+    parts.push(CMD.ALIGN_LEFT, line(`${itemTotal} NIS`));
+    if (notes) { parts.push(CMD.ALIGN_RIGHT, line(`  * ${notes}`)); }
+    if (item.modifiers && item.modifiers.length > 0) {
+      item.modifiers.forEach(m => {
+        parts.push(CMD.ALIGN_RIGHT, line(`  + ${m.option_name || m.name}`));
+      });
     }
   });
 
   parts.push(
-    separator('='),
-    CMD.ALIGN_RIGHT,
-    CMD.BOLD_ON,
-    CMD.SIZE_LARGE,
-    line(`الاجمالي: ${order.total} NIS`),
-    CMD.SIZE_NORMAL,
-    CMD.BOLD_OFF,
-    line(`الدفع: ${order.payment_method === 'cash' ? 'نقدي' : 'شبكة'}`),
-    separator('='),
-    CMD.ALIGN_CENTER,
-    CMD.BOLD_ON,
-    line('شكرا لزيارتكم'),
-    line('Thank You!'),
-    CMD.BOLD_OFF,
-    CMD.FEED_3,
-    CMD.CUT,
+    separator('='), CMD.ALIGN_RIGHT, CMD.BOLD_ON, CMD.SIZE_LARGE,
+    line(`الاجمالي: ${total} NIS`),
+    CMD.SIZE_NORMAL, CMD.BOLD_OFF,
+    line(`الدفع: ${isPayCash ? 'نقدي' : payMethod}`),
   );
 
+  if (order.tenderedAmount && order.change) {
+    parts.push(
+      line(`المدفوع: ${order.tenderedAmount}`),
+      line(`الباقي: ${order.change}`),
+    );
+  }
+
+  parts.push(
+    separator('='), CMD.ALIGN_CENTER, CMD.BOLD_ON,
+    line('شكرا لزيارتكم'), line('Thank You!'),
+    CMD.BOLD_OFF, CMD.FEED_3, CMD.CUT,
+  );
   return Buffer.concat(parts);
 }
 
