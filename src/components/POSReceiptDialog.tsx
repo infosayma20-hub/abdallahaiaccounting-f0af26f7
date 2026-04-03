@@ -132,7 +132,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
       change: data.change,
       orderNote: data.orderNote,
     };
-    sendToBridge("receipt", bridgeOrder).catch(() => {
+    printReceiptImage(bridgeOrder).catch(() => {
       console.warn("Print bridge unavailable");
     });
   }, [data]);

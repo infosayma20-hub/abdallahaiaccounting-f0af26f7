@@ -967,7 +967,7 @@ export default function InvoiceHistoryDrawer({
                       total: selectedOrder.total,
                       paymentMethod: paymentLabel,
                     };
-                    sendToBridge("receipt", bridgeOrder).catch(() => {
+                    printReceiptImage(bridgeOrder).catch(() => {
                       console.warn("Print bridge unavailable");
                     });
                     toast.success("تم إرسال الإيصال للطابعة");
