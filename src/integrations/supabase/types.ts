@@ -6922,6 +6922,7 @@ export type Database = {
           linked_transaction_id: string | null
           local_id: string | null
           notes: string | null
+          order_note: string | null
           order_number: string | null
           order_type: string | null
           paid_at: string | null
@@ -6979,6 +6980,7 @@ export type Database = {
           linked_transaction_id?: string | null
           local_id?: string | null
           notes?: string | null
+          order_note?: string | null
           order_number?: string | null
           order_type?: string | null
           paid_at?: string | null
@@ -7036,6 +7038,7 @@ export type Database = {
           linked_transaction_id?: string | null
           local_id?: string | null
           notes?: string | null
+          order_note?: string | null
           order_number?: string | null
           order_type?: string | null
           paid_at?: string | null
