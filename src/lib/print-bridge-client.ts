@@ -48,8 +48,8 @@ async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
   try {
     return await fetch(`${BRIDGE_URL}${path}`, {
       ...init,
-      targetAddressSpace: "local",
-    } as BridgeRequestInit);
+      mode: "cors",
+    } as RequestInit);
   } catch {
     const message = getBridgeBlockedMessage();
     throw new PrintBridgeConnectionError(
@@ -116,8 +116,8 @@ export async function checkBridgeHealth(): Promise<{
 
 export async function checkBridgeStatus(): Promise<boolean> {
   try {
-    const res = await bridgeFetch("/status", {
-      signal: AbortSignal.timeout(2000),
+    const res = await bridgeFetch("/health", {
+      signal: AbortSignal.timeout(3000),
     });
     return res.ok;
   } catch {
