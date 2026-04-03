@@ -189,24 +189,30 @@ export default function NetworkPrintersManager() {
   const testPrinter = async (printer: PrinterConfig) => {
     setTesting(printer.id);
     try {
-      const type = (printer.print_categories || []).includes("receipt") ? "receipt" : "kitchen";
-      const stationId = (printer.station_ids || [])[0] || undefined;
-      const result = await sendToBridge(type, {
-        orderNumber: "TEST",
-        branchName: "اختبار Print Bridge",
-        cashier: "النظام",
-        orderType: "اختبار",
-        stationId,
-        items: [{ id: "1", name: `اختبار ${printer.name}`, quantity: 1, price: 0 }],
-        total: 0,
-        paymentMethod: "اختبار",
+      // Use the bridge's /test endpoint which prints a physical test page
+      // Map printer to bridge key: match by IP or fall back to type
+      const bridgeKeyMap: Record<string, string> = {
+        "192.168.1.220": "receipt",
+        "192.168.1.120": "kitchen",
+        "192.168.1.10": "grill",
+        "192.168.1.228": "pizza",
+      };
+      const printerKey = bridgeKeyMap[printer.ip_address] || 
+        ((printer.print_categories || []).includes("receipt") ? "receipt" : "kitchen");
+      const res = await fetch(`${getPrintBridgeUrl()}/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printer: printerKey }),
+        mode: "cors",
+        signal: AbortSignal.timeout(10000),
       });
+      const result = await res.json();
 
       if (result.success) {
-        toast.success(`✅ تم إرسال اختبار ${printer.name} عبر Print Bridge`);
+        toast.success(`✅ تم طباعة صفحة اختبار على ${printer.name}`);
         setBridgeOnline(true);
       } else {
-        toast.warning(`⚠️ تم الوصول إلى Bridge لكن الطابعة ${printer.name} لم تستجب`);
+        toast.warning(`⚠️ تم الوصول إلى Bridge لكن الطابعة ${printer.name} لم تستجب: ${result.error || ""}`);
       }
     } catch (error) {
       setBridgeOnline(false);
