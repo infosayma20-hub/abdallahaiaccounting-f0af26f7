@@ -1,14 +1,10 @@
 /**
- * AMWALI Print Bridge v3 — Local Node.js service
+ * AMWALI Print Bridge v4 — Local Node.js service
  * 
- * Handles Arabic text encoding (CP1256), ESC/POS commands,
- * and station-based routing to thermal printers.
+ * Fixes: Arabic CP1256 encoding, station UUID routing, Unicode sanitization
  * 
  * Install: npm install express cors iconv-lite
  * Run:     node print-bridge.js
- * 
- * This file should be placed on the LOCAL machine running
- * the printers (e.g. the cashier PC), NOT in the web project.
  */
 
 const express = require('express');
@@ -17,7 +13,16 @@ const net = require('net');
 const iconv = require('iconv-lite');
 
 const app = express();
-app.use(cors());
+
+// ─── CORS with Private Network Access ───────────────
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Private-Network', 'true');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 app.use(express.json());
 
 const PORT = 3001;
@@ -28,51 +33,98 @@ const GS  = 0x1D;
 const LF  = 0x0A;
 
 const CMD = {
-  INIT:        Buffer.from([ESC, 0x40]),               // ESC @ — Initialize
-  CODE_CP1256: Buffer.from([ESC, 0x74, 0x16]),         // ESC t 22 — Arabic code page
+  INIT:        Buffer.from([ESC, 0x40]),
+  CODE_CP1256: Buffer.from([ESC, 0x74, 0x16]),
   ALIGN_LEFT:  Buffer.from([ESC, 0x61, 0x00]),
   ALIGN_CENTER:Buffer.from([ESC, 0x61, 0x01]),
   ALIGN_RIGHT: Buffer.from([ESC, 0x61, 0x02]),
   BOLD_ON:     Buffer.from([ESC, 0x45, 0x01]),
   BOLD_OFF:    Buffer.from([ESC, 0x45, 0x00]),
   SIZE_NORMAL: Buffer.from([GS, 0x21, 0x00]),
-  SIZE_LARGE:  Buffer.from([GS, 0x21, 0x11]),          // Double height+width
-  SIZE_XLARGE: Buffer.from([GS, 0x21, 0x33]),          // 4x height+width  
-  CUT:         Buffer.from([GS, 0x56, 0x00]),           // Full cut
-  FEED_3:      Buffer.from([ESC, 0x64, 0x03]),          // Feed 3 lines
+  SIZE_LARGE:  Buffer.from([GS, 0x21, 0x11]),
+  SIZE_XLARGE: Buffer.from([GS, 0x21, 0x33]),
+  CUT:         Buffer.from([GS, 0x56, 0x00]),
+  FEED_3:      Buffer.from([ESC, 0x64, 0x03]),
   DRAWER_KICK: Buffer.from([ESC, 0x70, 0x00, 0x19, 0x78]),
 };
 
 // ─── Arabic Text Processing ─────────────────────────
-function prepareArabicLine(text) {
-  // Reverse word order for RTL thermal printing
-  const reversed = text.split(' ').reverse().join(' ');
-  // Encode as CP1256
-  return iconv.encode(reversed, 'win1256');
+
+/** Sanitize Unicode symbols that CP1256 cannot encode */
+function sanitizeForCP1256(text) {
+  return text
+    .replace(/₪/g, 'NIS')
+    .replace(/[━═─│┃┄┅┆┇┈┉┊┋]/g, '-')
+    .replace(/[⬆⬇⬅➡▲▼◀▶►◄]/g, '')
+    .replace(/[✓✔✗✘✕✖☑☐☒]/g, '*')
+    .replace(/[★☆●○◎◆◇■□▪▫]/g, '*')
+    .replace(/[←→↑↓↔↕⇐⇒⇑⇓]/g, '->')
+    .replace(/[€£¥₹₽₿]/g, '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, ''); // Zero-width & bidi marks
+}
+
+/** Reverse Arabic characters for RTL thermal printing */
+function reverseArabicText(text) {
+  // Split into Arabic and non-Arabic segments
+  const segments = [];
+  let current = '';
+  let currentIsArabic = false;
+  
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const isArabic = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(ch);
+    
+    if (i === 0) {
+      currentIsArabic = isArabic;
+      current = ch;
+    } else if (isArabic === currentIsArabic) {
+      current += ch;
+    } else {
+      segments.push({ text: current, arabic: currentIsArabic });
+      current = ch;
+      currentIsArabic = isArabic;
+    }
+  }
+  if (current) segments.push({ text: current, arabic: currentIsArabic });
+  
+  // Reverse segment order and reverse Arabic character sequences
+  segments.reverse();
+  return segments.map(s => {
+    if (s.arabic) {
+      // Reverse characters within Arabic segments
+      return s.text.split('').reverse().join('');
+    }
+    return s.text;
+  }).join('');
+}
+
+function prepareText(text) {
+  const sanitized = sanitizeForCP1256(text);
+  const hasArabic = /[\u0600-\u06FF]/.test(sanitized);
+  
+  if (hasArabic) {
+    const reversed = reverseArabicText(sanitized);
+    return iconv.encode(reversed, 'win1256');
+  }
+  return iconv.encode(sanitized, 'win1256');
 }
 
 function textLine(text, options = {}) {
   const bufs = [];
   
-  // Alignment
   if (options.align === 'center')     bufs.push(CMD.ALIGN_CENTER);
   else if (options.align === 'left')  bufs.push(CMD.ALIGN_LEFT);
   else                                bufs.push(CMD.ALIGN_RIGHT);
   
-  // Bold
   bufs.push(options.bold ? CMD.BOLD_ON : CMD.BOLD_OFF);
   
-  // Size
   if (options.size === 'xlarge')      bufs.push(CMD.SIZE_XLARGE);
   else if (options.size === 'large')  bufs.push(CMD.SIZE_LARGE);
   else                                bufs.push(CMD.SIZE_NORMAL);
   
-  // Text — detect if contains Arabic
-  const hasArabic = /[\u0600-\u06FF]/.test(text);
-  bufs.push(hasArabic ? prepareArabicLine(text) : Buffer.from(text, 'utf8'));
+  bufs.push(prepareText(text));
   bufs.push(Buffer.from([LF]));
   
-  // Reset size after
   bufs.push(CMD.SIZE_NORMAL);
   bufs.push(CMD.BOLD_OFF);
   
@@ -91,12 +143,10 @@ function dashLine() {
 function buildReceiptBuffer(order) {
   const bufs = [CMD.INIT, CMD.CODE_CP1256];
   
-  // Header
   bufs.push(textLine('مطاعم الدجاج الملكي', { bold: true, size: 'large', align: 'center' }));
   bufs.push(textLine('Malaki Broast Chicken', { align: 'center' }));
   bufs.push(separator());
   
-  // Order info
   const qNum = order.queueNumber || order.orderNumber;
   bufs.push(textLine(`رقم الطلب: #${qNum}`, { bold: true, align: 'right' }));
   if (order.branchName) bufs.push(textLine(order.branchName, { align: 'right' }));
@@ -104,20 +154,19 @@ function buildReceiptBuffer(order) {
   const now = new Date();
   bufs.push(textLine(`${now.toLocaleDateString('en-GB')}  ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`, { align: 'right' }));
   
-  const typeLabel = order.orderType === 'takeaway' ? 'تيك أواي' : 
+  const typeLabel = order.orderType === 'takeaway' ? 'تيك اواي' : 
                     order.orderType === 'delivery' ? 'توصيل' : 'محل';
   bufs.push(textLine(`النوع: ${typeLabel}`, { align: 'right' }));
   if (order.cashier) bufs.push(textLine(`الكاشير: ${order.cashier}`, { align: 'right' }));
   if (order.tableNumber) bufs.push(textLine(`طاولة: ${order.tableNumber}`, { align: 'right' }));
   bufs.push(dashLine());
   
-  // Items
   (order.items || []).forEach(item => {
     const price = (item.quantity * item.price).toFixed(2);
     bufs.push(textLine(`${item.quantity}x  ${item.name}`, { bold: true, align: 'right' }));
     bufs.push(textLine(`${price} NIS`, { align: 'left' }));
     if (item.note) bufs.push(textLine(`  * ${item.note}`, { align: 'right' }));
-    if (item.modifiers?.length) {
+    if (item.modifiers && item.modifiers.length) {
       item.modifiers.forEach(m => {
         bufs.push(textLine(`  + ${m.option_name}`, { align: 'right' }));
       });
@@ -126,7 +175,6 @@ function buildReceiptBuffer(order) {
   
   bufs.push(separator());
   
-  // Totals
   if (order.subtotal != null && order.discount) {
     bufs.push(textLine(`المجموع: ${order.subtotal.toFixed(2)} NIS`, { align: 'right' }));
     bufs.push(textLine(`الخصم: -${order.discount.toFixed(2)} NIS`, { align: 'right' }));
@@ -138,7 +186,7 @@ function buildReceiptBuffer(order) {
   }
   
   bufs.push(separator());
-  bufs.push(textLine('شكراً لزيارتكم', { bold: true, align: 'center' }));
+  bufs.push(textLine('شكرا لزيارتكم', { bold: true, align: 'center' }));
   bufs.push(textLine('Thank You!', { align: 'center' }));
   
   bufs.push(CMD.FEED_3);
@@ -156,13 +204,11 @@ function buildKitchenBuffer(order, items, stationName) {
   bufs.push(textLine(`# ${qNum}`, { bold: true, size: 'xlarge', align: 'center' }));
   bufs.push(separator());
   
-  // Station name if provided
   if (stationName) {
     bufs.push(textLine(`[ ${stationName} ]`, { bold: true, size: 'large', align: 'center' }));
   }
   
-  // Order type
-  const typeLabel = order.orderType === 'takeaway' ? '*** تيك أواي ***' : 
+  const typeLabel = order.orderType === 'takeaway' ? '*** تيك اواي ***' : 
                     order.orderType === 'delivery' ? '*** توصيل ***' : '*** محل ***';
   bufs.push(textLine(typeLabel, { bold: true, size: 'large', align: 'center' }));
   
@@ -171,11 +217,10 @@ function buildKitchenBuffer(order, items, stationName) {
   if (order.tableNumber) bufs.push(textLine(`طاولة: ${order.tableNumber}`, { bold: true, align: 'center' }));
   bufs.push(dashLine());
   
-  // Items for THIS station only
   (items || []).forEach(item => {
     bufs.push(textLine(`${item.quantity}  x  ${item.name}`, { bold: true, size: 'large', align: 'right' }));
     if (item.note) bufs.push(textLine(`>>> ${item.note}`, { align: 'right' }));
-    if (item.modifiers?.length) {
+    if (item.modifiers && item.modifiers.length) {
       item.modifiers.forEach(m => {
         bufs.push(textLine(`  + ${m.option_name}`, { align: 'right' }));
       });
@@ -234,8 +279,7 @@ function testConnection(ip, port) {
   });
 }
 
-// ─── Printer Configuration (loaded from DB or hardcoded) ──
-// This should ideally be loaded from the DB, but for now we hardcode
+// ─── Printer Configuration ──────────────────────────
 const PRINTERS = {
   receipt:  { ip: '192.168.1.220', port: 9100, name: 'طابعة الوصل' },
   kitchen:  { ip: '192.168.1.120', port: 9100, name: 'طابعة المطبخ', stationId: 'a09ebd1b-392c-42b2-a8a7-d180fdde1f97' },
@@ -243,7 +287,7 @@ const PRINTERS = {
   pizza:    { ip: '192.168.1.228', port: 9100, name: 'طابعة البيتزا', stationId: '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516' },
 };
 
-// Map station IDs to printer keys
+// Map station UUIDs to printer keys for routing
 const STATION_TO_PRINTER = {};
 Object.entries(PRINTERS).forEach(([key, p]) => {
   if (p.stationId) STATION_TO_PRINTER[p.stationId] = key;
@@ -251,7 +295,6 @@ Object.entries(PRINTERS).forEach(([key, p]) => {
 
 // ─── API Endpoints ──────────────────────────────────
 
-// Health check with printer status
 app.get('/health', async (req, res) => {
   const results = await Promise.all(
     Object.entries(PRINTERS).map(async ([key, p]) => ({
@@ -259,17 +302,17 @@ app.get('/health', async (req, res) => {
       key,
       ip: p.ip,
       port: p.port,
+      stationId: p.stationId || null,
       connected: await testConnection(p.ip, p.port),
     }))
   );
-  res.json({ status: 'ok', printers: results, timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '4.0', printers: results, timestamp: new Date().toISOString() });
 });
 
 app.get('/status', (req, res) => {
-  res.json({ status: 'ok', version: '3.0', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '4.0', timestamp: new Date().toISOString() });
 });
 
-// Test specific printer
 app.post('/test-printer', async (req, res) => {
   const { ip, port } = req.body;
   try {
@@ -279,7 +322,7 @@ app.post('/test-printer', async (req, res) => {
       textLine('مطاعم الدجاج الملكي', { align: 'center' }),
       textLine('Malaki Broast Chicken', { align: 'center' }),
       separator(),
-      textLine('الطباعة تعمل بنجاح ✓', { bold: true, align: 'center' }),
+      textLine('الطباعة تعمل بنجاح', { bold: true, align: 'center' }),
       textLine(new Date().toLocaleString('en-GB'), { align: 'center' }),
       CMD.FEED_3, CMD.CUT,
     ]);
@@ -290,7 +333,7 @@ app.post('/test-printer', async (req, res) => {
   }
 });
 
-// Main print endpoint (legacy compatible)
+// Main print endpoint
 app.post('/print', async (req, res) => {
   const { type, order, stationId } = req.body;
   const results = [];
@@ -307,32 +350,33 @@ app.post('/print', async (req, res) => {
     }
     
     if (type === 'kitchen' || type === 'both') {
-      // Route items to their assigned stations
       const stationGroups = {};
       
       (order.items || []).forEach(item => {
-        // Determine which station(s) this item belongs to
-        const stations = item.print_station_ids || [];
+        const itemStations = item.print_station_ids || [];
+        const itemStationId = item.stationId;
         
         if (stationId) {
-          // Single station specified — just use it
+          // Explicit stationId from the request — route all items there
           if (!stationGroups[stationId]) stationGroups[stationId] = [];
           stationGroups[stationId].push(item);
-        } else if (stations.length > 0) {
-          // Route based on product's print_station_ids
-          stations.forEach(sid => {
+        } else if (itemStationId) {
+          // Item-level stationId
+          if (!stationGroups[itemStationId]) stationGroups[itemStationId] = [];
+          stationGroups[itemStationId].push(item);
+        } else if (itemStations.length > 0) {
+          itemStations.forEach(sid => {
             if (!stationGroups[sid]) stationGroups[sid] = [];
             stationGroups[sid].push(item);
           });
         } else {
-          // Default: send to main kitchen
+          // Default: main kitchen
           const defaultStation = PRINTERS.kitchen.stationId;
           if (!stationGroups[defaultStation]) stationGroups[defaultStation] = [];
           stationGroups[defaultStation].push(item);
         }
       });
       
-      // Print to each station's printer
       for (const [sid, items] of Object.entries(stationGroups)) {
         const printerKey = STATION_TO_PRINTER[sid];
         const printer = printerKey ? PRINTERS[printerKey] : PRINTERS.kitchen;
@@ -354,12 +398,11 @@ app.post('/print', async (req, res) => {
   }
 });
 
-// Routed print (new endpoint — routes based on item station assignments)
+// Routed print endpoint
 app.post('/print-routed', async (req, res) => {
   const { order } = req.body;
   const results = [];
   
-  // Always print receipt
   try {
     const buf = buildReceiptBuffer(order);
     await sendToPrinter(PRINTERS.receipt.ip, PRINTERS.receipt.port, buf);
@@ -368,12 +411,10 @@ app.post('/print-routed', async (req, res) => {
     results.push({ name: PRINTERS.receipt.name, success: false, error: err.message });
   }
   
-  // Group items by station
   const stationGroups = {};
   (order.items || []).forEach(item => {
     const stations = item.print_station_ids || [];
     if (stations.length === 0) {
-      // Default to main kitchen
       const sid = PRINTERS.kitchen.stationId;
       if (!stationGroups[sid]) stationGroups[sid] = [];
       stationGroups[sid].push(item);
@@ -413,10 +454,12 @@ app.post('/drawer', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🖨️  AMWALI Print Bridge v3 running on port ${PORT}`);
-  console.log(`   Arabic encoding: CP1256 (Windows Arabic)`);
-  console.log(`   Printers configured: ${Object.keys(PRINTERS).length}`);
+  console.log(`\n  AMWALI Print Bridge v4 running on port ${PORT}`);
+  console.log(`  Arabic encoding: CP1256 + character-level RTL reversal`);
+  console.log(`  Unicode sanitization: enabled`);
+  console.log(`  Printers configured: ${Object.keys(PRINTERS).length}`);
   Object.entries(PRINTERS).forEach(([key, p]) => {
-    console.log(`   - ${key}: ${p.name} @ ${p.ip}:${p.port}`);
+    console.log(`  - ${key}: ${p.name} @ ${p.ip}:${p.port}${p.stationId ? ' [' + p.stationId + ']' : ''}`);
   });
+  console.log('');
 });
