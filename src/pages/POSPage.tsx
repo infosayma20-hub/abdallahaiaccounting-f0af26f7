@@ -3178,30 +3178,7 @@ const POSPage = () => {
           total: cartTotals.total,
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
-        sendToBridge("receipt", f8Order).catch(() => console.warn("Receipt print failed"));
-        const stationItems: Record<string, typeof f8Order.items> = {};
-        cart.forEach(item => {
-          const sid = item.station_id || "__default__";
-          if (!stationItems[sid]) stationItems[sid] = [];
-          stationItems[sid].push({
-            id: item.product_id || item.id,
-            name: item.name,
-            quantity: item.qty,
-            price: item.unit_price,
-            note: item.note || undefined,
-            stationId: item.station_id || undefined,
-            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
-          });
-        });
-        const defaultItems = stationItems["__default__"] || [];
-        if (defaultItems.length > 0) {
-          sendToBridge("kitchen", { ...f8Order, items: defaultItems }).catch(() => console.warn("Default kitchen print failed"));
-        }
-        Object.entries(stationItems)
-          .filter(([sid]) => sid !== "__default__")
-          .forEach(([sid, items]) => {
-            sendToBridge("kitchen", { ...f8Order, items, stationId: sid }).catch(() => console.warn(`Kitchen print failed for station ${sid}`));
-          });
+        printAllImage(f8Order).catch(() => console.warn("F8 image print failed"));
         e.preventDefault();
         return;
       }
