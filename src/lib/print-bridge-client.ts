@@ -48,8 +48,8 @@ async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
   try {
     return await fetch(`${BRIDGE_URL}${path}`, {
       ...init,
-      targetAddressSpace: "local",
-    } as BridgeRequestInit);
+      mode: "cors",
+    } as RequestInit);
   } catch {
     const message = getBridgeBlockedMessage();
     throw new PrintBridgeConnectionError(
