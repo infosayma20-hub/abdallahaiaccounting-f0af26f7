@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle } from "lucide-react";
 import { sendToBridge } from "@/lib/print-bridge-client";
-import { printReceiptImage } from "@/lib/image-print-service";
+import { printShiftSummaryImage } from "@/lib/image-print-service";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface CurrencyBreakdown {
@@ -103,90 +103,31 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
 
   const printSummary = () => {
     if (!data) return;
-
-    const items: PrintOrder["items"] = [];
-    const addLine = (name: string, price: number = 0) => {
-      items.push({ id: `s-${items.length}`, name, quantity: 1, price });
-    };
-
-    addLine("=== ملخص تسليم العهدة ===");
-    addLine(`الكاشير: ${data.cashierName}`);
-    if (data.cashBoxName) addLine(`الصندوق: ${data.cashBoxName}`);
-    addLine(`الفتح: ${formatDate(data.openedAt)} ${formatTime(data.openedAt)}`);
-    addLine(`الاغلاق: ${formatDate(data.closedAt)} ${formatTime(data.closedAt)}`);
-    addLine("--------------------------------");
-    addLine("النقدية الافتتاحية", data.openingCash);
-    addLine("اجمالي المبيعات", data.totalSales);
-    if ((data.totalExpenses || 0) > 0) addLine("مصروفات من الصندوق", -(data.totalExpenses || 0));
-    addLine(`عدد الطلبات: ${data.totalOrders}`);
-
-    // Currency breakdown
-    const cb = data.currencyBreakdown || {};
-    if (Object.keys(cb).length > 0) {
-      addLine("--- تفاصيل العملات ---");
-      Object.entries(cb).forEach(([cur, info]) => {
-        addLine(`${currencyLabel(cur)} (${info.count} طلب)`, info.sales);
-      });
-    }
-
-    // Non-cash payment methods
-    const pmb = data.paymentMethodBreakdown || {};
-    const nonCash = ["card", "credit", "employee_account"].filter(m => {
-      const amounts = pmb[m] || {};
-      return Object.values(amounts).some(v => v > 0);
-    });
-    if (nonCash.length > 0) {
-      addLine("--- مبيعات غير نقدية ---");
-      nonCash.forEach(method => {
-        const amounts = pmb[method] || {};
-        CURRENCIES.filter(c => (amounts[c] || 0) > 0).forEach(c => {
-          addLine(`${METHOD_LABELS[method] || method} (${currencyLabel(c)})`, amounts[c]);
-        });
-      });
-    }
-
-    addLine("================================");
-    addLine("المتوقع (شيكل)", data.expectedCash);
-    addLine("المسلم (شيكل)", data.closingCash);
-    if ((data.varianceILS || 0) !== 0) {
-      const v = data.varianceILS || 0;
-      addLine(`${v > 0 ? "فائض" : "عجز"} (شيكل)`, Math.abs(v));
-    }
-
-    // USD
-    if ((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) {
-      addLine("المتوقع (دولار)", data.expectedCashUSD || 0);
-      addLine("المسلم (دولار)", data.closingCashUSD || 0);
-      if ((data.varianceUSD || 0) !== 0) {
-        const v = data.varianceUSD || 0;
-        addLine(`${v > 0 ? "فائض" : "عجز"} (دولار)`, Math.abs(v));
-      }
-    }
-
-    // JOD
-    if ((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) {
-      addLine("المتوقع (دينار)", data.expectedCashJOD || 0);
-      addLine("المسلم (دينار)", data.closingCashJOD || 0);
-      if ((data.varianceJOD || 0) !== 0) {
-        const v = data.varianceJOD || 0;
-        addLine(`${v > 0 ? "فائض" : "عجز"} (دينار)`, Math.abs(v));
-      }
-    }
-
-    addLine("================================");
-    const vType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "مطابق";
-    addLine(`*** ${vType}: ${Math.abs(data.variance).toFixed(2)} NIS ***`);
-
-    const bridgeOrder: PrintOrder = {
-      orderNumber: `SHIFT-${data.sessionId?.slice(0, 6) || "000"}`,
-      branchName: data.companyName || "مطعم الملكي",
-      cashier: data.cashierName,
-      items,
-      total: data.closingCash,
-      paymentMethod: "ملخص وردية",
-      orderNote: `توقيع الكاشير: _____________ | توقيع المسؤول: _____________`,
-    };
-    printReceiptImage(bridgeOrder).catch(() => {
+    printShiftSummaryImage({
+      companyName: data.companyName,
+      logoUrl: data.logoUrl,
+      terminalName: data.terminalName,
+      cashierName: data.cashierName,
+      cashBoxName: data.cashBoxName,
+      openedAt: data.openedAt,
+      closedAt: data.closedAt,
+      openingCash: data.openingCash,
+      totalSales: data.totalSales,
+      totalExpenses: data.totalExpenses,
+      totalOrders: data.totalOrders,
+      closingCash: data.closingCash,
+      closingCashUSD: data.closingCashUSD,
+      closingCashJOD: data.closingCashJOD,
+      expectedCash: data.expectedCash,
+      expectedCashUSD: data.expectedCashUSD,
+      expectedCashJOD: data.expectedCashJOD,
+      variance: data.variance,
+      varianceILS: data.varianceILS,
+      varianceUSD: data.varianceUSD,
+      varianceJOD: data.varianceJOD,
+      currencyBreakdown: data.currencyBreakdown,
+      paymentMethodBreakdown: data.paymentMethodBreakdown,
+    }).catch(() => {
       console.warn("Print bridge unavailable");
     });
   };
@@ -255,7 +196,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: 8 }}>
               {data.logoUrl && (
-                <img src={data.logoUrl} alt={data.companyName} style={{ maxWidth: "120px", maxHeight: "60px", margin: "0 auto 4px", display: "block", filter: "grayscale(100%) contrast(1.2)" }} />
+                <img src={data.logoUrl} alt={data.companyName} style={{ maxWidth: "120px", maxHeight: "60px", margin: "0 auto 4px", display: "block" }} />
               )}
               <div style={{ fontSize: 20, fontWeight: 900, color: "#000" }}>{data.companyName}</div>
               <div style={{ fontSize: 12, color: "#000", fontWeight: 700 }}>{data.terminalName}</div>

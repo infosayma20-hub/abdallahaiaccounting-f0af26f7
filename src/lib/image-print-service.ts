@@ -10,6 +10,8 @@ import { createRoot } from "react-dom/client";
 import { createElement } from "react";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
 import KitchenTicketTemplate from "@/components/pos/print-templates/KitchenTicketTemplate";
+import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
+import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 
 const BRIDGE_URL = "http://192.168.1.65:3001";
@@ -210,6 +212,21 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
     const result = await sendImageToBridge(image, printerKey);
     return { success: result.success, error: result.error };
   } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Print a shift summary report using the dedicated template (80mm printer).
+ */
+export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promise<PrintImageResult> {
+  try {
+    const element = createElement(ShiftSummaryTemplate, { data });
+    const image = await renderToImage(element);
+    const result = await sendImageToBridge(image, 'receipt');
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    console.error('[printShiftSummaryImage]', err);
     return { success: false, error: err.message };
   }
 }
