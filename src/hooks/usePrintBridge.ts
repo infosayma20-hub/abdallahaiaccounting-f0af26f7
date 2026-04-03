@@ -52,6 +52,8 @@ export interface PrintOrder {
   orderNote?: string;
   /** Station ID — used by bridge to route to the correct printer */
   stationId?: string;
+  /** Station name — used by bridge to map to printer key */
+  stationName?: string;
 }
 
 export function usePrintBridge() {
