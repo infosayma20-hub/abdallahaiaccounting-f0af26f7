@@ -99,7 +99,7 @@ async function sendImageToBridge(image: string, printerKey: string): Promise<{ s
  */
 export async function printReceiptImage(
   order: PrintOrder,
-  companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string }
+  companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string }
 ): Promise<PrintImageResult> {
   try {
     const element = createElement(ReceiptTemplate, {
@@ -108,6 +108,8 @@ export async function printReceiptImage(
       companyPhone: companyInfo?.phone,
       companyAddress: companyInfo?.address,
       taxNumber: companyInfo?.taxNumber,
+      logoUrl: companyInfo?.logoUrl,
+      terminalName: companyInfo?.terminalName,
     });
 
     const image = await renderToImage(element);
