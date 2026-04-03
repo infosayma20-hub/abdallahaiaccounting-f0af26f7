@@ -210,10 +210,31 @@ app.post('/test', async (req, res) => {
     return res.status(400).json({ success: false, error: `Unknown printer key: ${printerKey}` });
   }
   try {
-    // For test, we just check connectivity
-    const online = await testConnection(printer.ip, printer.port);
-    if (!online) throw new Error(`${printer.ip}:${printer.port} — offline`);
-    res.json({ success: true, message: `${printer.name} is online` });
+    // Generate a real test page image using sharp and print it
+    const w = printer.width;
+    const h = 300;
+    const now = new Date().toLocaleString('ar-EG', { timeZone: 'Asia/Jerusalem' });
+
+    // Build SVG test page
+    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${w}" height="${h}" fill="white"/>
+      <text x="${w/2}" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="black">★ AMWALI ★</text>
+      <text x="${w/2}" y="75" text-anchor="middle" font-size="18" fill="black">Test Print / طباعة تجريبية</text>
+      <line x1="20" y1="95" x2="${w-20}" y2="95" stroke="black" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="${w/2}" y="130" text-anchor="middle" font-size="16" fill="black">Printer: ${printer.name}</text>
+      <text x="${w/2}" y="160" text-anchor="middle" font-size="14" fill="black">IP: ${printer.ip}:${printer.port}</text>
+      <text x="${w/2}" y="190" text-anchor="middle" font-size="14" fill="black">Width: ${printer.width}px</text>
+      <text x="${w/2}" y="220" text-anchor="middle" font-size="14" fill="black">${now}</text>
+      <line x1="20" y1="245" x2="${w-20}" y2="245" stroke="black" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="${w/2}" y="280" text-anchor="middle" font-size="16" fill="black">✓ الطابعة تعمل بنجاح</text>
+    </svg>`;
+
+    const imgBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+    const base64 = 'data:image/png;base64,' + imgBuffer.toString('base64');
+    const escposBuffer = await imageToEscPos(base64, printer.width);
+    console.log(`[test] Printing test page on ${printer.name} (${escposBuffer.length} bytes)`);
+    await sendToPrinter(printer.ip, printer.port, escposBuffer);
+    res.json({ success: true, message: `${printer.name} — test page printed` });
   } catch (err) {
     res.json({ success: false, error: err.message });
   }
