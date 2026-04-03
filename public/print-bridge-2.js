@@ -90,61 +90,69 @@ function sendToPrinter(printerKey, data) {
 // RECEIPT TEMPLATE — طابعة الكاشير
 // ═══════════════════════════════════════
 function buildReceipt(order) {
+  const queueNum = order.queue_number || order.queueNumber || order.orderNumber || '---';
+  const branchName = order.branch_name || order.branchName || '';
+  const cashier = order.cashier || '';
+  const orderType = order.order_type || order.orderType || '';
+  const createdAt = order.created_at || order.date || new Date().toISOString();
+  const total = order.total || 0;
+  const payMethod = order.payment_method || order.paymentMethod || '';
+  const isPayCash = payMethod === 'cash' || payMethod === 'نقد' || payMethod === 'نقدي';
+
   const parts = [
-    CMD.INIT,
-    CMD.CODE_PAGE_AR,
-    CMD.ALIGN_CENTER,
-    CMD.BOLD_ON,
-    CMD.SIZE_LARGE,
+    CMD.INIT, CMD.CODE_PAGE_AR, CMD.ALIGN_CENTER,
+    CMD.BOLD_ON, CMD.SIZE_LARGE,
     line('مطاعم الدجاج الملكي'),
     CMD.SIZE_NORMAL,
     line('Malaki Broast Chicken'),
     CMD.BOLD_OFF,
-    line(order.branch_name || ''),
+    line(branchName),
     separator('='),
-    CMD.ALIGN_RIGHT,
-    CMD.BOLD_ON,
-    line(`رقم الطلب: #${order.queue_number}`),
+    CMD.ALIGN_RIGHT, CMD.BOLD_ON,
+    line(`رقم الطلب: #${queueNum}`),
     CMD.BOLD_OFF,
-    line(`التاريخ: ${formatDate(order.created_at)}`),
-    line(`الوقت: ${formatTime(order.created_at)}`),
-    line(`النوع: ${order.order_type === 'takeaway' ? 'تيك أواي' : 'داخل المطعم'}`),
+    line(`الكاشير: ${cashier}`),
+    line(`التاريخ: ${formatDate(createdAt)}`),
+    line(`الوقت: ${formatTime(createdAt)}`),
+    line(`النوع: ${orderType === 'takeaway' ? 'تيك أواي' : orderType === 'توصيل' ? 'توصيل' : 'داخل المطعم'}`),
     separator('-'),
   ];
 
   // Items
-  order.items.forEach(item => {
-    const itemLine = `${item.name}  x${item.quantity}`;
-    const priceLine = `${item.total} NIS`;
-    parts.push(CMD.ALIGN_RIGHT);
-    parts.push(line(itemLine));
-    parts.push(CMD.ALIGN_LEFT);
-    parts.push(line(priceLine));
-    if (item.notes) {
-      parts.push(CMD.ALIGN_RIGHT);
-      parts.push(line(`  * ${item.notes}`));
+  (order.items || []).forEach(item => {
+    const itemName = item.name || '';
+    const qty = item.quantity || item.qty || 1;
+    const itemTotal = item.total || item.price * qty || 0;
+    const notes = item.notes || item.note || '';
+    parts.push(CMD.ALIGN_RIGHT, line(`${itemName}  x${qty}`));
+    parts.push(CMD.ALIGN_LEFT, line(`${itemTotal} NIS`));
+    if (notes) { parts.push(CMD.ALIGN_RIGHT, line(`  * ${notes}`)); }
+    if (item.modifiers && item.modifiers.length > 0) {
+      item.modifiers.forEach(m => {
+        parts.push(CMD.ALIGN_RIGHT, line(`  + ${m.option_name || m.name}`));
+      });
     }
   });
 
   parts.push(
-    separator('='),
-    CMD.ALIGN_RIGHT,
-    CMD.BOLD_ON,
-    CMD.SIZE_LARGE,
-    line(`الاجمالي: ${order.total} NIS`),
-    CMD.SIZE_NORMAL,
-    CMD.BOLD_OFF,
-    line(`الدفع: ${order.payment_method === 'cash' ? 'نقدي' : 'شبكة'}`),
-    separator('='),
-    CMD.ALIGN_CENTER,
-    CMD.BOLD_ON,
-    line('شكرا لزيارتكم'),
-    line('Thank You!'),
-    CMD.BOLD_OFF,
-    CMD.FEED_3,
-    CMD.CUT,
+    separator('='), CMD.ALIGN_RIGHT, CMD.BOLD_ON, CMD.SIZE_LARGE,
+    line(`الاجمالي: ${total} NIS`),
+    CMD.SIZE_NORMAL, CMD.BOLD_OFF,
+    line(`الدفع: ${isPayCash ? 'نقدي' : payMethod}`),
   );
 
+  if (order.tenderedAmount && order.change) {
+    parts.push(
+      line(`المدفوع: ${order.tenderedAmount}`),
+      line(`الباقي: ${order.change}`),
+    );
+  }
+
+  parts.push(
+    separator('='), CMD.ALIGN_CENTER, CMD.BOLD_ON,
+    line('شكرا لزيارتكم'), line('Thank You!'),
+    CMD.BOLD_OFF, CMD.FEED_3, CMD.CUT,
+  );
   return Buffer.concat(parts);
 }
 
@@ -152,49 +160,40 @@ function buildReceipt(order) {
 // KITCHEN TICKET — تذكرة المطبخ/السخان/البيتزا
 // ═══════════════════════════════════════
 function buildKitchenTicket(order, items, stationName) {
-  const orderTypeAr = order.order_type === 'takeaway' ? '*** تيك اواي ***' : '*** محل ***';
+  const orderType = order.order_type || order.orderType || '';
+  const orderTypeAr = orderType === 'takeaway' || orderType === 'تيك أواي'
+    ? '*** تيك اواي ***'
+    : orderType === 'توصيل' ? '*** توصيل ***' : '*** محل ***';
+  const queueNum = order.queue_number || order.queueNumber || order.orderNumber || '---';
+  const createdAt = order.created_at || order.date || new Date().toISOString();
 
   const parts = [
-    CMD.INIT,
-    CMD.CODE_PAGE_AR,
-    CMD.ALIGN_CENTER,
-    separator('='),
-    CMD.BOLD_ON,
-    CMD.SIZE_XLARGE,
-    line(`# ${order.queue_number}`),
-    CMD.SIZE_NORMAL,
-    CMD.BOLD_OFF,
-    separator('='),
-    CMD.BOLD_ON,
-    CMD.SIZE_LARGE,
-    line(orderTypeAr),
-    CMD.SIZE_NORMAL,
-    CMD.BOLD_OFF,
-    line(formatTime(order.created_at)),
+    CMD.INIT, CMD.CODE_PAGE_AR, CMD.ALIGN_CENTER,
+    separator('='), CMD.BOLD_ON, CMD.SIZE_XLARGE,
+    line(`# ${queueNum}`),
+    CMD.SIZE_NORMAL, CMD.BOLD_OFF, separator('='),
+    CMD.BOLD_ON, CMD.SIZE_LARGE, line(orderTypeAr),
+    CMD.SIZE_NORMAL, CMD.BOLD_OFF,
+    line(formatTime(createdAt)),
     stationName ? line(stationName) : Buffer.alloc(0),
-    separator('-'),
-    CMD.ALIGN_RIGHT,
+    separator('-'), CMD.ALIGN_RIGHT,
   ];
 
-  // Items for this station only
-  items.forEach(item => {
-    parts.push(CMD.BOLD_ON);
-    parts.push(CMD.SIZE_LARGE);
-    parts.push(line(`${item.quantity}  x  ${item.name}`));
-    parts.push(CMD.SIZE_NORMAL);
-    parts.push(CMD.BOLD_OFF);
-    if (item.notes) {
-      parts.push(line(`>>> ${item.notes}`));
+  (items || []).forEach(item => {
+    const qty = item.quantity || item.qty || 1;
+    const itemName = item.name || '';
+    const notes = item.notes || item.note || '';
+    parts.push(CMD.BOLD_ON, CMD.SIZE_LARGE, line(`${qty}  x  ${itemName}`));
+    parts.push(CMD.SIZE_NORMAL, CMD.BOLD_OFF);
+    if (notes) { parts.push(line(`>>> ${notes}`)); }
+    if (item.modifiers && item.modifiers.length > 0) {
+      item.modifiers.forEach(m => {
+        parts.push(line(`  + ${m.option_name || m.name}`));
+      });
     }
   });
 
-  parts.push(
-    CMD.ALIGN_CENTER,
-    separator('='),
-    CMD.FEED_3,
-    CMD.CUT,
-  );
-
+  parts.push(CMD.ALIGN_CENTER, separator('='), CMD.FEED_3, CMD.CUT);
   return Buffer.concat(parts);
 }
 
@@ -370,17 +369,59 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ── POST /print ──────────────────────
-  // Legacy: send raw data to specific printer
+  // Accepts { type, order, stationId } from the web app
   if (req.method === 'POST' && url === '/print') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { printer, data } = JSON.parse(body);
-        const buffer = Buffer.from(data, 'base64');
-        await sendToPrinter(printer, buffer);
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true }));
+        const parsed = JSON.parse(body);
+
+        // New format from web app: { type, order, stationId }
+        if (parsed.type && parsed.order) {
+          const { type, order, stationId } = parsed;
+          const results = [];
+
+          if (type === 'receipt' || type === 'both') {
+            try {
+              await sendToPrinter('receipt', buildReceipt(order));
+              results.push({ name: 'receipt', success: true });
+            } catch (e) {
+              results.push({ name: 'receipt', success: false, error: e.message });
+            }
+          }
+
+          if (type === 'kitchen' || type === 'both') {
+            // If stationId provided, route to specific printer
+            const targetPrinter = stationId
+              ? Object.keys(PRINTERS).find(k => k === stationId) || 'kitchen'
+              : 'kitchen';
+            const items = order.items || [];
+            try {
+              await sendToPrinter(targetPrinter, buildKitchenTicket(order, items, PRINTERS[targetPrinter]?.name || ''));
+              results.push({ name: targetPrinter, success: true });
+            } catch (e) {
+              results.push({ name: targetPrinter, success: false, error: e.message });
+            }
+          }
+
+          const allOk = results.every(r => r.success);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: allOk, results }));
+          return;
+        }
+
+        // Legacy format: { printer, data } (raw base64)
+        if (parsed.printer && parsed.data) {
+          const buffer = Buffer.from(parsed.data, 'base64');
+          await sendToPrinter(parsed.printer, buffer);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true }));
+          return;
+        }
+
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: 'Unknown format' }));
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ success: false, error: e.message }));
