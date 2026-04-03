@@ -108,21 +108,21 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
       items.push({ id: `s-${items.length}`, name, quantity: 1, price });
     };
 
-    addLine("━━━ ملخص تسليم العهدة ━━━");
+    addLine("=== ملخص تسليم العهدة ===");
     addLine(`الكاشير: ${data.cashierName}`);
     if (data.cashBoxName) addLine(`الصندوق: ${data.cashBoxName}`);
     addLine(`الفتح: ${formatDate(data.openedAt)} ${formatTime(data.openedAt)}`);
-    addLine(`الإغلاق: ${formatDate(data.closedAt)} ${formatTime(data.closedAt)}`);
-    addLine("─────────────────────");
+    addLine(`الاغلاق: ${formatDate(data.closedAt)} ${formatTime(data.closedAt)}`);
+    addLine("--------------------------------");
     addLine("النقدية الافتتاحية", data.openingCash);
-    addLine("إجمالي المبيعات", data.totalSales);
+    addLine("اجمالي المبيعات", data.totalSales);
     if ((data.totalExpenses || 0) > 0) addLine("مصروفات من الصندوق", -(data.totalExpenses || 0));
     addLine(`عدد الطلبات: ${data.totalOrders}`);
 
     // Currency breakdown
     const cb = data.currencyBreakdown || {};
     if (Object.keys(cb).length > 0) {
-      addLine("─── تفاصيل العملات ───");
+      addLine("--- تفاصيل العملات ---");
       Object.entries(cb).forEach(([cur, info]) => {
         addLine(`${currencyLabel(cur)} (${info.count} طلب)`, info.sales);
       });
@@ -135,7 +135,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
       return Object.values(amounts).some(v => v > 0);
     });
     if (nonCash.length > 0) {
-      addLine("─── مبيعات غير نقدية ───");
+      addLine("--- مبيعات غير نقدية ---");
       nonCash.forEach(method => {
         const amounts = pmb[method] || {};
         CURRENCIES.filter(c => (amounts[c] || 0) > 0).forEach(c => {
@@ -144,37 +144,37 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
       });
     }
 
-    addLine("═════════════════════");
+    addLine("================================");
     addLine("المتوقع (شيكل)", data.expectedCash);
-    addLine("المسلّم (شيكل)", data.closingCash);
+    addLine("المسلم (شيكل)", data.closingCash);
     if ((data.varianceILS || 0) !== 0) {
       const v = data.varianceILS || 0;
-      addLine(`${v > 0 ? "⬆ فائض" : "⬇ عجز"} (شيكل)`, Math.abs(v));
+      addLine(`${v > 0 ? "فائض" : "عجز"} (شيكل)`, Math.abs(v));
     }
 
     // USD
     if ((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) {
       addLine("المتوقع (دولار)", data.expectedCashUSD || 0);
-      addLine("المسلّم (دولار)", data.closingCashUSD || 0);
+      addLine("المسلم (دولار)", data.closingCashUSD || 0);
       if ((data.varianceUSD || 0) !== 0) {
         const v = data.varianceUSD || 0;
-        addLine(`${v > 0 ? "⬆ فائض" : "⬇ عجز"} (دولار)`, Math.abs(v));
+        addLine(`${v > 0 ? "فائض" : "عجز"} (دولار)`, Math.abs(v));
       }
     }
 
     // JOD
     if ((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) {
       addLine("المتوقع (دينار)", data.expectedCashJOD || 0);
-      addLine("المسلّم (دينار)", data.closingCashJOD || 0);
+      addLine("المسلم (دينار)", data.closingCashJOD || 0);
       if ((data.varianceJOD || 0) !== 0) {
         const v = data.varianceJOD || 0;
-        addLine(`${v > 0 ? "⬆ فائض" : "⬇ عجز"} (دينار)`, Math.abs(v));
+        addLine(`${v > 0 ? "فائض" : "عجز"} (دينار)`, Math.abs(v));
       }
     }
 
-    addLine("═════════════════════");
+    addLine("================================");
     const vType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "مطابق";
-    addLine(`*** ${vType}: ₪${Math.abs(data.variance).toFixed(2)} ***`);
+    addLine(`*** ${vType}: ${Math.abs(data.variance).toFixed(2)} NIS ***`);
 
     const bridgeOrder: PrintOrder = {
       orderNumber: `SHIFT-${data.sessionId?.slice(0, 6) || "000"}`,
