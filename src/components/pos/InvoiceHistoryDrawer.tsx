@@ -15,6 +15,7 @@ import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage } from "@/lib/image-print-service";
 
 // ── Types ──
 interface InvoiceOrder {
