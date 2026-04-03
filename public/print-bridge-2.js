@@ -370,17 +370,59 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ── POST /print ──────────────────────
-  // Legacy: send raw data to specific printer
+  // Accepts { type, order, stationId } from the web app
   if (req.method === 'POST' && url === '/print') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { printer, data } = JSON.parse(body);
-        const buffer = Buffer.from(data, 'base64');
-        await sendToPrinter(printer, buffer);
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true }));
+        const parsed = JSON.parse(body);
+
+        // New format from web app: { type, order, stationId }
+        if (parsed.type && parsed.order) {
+          const { type, order, stationId } = parsed;
+          const results = [];
+
+          if (type === 'receipt' || type === 'both') {
+            try {
+              await sendToPrinter('receipt', buildReceipt(order));
+              results.push({ name: 'receipt', success: true });
+            } catch (e) {
+              results.push({ name: 'receipt', success: false, error: e.message });
+            }
+          }
+
+          if (type === 'kitchen' || type === 'both') {
+            // If stationId provided, route to specific printer
+            const targetPrinter = stationId
+              ? Object.keys(PRINTERS).find(k => k === stationId) || 'kitchen'
+              : 'kitchen';
+            const items = order.items || [];
+            try {
+              await sendToPrinter(targetPrinter, buildKitchenTicket(order, items, PRINTERS[targetPrinter]?.name || ''));
+              results.push({ name: targetPrinter, success: true });
+            } catch (e) {
+              results.push({ name: targetPrinter, success: false, error: e.message });
+            }
+          }
+
+          const allOk = results.every(r => r.success);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: allOk, results }));
+          return;
+        }
+
+        // Legacy format: { printer, data } (raw base64)
+        if (parsed.printer && parsed.data) {
+          const buffer = Buffer.from(parsed.data, 'base64');
+          await sendToPrinter(parsed.printer, buffer);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true }));
+          return;
+        }
+
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: 'Unknown format' }));
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ success: false, error: e.message }));
