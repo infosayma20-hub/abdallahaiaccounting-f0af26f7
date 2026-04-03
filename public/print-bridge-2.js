@@ -160,49 +160,40 @@ function buildReceipt(order) {
 // KITCHEN TICKET — تذكرة المطبخ/السخان/البيتزا
 // ═══════════════════════════════════════
 function buildKitchenTicket(order, items, stationName) {
-  const orderTypeAr = order.order_type === 'takeaway' ? '*** تيك اواي ***' : '*** محل ***';
+  const orderType = order.order_type || order.orderType || '';
+  const orderTypeAr = orderType === 'takeaway' || orderType === 'تيك أواي'
+    ? '*** تيك اواي ***'
+    : orderType === 'توصيل' ? '*** توصيل ***' : '*** محل ***';
+  const queueNum = order.queue_number || order.queueNumber || order.orderNumber || '---';
+  const createdAt = order.created_at || order.date || new Date().toISOString();
 
   const parts = [
-    CMD.INIT,
-    CMD.CODE_PAGE_AR,
-    CMD.ALIGN_CENTER,
-    separator('='),
-    CMD.BOLD_ON,
-    CMD.SIZE_XLARGE,
-    line(`# ${order.queue_number}`),
-    CMD.SIZE_NORMAL,
-    CMD.BOLD_OFF,
-    separator('='),
-    CMD.BOLD_ON,
-    CMD.SIZE_LARGE,
-    line(orderTypeAr),
-    CMD.SIZE_NORMAL,
-    CMD.BOLD_OFF,
-    line(formatTime(order.created_at)),
+    CMD.INIT, CMD.CODE_PAGE_AR, CMD.ALIGN_CENTER,
+    separator('='), CMD.BOLD_ON, CMD.SIZE_XLARGE,
+    line(`# ${queueNum}`),
+    CMD.SIZE_NORMAL, CMD.BOLD_OFF, separator('='),
+    CMD.BOLD_ON, CMD.SIZE_LARGE, line(orderTypeAr),
+    CMD.SIZE_NORMAL, CMD.BOLD_OFF,
+    line(formatTime(createdAt)),
     stationName ? line(stationName) : Buffer.alloc(0),
-    separator('-'),
-    CMD.ALIGN_RIGHT,
+    separator('-'), CMD.ALIGN_RIGHT,
   ];
 
-  // Items for this station only
-  items.forEach(item => {
-    parts.push(CMD.BOLD_ON);
-    parts.push(CMD.SIZE_LARGE);
-    parts.push(line(`${item.quantity}  x  ${item.name}`));
-    parts.push(CMD.SIZE_NORMAL);
-    parts.push(CMD.BOLD_OFF);
-    if (item.notes) {
-      parts.push(line(`>>> ${item.notes}`));
+  (items || []).forEach(item => {
+    const qty = item.quantity || item.qty || 1;
+    const itemName = item.name || '';
+    const notes = item.notes || item.note || '';
+    parts.push(CMD.BOLD_ON, CMD.SIZE_LARGE, line(`${qty}  x  ${itemName}`));
+    parts.push(CMD.SIZE_NORMAL, CMD.BOLD_OFF);
+    if (notes) { parts.push(line(`>>> ${notes}`)); }
+    if (item.modifiers && item.modifiers.length > 0) {
+      item.modifiers.forEach(m => {
+        parts.push(line(`  + ${m.option_name || m.name}`));
+      });
     }
   });
 
-  parts.push(
-    CMD.ALIGN_CENTER,
-    separator('='),
-    CMD.FEED_3,
-    CMD.CUT,
-  );
-
+  parts.push(CMD.ALIGN_CENTER, separator('='), CMD.FEED_3, CMD.CUT);
   return Buffer.concat(parts);
 }
 
