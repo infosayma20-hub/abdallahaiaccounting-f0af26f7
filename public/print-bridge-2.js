@@ -320,11 +320,19 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // ── GET /status ──────────────────────
+  if (req.method === 'GET' && req.url === '/status') {
+    res.writeHead(200);
+    res.end(JSON.stringify({ status: 'ok', version: '2.1.0' }));
     return;
   }
 
