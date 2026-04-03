@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle } from "lucide-react";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage } from "@/lib/image-print-service";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface CurrencyBreakdown {
