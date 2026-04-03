@@ -2674,37 +2674,8 @@ const POSPage = () => {
           orderNote,
         };
 
-        // 1) Print receipt (no stationId needed)
-        sendToBridge("receipt", bridgeOrder).catch(() => console.warn("Receipt print failed"));
-
-        // 2) Print kitchen tickets per station so each printer gets only its items
-        const stationItems: Record<string, typeof bridgeOrder.items> = {};
-        cart.forEach(item => {
-          const sid = item.station_id || "__default__";
-          if (!stationItems[sid]) stationItems[sid] = [];
-          stationItems[sid].push({
-            id: item.product_id || item.id,
-            name: item.name,
-            quantity: item.qty,
-            price: item.unit_price,
-            note: item.note || undefined,
-            stationId: item.station_id || undefined,
-            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
-          });
-        });
-
-        await Promise.all(
-          Object.entries(stationItems)
-            .filter(([sid]) => sid !== "__default__")
-            .map(([sid, items]) => {
-              const kitchenOrder: BridgePrintOrder = {
-                ...bridgeOrder,
-                items,
-                stationId: sid,
-              };
-              return sendToBridge("kitchen", kitchenOrder);
-            })
-        ).catch(() => console.warn("Kitchen print failed for one or more stations"));
+        // Image Mode: Print receipt + kitchen tickets as rendered images
+        printAllImage(bridgeOrder).catch(() => console.warn("Image print failed"));
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
       }
