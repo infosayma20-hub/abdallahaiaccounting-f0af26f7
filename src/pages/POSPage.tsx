@@ -2132,7 +2132,7 @@ const POSPage = () => {
         total: 0,
         orderNote: activeOrder.orderNote,
       };
-      sendToBridge("kitchen", bridgeKitchenOrder)
+      printStationTicketImage(bridgeKitchenOrder, stationId === "_default" ? "" : stationId, bridgeKitchenOrder.items)
         .then(() => { printedCount++; })
         .catch(() => { console.warn("Bridge print failed for station:", stationId); });
     }
