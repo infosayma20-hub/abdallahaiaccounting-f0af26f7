@@ -215,3 +215,18 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Print a shift summary report using the dedicated template (80mm printer).
+ */
+export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promise<PrintImageResult> {
+  try {
+    const element = createElement(ShiftSummaryTemplate, { data });
+    const image = await renderToImage(element);
+    const result = await sendImageToBridge(image, 'receipt');
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    console.error('[printShiftSummaryImage]', err);
+    return { success: false, error: err.message };
+  }
+}
