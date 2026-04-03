@@ -10,6 +10,8 @@ import { createRoot } from "react-dom/client";
 import { createElement } from "react";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
 import KitchenTicketTemplate from "@/components/pos/print-templates/KitchenTicketTemplate";
+import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
+import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 
 const BRIDGE_URL = "http://192.168.1.65:3001";
