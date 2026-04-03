@@ -15,6 +15,7 @@ import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage } from "@/lib/image-print-service";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -966,7 +967,7 @@ export default function InvoiceHistoryDrawer({
                       total: selectedOrder.total,
                       paymentMethod: paymentLabel,
                     };
-                    sendToBridge("receipt", bridgeOrder).catch(() => {
+                    printReceiptImage(bridgeOrder).catch(() => {
                       console.warn("Print bridge unavailable");
                     });
                     toast.success("تم إرسال الإيصال للطابعة");

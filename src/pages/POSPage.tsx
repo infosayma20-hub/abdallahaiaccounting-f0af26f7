@@ -39,6 +39,7 @@ import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import PurchaseModal from "@/components/pos/PurchaseModal";
@@ -2131,7 +2132,7 @@ const POSPage = () => {
         total: 0,
         orderNote: activeOrder.orderNote,
       };
-      sendToBridge("kitchen", bridgeKitchenOrder)
+      printStationTicketImage(bridgeKitchenOrder, stationId === "_default" ? "" : stationId, bridgeKitchenOrder.items)
         .then(() => { printedCount++; })
         .catch(() => { console.warn("Bridge print failed for station:", stationId); });
     }
@@ -2673,37 +2674,8 @@ const POSPage = () => {
           orderNote,
         };
 
-        // 1) Print receipt (no stationId needed)
-        sendToBridge("receipt", bridgeOrder).catch(() => console.warn("Receipt print failed"));
-
-        // 2) Print kitchen tickets per station so each printer gets only its items
-        const stationItems: Record<string, typeof bridgeOrder.items> = {};
-        cart.forEach(item => {
-          const sid = item.station_id || "__default__";
-          if (!stationItems[sid]) stationItems[sid] = [];
-          stationItems[sid].push({
-            id: item.product_id || item.id,
-            name: item.name,
-            quantity: item.qty,
-            price: item.unit_price,
-            note: item.note || undefined,
-            stationId: item.station_id || undefined,
-            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
-          });
-        });
-
-        await Promise.all(
-          Object.entries(stationItems)
-            .filter(([sid]) => sid !== "__default__")
-            .map(([sid, items]) => {
-              const kitchenOrder: BridgePrintOrder = {
-                ...bridgeOrder,
-                items,
-                stationId: sid,
-              };
-              return sendToBridge("kitchen", kitchenOrder);
-            })
-        ).catch(() => console.warn("Kitchen print failed for one or more stations"));
+        // Image Mode: Print receipt + kitchen tickets as rendered images
+        printAllImage(bridgeOrder).catch(() => console.warn("Image print failed"));
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
       }
@@ -3206,30 +3178,7 @@ const POSPage = () => {
           total: cartTotals.total,
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
-        sendToBridge("receipt", f8Order).catch(() => console.warn("Receipt print failed"));
-        const stationItems: Record<string, typeof f8Order.items> = {};
-        cart.forEach(item => {
-          const sid = item.station_id || "__default__";
-          if (!stationItems[sid]) stationItems[sid] = [];
-          stationItems[sid].push({
-            id: item.product_id || item.id,
-            name: item.name,
-            quantity: item.qty,
-            price: item.unit_price,
-            note: item.note || undefined,
-            stationId: item.station_id || undefined,
-            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
-          });
-        });
-        const defaultItems = stationItems["__default__"] || [];
-        if (defaultItems.length > 0) {
-          sendToBridge("kitchen", { ...f8Order, items: defaultItems }).catch(() => console.warn("Default kitchen print failed"));
-        }
-        Object.entries(stationItems)
-          .filter(([sid]) => sid !== "__default__")
-          .forEach(([sid, items]) => {
-            sendToBridge("kitchen", { ...f8Order, items, stationId: sid }).catch(() => console.warn(`Kitchen print failed for station ${sid}`));
-          });
+        printAllImage(f8Order).catch(() => console.warn("F8 image print failed"));
         e.preventDefault();
         return;
       }
@@ -5478,7 +5427,7 @@ const POSPage = () => {
                       note: item.note || undefined,
                     })),
                   };
-                  sendToBridge("kitchen", stationOrder).catch(() => {});
+                  printStationTicketImage(stationOrder, st.stationId || "", stationOrder.items).catch(() => {});
                 }
               }
               setShowKitchenTicket(false);

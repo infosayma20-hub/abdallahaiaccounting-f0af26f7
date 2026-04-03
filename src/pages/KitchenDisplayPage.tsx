@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2, ArrowRightFromLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printStationTicketImage } from "@/lib/image-print-service";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface Station {
@@ -198,7 +199,7 @@ export default function KitchenDisplayPage() {
       })),
       total: 0,
     };
-    sendToBridge("kitchen", bridgeOrder).catch(() => {
+    printStationTicketImage(bridgeOrder, "", bridgeOrder.items).catch(() => {
       console.warn("Print bridge unavailable");
     });
 

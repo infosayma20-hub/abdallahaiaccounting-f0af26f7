@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle } from "lucide-react";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage } from "@/lib/image-print-service";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface CurrencyBreakdown {
@@ -185,7 +186,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
       paymentMethod: "ملخص وردية",
       orderNote: `توقيع الكاشير: _____________ | توقيع المسؤول: _____________`,
     };
-    sendToBridge("receipt", bridgeOrder).catch(() => {
+    printReceiptImage(bridgeOrder).catch(() => {
       console.warn("Print bridge unavailable");
     });
   };

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage } from "@/lib/image-print-service";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface ReceiptModifier {
@@ -131,7 +132,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
       change: data.change,
       orderNote: data.orderNote,
     };
-    sendToBridge("receipt", bridgeOrder).catch(() => {
+    printReceiptImage(bridgeOrder).catch(() => {
       console.warn("Print bridge unavailable");
     });
   }, [data]);
