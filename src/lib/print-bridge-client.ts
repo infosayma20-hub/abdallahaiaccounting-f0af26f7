@@ -116,8 +116,8 @@ export async function checkBridgeHealth(): Promise<{
 
 export async function checkBridgeStatus(): Promise<boolean> {
   try {
-    const res = await bridgeFetch("/status", {
-      signal: AbortSignal.timeout(2000),
+    const res = await bridgeFetch("/health", {
+      signal: AbortSignal.timeout(3000),
     });
     return res.ok;
   } catch {
