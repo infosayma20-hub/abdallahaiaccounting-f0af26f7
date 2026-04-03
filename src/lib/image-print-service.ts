@@ -129,38 +129,26 @@ export async function printReceiptImage(
  */
 export async function printKitchenTicketsImage(order: PrintOrder): Promise<PrintImageResult> {
   try {
-    // Group items by station
-    const stationGroups: Record<string, PrintItem[]> = {};
-
-    (order.items || []).forEach(item => {
-      const stations = item.print_station_ids || (item.stationId ? [item.stationId] : []);
-      const targets = stations.length > 0 ? stations : ['__default__'];
-
-      targets.forEach(sid => {
-        if (!stationGroups[sid]) stationGroups[sid] = [];
-        stationGroups[sid].push(item);
-      });
-    });
+    // TEST MODE: Send ALL items to ALL station printers (kitchen, grill, pizza)
+    const allItems = order.items || [];
+    const stationPrinters: { key: string; name: string }[] = [
+      { key: 'kitchen', name: 'المطبخ' },
+      { key: 'grill', name: 'السخان' },
+      { key: 'pizza', name: 'البيتزا' },
+    ];
 
     const results: { printerKey: string; name?: string; success: boolean; error?: string }[] = [];
 
-    for (const [stationId, items] of Object.entries(stationGroups)) {
-      const printerKey = stationId === '__default__' ? 'kitchen' : (STATION_TO_PRINTER[stationId] || 'kitchen');
-      
-      const stationName = printerKey === 'kitchen' ? 'المطبخ'
-        : printerKey === 'grill' ? 'السخان'
-        : printerKey === 'pizza' ? 'البيتزا'
-        : 'المطبخ';
-
+    for (const station of stationPrinters) {
       const element = createElement(KitchenTicketTemplate, {
         order,
-        items,
-        stationName,
+        items: allItems,
+        stationName: station.name,
       });
 
       const image = await renderToImage(element);
-      const result = await sendImageToBridge(image, printerKey);
-      results.push({ printerKey, name: stationName, ...result });
+      const result = await sendImageToBridge(image, station.key);
+      results.push({ printerKey: station.key, name: station.name, ...result });
     }
 
     return {
