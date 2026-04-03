@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import { printReceiptImage } from "@/lib/image-print-service";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface ReceiptModifier {
