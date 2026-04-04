@@ -1230,6 +1230,25 @@ const OrdersPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ═══════ Convert to Invoice Modal ═══════ */}
+      <ConvertToInvoiceModal
+        open={!!showInvoiceModal}
+        onClose={() => setShowInvoiceModal(null)}
+        order={showInvoiceModal}
+        orderItems={orderItems}
+        userId={user?.id || ""}
+        onSuccess={fetchOrders}
+      />
+
+      {/* ═══════ Record Receipt Modal ═══════ */}
+      <RecordReceiptModal
+        open={!!showReceiptModal}
+        onClose={() => setShowReceiptModal(null)}
+        order={showReceiptModal}
+        userId={user?.id || ""}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
