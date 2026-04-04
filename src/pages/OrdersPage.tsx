@@ -411,12 +411,27 @@ const OrdersPage = () => {
   }, [orders]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <PageHeader title="الطلبيات" breadcrumb={["المبيعات", "الطلبيات"]} />
-        <Button onClick={() => { setForm({ ...defaultForm }); setItems([]); setEditingId(null); setShowForm(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> طلبية جديدة
-        </Button>
+    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
+      <PageHeader title="الطلبيات" breadcrumb={["المبيعات", "الطلبيات"]} />
+
+      {/* Actions bar — matches voucher page */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-xs text-muted-foreground">إدارة الطلبيات والمبيعات</p>
+        <div className="flex items-center gap-2">
+          {filtered.length > 0 && (
+            <>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handlePrint}>
+                <Printer className="h-3.5 w-3.5" /> طباعة
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={exportToExcel}>
+                <Download className="h-3.5 w-3.5" /> تصدير Excel
+              </Button>
+            </>
+          )}
+          <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { setForm({ ...defaultForm }); setItems([]); setEditingId(null); setShowForm(true); }}>
+            <Plus className="h-4 w-4" /> طلبية جديدة
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -427,158 +442,261 @@ const OrdersPage = () => {
         </TabsList>
 
         {/* ═══════ Orders Tab ═══════ */}
-        <TabsContent value="orders" className="space-y-6 mt-4">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="cursor-pointer hover:border-info/50 transition-colors" onClick={() => setStatusFilter("جديد")}>
-              <CardContent className="p-4 text-center">
-                <ShoppingCart className="h-5 w-5 mx-auto text-info mb-1" />
-                <p className="text-2xl font-bold text-foreground">{counts.new}</p>
-                <p className="text-xs text-muted-foreground">جديدة</p>
-              </CardContent>
-            </Card>
-            <Card className="cursor-pointer hover:border-warning/50 transition-colors" onClick={() => setStatusFilter("قيد التجهيز")}>
-              <CardContent className="p-4 text-center">
-                <Package className="h-5 w-5 mx-auto text-warning mb-1" />
-                <p className="text-2xl font-bold text-foreground">{counts.processing}</p>
-                <p className="text-xs text-muted-foreground">قيد التجهيز</p>
-              </CardContent>
-            </Card>
-            <Card className="cursor-pointer hover:border-accent/50 transition-colors" onClick={() => setStatusFilter("تم الشحن")}>
-              <CardContent className="p-4 text-center">
-                <Truck className="h-5 w-5 mx-auto text-accent mb-1" />
-                <p className="text-2xl font-bold text-foreground">{counts.shipped}</p>
-                <p className="text-xs text-muted-foreground">تم الشحن</p>
-              </CardContent>
-            </Card>
-            <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("تم التسليم")}>
-              <CardContent className="p-4 text-center">
-                <CheckCircle className="h-5 w-5 mx-auto text-primary mb-1" />
-                <p className="text-2xl font-bold text-foreground">{counts.delivered}</p>
-                <p className="text-xs text-muted-foreground">تم التسليم</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="بحث بالاسم أو رقم الطلبية..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الحالات</SelectItem>
-                {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Orders Table */}
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr style={{ background: '#0D1B2E', color: '#fff' }}>
-                    <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-[#0D1B2E]" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الطلبية" field="order_number" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="العميل" field="customer_name" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="order_date" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الإجمالي" field="total" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الدفع</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المصدر" field="source" /></th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                {loading ? (
-                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
-                ) : paged.length === 0 ? (
-                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</td></tr>
-                ) : paged.map((o, i) => {
-                  const isSelected = selected.has(o.id);
-                  return (
-                  <tr key={o.id} className="border-b transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', background: isSelected ? '#EFF6FF' : i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
-                    <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(o.id)} /></td>
-                    <td className="px-3 py-3 font-mono text-xs" style={{ color: '#64748B' }}>{o.order_number || "—"}</td>
-                    <td className="px-3 py-3 text-sm font-semibold" style={{ color: '#1E293B' }}>{o.customer_name}</td>
-                    <td className="px-3 py-3 text-xs" style={{ color: '#64748B' }}>{fmtDateDisplay(o.order_date)}</td>
-                    <td className="px-3 py-3 text-sm font-bold tabular-nums" style={{ color: '#1E293B' }}>{Number(o.total).toLocaleString()} ₪</td>
-                    <td className="px-3 py-3">
-                      <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
-                        <SelectTrigger className={`h-7 text-xs w-[120px] border-0 ${statusColors[o.status] || ""}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="px-3 py-3">
-                      <Badge
-                        variant={o.payment_status === "مدفوع" ? "default" : "secondary"}
-                        className="text-[10px] cursor-pointer"
-                        onClick={() => setShowPayment(o)}
-                      >
-                        {o.payment_status}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-3 text-xs" style={{ color: '#64748B' }}>{o.source}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" title="عرض التفاصيل"
-                          onClick={() => { setShowDetail(o); fetchOrderItems(o.id); }}>
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" title="واتساب"
-                          onClick={() => {
-                            setShowWhatsApp(o);
-                            setWaTemplate("feedback");
-                            setWaMessage(getWhatsAppMessage(o, "feedback"));
-                          }}>
-                          <MessageCircle className="h-3 w-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" title="قبض"
-                          onClick={() => setShowPayment(o)}>
-                          <CreditCard className="h-3 w-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="حذف"
-                          onClick={() => handleDelete(o.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                  );
-                })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 font-bold text-sm" style={{ background: '#F8FAFC', borderColor: '#0D1B2E' }}>
-                    <td colSpan={4} className="px-3 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({filtered.length} طلبية)</td>
-                    <td className="px-3 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{filtered.reduce((s, o) => s + Number(o.total), 0).toLocaleString()}</td>
-                    <td colSpan={4} className="px-3 py-3 text-xs font-normal" style={{ color: '#64748B' }}>إجمالي قيمة الطلبيات</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {sorted.length > PER_PAGE && (
-              <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
-                <p className="text-xs" style={{ color: '#64748B' }}>عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
-                    <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
-                  ))}
-                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
+        <TabsContent value="orders" className="space-y-5 mt-4">
+          {/* KPI Cards — matches voucher page */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: "إجمالي الطلبيات", value: fmt(orders.filter(o => o.status !== "ملغي" && o.status !== "مرتجع").reduce((s, o) => s + Number(o.total), 0)), icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+              { label: "هذا الشهر", value: fmt(orders.filter(o => { const d = new Date(o.order_date); const now = new Date(); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && o.status !== "ملغي"; }).reduce((s, o) => s + Number(o.total), 0)), icon: CalendarDays, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+              { label: "عدد الطلبيات", value: orders.length, icon: Hash, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+              { label: "متوسط قيمة الطلب", value: orders.length > 0 ? fmt(orders.filter(o => o.status !== "ملغي").reduce((s, o) => s + Number(o.total), 0) / Math.max(1, orders.filter(o => o.status !== "ملغي").length)) : "₪0", icon: FileText, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+            ].map((k, i) => (
+              <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                    <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+                  </div>
+                  <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
                 </div>
-                <p className="text-xs" style={{ color: '#64748B' }}>{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${totalPages}`}</p>
               </div>
-            )}
+            ))}
           </div>
+
+          {/* Filters — matches voucher page */}
+          <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+            <CardContent className="p-3 space-y-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                <Input
+                  placeholder="ابحث بالاسم أو رقم الطلبية..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status pills + dropdown filter */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+                  {[
+                    { key: "all", label: "الكل" },
+                    { key: "جديد", label: "جديد" },
+                    { key: "قيد التجهيز", label: "قيد التجهيز" },
+                    { key: "تم الشحن", label: "تم الشحن" },
+                    { key: "تم التسليم", label: "تم التسليم" },
+                  ].map(s => (
+                    <button
+                      key={s.key}
+                      onClick={() => setStatusFilter(s.key)}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                        statusFilter === s.key
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[140px] rounded-xl text-xs h-9">
+                    <SelectValue placeholder="الحالة" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <span className="text-[11px] text-muted-foreground mr-auto">{filtered.length} طلبية</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Empty state */}
+          {!loading && orders.length === 0 && (
+            <div className="text-center py-16">
+              <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <ShoppingCart className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-1">لا توجد طلبيات بعد</h3>
+              <p className="text-xs text-muted-foreground mb-4">أضف أول طلبية لبدء تتبع المبيعات</p>
+              <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { setForm({ ...defaultForm }); setItems([]); setEditingId(null); setShowForm(true); }}>
+                <Plus className="h-4 w-4" /> طلبية جديدة
+              </Button>
+            </div>
+          )}
+
+          {/* No results */}
+          {!loading && orders.length > 0 && filtered.length === 0 && (
+            <div className="text-center py-12 space-y-2">
+              <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+              <p className="text-sm text-muted-foreground">لا توجد طلبيات تطابق البحث</p>
+              <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); }}>مسح الفلاتر</Button>
+            </div>
+          )}
+
+          {/* Orders Table — matches voucher page */}
+          {!loading && paged.length > 0 && (
+            <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-primary text-primary-foreground">
+                      <th className="px-2 py-3 text-right w-10"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-primary" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الطلبية" field="order_number" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="العميل" field="customer_name" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="order_date" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الإجمالي" field="total" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold">الدفع</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المصدر" field="source" /></th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {loading ? (
+                    <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
+                  ) : paged.map((o, i) => {
+                    const isSelected = selected.has(o.id);
+                    const badgeStyles: Record<string, string> = {
+                      "جديد": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                      "مؤكد": "bg-primary/10 text-primary",
+                      "قيد التجهيز": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                      "جاهز للشحن": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+                      "تم الشحن": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                      "تم التسليم": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                      "مرتجع": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                      "ملغي": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                    };
+                    const dotColors: Record<string, string> = {
+                      "جديد": "bg-blue-500",
+                      "مؤكد": "bg-primary",
+                      "قيد التجهيز": "bg-orange-500",
+                      "جاهز للشحن": "bg-indigo-500",
+                      "تم الشحن": "bg-purple-500",
+                      "تم التسليم": "bg-green-500",
+                      "مرتجع": "bg-red-500",
+                      "ملغي": "bg-red-500",
+                    };
+                    return (
+                    <tr
+                      key={o.id}
+                      className={`border-b border-border/50 transition-colors ${isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`}
+                    >
+                      <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(o.id)} /></td>
+                      <td className="px-3 py-3 font-mono text-xs text-primary">{o.order_number || "—"}</td>
+                      <td className="px-3 py-3 text-sm font-medium text-foreground">{o.customer_name}</td>
+                      <td className="px-3 py-3 text-xs text-foreground tabular-nums">{fmtDateDisplay(o.order_date)}</td>
+                      <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{Number(o.total).toLocaleString()} ₪</td>
+                      <td className="px-3 py-3">
+                        <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
+                          <SelectTrigger className="h-7 text-[10px] w-[120px] border-0 bg-transparent p-0">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeStyles[o.status] || "bg-muted text-muted-foreground"}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${dotColors[o.status] || "bg-muted-foreground"}`} />
+                              {o.status}
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-3 py-3">
+                        <Badge
+                          variant={o.payment_status === "مدفوع" ? "default" : "secondary"}
+                          className="text-[10px] cursor-pointer"
+                          onClick={() => setShowPayment(o)}
+                        >
+                          {o.payment_status}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground">{o.source}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={() => { setShowDetail(o); fetchOrderItems(o.id); }}
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                            title="عرض التفاصيل"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowWhatsApp(o);
+                              setWaTemplate("feedback");
+                              setWaMessage(getWhatsAppMessage(o, "feedback"));
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                            title="واتساب"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(o.id);
+                              setForm({
+                                customer_name: o.customer_name, customer_phone: o.customer_phone || "",
+                                customer_address: o.customer_address || "", order_date: o.order_date,
+                                delivery_date: o.delivery_date || "", status: o.status, subtotal: o.subtotal,
+                                discount: o.discount, shipping_cost: o.shipping_cost, total: o.total,
+                                payment_status: o.payment_status, payment_method: o.payment_method || "كاش",
+                                shipping_method: o.shipping_method || "", tracking_number: o.tracking_number || "",
+                                source: o.source || "يدوي", notes: o.notes || "",
+                              });
+                              setItems([]);
+                              setShowForm(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                            title="تعديل"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(o.id)}
+                            className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            title="حذف"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                      <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} طلبية)</td>
+                      <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, o) => s + Number(o.total), 0).toLocaleString()}</td>
+                      <td colSpan={4} className="px-3 py-3 text-xs font-normal text-muted-foreground">إجمالي قيمة الطلبيات</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Pagination — matches voucher page */}
+              {sorted.length > PER_PAGE && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+                  <p className="text-xs text-muted-foreground">عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
+                      <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
+                    ))}
+                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page} من ${totalPages}`}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Bulk selection bar */}
           {selected.size > 0 && (
