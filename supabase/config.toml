@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.receipt-data]
 verify_jwt = false
+
+[functions.receive-qamar-order]
+verify_jwt = false
