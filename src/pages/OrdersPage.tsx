@@ -475,27 +475,32 @@ const OrdersPage = () => {
           </div>
 
           {/* Orders Table */}
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+            <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr style={{ background: '#0D1B2E', color: '#fff' }}>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">رقم الطلبية</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">العميل</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">التاريخ</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الإجمالي</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
+                    <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-[#0D1B2E]" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الطلبية" field="order_number" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="العميل" field="customer_name" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="order_date" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الإجمالي" field="total" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
                     <th className="px-3 py-3 text-right text-xs font-semibold">الدفع</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">المصدر</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المصدر" field="source" /></th>
                     <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</td></tr>
-                ) : filtered.map((o, i) => (
-                  <tr key={o.id} className="border-b transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', background: i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
+                ) : paged.length === 0 ? (
+                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</td></tr>
+                ) : paged.map((o, i) => {
+                  const isSelected = selected.has(o.id);
+                  return (
+                  <tr key={o.id} className="border-b transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', background: isSelected ? '#EFF6FF' : i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                    <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(o.id)} /></td>
                     <td className="px-3 py-3 font-mono text-xs" style={{ color: '#64748B' }}>{o.order_number || "—"}</td>
                     <td className="px-3 py-3 text-sm font-semibold" style={{ color: '#1E293B' }}>{o.customer_name}</td>
                     <td className="px-3 py-3 text-xs" style={{ color: '#64748B' }}>{fmtDateDisplay(o.order_date)}</td>
@@ -545,10 +550,42 @@ const OrdersPage = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold text-sm" style={{ background: '#F8FAFC', borderColor: '#0D1B2E' }}>
+                    <td colSpan={4} className="px-3 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({filtered.length} طلبية)</td>
+                    <td className="px-3 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{filtered.reduce((s, o) => s + Number(o.total), 0).toLocaleString()}</td>
+                    <td colSpan={4} className="px-3 py-3 text-xs font-normal" style={{ color: '#64748B' }}>إجمالي قيمة الطلبيات</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
+
+            {/* Pagination */}
+            {sorted.length > PER_PAGE && (
+              <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                <p className="text-xs" style={{ color: '#64748B' }}>عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
+                    <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
+                  ))}
+                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
+                </div>
+                <p className="text-xs" style={{ color: '#64748B' }}>{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${totalPages}`}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Bulk selection bar */}
+          {selected.size > 0 && (
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-primary/30 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
+              <span className="text-sm font-bold text-foreground">✓ {selected.size} طلبية — ₪{orders.filter(o => selected.has(o.id)).reduce((s, o) => s + Number(o.total), 0).toLocaleString()}</span>
+              <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+          )}
         </TabsContent>
 
         {/* ═══════ Reports Tab ═══════ */}
