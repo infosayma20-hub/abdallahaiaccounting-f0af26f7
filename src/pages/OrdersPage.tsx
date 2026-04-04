@@ -75,6 +75,8 @@ type Order = {
   payment_method: string | null; shipping_method: string | null; tracking_number: string | null;
   source: string | null; notes: string | null; created_at: string; user_id: string;
   linked_invoice_id?: string | null;
+  production_status?: string; production_cost?: number; cost_breakdown?: any[];
+  invoice_id?: string | null; invoiced_at?: string; paid_amount?: number; remaining_amount?: number;
 };
 
 const defaultForm = {
