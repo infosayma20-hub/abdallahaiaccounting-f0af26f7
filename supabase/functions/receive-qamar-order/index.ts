@@ -119,11 +119,11 @@ Deno.serve(async (req) => {
     if (items.length > 0) {
       const orderItems = items.map((item: any) => ({
         order_id: newOrder.id,
+        user_id: DEFAULT_OWNER_ID,
         product_name: item.product_name || item.name || "منتج",
         quantity: item.quantity || 1,
         unit_price: item.unit_price || item.price || 0,
-        total_price:
-          (item.quantity || 1) * (item.unit_price || item.price || 0),
+        total: (item.quantity || 1) * (item.unit_price || item.price || 0),
         notes: item.notes || null,
       }));
 
