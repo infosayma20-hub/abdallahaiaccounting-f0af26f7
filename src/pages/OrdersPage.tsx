@@ -350,6 +350,56 @@ const OrdersPage = () => {
     </button>
   );
 
+  const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+  const exportToExcel = () => {
+    import("xlsx").then(XLSX => {
+      const rows = filtered.map(o => ({
+        "رقم الطلبية": o.order_number || "",
+        "العميل": o.customer_name || "",
+        "التاريخ": o.order_date || "",
+        "الإجمالي": Number(o.total) || 0,
+        "الحالة": o.status || "",
+        "الدفع": o.payment_status || "",
+        "المصدر": o.source || "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "الطلبيات");
+      XLSX.writeFile(wb, `الطلبيات-${new Date().toISOString().split("T")[0]}.xlsx`);
+    });
+  };
+
+  const handlePrint = () => {
+    const rows = filtered.map(o => `
+      <tr>
+        <td>${o.order_number || "—"}</td>
+        <td>${o.customer_name || "—"}</td>
+        <td>${o.order_date || "—"}</td>
+        <td class="font-mono font-bold">₪${Number(o.total).toLocaleString()}</td>
+        <td>${o.status || "—"}</td>
+        <td>${o.payment_status || "—"}</td>
+        <td>${o.source || "—"}</td>
+      </tr>
+    `).join("");
+    const totalVal = fmt(filtered.reduce((s, o) => s + Number(o.total), 0));
+    const contentHtml = `
+      <div class="print-header">
+        <div><div class="company-name">أموالي</div><div class="report-title">الطلبيات</div></div>
+        <div class="print-date">${filtered.length} طلبية</div>
+      </div>
+      <table>
+        <thead><tr><th>رقم الطلبية</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>الدفع</th><th>المصدر</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="3" style="text-align:right">المجموع (${filtered.length} طلبية)</td><td class="font-mono font-bold">${totalVal}</td><td colspan="3"></td></tr></tfoot>
+      </table>
+    `;
+    import("@/lib/printUtils").then(({ printReport }) => {
+      printReport({ title: "الطلبيات", companyName: "أموالي", contentHtml });
+    });
+  };
+
   const counts = {
     new: orders.filter(o => o.status === "جديد").length,
     processing: orders.filter(o => o.status === "قيد التجهيز").length,
