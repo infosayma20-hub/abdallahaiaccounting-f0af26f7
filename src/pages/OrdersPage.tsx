@@ -643,26 +643,6 @@ const OrdersPage = () => {
                     <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
                   ) : paged.map((o, i) => {
                     const isSelected = selected.has(o.id);
-                    const badgeStyles: Record<string, string> = {
-                      "جديد": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                      "مؤكد": "bg-primary/10 text-primary",
-                      "قيد التجهيز": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-                      "جاهز للشحن": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-                      "تم الشحن": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-                      "تم التسليم": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                      "مرتجع": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                      "ملغي": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                    };
-                    const dotColors: Record<string, string> = {
-                      "جديد": "bg-blue-500",
-                      "مؤكد": "bg-primary",
-                      "قيد التجهيز": "bg-orange-500",
-                      "جاهز للشحن": "bg-indigo-500",
-                      "تم الشحن": "bg-purple-500",
-                      "تم التسليم": "bg-green-500",
-                      "مرتجع": "bg-red-500",
-                      "ملغي": "bg-red-500",
-                    };
                     return (
                     <tr
                       key={o.id}
@@ -675,8 +655,8 @@ const OrdersPage = () => {
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{Number(o.total).toLocaleString()} ₪</td>
                       <td className="px-3 py-3">
                         <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
-                          <SelectTrigger className="h-7 text-[10px] w-[120px] border-0 bg-transparent p-0">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeStyles[o.status] || "bg-muted text-muted-foreground"}`}>
+                          <SelectTrigger className="h-7 text-[10px] w-[130px] border-0 bg-transparent p-0">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColors[o.status] || "bg-muted text-muted-foreground"}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${dotColors[o.status] || "bg-muted-foreground"}`} />
                               {o.status}
                             </span>
@@ -705,6 +685,26 @@ const OrdersPage = () => {
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
+                          {/* Convert to invoice — only for "جاهز للفوترة" */}
+                          {(o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id && (
+                            <button
+                              onClick={async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); }}
+                              className="p-1.5 rounded-lg hover:bg-amber-100 text-muted-foreground hover:text-amber-700 transition-colors"
+                              title="تحويل لفاتورة"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {/* Record receipt — only for invoiced/partially paid */}
+                          {(o.status === "مفوتر" || o.status === "مدفوع جزئياً") && (
+                            <button
+                              onClick={() => setShowReceiptModal(o)}
+                              className="p-1.5 rounded-lg hover:bg-green-100 text-muted-foreground hover:text-green-700 transition-colors"
+                              title="تسجيل قبض"
+                            >
+                              <Banknote className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setShowWhatsApp(o);
