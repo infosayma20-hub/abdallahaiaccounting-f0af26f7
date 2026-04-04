@@ -825,57 +825,46 @@ const OrdersPage = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">إجمالي الإيرادات</span>
-                </div>
+                <div className="flex items-center gap-2 mb-1"><DollarSign className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">إجمالي المبيعات</span></div>
                 <p className="text-xl font-bold text-foreground">{reportData.totalRevenue.toLocaleString()} ₪</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">المحصّل</span>
-                </div>
+                <div className="flex items-center gap-2 mb-1"><CheckCircle className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">المحصّل</span></div>
                 <p className="text-xl font-bold text-primary">{reportData.totalPaid.toLocaleString()} ₪</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CalendarDays className="h-4 w-4 text-warning" />
-                  <span className="text-xs text-muted-foreground">غير محصّل</span>
-                </div>
+                <div className="flex items-center gap-2 mb-1"><CalendarDays className="h-4 w-4 text-warning" /><span className="text-xs text-muted-foreground">الذمم المدينة</span></div>
                 <p className="text-xl font-bold text-warning">{reportData.totalUnpaid.toLocaleString()} ₪</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="h-4 w-4 text-accent" />
-                  <span className="text-xs text-muted-foreground">متوسط قيمة الطلبية</span>
-                </div>
-                <p className="text-xl font-bold text-foreground">{Math.round(reportData.avgOrderValue).toLocaleString()} ₪</p>
+                <div className="flex items-center gap-2 mb-1"><TrendingUp className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">هامش الربح الإجمالي</span></div>
+                <p className="text-xl font-bold text-primary">{reportData.totalMargin.toLocaleString()} ₪ <span className="text-xs font-normal text-muted-foreground">({reportData.marginPct}%)</span></p>
               </CardContent>
             </Card>
           </div>
 
           {/* Charts Row */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Monthly Trend */}
+            {/* Monthly Revenue vs Cost */}
             <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">📈 اتجاه الطلبيات الشهري</h3>
-                {reportData.monthlyTrend.some(m => m.orders > 0) ? (
+                <h3 className="text-sm font-semibold text-foreground mb-4">💰 الإيرادات مقابل التكاليف الشهرية</h3>
+                {reportData.monthlyTrend.some(m => m.revenue > 0) ? (
                   <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={reportData.monthlyTrend}>
+                    <BarChart data={reportData.monthlyTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                       <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                       <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Line type="monotone" dataKey="orders" name="طلبيات" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
-                    </LineChart>
+                      <Bar dataKey="revenue" name="الإيرادات" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="cost" name="التكاليف" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات كافية</p>
@@ -902,22 +891,48 @@ const OrdersPage = () => {
               </CardContent>
             </Card>
 
-            {/* Revenue Trend */}
+            {/* Receivables Report */}
             <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">💰 الإيرادات الشهرية</h3>
-                {reportData.monthlyTrend.some(m => m.revenue > 0) ? (
+                <h3 className="text-sm font-semibold text-foreground mb-4">📋 الذمم المدينة</h3>
+                {reportData.receivables.length > 0 ? (
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto">
+                    {reportData.receivables.map((c, i) => (
+                      <div key={c.name} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{c.count} طلبية</p>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-destructive">{c.remaining.toLocaleString()} ₪</p>
+                          <p className="text-[10px] text-muted-foreground">متبقي</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد ذمم مدينة 🎉</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Production Cost per Order */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-4">🏭 هامش الربح لكل طلبية</h3>
+                {reportData.orderMargins.length > 0 ? (
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={reportData.monthlyTrend}>
+                    <BarChart data={reportData.orderMargins}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
                       <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                       <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Bar dataKey="revenue" name="الإيرادات" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="revenue" name="سعر البيع" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="cost" name="التكلفة" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات كافية</p>
+                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات تكاليف</p>
                 )}
               </CardContent>
             </Card>
@@ -941,26 +956,6 @@ const OrdersPage = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Source Distribution */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">📱 مصادر الطلبيات</h3>
-                {reportData.sourceDist.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={reportData.sourceDist} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={80} />
-                      <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Bar dataKey="value" name="عدد الطلبيات" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
                 ) : (
                   <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات</p>
                 )}
