@@ -13,10 +13,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, ShoppingCart, Package, Truck, CheckCircle, Trash2, Eye,
   MessageCircle, CreditCard, BarChart3, TrendingUp, DollarSign, CalendarDays,
-  Send, Gift, Star, Phone
+  Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
@@ -67,6 +68,14 @@ const OrdersPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("orders");
+
+  // Sort, pagination, selection
+  type SortKey = 'order_number' | 'customer_name' | 'order_date' | 'total' | 'status' | 'source';
+  const [sortKey, setSortKey] = useState<SortKey>('order_date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const PER_PAGE = 20;
 
   // Dialogs
   const [showForm, setShowForm] = useState(false);
@@ -291,11 +300,54 @@ const OrdersPage = () => {
     toast.success("تم فتح واتساب ✅");
   };
 
-  const filtered = orders.filter(o => {
+  const filtered = useMemo(() => orders.filter(o => {
     const matchSearch = o.customer_name?.includes(search) || o.order_number?.includes(search);
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     return matchSearch && matchStatus;
-  });
+  }), [orders, search, statusFilter]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === 'string') { av = (av || '').toLowerCase(); bv = (bv || '').toLowerCase(); }
+      if (typeof av === 'number' || sortKey === 'total') { av = Number(av) || 0; bv = Number(bv) || 0; }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
+  const allPageSelected = paged.length > 0 && paged.every(p => selected.has(p.id));
+  const toggleAllPage = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) paged.forEach(p => next.delete(p.id)); else paged.forEach(p => next.add(p.id));
+      return next;
+    });
+  };
+
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
 
   const counts = {
     new: orders.filter(o => o.status === "جديد").length,
@@ -423,27 +475,32 @@ const OrdersPage = () => {
           </div>
 
           {/* Orders Table */}
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+            <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr style={{ background: '#0D1B2E', color: '#fff' }}>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">رقم الطلبية</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">العميل</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">التاريخ</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الإجمالي</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
+                    <th className="px-2 py-3 text-right"><Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-[#0D1B2E]" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الطلبية" field="order_number" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="العميل" field="customer_name" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="order_date" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الإجمالي" field="total" /></th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
                     <th className="px-3 py-3 text-right text-xs font-semibold">الدفع</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">المصدر</th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المصدر" field="source" /></th>
                     <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</td></tr>
-                ) : filtered.map((o, i) => (
-                  <tr key={o.id} className="border-b transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', background: i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
+                ) : paged.length === 0 ? (
+                  <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">لا توجد طلبيات</td></tr>
+                ) : paged.map((o, i) => {
+                  const isSelected = selected.has(o.id);
+                  return (
+                  <tr key={o.id} className="border-b transition-colors hover:bg-[#F8FAFC]" style={{ borderColor: '#E2E8F0', background: isSelected ? '#EFF6FF' : i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                    <td className="px-2 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(o.id)} /></td>
                     <td className="px-3 py-3 font-mono text-xs" style={{ color: '#64748B' }}>{o.order_number || "—"}</td>
                     <td className="px-3 py-3 text-sm font-semibold" style={{ color: '#1E293B' }}>{o.customer_name}</td>
                     <td className="px-3 py-3 text-xs" style={{ color: '#64748B' }}>{fmtDateDisplay(o.order_date)}</td>
@@ -493,10 +550,42 @@ const OrdersPage = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold text-sm" style={{ background: '#F8FAFC', borderColor: '#0D1B2E' }}>
+                    <td colSpan={4} className="px-3 py-3 text-right" style={{ color: '#1E293B' }}>المجموع ({filtered.length} طلبية)</td>
+                    <td className="px-3 py-3 tabular-nums" style={{ color: '#1E293B' }}>₪{filtered.reduce((s, o) => s + Number(o.total), 0).toLocaleString()}</td>
+                    <td colSpan={4} className="px-3 py-3 text-xs font-normal" style={{ color: '#64748B' }}>إجمالي قيمة الطلبيات</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
+
+            {/* Pagination */}
+            {sorted.length > PER_PAGE && (
+              <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                <p className="text-xs" style={{ color: '#64748B' }}>عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}</p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق</Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, page - 3), Math.min(totalPages, page + 2)).map(n => (
+                    <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>{n}</Button>
+                  ))}
+                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" /></Button>
+                </div>
+                <p className="text-xs" style={{ color: '#64748B' }}>{selected.size > 0 ? `${selected.size} محدد` : `صفحة ${page}/${totalPages}`}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Bulk selection bar */}
+          {selected.size > 0 && (
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-primary/30 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4">
+              <span className="text-sm font-bold text-foreground">✓ {selected.size} طلبية — ₪{orders.filter(o => selected.has(o.id)).reduce((s, o) => s + Number(o.total), 0).toLocaleString()}</span>
+              <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+          )}
         </TabsContent>
 
         {/* ═══════ Reports Tab ═══════ */}
