@@ -18,23 +18,45 @@ import {
   Plus, Search, ShoppingCart, Package, Truck, CheckCircle, Trash2, Eye,
   MessageCircle, CreditCard, BarChart3, TrendingUp, DollarSign, CalendarDays,
   Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X,
-  Download, Printer, Hash, FileText, Pencil
+  Download, Printer, Hash, FileText, Pencil, Banknote, Factory
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
+import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
+import ProductionCostSection from "@/components/orders/ProductionCostSection";
 
 const statusColors: Record<string, string> = {
-  "جديد": "bg-info/10 text-info",
+  "جديد": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  "قيد التجهيز": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  "جاهز للفوترة": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  "مفوتر": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  "مدفوع جزئياً": "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "مدفوع كاملاً": "bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  "ملغي": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   "مؤكد": "bg-primary/10 text-primary",
-  "قيد التجهيز": "bg-warning/10 text-warning",
-  "جاهز للشحن": "bg-accent/10 text-accent",
-  "تم الشحن": "bg-primary/10 text-primary",
-  "تم التسليم": "bg-primary/10 text-primary",
-  "مرتجع": "bg-destructive/10 text-destructive",
-  "ملغي": "bg-muted text-muted-foreground",
+  "جاهز للشحن": "bg-indigo-100 text-indigo-700",
+  "تم الشحن": "bg-purple-100 text-purple-700",
+  "تم التسليم": "bg-green-100 text-green-700",
+  "مرتجع": "bg-red-100 text-red-700",
 };
 
-const ALL_STATUSES = ["جديد", "مؤكد", "قيد التجهيز", "جاهز للشحن", "تم الشحن", "تم التسليم", "مرتجع", "ملغي"];
+const dotColors: Record<string, string> = {
+  "جديد": "bg-blue-500",
+  "قيد التجهيز": "bg-orange-500",
+  "جاهز للفوترة": "bg-purple-500",
+  "مفوتر": "bg-amber-500",
+  "مدفوع جزئياً": "bg-emerald-500",
+  "مدفوع كاملاً": "bg-green-600",
+  "ملغي": "bg-red-500",
+  "مؤكد": "bg-primary",
+  "جاهز للشحن": "bg-indigo-500",
+  "تم الشحن": "bg-purple-500",
+  "تم التسليم": "bg-green-500",
+  "مرتجع": "bg-red-500",
+};
+
+const ALL_STATUSES = ["جديد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "مدفوع جزئياً", "مدفوع كاملاً", "ملغي"];
 const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إلكتروني", "آجل"];
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 
