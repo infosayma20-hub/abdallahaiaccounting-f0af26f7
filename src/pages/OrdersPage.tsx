@@ -18,23 +18,45 @@ import {
   Plus, Search, ShoppingCart, Package, Truck, CheckCircle, Trash2, Eye,
   MessageCircle, CreditCard, BarChart3, TrendingUp, DollarSign, CalendarDays,
   Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X,
-  Download, Printer, Hash, FileText, Pencil
+  Download, Printer, Hash, FileText, Pencil, Banknote, Factory
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
+import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
+import ProductionCostSection from "@/components/orders/ProductionCostSection";
 
 const statusColors: Record<string, string> = {
-  "جديد": "bg-info/10 text-info",
+  "جديد": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  "قيد التجهيز": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  "جاهز للفوترة": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  "مفوتر": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  "مدفوع جزئياً": "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "مدفوع كاملاً": "bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  "ملغي": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   "مؤكد": "bg-primary/10 text-primary",
-  "قيد التجهيز": "bg-warning/10 text-warning",
-  "جاهز للشحن": "bg-accent/10 text-accent",
-  "تم الشحن": "bg-primary/10 text-primary",
-  "تم التسليم": "bg-primary/10 text-primary",
-  "مرتجع": "bg-destructive/10 text-destructive",
-  "ملغي": "bg-muted text-muted-foreground",
+  "جاهز للشحن": "bg-indigo-100 text-indigo-700",
+  "تم الشحن": "bg-purple-100 text-purple-700",
+  "تم التسليم": "bg-green-100 text-green-700",
+  "مرتجع": "bg-red-100 text-red-700",
 };
 
-const ALL_STATUSES = ["جديد", "مؤكد", "قيد التجهيز", "جاهز للشحن", "تم الشحن", "تم التسليم", "مرتجع", "ملغي"];
+const dotColors: Record<string, string> = {
+  "جديد": "bg-blue-500",
+  "قيد التجهيز": "bg-orange-500",
+  "جاهز للفوترة": "bg-purple-500",
+  "مفوتر": "bg-amber-500",
+  "مدفوع جزئياً": "bg-emerald-500",
+  "مدفوع كاملاً": "bg-green-600",
+  "ملغي": "bg-red-500",
+  "مؤكد": "bg-primary",
+  "جاهز للشحن": "bg-indigo-500",
+  "تم الشحن": "bg-purple-500",
+  "تم التسليم": "bg-green-500",
+  "مرتجع": "bg-red-500",
+};
+
+const ALL_STATUSES = ["جديد", "قيد التجهيز", "جاهز للفوترة", "مفوتر", "مدفوع جزئياً", "مدفوع كاملاً", "ملغي"];
 const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إلكتروني", "آجل"];
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 
@@ -53,6 +75,8 @@ type Order = {
   payment_method: string | null; shipping_method: string | null; tracking_number: string | null;
   source: string | null; notes: string | null; created_at: string; user_id: string;
   linked_invoice_id?: string | null;
+  production_status?: string; production_cost?: number; cost_breakdown?: any[];
+  invoice_id?: string | null; invoiced_at?: string; paid_amount?: number; remaining_amount?: number;
 };
 
 const defaultForm = {
@@ -84,6 +108,8 @@ const OrdersPage = () => {
   const [showDetail, setShowDetail] = useState<Order | null>(null);
   const [showWhatsApp, setShowWhatsApp] = useState<Order | null>(null);
   const [showPayment, setShowPayment] = useState<Order | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState<Order | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
 
   const [form, setForm] = useState(defaultForm);
@@ -403,23 +429,31 @@ const OrdersPage = () => {
   const counts = {
     new: orders.filter(o => o.status === "جديد").length,
     processing: orders.filter(o => o.status === "قيد التجهيز").length,
-    shipped: orders.filter(o => o.status === "تم الشحن").length,
-    delivered: orders.filter(o => o.status === "تم التسليم").length,
+    readyForInvoice: orders.filter(o => o.status === "جاهز للفوترة").length,
+    invoiced: orders.filter(o => o.status === "مفوتر").length,
+    partiallyPaid: orders.filter(o => o.status === "مدفوع جزئياً").length,
+    fullyPaid: orders.filter(o => o.status === "مدفوع كاملاً").length,
   };
 
   // ─── Reports data ───
   const reportData = useMemo(() => {
-    const totalRevenue = orders.filter(o => o.status !== "ملغي" && o.status !== "مرتجع").reduce((s, o) => s + Number(o.total), 0);
-    const paidOrders = orders.filter(o => o.payment_status === "مدفوع");
-    const unpaidOrders = orders.filter(o => o.payment_status !== "مدفوع" && o.status !== "ملغي");
-    const totalPaid = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-    const totalUnpaid = unpaidOrders.reduce((s, o) => s + Number(o.total), 0);
-    const avgOrderValue = orders.length > 0 ? totalRevenue / orders.filter(o => o.status !== "ملغي").length : 0;
+    const activeOrders = orders.filter(o => o.status !== "ملغي");
+    const totalRevenue = activeOrders.reduce((s, o) => s + Number(o.total), 0);
+    const totalPaid = activeOrders.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
+    const totalUnpaid = totalRevenue - totalPaid;
+    const avgOrderValue = activeOrders.length > 0 ? totalRevenue / activeOrders.length : 0;
+
+    // Production cost totals
+    const totalProductionCost = activeOrders.reduce((s, o) => s + Number(o.production_cost || 0), 0);
+    const totalMargin = totalRevenue - totalProductionCost;
+    const marginPct = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100).toFixed(1) : "0";
 
     // Status distribution
     const statusDist = ALL_STATUSES.map(s => ({ name: s, value: orders.filter(o => o.status === s).length })).filter(d => d.value > 0);
 
     // Payment distribution
+    const paidOrders = orders.filter(o => o.payment_status === "مدفوع");
+    const unpaidOrders = orders.filter(o => o.payment_status !== "مدفوع" && o.status !== "ملغي");
     const paymentDist = [
       { name: "مدفوع", value: paidOrders.length },
       { name: "غير مدفوع", value: unpaidOrders.length },
@@ -429,7 +463,7 @@ const OrdersPage = () => {
     const sourceDist = SOURCES.map(s => ({ name: s, value: orders.filter(o => o.source === s).length })).filter(d => d.value > 0);
 
     // Monthly trend (last 6 months)
-    const monthlyTrend: { month: string; orders: number; revenue: number }[] = [];
+    const monthlyTrend: { month: string; orders: number; revenue: number; cost: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
@@ -443,21 +477,47 @@ const OrdersPage = () => {
         month: d.toLocaleDateString("ar-EG", { month: "short" }),
         orders: monthOrders.length,
         revenue: monthOrders.reduce((s, o) => s + Number(o.total), 0),
+        cost: monthOrders.reduce((s, o) => s + Number(o.production_cost || 0), 0),
       });
     }
 
     // Top customers
-    const customerMap = new Map<string, { count: number; total: number }>();
-    orders.filter(o => o.status !== "ملغي").forEach(o => {
-      const existing = customerMap.get(o.customer_name) || { count: 0, total: 0 };
-      customerMap.set(o.customer_name, { count: existing.count + 1, total: existing.total + Number(o.total) });
+    const customerMap = new Map<string, { count: number; total: number; remaining: number }>();
+    activeOrders.forEach(o => {
+      const existing = customerMap.get(o.customer_name) || { count: 0, total: 0, remaining: 0 };
+      customerMap.set(o.customer_name, {
+        count: existing.count + 1,
+        total: existing.total + Number(o.total),
+        remaining: existing.remaining + Math.max(0, Number(o.total) - Number(o.paid_amount || 0)),
+      });
     });
     const topCustomers = Array.from(customerMap.entries())
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
-    return { totalRevenue, totalPaid, totalUnpaid, avgOrderValue, statusDist, paymentDist, sourceDist, monthlyTrend, topCustomers };
+    // Receivables (customers with unpaid amounts)
+    const receivables = Array.from(customerMap.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .filter(c => c.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining);
+
+    // Per-order margins
+    const orderMargins = activeOrders
+      .filter(o => Number(o.production_cost || 0) > 0)
+      .map(o => ({
+        name: o.order_number || o.id.slice(0, 8),
+        revenue: Number(o.total),
+        cost: Number(o.production_cost || 0),
+        margin: Number(o.total) - Number(o.production_cost || 0),
+      }));
+
+    return {
+      totalRevenue, totalPaid, totalUnpaid, avgOrderValue,
+      totalProductionCost, totalMargin, marginPct,
+      statusDist, paymentDist, sourceDist, monthlyTrend,
+      topCustomers, receivables, orderMargins,
+    };
   }, [orders]);
 
   return (
@@ -539,8 +599,10 @@ const OrdersPage = () => {
                     { key: "all", label: "الكل" },
                     { key: "جديد", label: "جديد" },
                     { key: "قيد التجهيز", label: "قيد التجهيز" },
-                    { key: "تم الشحن", label: "تم الشحن" },
-                    { key: "تم التسليم", label: "تم التسليم" },
+                    { key: "جاهز للفوترة", label: "جاهز للفوترة" },
+                    { key: "مفوتر", label: "مفوتر" },
+                    { key: "مدفوع جزئياً", label: "مدفوع جزئياً" },
+                    { key: "مدفوع كاملاً", label: "مدفوع كاملاً" },
                   ].map(s => (
                     <button
                       key={s.key}
@@ -615,26 +677,6 @@ const OrdersPage = () => {
                     <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">جاري التحميل...</td></tr>
                   ) : paged.map((o, i) => {
                     const isSelected = selected.has(o.id);
-                    const badgeStyles: Record<string, string> = {
-                      "جديد": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                      "مؤكد": "bg-primary/10 text-primary",
-                      "قيد التجهيز": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-                      "جاهز للشحن": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-                      "تم الشحن": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-                      "تم التسليم": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                      "مرتجع": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                      "ملغي": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                    };
-                    const dotColors: Record<string, string> = {
-                      "جديد": "bg-blue-500",
-                      "مؤكد": "bg-primary",
-                      "قيد التجهيز": "bg-orange-500",
-                      "جاهز للشحن": "bg-indigo-500",
-                      "تم الشحن": "bg-purple-500",
-                      "تم التسليم": "bg-green-500",
-                      "مرتجع": "bg-red-500",
-                      "ملغي": "bg-red-500",
-                    };
                     return (
                     <tr
                       key={o.id}
@@ -647,8 +689,8 @@ const OrdersPage = () => {
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{Number(o.total).toLocaleString()} ₪</td>
                       <td className="px-3 py-3">
                         <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
-                          <SelectTrigger className="h-7 text-[10px] w-[120px] border-0 bg-transparent p-0">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeStyles[o.status] || "bg-muted text-muted-foreground"}`}>
+                          <SelectTrigger className="h-7 text-[10px] w-[130px] border-0 bg-transparent p-0">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColors[o.status] || "bg-muted text-muted-foreground"}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${dotColors[o.status] || "bg-muted-foreground"}`} />
                               {o.status}
                             </span>
@@ -677,6 +719,26 @@ const OrdersPage = () => {
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
+                          {/* Convert to invoice — only for "جاهز للفوترة" */}
+                          {(o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id && (
+                            <button
+                              onClick={async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); }}
+                              className="p-1.5 rounded-lg hover:bg-amber-100 text-muted-foreground hover:text-amber-700 transition-colors"
+                              title="تحويل لفاتورة"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {/* Record receipt — only for invoiced/partially paid */}
+                          {(o.status === "مفوتر" || o.status === "مدفوع جزئياً") && (
+                            <button
+                              onClick={() => setShowReceiptModal(o)}
+                              className="p-1.5 rounded-lg hover:bg-green-100 text-muted-foreground hover:text-green-700 transition-colors"
+                              title="تسجيل قبض"
+                            >
+                              <Banknote className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setShowWhatsApp(o);
@@ -763,57 +825,46 @@ const OrdersPage = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">إجمالي الإيرادات</span>
-                </div>
+                <div className="flex items-center gap-2 mb-1"><DollarSign className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">إجمالي المبيعات</span></div>
                 <p className="text-xl font-bold text-foreground">{reportData.totalRevenue.toLocaleString()} ₪</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">المحصّل</span>
-                </div>
+                <div className="flex items-center gap-2 mb-1"><CheckCircle className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">المحصّل</span></div>
                 <p className="text-xl font-bold text-primary">{reportData.totalPaid.toLocaleString()} ₪</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <CalendarDays className="h-4 w-4 text-warning" />
-                  <span className="text-xs text-muted-foreground">غير محصّل</span>
-                </div>
+                <div className="flex items-center gap-2 mb-1"><CalendarDays className="h-4 w-4 text-warning" /><span className="text-xs text-muted-foreground">الذمم المدينة</span></div>
                 <p className="text-xl font-bold text-warning">{reportData.totalUnpaid.toLocaleString()} ₪</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="h-4 w-4 text-accent" />
-                  <span className="text-xs text-muted-foreground">متوسط قيمة الطلبية</span>
-                </div>
-                <p className="text-xl font-bold text-foreground">{Math.round(reportData.avgOrderValue).toLocaleString()} ₪</p>
+                <div className="flex items-center gap-2 mb-1"><TrendingUp className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">هامش الربح الإجمالي</span></div>
+                <p className="text-xl font-bold text-primary">{reportData.totalMargin.toLocaleString()} ₪ <span className="text-xs font-normal text-muted-foreground">({reportData.marginPct}%)</span></p>
               </CardContent>
             </Card>
           </div>
 
           {/* Charts Row */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Monthly Trend */}
+            {/* Monthly Revenue vs Cost */}
             <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">📈 اتجاه الطلبيات الشهري</h3>
-                {reportData.monthlyTrend.some(m => m.orders > 0) ? (
+                <h3 className="text-sm font-semibold text-foreground mb-4">💰 الإيرادات مقابل التكاليف الشهرية</h3>
+                {reportData.monthlyTrend.some(m => m.revenue > 0) ? (
                   <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={reportData.monthlyTrend}>
+                    <BarChart data={reportData.monthlyTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                       <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                       <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Line type="monotone" dataKey="orders" name="طلبيات" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
-                    </LineChart>
+                      <Bar dataKey="revenue" name="الإيرادات" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="cost" name="التكاليف" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات كافية</p>
@@ -840,22 +891,48 @@ const OrdersPage = () => {
               </CardContent>
             </Card>
 
-            {/* Revenue Trend */}
+            {/* Receivables Report */}
             <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">💰 الإيرادات الشهرية</h3>
-                {reportData.monthlyTrend.some(m => m.revenue > 0) ? (
+                <h3 className="text-sm font-semibold text-foreground mb-4">📋 الذمم المدينة</h3>
+                {reportData.receivables.length > 0 ? (
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto">
+                    {reportData.receivables.map((c, i) => (
+                      <div key={c.name} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{c.count} طلبية</p>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-destructive">{c.remaining.toLocaleString()} ₪</p>
+                          <p className="text-[10px] text-muted-foreground">متبقي</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد ذمم مدينة 🎉</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Production Cost per Order */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-4">🏭 هامش الربح لكل طلبية</h3>
+                {reportData.orderMargins.length > 0 ? (
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={reportData.monthlyTrend}>
+                    <BarChart data={reportData.orderMargins}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
                       <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                       <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Bar dataKey="revenue" name="الإيرادات" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="revenue" name="سعر البيع" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="cost" name="التكلفة" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات كافية</p>
+                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات تكاليف</p>
                 )}
               </CardContent>
             </Card>
@@ -879,26 +956,6 @@ const OrdersPage = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Source Distribution */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">📱 مصادر الطلبيات</h3>
-                {reportData.sourceDist.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={reportData.sourceDist} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={80} />
-                      <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Bar dataKey="value" name="عدد الطلبيات" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
                 ) : (
                   <p className="text-center text-muted-foreground text-sm py-10">لا توجد بيانات</p>
                 )}
@@ -975,11 +1032,39 @@ const OrdersPage = () => {
                 <div className="flex justify-between font-bold text-foreground"><span>الإجمالي</span><span>{Number(showDetail.total).toLocaleString()} ₪</span></div>
               </div>
 
+              {/* Production Cost Section */}
+              {Number(showDetail.production_cost) > 0 && user && (
+                <ProductionCostSection
+                  order={showDetail}
+                  userId={user.id}
+                  onSuccess={() => { setShowDetail(null); fetchOrders(); }}
+                />
+              )}
+
               {/* Quick Actions */}
               <div className="flex gap-2 flex-wrap pt-2">
-                {showDetail.payment_status !== "مدفوع" && (
+                {/* Convert to invoice */}
+                {!showDetail.invoice_id && (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={async () => {
+                    await fetchOrderItems(showDetail.id);
+                    setShowDetail(null);
+                    setShowInvoiceModal(showDetail);
+                  }}>
+                    <FileText className="h-3 w-3" /> 🧾 تحويل لفاتورة مبيعات
+                  </Button>
+                )}
+                {/* Record receipt */}
+                {showDetail.invoice_id && showDetail.payment_status !== "مدفوع" && (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                    setShowDetail(null);
+                    setShowReceiptModal(showDetail);
+                  }}>
+                    <Banknote className="h-3 w-3" /> 💰 تسجيل قبض
+                  </Button>
+                )}
+                {showDetail.payment_status !== "مدفوع" && !showDetail.invoice_id && (
                   <Button size="sm" variant="outline" className="gap-1" onClick={() => { setShowDetail(null); setShowPayment(showDetail); }}>
-                    <CreditCard className="h-3 w-3" /> قبض الطلبية
+                    <CreditCard className="h-3 w-3" /> تحديث الدفع
                   </Button>
                 )}
                 {showDetail.customer_phone && (
@@ -1174,6 +1259,25 @@ const OrdersPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ═══════ Convert to Invoice Modal ═══════ */}
+      <ConvertToInvoiceModal
+        open={!!showInvoiceModal}
+        onClose={() => setShowInvoiceModal(null)}
+        order={showInvoiceModal}
+        orderItems={orderItems}
+        userId={user?.id || ""}
+        onSuccess={fetchOrders}
+      />
+
+      {/* ═══════ Record Receipt Modal ═══════ */}
+      <RecordReceiptModal
+        open={!!showReceiptModal}
+        onClose={() => setShowReceiptModal(null)}
+        order={showReceiptModal}
+        userId={user?.id || ""}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };

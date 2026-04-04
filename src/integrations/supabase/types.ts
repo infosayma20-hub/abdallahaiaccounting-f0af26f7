@@ -5946,6 +5946,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          cost_breakdown: Json | null
           created_at: string
           customer_address: string | null
           customer_name: string
@@ -5953,12 +5954,19 @@ export type Database = {
           delivery_date: string | null
           discount: number
           id: string
+          invoice_id: string | null
+          invoiced_at: string | null
+          invoiced_by: string | null
           linked_invoice_id: string | null
           notes: string | null
           order_date: string
           order_number: string | null
+          paid_amount: number | null
           payment_method: string | null
           payment_status: string
+          production_cost: number | null
+          production_status: string | null
+          remaining_amount: number | null
           representative_id: string | null
           shipping_cost: number
           shipping_method: string | null
@@ -5971,6 +5979,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
           customer_name: string
@@ -5978,12 +5987,19 @@ export type Database = {
           delivery_date?: string | null
           discount?: number
           id?: string
+          invoice_id?: string | null
+          invoiced_at?: string | null
+          invoiced_by?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
           order_date?: string
           order_number?: string | null
+          paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string
+          production_cost?: number | null
+          production_status?: string | null
+          remaining_amount?: number | null
           representative_id?: string | null
           shipping_cost?: number
           shipping_method?: string | null
@@ -5996,6 +6012,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
           customer_name?: string
@@ -6003,12 +6020,19 @@ export type Database = {
           delivery_date?: string | null
           discount?: number
           id?: string
+          invoice_id?: string | null
+          invoiced_at?: string | null
+          invoiced_by?: string | null
           linked_invoice_id?: string | null
           notes?: string | null
           order_date?: string
           order_number?: string | null
+          paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string
+          production_cost?: number | null
+          production_status?: string | null
+          remaining_amount?: number | null
           representative_id?: string | null
           shipping_cost?: number
           shipping_method?: string | null
