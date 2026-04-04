@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
     };
     const mappedStatus = statusMap[order.status?.toLowerCase()] || "جديد";
 
-    // Default owner for Qamar orders
-    const DEFAULT_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
+    // Default owner for Qamar orders (alaaabedps1987)
+    const DEFAULT_OWNER_ID = "ccdbcaa5-a585-4d84-a559-a4fc94a6075b";
 
     // Build notes with extra metadata
     const noteParts: string[] = [];
