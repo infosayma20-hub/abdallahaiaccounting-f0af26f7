@@ -300,11 +300,54 @@ const OrdersPage = () => {
     toast.success("تم فتح واتساب ✅");
   };
 
-  const filtered = orders.filter(o => {
+  const filtered = useMemo(() => orders.filter(o => {
     const matchSearch = o.customer_name?.includes(search) || o.order_number?.includes(search);
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     return matchSearch && matchStatus;
-  });
+  }), [orders, search, statusFilter]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === 'string') { av = (av || '').toLowerCase(); bv = (bv || '').toLowerCase(); }
+      if (typeof av === 'number' || sortKey === 'total') { av = Number(av) || 0; bv = Number(bv) || 0; }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
+  const allPageSelected = paged.length > 0 && paged.every(p => selected.has(p.id));
+  const toggleAllPage = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) paged.forEach(p => next.delete(p.id)); else paged.forEach(p => next.add(p.id));
+      return next;
+    });
+  };
+
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
 
   const counts = {
     new: orders.filter(o => o.status === "جديد").length,
