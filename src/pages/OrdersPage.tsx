@@ -69,6 +69,14 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("orders");
 
+  // Sort, pagination, selection
+  type SortKey = 'order_number' | 'customer_name' | 'order_date' | 'total' | 'status' | 'source';
+  const [sortKey, setSortKey] = useState<SortKey>('order_date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const PER_PAGE = 20;
+
   // Dialogs
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
