@@ -108,6 +108,8 @@ const OrdersPage = () => {
   const [showDetail, setShowDetail] = useState<Order | null>(null);
   const [showWhatsApp, setShowWhatsApp] = useState<Order | null>(null);
   const [showPayment, setShowPayment] = useState<Order | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState<Order | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
 
   const [form, setForm] = useState(defaultForm);
