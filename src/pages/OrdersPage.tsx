@@ -17,7 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Search, ShoppingCart, Package, Truck, CheckCircle, Trash2, Eye,
   MessageCircle, CreditCard, BarChart3, TrendingUp, DollarSign, CalendarDays,
-  Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X
+  Send, Gift, Star, Phone, ArrowUpDown, ChevronLeft, ChevronRight, X,
+  Download, Printer, Hash, FileText, Pencil
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
