@@ -437,17 +437,23 @@ const OrdersPage = () => {
 
   // ─── Reports data ───
   const reportData = useMemo(() => {
-    const totalRevenue = orders.filter(o => o.status !== "ملغي" && o.status !== "مرتجع").reduce((s, o) => s + Number(o.total), 0);
-    const paidOrders = orders.filter(o => o.payment_status === "مدفوع");
-    const unpaidOrders = orders.filter(o => o.payment_status !== "مدفوع" && o.status !== "ملغي");
-    const totalPaid = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-    const totalUnpaid = unpaidOrders.reduce((s, o) => s + Number(o.total), 0);
-    const avgOrderValue = orders.length > 0 ? totalRevenue / orders.filter(o => o.status !== "ملغي").length : 0;
+    const activeOrders = orders.filter(o => o.status !== "ملغي");
+    const totalRevenue = activeOrders.reduce((s, o) => s + Number(o.total), 0);
+    const totalPaid = activeOrders.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
+    const totalUnpaid = totalRevenue - totalPaid;
+    const avgOrderValue = activeOrders.length > 0 ? totalRevenue / activeOrders.length : 0;
+
+    // Production cost totals
+    const totalProductionCost = activeOrders.reduce((s, o) => s + Number(o.production_cost || 0), 0);
+    const totalMargin = totalRevenue - totalProductionCost;
+    const marginPct = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100).toFixed(1) : "0";
 
     // Status distribution
     const statusDist = ALL_STATUSES.map(s => ({ name: s, value: orders.filter(o => o.status === s).length })).filter(d => d.value > 0);
 
     // Payment distribution
+    const paidOrders = orders.filter(o => o.payment_status === "مدفوع");
+    const unpaidOrders = orders.filter(o => o.payment_status !== "مدفوع" && o.status !== "ملغي");
     const paymentDist = [
       { name: "مدفوع", value: paidOrders.length },
       { name: "غير مدفوع", value: unpaidOrders.length },
@@ -457,7 +463,7 @@ const OrdersPage = () => {
     const sourceDist = SOURCES.map(s => ({ name: s, value: orders.filter(o => o.source === s).length })).filter(d => d.value > 0);
 
     // Monthly trend (last 6 months)
-    const monthlyTrend: { month: string; orders: number; revenue: number }[] = [];
+    const monthlyTrend: { month: string; orders: number; revenue: number; cost: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
@@ -471,21 +477,47 @@ const OrdersPage = () => {
         month: d.toLocaleDateString("ar-EG", { month: "short" }),
         orders: monthOrders.length,
         revenue: monthOrders.reduce((s, o) => s + Number(o.total), 0),
+        cost: monthOrders.reduce((s, o) => s + Number(o.production_cost || 0), 0),
       });
     }
 
     // Top customers
-    const customerMap = new Map<string, { count: number; total: number }>();
-    orders.filter(o => o.status !== "ملغي").forEach(o => {
-      const existing = customerMap.get(o.customer_name) || { count: 0, total: 0 };
-      customerMap.set(o.customer_name, { count: existing.count + 1, total: existing.total + Number(o.total) });
+    const customerMap = new Map<string, { count: number; total: number; remaining: number }>();
+    activeOrders.forEach(o => {
+      const existing = customerMap.get(o.customer_name) || { count: 0, total: 0, remaining: 0 };
+      customerMap.set(o.customer_name, {
+        count: existing.count + 1,
+        total: existing.total + Number(o.total),
+        remaining: existing.remaining + Math.max(0, Number(o.total) - Number(o.paid_amount || 0)),
+      });
     });
     const topCustomers = Array.from(customerMap.entries())
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
-    return { totalRevenue, totalPaid, totalUnpaid, avgOrderValue, statusDist, paymentDist, sourceDist, monthlyTrend, topCustomers };
+    // Receivables (customers with unpaid amounts)
+    const receivables = Array.from(customerMap.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .filter(c => c.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining);
+
+    // Per-order margins
+    const orderMargins = activeOrders
+      .filter(o => Number(o.production_cost || 0) > 0)
+      .map(o => ({
+        name: o.order_number || o.id.slice(0, 8),
+        revenue: Number(o.total),
+        cost: Number(o.production_cost || 0),
+        margin: Number(o.total) - Number(o.production_cost || 0),
+      }));
+
+    return {
+      totalRevenue, totalPaid, totalUnpaid, avgOrderValue,
+      totalProductionCost, totalMargin, marginPct,
+      statusDist, paymentDist, sourceDist, monthlyTrend,
+      topCustomers, receivables, orderMargins,
+    };
   }, [orders]);
 
   return (
