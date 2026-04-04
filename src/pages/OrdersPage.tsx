@@ -429,8 +429,10 @@ const OrdersPage = () => {
   const counts = {
     new: orders.filter(o => o.status === "جديد").length,
     processing: orders.filter(o => o.status === "قيد التجهيز").length,
-    shipped: orders.filter(o => o.status === "تم الشحن").length,
-    delivered: orders.filter(o => o.status === "تم التسليم").length,
+    readyForInvoice: orders.filter(o => o.status === "جاهز للفوترة").length,
+    invoiced: orders.filter(o => o.status === "مفوتر").length,
+    partiallyPaid: orders.filter(o => o.status === "مدفوع جزئياً").length,
+    fullyPaid: orders.filter(o => o.status === "مدفوع كاملاً").length,
   };
 
   // ─── Reports data ───
