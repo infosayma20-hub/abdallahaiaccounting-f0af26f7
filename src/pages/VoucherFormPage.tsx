@@ -970,6 +970,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             linked_transaction_id: txId,
             attachments: attachments.length > 0 ? attachments : [],
             auto_allocate: autoAllocate,
+            workshop_id: selectedWorkshop?.id || null,
           } as any)
           .select("id, receipt_number")
           .single();
