@@ -147,6 +147,7 @@ const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
+const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 
 const queryClient = new QueryClient();
 
@@ -217,6 +218,7 @@ const App = () => (
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
+              <Route path="/share/statement/:token" element={<PublicStatementPage />} />
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
               <Route path="/portal" element={<Navigate to="/auth" replace />} />
               <Route path="/portal/dashboard" element={<PortalDashboard />} />
