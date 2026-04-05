@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
             const chunk = invoiceIds.slice(i, i + 200);
             const { data: lines } = await supabase
               .from("invoice_items")
-              .select("invoice_id, description, quantity, total")
+              .select("invoice_id, product_name, description, quantity, total_amount")
               .in("invoice_id", chunk);
             if (lines) invoiceLines.push(...lines);
           }
