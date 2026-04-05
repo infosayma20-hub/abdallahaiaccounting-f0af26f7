@@ -70,9 +70,10 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
       // Create journal entry based on payment method
       const txDate = new Date().toISOString().split("T")[0];
 
+      const txEntries: any[] = [];
+
       if (paymentMethod === "cash") {
-        // Cash: Debit Cash, Credit Sales
-        await supabase.from("transactions").insert({
+        txEntries.push({
           user_id: userId,
           transaction_date: txDate,
           description: `فاتورة مبيعات - ${order.customer_name} (${order.order_number || ""})`,
@@ -83,11 +84,10 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
           transaction_type: "sale_cash",
           reference: inv.invoice_number,
           payment_method: "نقدي",
-          idempotency_key: `INV-ORDER-${order.id}`,
-        } as any);
+          idempotency_key: `INV-${inv.id}`,
+        });
       } else if (paymentMethod === "credit") {
-        // Credit: Debit Receivables, Credit Sales
-        await supabase.from("transactions").insert({
+        txEntries.push({
           user_id: userId,
           transaction_date: txDate,
           description: `فاتورة مبيعات آجل - ${order.customer_name} (${order.order_number || ""})`,
@@ -98,12 +98,11 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
           transaction_type: "sale_credit",
           reference: inv.invoice_number,
           payment_method: "آجل",
-          idempotency_key: `INV-ORDER-${order.id}`,
-        } as any);
+          idempotency_key: `INV-${inv.id}`,
+        });
       } else if (paymentMethod === "partial") {
-        // Partial: Two entries - deposit to cash, remainder to receivables
         if (depositAmount > 0) {
-          await supabase.from("transactions").insert({
+          txEntries.push({
             user_id: userId,
             transaction_date: txDate,
             description: `عربون فاتورة - ${order.customer_name} (${order.order_number || ""})`,
@@ -114,11 +113,11 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
             transaction_type: "sale_cash",
             reference: inv.invoice_number,
             payment_method: "نقدي",
-            idempotency_key: `INV-ORDER-DEP-${order.id}`,
-          } as any);
+            idempotency_key: `INV-DEP-${inv.id}`,
+          });
         }
         if (remainingAmount > 0) {
-          await supabase.from("transactions").insert({
+          txEntries.push({
             user_id: userId,
             transaction_date: txDate,
             description: `ذمة فاتورة - ${order.customer_name} (${order.order_number || ""})`,
@@ -129,9 +128,21 @@ export default function ConvertToInvoiceModal({ open, onClose, order, orderItems
             transaction_type: "sale_credit",
             reference: inv.invoice_number,
             payment_method: "آجل",
-            idempotency_key: `INV-ORDER-REM-${order.id}`,
-          } as any);
+            idempotency_key: `INV-REM-${inv.id}`,
+          });
         }
+      }
+
+      // Insert all transaction entries and link the first one to the invoice
+      let linkedTxId: string | null = null;
+      for (const txEntry of txEntries) {
+        const { data: txData } = await supabase.from("transactions").insert(txEntry).select("id").single();
+        if (txData && !linkedTxId) linkedTxId = txData.id;
+      }
+
+      // Link transaction to invoice so edits will update the correct entry
+      if (linkedTxId) {
+        await supabase.from("invoices").update({ linked_transaction_id: linkedTxId } as any).eq("id", inv.id);
       }
 
       // Update order status
