@@ -825,10 +825,19 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                     {group.rows.map((row) => {
                       const balChange = showComparison && (row.prevBalance || 0) !== 0
                         ? ((row.balance - (row.prevBalance || 0)) / Math.abs(row.prevBalance || 1)) * 100 : null;
+                      const isAtLevelBoundary = row.hasChildren && row.depth >= reportLevel;
+                      const displayDebit = isAtLevelBoundary ? row.rolledDebit : row.totalDebit;
+                      const displayCredit = isAtLevelBoundary ? row.rolledCredit : row.totalCredit;
+                      const displayBalance = displayDebit - displayCredit;
+                      const displayOpening = isAtLevelBoundary ? row.rolledOpeningBalance : row.openingBalance;
+                      const displayClosing = isAtLevelBoundary ? row.rolledClosingBalance : row.closingBalance;
+                      const indent = (row.depth - 1) * 24;
+                      const canExpand = row.hasChildren && row.depth >= reportLevel;
+                      const isExpanded = expandedAccounts.has(row.accountCode);
                       return (
-                      <tr key={row.accountCode} className={`border-b border-border/20 hover:bg-muted/10 transition-colors ${row.isChild ? "bg-muted/5" : ""}`}>
+                      <tr key={row.accountCode} className={`border-b border-border/20 hover:bg-muted/10 transition-colors ${row.depth === 1 ? "bg-muted/30" : row.depth === 2 ? "bg-muted/10" : ""}`}>
                         <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums font-mono">
-                          {row.isChild ? "" : (row.accountCode || "—")}
+                          {row.accountCode || "—"}
                         </td>
                         <td className="px-4 py-3 text-xs text-foreground font-medium">
                           <div style={{ paddingRight: row.isChild ? 24 : 0 }} className="flex items-center gap-1">
