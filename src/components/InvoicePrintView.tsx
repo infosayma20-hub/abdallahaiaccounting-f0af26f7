@@ -74,10 +74,13 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const currLabel = CURRENCY_LABELS[invoice.currency] || CURRENCY_LABELS["شيكل"];
   const fmtAmount = (n: number) => fmtAmountWithSymbol(n, currSymbol);
 
+  const taxEnabled = settings.vat_enabled ?? true;
+
   // Calculate item-level tax
   const calcItemTotal = (item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
     const afterDiscount = base - (item.discount || 0);
+    if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "exempt" as const };
     const cat = item.taxCategory || (item.taxRate > 0 ? "taxable" : "exempt");
     const rate = cat === "taxable" ? 16 : 0;
     const tax = cat === "exempt" ? 0 : afterDiscount * (rate / 100);
@@ -93,7 +96,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   });
 
   const subtotalBeforeTax = invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
-  const totalTax = invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0);
+  const totalTax = taxEnabled ? invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0) : 0;
   const grandTotal = subtotalBeforeTax + totalTax;
 
   return (
