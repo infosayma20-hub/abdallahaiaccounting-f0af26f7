@@ -9043,6 +9043,7 @@ export type Database = {
           status: string | null
           updated_at: string | null
           user_id: string
+          workshop_id: string | null
         }
         Insert: {
           amount?: number
@@ -9066,6 +9067,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id: string
+          workshop_id?: string | null
         }
         Update: {
           amount?: number
@@ -9089,6 +9091,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id?: string
+          workshop_id?: string | null
         }
         Relationships: [
           {
@@ -9110,6 +9113,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
             referencedColumns: ["id"]
           },
         ]
@@ -10602,6 +10612,7 @@ export type Database = {
           account_id_debit: string | null
           amount: number
           contact_id: string | null
+          cost_center_name: string | null
           created_at: string
           credit_account_code: string
           currency: string
@@ -10621,12 +10632,14 @@ export type Database = {
           transaction_type: string
           updated_at: string
           user_id: string
+          workshop_id: string | null
         }
         Insert: {
           account_id_credit?: string | null
           account_id_debit?: string | null
           amount?: number
           contact_id?: string | null
+          cost_center_name?: string | null
           created_at?: string
           credit_account_code: string
           currency?: string
@@ -10646,12 +10659,14 @@ export type Database = {
           transaction_type?: string
           updated_at?: string
           user_id: string
+          workshop_id?: string | null
         }
         Update: {
           account_id_credit?: string | null
           account_id_debit?: string | null
           amount?: number
           contact_id?: string | null
+          cost_center_name?: string | null
           created_at?: string
           credit_account_code?: string
           currency?: string
@@ -10671,6 +10686,7 @@ export type Database = {
           transaction_type?: string
           updated_at?: string
           user_id?: string
+          workshop_id?: string | null
         }
         Relationships: [
           {
@@ -10678,6 +10694,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
             referencedColumns: ["id"]
           },
         ]
@@ -11535,6 +11558,7 @@ export type Database = {
           type: string
           updated_at: string | null
           user_id: string
+          workshop_id: string | null
         }
         Insert: {
           amount?: number | null
@@ -11564,6 +11588,7 @@ export type Database = {
           type: string
           updated_at?: string | null
           user_id: string
+          workshop_id?: string | null
         }
         Update: {
           amount?: number | null
@@ -11593,6 +11618,7 @@ export type Database = {
           type?: string
           updated_at?: string | null
           user_id?: string
+          workshop_id?: string | null
         }
         Relationships: [
           {
@@ -11614,6 +11640,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
             referencedColumns: ["id"]
           },
         ]
