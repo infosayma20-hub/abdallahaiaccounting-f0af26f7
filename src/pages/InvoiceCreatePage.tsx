@@ -165,6 +165,7 @@ const InvoiceCreatePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
+  const taxEnabled = companySettings?.vat_enabled ?? true;
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const editInvoiceId = searchParams.get("edit");
@@ -562,6 +563,13 @@ const InvoiceCreatePage = () => {
     const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
 
+    // If tax is disabled at company level, skip all tax calculations
+    if (!taxEnabled) {
+      const total = grossTotal - totalDiscount;
+      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount, remainingAmount: total - paidAmount };
+    }
+
     if (form.taxInclusive) {
       // Tax-inclusive: prices already contain tax, extract it
       let totalTax = 0;
@@ -588,7 +596,7 @@ const InvoiceCreatePage = () => {
       const paidAmount = form.paymentMethod === "credit" ? 0 : total;
       return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
     }
-  }, [form.items, form.paymentMethod, form.taxInclusive, getItemDiscountAmount]);
+  }, [form.items, form.paymentMethod, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -1509,21 +1517,21 @@ const InvoiceCreatePage = () => {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           {/* Table Header */}
-          <div className="hidden lg:grid grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground">
+          <div className={`hidden lg:grid ${taxEnabled ? "grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px]" : "grid-cols-[30px_1fr_70px_90px_70px_30px_100px_30px]"} gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground`}>
             <span>#</span>
             <span>المنتج / الخدمة</span>
             <span className="text-center">الكمية</span>
             <span className="text-center">السعر</span>
             <span className="text-center">الخصم</span>
             <span></span>
-            <span className="text-center">تصنيف الضريبة</span>
+            {taxEnabled && <span className="text-center">تصنيف الضريبة</span>}
             <span className="text-center">الإجمالي</span>
             <span></span>
           </div>
 
           <div className="space-y-2">
             {form.items.map((item, idx) => (
-              <div key={item.id} className="lg:grid lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0">
+              <div key={item.id} className={`lg:grid ${taxEnabled ? "lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px]" : "lg:grid-cols-[30px_1fr_70px_90px_70px_30px_100px_30px]"} gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0`}>
                 {/* Row number */}
                 <span className="hidden lg:block text-[10px] text-muted-foreground font-mono text-center">{idx + 1}</span>
 
@@ -1623,14 +1631,16 @@ const InvoiceCreatePage = () => {
                 </button>
 
                 {/* Tax Category */}
-                <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
-                  <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TAX_CATEGORY_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {taxEnabled && (
+                  <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
+                    <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TAX_CATEGORY_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 {/* Subtotal */}
                 <div className="text-center">
@@ -1670,17 +1680,19 @@ const InvoiceCreatePage = () => {
         <CardContent className="p-5 space-y-2">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-foreground">الإجماليات</span>
-            <div className="flex items-center gap-2">
-              <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
-              <Label htmlFor="tax-inclusive" className="text-[11px] text-muted-foreground cursor-pointer">
-                {form.taxInclusive ? "شامل الضريبة" : "غير شامل الضريبة"}
-              </Label>
-            </div>
+            {taxEnabled && (
+              <div className="flex items-center gap-2">
+                <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
+                <Label htmlFor="tax-inclusive" className="text-[11px] text-muted-foreground cursor-pointer">
+                  {form.taxInclusive ? "شامل الضريبة" : "غير شامل الضريبة"}
+                </Label>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">
-              {form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+              {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
             </span>
             <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
           </div>
@@ -1690,7 +1702,7 @@ const InvoiceCreatePage = () => {
               <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
             </div>
           )}
-          {summary.totalTax > 0 && (
+          {taxEnabled && summary.totalTax > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">
                 {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
