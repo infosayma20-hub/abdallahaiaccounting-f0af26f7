@@ -393,8 +393,14 @@ export function useDashboardData() {
       const dc = tx.debit_account_code || "";
       const cc = tx.credit_account_code || "";
       let type: "income" | "expense" | "other" = "other";
+      // Income: revenue credited OR cash/bank received
       if (cc.startsWith("4") || dc === "1110" || dc === "1120") type = "income";
+      // Expense: expense accounts debited, OR cash/bank paid out (credit side) for non-revenue
       if (dc.startsWith("5") || dc.startsWith("6")) type = "expense";
+      // Payments from cash/bank (credit 1110/1120) that are NOT revenue (no credit 4xxx) = expense/outflow
+      if (type === "other" && (cc === "1110" || cc === "1120" || cc.startsWith("111") || cc.startsWith("112")) && !dc.startsWith("1")) type = "expense";
+      // Employee advances (debit 1130 employee receivable, credit cash) = outflow
+      if (dc === "1130" && (cc === "1110" || cc.startsWith("111"))) type = "expense";
 
       return {
         id: tx.id,
