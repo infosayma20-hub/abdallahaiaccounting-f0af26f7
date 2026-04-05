@@ -165,6 +165,7 @@ const InvoiceCreatePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
+  const taxEnabled = companySettings?.vat_enabled ?? true;
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const editInvoiceId = searchParams.get("edit");
