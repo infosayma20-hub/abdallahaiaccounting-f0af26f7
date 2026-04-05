@@ -179,8 +179,8 @@ const TrialBalancePage = () => {
     return { from: format(prevFrom, "yyyy-MM-dd"), to: format(prevTo, "yyyy-MM-dd") };
   }, [dateFrom, dateTo]);
 
-  // Build trial balance
-  const { rows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
+  // Build trial balance with hierarchy
+  const { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
     const allTx = transactions.filter(tx => !tx.is_deleted);
 
     // Opening balance: all transactions BEFORE dateFrom
@@ -224,15 +224,7 @@ const TrialBalancePage = () => {
       if (tx.credit_account_code) prevCreditMap[tx.credit_account_code] = (prevCreditMap[tx.credit_account_code] || 0) + amount;
     }
 
-    const allCodes = new Set([
-      ...Object.keys(debitMap), ...Object.keys(creditMap),
-      ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap),
-      ...Object.keys(openingDebitMap), ...Object.keys(openingCreditMap),
-    ]);
-    if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
-
-    const rows: TrialBalanceRow[] = [];
-    // Build parent_code map for child detection
+    // Build children map from accounts
     const childrenByParent: Record<string, string[]> = {};
     for (const acc of accounts) {
       if (acc.parent_code) {
@@ -241,6 +233,37 @@ const TrialBalancePage = () => {
       }
     }
 
+    // Calculate depth for each account
+    const depthMap: Record<string, number> = {};
+    const calcDepth = (code: string): number => {
+      if (depthMap[code] !== undefined) return depthMap[code];
+      const acc = accountMap[code];
+      if (!acc || !acc.parent_code || !accountMap[acc.parent_code]) {
+        depthMap[code] = 1;
+        return 1;
+      }
+      depthMap[code] = calcDepth(acc.parent_code) + 1;
+      return depthMap[code];
+    };
+    accounts.forEach(acc => calcDepth(acc.account_code));
+
+    // Build all rows for ALL accounts with transactions or zero-balance
+    const allCodes = new Set([
+      ...Object.keys(debitMap), ...Object.keys(creditMap),
+      ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap),
+      ...Object.keys(openingDebitMap), ...Object.keys(openingCreditMap),
+    ]);
+    if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
+    // Always include parent accounts so hierarchy works
+    for (const code of [...allCodes]) {
+      let current = accountMap[code];
+      while (current?.parent_code) {
+        allCodes.add(current.parent_code);
+        current = accountMap[current.parent_code];
+      }
+    }
+
+    const rowMap: Record<string, TrialBalanceRow> = {};
     for (const code of allCodes) {
       const acc = accountMap[code];
       const totalDebit = debitMap[code] || 0;
@@ -249,9 +272,11 @@ const TrialBalancePage = () => {
       const openingCredit = openingCreditMap[code] || 0;
       const openingBalance = openingDebit - openingCredit;
       const balance = totalDebit - totalCredit;
-      rows.push({
+      const children = childrenByParent[code] || [];
+      rowMap[code] = {
+        accountId: acc?.id || code,
         accountName: acc ? acc.account_name : code,
-        accountCode: acc ? acc.account_code : code,
+        accountCode: code,
         accountType: acc ? acc.account_type : "",
         openingDebit, openingCredit, openingBalance,
         totalDebit, totalCredit, balance,
@@ -259,79 +284,121 @@ const TrialBalancePage = () => {
         prevDebit: prevDebitMap[code] || 0,
         prevCredit: prevCreditMap[code] || 0,
         prevBalance: (prevDebitMap[code] || 0) - (prevCreditMap[code] || 0),
-        isChild: false,
+        isChild: !!(acc?.parent_code),
         parentCode: acc?.parent_code || undefined,
+        depth: depthMap[code] || 1,
+        hasChildren: children.length > 0,
+        childrenCodes: children,
+        rolledDebit: 0,
+        rolledCredit: 0,
+        rolledOpeningBalance: 0,
+        rolledClosingBalance: 0,
+      };
+    }
+
+    // Roll-up: sum children values into parents (bottom-up)
+    const rollUp = (code: string): { debit: number; credit: number; openBal: number; closeBal: number } => {
+      const row = rowMap[code];
+      if (!row) return { debit: 0, credit: 0, openBal: 0, closeBal: 0 };
+      const children = (childrenByParent[code] || []).filter(c => rowMap[c]);
+      if (children.length === 0) {
+        row.rolledDebit = row.totalDebit;
+        row.rolledCredit = row.totalCredit;
+        row.rolledOpeningBalance = row.openingBalance;
+        row.rolledClosingBalance = row.closingBalance;
+        return { debit: row.rolledDebit, credit: row.rolledCredit, openBal: row.rolledOpeningBalance, closeBal: row.rolledClosingBalance };
+      }
+      let sumD = row.totalDebit, sumC = row.totalCredit, sumOB = row.openingBalance, sumCB = row.closingBalance;
+      for (const child of children) {
+        const c = rollUp(child);
+        sumD += c.debit;
+        sumC += c.credit;
+        sumOB += c.openBal;
+        sumCB += c.closeBal;
+      }
+      row.rolledDebit = sumD;
+      row.rolledCredit = sumC;
+      row.rolledOpeningBalance = sumOB;
+      row.rolledClosingBalance = sumCB;
+      return { debit: sumD, credit: sumC, openBal: sumOB, closeBal: sumCB };
+    };
+
+    // Find root accounts and roll up
+    const rootCodes = Object.keys(rowMap).filter(c => !rowMap[c].parentCode || !rowMap[rowMap[c].parentCode!]);
+    rootCodes.forEach(c => rollUp(c));
+
+    // Flatten tree in sorted order
+    const allRows: TrialBalanceRow[] = [];
+    const traverse = (code: string) => {
+      const row = rowMap[code];
+      if (!row) return;
+      allRows.push(row);
+      const children = (childrenByParent[code] || [])
+        .filter(c => rowMap[c])
+        .sort((a, b) => a.localeCompare(b));
+      children.forEach(traverse);
+    };
+    rootCodes
+      .sort((a, b) => {
+        const orderA = ACCOUNT_TYPE_ORDER[rowMap[a]?.accountType] || 99;
+        const orderB = ACCOUNT_TYPE_ORDER[rowMap[b]?.accountType] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.localeCompare(b);
+      })
+      .forEach(traverse);
+
+    // Leaf rows only (for grand totals — no double counting)
+    const leafRows = allRows.filter(r => !r.hasChildren);
+    const grandTotalDebit = leafRows.reduce((s, r) => s + r.totalDebit, 0);
+    const grandTotalCredit = leafRows.reduce((s, r) => s + r.totalCredit, 0);
+    const prevGrandDebit = leafRows.reduce((s, r) => s + (r.prevDebit || 0), 0);
+    const prevGrandCredit = leafRows.reduce((s, r) => s + (r.prevCredit || 0), 0);
+    const grandOpeningDebit = leafRows.reduce((s, r) => s + r.openingDebit, 0);
+    const grandOpeningCredit = leafRows.reduce((s, r) => s + r.openingCredit, 0);
+    const grandClosingDebit = leafRows.reduce((s, r) => s + (r.closingBalance > 0 ? r.closingBalance : 0), 0);
+    const grandClosingCredit = leafRows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
+
+    return { allRows, leafRows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
+  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
+
+  // Toggle expand/collapse for a parent account
+  const toggleExpand = (code: string) => {
+    setExpandedAccounts(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  };
+
+  // Filter rows by report level + expanded state
+  const filteredRows = useMemo(() => {
+    let result = allRows.filter(row => {
+      // Always show rows at or above the selected level
+      if (row.depth <= reportLevel) return true;
+      // Show deeper rows if their parent is expanded
+      // Walk up the tree to check if any ancestor at reportLevel is expanded
+      let current = row;
+      while (current.parentCode) {
+        const parent = allRows.find(r => r.accountCode === current.parentCode);
+        if (!parent) break;
+        if (parent.depth >= reportLevel && expandedAccounts.has(parent.accountCode)) return true;
+        current = parent;
+      }
+      return false;
+    });
+
+    // Remove zero-balance accounts if not showZeroAccounts
+    if (!showZeroAccounts) {
+      result = result.filter(r => {
+        // Don't hide parent accounts that have non-zero rolled values
+        if (r.hasChildren) {
+          return r.rolledDebit !== 0 || r.rolledCredit !== 0 || r.rolledOpeningBalance !== 0;
+        }
+        return r.totalDebit !== 0 || r.totalCredit !== 0 || r.openingBalance !== 0;
       });
     }
 
-    // If showDetailedAccounts, also add child accounts that are not already in the list
-    if (showDetailedAccounts) {
-      const existingCodes = new Set(rows.map(r => r.accountCode));
-      for (const acc of accounts) {
-        if (acc.parent_code && !existingCodes.has(acc.account_code)) {
-          // Check if parent is in the list
-          if (existingCodes.has(acc.parent_code)) {
-            const totalDebit = debitMap[acc.account_code] || 0;
-            const totalCredit = creditMap[acc.account_code] || 0;
-            const openingDebit = openingDebitMap[acc.account_code] || 0;
-            const openingCredit = openingCreditMap[acc.account_code] || 0;
-            const openingBalance = openingDebit - openingCredit;
-            const balance = totalDebit - totalCredit;
-            if (totalDebit > 0 || totalCredit > 0 || openingDebit > 0 || openingCredit > 0) {
-              rows.push({
-                accountName: acc.account_name,
-                accountCode: acc.account_code,
-                accountType: acc.account_type,
-                openingDebit, openingCredit, openingBalance,
-                totalDebit, totalCredit, balance,
-                closingBalance: openingBalance + balance,
-                prevDebit: prevDebitMap[acc.account_code] || 0,
-                prevCredit: prevCreditMap[acc.account_code] || 0,
-                prevBalance: (prevDebitMap[acc.account_code] || 0) - (prevCreditMap[acc.account_code] || 0),
-                isChild: true,
-                parentCode: acc.parent_code || undefined,
-              });
-            }
-          }
-        }
-      }
-      // Mark existing rows that have a parent as children
-      for (const row of rows) {
-        if (row.parentCode && rows.some(r => r.accountCode === row.parentCode && !r.isChild)) {
-          row.isChild = true;
-        }
-      }
-    }
-
-    rows.sort((a, b) => {
-      // Parents first, then children grouped under parent
-      const parentA = a.isChild ? a.parentCode || "" : a.accountCode;
-      const parentB = b.isChild ? b.parentCode || "" : b.accountCode;
-      const orderA = ACCOUNT_TYPE_ORDER[a.accountType] || 99;
-      const orderB = ACCOUNT_TYPE_ORDER[b.accountType] || 99;
-      if (orderA !== orderB) return orderA - orderB;
-      if (parentA !== parentB) return parentA.localeCompare(parentB);
-      // Parent before its children
-      if (a.accountCode === parentB && b.isChild) return -1;
-      if (b.accountCode === parentA && a.isChild) return 1;
-      return (a.accountCode || "").localeCompare(b.accountCode || "");
-    });
-
-    const grandTotalDebit = rows.reduce((s, r) => s + r.totalDebit, 0);
-    const grandTotalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
-    const prevGrandDebit = rows.reduce((s, r) => s + (r.prevDebit || 0), 0);
-    const prevGrandCredit = rows.reduce((s, r) => s + (r.prevCredit || 0), 0);
-    const grandOpeningDebit = rows.reduce((s, r) => s + r.openingDebit, 0);
-    const grandOpeningCredit = rows.reduce((s, r) => s + r.openingCredit, 0);
-    const grandClosingDebit = rows.reduce((s, r) => s + (r.closingBalance > 0 ? r.closingBalance : 0), 0);
-    const grandClosingCredit = rows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
-
-    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
-  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, showDetailedAccounts, prevPeriod]);
-
-  // Search filter
-  const filteredRows = useMemo(() => {
-    let result = rows;
     if (searchQuery.trim()) {
       result = result.filter(r => multiWordMatchAny(searchQuery, r.accountName, r.accountCode, r.accountType));
     }
@@ -342,7 +409,7 @@ const TrialBalancePage = () => {
       });
     }
     return result;
-  }, [rows, searchQuery, typeFilter]);
+  }, [allRows, reportLevel, expandedAccounts, searchQuery, typeFilter, showZeroAccounts]);
 
   // Group rows by account type
   const groupedRows = useMemo(() => {
@@ -358,11 +425,19 @@ const TrialBalancePage = () => {
         groups.push(currentGroup);
       }
       currentGroup!.rows.push(row);
-      currentGroup!.totalDebit += row.totalDebit;
-      currentGroup!.totalCredit += row.totalCredit;
+      // Use rolled values for group totals at the deepest visible level
+      if (!row.hasChildren || row.depth === reportLevel) {
+        currentGroup!.totalDebit += row.hasChildren ? row.rolledDebit : row.totalDebit;
+        currentGroup!.totalCredit += row.hasChildren ? row.rolledCredit : row.totalCredit;
+      } else if (row.depth < reportLevel) {
+        // Don't add parent totals if children are visible — children will contribute
+      } else {
+        currentGroup!.totalDebit += row.totalDebit;
+        currentGroup!.totalCredit += row.totalCredit;
+      }
     }
     return groups;
-  }, [filteredRows]);
+  }, [filteredRows, reportLevel]);
 
   // Export Excel
   const handleExport = () => {
