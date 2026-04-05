@@ -1995,7 +1995,7 @@ export default function WorkshopsPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">الورشات</p><p className="text-2xl font-bold text-foreground">{workshops.length}</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي الميزانيات</p><p className="text-2xl font-bold text-primary">{totalBudgetAll.toLocaleString()}</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي المقبوضات</p><p className="text-2xl font-bold text-emerald-600">{Object.values(workshopPaymentsMap).reduce((s, v) => s + v, 0).toLocaleString()} ₪</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي المقبوضات</p><p className="text-2xl font-bold text-emerald-600">{(Object.values(workshopPaymentsMap).reduce((s, v) => s + v, 0) + Object.values(workshopVoucherReceiptsMap).reduce((s, v) => s + v, 0)).toLocaleString()} ₪</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">نشطة</p><p className="text-2xl font-bold text-foreground">{workshops.filter(w => w.status === "active").length}</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-2xl font-bold text-muted-foreground">{workshops.filter(w => w.status === "completed").length}</p></CardContent></Card>
         </div>
