@@ -268,6 +268,7 @@ Deno.serve(async (req) => {
         const shiftStart = body.shiftStart;
         const shiftEnd = body.shiftEnd;
 
+        // ── SOURCE A: POS Orders ──
         const { data: orders } = await supabase
           .from("pos_orders")
           .select("id, total, created_at, session_id, order_number")
@@ -281,6 +282,27 @@ Deno.serve(async (req) => {
         const orderList: any[] = orders || [];
         const orderIds = orderList.map((o) => o.id);
 
+        // ── SOURCE B: Regular Sale Invoices ──
+        // Convert ISO timestamps to date strings for invoice_date (DATE column)
+        const shiftStartDate = shiftStart ? shiftStart.split("T")[0] : null;
+        const shiftEndDate = shiftEnd ? shiftEnd.split("T")[0] : null;
+
+        let invoiceQuery = supabase
+          .from("invoices")
+          .select("id, invoice_date, total_amount, contact_name, payment_method, invoice_number, created_at")
+          .eq("user_id", linkedUserId)
+          .eq("invoice_type", "sale")
+          .neq("status", "cancelled");
+        if (shiftStartDate) invoiceQuery = invoiceQuery.gte("invoice_date", shiftStartDate);
+        if (shiftEndDate) invoiceQuery = invoiceQuery.lte("invoice_date", shiftEndDate);
+
+        const { data: saleInvoices } = await invoiceQuery.order("invoice_date", { ascending: false }).limit(5000);
+        const invoiceList: any[] = saleInvoices || [];
+
+        // ── Invoice totals ──
+        const invoiceTotalSales = invoiceList.reduce((s: number, inv: any) => s + (inv.total_amount || 0), 0);
+        const invoiceOrderCount = invoiceList.length;
+
         let allLines: any[] = [];
         if (orderIds.length > 0) {
           for (let i = 0; i < orderIds.length; i += 200) {
@@ -290,6 +312,20 @@ Deno.serve(async (req) => {
               .select("order_id, product_name, qty, total")
               .in("order_id", chunk);
             if (lines) allLines.push(...lines);
+          }
+        }
+
+        // ── Fetch invoice lines for product breakdown ──
+        const invoiceIds = invoiceList.map((inv: any) => inv.id);
+        let invoiceLines: any[] = [];
+        if (invoiceIds.length > 0) {
+          for (let i = 0; i < invoiceIds.length; i += 200) {
+            const chunk = invoiceIds.slice(i, i + 200);
+            const { data: lines } = await supabase
+              .from("invoice_items")
+              .select("invoice_id, description, quantity, total")
+              .in("invoice_id", chunk);
+            if (lines) invoiceLines.push(...lines);
           }
         }
 
@@ -321,6 +357,8 @@ Deno.serve(async (req) => {
         }
 
         const branchData: Record<string, any> = {};
+
+        // ── Process POS orders into branches ──
         for (const order of orderList) {
           const cashBoxId = sessionMap[order.session_id];
           const box = cashBoxId ? cashBoxMap[cashBoxId] : null;
@@ -352,16 +390,49 @@ Deno.serve(async (req) => {
             (branchData[branchKey].hourlySales[hour] || 0) + (order.total || 0);
         }
 
-        for (const branchKey of Object.keys(branchData)) {
-          const branchOrderIds = new Set(branchData[branchKey].orders);
-          const branchLines = allLines.filter((l) => branchOrderIds.has(l.order_id));
+        // ── Process regular invoices into a "فواتير مبيعات" branch ──
+        if (invoiceList.length > 0) {
+          const invBranchKey = "invoices";
+          branchData[invBranchKey] = {
+            id: invBranchKey,
+            name: "فواتير مبيعات",
+            location: "المحاسبة",
+            totalSales: invoiceTotalSales,
+            orderCount: invoiceOrderCount,
+            orders: invoiceIds,
+            hourlySales: {} as Record<string, number>,
+            lastOrderAt: invoiceList[0]?.created_at || null,
+          };
+          // Hourly distribution for invoices
+          for (const inv of invoiceList) {
+            const hour = new Date(inv.created_at || inv.invoice_date).getHours().toString();
+            branchData[invBranchKey].hourlySales[hour] =
+              (branchData[invBranchKey].hourlySales[hour] || 0) + (inv.total_amount || 0);
+          }
+        }
 
+        for (const branchKey of Object.keys(branchData)) {
           const mealMap: Record<string, { quantity: number; revenue: number }> = {};
-          for (const line of branchLines) {
-            const name = line.product_name || "غير معروف";
-            if (!mealMap[name]) mealMap[name] = { quantity: 0, revenue: 0 };
-            mealMap[name].quantity += line.qty || 0;
-            mealMap[name].revenue += line.total || 0;
+
+          if (branchKey === "invoices") {
+            // Use invoice lines for product breakdown
+            const branchInvIds = new Set(branchData[branchKey].orders);
+            const brInvLines = invoiceLines.filter((l: any) => branchInvIds.has(l.invoice_id));
+            for (const line of brInvLines) {
+              const name = line.description || "غير معروف";
+              if (!mealMap[name]) mealMap[name] = { quantity: 0, revenue: 0 };
+              mealMap[name].quantity += line.quantity || 0;
+              mealMap[name].revenue += line.total || 0;
+            }
+          } else {
+            const branchOrderIds = new Set(branchData[branchKey].orders);
+            const branchLines = allLines.filter((l) => branchOrderIds.has(l.order_id));
+            for (const line of branchLines) {
+              const name = line.product_name || "غير معروف";
+              if (!mealMap[name]) mealMap[name] = { quantity: 0, revenue: 0 };
+              mealMap[name].quantity += line.qty || 0;
+              mealMap[name].revenue += line.total || 0;
+            }
           }
 
           branchData[branchKey].topMeals = Object.entries(mealMap)
@@ -390,6 +461,19 @@ Deno.serve(async (req) => {
               ? { name: (branches[0] as any).name, sales: (branches[0] as any).totalSales }
               : null,
           branches,
+          // Include invoice details for separate display
+          invoiceSales: {
+            total: invoiceTotalSales,
+            count: invoiceOrderCount,
+            items: invoiceList.map((inv: any) => ({
+              id: inv.id,
+              number: inv.invoice_number,
+              date: inv.invoice_date,
+              total: inv.total_amount,
+              customer: inv.contact_name,
+              paymentMethod: inv.payment_method,
+            })),
+          },
         };
       }
 
