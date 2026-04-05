@@ -8,6 +8,7 @@ import TrialBanner from "../billing/TrialBanner";
 import TrialExpiredGate from "../trial/TrialExpiredGate";
 import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
 import SessionManager from "../SessionManager";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,10 @@ interface WebLayoutProps {
 const WebLayout = ({ children }: WebLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  
+  const { subscription } = useSubscription();
+
+  // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
+  const isTrial = subscription?.isTrial ?? false;
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
@@ -36,9 +40,8 @@ const WebLayout = ({ children }: WebLayoutProps) => {
           onOpenHelpGuide={() => {}}
         />
 
-        {/* Subscription / Trial Banners */}
-        <TrialBanner />
-        <SubscriptionExpiryBanner />
+        {/* Single subscription/trial banner — never both */}
+        {isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />}
 
         {/* Content — no heavy page transitions */}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
