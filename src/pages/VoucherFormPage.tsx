@@ -844,11 +844,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         });
         txId = (txResult as any)?.transaction_id || null;
 
-        // Update deposit account if custom box/bank
-        if (txId && depositAccountCode !== "1110") {
-          await supabase.from("transactions").update({
-            debit_account_code: depositAccountCode,
-          }).eq("id", txId);
+        // Update deposit account and workshop if needed
+        if (txId) {
+          const txUpdates: any = {};
+          if (depositAccountCode !== "1110") txUpdates.debit_account_code = depositAccountCode;
+          if (selectedWorkshop) { txUpdates.workshop_id = selectedWorkshop.id; txUpdates.cost_center_name = selectedWorkshop.name; }
+          if (Object.keys(txUpdates).length > 0) await supabase.from("transactions").update(txUpdates).eq("id", txId);
         }
       } else if (!asDraft && isReceipt && useDirectTransaction) {
         // Direct transaction for account party type or foreign currency
