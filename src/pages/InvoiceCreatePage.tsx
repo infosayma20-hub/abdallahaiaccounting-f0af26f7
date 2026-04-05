@@ -563,6 +563,13 @@ const InvoiceCreatePage = () => {
     const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
 
+    // If tax is disabled at company level, skip all tax calculations
+    if (!taxEnabled) {
+      const total = grossTotal - totalDiscount;
+      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount, remainingAmount: total - paidAmount };
+    }
+
     if (form.taxInclusive) {
       // Tax-inclusive: prices already contain tax, extract it
       let totalTax = 0;
@@ -589,7 +596,7 @@ const InvoiceCreatePage = () => {
       const paidAmount = form.paymentMethod === "credit" ? 0 : total;
       return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
     }
-  }, [form.items, form.paymentMethod, form.taxInclusive, getItemDiscountAmount]);
+  }, [form.items, form.paymentMethod, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
