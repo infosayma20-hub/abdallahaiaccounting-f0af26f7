@@ -271,7 +271,7 @@ export default function WorkshopsPage() {
     setLoading(true);
     const [{ data }, { data: payData }, { data: txData }] = await Promise.all([
       supabase.from("workshops").select("*").order("created_at", { ascending: false }),
-      supabase.from("workshop_payments").select("workshop_id, amount"),
+      supabase.from("workshop_payments").select("workshop_id, amount, linked_transaction_id"),
       supabase.from("transactions").select("id, workshop_id, transaction_type, amount, transaction_date, description, reference, payment_method, debit_account_code, credit_account_code, contact_id").not("workshop_id", "is", null).eq("is_deleted", false),
     ]);
     const ws = (data as any) || [];
