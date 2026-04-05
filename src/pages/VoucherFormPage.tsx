@@ -941,6 +941,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (receiptError) throw receiptError;
 
+        // Update transaction reference with receipt number
+        if (txId && receipt?.receipt_number) {
+          await supabase.from("transactions").update({ reference: receipt.receipt_number }).eq("id", txId);
+        }
+
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && receipt) {
           const links = selectedInvoices.map(inv => ({
@@ -1021,6 +1026,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .single();
 
         if (voucherError) throw voucherError;
+
+        // Update transaction reference with voucher ref number
+        if (txId && voucher?.ref_number) {
+          await supabase.from("transactions").update({ reference: voucher.ref_number }).eq("id", txId);
+        }
 
         if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
           const chequeRows = cheques.filter(c => c.number).map(c => ({
