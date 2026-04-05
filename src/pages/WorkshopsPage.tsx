@@ -2104,12 +2104,37 @@ export default function WorkshopsPage() {
 
                   {/* Payments & Expenses indicator */}
                   <div className="px-4 py-2 border-t border-border/50 space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">المقبوضات</span>
-                      <strong className={`font-bold ${(workshopPaymentsMap[ws.id] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
-                        {(workshopPaymentsMap[ws.id] || 0).toLocaleString()} ₪
-                      </strong>
-                    </div>
+                    {(() => {
+                      const totalReceipts = (workshopPaymentsMap[ws.id] || 0) + (workshopVoucherReceiptsMap[ws.id] || 0);
+                      const totalExpenses = workshopVoucherExpensesMap[ws.id] || 0;
+                      const netBalance = totalReceipts - totalExpenses;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">المقبوضات</span>
+                            <strong className={`font-bold ${totalReceipts > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                              {totalReceipts.toLocaleString()} ₪
+                            </strong>
+                          </div>
+                          {totalExpenses > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">المصروفات</span>
+                              <strong className="font-bold text-destructive">
+                                {totalExpenses.toLocaleString()} ₪
+                              </strong>
+                            </div>
+                          )}
+                          {(totalReceipts > 0 || totalExpenses > 0) && (
+                            <div className="flex items-center justify-between border-t border-border/30 pt-1">
+                              <span className="font-semibold text-foreground">الصافي</span>
+                              <strong className={`font-bold ${netBalance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                                {netBalance.toLocaleString()} ₪
+                              </strong>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Actions */}
