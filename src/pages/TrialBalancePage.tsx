@@ -680,19 +680,8 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
         {/* Report Level Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground font-medium">مستوى التقرير:</span>
-          {[1, 2, 3, 4].map(level => (
-            <button
-              key={level}
-              onClick={() => { setReportLevel(level); setExpandedAccounts(new Set()); }}
-              className={`w-8 h-8 rounded-full text-xs font-bold transition-all ${
-                reportLevel === level
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted/60 text-muted-foreground hover:bg-muted border border-border/50"
-              }`}
-            >
-              {level}
-            </button>
-          ))}
+        </div>
+        <div className="flex items-center gap-4 flex-wrap text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox checked={showComparison} onCheckedChange={(v) => setShowComparison(!!v)} />
             <span className="text-muted-foreground">مقارنة الفترة السابقة</span>
