@@ -779,6 +779,13 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
       };
 
+      const debitCode = form.paymentMethod === "cash" ? "1110" : form.paymentMethod === "transfer" ? "1120" : form.paymentMethod === "cheque" ? "1150" : "1130";
+      const transactionType = form.type === "sales"
+        ? form.paymentMethod === "cash" ? "sale_cash" : form.paymentMethod === "transfer" ? "sale_bank" : form.paymentMethod === "cheque" ? "sale_cheque" : "sale_credit"
+        : form.paymentMethod === "cash" ? "purchase_cash" : form.paymentMethod === "transfer" ? "purchase_bank" : form.paymentMethod === "cheque" ? "purchase_cheque" : "purchase_credit";
+      const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
+      const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
+
       const buildItemsPayload = (invoiceId: string) =>
         form.items
           .filter(i => i.description.trim())
@@ -794,6 +801,22 @@ const InvoiceCreatePage = () => {
             total_amount: calcItemSubtotal(item),
             unit_of_measure: item.unitOfMeasure,
           }));
+
+      const syncContactBalance = async (targetContactId: string | null, delta: number) => {
+        if (!targetContactId || !delta) return;
+        const { data: contactRow } = await supabase
+          .from("contacts")
+          .select("current_balance")
+          .eq("id", targetContactId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!contactRow) return;
+        await supabase
+          .from("contacts")
+          .update({ current_balance: Number(contactRow.current_balance || 0) + delta } as any)
+          .eq("id", targetContactId)
+          .eq("user_id", user.id);
+      };
 
       if (isEditMode && editInvoiceId) {
         const updatePayload: Record<string, any> = { ...invoicePayload };
@@ -818,6 +841,79 @@ const InvoiceCreatePage = () => {
         if (updatedItems.length > 0) {
           const { error: itemsError } = await supabase.from("invoice_items").insert(updatedItems as any);
           if (itemsError) throw itemsError;
+        }
+
+        if (!asDraft) {
+          const txPayload = {
+            user_id: user.id,
+            transaction_date: form.date,
+            description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber} - ${form.contactName}`,
+            debit_account_code: form.type === "sales" ? debitCode : "5110",
+            credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2110" : debitCode,
+            amount: amountILS,
+            currency: form.currency,
+            foreign_amount: isForeign ? summary.total : null,
+            exchange_rate: isForeign ? form.exchangeRate : null,
+            transaction_type: transactionType,
+            contact_id: contactId,
+            reference: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
+            payment_method: paymentMethodDb,
+            idempotency_key: `INV-${editInvoiceId}`,
+            is_deleted: false,
+          };
+
+          let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
+          if (!linkedTransactionId) {
+            const { data: existingTx } = await supabase
+              .from("transactions")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("idempotency_key", `INV-${editInvoiceId}`)
+              .maybeSingle();
+            linkedTransactionId = existingTx?.id || null;
+          }
+
+          if (linkedTransactionId) {
+            const { error: txUpdateError } = await supabase
+              .from("transactions")
+              .update(txPayload as any)
+              .eq("id", linkedTransactionId)
+              .eq("user_id", user.id);
+            if (txUpdateError) throw txUpdateError;
+          } else {
+            const { data: insertedTx, error: txInsertError } = await supabase
+              .from("transactions")
+              .insert(txPayload as any)
+              .select("id")
+              .single();
+            if (txInsertError) throw txInsertError;
+            linkedTransactionId = insertedTx.id;
+          }
+
+          await supabase
+            .from("invoices")
+            .update({ linked_transaction_id: linkedTransactionId } as any)
+            .eq("id", editInvoiceId)
+            .eq("user_id", user.id);
+
+          if (form.type === "sales") {
+            const oldContactId = originalInvoiceRef.current?.contactId || null;
+            const oldRemaining = Number(originalInvoiceRef.current?.remainingAmount || 0);
+            const newRemaining = Number(summary.remainingAmount || 0);
+            if (oldContactId && oldContactId !== contactId) {
+              await syncContactBalance(oldContactId, -oldRemaining);
+              await syncContactBalance(contactId, newRemaining);
+            } else {
+              await syncContactBalance(contactId, newRemaining - oldRemaining);
+            }
+          }
+
+          originalInvoiceRef.current = {
+            linkedTransactionId,
+            contactId: contactId || null,
+            remainingAmount: Number(summary.remainingAmount || 0),
+            invoiceNumber: originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber,
+          };
         }
 
         await supabase.from("invoice_activity_log").insert({
@@ -889,11 +985,7 @@ const InvoiceCreatePage = () => {
           } as any);
         }
 
-        const debitCode = form.paymentMethod === "cash" ? "1110" : form.paymentMethod === "transfer" ? "1120" : form.paymentMethod === "cheque" ? "1150" : "1130";
-        const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
-        const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
-
-        await supabase.from("transactions").insert({
+        const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
@@ -903,12 +995,24 @@ const InvoiceCreatePage = () => {
           currency: form.currency,
           foreign_amount: isForeign ? summary.total : null,
           exchange_rate: isForeign ? form.exchangeRate : null,
-          transaction_type: form.type === "sales" ? "sale" : "purchase",
+          transaction_type: transactionType,
           contact_id: contactId,
           reference: dbInv.invoice_number,
           payment_method: paymentMethodDb,
           idempotency_key: `INV-${dbInv.id}`,
-        } as any);
+        } as any).select("id").single();
+        if (txError) throw txError;
+
+        await supabase.from("invoices").update({ linked_transaction_id: txData.id } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        if (form.type === "sales") {
+          await syncContactBalance(contactId, Number(summary.remainingAmount || 0));
+        }
+        originalInvoiceRef.current = {
+          linkedTransactionId: txData.id,
+          contactId: contactId || null,
+          remainingAmount: Number(summary.remainingAmount || 0),
+          invoiceNumber: dbInv.invoice_number,
+        };
       }
 
       // Tax ledger integration
