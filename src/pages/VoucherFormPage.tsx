@@ -790,7 +790,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               bank_account_id: bankAccountId,
               deposit_account_code: depositAccountCode,
               notes,
-            })
+              workshop_id: selectedWorkshop?.id || null,
+            } as any)
             .eq("id", editId)
             .eq("user_id", user.id);
           if (error) throw error;
