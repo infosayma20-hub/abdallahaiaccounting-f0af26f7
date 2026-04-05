@@ -157,8 +157,9 @@ export function useDashboardData() {
           .maybeSingle(),
         supabase
           .from("invoice_items")
-          .select("product_name, quantity, total_amount, invoice_id")
-          .limit(1000),
+          .select("product_name, quantity, total_amount, invoice_id, invoices!inner(user_id, invoice_type)")
+          .eq("invoices.user_id", user.id)
+          .eq("invoices.invoice_type", "sale"),
         supabase
           .from("company_settings")
           .select("logo_url")
