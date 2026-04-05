@@ -76,7 +76,7 @@ export function usePortalData(userId: string | undefined) {
   });
   const intervalRef = useRef<number>();
 
-  const fetchData = useCallback(async (customDate?: string) => {
+  const fetchData = useCallback(async (customDate?: string, customDateTo?: string) => {
     if (!userId) return;
     try {
       setLoading(true);
@@ -84,7 +84,19 @@ export function usePortalData(userId: string | undefined) {
       let shiftEnd: string;
       let bd: BusinessDay;
 
-      if (customDate) {
+      if (customDate && customDateTo) {
+        // Date range mode
+        const rangeStart = getCalendarRangeForDate(customDate);
+        const rangeEnd = getCalendarRangeForDate(customDateTo);
+        shiftStart = rangeStart.start;
+        shiftEnd = rangeEnd.end;
+        const d = new Date(`${customDate}T00:00:00`);
+        bd = {
+          date: d, dateStr: customDate,
+          label: 'فترة مخصصة', isActive: false,
+          isBetweenShifts: false, shiftStart: rangeStart.startDate, shiftEnd: rangeEnd.endDate,
+        };
+      } else if (customDate) {
         const range = getCalendarRangeForDate(customDate);
         shiftStart = range.start;
         shiftEnd = range.end;
