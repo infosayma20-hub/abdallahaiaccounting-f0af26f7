@@ -1667,6 +1667,51 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </CardContent>
       </Card>
 
+      {/* Workshop / Cost Center (optional) */}
+      {workshopList.length > 0 && (
+        <div className="relative" ref={workshopDropdownRef}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Wrench className="h-4 w-4" style={{ color: "#6B7280" }} />
+            <span style={{ fontSize: 13, color: "#6B7280", fontFamily: "Cairo" }}>مركز التكلفة / الورشة (اختياري)</span>
+          </div>
+          {selectedWorkshop ? (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50 bg-card">
+              <span style={{ background: "#E8F5E9", color: "#2E7D32", padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                🏗️ {selectedWorkshop.name} {selectedWorkshop.customer_name ? `(${selectedWorkshop.customer_name})` : ""}
+              </span>
+              <button onClick={() => setSelectedWorkshop(null)} className="mr-auto p-1 rounded hover:bg-secondary/80"><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Wrench className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={workshopSearch}
+                onChange={e => { setWorkshopSearch(e.target.value); setShowWorkshopDropdown(true); }}
+                onFocus={() => setShowWorkshopDropdown(true)}
+                placeholder="ابحث عن ورشة..."
+                className="pr-9"
+              />
+            </div>
+          )}
+          {showWorkshopDropdown && !selectedWorkshop && (
+            <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              {workshopList
+                .filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || ""))
+                .map(ws => (
+                  <button key={ws.id} onClick={() => { setSelectedWorkshop(ws); setWorkshopSearch(""); setShowWorkshopDropdown(false); }}
+                    className="w-full text-right px-3 py-2 hover:bg-secondary/60 text-xs flex items-center justify-between gap-2 transition-colors">
+                    <span className="text-muted-foreground text-[10px]">{ws.status === "active" ? "نشطة" : "مكتملة"}</span>
+                    <span className="font-medium text-foreground">{ws.name} {ws.customer_name ? <span className="text-muted-foreground">({ws.customer_name})</span> : ""}</span>
+                  </button>
+                ))}
+              {workshopList.filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || "")).length === 0 && (
+                <div className="p-3 text-center text-xs text-muted-foreground">لا توجد ورشات</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Row 2: Payment Method, Currency & Amount */}
       <Card>
         <CardContent className="p-5 space-y-4">
