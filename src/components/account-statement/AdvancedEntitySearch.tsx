@@ -67,7 +67,7 @@ const balColor = (n: number, txCount: number, tab?: EntityTab) => {
   // Customers & Employees: debit (positive) = green (asset), credit (negative) = red
   // Suppliers: credit (negative) = green (normal liability), debit (positive) = red
   if (tab === "customers" || tab === "employees") return n > 0 ? "text-emerald-600" : "text-red-600";
-  if (tab === "suppliers") return n < 0 ? "text-emerald-600" : "text-red-600";
+  if (tab === "suppliers") return n > 0 ? "text-emerald-600" : "text-red-600";
   return n > 0 ? "text-red-600" : "text-emerald-600";
 };
 
