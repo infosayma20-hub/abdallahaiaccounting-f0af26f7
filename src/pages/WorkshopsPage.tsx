@@ -216,6 +216,9 @@ export default function WorkshopsPage() {
   const [savingWsType, setSavingWsType] = useState(false);
   const [deleteWsTypeId, setDeleteWsTypeId] = useState<string | null>(null);
   const [workshopPaymentsMap, setWorkshopPaymentsMap] = useState<Record<string, number>>({});
+  const [workshopVoucherReceiptsMap, setWorkshopVoucherReceiptsMap] = useState<Record<string, number>>({});
+  const [workshopVoucherExpensesMap, setWorkshopVoucherExpensesMap] = useState<Record<string, number>>({});
+  const [voucherTransactions, setVoucherTransactions] = useState<any[]>([]);
   const loadCustomWsTypes = async () => {
     const { data } = await supabase.from("custom_workshop_types" as any).select("id, name, icon").eq("is_active", true).order("created_at");
     setCustomWsTypes((data as any[]) || []);
