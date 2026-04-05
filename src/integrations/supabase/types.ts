@@ -9565,6 +9565,107 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_statements: {
+        Row: {
+          balance_amount: number | null
+          company_id: string | null
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          created_by: string | null
+          date_from: string
+          date_to: string
+          expires_at: string | null
+          id: string
+          token: string
+          user_id: string
+          view_count: number | null
+          viewed_at: string | null
+        }
+        Insert: {
+          balance_amount?: number | null
+          company_id?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_from: string
+          date_to: string
+          expires_at?: string | null
+          id?: string
+          token?: string
+          user_id: string
+          view_count?: number | null
+          viewed_at?: string | null
+        }
+        Update: {
+          balance_amount?: number | null
+          company_id?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_from?: string
+          date_to?: string
+          expires_at?: string | null
+          id?: string
+          token?: string
+          user_id?: string
+          view_count?: number | null
+          viewed_at?: string | null
+        }
+        Relationships: []
+      }
+      statement_send_log: {
+        Row: {
+          balance_at_send: number | null
+          company_id: string | null
+          contact_id: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          id: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_via: string | null
+          shared_statement_id: string | null
+          user_id: string
+        }
+        Insert: {
+          balance_at_send?: number | null
+          company_id?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          id?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_via?: string | null
+          shared_statement_id?: string | null
+          user_id: string
+        }
+        Update: {
+          balance_at_send?: number | null
+          company_id?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          id?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_via?: string | null
+          shared_statement_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statement_send_log_shared_statement_id_fkey"
+            columns: ["shared_statement_id"]
+            isOneToOne: false
+            referencedRelation: "shared_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string

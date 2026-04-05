@@ -1,0 +1,198 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send } from 'lucide-react';
+import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
+
+const ACCENT = '#2A7B9B';
+
+function getThemeColors(theme: 'light' | 'dark') {
+  return theme === 'dark'
+    ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)', chipBg: 'rgba(230,237,243,0.06)', inputBg: 'rgba(230,237,243,0.07)', inputBorder: 'rgba(230,237,243,0.12)' }
+    : { card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)', textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)', chipBg: 'rgba(27,58,92,0.04)', inputBg: '#F5F5F5', inputBorder: 'rgba(27,58,92,0.12)' };
+}
+
+const fmt = (n: number) => '₪' + Math.abs(n).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+interface Receivable {
+  id: string;
+  name: string;
+  phone: string;
+  balance: number;
+  maxDays: number;
+  lastSent: string | null;
+}
+
+export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+  const t = getThemeColors(theme);
+  const [receivables, setReceivables] = useState<Receivable[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'balance' | 'days' | 'name'>('balance');
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Receivable | null>(null);
+  const [totalOutstanding, setTotalOutstanding] = useState(0);
+
+  useEffect(() => {
+    fetchReceivables();
+  }, []);
+
+  const fetchReceivables = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke('malaki-data', {
+        body: { action: 'receivables_list' },
+      });
+      if (data?.receivables) {
+        setReceivables(data.receivables);
+        setTotalOutstanding(data.receivables.reduce((s: number, r: any) => s + r.balance, 0));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openWhatsApp = (contact: Receivable) => {
+    setSelectedContact(contact);
+    setComposerOpen(true);
+  };
+
+  const sorted = [...receivables]
+    .filter(r => !search || r.name.includes(search))
+    .sort((a, b) => {
+      if (sortBy === 'balance') return b.balance - a.balance;
+      if (sortBy === 'days') return b.maxDays - a.maxDays;
+      return a.name.localeCompare(b.name, 'ar');
+    });
+
+  return (
+    <div>
+      {/* Header KPI */}
+      <div style={{
+        background: t.card, borderRadius: 12, padding: 16, marginBottom: 12,
+        border: `1px solid ${t.border}`,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ fontSize: 12, color: t.textMuted, margin: 0 }}>🔴 إجمالي الذمم المدينة</p>
+            <p style={{ fontSize: 24, fontWeight: 700, color: '#DC2626', margin: '4px 0 0' }}>{fmt(totalOutstanding)}</p>
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <p style={{ fontSize: 11, color: t.textFaint, margin: 0 }}>{receivables.length} زبون</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Sort */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: t.textFaint }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="بحث باسم الزبون..."
+            style={{
+              width: '100%', padding: '8px 32px 8px 10px', borderRadius: 8,
+              border: `1px solid ${t.inputBorder}`, background: t.inputBg,
+              color: t.text, fontSize: 13, fontFamily: 'Tajawal, sans-serif',
+              outline: 'none',
+            }}
+          />
+        </div>
+        <button
+          onClick={() => setSortBy(s => s === 'balance' ? 'days' : s === 'days' ? 'name' : 'balance')}
+          style={{
+            background: t.chipBg, border: `1px solid ${t.border}`, borderRadius: 8,
+            padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+            color: t.textMuted, fontSize: 11, fontFamily: 'Tajawal, sans-serif',
+          }}
+        >
+          <ArrowUpDown size={12} />
+          {sortBy === 'balance' ? 'أعلى رصيد' : sortBy === 'days' ? 'أقدم فاتورة' : 'الاسم'}
+        </button>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <Loader2 size={24} className="animate-spin" style={{ color: ACCENT }} />
+        </div>
+      ) : sorted.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: t.textFaint, fontSize: 13 }}>
+          لا توجد ذمم مدينة مستحقة
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sorted.map(contact => {
+            const daysColor = contact.maxDays > 30 ? '#DC2626' : contact.maxDays > 14 ? '#F59E0B' : '#059669';
+            const sentLabel = contact.lastSent
+              ? `آخر إرسال: ${Math.round((Date.now() - new Date(contact.lastSent).getTime()) / 86400000)} يوم`
+              : 'لم يُرسل بعد';
+            const sentColor = !contact.lastSent ? '#9CA3AF' : (Date.now() - new Date(contact.lastSent).getTime() > 30 * 86400000 ? '#F59E0B' : '#059669');
+
+            return (
+              <div key={contact.id} style={{
+                background: t.card, borderRadius: 12, padding: 14,
+                border: `1px solid ${t.border}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: t.text, margin: 0 }}>{contact.name}</p>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#DC2626' }}>{fmt(contact.balance)}</span>
+                      <span style={{ fontSize: 11, color: t.textFaint }}>مستحقة</span>
+                      <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 4, background: `${daysColor}15`, color: daysColor, fontWeight: 600 }}>
+                        {contact.maxDays} يوم
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 10, color: sentColor, margin: '4px 0 0' }}>{sentLabel}</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <button
+                    onClick={() => openWhatsApp(contact)}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                      padding: '10px 12px', borderRadius: 8, border: 'none',
+                      background: '#25D366', color: 'white', fontSize: 12, fontWeight: 600,
+                      fontFamily: 'Tajawal, sans-serif', cursor: 'pointer', minHeight: 44,
+                    }}
+                  >
+                    <MessageCircle size={16} />
+                    واتساب
+                  </button>
+                  {contact.phone && (
+                    <a
+                      href={`tel:${contact.phone}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '10px 14px', borderRadius: 8, border: `1px solid ${t.border}`,
+                        background: t.chipBg, color: t.text, textDecoration: 'none', minHeight: 44,
+                      }}
+                    >
+                      <Phone size={16} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* WhatsApp Composer */}
+      {selectedContact && (
+        <WhatsAppComposerSheet
+          open={composerOpen}
+          onClose={() => { setComposerOpen(false); setSelectedContact(null); }}
+          contact={selectedContact}
+          theme={theme}
+          onSent={() => fetchReceivables()}
+        />
+      )}
+    </div>
+  );
+}
