@@ -23,6 +23,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, st
 import { multiWordMatchAny } from "@/lib/utils";
 
 interface TrialBalanceRow {
+  accountId: string;
   accountName: string;
   accountCode: string;
   accountType: string;
@@ -38,6 +39,14 @@ interface TrialBalanceRow {
   prevBalance?: number;
   isChild?: boolean;
   parentCode?: string;
+  depth: number;
+  hasChildren: boolean;
+  childrenCodes: string[];
+  // Rolled-up values (sum of all descendants)
+  rolledDebit: number;
+  rolledCredit: number;
+  rolledOpeningBalance: number;
+  rolledClosingBalance: number;
 }
 
 const ACCOUNT_TYPE_ORDER: Record<string, number> = {
