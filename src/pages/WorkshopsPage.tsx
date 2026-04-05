@@ -2071,12 +2071,14 @@ export default function WorkshopsPage() {
                     <span>📐 {ws.area_sqm ? `${ws.area_sqm} م²` : "—"}</span>
                   </div>
 
-                  {/* Payments indicator */}
-                  <div className="px-4 py-2 border-t border-border/50 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">المقبوضات</span>
-                    <strong className={`font-bold ${(workshopPaymentsMap[ws.id] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
-                      {(workshopPaymentsMap[ws.id] || 0).toLocaleString()} ₪
-                    </strong>
+                  {/* Payments & Expenses indicator */}
+                  <div className="px-4 py-2 border-t border-border/50 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">المقبوضات</span>
+                      <strong className={`font-bold ${(workshopPaymentsMap[ws.id] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                        {(workshopPaymentsMap[ws.id] || 0).toLocaleString()} ₪
+                      </strong>
+                    </div>
                   </div>
 
                   {/* Actions */}

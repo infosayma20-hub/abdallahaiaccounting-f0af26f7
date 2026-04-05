@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench } from "lucide-react";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -213,6 +213,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [violationReason, setViolationReason] = useState("");
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Workshop / Cost Center
+  const [workshopList, setWorkshopList] = useState<{ id: string; name: string; customer_name: string | null; status: string }[]>([]);
+  const [selectedWorkshop, setSelectedWorkshop] = useState<{ id: string; name: string; customer_name: string | null } | null>(null);
+  const [workshopSearch, setWorkshopSearch] = useState("");
+  const [showWorkshopDropdown, setShowWorkshopDropdown] = useState(false);
+  const workshopDropdownRef = useRef<HTMLDivElement>(null);
+
   // Click-outside handler for all dropdowns
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -224,6 +231,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
       if (glAccountDropdownRef.current && !glAccountDropdownRef.current.contains(e.target as Node)) {
         setShowGlAccountDropdown(false);
+      }
+      if (workshopDropdownRef.current && !workshopDropdownRef.current.contains(e.target as Node)) {
+        setShowWorkshopDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -318,7 +328,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .then(({ data }) => setEmployeeList(data || []));
   }, [user, isReceipt]);
 
-  // ─── Fetch exchange rate when currency changes ───
+  // Load workshops for cost center selector
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("workshops")
+      .select("id, name, customer_name, status")
+      .eq("user_id", user.id)
+      .in("status", ["active", "completed"])
+      .order("name")
+      .then(({ data }) => setWorkshopList(data || []));
+  }, [user]);
+
   useEffect(() => {
     if (currency === "ILS") {
       setExchangeRate(1);
@@ -421,6 +441,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
               if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
             }
+            if ((data as any).workshop_id) {
+              const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
+              if (ws) setSelectedWorkshop(ws);
+            }
           }
         } else {
           const { data } = await supabase
@@ -448,6 +472,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             if (data.contact_id) {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
               if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
+            }
+            if ((data as any).workshop_id) {
+              const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
+              if (ws) setSelectedWorkshop(ws);
             }
           }
         }
@@ -762,7 +790,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               bank_account_id: bankAccountId,
               deposit_account_code: depositAccountCode,
               notes,
-            })
+              workshop_id: selectedWorkshop?.id || null,
+            } as any)
             .eq("id", editId)
             .eq("user_id", user.id);
           if (error) throw error;
@@ -785,7 +814,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cheque_number: paymentMethod === "شيك" ? checkNumber : null,
               cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
               cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
-            })
+              workshop_id: selectedWorkshop?.id || null,
+            } as any)
             .eq("id", editId)
             .eq("user_id", user.id);
           if (error) throw error;
@@ -814,11 +844,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         });
         txId = (txResult as any)?.transaction_id || null;
 
-        // Update deposit account if custom box/bank
-        if (txId && depositAccountCode !== "1110") {
-          await supabase.from("transactions").update({
-            debit_account_code: depositAccountCode,
-          }).eq("id", txId);
+        // Update deposit account and workshop if needed
+        if (txId) {
+          const txUpdates: any = {};
+          if (depositAccountCode !== "1110") txUpdates.debit_account_code = depositAccountCode;
+          if (selectedWorkshop) { txUpdates.workshop_id = selectedWorkshop.id; txUpdates.cost_center_name = selectedWorkshop.name; }
+          if (Object.keys(txUpdates).length > 0) await supabase.from("transactions").update(txUpdates).eq("id", txId);
         }
       } else if (!asDraft && isReceipt && useDirectTransaction) {
         // Direct transaction for account party type or foreign currency
@@ -838,7 +869,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           idempotency_key: `RCV-NEW-${Date.now()}`,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
-        }).select("id").single();
+          workshop_id: selectedWorkshop?.id || null,
+          cost_center_name: selectedWorkshop?.name || null,
+        } as any).select("id").single();
         txId = txData?.id || null;
       }
 
@@ -910,6 +943,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
           expense_category: isEmployeePayment ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
+          workshop_id: selectedWorkshop?.id || null,
+          cost_center_name: selectedWorkshop?.name || null,
         } as any).select("id").single();
         txId = txData?.id || null;
       }
@@ -935,6 +970,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             linked_transaction_id: txId,
             attachments: attachments.length > 0 ? attachments : [],
             auto_allocate: autoAllocate,
+            workshop_id: selectedWorkshop?.id || null,
           } as any)
           .select("id, receipt_number")
           .single();
@@ -1021,6 +1057,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             posted_at: !asDraft ? new Date().toISOString() : null,
             employee_id: isEmpPay ? selectedEmployee.id : null,
             attachments: attachments.length > 0 ? attachments : [],
+            workshop_id: selectedWorkshop?.id || null,
           } as any)
           .select("id, ref_number")
           .single();
@@ -1629,6 +1666,51 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Workshop / Cost Center (optional) */}
+      {workshopList.length > 0 && (
+        <div className="relative" ref={workshopDropdownRef}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Wrench className="h-4 w-4" style={{ color: "#6B7280" }} />
+            <span style={{ fontSize: 13, color: "#6B7280", fontFamily: "Cairo" }}>مركز التكلفة / الورشة (اختياري)</span>
+          </div>
+          {selectedWorkshop ? (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50 bg-card">
+              <span style={{ background: "#E8F5E9", color: "#2E7D32", padding: "2px 10px", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                🏗️ {selectedWorkshop.name} {selectedWorkshop.customer_name ? `(${selectedWorkshop.customer_name})` : ""}
+              </span>
+              <button onClick={() => setSelectedWorkshop(null)} className="mr-auto p-1 rounded hover:bg-secondary/80"><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Wrench className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={workshopSearch}
+                onChange={e => { setWorkshopSearch(e.target.value); setShowWorkshopDropdown(true); }}
+                onFocus={() => setShowWorkshopDropdown(true)}
+                placeholder="ابحث عن ورشة..."
+                className="pr-9"
+              />
+            </div>
+          )}
+          {showWorkshopDropdown && !selectedWorkshop && (
+            <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              {workshopList
+                .filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || ""))
+                .map(ws => (
+                  <button key={ws.id} onClick={() => { setSelectedWorkshop(ws); setWorkshopSearch(""); setShowWorkshopDropdown(false); }}
+                    className="w-full text-right px-3 py-2 hover:bg-secondary/60 text-xs flex items-center justify-between gap-2 transition-colors">
+                    <span className="text-muted-foreground text-[10px]">{ws.status === "active" ? "نشطة" : "مكتملة"}</span>
+                    <span className="font-medium text-foreground">{ws.name} {ws.customer_name ? <span className="text-muted-foreground">({ws.customer_name})</span> : ""}</span>
+                  </button>
+                ))}
+              {workshopList.filter(ws => !workshopSearch || multiWordMatchAny(workshopSearch, ws.name, ws.customer_name || "")).length === 0 && (
+                <div className="p-3 text-center text-xs text-muted-foreground">لا توجد ورشات</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Row 2: Payment Method, Currency & Amount */}
       <Card>
