@@ -869,7 +869,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           idempotency_key: `RCV-NEW-${Date.now()}`,
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
-        }).select("id").single();
+          workshop_id: selectedWorkshop?.id || null,
+          cost_center_name: selectedWorkshop?.name || null,
+        } as any).select("id").single();
         txId = txData?.id || null;
       }
 
