@@ -65,20 +65,24 @@ Deno.serve(async (req) => {
 
     // Fetch portal settings scoped to the resolved data owner
     if (linkedUserId) {
-      const { data: settings } = await supabase
+      const { data: settingsRows, error: settingsError } = await supabase
         .from("malaki_portal_settings")
         .select("*")
         .eq("linked_user_id", linkedUserId)
-        .single();
-      portalSettings = settings;
+        .order("updated_at", { ascending: false })
+        .limit(1);
 
-      // Auto-create portal settings if none exist for this owner
+      if (settingsError) throw settingsError;
+      portalSettings = settingsRows?.[0] ?? null;
+
+      // Auto-create portal settings only when none exist for this owner
       if (!portalSettings) {
-        const { data: newSettings } = await supabase
+        const { data: newSettings, error: createSettingsError } = await supabase
           .from("malaki_portal_settings")
           .insert({ linked_user_id: linkedUserId })
           .select("*")
           .single();
+        if (createSettingsError) throw createSettingsError;
         portalSettings = newSettings;
       }
     }
