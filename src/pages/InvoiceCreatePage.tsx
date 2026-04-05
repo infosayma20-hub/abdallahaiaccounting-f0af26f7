@@ -177,6 +177,12 @@ const InvoiceCreatePage = () => {
   const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
+  const originalInvoiceRef = useRef<{
+    linkedTransactionId: string | null;
+    contactId: string | null;
+    remainingAmount: number;
+    invoiceNumber: string | null;
+  } | null>(null);
 
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
