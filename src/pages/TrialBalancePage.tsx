@@ -839,19 +839,23 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                         <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums font-mono">
                           {row.accountCode || "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-foreground font-medium">
-                          <div style={{ paddingRight: row.isChild ? 24 : 0 }} className="flex items-center gap-1">
-                            {row.isChild && <span className="text-muted-foreground/40">└</span>}
-                            {(row.totalDebit > 0 || row.totalCredit > 0) ? (
-                              <button
-                                onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
-                                className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs font-medium ${row.isChild ? "text-muted-foreground" : "text-primary"}`}
-                              >
+                        <td className="px-4 py-3 text-xs text-foreground">
+                          <div style={{ paddingRight: `${indent}px` }} className="flex items-center gap-1">
+                            {canExpand && (
+                              <button onClick={() => toggleExpand(row.accountCode)} className="p-0.5 hover:bg-muted rounded transition-colors">
+                                <svg className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-0" : "-rotate-90"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
+                              </button>
+                            )}
+                            {(displayDebit > 0 || displayCredit > 0) ? (
+                              <button onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
+                                className={`hover:underline cursor-pointer bg-transparent border-none p-0 text-xs text-primary ${row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}`}>
                                 {row.accountName}
-                                {row.isChild && <span className="text-[10px] text-muted-foreground/50 mr-1 font-mono">({row.accountCode})</span>}
                               </button>
                             ) : (
-                              <span>{row.accountName}</span>
+                              <span className={row.depth === 1 ? "font-bold text-[13px]" : row.depth === 2 ? "font-semibold" : "font-medium"}>{row.accountName}</span>
+                            )}
+                            {canExpand && !isExpanded && (
+                              <span className="text-[9px] text-muted-foreground/50 mr-1">({row.childrenCodes.length} فرعي)</span>
                             )}
                           </div>
                         </td>
@@ -861,22 +865,22 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
                           </span>
                         </td>
                         {dateFrom && (
-                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${row.openingBalance > 0 ? "text-amber-600 dark:text-amber-400" : row.openingBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                            {row.openingBalance !== 0 ? `${row.openingBalance > 0 ? "" : "-"}${Math.abs(row.openingBalance).toLocaleString()}` : "—"}
+                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${displayOpening > 0 ? "text-amber-600 dark:text-amber-400" : displayOpening < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {displayOpening !== 0 ? `${displayOpening > 0 ? "" : "-"}${Math.abs(displayOpening).toLocaleString()}` : "—"}
                           </td>
                         )}
                         <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">
-                          {row.totalDebit > 0 ? row.totalDebit.toLocaleString() : "—"}
+                          {displayDebit > 0 ? displayDebit.toLocaleString() : "—"}
                         </td>
                         <td className="px-4 py-3 text-xs font-bold text-destructive tabular-nums text-left">
-                          {row.totalCredit > 0 ? row.totalCredit.toLocaleString() : "—"}
+                          {displayCredit > 0 ? displayCredit.toLocaleString() : "—"}
                         </td>
-                        <td className={`px-4 py-3 text-xs font-bold tabular-nums text-left ${row.balance > 0 ? "text-primary" : row.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                          {row.balance !== 0 ? `${row.balance > 0 ? "" : "-"}${Math.abs(row.balance).toLocaleString()}` : "—"}
+                        <td className={`px-4 py-3 text-xs font-bold tabular-nums text-left ${displayBalance > 0 ? "text-primary" : displayBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {displayBalance !== 0 ? `${displayBalance > 0 ? "" : "-"}${Math.abs(displayBalance).toLocaleString()}` : "—"}
                         </td>
                         {dateFrom && (
-                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${row.closingBalance > 0 ? "text-emerald-600 dark:text-emerald-400" : row.closingBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                            {row.closingBalance !== 0 ? `${row.closingBalance > 0 ? "" : "-"}${Math.abs(row.closingBalance).toLocaleString()}` : "—"}
+                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${displayClosing > 0 ? "text-emerald-600 dark:text-emerald-400" : displayClosing < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {displayClosing !== 0 ? `${displayClosing > 0 ? "" : "-"}${Math.abs(displayClosing).toLocaleString()}` : "—"}
                           </td>
                         )}
                         {showComparison && (
