@@ -864,13 +864,29 @@ const InvoiceCreatePage = () => {
 
           let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
           if (!linkedTransactionId) {
+            // Try idempotency_key first
             const { data: existingTx } = await supabase
               .from("transactions")
               .select("id")
               .eq("user_id", user.id)
               .eq("idempotency_key", `INV-${editInvoiceId}`)
+              .eq("is_deleted", false)
               .maybeSingle();
             linkedTransactionId = existingTx?.id || null;
+          }
+          if (!linkedTransactionId) {
+            // Fallback: search by reference (invoice number) + contact
+            const invoiceRef = originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber;
+            const { data: refTx } = await supabase
+              .from("transactions")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("reference", invoiceRef)
+              .eq("is_deleted", false)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            linkedTransactionId = refTx?.id || null;
           }
 
           if (linkedTransactionId) {
