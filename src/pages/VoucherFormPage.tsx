@@ -943,6 +943,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           foreign_amount: currency !== "ILS" ? amountNum : null,
           exchange_rate: currency !== "ILS" ? exchangeRate : null,
           expense_category: isEmployeePayment ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
+          workshop_id: selectedWorkshop?.id || null,
+          cost_center_name: selectedWorkshop?.name || null,
         } as any).select("id").single();
         txId = txData?.id || null;
       }
