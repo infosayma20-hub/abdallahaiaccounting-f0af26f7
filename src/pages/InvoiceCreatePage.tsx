@@ -1510,21 +1510,21 @@ const InvoiceCreatePage = () => {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           {/* Table Header */}
-          <div className="hidden lg:grid grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground">
+          <div className={`hidden lg:grid ${taxEnabled ? "grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px]" : "grid-cols-[30px_1fr_70px_90px_70px_30px_100px_30px]"} gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground`}>
             <span>#</span>
             <span>المنتج / الخدمة</span>
             <span className="text-center">الكمية</span>
             <span className="text-center">السعر</span>
             <span className="text-center">الخصم</span>
             <span></span>
-            <span className="text-center">تصنيف الضريبة</span>
+            {taxEnabled && <span className="text-center">تصنيف الضريبة</span>}
             <span className="text-center">الإجمالي</span>
             <span></span>
           </div>
 
           <div className="space-y-2">
             {form.items.map((item, idx) => (
-              <div key={item.id} className="lg:grid lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px] gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0">
+              <div key={item.id} className={`lg:grid ${taxEnabled ? "lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px]" : "lg:grid-cols-[30px_1fr_70px_90px_70px_30px_100px_30px]"} gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0`}>
                 {/* Row number */}
                 <span className="hidden lg:block text-[10px] text-muted-foreground font-mono text-center">{idx + 1}</span>
 
