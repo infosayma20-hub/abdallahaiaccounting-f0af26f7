@@ -1057,6 +1057,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             posted_at: !asDraft ? new Date().toISOString() : null,
             employee_id: isEmpPay ? selectedEmployee.id : null,
             attachments: attachments.length > 0 ? attachments : [],
+            workshop_id: selectedWorkshop?.id || null,
           } as any)
           .select("id, ref_number")
           .single();
