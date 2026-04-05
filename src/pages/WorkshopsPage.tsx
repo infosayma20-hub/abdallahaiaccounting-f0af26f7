@@ -216,6 +216,9 @@ export default function WorkshopsPage() {
   const [savingWsType, setSavingWsType] = useState(false);
   const [deleteWsTypeId, setDeleteWsTypeId] = useState<string | null>(null);
   const [workshopPaymentsMap, setWorkshopPaymentsMap] = useState<Record<string, number>>({});
+  const [workshopVoucherReceiptsMap, setWorkshopVoucherReceiptsMap] = useState<Record<string, number>>({});
+  const [workshopVoucherExpensesMap, setWorkshopVoucherExpensesMap] = useState<Record<string, number>>({});
+  const [voucherTransactions, setVoucherTransactions] = useState<any[]>([]);
   const loadCustomWsTypes = async () => {
     const { data } = await supabase.from("custom_workshop_types" as any).select("id, name, icon").eq("is_active", true).order("created_at");
     setCustomWsTypes((data as any[]) || []);
@@ -266,18 +269,46 @@ export default function WorkshopsPage() {
 
   const loadWorkshops = async () => {
     setLoading(true);
-    const [{ data }, { data: payData }] = await Promise.all([
+    const [{ data }, { data: payData }, { data: txData }] = await Promise.all([
       supabase.from("workshops").select("*").order("created_at", { ascending: false }),
-      supabase.from("workshop_payments").select("workshop_id, amount"),
+      supabase.from("workshop_payments").select("workshop_id, amount, linked_transaction_id"),
+      supabase.from("transactions").select("id, workshop_id, transaction_type, amount, transaction_date, description, reference, payment_method, debit_account_code, credit_account_code, contact_id").not("workshop_id", "is", null).eq("is_deleted", false),
     ]);
     const ws = (data as any) || [];
     setWorkshops(ws);
-    // Build payments map
+    // Build payments map from workshop_payments table
     const pMap: Record<string, number> = {};
     ((payData as any) || []).forEach((p: any) => {
       pMap[p.workshop_id] = (pMap[p.workshop_id] || 0) + (p.amount || 0);
     });
     setWorkshopPaymentsMap(pMap);
+
+    // Build voucher-based receipts & expenses maps from transactions
+    const vReceiptsMap: Record<string, number> = {};
+    const vExpensesMap: Record<string, number> = {};
+    const allTx = ((txData as any) || []) as any[];
+    setVoucherTransactions(allTx);
+    
+    // Get linked_transaction_ids from workshop_payments to avoid double counting
+    const wpLinkedIds = new Set<string>();
+    ((payData as any) || []).forEach((p: any) => { if (p.linked_transaction_id) wpLinkedIds.add(p.linked_transaction_id); });
+
+    allTx.forEach((tx: any) => {
+      if (!tx.workshop_id) return;
+      // Skip if already counted in workshop_payments
+      if (wpLinkedIds.has(tx.id)) return;
+      
+      const isReceipt = tx.transaction_type === 'receipt' || tx.credit_account_code === '1130';
+      const isExpense = tx.transaction_type === 'payment' || tx.transaction_type === 'journal' || tx.transaction_type === 'employee_advance' || tx.transaction_type === 'employee_payment' || tx.transaction_type === 'employee_salary';
+      
+      if (isReceipt) {
+        vReceiptsMap[tx.workshop_id] = (vReceiptsMap[tx.workshop_id] || 0) + (tx.amount || 0);
+      } else if (isExpense) {
+        vExpensesMap[tx.workshop_id] = (vExpensesMap[tx.workshop_id] || 0) + (tx.amount || 0);
+      }
+    });
+    setWorkshopVoucherReceiptsMap(vReceiptsMap);
+    setWorkshopVoucherExpensesMap(vExpensesMap);
     setLoading(false);
 
     // Auto-sync: create contacts for workshops missing contact_id
@@ -1174,6 +1205,58 @@ export default function WorkshopsPage() {
             )}
           </div>
 
+          {/* Voucher-linked transactions */}
+          {(() => {
+            const wsTx = voucherTransactions.filter(tx => tx.workshop_id === selectedWorkshop?.id);
+            // Exclude those already in workshop_payments
+            const wpLinkedIds = new Set(payments.map((p: any) => p.linked_transaction_id).filter(Boolean));
+            const extraTx = wsTx.filter(tx => !wpLinkedIds.has(tx.id));
+            if (extraTx.length === 0) return null;
+            const receipts = extraTx.filter((tx: any) => tx.transaction_type === 'receipt' || tx.credit_account_code === '1130');
+            const expenses = extraTx.filter((tx: any) => tx.transaction_type !== 'receipt' && tx.credit_account_code !== '1130');
+            return (
+              <div className="rounded-xl bg-card border border-border p-4 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                  📄 حركات السندات المرتبطة
+                </h3>
+                {receipts.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-semibold">سندات قبض</p>
+                    {receipts.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                        <span className="text-emerald-600 font-bold">+{tx.amount.toLocaleString()} ₪</span>
+                        <span className="text-muted-foreground">{tx.payment_method || ""}</span>
+                        <span className="flex-1 text-muted-foreground truncate">{tx.description}</span>
+                        <span className="text-muted-foreground/60">{tx.transaction_date}</span>
+                        {tx.reference && <span className="text-primary text-[10px]">{tx.reference}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {expenses.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-semibold">سندات صرف</p>
+                    {expenses.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                        <span className="text-destructive font-bold">-{tx.amount.toLocaleString()} ₪</span>
+                        <span className="text-muted-foreground">{tx.payment_method || ""}</span>
+                        <span className="flex-1 text-muted-foreground truncate">{tx.description}</span>
+                        <span className="text-muted-foreground/60">{tx.transaction_date}</span>
+                        {tx.reference && <span className="text-primary text-[10px]">{tx.reference}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t border-border pt-2 flex justify-between text-xs font-bold">
+                  <span className="text-foreground">صافي السندات</span>
+                  <span className={`${receipts.reduce((s: number, t: any) => s + t.amount, 0) - expenses.reduce((s: number, t: any) => s + t.amount, 0) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    {(receipts.reduce((s: number, t: any) => s + t.amount, 0) - expenses.reduce((s: number, t: any) => s + t.amount, 0)).toLocaleString()} ₪
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Actions */}
           {selectedWorkshop.status === "active" && (
             <div className="space-y-2">
@@ -1964,7 +2047,7 @@ export default function WorkshopsPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">الورشات</p><p className="text-2xl font-bold text-foreground">{workshops.length}</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي الميزانيات</p><p className="text-2xl font-bold text-primary">{totalBudgetAll.toLocaleString()}</p></CardContent></Card>
-          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي المقبوضات</p><p className="text-2xl font-bold text-emerald-600">{Object.values(workshopPaymentsMap).reduce((s, v) => s + v, 0).toLocaleString()} ₪</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي المقبوضات</p><p className="text-2xl font-bold text-emerald-600">{(Object.values(workshopPaymentsMap).reduce((s, v) => s + v, 0) + Object.values(workshopVoucherReceiptsMap).reduce((s, v) => s + v, 0)).toLocaleString()} ₪</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">نشطة</p><p className="text-2xl font-bold text-foreground">{workshops.filter(w => w.status === "active").length}</p></CardContent></Card>
           <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-2xl font-bold text-muted-foreground">{workshops.filter(w => w.status === "completed").length}</p></CardContent></Card>
         </div>
@@ -2073,12 +2156,37 @@ export default function WorkshopsPage() {
 
                   {/* Payments & Expenses indicator */}
                   <div className="px-4 py-2 border-t border-border/50 space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">المقبوضات</span>
-                      <strong className={`font-bold ${(workshopPaymentsMap[ws.id] || 0) > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
-                        {(workshopPaymentsMap[ws.id] || 0).toLocaleString()} ₪
-                      </strong>
-                    </div>
+                    {(() => {
+                      const totalReceipts = (workshopPaymentsMap[ws.id] || 0) + (workshopVoucherReceiptsMap[ws.id] || 0);
+                      const totalExpenses = workshopVoucherExpensesMap[ws.id] || 0;
+                      const netBalance = totalReceipts - totalExpenses;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">المقبوضات</span>
+                            <strong className={`font-bold ${totalReceipts > 0 ? "text-emerald-600" : "text-muted-foreground"}`}>
+                              {totalReceipts.toLocaleString()} ₪
+                            </strong>
+                          </div>
+                          {totalExpenses > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">المصروفات</span>
+                              <strong className="font-bold text-destructive">
+                                {totalExpenses.toLocaleString()} ₪
+                              </strong>
+                            </div>
+                          )}
+                          {(totalReceipts > 0 || totalExpenses > 0) && (
+                            <div className="flex items-center justify-between border-t border-border/30 pt-1">
+                              <span className="font-semibold text-foreground">الصافي</span>
+                              <strong className={`font-bold ${netBalance >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                                {netBalance.toLocaleString()} ₪
+                              </strong>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Actions */}
