@@ -411,7 +411,7 @@ const TrialBalancePage = () => {
     return result;
   }, [allRows, reportLevel, expandedAccounts, searchQuery, typeFilter, showZeroAccounts]);
 
-  // Group rows by account type
+  // Group rows by account type — totals always from leaf rows only (no double counting)
   const groupedRows = useMemo(() => {
     const groups: { type: string; label: string; rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number }[] = [];
     let currentType = "";
@@ -425,19 +425,21 @@ const TrialBalancePage = () => {
         groups.push(currentGroup);
       }
       currentGroup!.rows.push(row);
-      // Use rolled values for group totals at the deepest visible level
-      if (!row.hasChildren || row.depth === reportLevel) {
-        currentGroup!.totalDebit += row.hasChildren ? row.rolledDebit : row.totalDebit;
-        currentGroup!.totalCredit += row.hasChildren ? row.rolledCredit : row.totalCredit;
-      } else if (row.depth < reportLevel) {
-        // Don't add parent totals if children are visible — children will contribute
-      } else {
-        currentGroup!.totalDebit += row.totalDebit;
-        currentGroup!.totalCredit += row.totalCredit;
-      }
     }
+
+    // Calculate group totals from leaf rows in the FULL dataset (not filtered)
+    // to avoid double counting regardless of report level
+    for (const group of groups) {
+      const groupLeaves = leafRows.filter(r => {
+        const lbl = ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType || "أخرى";
+        return lbl === group.label;
+      });
+      group.totalDebit = groupLeaves.reduce((s, r) => s + r.totalDebit, 0);
+      group.totalCredit = groupLeaves.reduce((s, r) => s + r.totalCredit, 0);
+    }
+
     return groups;
-  }, [filteredRows, reportLevel]);
+  }, [filteredRows, leafRows]);
 
   // Export Excel
   const handleExport = () => {
