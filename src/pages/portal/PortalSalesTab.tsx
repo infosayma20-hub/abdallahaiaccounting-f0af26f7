@@ -350,12 +350,19 @@ interface Props {
   loading: boolean;
   businessDay: BusinessDay;
   needsSetup?: boolean;
-  onRefresh: (date?: string) => void;
+  onRefresh: (dateFrom?: string, dateTo?: string) => void;
   theme?: 'light' | 'dark';
 }
 
+function formatLocalDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export default function PortalSalesTab({ data, loading, businessDay, needsSetup, onRefresh, theme = 'light' }: Props) {
-  const [dateFilter, setDateFilter] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<string>('today');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('live');
@@ -404,24 +411,40 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
 
   const sales = data || { totalSales: 0, orderCount: 0, avgOrderValue: 0, topBranch: null, branches: [] };
 
-  const handleDateChip = (key: string | null) => {
+  const handleDateChip = (key: string) => {
     setDateFilter(key);
     setDateFrom('');
     setDateTo('');
-    if (key === null) {
-      onRefresh();
-    } else if (key === 'yesterday') {
-      const d = new Date(); d.setDate(d.getDate() - 1);
-      onRefresh(d.toISOString().split('T')[0]);
-    } else {
-      onRefresh();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (key) {
+      case 'today':
+        onRefresh(formatLocalDate(today));
+        break;
+      case 'yesterday': {
+        const yesterday = new Date(today.getTime() - 86400000);
+        onRefresh(formatLocalDate(yesterday));
+        break;
+      }
+      case 'week': {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        onRefresh(formatLocalDate(startOfWeek), formatLocalDate(today));
+        break;
+      }
+      case 'month': {
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        onRefresh(formatLocalDate(startOfMonth), formatLocalDate(today));
+        break;
+      }
     }
   };
 
   const handleDateRange = () => {
     if (dateFrom && dateTo) {
-      setDateFilter('range');
-      onRefresh(dateFrom);
+      setDateFilter('custom');
+      onRefresh(dateFrom, dateTo);
     }
   };
 
