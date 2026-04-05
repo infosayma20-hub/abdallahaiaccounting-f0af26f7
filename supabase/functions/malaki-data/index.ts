@@ -810,6 +810,62 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ══════════════════════════════════════════════════════
+    // ACTION: receivables_list — Outstanding receivables for WhatsApp SOA feature
+    // ══════════════════════════════════════════════════════
+    if (action === "receivables_list") {
+      // Get contacts with outstanding balances
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("id, contact_name, phone, current_balance, contact_type")
+        .eq("user_id", linkedUserId)
+        .eq("is_active", true)
+        .gt("current_balance", 0);
+
+      // Get last sent dates from statement_send_log
+      const { data: sendLogs } = await supabase
+        .from("statement_send_log")
+        .select("contact_id, sent_at")
+        .eq("user_id", linkedUserId)
+        .order("sent_at", { ascending: false });
+
+      const lastSentMap: Record<string, string> = {};
+      (sendLogs || []).forEach((log: any) => {
+        if (!lastSentMap[log.contact_id]) lastSentMap[log.contact_id] = log.sent_at;
+      });
+
+      // Get max overdue days from invoices
+      const { data: invoices } = await supabase
+        .from("invoices")
+        .select("contact_id, invoice_date, due_date, status")
+        .eq("user_id", linkedUserId)
+        .in("status", ["issued", "posted", "partial"]);
+
+      const maxDaysMap: Record<string, number> = {};
+      const now = new Date();
+      (invoices || []).forEach((inv: any) => {
+        const dueDate = inv.due_date || inv.invoice_date;
+        const days = Math.max(0, Math.floor((now.getTime() - new Date(dueDate).getTime()) / 86400000));
+        if (!maxDaysMap[inv.contact_id] || days > maxDaysMap[inv.contact_id]) {
+          maxDaysMap[inv.contact_id] = days;
+        }
+      });
+
+      const receivables = (contacts || [])
+        .filter((c: any) => c.current_balance > 0)
+        .map((c: any) => ({
+          id: c.id,
+          name: c.contact_name,
+          phone: c.phone || "",
+          balance: c.current_balance,
+          maxDays: maxDaysMap[c.id] || 0,
+          lastSent: lastSentMap[c.id] || null,
+        }))
+        .sort((a: any, b: any) => b.balance - a.balance);
+
+      return respond({ success: true, receivables });
+    }
+
     return respond({ error: "Unknown action" }, 400);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
