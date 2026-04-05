@@ -141,10 +141,9 @@ export function useDashboardData() {
           .eq("user_id", user.id),
         supabase
           .from("products")
-          .select("id, name, quantity, reorder_point, cost_price, selling_price")
+          .select("id, name, quantity, min_quantity, buy_price, sell_price")
           .eq("user_id", user.id)
-          .order("quantity", { ascending: true })
-          .limit(50),
+          .order("quantity", { ascending: true }),
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, current_balance")
