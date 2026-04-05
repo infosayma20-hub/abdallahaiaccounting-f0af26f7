@@ -498,18 +498,19 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         flexWrap: 'wrap',
       }}>
         {[
-          { key: null, label: '● اليوم' },
+          { key: 'today', label: '● اليوم' },
           { key: 'yesterday', label: 'أمس' },
+          { key: 'week', label: 'هذا الأسبوع' },
+          { key: 'month', label: 'هذا الشهر' },
         ].map(chip => (
           <button
-            key={chip.key || 'today'}
+            key={chip.key}
             onClick={() => handleDateChip(chip.key)}
             style={{
               padding: '8px 16px', borderRadius: 20,
-              background: dateFilter === chip.key || (dateFilter === null && chip.key === null)
-                ? ACCENT : t.chipBg,
+              background: dateFilter === chip.key ? ACCENT : t.chipBg,
               border: 'none',
-              color: dateFilter === chip.key || (dateFilter === null && chip.key === null) ? 'white' : t.textMuted,
+              color: dateFilter === chip.key ? 'white' : t.textMuted,
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'Tajawal, sans-serif',
               whiteSpace: 'nowrap', flexShrink: 0,
