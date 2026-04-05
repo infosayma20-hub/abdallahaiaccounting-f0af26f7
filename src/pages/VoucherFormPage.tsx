@@ -473,6 +473,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
               if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
             }
+            if ((data as any).workshop_id) {
+              const { data: ws } = await supabase.from("workshops").select("id, name, customer_name").eq("id", (data as any).workshop_id).single();
+              if (ws) setSelectedWorkshop(ws);
+            }
           }
         }
       } catch (e) { /* ignore */ }
