@@ -66,9 +66,8 @@ const TrialBanner = () => {
   useEffect(() => {
     if (loading || !subscription) return;
     if (!isTrial && status === "active") { setVisible(false); return; }
-    if (isExpired || status === "expired") { setVisible(true); setMounted(true); return; }
-    if (status === "past_due" || status === "grace" || status === "grace_period") { setVisible(true); setMounted(true); return; }
     if (!isTrial) { setVisible(false); return; }
+    if (isExpired || status === "expired") { setVisible(true); setMounted(true); return; }
 
     const show = shouldShow(daysLeft);
     if (show) {
