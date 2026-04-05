@@ -419,10 +419,10 @@ Deno.serve(async (req) => {
             const branchInvIds = new Set(branchData[branchKey].orders);
             const brInvLines = invoiceLines.filter((l: any) => branchInvIds.has(l.invoice_id));
             for (const line of brInvLines) {
-              const name = line.description || "غير معروف";
+              const name = line.product_name || line.description || "غير معروف";
               if (!mealMap[name]) mealMap[name] = { quantity: 0, revenue: 0 };
               mealMap[name].quantity += line.quantity || 0;
-              mealMap[name].revenue += line.total || 0;
+              mealMap[name].revenue += line.total_amount || 0;
             }
           } else {
             const branchOrderIds = new Set(branchData[branchKey].orders);
