@@ -269,18 +269,46 @@ export default function WorkshopsPage() {
 
   const loadWorkshops = async () => {
     setLoading(true);
-    const [{ data }, { data: payData }] = await Promise.all([
+    const [{ data }, { data: payData }, { data: txData }] = await Promise.all([
       supabase.from("workshops").select("*").order("created_at", { ascending: false }),
       supabase.from("workshop_payments").select("workshop_id, amount"),
+      supabase.from("transactions").select("id, workshop_id, transaction_type, amount, transaction_date, description, reference, payment_method, debit_account_code, credit_account_code, contact_id").not("workshop_id", "is", null).eq("is_deleted", false),
     ]);
     const ws = (data as any) || [];
     setWorkshops(ws);
-    // Build payments map
+    // Build payments map from workshop_payments table
     const pMap: Record<string, number> = {};
     ((payData as any) || []).forEach((p: any) => {
       pMap[p.workshop_id] = (pMap[p.workshop_id] || 0) + (p.amount || 0);
     });
     setWorkshopPaymentsMap(pMap);
+
+    // Build voucher-based receipts & expenses maps from transactions
+    const vReceiptsMap: Record<string, number> = {};
+    const vExpensesMap: Record<string, number> = {};
+    const allTx = ((txData as any) || []) as any[];
+    setVoucherTransactions(allTx);
+    
+    // Get linked_transaction_ids from workshop_payments to avoid double counting
+    const wpLinkedIds = new Set<string>();
+    ((payData as any) || []).forEach((p: any) => { if (p.linked_transaction_id) wpLinkedIds.add(p.linked_transaction_id); });
+
+    allTx.forEach((tx: any) => {
+      if (!tx.workshop_id) return;
+      // Skip if already counted in workshop_payments
+      if (wpLinkedIds.has(tx.id)) return;
+      
+      const isReceipt = tx.transaction_type === 'receipt' || tx.credit_account_code === '1130';
+      const isExpense = tx.transaction_type === 'payment' || tx.transaction_type === 'journal' || tx.transaction_type === 'employee_advance' || tx.transaction_type === 'employee_payment' || tx.transaction_type === 'employee_salary';
+      
+      if (isReceipt) {
+        vReceiptsMap[tx.workshop_id] = (vReceiptsMap[tx.workshop_id] || 0) + (tx.amount || 0);
+      } else if (isExpense) {
+        vExpensesMap[tx.workshop_id] = (vExpensesMap[tx.workshop_id] || 0) + (tx.amount || 0);
+      }
+    });
+    setWorkshopVoucherReceiptsMap(vReceiptsMap);
+    setWorkshopVoucherExpensesMap(vExpensesMap);
     setLoading(false);
 
     // Auto-sync: create contacts for workshops missing contact_id
