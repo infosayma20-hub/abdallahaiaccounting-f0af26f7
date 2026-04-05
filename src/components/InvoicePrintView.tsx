@@ -329,7 +329,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
-              {["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "ضريبة 16%", "الإجمالي"].map((h, i) => (
+              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "ضريبة 16%", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => (
                 <th
                   key={i}
                   style={{
@@ -392,7 +392,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         >
           {/* Subtotal */}
           <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
-            <span style={{ color: "#6B7280" }}>المجموع قبل الضريبة</span>
+            <span style={{ color: "#6B7280" }}>{taxEnabled ? "المجموع قبل الضريبة" : "الإجمالي الفرعي"}</span>
             <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{fmtAmount(subtotalBeforeTax)}</span>
           </div>
           {/* Discount */}
@@ -403,20 +403,20 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             </div>
           )}
           {/* Tax */}
-          {totalTax > 0 && (
+          {taxEnabled && totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
               <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة 16%</span>
               <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>+{fmtAmount(totalTax)}</span>
             </div>
           )}
           {/* Exempt breakdown */}
-          {exemptNetTotal > 0 && (
+          {taxEnabled && exemptNetTotal > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "9px" }}>
               <span style={{ color: "#9CA3AF" }}>مبيعات معفاة من الضريبة</span>
               <span style={{ color: "#9CA3AF", fontFeatureSettings: "'tnum'" }}>{fmtAmount(exemptNetTotal)}</span>
             </div>
           )}
-          {zeroNetTotal > 0 && (
+          {taxEnabled && zeroNetTotal > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "9px" }}>
               <span style={{ color: "#9CA3AF" }}>مبيعات بنسبة صفر</span>
               <span style={{ color: "#9CA3AF", fontFeatureSettings: "'tnum'" }}>{fmtAmount(zeroNetTotal)}</span>
