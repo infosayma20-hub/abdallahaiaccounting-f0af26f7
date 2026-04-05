@@ -401,6 +401,38 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ── Cascade to team members ──
+      // Find the owner user_id of this subscription
+      const { data: subRow } = await admin.from("subscriptions").select("user_id").eq("id", subscription_id).single();
+      if (subRow?.user_id) {
+        const ownerId = subRow.user_id;
+        // Find all team members (profiles.invited_by = ownerId)
+        const { data: teamProfiles } = await admin
+          .from("profiles")
+          .select("user_id")
+          .eq("invited_by", ownerId);
+
+        if (teamProfiles && teamProfiles.length > 0) {
+          const teamUserIds = teamProfiles.map((p: any) => p.user_id);
+          // Build cascade data: sync plan, status, dates
+          const cascadeData: any = {};
+          if (updateData.plan_id) cascadeData.plan_id = updateData.plan_id;
+          if (updateData.status) cascadeData.status = updateData.status;
+          if (updateData.current_period_start) cascadeData.current_period_start = updateData.current_period_start;
+          if (updateData.current_period_end) cascadeData.current_period_end = updateData.current_period_end;
+          if (updateData.trial_ends_at) cascadeData.trial_ends_at = updateData.trial_ends_at;
+          if (updateData.cancelled_at) cascadeData.cancelled_at = updateData.cancelled_at;
+          if (updateData.billing_cycle) cascadeData.billing_cycle = updateData.billing_cycle;
+
+          if (Object.keys(cascadeData).length > 0) {
+            await admin
+              .from("subscriptions")
+              .update(cascadeData)
+              .in("user_id", teamUserIds);
+          }
+        }
+      }
+
       await logAction("update_subscription", "subscription", subscription_id, updateData);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
