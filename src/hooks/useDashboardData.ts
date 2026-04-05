@@ -141,10 +141,9 @@ export function useDashboardData() {
           .eq("user_id", user.id),
         supabase
           .from("products")
-          .select("id, name, quantity, reorder_point, cost_price, selling_price")
+          .select("id, name, quantity, min_quantity, buy_price, sell_price")
           .eq("user_id", user.id)
-          .order("quantity", { ascending: true })
-          .limit(50),
+          .order("quantity", { ascending: true }),
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, current_balance")
@@ -343,14 +342,26 @@ export function useDashboardData() {
   // Aging report
   const agingData = useMemo<{ receivables: AgingBucket[]; payables: AgingBucket[] }>(() => {
     const now = new Date();
-    const buildAging = (contactType: "عميل" | "مورد", accountCode: string, isCredit: boolean): AgingBucket[] => {
+    const buildAging = (contactType: "عميل" | "مورد", accountCode: string): AgingBucket[] => {
       const relevantContacts = contacts.filter((c) => c.contact_type === contactType && Math.abs(c.current_balance || 0) > 0);
-      return relevantContacts.slice(0, 8).map((contact) => {
-        const contactTxs = transactions.filter((t) => t.contact_id === contact.id && !t.is_deleted);
-        let total = Math.abs(contact.current_balance || 0);
-        // Simple aging based on transaction dates
+      return relevantContacts.map((contact) => {
+        const total = Math.abs(contact.current_balance || 0);
+        // For customers: look at debit transactions on receivables (1130) = invoices creating debt
+        // For suppliers: look at credit transactions on payables (2xxx) = purchases creating debt
+        const isCustomer = contactType === "عميل";
+        const agingTxs = transactions.filter((t) => {
+          if (t.contact_id !== contact.id || t.is_deleted) return false;
+          if (isCustomer) {
+            // Debit to receivables = customer owes us
+            return t.debit_account_code === accountCode;
+          } else {
+            // Credit to payables = we owe supplier
+            return t.credit_account_code?.startsWith("2");
+          }
+        });
+
         let b0 = 0, b30 = 0, b60 = 0, b90 = 0;
-        contactTxs.forEach((tx) => {
+        agingTxs.forEach((tx) => {
           const days = Math.floor((now.getTime() - new Date(tx.transaction_date).getTime()) / 86400000);
           const amt = tx.amount || 0;
           if (days <= 30) b0 += amt;
@@ -368,12 +379,12 @@ export function useDashboardData() {
           bucket_61_90: Math.round((b60 / sum) * total),
           bucket_90_plus: Math.round((b90 / sum) * total),
         };
-      }).sort((a, b) => b.total - a.total);
+      }).sort((a, b) => b.total - a.total).slice(0, 10);
     };
 
     return {
-      receivables: buildAging("عميل", "1130", false),
-      payables: buildAging("مورد", "2110", true),
+      receivables: buildAging("عميل", "1130"),
+      payables: buildAging("مورد", "2110"),
     };
   }, [contacts, transactions]);
 
@@ -443,8 +454,8 @@ export function useDashboardData() {
         id: p.id,
         name: p.name,
         quantity: p.quantity || 0,
-        reorderPoint: p.reorder_point || 5,
-        status: (p.quantity || 0) <= 0 ? "out" as const : (p.quantity || 0) <= (p.reorder_point || 5) ? "low" as const : "ok" as const,
+        reorderPoint: p.min_quantity || 5,
+        status: (p.quantity || 0) <= 0 ? "out" as const : (p.quantity || 0) <= (p.min_quantity || 5) ? "low" as const : "ok" as const,
       }))
       .filter((p) => p.status !== "ok")
       .slice(0, 8);
@@ -453,8 +464,8 @@ export function useDashboardData() {
   // Inventory summary
   const inventorySummary = useMemo(() => {
     const totalItems = products.length;
-    const totalValue = products.reduce((s, p) => s + (p.quantity || 0) * (p.cost_price || 0), 0);
-    const lowStock = products.filter((p) => (p.quantity || 0) > 0 && (p.quantity || 0) <= (p.reorder_point || 5)).length;
+    const totalValue = products.reduce((s, p) => s + (p.quantity || 0) * (p.buy_price || 0), 0);
+    const lowStock = products.filter((p) => (p.quantity || 0) > 0 && (p.quantity || 0) <= (p.min_quantity || 5)).length;
     const outOfStock = products.filter((p) => (p.quantity || 0) <= 0).length;
     return { totalItems, totalValue, lowStock, outOfStock };
   }, [products]);
