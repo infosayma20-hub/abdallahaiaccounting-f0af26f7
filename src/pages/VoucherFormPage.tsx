@@ -328,7 +328,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .then(({ data }) => setEmployeeList(data || []));
   }, [user, isReceipt]);
 
-  // ─── Fetch exchange rate when currency changes ───
+  // Load workshops for cost center selector
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("workshops")
+      .select("id, name, customer_name, status")
+      .eq("user_id", user.id)
+      .in("status", ["active", "completed"])
+      .order("name")
+      .then(({ data }) => setWorkshopList(data || []));
+  }, [user]);
+
   useEffect(() => {
     if (currency === "ILS") {
       setExchangeRate(1);
