@@ -1019,7 +1019,8 @@ const InvoiceCreatePage = () => {
         } as any).select("id").single();
         if (txError) throw txError;
 
-        await supabase.from("invoices").update({ linked_transaction_id: txData.id } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txData.id } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
           await syncContactBalance(contactId, Number(summary.remainingAmount || 0));
         }
