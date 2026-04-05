@@ -1673,17 +1673,19 @@ const InvoiceCreatePage = () => {
         <CardContent className="p-5 space-y-2">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-foreground">الإجماليات</span>
-            <div className="flex items-center gap-2">
-              <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
-              <Label htmlFor="tax-inclusive" className="text-[11px] text-muted-foreground cursor-pointer">
-                {form.taxInclusive ? "شامل الضريبة" : "غير شامل الضريبة"}
-              </Label>
-            </div>
+            {taxEnabled && (
+              <div className="flex items-center gap-2">
+                <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
+                <Label htmlFor="tax-inclusive" className="text-[11px] text-muted-foreground cursor-pointer">
+                  {form.taxInclusive ? "شامل الضريبة" : "غير شامل الضريبة"}
+                </Label>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">
-              {form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+              {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
             </span>
             <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
           </div>
@@ -1693,7 +1695,7 @@ const InvoiceCreatePage = () => {
               <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
             </div>
           )}
-          {summary.totalTax > 0 && (
+          {taxEnabled && summary.totalTax > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-xs text-muted-foreground">
                 {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
