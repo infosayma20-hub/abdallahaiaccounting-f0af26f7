@@ -1624,14 +1624,16 @@ const InvoiceCreatePage = () => {
                 </button>
 
                 {/* Tax Category */}
-                <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
-                  <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TAX_CATEGORY_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {taxEnabled && (
+                  <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
+                    <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TAX_CATEGORY_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 {/* Subtotal */}
                 <div className="text-center">
