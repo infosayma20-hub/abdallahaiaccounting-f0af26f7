@@ -1205,6 +1205,58 @@ export default function WorkshopsPage() {
             )}
           </div>
 
+          {/* Voucher-linked transactions */}
+          {(() => {
+            const wsTx = voucherTransactions.filter(tx => tx.workshop_id === selectedWorkshop?.id);
+            // Exclude those already in workshop_payments
+            const wpLinkedIds = new Set(payments.map((p: any) => p.linked_transaction_id).filter(Boolean));
+            const extraTx = wsTx.filter(tx => !wpLinkedIds.has(tx.id));
+            if (extraTx.length === 0) return null;
+            const receipts = extraTx.filter((tx: any) => tx.transaction_type === 'receipt' || tx.credit_account_code === '1130');
+            const expenses = extraTx.filter((tx: any) => tx.transaction_type !== 'receipt' && tx.credit_account_code !== '1130');
+            return (
+              <div className="rounded-xl bg-card border border-border p-4 space-y-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                  📄 حركات السندات المرتبطة
+                </h3>
+                {receipts.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-semibold">سندات قبض</p>
+                    {receipts.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                        <span className="text-emerald-600 font-bold">+{tx.amount.toLocaleString()} ₪</span>
+                        <span className="text-muted-foreground">{tx.payment_method || ""}</span>
+                        <span className="flex-1 text-muted-foreground truncate">{tx.description}</span>
+                        <span className="text-muted-foreground/60">{tx.transaction_date}</span>
+                        {tx.reference && <span className="text-primary text-[10px]">{tx.reference}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {expenses.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-semibold">سندات صرف</p>
+                    {expenses.map((tx: any) => (
+                      <div key={tx.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                        <span className="text-destructive font-bold">-{tx.amount.toLocaleString()} ₪</span>
+                        <span className="text-muted-foreground">{tx.payment_method || ""}</span>
+                        <span className="flex-1 text-muted-foreground truncate">{tx.description}</span>
+                        <span className="text-muted-foreground/60">{tx.transaction_date}</span>
+                        {tx.reference && <span className="text-primary text-[10px]">{tx.reference}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t border-border pt-2 flex justify-between text-xs font-bold">
+                  <span className="text-foreground">صافي السندات</span>
+                  <span className={`${receipts.reduce((s: number, t: any) => s + t.amount, 0) - expenses.reduce((s: number, t: any) => s + t.amount, 0) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    {(receipts.reduce((s: number, t: any) => s + t.amount, 0) - expenses.reduce((s: number, t: any) => s + t.amount, 0)).toLocaleString()} ₪
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Actions */}
           {selectedWorkshop.status === "active" && (
             <div className="space-y-2">
