@@ -206,7 +206,7 @@ const AccountStatementV2Page = () => {
       if (code.startsWith("2") || code.startsWith("3") || code.startsWith("4")) return false;
       return true;
     }
-    if (isEmployeesTab) return false;
+    if (isEmployeesTab) return true; // Employee advances = debit nature (مدين = لي = أخضر)
     if (activeTab === "customers") return true;
     return false;
   }, [isAccountsTab, isEmployeesTab, activeTab, selectedAccount]);
