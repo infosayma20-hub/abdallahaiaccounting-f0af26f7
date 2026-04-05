@@ -864,13 +864,29 @@ const InvoiceCreatePage = () => {
 
           let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
           if (!linkedTransactionId) {
+            // Try idempotency_key first
             const { data: existingTx } = await supabase
               .from("transactions")
               .select("id")
               .eq("user_id", user.id)
               .eq("idempotency_key", `INV-${editInvoiceId}`)
+              .eq("is_deleted", false)
               .maybeSingle();
             linkedTransactionId = existingTx?.id || null;
+          }
+          if (!linkedTransactionId) {
+            // Fallback: search by reference (invoice number) + contact
+            const invoiceRef = originalInvoiceRef.current?.invoiceNumber || nextInvoiceNumber;
+            const { data: refTx } = await supabase
+              .from("transactions")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("reference", invoiceRef)
+              .eq("is_deleted", false)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            linkedTransactionId = refTx?.id || null;
           }
 
           if (linkedTransactionId) {
@@ -1003,7 +1019,8 @@ const InvoiceCreatePage = () => {
         } as any).select("id").single();
         if (txError) throw txError;
 
-        await supabase.from("invoices").update({ linked_transaction_id: txData.id } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txData.id } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
           await syncContactBalance(contactId, Number(summary.remainingAmount || 0));
         }
