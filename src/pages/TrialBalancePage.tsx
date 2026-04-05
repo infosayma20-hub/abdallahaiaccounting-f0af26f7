@@ -137,6 +137,8 @@ const TrialBalancePage = () => {
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [showDetailedAccounts, setShowDetailedAccounts] = useState(false);
+  const [reportLevel, setReportLevel] = useState(4);
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     if (!user) return;
