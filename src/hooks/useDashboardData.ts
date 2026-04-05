@@ -442,8 +442,8 @@ export function useDashboardData() {
         id: p.id,
         name: p.name,
         quantity: p.quantity || 0,
-        reorderPoint: p.reorder_point || 5,
-        status: (p.quantity || 0) <= 0 ? "out" as const : (p.quantity || 0) <= (p.reorder_point || 5) ? "low" as const : "ok" as const,
+        reorderPoint: p.min_quantity || 5,
+        status: (p.quantity || 0) <= 0 ? "out" as const : (p.quantity || 0) <= (p.min_quantity || 5) ? "low" as const : "ok" as const,
       }))
       .filter((p) => p.status !== "ok")
       .slice(0, 8);
@@ -452,8 +452,8 @@ export function useDashboardData() {
   // Inventory summary
   const inventorySummary = useMemo(() => {
     const totalItems = products.length;
-    const totalValue = products.reduce((s, p) => s + (p.quantity || 0) * (p.cost_price || 0), 0);
-    const lowStock = products.filter((p) => (p.quantity || 0) > 0 && (p.quantity || 0) <= (p.reorder_point || 5)).length;
+    const totalValue = products.reduce((s, p) => s + (p.quantity || 0) * (p.buy_price || 0), 0);
+    const lowStock = products.filter((p) => (p.quantity || 0) > 0 && (p.quantity || 0) <= (p.min_quantity || 5)).length;
     const outOfStock = products.filter((p) => (p.quantity || 0) <= 0).length;
     return { totalItems, totalValue, lowStock, outOfStock };
   }, [products]);
