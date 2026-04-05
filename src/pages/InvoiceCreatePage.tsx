@@ -483,6 +483,13 @@ const InvoiceCreatePage = () => {
 
         if (!mounted) return;
 
+        originalInvoiceRef.current = {
+          linkedTransactionId: data.linked_transaction_id || null,
+          contactId: data.contact_id || null,
+          remainingAmount: Number(data.remaining_amount) || 0,
+          invoiceNumber: data.invoice_number || null,
+        };
+
         const paymentTerms = data.payment_terms || "net_30";
 
         setForm(prev => ({
@@ -509,6 +516,8 @@ const InvoiceCreatePage = () => {
           transferRef: "",
           transferBank: "",
         }));
+
+        if (data.invoice_number) setNextInvoiceNumber(data.invoice_number);
 
         // Load attachments and terms from edit data
         if (data.attachments) {
