@@ -165,7 +165,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
       </Card>
 
       {/* Account Mapping */}
-      <Card className="p-6 border border-border">
+      <Card className="p-6 border border-border" style={disabledStyle}>
         <h4 className="font-bold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-emerald-500 rounded-full" />
           ربط الحسابات المحاسبية
@@ -198,7 +198,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
       </div>
 
       {/* Tax Categories */}
-      <Card className="p-6 border border-border">
+      <Card className="p-6 border border-border" style={disabledStyle}>
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-bold text-foreground flex items-center gap-2">
             <span className="w-1 h-5 bg-amber-500 rounded-full" />
