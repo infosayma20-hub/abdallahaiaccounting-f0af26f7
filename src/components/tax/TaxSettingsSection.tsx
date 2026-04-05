@@ -28,6 +28,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
   const [categories, setCategories] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [vatEnabled, setVatEnabled] = useState(true);
 
   useEffect(() => {
     if (!ownerId) return;
@@ -36,10 +37,13 @@ export default function TaxSettingsSection({ ownerId }: Props) {
 
   const loadData = async () => {
     setLoading(true);
-    const [settingsRes, categoriesRes] = await Promise.all([
+    const [settingsRes, categoriesRes, companyRes] = await Promise.all([
       supabase.from("tax_settings").select("*").eq("user_id", ownerId).maybeSingle(),
       supabase.from("tax_categories").select("*").eq("user_id", ownerId).order("created_at"),
+      supabase.from("company_settings").select("vat_enabled").eq("user_id", ownerId).maybeSingle(),
     ]);
+
+    setVatEnabled(companyRes.data?.vat_enabled ?? true);
 
     if (settingsRes.data) {
       setSettings(settingsRes.data);
@@ -67,14 +71,20 @@ export default function TaxSettingsSection({ ownerId }: Props) {
   const saveSettings = async () => {
     if (!ownerId || !user) return;
     setSaving(true);
-    const payload = { ...settings, user_id: ownerId, updated_at: new Date().toISOString() };
-    delete payload.created_at;
 
-    if (settings.id) {
-      await supabase.from("tax_settings").update(payload).eq("id", settings.id);
-    } else {
-      const { data } = await supabase.from("tax_settings").insert(payload).select().single();
-      if (data) setSettings(data);
+    // Save vat_enabled in company_settings
+    await supabase.from("company_settings").update({ vat_enabled: vatEnabled } as any).eq("user_id", ownerId);
+
+    if (vatEnabled) {
+      const payload = { ...settings, user_id: ownerId, updated_at: new Date().toISOString() };
+      delete payload.created_at;
+
+      if (settings.id) {
+        await supabase.from("tax_settings").update(payload).eq("id", settings.id);
+      } else {
+        const { data } = await supabase.from("tax_settings").insert(payload).select().single();
+        if (data) setSettings(data);
+      }
     }
     toast.success("تم حفظ الإعدادات الضريبية");
     setSaving(false);
@@ -91,10 +101,34 @@ export default function TaxSettingsSection({ ownerId }: Props) {
 
   if (loading) return <div className="p-6 text-center text-muted-foreground">جارِ التحميل...</div>;
 
+  const disabledStyle = !vatEnabled ? { opacity: 0.4, pointerEvents: "none" as const, transition: "all 0.3s ease" } : { transition: "all 0.3s ease" };
+
   return (
     <div className="space-y-6">
-      {/* Registration Info */}
+      {/* VAT Enable/Disable Toggle */}
       <Card className="p-6 border border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="h-5 w-5 text-primary" />
+            <div>
+              <p className="font-bold text-sm text-foreground">تفعيل نظام الضريبة (VAT)</p>
+              <p className="text-xs text-muted-foreground">عند الإيقاف، لن تظهر الضريبة في أي فاتورة أو مستند</p>
+            </div>
+          </div>
+          <Switch checked={vatEnabled} onCheckedChange={setVatEnabled} />
+        </div>
+        {!vatEnabled && (
+          <div className="mt-4 p-3 rounded-lg flex items-start gap-2" style={{ background: "#FFF8E1", border: "1px solid #F59E0B" }}>
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#92400E" }} />
+            <p className="text-xs leading-relaxed" style={{ color: "#92400E" }}>
+              تنبيه: عند إيقاف الضريبة، لن تُحتسب أي ضريبة في الفواتير والمشتريات وسندات القيد. يمكنك إعادة التفعيل في أي وقت.
+            </p>
+          </div>
+        )}
+      </Card>
+
+      {/* Registration Info */}
+      <Card className="p-6 border border-border" style={disabledStyle}>
         <h4 className="font-bold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
           بيانات التسجيل الضريبي
