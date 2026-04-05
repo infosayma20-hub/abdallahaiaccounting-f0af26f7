@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       return respond({ success: true });
     }
 
-    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview"].includes(action)) {
+    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview", "receivables_list"].includes(action)) {
       return respond({
         success: true,
         needsSetup: true,
