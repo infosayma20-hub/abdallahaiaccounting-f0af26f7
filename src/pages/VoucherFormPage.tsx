@@ -213,6 +213,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [violationReason, setViolationReason] = useState("");
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Workshop / Cost Center
+  const [workshopList, setWorkshopList] = useState<{ id: string; name: string; customer_name: string | null; status: string }[]>([]);
+  const [selectedWorkshop, setSelectedWorkshop] = useState<{ id: string; name: string; customer_name: string | null } | null>(null);
+  const [workshopSearch, setWorkshopSearch] = useState("");
+  const [showWorkshopDropdown, setShowWorkshopDropdown] = useState(false);
+  const workshopDropdownRef = useRef<HTMLDivElement>(null);
+
   // Click-outside handler for all dropdowns
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
