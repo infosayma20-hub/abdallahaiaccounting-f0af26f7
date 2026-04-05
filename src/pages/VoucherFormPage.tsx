@@ -232,6 +232,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       if (glAccountDropdownRef.current && !glAccountDropdownRef.current.contains(e.target as Node)) {
         setShowGlAccountDropdown(false);
       }
+      if (workshopDropdownRef.current && !workshopDropdownRef.current.contains(e.target as Node)) {
+        setShowWorkshopDropdown(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
