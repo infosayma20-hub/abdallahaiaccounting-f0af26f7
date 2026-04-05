@@ -814,7 +814,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               cheque_number: paymentMethod === "شيك" ? checkNumber : null,
               cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
               cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
-            })
+              workshop_id: selectedWorkshop?.id || null,
+            } as any)
             .eq("id", editId)
             .eq("user_id", user.id);
           if (error) throw error;
