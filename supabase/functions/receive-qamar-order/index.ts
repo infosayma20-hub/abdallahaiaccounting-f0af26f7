@@ -99,7 +99,131 @@ Deno.serve(async (req) => {
     // Handle by sync_type
     // ─────────────────────────────────────────────
 
-    if (syncType === "status_update" && existing) {
+    // ── Handle delivery_settled sync ──
+    if (syncType === "delivery_settled" && existing) {
+      if (existing.status === "delivery_settled_done") {
+        // Already settled - skip unless force
+        if (!order.force) {
+          return json({ error: "Already settled", reference_number: refNumber }, 409);
+        }
+      }
+
+      const shippingEstimate = order.shipping_estimate ?? order.shipping_cost ?? 0;
+      const shippingFinal = order.shipping_final ?? 0;
+      const driverCost = order.driver_cost ?? 0;
+      const netDelivery = order.net_delivery ?? (shippingFinal - driverCost);
+
+      const { error: updateErr } = await supabase
+        .from("qamar_orders")
+        .update({
+          shipping_estimate: shippingEstimate,
+          shipping_final: shippingFinal,
+          driver_cost: driverCost,
+          net_delivery: netDelivery,
+          shipping_settled: true,
+          shipping_settled_at: order.settled_at || new Date().toISOString(),
+          shipping_settled_by: order.settled_by || "admin",
+          shipping_notes: order.shipping_notes || order.notes || null,
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+
+      if (updateErr) {
+        return json({ error: updateErr.message }, 500);
+      }
+
+      // If shipping_final differs from estimate, update total
+      if (shippingFinal !== shippingEstimate) {
+        const { data: currentOrder } = await supabase
+          .from("qamar_orders")
+          .select("total, shipping_cost")
+          .eq("id", existing.id)
+          .single();
+
+        if (currentOrder) {
+          const oldShipping = currentOrder.shipping_cost || shippingEstimate;
+          const totalDiff = shippingFinal - oldShipping;
+          await supabase
+            .from("qamar_orders")
+            .update({
+              shipping_cost: shippingFinal,
+              total: (currentOrder.total || 0) + totalDiff,
+            })
+            .eq("id", existing.id);
+        }
+      }
+
+      // Log settlement
+      await supabase.from("order_status_log").insert({
+        user_id: DEFAULT_OWNER_ID,
+        order_id: existing.id,
+        order_table: "qamar_orders",
+        from_status: existing.status,
+        to_status: existing.status,
+        changed_by: DEFAULT_OWNER_ID,
+        changed_by_name: order.settled_by || "قمر براند (تسوية)",
+        changed_by_role: "external_system",
+        notes: `تسوية توصيل: نهائي ₪${shippingFinal} | سائق ₪${driverCost} | صافي ₪${netDelivery}`,
+        metadata: {
+          sync_type: syncType,
+          shipping_estimate: shippingEstimate,
+          shipping_final: shippingFinal,
+          driver_cost: driverCost,
+          net_delivery: netDelivery,
+        },
+      });
+
+      // Create accounting entry for delivery if amounts exist
+      if (shippingFinal > 0 || driverCost > 0) {
+        // Delivery revenue entry: debit cash/receivable, credit delivery revenue
+        const idempotencyKey = `DELIVERY-${existing.id}`;
+        
+        // Check if entry already exists
+        const { data: existingTx } = await supabase
+          .from("transactions")
+          .select("id")
+          .eq("idempotency_key", idempotencyKey)
+          .eq("user_id", DEFAULT_OWNER_ID)
+          .maybeSingle();
+
+        if (!existingTx) {
+          // Revenue entry: shipping_final as delivery revenue
+          if (shippingFinal > 0) {
+            await supabase.from("transactions").insert({
+              user_id: DEFAULT_OWNER_ID,
+              transaction_date: new Date().toISOString().split("T")[0],
+              description: `إيراد توصيل — طلبية ${refNumber}`,
+              debit_account_code: "1130", // ذمم عملاء
+              credit_account_code: "4100", // إيرادات
+              amount: shippingFinal,
+              currency: "شيكل",
+              transaction_type: "delivery_revenue",
+              reference: refNumber,
+              idempotency_key: idempotencyKey,
+            });
+          }
+
+          // Expense entry: driver_cost
+          if (driverCost > 0) {
+            await supabase.from("transactions").insert({
+              user_id: DEFAULT_OWNER_ID,
+              transaction_date: new Date().toISOString().split("T")[0],
+              description: `تكلفة سائق — طلبية ${refNumber}`,
+              debit_account_code: "5160", // مصاريف توصيل
+              credit_account_code: "1110", // الصندوق
+              amount: driverCost,
+              currency: "شيكل",
+              transaction_type: "delivery_expense",
+              reference: refNumber,
+              idempotency_key: `${idempotencyKey}-COST`,
+            });
+          }
+        }
+      }
+
+      amwaliOrderId = existing.id;
+
+    } else if (syncType === "status_update" && existing) {
       // Only update status + log
       const oldStatus = existing.status;
       const { error: updateErr } = await supabase

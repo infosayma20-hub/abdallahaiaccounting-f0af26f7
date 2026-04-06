@@ -50,6 +50,15 @@ const OrderDetailPage = () => {
         linked_invoice_id: q.linked_invoice_id, invoice_number: q.invoice_number,
         paid_amount: q.amount_paid || 0, remaining_amount: (q.total || 0) - (q.amount_paid || 0),
         created_at: q.created_at, user_id: q.user_id,
+        // Delivery settlement fields
+        shipping_estimate: q.shipping_estimate || 0,
+        shipping_final: q.shipping_final,
+        driver_cost: q.driver_cost,
+        net_delivery: q.net_delivery,
+        shipping_settled: q.shipping_settled || false,
+        shipping_settled_at: q.shipping_settled_at,
+        shipping_settled_by: q.shipping_settled_by,
+        shipping_notes: q.shipping_notes,
       });
       // Fetch items from qamar_order_items
       const { data: qItems } = await supabase.from("qamar_order_items" as any).select("*").eq("order_id", id);
