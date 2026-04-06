@@ -9062,6 +9062,7 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_phone: string | null
+          delivery: Json | null
           discount: number | null
           gross_profit: number | null
           id: string
@@ -9081,6 +9082,8 @@ export type Database = {
           source_key: string | null
           status: string | null
           subtotal: number | null
+          sync_type: string | null
+          synced_at: string | null
           total: number | null
           type: string | null
           updated_at: string
@@ -9098,6 +9101,7 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_phone?: string | null
+          delivery?: Json | null
           discount?: number | null
           gross_profit?: number | null
           id?: string
@@ -9117,6 +9121,8 @@ export type Database = {
           source_key?: string | null
           status?: string | null
           subtotal?: number | null
+          sync_type?: string | null
+          synced_at?: string | null
           total?: number | null
           type?: string | null
           updated_at?: string
@@ -9134,6 +9140,7 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_phone?: string | null
+          delivery?: Json | null
           discount?: number | null
           gross_profit?: number | null
           id?: string
@@ -9153,6 +9160,8 @@ export type Database = {
           source_key?: string | null
           status?: string | null
           subtotal?: number | null
+          sync_type?: string | null
+          synced_at?: string | null
           total?: number | null
           type?: string | null
           updated_at?: string
