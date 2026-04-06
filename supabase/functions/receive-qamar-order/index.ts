@@ -166,6 +166,24 @@ Deno.serve(async (req) => {
 
     console.log("Qamar order created:", newOrder.id, "Ref:", order.reference_number);
 
+    // 6. Insert initial status log entry
+    await supabase.from("order_status_log").insert({
+      user_id: DEFAULT_OWNER_ID,
+      order_id: newOrder.id,
+      order_table: "qamar_orders",
+      from_status: null,
+      to_status: "جديد",
+      changed_by: DEFAULT_OWNER_ID,
+      changed_by_name: "النظام (تلقائي)",
+      changed_by_role: "system",
+      notes: null,
+      metadata: {
+        source: mappedSource,
+        agent_name: order.agent_name || null,
+        reference_number: order.reference_number || null,
+      },
+    });
+
     return json({
       success: true,
       amwali_order_id: newOrder.id,
