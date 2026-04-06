@@ -245,6 +245,14 @@ export default function TaxSettingsSection({ ownerId }: Props) {
           </div>
         )}
       </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end pt-2">
+        <Button onClick={saveSettings} disabled={saving} className="gap-2 min-w-32">
+          <Save className="h-4 w-4" />
+          {saving ? "جارِ الحفظ..." : "حفظ إعدادات الضريبة"}
+        </Button>
+      </div>
     </div>
   );
 }
