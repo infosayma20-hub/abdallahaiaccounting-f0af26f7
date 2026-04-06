@@ -62,6 +62,50 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
     setComposerOpen(true);
   };
 
+  const handleDirectShare = async (contact: Receivable) => {
+    setSharingId(contact.id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) return;
+
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const todayFmt = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+      const { data } = await supabase
+        .from('shared_statements')
+        .insert({
+          user_id: userId,
+          company_id: company.id || null,
+          contact_id: contact.id,
+          contact_name: contact.name,
+          date_from: startOfYear,
+          date_to: todayISO,
+          created_by: userId,
+          balance_amount: contact.balance,
+        } as any)
+        .select('token')
+        .single();
+
+      if (!data?.token) return;
+
+      const url = `${window.location.origin}/share/statement/${data.token}`;
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب:\n${url}\n\nنرجو التواصل لترتيب السداد.\nمع فائق الاحترام`;
+
+      if (navigator.share) {
+        await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });
+      } else {
+        await navigator.clipboard.writeText(msg);
+        toast.success('تم نسخ الرسالة — الصقها في أي تطبيق');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') console.error(err);
+    } finally {
+      setSharingId(null);
+    }
+  };
+
   const sorted = [...receivables]
     .filter(r => !search || r.name.includes(search))
     .sort((a, b) => {
