@@ -11914,6 +11914,57 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_logs: {
+        Row: {
+          created_at: string | null
+          direction: string
+          duration_ms: number | null
+          endpoint: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          order_id: string | null
+          order_reference: string | null
+          payload: Json | null
+          response_body: string | null
+          response_status: number | null
+          success: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          direction?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          order_id?: string | null
+          order_reference?: string | null
+          payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          order_id?: string | null
+          order_reference?: string | null
+          payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       work_shifts: {
         Row: {
           break_duration_minutes: number | null
