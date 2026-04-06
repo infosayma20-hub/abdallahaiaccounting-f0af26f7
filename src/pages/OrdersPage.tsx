@@ -27,6 +27,7 @@ import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
 
 import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
 import ProductionCostSection from "@/components/orders/ProductionCostSection";
+import { syncContactFromOrder, syncProductsFromOrderItems, retroactiveSyncOrders } from "@/lib/order-contact-sync";
 
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
