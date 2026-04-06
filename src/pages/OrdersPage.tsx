@@ -112,6 +112,7 @@ const OrdersPage = () => {
   const [showInvoiceModal, setShowInvoiceModal] = useState<Order | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   const [form, setForm] = useState(defaultForm);
   const [items, setItems] = useState<{ product_name: string; quantity: number; unit_price: number; discount: number; total: number }[]>([]);
