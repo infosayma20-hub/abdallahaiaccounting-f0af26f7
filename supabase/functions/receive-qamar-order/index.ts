@@ -12,6 +12,24 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// Status mapping: English (Qamar) → Arabic (Amwali)
+const statusMapToArabic: Record<string, string> = {
+  draft: "مسودة",
+  new: "جديد",
+  reviewing: "قيد المراجعة",
+  confirmed: "مؤكد",
+  in_production: "قيد التصنيع",
+  inspection: "جاهز للفحص",
+  ready_delivery: "جاهز للتسليم",
+  delivering: "قيد التوصيل",
+  delivered: "تم التسليم",
+  invoiced: "مفوتر",
+  cancelled: "ملغي",
+  postponed: "مؤجل",
+};
+
+const DEFAULT_OWNER_ID = "ccdbcaa5-a585-4d84-a559-a4fc94a6075b";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -41,10 +59,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Default owner for Qamar orders
-    const DEFAULT_OWNER_ID = "ccdbcaa5-a585-4d84-a559-a4fc94a6075b";
+    const syncType = order.sync_type || "new";
+    const refNumber = order.reference_number;
 
-    // Build full address
+    if (!refNumber) {
+      return json({ error: "Missing reference_number" }, 400);
+    }
+
+    // 3. Check if order already exists by reference_number
+    const { data: existing } = await supabase
+      .from("qamar_orders")
+      .select("id, status")
+      .eq("reference_number", refNumber)
+      .eq("user_id", DEFAULT_OWNER_ID)
+      .maybeSingle();
+
+    // Map status from English to Arabic
+    const arabicStatus = statusMapToArabic[order.status?.toLowerCase()] || order.status || "جديد";
+
+    // Build address
     const addressParts: string[] = [];
     if (order.customer_city) addressParts.push(order.customer_city);
     if (order.customer_address) addressParts.push(order.customer_address);
@@ -60,133 +93,270 @@ Deno.serve(async (req) => {
         0
       );
 
-    // 3. Insert into qamar_orders
-    const { data: newOrder, error: orderError } = await supabase
-      .from("qamar_orders")
-      .insert({
+    let amwaliOrderId: string;
+
+    // ─────────────────────────────────────────────
+    // Handle by sync_type
+    // ─────────────────────────────────────────────
+
+    if (syncType === "status_update" && existing) {
+      // Only update status + log
+      const oldStatus = existing.status;
+      const { error: updateErr } = await supabase
+        .from("qamar_orders")
+        .update({
+          status: arabicStatus,
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+
+      if (updateErr) {
+        return json({ error: updateErr.message }, 500);
+      }
+
+      // Log status change
+      await supabase.from("order_status_log").insert({
         user_id: DEFAULT_OWNER_ID,
-        reference_number: order.reference_number || null,
+        order_id: existing.id,
+        order_table: "qamar_orders",
+        from_status: oldStatus,
+        to_status: arabicStatus,
+        changed_by: DEFAULT_OWNER_ID,
+        changed_by_name: order.agent_name || "قمر براند",
+        changed_by_role: "external_system",
+        notes: order.all_notes || null,
+        metadata: {
+          sync_type: syncType,
+          source: "qamar_brand",
+        },
+      });
+
+      amwaliOrderId = existing.id;
+
+    } else if (syncType === "production_done" && existing) {
+      // Update production costs + set status to "جاهز للفوترة" or provided status
+      const targetStatus = arabicStatus === "جديد" ? "جاهز للفحص" : arabicStatus;
+      const { error: updateErr } = await supabase
+        .from("qamar_orders")
+        .update({
+          status: targetStatus,
+          production_cost: order.production_cost ?? 0,
+          cost_breakdown: order.cost_breakdown ?? null,
+          gross_profit: order.gross_profit ?? (order.total ?? subtotal) - (order.production_cost ?? 0),
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+
+      if (updateErr) {
+        return json({ error: updateErr.message }, 500);
+      }
+
+      // Log
+      await supabase.from("order_status_log").insert({
+        user_id: DEFAULT_OWNER_ID,
+        order_id: existing.id,
+        order_table: "qamar_orders",
+        from_status: existing.status,
+        to_status: targetStatus,
+        changed_by: DEFAULT_OWNER_ID,
+        changed_by_name: "قمر براند (إنتاج)",
+        changed_by_role: "external_system",
+        notes: `تكلفة الإنتاج: ₪${order.production_cost ?? 0}`,
+        metadata: {
+          sync_type: syncType,
+          production_cost: order.production_cost,
+          cost_breakdown: order.cost_breakdown,
+          gross_profit: order.gross_profit,
+        },
+      });
+
+      amwaliOrderId = existing.id;
+
+    } else if (existing) {
+      // Update existing order (draft → new, or re-sync)
+      const { error: updateErr } = await supabase
+        .from("qamar_orders")
+        .update({
+          status: arabicStatus,
+          customer_name: order.customer_name || undefined,
+          customer_phone: order.customer_phone || undefined,
+          customer_city: order.customer_city || undefined,
+          customer_address: fullAddress || undefined,
+          subtotal,
+          discount: order.discount ?? 0,
+          shipping_cost: order.shipping_cost ?? order.shipping ?? 0,
+          total: order.total ?? subtotal,
+          source: order.source || undefined,
+          source_key: order.source_key || undefined,
+          payment_method: order.payment_method || undefined,
+          payment_status: order.payment_status || undefined,
+          amount_paid: order.amount_paid ?? undefined,
+          customer_notes: order.customer_notes || undefined,
+          production_notes: order.production_notes || undefined,
+          all_notes: order.all_notes || undefined,
+          agent_name: order.agent_name || undefined,
+          agent_id: order.agent_id || undefined,
+          priority: order.priority || undefined,
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+
+      if (updateErr) {
+        return json({ error: updateErr.message }, 500);
+      }
+
+      // Update items if provided
+      if (items.length > 0) {
+        await supabase.from("qamar_order_items").delete().eq("order_id", existing.id);
+        await supabase.from("qamar_order_items").insert(
+          items.map((item: any) => ({
+            order_id: existing.id,
+            product_name: item.product_name || item.name || "منتج",
+            product_id: item.product_id || null,
+            price: item.price || item.unit_price || 0,
+            quantity: item.quantity || 1,
+            line_total: item.line_total || (item.quantity || 1) * (item.price || 0),
+            note: item.note || item.notes || null,
+            product_image: item.product_image || null,
+          }))
+        );
+      }
+
+      // Log if status changed
+      if (existing.status !== arabicStatus) {
+        await supabase.from("order_status_log").insert({
+          user_id: DEFAULT_OWNER_ID,
+          order_id: existing.id,
+          order_table: "qamar_orders",
+          from_status: existing.status,
+          to_status: arabicStatus,
+          changed_by: DEFAULT_OWNER_ID,
+          changed_by_name: order.agent_name || "قمر براند",
+          changed_by_role: "external_system",
+          metadata: { sync_type: syncType, source: "qamar_brand" },
+        });
+      }
+
+      amwaliOrderId = existing.id;
+
+    } else {
+      // ── Create new order ──
+      const initialStatus = syncType === "draft" ? "مسودة" : arabicStatus;
+
+      const { data: newOrder, error: orderError } = await supabase
+        .from("qamar_orders")
+        .insert({
+          user_id: DEFAULT_OWNER_ID,
+          reference_number: refNumber,
+          customer_name: order.customer_name || "عميل قمر",
+          customer_phone: order.customer_phone || null,
+          customer_city: order.customer_city || null,
+          customer_address: fullAddress,
+          subtotal,
+          discount: order.discount ?? 0,
+          shipping_cost: order.shipping_cost ?? order.shipping ?? 0,
+          total: order.total ?? subtotal,
+          source: order.source || null,
+          source_key: order.source_key || null,
+          payment_method: order.payment_method || null,
+          payment_status: order.payment_status || "pending",
+          amount_paid: order.amount_paid ?? 0,
+          customer_notes: order.customer_notes || null,
+          production_notes: order.production_notes || null,
+          all_notes: order.all_notes || null,
+          agent_name: order.agent_name || null,
+          agent_id: order.agent_id || null,
+          priority: order.priority || "normal",
+          status: initialStatus,
+          type: order.type || "sales_order",
+          sync_type: syncType,
+          production_cost: order.production_cost ?? 0,
+          cost_breakdown: order.cost_breakdown ?? null,
+          gross_profit: order.gross_profit ?? 0,
+        })
+        .select("id")
+        .single();
+
+      if (orderError) {
+        console.error("Qamar order insert error:", orderError);
+        return json({ error: orderError.message }, 500);
+      }
+
+      // Insert items
+      if (items.length > 0) {
+        await supabase.from("qamar_order_items").insert(
+          items.map((item: any) => ({
+            order_id: newOrder.id,
+            product_name: item.product_name || item.name || "منتج",
+            product_id: item.product_id || null,
+            price: item.price || item.unit_price || 0,
+            quantity: item.quantity || 1,
+            line_total: item.line_total || (item.quantity || 1) * (item.price || 0),
+            note: item.note || item.notes || null,
+            product_image: item.product_image || null,
+          }))
+        );
+      }
+
+      // Also insert into legacy orders table
+      const sourceMap: Record<string, string> = {
+        whatsapp: "واتساب",
+        website: "متجر إلكتروني",
+        phone: "هاتف",
+        facebook: "أخرى",
+        instagram: "أخرى",
+      };
+      const mappedSource = order.source || sourceMap[order.source_key?.toLowerCase()] || "أخرى";
+
+      const noteParts: string[] = [];
+      if (order.all_notes) noteParts.push(order.all_notes);
+      else {
+        if (order.customer_notes) noteParts.push(`ملاحظات الزبون: ${order.customer_notes}`);
+        if (order.production_notes) noteParts.push(`ملاحظات الإنتاج: ${order.production_notes}`);
+      }
+      if (order.agent_name) noteParts.push(`الموظف: ${order.agent_name}`);
+
+      await supabase.from("orders").insert({
+        user_id: DEFAULT_OWNER_ID,
+        order_number: refNumber,
         customer_name: order.customer_name || "عميل قمر",
         customer_phone: order.customer_phone || null,
-        customer_city: order.customer_city || null,
         customer_address: fullAddress,
-        subtotal: subtotal,
+        status: initialStatus,
+        source: mappedSource,
+        subtotal,
+        total: order.total ?? subtotal,
         discount: order.discount ?? 0,
         shipping_cost: order.shipping_cost ?? order.shipping ?? 0,
-        total: order.total ?? subtotal,
-        source: order.source || null,
-        source_key: order.source_key || null,
-        payment_method: order.payment_method || null,
-        payment_status: order.payment_status || "pending",
-        amount_paid: order.amount_paid ?? 0,
-        customer_notes: order.customer_notes || null,
-        production_notes: order.production_notes || null,
-        all_notes: order.all_notes || null,
-        agent_name: order.agent_name || null,
-        agent_id: order.agent_id || null,
-        priority: order.priority || "normal",
-        status: order.status || "new",
-        type: order.type || "sales_order",
-      })
-      .select("id")
-      .single();
+        notes: noteParts.join(" | ") || null,
+      });
 
-    if (orderError) {
-      console.error("Qamar order insert error:", orderError);
-      return json({ error: orderError.message }, 500);
-    }
-
-    // 4. Insert order items
-    if (items.length > 0) {
-      const orderItems = items.map((item: any) => ({
+      // Log initial status
+      await supabase.from("order_status_log").insert({
+        user_id: DEFAULT_OWNER_ID,
         order_id: newOrder.id,
-        product_name: item.product_name || item.name || "منتج",
-        product_id: item.product_id || null,
-        price: item.price || item.unit_price || 0,
-        quantity: item.quantity || 1,
-        line_total: item.line_total || (item.quantity || 1) * (item.price || item.unit_price || 0),
-        note: item.note || item.notes || null,
-        product_image: item.product_image || null,
-      }));
+        order_table: "qamar_orders",
+        from_status: null,
+        to_status: initialStatus,
+        changed_by: DEFAULT_OWNER_ID,
+        changed_by_name: "النظام (تلقائي)",
+        changed_by_role: "system",
+        metadata: {
+          sync_type: syncType,
+          source: mappedSource,
+          agent_name: order.agent_name || null,
+          reference_number: refNumber,
+        },
+      });
 
-      const { error: itemsError } = await supabase
-        .from("qamar_order_items")
-        .insert(orderItems);
-
-      if (itemsError) {
-        console.error("Qamar order items insert error:", itemsError);
-      }
+      amwaliOrderId = newOrder.id;
     }
 
-    // 5. Also insert into legacy orders table for backward compatibility
-    const sourceMap: Record<string, string> = {
-      whatsapp: "واتساب",
-      website: "متجر إلكتروني",
-      phone: "هاتف",
-      manual: "يدوي",
-      facebook: "أخرى",
-      instagram: "أخرى",
-    };
-    const mappedSource = order.source || sourceMap[order.source_key?.toLowerCase()] || "أخرى";
-
-    const statusMap: Record<string, string> = {
-      new: "جديد",
-      processing: "قيد التجهيز",
-      ready: "جاهز للشحن",
-      shipped: "تم الشحن",
-      delivered: "تم التسليم",
-      returned: "مرتجع",
-      cancelled: "ملغي",
-    };
-    const mappedStatus = statusMap[order.status?.toLowerCase()] || "جديد";
-
-    const noteParts: string[] = [];
-    if (order.all_notes) noteParts.push(order.all_notes);
-    else {
-      if (order.customer_notes) noteParts.push(`ملاحظات الزبون: ${order.customer_notes}`);
-      if (order.production_notes) noteParts.push(`ملاحظات الإنتاج: ${order.production_notes}`);
-    }
-    if (order.agent_name) noteParts.push(`الموظف: ${order.agent_name}`);
-    const notes = noteParts.length > 0 ? noteParts.join(" | ") : null;
-
-    await supabase.from("orders").insert({
-      user_id: DEFAULT_OWNER_ID,
-      order_number: order.reference_number || null,
-      customer_name: order.customer_name || "عميل قمر",
-      customer_phone: order.customer_phone || null,
-      customer_address: fullAddress,
-      status: mappedStatus,
-      source: mappedSource,
-      subtotal: subtotal,
-      total: order.total ?? subtotal,
-      discount: order.discount ?? 0,
-      shipping_cost: order.shipping_cost ?? order.shipping ?? 0,
-      notes,
-    });
-
-    console.log("Qamar order created:", newOrder.id, "Ref:", order.reference_number);
-
-    // 6. Insert initial status log entry
-    await supabase.from("order_status_log").insert({
-      user_id: DEFAULT_OWNER_ID,
-      order_id: newOrder.id,
-      order_table: "qamar_orders",
-      from_status: null,
-      to_status: "جديد",
-      changed_by: DEFAULT_OWNER_ID,
-      changed_by_name: "النظام (تلقائي)",
-      changed_by_role: "system",
-      notes: null,
-      metadata: {
-        source: mappedSource,
-        agent_name: order.agent_name || null,
-        reference_number: order.reference_number || null,
-      },
-    });
+    console.log(`receive-qamar-order: sync_type=${syncType}, ref=${refNumber}, id=${amwaliOrderId}`);
 
     return json({
       success: true,
-      amwali_order_id: newOrder.id,
+      amwali_order_id: amwaliOrderId,
     });
   } catch (err) {
     console.error("receive-qamar-order error:", err);
