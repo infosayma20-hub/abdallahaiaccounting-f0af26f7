@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { getStageColor, getStageIcon, getNextStage, ORDER_STAGES, SPECIAL_STAGES } from "./OrderStatusTimeline";
+import { syncProductionToWebhook } from "@/lib/syncProductionWebhook";
 
 const F = "Cairo, sans-serif";
 const NAVY = "#0D1B2E";
@@ -61,6 +62,18 @@ export default function OrderStatusActions({ orderId, currentStatus, orderTable,
       } else {
         await supabase.from("orders").update({ status: newStatus } as any).eq("id", orderId);
       }
+
+      // Auto-sync to webhook log
+      syncProductionToWebhook({
+        user_id: effectiveUserId,
+        order_id: orderId,
+        event_type: "status_change",
+        from_status: currentStatus,
+        to_status: newStatus,
+        changed_by_name: userName,
+        changed_by_role: "admin",
+        metadata: metadata || {},
+      });
 
       toast.success(`تم تحديث الحالة: ${newStatus}`);
       setShowModal(null);

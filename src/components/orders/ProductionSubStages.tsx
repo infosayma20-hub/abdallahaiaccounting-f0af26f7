@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { PRODUCTION_SUB_STAGES } from "./OrderStatusTimeline";
+import { syncProductionToWebhook } from "@/lib/syncProductionWebhook";
 
 const F = "Cairo, sans-serif";
 const NAVY = "#0D1B2E";
@@ -65,6 +66,18 @@ export default function ProductionSubStages({ orderId, orderTable, onUpdate }: P
         to_status: "قيد التصنيع",
         sub_stage: stageName,
         changed_by: user.id,
+        changed_by_name: userName,
+        changed_by_role: "production_manager",
+        metadata: { completed: true },
+      });
+
+      // Auto-sync sub-stage completion to webhook
+      syncProductionToWebhook({
+        user_id: ownerIdResult || user.id,
+        order_id: orderId,
+        event_type: "sub_stage_complete",
+        to_status: "قيد التصنيع",
+        sub_stage: stageName,
         changed_by_name: userName,
         changed_by_role: "production_manager",
         metadata: { completed: true },
