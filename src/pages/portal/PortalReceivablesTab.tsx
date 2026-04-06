@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send } from 'lucide-react';
+import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
+import { useCompany } from '@/hooks/useCompanyContext';
+import { toast } from 'sonner';
 
 const ACCENT = '#2A7B9B';
 
@@ -24,6 +26,7 @@ interface Receivable {
 
 export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const t = getThemeColors(theme);
+  const { company } = useCompany();
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -31,6 +34,7 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Receivable | null>(null);
   const [totalOutstanding, setTotalOutstanding] = useState(0);
+  const [sharingId, setSharingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReceivables();
@@ -56,6 +60,50 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
   const openWhatsApp = (contact: Receivable) => {
     setSelectedContact(contact);
     setComposerOpen(true);
+  };
+
+  const handleDirectShare = async (contact: Receivable) => {
+    setSharingId(contact.id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) return;
+
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const todayFmt = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+      const { data } = await supabase
+        .from('shared_statements')
+        .insert({
+          user_id: userId,
+          company_id: company.id || null,
+          contact_id: contact.id,
+          contact_name: contact.name,
+          date_from: startOfYear,
+          date_to: todayISO,
+          created_by: userId,
+          balance_amount: contact.balance,
+        } as any)
+        .select('token')
+        .single();
+
+      if (!data?.token) return;
+
+      const url = `${window.location.origin}/share/statement/${data.token}`;
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب:\n${url}\n\nنرجو التواصل لترتيب السداد.\nمع فائق الاحترام`;
+
+      if (navigator.share) {
+        await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });
+      } else {
+        await navigator.clipboard.writeText(msg);
+        toast.success('تم نسخ الرسالة — الصقها في أي تطبيق');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') console.error(err);
+    } finally {
+      setSharingId(null);
+    }
   };
 
   const sorted = [...receivables]
@@ -152,30 +200,45 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                  <button
-                    onClick={() => openWhatsApp(contact)}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      padding: '10px 12px', borderRadius: 8, border: 'none',
-                      background: '#25D366', color: 'white', fontSize: 12, fontWeight: 600,
-                      fontFamily: 'Tajawal, sans-serif', cursor: 'pointer', minHeight: 44,
-                    }}
-                  >
-                    <MessageCircle size={16} />
-                    واتساب
-                  </button>
                   {contact.phone && (
                     <a
                       href={`tel:${contact.phone}`}
                       style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '10px 14px', borderRadius: 8, border: `1px solid ${t.border}`,
-                        background: t.chipBg, color: t.text, textDecoration: 'none', minHeight: 44,
+                        width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 10, border: `1.5px solid ${t.border}`,
+                        background: t.chipBg, color: t.text, textDecoration: 'none',
                       }}
                     >
                       <Phone size={16} />
                     </a>
                   )}
+                  <button
+                    onClick={() => handleDirectShare(contact)}
+                    disabled={sharingId === contact.id}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '10px 12px', borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(135deg, #0D1B2E, #1e3a5f)', color: 'white',
+                      fontSize: 12, fontWeight: 600, fontFamily: 'Tajawal, sans-serif',
+                      cursor: 'pointer', minHeight: 44, opacity: sharingId === contact.id ? 0.6 : 1,
+                      boxShadow: '0 2px 8px rgba(13,27,46,0.2)',
+                    }}
+                  >
+                    {sharingId === contact.id ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+                    {sharingId === contact.id ? 'جاري التجهيز...' : 'مشاركة كشف'}
+                  </button>
+                  <button
+                    onClick={() => openWhatsApp(contact)}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '10px 12px', borderRadius: 10, border: 'none',
+                      background: '#25D366', color: 'white', fontSize: 12, fontWeight: 600,
+                      fontFamily: 'Tajawal, sans-serif', cursor: 'pointer', minHeight: 44,
+                    }}
+                  >
+                    <MessageCircle size={14} />
+                    واتساب كشف
+                  </button>
                 </div>
               </div>
             );

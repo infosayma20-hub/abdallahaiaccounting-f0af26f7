@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { MessageCircle, X, Loader2, ExternalLink, Check } from 'lucide-react';
+import { MessageCircle, Loader2, Check, Share2, Copy, CheckCheck } from 'lucide-react';
 import { useCompany } from '@/hooks/useCompanyContext';
+import { toast } from 'sonner';
 
 interface Contact {
   id: string;
@@ -12,6 +13,27 @@ interface Contact {
 }
 
 const fmt = (n: number) => '₪' + Math.abs(n).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+const formatPhoneForWhatsApp = (phone: string): string => {
+  if (!phone) return '';
+  let digits = phone.replace(/[^0-9]/g, '');
+
+  // Case: 00972... → remove leading 00
+  if (digits.startsWith('00972')) {
+    digits = digits.substring(2);
+  }
+  // Case: 0599... (local 10-digit) → replace leading 0 with 972
+  else if (digits.startsWith('0') && digits.length === 10) {
+    digits = '972' + digits.substring(1);
+  }
+  // Case: 599... (9-digit, no prefix) → add 972
+  else if (digits.length === 9 && (digits.startsWith('5') || digits.startsWith('2'))) {
+    digits = '972' + digits;
+  }
+  // Case: already 972XXXXXXXXX → keep as is
+
+  return digits;
+};
 
 export default function WhatsAppComposerSheet({
   open, onClose, contact, theme = 'light', onSent,
@@ -28,6 +50,7 @@ export default function WhatsAppComposerSheet({
   const [generating, setGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [sent, setSent] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const today = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
   const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
@@ -36,6 +59,7 @@ export default function WhatsAppComposerSheet({
   useEffect(() => {
     if (!open) return;
     setSent(false);
+    setCopied(false);
     setShareUrl('');
     setPhone(contact.phone?.replace(/\D/g, '') || '');
     generateLink();
@@ -84,17 +108,7 @@ export default function WhatsAppComposerSheet({
     }
   };
 
-  const openWhatsApp = async () => {
-    let formattedPhone = phone.replace(/\D/g, '');
-    // Remove leading 00 international prefix (e.g. 00972...)
-    if (formattedPhone.startsWith('00')) formattedPhone = formattedPhone.slice(2);
-    // Convert local number (starts with 0) to international
-    else if (formattedPhone.startsWith('0')) formattedPhone = '970' + formattedPhone.slice(1);
-
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
-
-    // Log the send
+  const logSend = async (via: string) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       await supabase.from('statement_send_log').insert({
@@ -102,15 +116,58 @@ export default function WhatsAppComposerSheet({
         contact_id: contact.id,
         contact_name: contact.name,
         contact_phone: phone,
-        sent_via: 'whatsapp',
+        sent_via: via,
         sent_by: userData?.user?.id,
         balance_at_send: contact.balance,
         company_id: company.id || null,
       } as any);
     } catch {}
+  };
 
+  const openWhatsApp = async () => {
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
+    await logSend('whatsapp');
     setSent(true);
     onSent?.();
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `كشف حساب — ${contact.name}`,
+          text: message,
+        });
+        await logSend('share');
+        setSent(true);
+        onSent?.();
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    } else {
+      // Desktop fallback: copy to clipboard
+      await handleCopy();
+      toast.success('تم نسخ الرسالة — الصقها في أي تطبيق');
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = message;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const isDark = theme === 'dark';
@@ -161,22 +218,89 @@ export default function WhatsAppComposerSheet({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="space-y-3 pt-2">
+            {/* Row 1: Share + WhatsApp */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleShare}
+                disabled={generating || !message}
+                className="disabled:opacity-50"
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #0D1B2E 0%, #1e3a5f 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '14px 20px',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  fontFamily: 'Cairo, Tajawal, sans-serif',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 15px rgba(13, 27, 46, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  minHeight: 48,
+                }}
+              >
+                <Share2 size={18} />
+                مشاركة
+              </button>
+
+              <button
+                onClick={openWhatsApp}
+                disabled={generating || !phone || !message}
+                className="disabled:opacity-50"
+                style={{
+                  flex: 1,
+                  background: '#25D366',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '14px 20px',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  fontFamily: 'Cairo, Tajawal, sans-serif',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  minHeight: 48,
+                }}
+              >
+                {sent ? <Check size={18} /> : <MessageCircle size={18} />}
+                {sent ? 'تم الفتح ✓' : '💬 فتح واتساب'}
+              </button>
+            </div>
+
+            {/* Row 2: Copy */}
             <button
-              onClick={openWhatsApp}
-              disabled={generating || !phone || !message}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
-              style={{ background: '#25D366', fontFamily: 'Tajawal, sans-serif', minHeight: 48 }}
+              onClick={handleCopy}
+              disabled={generating || !message}
+              className="disabled:opacity-50"
+              style={{
+                width: '100%',
+                background: copied ? '#F0FDF4' : isDark ? '#1F2937' : 'white',
+                color: copied ? '#16A34A' : isDark ? '#D1D5DB' : '#0D1B2E',
+                border: `1.5px solid ${copied ? '#22C55E' : isDark ? '#374151' : '#E2E8F0'}`,
+                borderRadius: 12,
+                padding: '12px 20px',
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: 'Cairo, Tajawal, sans-serif',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                transition: 'all 0.3s ease',
+              }}
             >
-              {sent ? <Check size={18} /> : <MessageCircle size={18} />}
-              {sent ? 'تم الفتح ✓' : '💬 فتح واتساب'}
-            </button>
-            <button
-              onClick={onClose}
-              className={`px-6 py-3 rounded-xl text-sm font-medium ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
-              style={{ fontFamily: 'Tajawal, sans-serif', minHeight: 48 }}
-            >
-              إلغاء
+              {copied ? <CheckCheck size={16} /> : <Copy size={16} />}
+              {copied ? '✅ تم النسخ!' : '📋 نسخ الرسالة'}
             </button>
           </div>
 
