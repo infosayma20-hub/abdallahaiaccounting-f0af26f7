@@ -821,6 +821,11 @@ const OrdersPage = () => {
           )}
         </TabsContent>
 
+        {/* ═══════ Qamar Brand Tab ═══════ */}
+        <TabsContent value="qamar" className="mt-4">
+          <QamarOrdersTab />
+        </TabsContent>
+
         {/* ═══════ Reports Tab ═══════ */}
         <TabsContent value="reports" className="space-y-6 mt-4">
           {/* Report KPIs */}
