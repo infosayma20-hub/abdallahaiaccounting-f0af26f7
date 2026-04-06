@@ -80,7 +80,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const calcItemTotal = (item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
     const afterDiscount = base - (item.discount || 0);
-    if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "exempt" as const };
+    if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "none" as const };
     const cat = item.taxCategory || (item.taxRate > 0 ? "taxable" : "exempt");
     const rate = cat === "taxable" ? 16 : 0;
     const tax = cat === "exempt" ? 0 : afterDiscount * (rate / 100);
@@ -367,9 +367,11 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
                   <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtAmount(calc.afterDiscount)}</td>
+                  {taxEnabled && (
                   <td style={{ padding: "5px 4px", textAlign: "center", fontSize: "8px", color: "#6B7280", fontFeatureSettings: "'tnum'" }}>
                     {calc.category === "taxable" ? fmtAmount(calc.tax) : calc.category === "zero" ? "0%" : "معفى"}
                   </td>
+                  )}
                   <td style={{ padding: "5px 4px", textAlign: "center", fontWeight: 700, color: "#1B3A5C", fontFeatureSettings: "'tnum'" }}>
                     {fmtAmount(calc.total)}
                   </td>
@@ -483,9 +485,11 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         </div>
       )}
 
+      {taxEnabled && (
       <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
         هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة — رقم القرار بقانون: (26) لسنة 2024م • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
       </div>
+      )}
 
       {/* ━━━ FOOTER - SIGNATURES ━━━ */}
       <div
