@@ -547,9 +547,11 @@ const OrdersPage = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className={`grid w-full ${user?.id === 'ccdbcaa5-a585-4d84-a559-a4fc94a6075b' ? 'grid-cols-3 max-w-md' : 'grid-cols-2 max-w-xs'}`}>
           <TabsTrigger value="orders" className="gap-1"><ShoppingCart className="h-3.5 w-3.5" /> الطلبيات</TabsTrigger>
-          <TabsTrigger value="qamar" className="gap-1"><Star className="h-3.5 w-3.5" /> قمر براند</TabsTrigger>
+          {user?.id === 'ccdbcaa5-a585-4d84-a559-a4fc94a6075b' && (
+            <TabsTrigger value="qamar" className="gap-1"><Star className="h-3.5 w-3.5" /> قمر براند</TabsTrigger>
+          )}
           <TabsTrigger value="reports" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> التقارير</TabsTrigger>
         </TabsList>
 
