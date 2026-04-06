@@ -243,6 +243,22 @@ const OrdersPage = () => {
 
   const createInvoiceFromOrder = async (order: Order) => {
     if (!user) return;
+    
+    // Auto-sync contact before invoicing
+    const sourceTable = (order as any)._source_table === "qamar_orders" ? "qamar_orders" : "orders";
+    const contactId = await syncContactFromOrder({
+      id: order.id,
+      user_id: order.user_id,
+      customer_name: order.customer_name,
+      customer_phone: order.customer_phone,
+      customer_address: order.customer_address,
+      order_number: order.order_number,
+      source: order.source,
+    }, sourceTable as any);
+    
+    // Auto-sync products
+    await syncProductsFromOrderItems(order.id, user.id);
+    
     const { data: oItems } = await supabase.from("order_items").select("*").eq("order_id", order.id);
     const orderItemsList = (oItems as any[]) || [];
     const existingInvoices = JSON.parse(localStorage.getItem(`invoices_${user.id}`) || "[]");
@@ -274,7 +290,7 @@ const OrdersPage = () => {
     const invoice = {
       id: crypto.randomUUID(), type: "sales", invoiceNumber, date: new Date().toISOString().split("T")[0],
       dueDate: order.payment_method === "آجل" ? order.delivery_date : undefined,
-      contactName: order.customer_name, items: invoiceItems,
+      contactName: order.customer_name, contactId, items: invoiceItems,
       notes: `تم الإنشاء تلقائياً من طلبية ${order.order_number || ""} • ${order.notes || ""}`.trim(),
       status: "sent", paymentMethod: paymentMethodMap[order.payment_method || "كاش"] || "cash",
       subtotal, totalDiscount, totalTax: 0, total,
@@ -285,6 +301,20 @@ const OrdersPage = () => {
     localStorage.setItem(`invoices_${user.id}`, JSON.stringify(updatedInvoices));
     await supabase.from("orders").update({ linked_invoice_id: invoice.id } as any).eq("id", order.id);
     return invoice;
+  };
+
+  const handleRetroactiveSync = async () => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const result = await retroactiveSyncOrders(user.id);
+      toast.success(`تمت المزامنة: تم ربط ${result.contactsLinked} زبون و ${result.productsLinked} منتج ✅`);
+      fetchOrders();
+    } catch (err: any) {
+      toast.error("خطأ في المزامنة: " + err.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
