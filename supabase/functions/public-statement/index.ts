@@ -46,18 +46,28 @@ Deno.serve(async (req) => {
       })
       .eq("id", stmt.id);
 
-    // Fetch company info
+    // Fetch contact info first to get real data owner
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("id, contact_name, phone, email, user_id")
+      .eq("id", stmt.contact_id)
+      .single();
+
+    // Use the contact's user_id (the real data owner)
+    const dataOwnerId = contact?.user_id || stmt.user_id;
+
+    // Fetch company info using the data owner
     const { data: company } = await supabase
       .from("companies")
       .select("name, logo_url, phone, email, address")
-      .eq("owner_id", stmt.user_id)
+      .eq("owner_id", dataOwnerId)
       .single();
 
     // Also check company_settings
     const { data: compSettings } = await supabase
       .from("company_settings")
       .select("company_name, logo_url, phone, email, address")
-      .eq("user_id", stmt.user_id)
+      .eq("user_id", dataOwnerId)
       .single();
 
     const companyName = company?.name || (compSettings as any)?.company_name || "";
@@ -65,37 +75,27 @@ Deno.serve(async (req) => {
     const companyPhone = company?.phone || (compSettings as any)?.phone || "";
     const companyEmail = company?.email || (compSettings as any)?.email || "";
 
-    // Fetch contact info
-    const { data: contact } = await supabase
-      .from("contacts")
-      .select("id, contact_name, phone, email")
-      .eq("id", stmt.contact_id)
-      .single();
-
     // Fetch transactions for the date range
     const { data: transactions } = await supabase
       .from("transactions")
       .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id")
-      .eq("user_id", stmt.user_id)
+      .eq("user_id", dataOwnerId)
       .eq("is_deleted", false)
+      .eq("contact_id", stmt.contact_id)
       .gte("transaction_date", stmt.date_from)
       .lte("transaction_date", stmt.date_to)
       .order("transaction_date", { ascending: true });
 
-    // Filter transactions related to this contact (account 1130 receivables)
-    const contactTransactions = (transactions || []).filter((tx: any) => {
-      if (tx.contact_id === stmt.contact_id) return true;
-      return false;
-    });
+    const contactTransactions = transactions || [];
 
     // Calculate opening balance (transactions before date_from)
     const { data: priorTxs } = await supabase
       .from("transactions")
       .select("debit_account_code, credit_account_code, amount")
-      .eq("user_id", stmt.user_id)
+      .eq("user_id", dataOwnerId)
       .eq("is_deleted", false)
-      .lt("transaction_date", stmt.date_from)
-      .or(`contact_id.eq.${stmt.contact_id}`);
+      .eq("contact_id", stmt.contact_id)
+      .lt("transaction_date", stmt.date_from);
 
     let openingBalance = 0;
     (priorTxs || []).forEach((tx: any) => {
