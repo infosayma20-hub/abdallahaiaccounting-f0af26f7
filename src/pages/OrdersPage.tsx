@@ -720,7 +720,7 @@ const OrdersPage = () => {
                           <td style={{ padding: "14px 12px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
                               {[
-                                { icon: <Eye style={{ width: 14, height: 14 }} />, title: "عرض", onClick: () => { setShowDetail(o); fetchOrderItems(o.id); } },
+                                { icon: <Eye style={{ width: 14, height: 14 }} />, title: "عرض", onClick: () => navigate(`/orders/${o.id}`) },
                                 ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{
                                   icon: <FileText style={{ width: 14, height: 14 }} />, title: "فاتورة",
                                   onClick: async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); }
@@ -805,7 +805,7 @@ const OrdersPage = () => {
                   }}
                     onMouseEnter={e => { (e.currentTarget as any).style.boxShadow = "0 4px 15px rgba(0,0,0,0.06)"; (e.currentTarget as any).style.borderColor = "#CBD5E1"; }}
                     onMouseLeave={e => { (e.currentTarget as any).style.boxShadow = "none"; (e.currentTarget as any).style.borderColor = "#F1F5F9"; }}
-                    onClick={() => { setShowDetail(o); fetchOrderItems(o.id); }}
+                    onClick={() => navigate(`/orders/${o.id}`)}
                   >
                     {/* Accent border */}
                     <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "4px", borderRadius: "0 16px 16px 0", background: sc.dot }} />
@@ -847,7 +847,7 @@ const OrdersPage = () => {
                     {/* Card actions */}
                     <div style={{ display: "flex", gap: "8px", paddingTop: "12px", borderTop: "1px solid #F1F5F9", marginTop: "4px" }} onClick={e => e.stopPropagation()}>
                       {[
-                        { label: "عرض", icon: "👁️", onClick: () => { setShowDetail(o); fetchOrderItems(o.id); } },
+                        { label: "عرض", icon: "👁️", onClick: () => navigate(`/orders/${o.id}`) },
                         ...((o.status === "جاهز للفوترة" || o.status === "جديد" || o.status === "قيد التجهيز") && !o.invoice_id ? [{ label: "فوترة", icon: "📄", onClick: async () => { await fetchOrderItems(o.id); setShowInvoiceModal(o); } }] : []),
                         { label: "تعديل", icon: "✏️", onClick: () => openEdit(o) },
                         ...(o.customer_phone ? [{ label: "واتساب", icon: "💬", onClick: () => { setShowWhatsApp(o); setWaTemplate("feedback"); setWaMessage(getWhatsAppMessage(o, "feedback")); } }] : []),
