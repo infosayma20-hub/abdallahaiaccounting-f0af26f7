@@ -9055,6 +9055,7 @@ export type Database = {
           agent_name: string | null
           all_notes: string | null
           amount_paid: number | null
+          cost_breakdown: Json | null
           created_at: string
           customer_address: string | null
           customer_city: string | null
@@ -9062,6 +9063,7 @@ export type Database = {
           customer_notes: string | null
           customer_phone: string | null
           discount: number | null
+          gross_profit: number | null
           id: string
           invoice_number: string | null
           invoiced_at: string | null
@@ -9069,6 +9071,7 @@ export type Database = {
           payment_method: string | null
           payment_status: string | null
           priority: string | null
+          production_cost: number | null
           production_notes: string | null
           production_status: string | null
           production_sub_stage: string | null
@@ -9088,6 +9091,7 @@ export type Database = {
           agent_name?: string | null
           all_notes?: string | null
           amount_paid?: number | null
+          cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
           customer_city?: string | null
@@ -9095,6 +9099,7 @@ export type Database = {
           customer_notes?: string | null
           customer_phone?: string | null
           discount?: number | null
+          gross_profit?: number | null
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
@@ -9102,6 +9107,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           priority?: string | null
+          production_cost?: number | null
           production_notes?: string | null
           production_status?: string | null
           production_sub_stage?: string | null
@@ -9121,6 +9127,7 @@ export type Database = {
           agent_name?: string | null
           all_notes?: string | null
           amount_paid?: number | null
+          cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
           customer_city?: string | null
@@ -9128,6 +9135,7 @@ export type Database = {
           customer_notes?: string | null
           customer_phone?: string | null
           discount?: number | null
+          gross_profit?: number | null
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
@@ -9135,6 +9143,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           priority?: string | null
+          production_cost?: number | null
           production_notes?: string | null
           production_status?: string | null
           production_sub_stage?: string | null
