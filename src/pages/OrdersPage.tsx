@@ -27,6 +27,7 @@ import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
 
 import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
 import ProductionCostSection from "@/components/orders/ProductionCostSection";
+import { syncContactFromOrder, syncProductsFromOrderItems, retroactiveSyncOrders } from "@/lib/order-contact-sync";
 
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
@@ -111,6 +112,7 @@ const OrdersPage = () => {
   const [showInvoiceModal, setShowInvoiceModal] = useState<Order | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   const [form, setForm] = useState(defaultForm);
   const [items, setItems] = useState<{ product_name: string; quantity: number; unit_price: number; discount: number; total: number }[]>([]);
@@ -241,6 +243,22 @@ const OrdersPage = () => {
 
   const createInvoiceFromOrder = async (order: Order) => {
     if (!user) return;
+    
+    // Auto-sync contact before invoicing
+    const sourceTable = (order as any)._source_table === "qamar_orders" ? "qamar_orders" : "orders";
+    const contactId = await syncContactFromOrder({
+      id: order.id,
+      user_id: order.user_id,
+      customer_name: order.customer_name,
+      customer_phone: order.customer_phone,
+      customer_address: order.customer_address,
+      order_number: order.order_number,
+      source: order.source,
+    }, sourceTable as any);
+    
+    // Auto-sync products
+    await syncProductsFromOrderItems(order.id, user.id);
+    
     const { data: oItems } = await supabase.from("order_items").select("*").eq("order_id", order.id);
     const orderItemsList = (oItems as any[]) || [];
     const existingInvoices = JSON.parse(localStorage.getItem(`invoices_${user.id}`) || "[]");
@@ -272,7 +290,7 @@ const OrdersPage = () => {
     const invoice = {
       id: crypto.randomUUID(), type: "sales", invoiceNumber, date: new Date().toISOString().split("T")[0],
       dueDate: order.payment_method === "آجل" ? order.delivery_date : undefined,
-      contactName: order.customer_name, items: invoiceItems,
+      contactName: order.customer_name, contactId, items: invoiceItems,
       notes: `تم الإنشاء تلقائياً من طلبية ${order.order_number || ""} • ${order.notes || ""}`.trim(),
       status: "sent", paymentMethod: paymentMethodMap[order.payment_method || "كاش"] || "cash",
       subtotal, totalDiscount, totalTax: 0, total,
@@ -283,6 +301,20 @@ const OrdersPage = () => {
     localStorage.setItem(`invoices_${user.id}`, JSON.stringify(updatedInvoices));
     await supabase.from("orders").update({ linked_invoice_id: invoice.id } as any).eq("id", order.id);
     return invoice;
+  };
+
+  const handleRetroactiveSync = async () => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const result = await retroactiveSyncOrders(user.id);
+      toast.success(`تمت المزامنة: تم ربط ${result.contactsLinked} زبون و ${result.productsLinked} منتج ✅`);
+      fetchOrders();
+    } catch (err: any) {
+      toast.error("خطأ في المزامنة: " + err.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -484,6 +516,9 @@ const OrdersPage = () => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "20px", marginTop: "12px" }}>
         <p style={{ fontSize: "12px", color: "#94A3B8", fontFamily: F }}>إدارة الطلبيات والمبيعات</p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button onClick={handleRetroactiveSync} disabled={syncing} style={{ background: "#ECFDF5", color: "#065F46", border: "1.5px solid #A7F3D0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: syncing ? "wait" : "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease", opacity: syncing ? 0.6 : 1 }}>
+            🔄 {syncing ? "جاري المزامنة..." : "مزامنة الزبائن والأصناف"}
+          </button>
           {filtered.length > 0 && (
             <>
               <button onClick={handlePrint} style={{ background: "white", color: "#475569", border: "1.5px solid #E2E8F0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease" }}>

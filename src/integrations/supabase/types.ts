@@ -2437,6 +2437,7 @@ export type Database = {
           contact_segment: string | null
           contact_type: string
           created_at: string
+          created_from_order: boolean | null
           credit_limit: number | null
           current_balance: number | null
           early_pay_discount: number | null
@@ -2453,6 +2454,7 @@ export type Database = {
           phone: string | null
           purchase_limit: number | null
           sales_rep_id: string | null
+          source: string | null
           tax_number: string | null
           total_paid: number | null
           total_purchases: number | null
@@ -2472,6 +2474,7 @@ export type Database = {
           contact_segment?: string | null
           contact_type?: string
           created_at?: string
+          created_from_order?: boolean | null
           credit_limit?: number | null
           current_balance?: number | null
           early_pay_discount?: number | null
@@ -2488,6 +2491,7 @@ export type Database = {
           phone?: string | null
           purchase_limit?: number | null
           sales_rep_id?: string | null
+          source?: string | null
           tax_number?: string | null
           total_paid?: number | null
           total_purchases?: number | null
@@ -2507,6 +2511,7 @@ export type Database = {
           contact_segment?: string | null
           contact_type?: string
           created_at?: string
+          created_from_order?: boolean | null
           credit_limit?: number | null
           current_balance?: number | null
           early_pay_discount?: number | null
@@ -2523,6 +2528,7 @@ export type Database = {
           phone?: string | null
           purchase_limit?: number | null
           sales_rep_id?: string | null
+          source?: string | null
           tax_number?: string | null
           total_paid?: number | null
           total_purchases?: number | null
@@ -6003,6 +6009,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          contact_id: string | null
           cost_breakdown: Json | null
           created_at: string
           customer_address: string | null
@@ -6036,6 +6043,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          contact_id?: string | null
           cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
@@ -6069,6 +6077,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          contact_id?: string | null
           cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
@@ -6102,6 +6111,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_representative_id_fkey"
             columns: ["representative_id"]
@@ -8470,6 +8486,7 @@ export type Database = {
           sell_price: number
           sku: string | null
           sort_order: number | null
+          source: string | null
           tax_rate: number | null
           terms: string | null
           unit: string
@@ -8503,6 +8520,7 @@ export type Database = {
           sell_price?: number
           sku?: string | null
           sort_order?: number | null
+          source?: string | null
           tax_rate?: number | null
           terms?: string | null
           unit?: string
@@ -8536,6 +8554,7 @@ export type Database = {
           sell_price?: number
           sku?: string | null
           sort_order?: number | null
+          source?: string | null
           tax_rate?: number | null
           terms?: string | null
           unit?: string
@@ -9055,6 +9074,7 @@ export type Database = {
           agent_name: string | null
           all_notes: string | null
           amount_paid: number | null
+          contact_id: string | null
           cost_breakdown: Json | null
           created_at: string
           customer_address: string | null
@@ -9094,6 +9114,7 @@ export type Database = {
           agent_name?: string | null
           all_notes?: string | null
           amount_paid?: number | null
+          contact_id?: string | null
           cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
@@ -9133,6 +9154,7 @@ export type Database = {
           agent_name?: string | null
           all_notes?: string | null
           amount_paid?: number | null
+          contact_id?: string | null
           cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
@@ -9167,7 +9189,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qamar_orders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_tokens: {
         Row: {
