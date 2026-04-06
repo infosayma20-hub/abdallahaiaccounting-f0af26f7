@@ -516,6 +516,9 @@ const OrdersPage = () => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "20px", marginTop: "12px" }}>
         <p style={{ fontSize: "12px", color: "#94A3B8", fontFamily: F }}>إدارة الطلبيات والمبيعات</p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button onClick={handleRetroactiveSync} disabled={syncing} style={{ background: "#ECFDF5", color: "#065F46", border: "1.5px solid #A7F3D0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: syncing ? "wait" : "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease", opacity: syncing ? 0.6 : 1 }}>
+            🔄 {syncing ? "جاري المزامنة..." : "مزامنة الزبائن والأصناف"}
+          </button>
           {filtered.length > 0 && (
             <>
               <button onClick={handlePrint} style={{ background: "white", color: "#475569", border: "1.5px solid #E2E8F0", borderRadius: "12px", padding: "10px 18px", fontSize: "13px", fontWeight: "600", fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease" }}>
