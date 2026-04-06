@@ -57,23 +57,33 @@ Deno.serve(async (req) => {
     const dataOwnerId = contact?.user_id || stmt.user_id;
 
     // Fetch company info using the data owner
-    const { data: company } = await supabase
-      .from("companies")
-      .select("name, logo_url, phone, email, address")
-      .eq("owner_id", dataOwnerId)
-      .single();
+    const [companyRes, compSettingsRes, profileRes] = await Promise.all([
+      supabase
+        .from("companies")
+        .select("name, logo_url, phone, email, address")
+        .eq("owner_id", dataOwnerId)
+        .single(),
+      supabase
+        .from("company_settings")
+        .select("company_name, logo_url, phone, email, address")
+        .eq("user_id", dataOwnerId)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", dataOwnerId)
+        .single(),
+    ]);
 
-    // Also check company_settings
-    const { data: compSettings } = await supabase
-      .from("company_settings")
-      .select("company_name, logo_url, phone, email, address")
-      .eq("user_id", dataOwnerId)
-      .single();
+    const company = companyRes.data;
+    const compSettings = compSettingsRes.data as any;
+    const profile = profileRes.data;
 
-    const companyName = company?.name || (compSettings as any)?.company_name || "";
-    const companyLogo = company?.logo_url || (compSettings as any)?.logo_url || "";
-    const companyPhone = company?.phone || (compSettings as any)?.phone || "";
-    const companyEmail = company?.email || (compSettings as any)?.email || "";
+    // Prefer company_settings over companies table (companies often has default "شركتي")
+    const companyName = compSettings?.company_name || company?.name || profile?.full_name || "";
+    const companyLogo = compSettings?.logo_url || company?.logo_url || "";
+    const companyPhone = compSettings?.phone || company?.phone || "";
+    const companyEmail = compSettings?.email || company?.email || "";
 
     // Fetch transactions for the date range
     const { data: transactions } = await supabase
