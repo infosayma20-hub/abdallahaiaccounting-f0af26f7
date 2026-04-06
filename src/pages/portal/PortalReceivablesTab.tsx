@@ -26,6 +26,7 @@ interface Receivable {
 
 export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const t = getThemeColors(theme);
+  const { company } = useCompany();
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -33,6 +34,7 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Receivable | null>(null);
   const [totalOutstanding, setTotalOutstanding] = useState(0);
+  const [sharingId, setSharingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReceivables();
