@@ -8959,6 +8959,39 @@ export type Database = {
           },
         ]
       }
+      qamar_order_statuses: {
+        Row: {
+          color: string | null
+          created_at: string
+          effect: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          effect?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          effect?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       qamar_orders: {
         Row: {
           agent_id: string | null
@@ -8973,6 +9006,9 @@ export type Database = {
           customer_phone: string | null
           discount: number | null
           id: string
+          invoice_number: string | null
+          invoiced_at: string | null
+          linked_invoice_id: string | null
           payment_method: string | null
           payment_status: string | null
           priority: string | null
@@ -9001,6 +9037,9 @@ export type Database = {
           customer_phone?: string | null
           discount?: number | null
           id?: string
+          invoice_number?: string | null
+          invoiced_at?: string | null
+          linked_invoice_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
           priority?: string | null
@@ -9029,6 +9068,9 @@ export type Database = {
           customer_phone?: string | null
           discount?: number | null
           id?: string
+          invoice_number?: string | null
+          invoiced_at?: string | null
+          linked_invoice_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
           priority?: string | null
