@@ -9074,6 +9074,7 @@ export type Database = {
           agent_name: string | null
           all_notes: string | null
           amount_paid: number | null
+          contact_id: string | null
           cost_breakdown: Json | null
           created_at: string
           customer_address: string | null
@@ -9113,6 +9114,7 @@ export type Database = {
           agent_name?: string | null
           all_notes?: string | null
           amount_paid?: number | null
+          contact_id?: string | null
           cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
@@ -9152,6 +9154,7 @@ export type Database = {
           agent_name?: string | null
           all_notes?: string | null
           amount_paid?: number | null
+          contact_id?: string | null
           cost_breakdown?: Json | null
           created_at?: string
           customer_address?: string | null
@@ -9186,7 +9189,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qamar_orders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_tokens: {
         Row: {

@@ -1,0 +1,1 @@
+ALTER TABLE public.qamar_orders ADD COLUMN IF NOT EXISTS contact_id UUID REFERENCES public.contacts(id);
