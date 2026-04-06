@@ -12,6 +12,7 @@ import PortalAttendanceTab from './PortalAttendanceTab';
 import PortalTasksTab from './PortalTasksTab';
 import PortalOverviewTab from './PortalOverviewTab';
 import PortalReceivablesTab from './PortalReceivablesTab';
+import PortalStoreTab from './PortalStoreTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#1B3A5C';
@@ -20,7 +21,7 @@ const ACCENT = '#2A7B9B';
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance' | 'tasks' | 'receivables'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance' | 'tasks' | 'receivables' | 'store'>('overview');
   const [clock, setClock] = useState(new Date());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
@@ -101,6 +102,7 @@ export default function PortalDashboard() {
     { key: 'receivables' as const, label: '🔴 الذمم المدينة', visible: true },
     { key: 'requests' as const, label: '📝 الطلبات', visible: true },
     { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
+    { key: 'store' as const, label: '🛒 المتجر', visible: true },
   ].filter(t => t.visible);
 
   return (
@@ -252,6 +254,7 @@ export default function PortalDashboard() {
         {activeTab === 'tasks' && <PortalTasksTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'overview' && <PortalOverviewTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'receivables' && <PortalReceivablesTab theme={darkMode ? 'dark' : 'light'} />}
+        {activeTab === 'store' && <PortalStoreTab theme={darkMode ? 'dark' : 'light'} />}
       </div>
 
       <style>{`
