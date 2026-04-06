@@ -10331,6 +10331,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          reference: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          reference?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          reference?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       table_reservations: {
         Row: {
           created_at: string | null
