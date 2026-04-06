@@ -204,7 +204,6 @@ export async function retroactiveSyncOrders(userId: string): Promise<{ contactsL
     .eq("user_id", userId);
 
   for (const q of (qamarOrders as any[] || [])) {
-    // Check if already linked (qamar_orders may not have contact_id column yet)
     const cid = await syncContactFromOrder({
       id: q.id,
       user_id: q.user_id,
@@ -215,6 +214,9 @@ export async function retroactiveSyncOrders(userId: string): Promise<{ contactsL
       source: q.source,
     }, "qamar_orders");
     if (cid) contactsLinked++;
+    // Also sync products from qamar_order_items
+    const ps = await syncProductsFromOrderItems(q.id, userId);
+    productsLinked += ps;
   }
 
   return { contactsLinked, productsLinked };
