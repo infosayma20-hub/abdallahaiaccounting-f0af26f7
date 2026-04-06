@@ -5944,6 +5944,63 @@ export type Database = {
           },
         ]
       }
+      order_status_log: {
+        Row: {
+          actual_duration_hours: number | null
+          changed_at: string | null
+          changed_by: string
+          changed_by_name: string
+          changed_by_role: string | null
+          created_at: string | null
+          estimated_duration_hours: number | null
+          from_status: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          order_id: string
+          order_table: string
+          sub_stage: string | null
+          to_status: string
+          user_id: string
+        }
+        Insert: {
+          actual_duration_hours?: number | null
+          changed_at?: string | null
+          changed_by: string
+          changed_by_name: string
+          changed_by_role?: string | null
+          created_at?: string | null
+          estimated_duration_hours?: number | null
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          order_id: string
+          order_table?: string
+          sub_stage?: string | null
+          to_status: string
+          user_id: string
+        }
+        Update: {
+          actual_duration_hours?: number | null
+          changed_at?: string | null
+          changed_by?: string
+          changed_by_name?: string
+          changed_by_role?: string | null
+          created_at?: string | null
+          estimated_duration_hours?: number | null
+          from_status?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          order_id?: string
+          order_table?: string
+          sub_stage?: string | null
+          to_status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           cost_breakdown: Json | null
@@ -9013,6 +9070,8 @@ export type Database = {
           payment_status: string | null
           priority: string | null
           production_notes: string | null
+          production_status: string | null
+          production_sub_stage: string | null
           reference_number: string | null
           shipping_cost: number | null
           source: string | null
@@ -9044,6 +9103,8 @@ export type Database = {
           payment_status?: string | null
           priority?: string | null
           production_notes?: string | null
+          production_status?: string | null
+          production_sub_stage?: string | null
           reference_number?: string | null
           shipping_cost?: number | null
           source?: string | null
@@ -9075,6 +9136,8 @@ export type Database = {
           payment_status?: string | null
           priority?: string | null
           production_notes?: string | null
+          production_status?: string | null
+          production_sub_stage?: string | null
           reference_number?: string | null
           shipping_cost?: number | null
           source?: string | null
