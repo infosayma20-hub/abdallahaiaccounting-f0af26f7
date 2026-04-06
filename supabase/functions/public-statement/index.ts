@@ -75,16 +75,6 @@ Deno.serve(async (req) => {
     const companyPhone = company?.phone || (compSettings as any)?.phone || "";
     const companyEmail = company?.email || (compSettings as any)?.email || "";
 
-    // Fetch contact info (and get the real data owner user_id)
-    const { data: contact } = await supabase
-      .from("contacts")
-      .select("id, contact_name, phone, email, user_id")
-      .eq("id", stmt.contact_id)
-      .single();
-
-    // Use the contact's user_id (the real data owner), not the logged-in user
-    const dataOwnerId = contact?.user_id || stmt.user_id;
-
     // Fetch transactions for the date range
     const { data: transactions } = await supabase
       .from("transactions")
