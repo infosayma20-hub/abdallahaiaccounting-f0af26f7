@@ -51,6 +51,19 @@ const OrderDetailPage = () => {
         paid_amount: q.amount_paid || 0, remaining_amount: (q.total || 0) - (q.amount_paid || 0),
         created_at: q.created_at, user_id: q.user_id,
       });
+      // Fetch items from qamar_order_items
+      const { data: qItems } = await supabase.from("qamar_order_items" as any).select("*").eq("order_id", id);
+      if (qItems && (qItems as any[]).length > 0) {
+        setOrderItems((qItems as any[]).map((qi: any) => ({
+          id: qi.id, order_id: qi.order_id, product_name: qi.product_name,
+          quantity: qi.quantity, unit_price: qi.price, total: qi.line_total,
+          product_id: qi.product_id, notes: qi.note,
+        })));
+      } else {
+        // Fallback: check order_items table
+        const { data: fallbackItems } = await supabase.from("order_items").select("*").eq("order_id", id);
+        setOrderItems((fallbackItems as any[]) || []);
+      }
       setLoading(false);
       return;
     }
