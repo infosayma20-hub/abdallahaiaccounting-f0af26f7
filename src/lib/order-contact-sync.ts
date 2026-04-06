@@ -99,19 +99,31 @@ export async function syncProductsFromOrderItems(
   orderId: string,
   userId: string
 ): Promise<number> {
-  const { data: items } = await supabase
+  // Try order_items first, then qamar_order_items
+  let { data: items } = await supabase
     .from("order_items")
     .select("*")
     .eq("order_id", orderId);
+
+  let fromQamar = false;
+  if (!items || items.length === 0) {
+    const { data: qItems } = await supabase
+      .from("qamar_order_items" as any)
+      .select("*")
+      .eq("order_id", orderId);
+    items = (qItems as any[]) || [];
+    fromQamar = true;
+  }
 
   if (!items || items.length === 0) return 0;
 
   let synced = 0;
 
   for (const item of items) {
-    const productName = (item as any).product_name?.trim();
+    const raw = item as any;
+    const productName = (raw.product_name)?.trim();
     if (!productName) continue;
-    if ((item as any).product_id) { synced++; continue; } // already linked
+    if (raw.product_id) { synced++; continue; } // already linked
 
     // 1. Match by name (case-insensitive)
     const { data: existing } = await supabase
@@ -126,12 +138,13 @@ export async function syncProductsFromOrderItems(
 
     if (!productId) {
       // 2. Create new product
-      const { data: newProduct } = await supabase
+      const unitPrice = fromQamar ? (raw.price || 0) : (raw.unit_price || 0);
+      const { data: newProduct, error } = await supabase
         .from("products")
         .insert({
           user_id: userId,
           name: productName,
-          sell_price: (item as any).unit_price || 0,
+          sell_price: unitPrice,
           category: "متجر إلكتروني",
           source: "e-commerce",
           is_sold: true,
@@ -142,15 +155,20 @@ export async function syncProductsFromOrderItems(
         } as any)
         .select("id")
         .single();
+      if (error) {
+        console.error("Failed to create product:", productName, error.message);
+        continue;
+      }
       productId = newProduct?.id || null;
     }
 
     // 3. Link product to order item
     if (productId) {
+      const table = fromQamar ? "qamar_order_items" : "order_items";
       await supabase
-        .from("order_items")
+        .from(table as any)
         .update({ product_id: productId } as any)
-        .eq("id", (item as any).id);
+        .eq("id", raw.id);
       synced++;
     }
   }
