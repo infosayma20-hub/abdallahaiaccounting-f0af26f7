@@ -49,9 +49,7 @@ Deno.serve(async (req) => {
     }
 
     const order = body.order;
-    if (!order) {
-      return json({ error: "Missing order data" }, 400);
-    }
+    const syncType = body.sync_type || order?.sync_type || "new";
 
     // 2. Create Supabase client with service role (bypasses RLS)
     const supabase = createClient(
@@ -59,9 +57,33 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const syncType = order.sync_type || "new";
-    const refNumber = order.reference_number;
+    // ── Handle order deletion ──
+    if (syncType === "order_deleted") {
+      const orderNumber = body.order_number || order?.reference_number;
+      if (!orderNumber) return json({ error: "Missing order_number" }, 400);
+      const result = await deleteOrderCascade(supabase, DEFAULT_OWNER_ID, orderNumber, body.deleted_by || "system", body.reason || "manual");
+      return json(result, result.success ? 200 : 404);
+    }
 
+    // ── Handle bulk order deletion ──
+    if (syncType === "bulk_orders_deleted") {
+      const orderNumbers: string[] = body.order_numbers || [];
+      if (!orderNumbers.length) return json({ error: "Missing order_numbers" }, 400);
+      const results = [];
+      for (const orderNumber of orderNumbers) {
+        const result = await deleteOrderCascade(supabase, DEFAULT_OWNER_ID, orderNumber, body.deleted_by || "system", body.reason || "test_cleanup");
+        results.push(result);
+      }
+      const succeeded = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+      return json({ success: true, total: orderNumbers.length, deleted: succeeded, failed, details: results });
+    }
+
+    if (!order) {
+      return json({ error: "Missing order data" }, 400);
+    }
+
+    const refNumber = order.reference_number;
     if (!refNumber) {
       return json({ error: "Missing reference_number" }, 400);
     }
