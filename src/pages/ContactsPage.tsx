@@ -668,6 +668,7 @@ const ContactsPage = () => {
                   </th>
                   <th className="p-3 text-right font-semibold sticky right-0 bg-muted/50">الاسم</th>
                   <th className="p-3 text-right font-semibold">النوع</th>
+                  <th className="p-3 text-center font-semibold">المصدر</th>
                   <th className="p-3 text-center font-semibold">فئة</th>
                   <th className="p-3 text-right font-semibold">الرصيد</th>
                   <th className="p-3 text-right font-semibold">السقف</th>
