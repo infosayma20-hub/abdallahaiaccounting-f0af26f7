@@ -242,6 +242,66 @@ const OrderDetailPage = () => {
             </div>
           )}
 
+          {/* Delivery Settlement Section */}
+          {sourceTable === "qamar_orders" && (
+            <div style={{
+              background: order.shipping_settled ? "#F0FDF4" : "#FFFBEB",
+              border: `1px solid ${order.shipping_settled ? "#BBF7D0" : "#FDE68A"}`,
+              borderRadius: "16px", padding: "20px", marginTop: "16px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <p style={{ fontSize: "15px", fontWeight: "700", color: order.shipping_settled ? "#166534" : "#92400E", fontFamily: F }}>
+                  🚚 التوصيل {order.shipping_settled && "✅ تمت التسوية"}
+                </p>
+              </div>
+
+              {order.shipping_settled ? (
+                <>
+                  <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+                    {[
+                      { label: "التوصيل النهائي", value: Number(order.shipping_final || 0), color: "#0D1B2E" },
+                      { label: "تكلفة السائق", value: Number(order.driver_cost || 0), color: "#DC2626" },
+                      { label: "صافي التوصيل", value: Number(order.net_delivery || 0), color: Number(order.net_delivery || 0) > 0 ? "#16A34A" : Number(order.net_delivery || 0) < 0 ? "#DC2626" : "#64748B" },
+                    ].map((item, i) => (
+                      <div key={i} style={{
+                        background: "white", borderRadius: "12px", padding: "16px",
+                        textAlign: "center", border: "1px solid #E2E8F0", flex: 1,
+                      }}>
+                        <p style={{ fontSize: "12px", color: "#64748B", fontWeight: "500", marginBottom: "4px", fontFamily: F }}>{item.label}</p>
+                        <p style={{ fontSize: "20px", fontWeight: "800", color: item.color, fontFamily: F }}>{item.value.toLocaleString()} ₪</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ fontSize: "13px", fontFamily: F, color: "#64748B", lineHeight: "2" }}>
+                    <p>التوصيل المبدئي: <strong style={{ color: "#1E293B" }}>{Number(order.shipping_estimate || 0).toLocaleString()} ₪</strong></p>
+                    {Number(order.shipping_final || 0) !== Number(order.shipping_estimate || 0) && (
+                      <p>الفرق: <strong style={{ color: Number(order.shipping_final || 0) > Number(order.shipping_estimate || 0) ? "#DC2626" : "#16A34A" }}>
+                        {(Number(order.shipping_final || 0) - Number(order.shipping_estimate || 0)).toLocaleString()} ₪
+                      </strong></p>
+                    )}
+                    {Number(order.shipping_final || 0) === Number(order.shipping_estimate || 0) && (
+                      <p>الفرق: <span style={{ color: "#64748B" }}>₪0 (لا يوجد فرق)</span></p>
+                    )}
+                    {order.shipping_settled_by && <p>تمت التسوية بواسطة: <strong style={{ color: "#1E293B" }}>{order.shipping_settled_by}</strong></p>}
+                    {order.shipping_settled_at && <p>بتاريخ: <strong style={{ color: "#1E293B" }}>{new Date(order.shipping_settled_at).toLocaleString("ar-PS")}</strong></p>}
+                    {order.shipping_notes && <p>ملاحظات: <strong style={{ color: "#1E293B" }}>{order.shipping_notes}</strong></p>}
+                  </div>
+
+                  {Number(order.net_delivery || 0) < 0 && (
+                    <div style={{ marginTop: "8px", padding: "8px 12px", borderRadius: "8px", background: "#FEF2F2", border: "1px solid #FECACA" }}>
+                      <p style={{ fontSize: "12px", color: "#DC2626", fontFamily: F, fontWeight: "600" }}>⚠️ توصيل بخسارة</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ fontSize: "13px", fontFamily: F, color: "#92400E", lineHeight: "2" }}>
+                  <p>التوصيل المبدئي: <strong>{Number(order.shipping_estimate || order.shipping_cost || 0).toLocaleString()} ₪</strong></p>
+                  <p>الحالة: ⏳ لم تتم التسوية بعد</p>
+                </div>
+              )}
+            </div>
+          )}
           {/* Paid amount info */}
           {(Number(order.paid_amount) > 0 || Number(order.remaining_amount) > 0) && (
             <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
