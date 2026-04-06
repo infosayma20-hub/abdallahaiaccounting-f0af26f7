@@ -747,10 +747,16 @@ const OrdersPage = () => {
                           </td>
                           <td style={{ padding: "14px 16px" }}>
                             <span onClick={() => setShowPayment(o)} style={{
-                              display: "inline-flex", padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "600",
+                              display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "2px",
+                              padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "600",
                               background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, cursor: "pointer", fontFamily: F,
                             }}>
-                              {o.payment_status}
+                              <span>{o.payment_status}</span>
+                              {(o as any)._payment?.method === "partial" && (o as any).deposit_amount > 0 && (
+                                <span style={{ fontSize: "10px", fontWeight: "500", opacity: 0.85 }}>
+                                  عربون: ₪{Number((o as any).deposit_amount).toLocaleString()} | آجل: ₪{Number((o as any).remaining_amount || 0).toLocaleString()}
+                                </span>
+                              )}
                             </span>
                           </td>
                           <td style={{ padding: "14px 16px", fontSize: "13px", color: "#64748B", fontFamily: F }}>{o.source}</td>
@@ -872,10 +878,16 @@ const OrdersPage = () => {
                         {o.status}
                       </span>
                       <span style={{
-                        display: "inline-flex", padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "600",
+                        display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "2px",
+                        padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: "600",
                         background: pc.bg, color: pc.color, border: `1px solid ${pc.border}`, fontFamily: F,
                       }}>
-                        {o.payment_status}
+                        <span>{o.payment_status}</span>
+                        {(o as any)._payment?.method === "partial" && (o as any).deposit_amount > 0 && (
+                          <span style={{ fontSize: "10px", fontWeight: "500", opacity: 0.85 }}>
+                            عربون: ₪{Number((o as any).deposit_amount).toLocaleString()} | آجل: ₪{Number((o as any).remaining_amount || 0).toLocaleString()}
+                          </span>
+                        )}
                       </span>
                       <span style={{ fontSize: "12px", color: "#94A3B8", fontFamily: F }}>🕐 {fmtDateDisplay(o.order_date)}</span>
                       {o.source && <span style={{ fontSize: "12px", color: "#94A3B8", fontFamily: F }}>📱 {o.source}</span>}
