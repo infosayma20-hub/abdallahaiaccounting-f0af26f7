@@ -276,10 +276,14 @@ export function useCompanySettings() {
     if (!user) return;
     setLoading(true);
     try {
+      // Resolve the actual data owner (for team members)
+      const { data: ownerIdResult } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const effectiveUserId = ownerIdResult || user.id;
+
       const [settingsRes, profileRes, companyRes] = await Promise.all([
-        supabase.from("company_settings" as any).select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("company_settings" as any).select("*").eq("user_id", effectiveUserId).maybeSingle(),
         supabase.from("profiles" as any).select("display_name, company_name, company_id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", user.id).maybeSingle(),
+        supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", effectiveUserId).maybeSingle(),
       ]);
 
       if (settingsRes.error) throw settingsRes.error;
