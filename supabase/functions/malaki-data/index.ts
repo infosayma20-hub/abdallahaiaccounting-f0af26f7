@@ -902,13 +902,29 @@ Deno.serve(async (req) => {
     // ACTION: receivables_list — Outstanding receivables for WhatsApp SOA feature
     // ══════════════════════════════════════════════════════
     if (action === "receivables_list") {
-      // Get contacts with outstanding balances
+      // Get ALL customer contacts (don't rely on current_balance which may be stale)
       const { data: contacts } = await supabase
         .from("contacts")
-        .select("id, contact_name, phone, current_balance, contact_type")
+        .select("id, contact_name, phone, contact_type")
         .eq("user_id", linkedUserId)
         .eq("is_active", true)
-        .gt("current_balance", 0);
+        .eq("contact_type", "عميل");
+
+      // Get ALL transactions for receivables calculation (debit/credit on 1130)
+      const { data: txns } = await supabase
+        .from("transactions")
+        .select("contact_id, debit_account_code, credit_account_code, amount")
+        .eq("user_id", linkedUserId)
+        .eq("is_deleted", false);
+
+      // Calculate real balance per contact from ledger
+      const balanceMap: Record<string, number> = {};
+      (txns || []).forEach((t: any) => {
+        if (!t.contact_id) return;
+        if (!balanceMap[t.contact_id]) balanceMap[t.contact_id] = 0;
+        if (t.debit_account_code === "1130") balanceMap[t.contact_id] += (t.amount || 0);
+        if (t.credit_account_code === "1130") balanceMap[t.contact_id] -= (t.amount || 0);
+      });
 
       // Get last sent dates from statement_send_log
       const { data: sendLogs } = await supabase
@@ -940,12 +956,12 @@ Deno.serve(async (req) => {
       });
 
       const receivables = (contacts || [])
-        .filter((c: any) => c.current_balance > 0)
+        .filter((c: any) => (balanceMap[c.id] || 0) > 0)
         .map((c: any) => ({
           id: c.id,
           name: c.contact_name,
           phone: c.phone || "",
-          balance: c.current_balance,
+          balance: balanceMap[c.id] || 0,
           maxDays: maxDaysMap[c.id] || 0,
           lastSent: lastSentMap[c.id] || null,
         }))
