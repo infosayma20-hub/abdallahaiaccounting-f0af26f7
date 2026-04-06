@@ -200,30 +200,45 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                  <button
-                    onClick={() => openWhatsApp(contact)}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      padding: '10px 12px', borderRadius: 8, border: 'none',
-                      background: '#25D366', color: 'white', fontSize: 12, fontWeight: 600,
-                      fontFamily: 'Tajawal, sans-serif', cursor: 'pointer', minHeight: 44,
-                    }}
-                  >
-                    <MessageCircle size={16} />
-                    واتساب
-                  </button>
                   {contact.phone && (
                     <a
                       href={`tel:${contact.phone}`}
                       style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '10px 14px', borderRadius: 8, border: `1px solid ${t.border}`,
-                        background: t.chipBg, color: t.text, textDecoration: 'none', minHeight: 44,
+                        width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 10, border: `1.5px solid ${t.border}`,
+                        background: t.chipBg, color: t.text, textDecoration: 'none',
                       }}
                     >
                       <Phone size={16} />
                     </a>
                   )}
+                  <button
+                    onClick={() => handleDirectShare(contact)}
+                    disabled={sharingId === contact.id}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '10px 12px', borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(135deg, #0D1B2E, #1e3a5f)', color: 'white',
+                      fontSize: 12, fontWeight: 600, fontFamily: 'Tajawal, sans-serif',
+                      cursor: 'pointer', minHeight: 44, opacity: sharingId === contact.id ? 0.6 : 1,
+                      boxShadow: '0 2px 8px rgba(13,27,46,0.2)',
+                    }}
+                  >
+                    {sharingId === contact.id ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+                    {sharingId === contact.id ? 'جاري التجهيز...' : 'مشاركة كشف'}
+                  </button>
+                  <button
+                    onClick={() => openWhatsApp(contact)}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '10px 12px', borderRadius: 10, border: 'none',
+                      background: '#25D366', color: 'white', fontSize: 12, fontWeight: 600,
+                      fontFamily: 'Tajawal, sans-serif', cursor: 'pointer', minHeight: 44,
+                    }}
+                  >
+                    <MessageCircle size={14} />
+                    واتساب كشف
+                  </button>
                 </div>
               </div>
             );
