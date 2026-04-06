@@ -723,6 +723,23 @@ const ContactsPage = () => {
                         </Badge>
                       </td>
                       <td className="p-3 text-center">
+                        {(() => {
+                          const src = (contact as any).source || "manual";
+                          const map: Record<string, { label: string; icon: string; bg: string; color: string; border: string }> = {
+                            "e-commerce": { label: "متجر إلكتروني", icon: "🛒", bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" },
+                            "whatsapp": { label: "واتساب", icon: "💬", bg: "#ECFDF5", color: "#065F46", border: "#A7F3D0" },
+                            "instagram": { label: "انستغرام", icon: "📸", bg: "#FDF2F8", color: "#9D174D", border: "#FBCFE8" },
+                            "manual": { label: "يدوي", icon: "✏️", bg: "#F1F5F9", color: "#475569", border: "#E2E8F0" },
+                          };
+                          const s = map[src] || map["manual"];
+                          return (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", borderRadius: "10px", fontSize: "10px", fontWeight: "600", background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+                              {s.icon} {s.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="p-3 text-center">
                         <ClassBadge cls={contact.contact_class || "C"} />
                       </td>
                       <td className="p-3">
