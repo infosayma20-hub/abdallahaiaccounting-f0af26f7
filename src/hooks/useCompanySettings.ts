@@ -266,6 +266,7 @@ export function useCompanySettings() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalSettings, setOriginalSettings] = useState<CompanySettings>(defaultSettings);
+  const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -276,10 +277,15 @@ export function useCompanySettings() {
     if (!user) return;
     setLoading(true);
     try {
+      // Resolve the actual data owner (for team members)
+      const { data: ownerIdResult } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const effectiveUserId = ownerIdResult || user.id;
+      setResolvedOwnerId(effectiveUserId);
+
       const [settingsRes, profileRes, companyRes] = await Promise.all([
-        supabase.from("company_settings" as any).select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("company_settings" as any).select("*").eq("user_id", effectiveUserId).maybeSingle(),
         supabase.from("profiles" as any).select("display_name, company_name, company_id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", user.id).maybeSingle(),
+        supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", effectiveUserId).maybeSingle(),
       ]);
 
       if (settingsRes.error) throw settingsRes.error;
@@ -363,14 +369,14 @@ export function useCompanySettings() {
     if (!user) return;
     setSaving(true);
     try {
+      const ownerId = resolvedOwnerId || user.id;
       const raw = settings as any;
       const UUID_COLUMNS = new Set([
         "updated_by", "pos_branch_id", "default_bank_account", "card_bank_account_id",
       ]);
-      const payload: Record<string, any> = { user_id: user.id, updated_by: user.id || null };
+      const payload: Record<string, any> = { user_id: ownerId, updated_by: user.id || null };
       for (const key of DB_COLUMNS) {
         if (key in raw) {
-          // Convert empty strings to null for UUID columns
           if (UUID_COLUMNS.has(key) && raw[key] === "") {
             payload[key] = null;
           } else {
@@ -383,14 +389,14 @@ export function useCompanySettings() {
       const { data: existing } = await supabase
         .from("company_settings" as any)
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
           .from("company_settings" as any)
           .update(payload as any)
-          .eq("user_id", user.id);
+          .eq("user_id", ownerId);
         if (error) throw error;
       } else {
         const { error } = await supabase
