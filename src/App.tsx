@@ -239,8 +239,10 @@ const App = () => (
               <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
+              <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />
+              <Route path="/store-tracker/orders/:id" element={<ProtectedRoute><StoreTrackerOrderDetail /></ProtectedRoute>} />
               <Route path="/*" element={
-                <ProtectedRoute blockCashier>
+                <ProtectedRoute blockCashier blockStoreTracker>
                   <WebLayout>
                     <Suspense fallback={<AuthCheckSpinner />}>
                     <Routes>
