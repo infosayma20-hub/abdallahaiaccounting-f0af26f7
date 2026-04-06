@@ -24,7 +24,7 @@ import {
 import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
-import QamarOrdersTab from "@/components/orders/QamarOrdersTab";
+
 import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
 import ProductionCostSection from "@/components/orders/ProductionCostSection";
 
