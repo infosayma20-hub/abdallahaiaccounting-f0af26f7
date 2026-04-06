@@ -149,6 +149,8 @@ const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
+const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
+const StoreTrackerOrderDetail = lazy(() => import("./pages/store-tracker/StoreTrackerOrderDetail"));
 
 const queryClient = new QueryClient();
 
@@ -173,12 +175,13 @@ const AuthCheckSpinner = () => (
   </div>
 );
 
-const ProtectedRoute = ({ children, blockCashier }: { children: React.ReactNode; blockCashier?: boolean }) => {
+const ProtectedRoute = ({ children, blockCashier, blockStoreTracker }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean }) => {
   const { user, loading } = useAuth();
   const { targetPath, checking } = useRoleRedirect();
-  if (loading || (blockCashier && checking)) return <AuthCheckSpinner />;
+  if (loading || ((blockCashier || blockStoreTracker) && checking)) return <AuthCheckSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
+  if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
   return <>{children}</>;
 };
 
@@ -236,8 +239,10 @@ const App = () => (
               <Route path="/pos/kitchen" element={<ProtectedRoute><ModuleGuard><KitchenDisplayPage /></ModuleGuard></ProtectedRoute>} />
               <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
+              <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />
+              <Route path="/store-tracker/orders/:id" element={<ProtectedRoute><StoreTrackerOrderDetail /></ProtectedRoute>} />
               <Route path="/*" element={
-                <ProtectedRoute blockCashier>
+                <ProtectedRoute blockCashier blockStoreTracker>
                   <WebLayout>
                     <Suspense fallback={<AuthCheckSpinner />}>
                     <Routes>
