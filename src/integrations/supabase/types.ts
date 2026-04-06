@@ -9086,11 +9086,13 @@ export type Database = {
           deposit_amount: number | null
           deposit_paid_at: string | null
           discount: number | null
+          driver_cost: number | null
           gross_profit: number | null
           id: string
           invoice_number: string | null
           invoiced_at: string | null
           linked_invoice_id: string | null
+          net_delivery: number | null
           payment: Json | null
           payment_method: string | null
           payment_status: string | null
@@ -9103,6 +9105,12 @@ export type Database = {
           remaining_amount: number | null
           remaining_paid_at: string | null
           shipping_cost: number | null
+          shipping_estimate: number | null
+          shipping_final: number | null
+          shipping_notes: string | null
+          shipping_settled: boolean | null
+          shipping_settled_at: string | null
+          shipping_settled_by: string | null
           source: string | null
           source_key: string | null
           status: string | null
@@ -9131,11 +9139,13 @@ export type Database = {
           deposit_amount?: number | null
           deposit_paid_at?: string | null
           discount?: number | null
+          driver_cost?: number | null
           gross_profit?: number | null
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
           linked_invoice_id?: string | null
+          net_delivery?: number | null
           payment?: Json | null
           payment_method?: string | null
           payment_status?: string | null
@@ -9148,6 +9158,12 @@ export type Database = {
           remaining_amount?: number | null
           remaining_paid_at?: string | null
           shipping_cost?: number | null
+          shipping_estimate?: number | null
+          shipping_final?: number | null
+          shipping_notes?: string | null
+          shipping_settled?: boolean | null
+          shipping_settled_at?: string | null
+          shipping_settled_by?: string | null
           source?: string | null
           source_key?: string | null
           status?: string | null
@@ -9176,11 +9192,13 @@ export type Database = {
           deposit_amount?: number | null
           deposit_paid_at?: string | null
           discount?: number | null
+          driver_cost?: number | null
           gross_profit?: number | null
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
           linked_invoice_id?: string | null
+          net_delivery?: number | null
           payment?: Json | null
           payment_method?: string | null
           payment_status?: string | null
@@ -9193,6 +9211,12 @@ export type Database = {
           remaining_amount?: number | null
           remaining_paid_at?: string | null
           shipping_cost?: number | null
+          shipping_estimate?: number | null
+          shipping_final?: number | null
+          shipping_notes?: string | null
+          shipping_settled?: boolean | null
+          shipping_settled_at?: string | null
+          shipping_settled_by?: string | null
           source?: string | null
           source_key?: string | null
           status?: string | null
