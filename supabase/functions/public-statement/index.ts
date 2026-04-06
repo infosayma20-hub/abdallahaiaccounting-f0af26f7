@@ -46,18 +46,28 @@ Deno.serve(async (req) => {
       })
       .eq("id", stmt.id);
 
-    // Fetch company info
+    // Fetch contact info first to get real data owner
+    const { data: contact } = await supabase
+      .from("contacts")
+      .select("id, contact_name, phone, email, user_id")
+      .eq("id", stmt.contact_id)
+      .single();
+
+    // Use the contact's user_id (the real data owner)
+    const dataOwnerId = contact?.user_id || stmt.user_id;
+
+    // Fetch company info using the data owner
     const { data: company } = await supabase
       .from("companies")
       .select("name, logo_url, phone, email, address")
-      .eq("owner_id", stmt.user_id)
+      .eq("owner_id", dataOwnerId)
       .single();
 
     // Also check company_settings
     const { data: compSettings } = await supabase
       .from("company_settings")
       .select("company_name, logo_url, phone, email, address")
-      .eq("user_id", stmt.user_id)
+      .eq("user_id", dataOwnerId)
       .single();
 
     const companyName = company?.name || (compSettings as any)?.company_name || "";
