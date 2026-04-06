@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send } from 'lucide-react';
+import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
+import { useCompany } from '@/hooks/useCompanyContext';
+import { toast } from 'sonner';
 
 const ACCENT = '#2A7B9B';
 
