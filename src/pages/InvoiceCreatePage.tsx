@@ -434,9 +434,11 @@ const InvoiceCreatePage = () => {
       discountAmount = item.discount;
     }
     const afterDiscount = base - discountAmount;
+    // Only add tax if tax is enabled at company level
+    if (!taxEnabled) return afterDiscount;
     const tax = afterDiscount * (item.taxRate / 100);
     return afterDiscount + tax;
-  }, []);
+  }, [taxEnabled]);
 
   useEffect(() => {
     if (!isEditMode || !editInvoiceId) {
