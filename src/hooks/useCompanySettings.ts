@@ -280,6 +280,7 @@ export function useCompanySettings() {
       // Resolve the actual data owner (for team members)
       const { data: ownerIdResult } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
       const effectiveUserId = ownerIdResult || user.id;
+      setResolvedOwnerId(effectiveUserId);
 
       const [settingsRes, profileRes, companyRes] = await Promise.all([
         supabase.from("company_settings" as any).select("*").eq("user_id", effectiveUserId).maybeSingle(),
