@@ -1,0 +1,10 @@
+
+ALTER TABLE public.qamar_orders
+  ADD COLUMN IF NOT EXISTS shipping_estimate DECIMAL(12,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS shipping_final DECIMAL(12,2),
+  ADD COLUMN IF NOT EXISTS driver_cost DECIMAL(12,2),
+  ADD COLUMN IF NOT EXISTS net_delivery DECIMAL(12,2),
+  ADD COLUMN IF NOT EXISTS shipping_settled BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS shipping_settled_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS shipping_settled_by TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_notes TEXT;
