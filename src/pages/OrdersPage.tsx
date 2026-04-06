@@ -145,7 +145,7 @@ const OrdersPage = () => {
       discount: q.discount || 0,
       shipping_cost: q.shipping_cost || 0,
       total: q.total || 0,
-      payment_status: q.payment_status === "paid" ? "مدفوع كاملاً" : q.payment_status === "partial" ? "مدفوع جزئياً" : "غير مدفوع",
+      payment_status: q.payment?.method === "partial" ? "مدفوع جزئياً" : q.payment_status === "paid" ? "مدفوع كاملاً" : q.payment_status === "partial" ? "مدفوع جزئياً" : "غير مدفوع",
       payment_method: q.payment_method,
       shipping_method: null,
       tracking_number: null,
@@ -154,8 +154,11 @@ const OrdersPage = () => {
       created_at: q.created_at,
       user_id: q.user_id,
       linked_invoice_id: q.linked_invoice_id,
-      paid_amount: q.amount_paid || 0,
-      remaining_amount: (q.total || 0) - (q.amount_paid || 0),
+      paid_amount: q.amount_paid || q.deposit_amount || 0,
+      remaining_amount: q.remaining_amount || ((q.total || 0) - (q.amount_paid || 0)),
+      deposit_amount: q.deposit_amount || 0,
+      deposit_paid_at: q.deposit_paid_at || null,
+      _payment: q.payment || {},
       _source_table: "qamar_orders",
     } as any));
     

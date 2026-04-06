@@ -197,6 +197,10 @@ Deno.serve(async (req) => {
           agent_name: order.agent_name || undefined,
           agent_id: order.agent_id || undefined,
           priority: order.priority || undefined,
+          deposit_amount: order.deposit_amount ?? undefined,
+          remaining_amount: order.remaining_amount ?? undefined,
+          deposit_paid_at: order.deposit_paid_at || undefined,
+          payment: order.payment || undefined,
           last_synced_at: new Date().toISOString(),
         })
         .eq("id", existing.id);
@@ -273,6 +277,10 @@ Deno.serve(async (req) => {
           production_cost: order.production_cost ?? 0,
           cost_breakdown: order.cost_breakdown ?? null,
           gross_profit: order.gross_profit ?? 0,
+          deposit_amount: order.deposit_amount ?? 0,
+          remaining_amount: order.remaining_amount ?? 0,
+          deposit_paid_at: order.deposit_paid_at || null,
+          payment: order.payment || {},
         })
         .select("id")
         .single();
