@@ -86,8 +86,10 @@ export default function WhatsAppComposerSheet({
 
   const openWhatsApp = async () => {
     let formattedPhone = phone.replace(/\D/g, '');
-    if (formattedPhone.startsWith('0')) formattedPhone = '970' + formattedPhone.slice(1);
-    if (!formattedPhone.startsWith('+') && !formattedPhone.startsWith('9')) formattedPhone = '970' + formattedPhone;
+    // Remove leading 00 international prefix (e.g. 00972...)
+    if (formattedPhone.startsWith('00')) formattedPhone = formattedPhone.slice(2);
+    // Convert local number (starts with 0) to international
+    else if (formattedPhone.startsWith('0')) formattedPhone = '970' + formattedPhone.slice(1);
 
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
