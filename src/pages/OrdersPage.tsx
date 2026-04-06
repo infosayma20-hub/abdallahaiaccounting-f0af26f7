@@ -23,6 +23,7 @@ import {
 import BackButton from "@/components/BackButton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import ConvertToInvoiceModal from "@/components/orders/ConvertToInvoiceModal";
+import QamarOrdersTab from "@/components/orders/QamarOrdersTab";
 import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
 import ProductionCostSection from "@/components/orders/ProductionCostSection";
 
@@ -546,8 +547,9 @@ const OrdersPage = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="orders" className="gap-1"><ShoppingCart className="h-3.5 w-3.5" /> الطلبيات</TabsTrigger>
+          <TabsTrigger value="qamar" className="gap-1"><Star className="h-3.5 w-3.5" /> قمر براند</TabsTrigger>
           <TabsTrigger value="reports" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> التقارير</TabsTrigger>
         </TabsList>
 
@@ -817,6 +819,11 @@ const OrdersPage = () => {
               <button onClick={() => setSelected(new Set())} className="text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
             </div>
           )}
+        </TabsContent>
+
+        {/* ═══════ Qamar Brand Tab ═══════ */}
+        <TabsContent value="qamar" className="mt-4">
+          <QamarOrdersTab />
         </TabsContent>
 
         {/* ═══════ Reports Tab ═══════ */}

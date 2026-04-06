@@ -8912,6 +8912,140 @@ export type Database = {
           },
         ]
       }
+      qamar_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total: number | null
+          note: string | null
+          order_id: string
+          price: number | null
+          product_id: string | null
+          product_image: string | null
+          product_name: string
+          quantity: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total?: number | null
+          note?: string | null
+          order_id: string
+          price?: number | null
+          product_id?: string | null
+          product_image?: string | null
+          product_name?: string
+          quantity?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total?: number | null
+          note?: string | null
+          order_id?: string
+          price?: number | null
+          product_id?: string | null
+          product_image?: string | null
+          product_name?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qamar_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "qamar_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qamar_orders: {
+        Row: {
+          agent_id: string | null
+          agent_name: string | null
+          all_notes: string | null
+          amount_paid: number | null
+          created_at: string
+          customer_address: string | null
+          customer_city: string | null
+          customer_name: string
+          customer_notes: string | null
+          customer_phone: string | null
+          discount: number | null
+          id: string
+          payment_method: string | null
+          payment_status: string | null
+          priority: string | null
+          production_notes: string | null
+          reference_number: string | null
+          shipping_cost: number | null
+          source: string | null
+          source_key: string | null
+          status: string | null
+          subtotal: number | null
+          total: number | null
+          type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          agent_name?: string | null
+          all_notes?: string | null
+          amount_paid?: number | null
+          created_at?: string
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_name?: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          discount?: number | null
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          priority?: string | null
+          production_notes?: string | null
+          reference_number?: string | null
+          shipping_cost?: number | null
+          source?: string | null
+          source_key?: string | null
+          status?: string | null
+          subtotal?: number | null
+          total?: number | null
+          type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          agent_name?: string | null
+          all_notes?: string | null
+          amount_paid?: number | null
+          created_at?: string
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_name?: string
+          customer_notes?: string | null
+          customer_phone?: string | null
+          discount?: number | null
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          priority?: string | null
+          production_notes?: string | null
+          reference_number?: string | null
+          shipping_cost?: number | null
+          source?: string | null
+          source_key?: string | null
+          status?: string | null
+          subtotal?: number | null
+          total?: number | null
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       qr_tokens: {
         Row: {
           branch_id: string
