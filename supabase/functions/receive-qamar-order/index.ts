@@ -30,6 +30,104 @@ const statusMapToArabic: Record<string, string> = {
 
 const DEFAULT_OWNER_ID = "ccdbcaa5-a585-4d84-a559-a4fc94a6075b";
 
+// ── Cascade delete helper ──
+const deleteOrderCascade = async (
+  supabase: any,
+  userId: string,
+  orderNumber: string,
+  deletedBy: string,
+  reason: string
+) => {
+  // Find order
+  const { data: order, error } = await supabase
+    .from("qamar_orders")
+    .select("id, linked_invoice_id, total, status")
+    .eq("reference_number", orderNumber)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !order) {
+    return { success: false, error: "Order not found", order_number: orderNumber };
+  }
+
+  const orderId = order.id;
+  let invoiceDeleted = false;
+  let transactionsDeleted = 0;
+
+  // Delete linked invoice + its items + transactions
+  if (order.linked_invoice_id) {
+    await supabase.from("invoice_items").delete().eq("invoice_id", order.linked_invoice_id);
+
+    // Soft-delete linked transactions by reference
+    const { data: linkedTxs } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("user_id", userId)
+      .or(`reference.eq.${orderNumber},idempotency_key.like.%${orderId}%`)
+      .eq("is_deleted", false);
+
+    if (linkedTxs?.length) {
+      for (const tx of linkedTxs) {
+        await supabase.from("transactions").update({ is_deleted: true }).eq("id", tx.id);
+        transactionsDeleted++;
+      }
+    }
+
+    await supabase.from("invoices").delete().eq("id", order.linked_invoice_id);
+    invoiceDeleted = true;
+  }
+
+  // Soft-delete delivery transactions
+  const { data: deliveryTxs } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .like("idempotency_key", `DELIVERY-${orderId}%`)
+    .eq("is_deleted", false);
+
+  if (deliveryTxs?.length) {
+    for (const tx of deliveryTxs) {
+      await supabase.from("transactions").update({ is_deleted: true }).eq("id", tx.id);
+      transactionsDeleted++;
+    }
+  }
+
+  // Delete status log
+  await supabase.from("order_status_log").delete().eq("order_id", orderId);
+
+  // Delete qamar_order_items
+  await supabase.from("qamar_order_items").delete().eq("order_id", orderId);
+
+  // Delete from legacy orders table too
+  await supabase.from("order_items").delete().eq("order_id", orderId);
+  await supabase.from("orders").delete().eq("order_number", orderNumber).eq("user_id", userId);
+
+  // Delete the qamar order itself
+  await supabase.from("qamar_orders").delete().eq("id", orderId);
+
+  // Audit log
+  await supabase.from("sync_audit_log").insert({
+    user_id: userId,
+    action: "order_deleted",
+    reference: orderNumber,
+    details: {
+      order_id: orderId,
+      had_invoice: !!order.linked_invoice_id,
+      invoice_deleted: invoiceDeleted,
+      transactions_deleted: transactionsDeleted,
+      deleted_by: deletedBy,
+      reason,
+      total: order.total,
+    },
+  });
+
+  return {
+    success: true,
+    order_number: orderNumber,
+    deleted: { invoice: invoiceDeleted, transactions: transactionsDeleted },
+  };
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
