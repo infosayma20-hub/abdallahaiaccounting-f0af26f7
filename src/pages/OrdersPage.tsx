@@ -504,7 +504,6 @@ const OrdersPage = () => {
       <div style={{ display: "flex", gap: "4px", direction: "rtl", background: "#F1F5F9", borderRadius: "12px", padding: "4px", marginBottom: "24px", width: "fit-content" }}>
         {[
           { id: "orders", label: "الطلبيات", icon: <ShoppingCart style={{ width: 14, height: 14 }} /> },
-          ...(user?.id === 'ccdbcaa5-a585-4d84-a559-a4fc94a6075b' ? [{ id: "qamar", label: "قمر براند", icon: <Star style={{ width: 14, height: 14 }} /> }] : []),
           { id: "reports", label: "التقارير", icon: <BarChart3 style={{ width: 14, height: 14 }} /> },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
@@ -898,9 +897,6 @@ const OrdersPage = () => {
           )}
         </div>
       )}
-
-      {/* ═══════ Qamar Brand Tab ═══════ */}
-      {activeTab === "qamar" && <QamarOrdersTab />}
 
       {/* ═══════ Reports Tab ═══════ */}
       {activeTab === "reports" && (
