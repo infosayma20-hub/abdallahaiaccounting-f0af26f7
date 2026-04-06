@@ -9083,12 +9083,15 @@ export type Database = {
           customer_notes: string | null
           customer_phone: string | null
           delivery: Json | null
+          deposit_amount: number | null
+          deposit_paid_at: string | null
           discount: number | null
           gross_profit: number | null
           id: string
           invoice_number: string | null
           invoiced_at: string | null
           linked_invoice_id: string | null
+          payment: Json | null
           payment_method: string | null
           payment_status: string | null
           priority: string | null
@@ -9097,6 +9100,8 @@ export type Database = {
           production_status: string | null
           production_sub_stage: string | null
           reference_number: string | null
+          remaining_amount: number | null
+          remaining_paid_at: string | null
           shipping_cost: number | null
           source: string | null
           source_key: string | null
@@ -9123,12 +9128,15 @@ export type Database = {
           customer_notes?: string | null
           customer_phone?: string | null
           delivery?: Json | null
+          deposit_amount?: number | null
+          deposit_paid_at?: string | null
           discount?: number | null
           gross_profit?: number | null
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
           linked_invoice_id?: string | null
+          payment?: Json | null
           payment_method?: string | null
           payment_status?: string | null
           priority?: string | null
@@ -9137,6 +9145,8 @@ export type Database = {
           production_status?: string | null
           production_sub_stage?: string | null
           reference_number?: string | null
+          remaining_amount?: number | null
+          remaining_paid_at?: string | null
           shipping_cost?: number | null
           source?: string | null
           source_key?: string | null
@@ -9163,12 +9173,15 @@ export type Database = {
           customer_notes?: string | null
           customer_phone?: string | null
           delivery?: Json | null
+          deposit_amount?: number | null
+          deposit_paid_at?: string | null
           discount?: number | null
           gross_profit?: number | null
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
           linked_invoice_id?: string | null
+          payment?: Json | null
           payment_method?: string | null
           payment_status?: string | null
           priority?: string | null
@@ -9177,6 +9190,8 @@ export type Database = {
           production_status?: string | null
           production_sub_stage?: string | null
           reference_number?: string | null
+          remaining_amount?: number | null
+          remaining_paid_at?: string | null
           shipping_cost?: number | null
           source?: string | null
           source_key?: string | null
