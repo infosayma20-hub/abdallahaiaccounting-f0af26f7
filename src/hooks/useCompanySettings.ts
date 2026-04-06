@@ -266,6 +266,7 @@ export function useCompanySettings() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalSettings, setOriginalSettings] = useState<CompanySettings>(defaultSettings);
+  const [resolvedOwnerId, setResolvedOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
