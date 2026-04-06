@@ -27,6 +27,7 @@ const AccountsPage = lazy(() => import("./pages/AccountsPage"));
 const AccountFormPage = lazy(() => import("./pages/AccountFormPage"));
 const ContactsPage = lazy(() => import("./pages/ContactsPage"));
 const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
+const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"));
 const ContactPoliciesPage = lazy(() => import("./pages/ContactPoliciesPage"));
 const ExportPage = lazy(() => import("./pages/ExportPage"));
 const SmartReportPage = lazy(() => import("./pages/SmartReportPage"));
@@ -291,6 +292,7 @@ const App = () => (
                       <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
+                      <Route path="/orders/:id" element={<OrderDetailPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
                       <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdvancesPage /></RoleGuard>} />
