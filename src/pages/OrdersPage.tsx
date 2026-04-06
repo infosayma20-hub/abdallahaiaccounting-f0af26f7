@@ -178,8 +178,19 @@ const OrdersPage = () => {
   useEffect(() => { fetchOrders(); }, [user]);
 
   const fetchOrderItems = async (orderId: string) => {
+    // Try order_items first, then qamar_order_items
     const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
-    setOrderItems((data as any[]) || []);
+    if (data && data.length > 0) {
+      setOrderItems(data as any[]);
+      return;
+    }
+    // Fallback: qamar_order_items
+    const { data: qamarItems } = await supabase.from("qamar_order_items").select("*").eq("order_id", orderId);
+    setOrderItems(((qamarItems as any[]) || []).map((q: any) => ({
+      ...q,
+      unit_price: q.price || q.unit_price || 0,
+      total: q.line_total || q.total || (q.quantity || 1) * (q.price || 0),
+    })));
   };
 
   const recalcTotal = (updatedItems: typeof items) => {
