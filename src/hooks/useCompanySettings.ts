@@ -369,14 +369,14 @@ export function useCompanySettings() {
     if (!user) return;
     setSaving(true);
     try {
+      const ownerId = resolvedOwnerId || user.id;
       const raw = settings as any;
       const UUID_COLUMNS = new Set([
         "updated_by", "pos_branch_id", "default_bank_account", "card_bank_account_id",
       ]);
-      const payload: Record<string, any> = { user_id: user.id, updated_by: user.id || null };
+      const payload: Record<string, any> = { user_id: ownerId, updated_by: user.id || null };
       for (const key of DB_COLUMNS) {
         if (key in raw) {
-          // Convert empty strings to null for UUID columns
           if (UUID_COLUMNS.has(key) && raw[key] === "") {
             payload[key] = null;
           } else {
@@ -389,14 +389,14 @@ export function useCompanySettings() {
       const { data: existing } = await supabase
         .from("company_settings" as any)
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", ownerId)
         .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
           .from("company_settings" as any)
           .update(payload as any)
-          .eq("user_id", user.id);
+          .eq("user_id", ownerId);
         if (error) throw error;
       } else {
         const { error } = await supabase
