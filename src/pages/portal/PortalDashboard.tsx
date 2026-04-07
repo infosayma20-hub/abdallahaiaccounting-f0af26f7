@@ -246,7 +246,7 @@ export default function PortalDashboard() {
 
   // ═══════ HOME TAB ═══════
   const renderHome = () => (
-    <div style={{ paddingBottom: CONTENT_BOTTOM_PAD }}>
+    <div>
       {refreshing && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: 8 }}>
           <RefreshCw size={14} style={{ color: c.textMuted, animation: 'spin 1s linear infinite' }} />
@@ -364,7 +364,7 @@ export default function PortalDashboard() {
 
   // ═══════ FINANCE TAB ═══════
   const renderFinance = () => (
-    <div style={{ paddingBottom: CONTENT_BOTTOM_PAD }}>
+    <div>
       <div style={{ display: 'flex', gap: 6, padding: '12px 16px', overflowX: 'auto' as const }}>
         {([
           { key: 'all' as FinanceSectionKey, label: 'الكل' },
@@ -457,7 +457,7 @@ export default function PortalDashboard() {
       </div>
 
       {/* ═══════ PAGE CONTENT ═══════ */}
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
         {renderContent()}
       </div>
 
