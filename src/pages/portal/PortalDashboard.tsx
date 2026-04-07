@@ -225,14 +225,14 @@ export default function PortalDashboard() {
       {/* QUICK STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
         {[
-          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: PRIMARY },
-          { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6' },
-          { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A' },
-          { label: 'مهام معلقة', value: '—', color: '#F59E0B' },
+          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: PRIMARY, onClick: () => { setActiveTab('finance'); setFinanceSection('sales'); } },
+          { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => navigate('/orders') },
+          { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { setActiveTab('finance'); setFinanceSection('liquidity'); } },
+          { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => setActiveTab('tasks') },
         ].map((stat, i) => (
-          <div key={i} style={{
+          <div key={i} onClick={stat.onClick} style={{
             background: 'white', borderRadius: 16, padding: 18, border: '1px solid #F1F5F9',
-            position: 'relative', overflow: 'hidden',
+            position: 'relative', overflow: 'hidden', cursor: 'pointer',
           }}>
             <div style={{ position: 'absolute', top: 0, right: 0, left: 0, height: 3, background: stat.color, borderRadius: '16px 16px 0 0' }} />
             <div style={{ fontSize: 24, fontWeight: 800, color: PRIMARY, fontFamily: 'Cairo' }}>{stat.value}</div>
@@ -246,12 +246,12 @@ export default function PortalDashboard() {
         <div style={{ fontSize: 16, fontWeight: 700, color: PRIMARY, marginBottom: 12, fontFamily: 'Cairo' }}>إجراءات سريعة</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'فاتورة جديدة', icon: '📄' },
-            { label: 'سند قبض', icon: '💰' },
-            { label: 'إرسال كشوفات', icon: '📤' },
-            { label: 'مهمة جديدة', icon: '📋' },
+            { label: 'فاتورة جديدة', icon: '📄', onClick: () => navigate('/invoices/new') },
+            { label: 'سند قبض', icon: '💰', onClick: () => navigate('/finance/receipts/new') },
+            { label: 'إرسال كشوفات', icon: '📤', onClick: () => { setActiveTab('finance'); setFinanceSection('receivables'); } },
+            { label: 'مهمة جديدة', icon: '📋', onClick: () => setActiveTab('tasks') },
           ].map((action, i) => (
-            <button key={i} style={{
+            <button key={i} onClick={action.onClick} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               padding: 14, borderRadius: 14, border: '1.5px solid #E2E8F0', background: 'white',
               fontSize: 13, fontWeight: 600, fontFamily: 'Cairo', color: PRIMARY, cursor: 'pointer',
@@ -270,9 +270,15 @@ export default function PortalDashboard() {
           <div style={{ fontSize: 16, fontWeight: 700, color: PRIMARY, marginBottom: 12, fontFamily: 'Cairo' }}>آخر الحركات</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {recentActivity.slice(0, 5).map((act: any) => (
-              <div key={act.id} style={{
+              <div key={act.id} onClick={() => {
+                if (act.referenceId) {
+                  if (act.type === 'income') navigate(`/invoices/${act.referenceId}`);
+                  else if (act.type === 'expense') navigate(`/finance/expenses`);
+                  else if (act.type === 'payment') navigate(`/finance/receipts`);
+                }
+              }} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
-                borderBottom: '1px solid #F8FAFC',
+                borderBottom: '1px solid #F8FAFC', cursor: act.referenceId ? 'pointer' : 'default',
               }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
