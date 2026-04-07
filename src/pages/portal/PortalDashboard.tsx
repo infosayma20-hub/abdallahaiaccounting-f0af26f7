@@ -18,6 +18,7 @@ import PortalTasksTab from './PortalTasksTab';
 import PortalOverviewTab from './PortalOverviewTab';
 import PortalReceivablesTab from './PortalReceivablesTab';
 import PortalStoreTab from './PortalStoreTab';
+import PortalSuppliersTab from './PortalSuppliersTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
@@ -85,7 +86,7 @@ function getColors(dark: boolean) {
 }
 
 type TabKey = 'home' | 'finance' | 'attendance' | 'reports' | 'more';
-type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables';
+type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
 
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
@@ -308,7 +309,7 @@ export default function PortalDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'الزبائن', icon: '👥', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
-            { label: 'الموردين', icon: '🏭', onClick: () => { switchTab('reports'); } },
+            { label: 'الموردين', icon: '🏭', onClick: () => { switchTab('finance'); setFinanceSection('suppliers'); } },
             { label: 'إرسال كشوفات', icon: '📤', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
             { label: 'مهمة جديدة', icon: '📋', onClick: () => { setShowTasksPage(true); } },
           ].map((action, i) => (
@@ -371,6 +372,7 @@ export default function PortalDashboard() {
           { key: 'sales' as FinanceSectionKey, label: 'المبيعات' },
           { key: 'liquidity' as FinanceSectionKey, label: 'السيولة' },
           { key: 'receivables' as FinanceSectionKey, label: 'الذمم' },
+          { key: 'suppliers' as FinanceSectionKey, label: 'الموردين' },
         ]).map(s => (
           <button key={s.key} onClick={() => setFinanceSection(s.key)} style={{
             padding: '6px 16px', borderRadius: 20, border: financeSection === s.key ? 'none' : `1px solid ${c.chipBorder}`,
@@ -397,7 +399,12 @@ export default function PortalDashboard() {
         )}
         {(financeSection === 'all' || financeSection === 'receivables') && (
           <div style={{ marginBottom: 16 }}>
-            <PortalReceivablesTab theme={themeMode} />
+          <PortalReceivablesTab theme={themeMode} />
+          </div>
+        )}
+        {(financeSection === 'all' || financeSection === 'suppliers') && (
+          <div style={{ marginBottom: 16 }}>
+            <PortalSuppliersTab theme={themeMode} />
           </div>
         )}
       </div>

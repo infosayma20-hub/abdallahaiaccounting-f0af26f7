@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       return respond({ success: true });
     }
 
-    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview", "receivables_list"].includes(action)) {
+    if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed", "overview", "receivables_list", "payables_list"].includes(action)) {
       return respond({
         success: true,
         needsSetup: true,
@@ -968,6 +968,73 @@ Deno.serve(async (req) => {
         .sort((a: any, b: any) => b.balance - a.balance);
 
       return respond({ success: true, receivables });
+    }
+
+    // ACTION: payables_list — Outstanding payables (suppliers)
+    if (action === "payables_list") {
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("id, contact_name, phone, contact_type")
+        .eq("user_id", linkedUserId)
+        .eq("is_active", true)
+        .in("contact_type", ["مورد", "supplier", "vendor"]);
+
+      const { data: txns } = await supabase
+        .from("transactions")
+        .select("contact_id, debit_account_code, credit_account_code, amount")
+        .eq("user_id", linkedUserId)
+        .eq("is_deleted", false);
+
+      // Supplier balance from ledger: credit on 2110 = we owe more, debit on 2110 = we paid
+      const balanceMap: Record<string, number> = {};
+      (txns || []).forEach((t: any) => {
+        if (!t.contact_id) return;
+        if (!balanceMap[t.contact_id]) balanceMap[t.contact_id] = 0;
+        if (t.credit_account_code === "2110") balanceMap[t.contact_id] += (t.amount || 0);
+        if (t.debit_account_code === "2110") balanceMap[t.contact_id] -= (t.amount || 0);
+      });
+
+      const { data: sendLogs } = await supabase
+        .from("statement_send_log")
+        .select("contact_id, sent_at")
+        .eq("user_id", linkedUserId)
+        .order("sent_at", { ascending: false });
+
+      const lastSentMap: Record<string, string> = {};
+      (sendLogs || []).forEach((log: any) => {
+        if (!lastSentMap[log.contact_id]) lastSentMap[log.contact_id] = log.sent_at;
+      });
+
+      const { data: invoices } = await supabase
+        .from("invoices")
+        .select("contact_id, invoice_date, due_date, status")
+        .eq("user_id", linkedUserId)
+        .eq("invoice_type", "purchase")
+        .in("status", ["issued", "posted", "partial"]);
+
+      const maxDaysMap: Record<string, number> = {};
+      const now = new Date();
+      (invoices || []).forEach((inv: any) => {
+        const dueDate = inv.due_date || inv.invoice_date;
+        const days = Math.max(0, Math.floor((now.getTime() - new Date(dueDate).getTime()) / 86400000));
+        if (!maxDaysMap[inv.contact_id] || days > maxDaysMap[inv.contact_id]) {
+          maxDaysMap[inv.contact_id] = days;
+        }
+      });
+
+      const payables = (contacts || [])
+        .filter((c: any) => (balanceMap[c.id] || 0) > 0)
+        .map((c: any) => ({
+          id: c.id,
+          name: c.contact_name,
+          phone: c.phone || "",
+          balance: balanceMap[c.id] || 0,
+          maxDays: maxDaysMap[c.id] || 0,
+          lastSent: lastSentMap[c.id] || null,
+        }))
+        .sort((a: any, b: any) => b.balance - a.balance);
+
+      return respond({ success: true, payables });
     }
 
     return respond({ error: "Unknown action" }, 400);
