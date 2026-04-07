@@ -268,6 +268,7 @@ export default function PublicStatementPage() {
         <span style={{ fontSize: '14px', fontWeight: '700', color: '#0D1B2E' }}>كشف حساب</span>
         <div style={{ width: '60px' }} />
       </div>
+      <div ref={contentRef} id="statement-content" style={{ maxWidth: 800, margin: '0 auto', background: '#fff', padding: '20px 16px' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '3px solid #1B3A5C', paddingBottom: 12, gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
