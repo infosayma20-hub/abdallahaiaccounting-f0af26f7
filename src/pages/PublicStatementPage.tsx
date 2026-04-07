@@ -481,6 +481,7 @@ export default function PublicStatementPage() {
       <div style={{
         position: 'sticky', bottom: 0, background: 'white',
         borderTop: '1px solid #E5E7EB', padding: '10px 16px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
         display: 'flex', gap: 8, justifyContent: 'center', maxWidth: 800, margin: '0 auto',
       }}>
         <button
