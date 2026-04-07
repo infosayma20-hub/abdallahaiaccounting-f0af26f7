@@ -231,8 +231,8 @@ export default function PortalDashboard() {
   ];
 
   const moreItems = [
-    { label: 'المتجر', icon: Store, action: () => { setShowMore(false); setActiveTab('reports'); } },
-    { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); setActiveTab('reports'); } },
+    { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
+    { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('reports'); } },
     ...(hasEmployees ? [{ label: 'الحضور', icon: Users, action: () => { setShowMore(false); } }] : []),
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
     ...(user.role === 'owner' ? [{ label: 'الإعدادات', icon: Settings, action: () => navigate('/portal/settings') }] : []),
@@ -279,7 +279,7 @@ export default function PortalDashboard() {
             ))}
           </div>
         )}
-        <button onClick={() => { setActiveTab('finance'); setFinanceSection('receivables'); }} style={{
+        <button onClick={() => { switchTab('finance'); setFinanceSection('receivables'); }} style={{
           marginTop: 16, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: 10, padding: '8px 16px', color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600,
           fontFamily: 'Cairo', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
@@ -291,10 +291,10 @@ export default function PortalDashboard() {
       {/* QUICK STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
         {[
-          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { setActiveTab('finance'); setFinanceSection('sales'); } },
+          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
           { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => navigate('/orders') },
-          { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { setActiveTab('finance'); setFinanceSection('liquidity'); } },
-          { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => setActiveTab('tasks') },
+          { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { switchTab('finance'); setFinanceSection('liquidity'); } },
+          { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => switchTab('tasks') },
         ].map((stat, i) => (
           <div key={i} onClick={stat.onClick} style={{
             background: c.cardBg, borderRadius: 16, padding: 18,
@@ -314,8 +314,8 @@ export default function PortalDashboard() {
           {[
             { label: 'فاتورة جديدة', icon: '📄', onClick: () => navigate('/invoices/new') },
             { label: 'سند قبض', icon: '💰', onClick: () => navigate('/finance/receipts/new') },
-            { label: 'إرسال كشوفات', icon: '📤', onClick: () => { setActiveTab('finance'); setFinanceSection('receivables'); } },
-            { label: 'مهمة جديدة', icon: '📋', onClick: () => setActiveTab('tasks') },
+            { label: 'إرسال كشوفات', icon: '📤', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
+            { label: 'مهمة جديدة', icon: '📋', onClick: () => switchTab('tasks') },
           ].map((action, i) => (
             <button key={i} onClick={action.onClick} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
