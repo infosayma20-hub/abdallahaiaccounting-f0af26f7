@@ -134,6 +134,10 @@ export default function PortalDashboard() {
     localStorage.setItem('portal_theme', next ? 'dark' : 'light');
   };
 
+  const themeMode = darkMode ? 'dark' as const : 'light' as const;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('ar-PS', { day: 'numeric', month: 'long', year: 'numeric' });
+
   // ═══════ NAV ITEMS ═══════
   const navItems: { key: TabKey; label: string; icon: any }[] = [
     { key: 'home', label: 'الرئيسية', icon: Home },
