@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     // Fetch transactions for the date range
     const { data: transactions, error: txErr } = await supabase
       .from("transactions")
-      .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id, linked_transaction_id")
+      .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id")
       .eq("user_id", dataOwnerId)
       .eq("is_deleted", false)
       .eq("contact_id", stmt.contact_id)
