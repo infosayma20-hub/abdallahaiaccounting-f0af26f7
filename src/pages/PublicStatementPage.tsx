@@ -260,7 +260,14 @@ export default function PublicStatementPage() {
 
   return (
     <div style={{ minHeight: '100dvh', background: '#F3F4F6', fontFamily: 'Tajawal, Cairo, sans-serif', direction: 'rtl' }}>
-      <div ref={contentRef} id="statement-content" style={{ maxWidth: 800, margin: '0 auto', background: '#fff', padding: '20px 16px' }}>
+      {/* Back button header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 40, background: 'white', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9' }}>
+        <button onClick={() => window.history.back()} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#0D1B2E', fontSize: '14px', fontWeight: '600', fontFamily: 'Cairo, sans-serif', cursor: 'pointer' }}>
+          ← رجوع
+        </button>
+        <span style={{ fontSize: '14px', fontWeight: '700', color: '#0D1B2E' }}>كشف حساب</span>
+        <div style={{ width: '60px' }} />
+      </div>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '3px solid #1B3A5C', paddingBottom: 12, gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
