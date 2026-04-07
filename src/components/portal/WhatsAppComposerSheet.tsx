@@ -72,6 +72,20 @@ export default function WhatsAppComposerSheet({
       const userId = userData?.user?.id;
       if (!userId) return;
 
+      // Fetch invoice summaries for the message
+      const { data: invoices } = await (supabase
+        .from('invoices')
+        .select('invoice_number, total_amount, status, invoice_items(description)') as any)
+        .eq('user_id', userId)
+        .eq('contact_id', contact.id)
+        .eq('type', 'sale')
+        .neq('status', 'cancelled')
+        .neq('status', 'paid')
+        .gte('issue_date', startOfYear)
+        .lte('issue_date', todayISO)
+        .order('issue_date', { ascending: true })
+        .limit(10);
+
       const { data, error } = await supabase
         .from('shared_statements')
         .insert({
@@ -92,13 +106,24 @@ export default function WhatsAppComposerSheet({
         const url = `${baseUrl}/share/statement/${data.token}`;
         setShareUrl(url);
 
+        // Build invoice summary lines
+        let invoiceSummary = '';
+        if (invoices && invoices.length > 0) {
+          const lines = invoices.map((inv: any) => {
+            const itemNames = (inv.invoice_items || []).map((it: any) => it.description || 'صنف').join('، ');
+            return `• فاتورة ${inv.invoice_number} — ${fmt(inv.total_amount)}${itemNames ? ` (${itemNames})` : ''}`;
+          });
+          invoiceSummary = `\nملخص الحساب:\n${lines.join('\n')}\n`;
+        }
+
         setMessage(
           `السلام عليكم ${contact.name}،\n\n` +
           `نرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\n` +
-          `للفترة من 01/01/${new Date().getFullYear()} حتى ${today}.\n\n` +
-          `الرصيد المستحق: ${fmt(contact.balance)}\n\n` +
-          `رابط كشف الحساب:\n${url}\n\n` +
-          `نرجو التواصل لترتيب السداد.\nمع فائق الاحترام`
+          `للفترة من 01/01/${new Date().getFullYear()} حتى ${today}.\n` +
+          invoiceSummary +
+          `\nالرصيد المستحق: ${fmt(contact.balance)}\n\n` +
+          `رابط كشف الحساب التفصيلي:\n${url}\n\n` +
+          `يرجى التسديد خلال 7 أيام.\nشكراً لتعاملكم معنا 🙏`
         );
       }
     } catch (err) {
