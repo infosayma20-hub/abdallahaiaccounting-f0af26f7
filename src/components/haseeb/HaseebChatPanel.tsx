@@ -124,7 +124,50 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
     const contactMention = selectedMentions.find(m => m.category === "contact");
 
     try {
-      // First try parse-voice-transaction for financial ops
+      // Split into multiple commands
+      const commands = splitMultipleCommands(text);
+      
+      if (commands.length > 1) {
+        const results: { command: string; success: boolean; message: string }[] = [];
+
+        for (const command of commands) {
+          try {
+            const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: command.trim() } });
+            const parseData = parseRes.data;
+
+            if (parseData?.type === 'cheque') {
+              onCheque({ chequeType: parseData.chequeType || 'وارد', partyName: parseData.partyName || '', partyType: parseData.partyType || 'عميل', originalText: command, amount: parseData.amount || 0 });
+              results.push({ command, success: true, message: `🧾 شيك — ₪${parseData.amount || 0}` });
+              continue;
+            }
+
+            if (parseData?.type && !['question', 'unknown'].includes(parseData.type)) {
+              const body: any = { text: command.trim(), userId: user?.id, email: user?.email };
+              if (contactMention) { body.mentionedContactName = contactMention.name; body.mentionedContactId = contactMention.id; }
+              const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
+              if (error) throw error;
+              const cmdType = classifyCommand(command);
+              const invoiceInfo = txResult?.transaction?.invoice_number ? ` — ${txResult.transaction.invoice_number}` : '';
+              results.push({ command, success: true, message: `✅ ${getCommandTypeIcon(cmdType)} ${getCommandTypeLabel(cmdType)}${invoiceInfo}\n${command.trim()}` });
+              continue;
+            }
+          } catch (err: any) {
+            results.push({ command, success: false, message: `❌ ${command.trim()}: ${err.message || 'خطأ'}` });
+          }
+        }
+
+        if (results.length > 0) {
+          onTransactionSuccess();
+          const successCount = results.filter(r => r.success).length;
+          let summaryMsg = `✅ تم تنفيذ ${successCount} عمليات بنجاح\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+          results.forEach((r, i) => { summaryMsg += `\n${i + 1}️⃣ ${r.message}\n`; });
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: summaryMsg, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
+      }
+
+      // ═══ SINGLE COMMAND (original flow) ═══
       const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text } });
       const parseData = parseRes.data;
 
