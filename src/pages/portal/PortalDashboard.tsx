@@ -84,7 +84,7 @@ function getColors(dark: boolean) {
   };
 }
 
-type TabKey = 'home' | 'finance' | 'tasks' | 'reports' | 'more';
+type TabKey = 'home' | 'finance' | 'attendance' | 'reports' | 'more';
 type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables';
 
 function useCountUp(target: number, duration = 800) {
