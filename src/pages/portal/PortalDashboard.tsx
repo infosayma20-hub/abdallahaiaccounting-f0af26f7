@@ -133,6 +133,7 @@ export default function PortalDashboard() {
   const [homeData, setHomeData] = useState<any>(null);
   const [homeLoading, setHomeLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showTasksPage, setShowTasksPage] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
