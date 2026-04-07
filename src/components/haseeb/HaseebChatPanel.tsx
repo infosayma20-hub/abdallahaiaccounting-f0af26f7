@@ -7,6 +7,7 @@ import { Send, Mic, Loader2, AtSign, Paperclip, MicOff } from "lucide-react";
 import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
+import { splitMultipleCommands, classifyCommand, getCommandTypeLabel, getCommandTypeIcon } from "@/lib/multiCommandParser";
 
 type Message = {
   id: string;
