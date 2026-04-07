@@ -7,6 +7,7 @@ import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, Check, X, Pencil } from "lucide-react";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
+import { splitMultipleCommands, classifyCommand, getCommandTypeLabel, getCommandTypeIcon } from "@/lib/multiCommandParser";
 
 type Message = {
   id: string;
@@ -86,7 +87,52 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
     setSending(true);
 
     try {
-      // Try parse-voice-transaction for financial ops
+      // Split into multiple commands
+      const commands = splitMultipleCommands(text.trim());
+      
+      if (commands.length > 1) {
+        // ═══ MULTI-COMMAND PROCESSING ═══
+        const results: { command: string; success: boolean; message: string }[] = [];
+
+        for (const command of commands) {
+          try {
+            const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: command.trim() } });
+            const parseData = parseRes.data;
+
+            if (parseData?.type === 'cheque') {
+              onCheque({ chequeType: parseData.chequeType || 'وارد', partyName: parseData.partyName || '', partyType: parseData.partyType || 'عميل', originalText: command, amount: parseData.amount || 0 });
+              results.push({ command, success: true, message: `🧾 شيك ${parseData.chequeType || 'وارد'} — ₪${parseData.amount || 0}` });
+              continue;
+            }
+
+            if (parseData?.type && !['question', 'unknown'].includes(parseData.type)) {
+              const body: any = { text: command.trim(), userId: user?.id, email: user?.email };
+              const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
+              if (error) throw error;
+              const cmdType = classifyCommand(command);
+              const invoiceInfo = txResult?.transaction?.invoice_number ? ` — ${txResult.transaction.invoice_number}` : '';
+              results.push({ command, success: true, message: `✅ ${getCommandTypeIcon(cmdType)} ${getCommandTypeLabel(cmdType)}${invoiceInfo}\n${command.trim()}` });
+              continue;
+            }
+            // Skip question-type commands in multi-command mode
+          } catch (err: any) {
+            results.push({ command, success: false, message: `❌ ${command.trim()}: ${err.message || 'خطأ'}` });
+          }
+        }
+
+        if (results.length > 0) {
+          if (navigator.vibrate) navigator.vibrate(100);
+          onTransactionSuccess();
+          const successCount = results.filter(r => r.success).length;
+          let summaryMsg = `✅ تم تنفيذ ${successCount} عمليات بنجاح\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+          results.forEach((r, i) => { summaryMsg += `\n${i + 1}️⃣ ${r.message}\n`; });
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: summaryMsg, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
+      }
+
+      // ═══ SINGLE COMMAND (original flow) ═══
       const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: text.trim() } });
       const parseData = parseRes.data;
 
