@@ -133,8 +133,6 @@ export default function PortalDashboard() {
   const [homeData, setHomeData] = useState<any>(null);
   const [homeLoading, setHomeLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [barWidth, setBarWidth] = useState(375);
-  const barRef = useRef<HTMLDivElement>(null);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -145,12 +143,6 @@ export default function PortalDashboard() {
     return () => { document.head.removeChild(link); };
   }, []);
 
-  useEffect(() => {
-    const measure = () => { if (barRef.current) setBarWidth(barRef.current.offsetWidth); };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
