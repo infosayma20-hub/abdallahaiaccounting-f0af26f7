@@ -112,9 +112,8 @@ function getGreeting() {
   return 'مساء النور';
 }
 
-const NAV_HEIGHT = 72;
-const NOTCH_EXTRA = 30;
-const CONTENT_BOTTOM_PAD = NAV_HEIGHT + NOTCH_EXTRA + 16; // ~118px
+const NAV_HEIGHT = 68;
+const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 16;
 
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
@@ -134,8 +133,6 @@ export default function PortalDashboard() {
   const [homeData, setHomeData] = useState<any>(null);
   const [homeLoading, setHomeLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [barWidth, setBarWidth] = useState(375);
-  const barRef = useRef<HTMLDivElement>(null);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -146,12 +143,6 @@ export default function PortalDashboard() {
     return () => { document.head.removeChild(link); };
   }, []);
 
-  useEffect(() => {
-    const measure = () => { if (barRef.current) setBarWidth(barRef.current.offsetWidth); };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth', { replace: true });
@@ -507,124 +498,62 @@ export default function PortalDashboard() {
         ))}
       </div>
 
-      {/* ═══════ MAGIC BOTTOM NAV ═══════ */}
-      {(() => {
-        const navBg = darkMode ? '#111111' : '#0D1B2E';
-        const itemW = barWidth / 5;
-        const activeX = activeIndex * itemW + itemW / 2;
-        const circleR = 28;
-        const notchR = 35;
-        const ActiveIcon = navItems[activeIndex].icon;
-
-        return (
-          <div
-            ref={barRef}
-            style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0,
-              height: NAV_HEIGHT + NOTCH_EXTRA,
-              zIndex: 50, direction: 'rtl',
-              pointerEvents: 'none',
-            }}
-          >
-            {/* Navy bar */}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              height: NAV_HEIGHT, background: navBg,
-              borderRadius: '20px 20px 0 0',
-              pointerEvents: 'auto',
-            }}>
-              {/* Curved notch */}
-              <div style={{
-                position: 'absolute', top: -NOTCH_EXTRA + 2, right: activeX - notchR,
-                width: notchR * 2, height: NOTCH_EXTRA,
-                transition: 'right 0.4s cubic-bezier(0.4,0,0.2,1)',
-                pointerEvents: 'none',
-              }}>
+      {/* ═══════ BOTTOM NAV ═══════ */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 50, direction: 'rtl' as const,
+      }}>
+        <div style={{
+          background: darkMode ? '#111111' : '#0D1B2E',
+          borderRadius: '20px 20px 0 0',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+          height: NAV_HEIGHT,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
+        }}>
+          {navItems.map((item, idx) => {
+            const isActive = idx === activeIndex;
+            const Icon = item.icon;
+            const navBg = darkMode ? '#111111' : '#0D1B2E';
+            return (
+              <button
+                key={item.key}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(10);
+                  if (item.key === 'more') { setShowMore(prev => !prev); return; }
+                  setActiveTab(item.key);
+                  setActiveIndex(idx);
+                  setShowMore(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 4,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: 0, position: 'relative',
+                }}
+              >
                 <div style={{
-                  position: 'absolute', left: -18, top: 0, width: 18, height: NOTCH_EXTRA,
-                  background: 'transparent', borderBottomRightRadius: 18,
-                  boxShadow: `8px 0 0 0 ${navBg}`,
-                }} />
-                <div style={{
-                  position: 'absolute', left: 0, top: 0, width: notchR * 2, height: NOTCH_EXTRA,
-                  background: navBg, borderRadius: `0 0 ${notchR}px ${notchR}px`,
-                }} />
-                <div style={{
-                  position: 'absolute', right: -18, top: 0, width: 18, height: NOTCH_EXTRA,
-                  background: 'transparent', borderBottomLeftRadius: 18,
-                  boxShadow: `-8px 0 0 0 ${navBg}`,
-                }} />
-              </div>
-            </div>
-
-            {/* Floating circle */}
-            <div style={{
-              position: 'absolute', bottom: NAV_HEIGHT - 6,
-              right: activeX - circleR,
-              width: circleR * 2, height: circleR * 2,
-              borderRadius: '50%', background: '#FFFFFF',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 20px rgba(13,27,46,0.25)',
-              transition: 'right 0.4s cubic-bezier(0.4,0,0.2,1)',
-              zIndex: 10, pointerEvents: 'none',
-            }}>
-              <ActiveIcon size={24} color={navBg} strokeWidth={2.2} />
-            </div>
-
-            {/* Nav buttons */}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              height: NAV_HEIGHT, display: 'flex', direction: 'rtl',
-              alignItems: 'center', zIndex: 5, pointerEvents: 'auto',
-            }}>
-              {navItems.map((item, idx) => {
-                const isActive = idx === activeIndex;
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => {
-                      if (navigator.vibrate) navigator.vibrate(10);
-                      if (item.key === 'more') { setShowMore(prev => !prev); return; }
-                      setActiveTab(item.key);
-                      setActiveIndex(idx);
-                      setShowMore(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    style={{
-                      flex: 1, display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', justifyContent: 'center', gap: 4,
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      padding: '8px 0',
-                      opacity: isActive ? 0 : 1,
-                      transition: 'opacity 0.3s ease',
-                      position: 'relative',
-                    }}
-                  >
-                    <Icon size={20} color="rgba(255,255,255,0.45)" strokeWidth={1.5} />
-                    <span style={{
-                      fontSize: 10, fontWeight: 500, fontFamily: 'Cairo',
-                      color: 'rgba(255,255,255,0.45)',
-                    }}>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active label */}
-            <div style={{
-              position: 'absolute', bottom: 8,
-              right: activeX - 30, width: 60, textAlign: 'center',
-              transition: 'right 0.4s cubic-bezier(0.4,0,0.2,1)',
-              zIndex: 10, pointerEvents: 'none',
-            }}>
-              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'Cairo', color: '#FFFFFF' }}>
-                {navItems[activeIndex].label}
-              </span>
-            </div>
-          </div>
-        );
-      })()}
+                  width: isActive ? 46 : 36, height: isActive ? 46 : 36,
+                  borderRadius: '50%',
+                  background: isActive ? '#FFFFFF' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.35s cubic-bezier(0.4,0,0.2,1)',
+                  boxShadow: isActive ? '0 2px 12px rgba(0,0,0,0.15)' : 'none',
+                }}>
+                  <Icon size={isActive ? 22 : 20} color={isActive ? navBg : 'rgba(255,255,255,0.4)'} strokeWidth={isActive ? 2.2 : 1.5} />
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: isActive ? 700 : 400,
+                  fontFamily: 'Cairo',
+                  color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
+                  transition: 'all 0.3s ease', marginTop: -2,
+                }}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
