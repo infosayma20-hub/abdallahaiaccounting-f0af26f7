@@ -197,10 +197,10 @@ Deno.serve(async (req) => {
         const inv = invoiceMap[invMatch[0]];
         if (inv) {
           invoiceItems = (inv.invoice_items || []).map((item: any) => ({
-            name: item.description || 'صنف',
+            name: item.product_name || item.description || 'صنف',
             quantity: item.quantity || 1,
             unitPrice: item.unit_price || 0,
-            total: item.total || 0,
+            total: item.total_amount || 0,
           }));
           dueDate = inv.due_date;
           invoiceStatus = inv.status;
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
     const aging = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
     (invoices || []).forEach((inv: any) => {
       if (inv.status === 'paid') return;
-      const due = new Date(inv.due_date || inv.issue_date);
+      const due = new Date(inv.due_date || inv.invoice_date);
       const days = Math.floor((today.getTime() - due.getTime()) / 86400000);
       const remaining = inv.total_amount - (inv.discount_amount || 0);
 
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
 
     // Invoice summaries for WhatsApp message
     const invoiceSummaries = (invoices || []).map((inv: any) => {
-      const itemNames = (inv.invoice_items || []).map((it: any) => it.description || 'صنف').join('، ');
+      const itemNames = (inv.invoice_items || []).map((it: any) => it.product_name || it.description || 'صنف').join('، ');
       return {
         number: inv.invoice_number,
         amount: inv.total_amount,
