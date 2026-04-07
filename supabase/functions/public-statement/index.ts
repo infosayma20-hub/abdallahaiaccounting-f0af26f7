@@ -47,14 +47,29 @@ Deno.serve(async (req) => {
       .eq("id", stmt.id);
 
     // Fetch contact info first to get real data owner
-    const { data: contact } = await supabase
+    const { data: contact, error: contactErr } = await supabase
       .from("contacts")
       .select("id, contact_name, phone, email, user_id, tax_number, city, address")
       .eq("id", stmt.contact_id)
       .single();
 
+
     // Use the contact's user_id (the real data owner)
-    const dataOwnerId = contact?.user_id || stmt.user_id;
+    // Also resolve team owner via profiles.invited_by
+    let dataOwnerId = contact?.user_id || stmt.user_id;
+
+    // If stmt.user_id is a team member, resolve to their owner
+    if (!contact?.user_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("invited_by")
+        .eq("user_id", stmt.user_id)
+        .single();
+      if (profile?.invited_by) {
+        dataOwnerId = profile.invited_by;
+      }
+    }
+
 
     // Fetch company info using the data owner
     const [companyRes, compSettingsRes, profileRes] = await Promise.all([
@@ -71,7 +86,7 @@ Deno.serve(async (req) => {
       supabase
         .from("profiles")
         .select("full_name")
-        .eq("id", dataOwnerId)
+        .eq("user_id", dataOwnerId)
         .single(),
     ]);
 
@@ -85,10 +100,11 @@ Deno.serve(async (req) => {
     const companyEmail = compSettings?.email || company?.email || "";
     const companyAddress = compSettings?.address || company?.address || "";
 
+
     // Fetch transactions for the date range
-    const { data: transactions } = await supabase
+    const { data: transactions, error: txErr } = await supabase
       .from("transactions")
-      .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id, linked_transaction_id")
+      .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id")
       .eq("user_id", dataOwnerId)
       .eq("is_deleted", false)
       .eq("contact_id", stmt.contact_id)
@@ -96,15 +112,15 @@ Deno.serve(async (req) => {
       .lte("transaction_date", stmt.date_to)
       .order("transaction_date", { ascending: true });
 
-    const contactTransactions = transactions || [];
 
+    const contactTransactions = transactions || [];
     // Fetch invoices with items for this contact in date range
-    const { data: invoices } = await supabase
+    const { data: invoices, error: invErr } = await supabase
       .from("invoices")
       .select(`
         id,
         invoice_number,
-        issue_date,
+        invoice_date,
         due_date,
         total_amount,
         discount_amount,
@@ -112,21 +128,23 @@ Deno.serve(async (req) => {
         status,
         payment_method,
         notes,
-        type,
+        invoice_type,
         invoice_items (
           id,
           description,
+          product_name,
           quantity,
           unit_price,
-          total
+          total_amount
         )
       `)
       .eq("user_id", dataOwnerId)
       .eq("contact_id", stmt.contact_id)
       .neq("status", "cancelled")
-      .gte("issue_date", stmt.date_from)
-      .lte("issue_date", stmt.date_to)
-      .order("issue_date", { ascending: true });
+      .gte("invoice_date", stmt.date_from)
+      .lte("invoice_date", stmt.date_to)
+      .order("invoice_date", { ascending: true });
+
 
     // Build invoice lookup by invoice_number
     const invoiceMap: Record<string, any> = {};
@@ -174,10 +192,10 @@ Deno.serve(async (req) => {
         const inv = invoiceMap[invMatch[0]];
         if (inv) {
           invoiceItems = (inv.invoice_items || []).map((item: any) => ({
-            name: item.description || 'صنف',
+            name: item.product_name || item.description || 'صنف',
             quantity: item.quantity || 1,
             unitPrice: item.unit_price || 0,
-            total: item.total || 0,
+            total: item.total_amount || 0,
           }));
           dueDate = inv.due_date;
           invoiceStatus = inv.status;
@@ -212,7 +230,7 @@ Deno.serve(async (req) => {
     const aging = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
     (invoices || []).forEach((inv: any) => {
       if (inv.status === 'paid') return;
-      const due = new Date(inv.due_date || inv.issue_date);
+      const due = new Date(inv.due_date || inv.invoice_date);
       const days = Math.floor((today.getTime() - due.getTime()) / 86400000);
       const remaining = inv.total_amount - (inv.discount_amount || 0);
 
@@ -225,7 +243,7 @@ Deno.serve(async (req) => {
 
     // Invoice summaries for WhatsApp message
     const invoiceSummaries = (invoices || []).map((inv: any) => {
-      const itemNames = (inv.invoice_items || []).map((it: any) => it.description || 'صنف').join('، ');
+      const itemNames = (inv.invoice_items || []).map((it: any) => it.product_name || it.description || 'صنف').join('، ');
       return {
         number: inv.invoice_number,
         amount: inv.total_amount,

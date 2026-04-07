@@ -303,8 +303,8 @@ export default function PortalDashboard() {
         <div style={{ fontSize: 16, fontWeight: 700, color: c.textPrimary, marginBottom: 12, fontFamily: 'Cairo' }}>إجراءات سريعة</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'فاتورة جديدة', icon: '📄', onClick: () => navigate('/invoices/new') },
-            { label: 'سند قبض', icon: '💰', onClick: () => navigate('/finance/receipts/new') },
+            { label: 'فاتورة جديدة', icon: '📄', onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
+            { label: 'سند قبض', icon: '💰', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
             { label: 'إرسال كشوفات', icon: '📤', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
             { label: 'مهمة جديدة', icon: '📋', onClick: () => switchTab('tasks') },
           ].map((action, i) => (
@@ -328,11 +328,9 @@ export default function PortalDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {recentActivity.slice(0, 5).map((act: any) => (
               <div key={act.id} onClick={() => {
-                if (act.referenceId) {
-                  if (act.type === 'income') navigate(`/invoices/${act.referenceId}`);
-                  else if (act.type === 'expense') navigate(`/finance/expenses`);
-                  else if (act.type === 'payment') navigate(`/finance/receipts`);
-                }
+                if (act.type === 'income') { switchTab('finance'); setFinanceSection('sales'); }
+                else if (act.type === 'payment') { switchTab('finance'); setFinanceSection('receivables'); }
+                else if (act.type === 'expense') { switchTab('finance'); setFinanceSection('liquidity'); }
               }} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
                 borderBottom: `1px solid ${c.divider}`, cursor: act.referenceId ? 'pointer' : 'default',
