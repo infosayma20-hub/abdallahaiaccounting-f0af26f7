@@ -11,6 +11,7 @@ import ChatHistorySidebar from "./ChatHistorySidebar";
 import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 import type { User } from "@supabase/supabase-js";
+import { splitMultipleCommands, classifyCommand, getCommandTypeLabel, getCommandTypeIcon } from "@/lib/multiCommandParser";
 
 type Message = {
   id: string;
