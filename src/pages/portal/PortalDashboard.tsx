@@ -526,6 +526,7 @@ export default function PortalDashboard() {
                   setActiveTab(item.key);
                   setActiveIndex(idx);
                   setShowMore(false);
+                  setShowTasksPage(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
