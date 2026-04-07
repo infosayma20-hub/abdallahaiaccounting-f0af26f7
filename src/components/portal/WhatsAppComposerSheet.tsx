@@ -73,9 +73,9 @@ export default function WhatsAppComposerSheet({
       if (!userId) return;
 
       // Fetch invoice summaries for the message
-      const { data: invoices } = await supabase
+      const { data: invoices } = await (supabase
         .from('invoices')
-        .select('invoice_number, total_amount, status, invoice_items(description)')
+        .select('invoice_number, total_amount, status, invoice_items(description)') as any)
         .eq('user_id', userId)
         .eq('contact_id', contact.id)
         .eq('type', 'sale')
