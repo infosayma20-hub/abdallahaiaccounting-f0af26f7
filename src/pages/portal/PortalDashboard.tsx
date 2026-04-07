@@ -21,10 +21,71 @@ import PortalStoreTab from './PortalStoreTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
-const ACCENT = '#2A7B9B';
+
+function getColors(dark: boolean) {
+  return dark ? {
+    pageBg: '#0a0a0a',
+    cardBg: '#161616',
+    cardBorder: '#262626',
+    textPrimary: '#F1F5F9',
+    textSecondary: '#A1A1AA',
+    textMuted: '#71717A',
+    heroBg: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+    heroText: '#FFFFFF',
+    inputBg: '#1e1e1e',
+    inputBorder: '#333333',
+    divider: '#262626',
+    chipBg: '#1e1e1e',
+    chipActiveBg: '#FFFFFF',
+    chipActiveText: '#0a0a0a',
+    chipText: '#A1A1AA',
+    chipBorder: '#333333',
+    navBg: '#111111',
+    navBorder: '#262626',
+    navActive: 'rgba(255,255,255,0.08)',
+    navIcon: '#71717A',
+    navIconActive: '#FFFFFF',
+    sheetBg: '#161616',
+    sheetText: '#F1F5F9',
+    sheetIcon: '#333333',
+    sheetIconColor: '#A1A1AA',
+    sheetDivider: '#262626',
+    activityIconBg: (type: string) => type === 'income' ? '#1e293b' : type === 'expense' ? '#2d1515' : '#2d2206',
+    headerBg: '#111111',
+  } : {
+    pageBg: '#F8FAFC',
+    cardBg: '#FFFFFF',
+    cardBorder: '#F1F5F9',
+    textPrimary: '#0D1B2E',
+    textSecondary: '#64748B',
+    textMuted: '#94A3B8',
+    heroBg: `linear-gradient(135deg, ${PRIMARY} 0%, #1e3a5f 100%)`,
+    heroText: '#FFFFFF',
+    inputBg: '#FFFFFF',
+    inputBorder: '#E2E8F0',
+    divider: '#F1F5F9',
+    chipBg: '#F1F5F9',
+    chipActiveBg: PRIMARY,
+    chipActiveText: '#FFFFFF',
+    chipText: '#64748B',
+    chipBorder: '#E2E8F0',
+    navBg: '#FFFFFF',
+    navBorder: '#F1F5F9',
+    navActive: 'rgba(13,27,46,0.06)',
+    navIcon: '#94A3B8',
+    navIconActive: PRIMARY,
+    sheetBg: '#FFFFFF',
+    sheetText: '#1E293B',
+    sheetIcon: '#F1F5F9',
+    sheetIconColor: '#475569',
+    sheetDivider: '#F8FAFC',
+    activityIconBg: (type: string) => type === 'income' ? '#EFF6FF' : type === 'expense' ? '#FEF2F2' : '#FEF3C7',
+    headerBg: PRIMARY,
+  };
+}
 
 type TabKey = 'home' | 'finance' | 'tasks' | 'reports' | 'more';
-type FinanceSection = 'all' | 'sales' | 'liquidity' | 'receivables';
+type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables';
 
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
@@ -51,12 +112,19 @@ function getGreeting() {
   return 'مساء النور';
 }
 
+const NAV_HEIGHT = 72;
+const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 24; // 96px
+
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
-  const [financeSection, setFinanceSection] = useState<FinanceSection>('all');
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
+  const [financeSection, setFinanceSection] = useState<FinanceSectionKey>('all');
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('portal_theme');
+    if (saved) return saved === 'dark';
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState('');
   const [hasEmployees, setHasEmployees] = useState(false);
@@ -65,8 +133,6 @@ export default function PortalDashboard() {
   const [homeData, setHomeData] = useState<any>(null);
   const [homeLoading, setHomeLoading] = useState(true);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
-
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -125,6 +191,7 @@ export default function PortalDashboard() {
 
   if (authLoading || !user) return null;
 
+  const c = getColors(darkMode);
   const topDebtors = homeData?.topDebtors || [];
   const recentActivity = homeData?.recentActivity || [];
 
@@ -138,7 +205,6 @@ export default function PortalDashboard() {
   const today = new Date();
   const dateStr = today.toLocaleDateString('ar-PS', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // ═══════ NAV ITEMS ═══════
   const navItems: { key: TabKey; label: string; icon: any }[] = [
     { key: 'home', label: 'الرئيسية', icon: Home },
     { key: 'finance', label: 'المالية', icon: Wallet },
@@ -156,7 +222,6 @@ export default function PortalDashboard() {
     { label: 'تسجيل الخروج', icon: LogOut, action: () => { logout(); navigate('/auth'); } },
   ];
 
-  // ═══════ RENDER ACTIVE CONTENT ═══════
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return renderHome();
@@ -169,35 +234,24 @@ export default function PortalDashboard() {
 
   // ═══════ HOME TAB ═══════
   const renderHome = () => (
-    <div style={{ paddingBottom: 90 }}>
-      {/* Pull to refresh indicator */}
+    <div style={{ paddingBottom: CONTENT_BOTTOM_PAD }}>
       {refreshing && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: 8 }}>
-          <RefreshCw size={14} style={{ color: '#94A3B8', animation: 'spin 1s linear infinite' }} />
-          <span style={{ fontSize: 12, color: '#94A3B8', fontFamily: 'Cairo' }}>جاري التحديث...</span>
+          <RefreshCw size={14} style={{ color: c.textMuted, animation: 'spin 1s linear infinite' }} />
+          <span style={{ fontSize: 12, color: c.textMuted, fontFamily: 'Cairo' }}>جاري التحديث...</span>
         </div>
       )}
 
       {/* HERO CARD */}
       <div style={{
-        margin: '16px 16px 0',
-        padding: '24px 20px',
-        borderRadius: 20,
-        background: `linear-gradient(135deg, ${PRIMARY} 0%, #1e3a5f 100%)`,
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden',
+        margin: '16px 16px 0', padding: '24px 20px', borderRadius: 20,
+        background: c.heroBg, color: c.heroText, position: 'relative', overflow: 'hidden',
+        border: darkMode ? '1px solid #2a2a4a' : 'none',
       }}>
         <div style={{ position: 'absolute', top: -30, left: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', fontFamily: 'Cairo', marginBottom: 4 }}>
-          إجمالي المستحقات
-        </div>
-        <div style={{ fontSize: 36, fontWeight: 900, fontFamily: 'Cairo', lineHeight: 1 }}>
-          ₪{animatedReceivables.toLocaleString()}
-        </div>
-
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', fontFamily: 'Cairo', marginBottom: 4 }}>إجمالي المستحقات</div>
+        <div style={{ fontSize: 36, fontWeight: 900, fontFamily: 'Cairo', lineHeight: 1 }}>₪{animatedReceivables.toLocaleString()}</div>
         {topDebtors.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: 'Cairo', flexWrap: 'wrap' }}>
             {topDebtors.slice(0, 3).map((d: any, i: number) => (
@@ -208,42 +262,37 @@ export default function PortalDashboard() {
             ))}
           </div>
         )}
-
-        <button
-          onClick={() => setActiveTab('finance')}
-          style={{
-            marginTop: 16, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 10, padding: '8px 16px', color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600,
-            fontFamily: 'Cairo', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-          }}
-        >
-          عرض التفاصيل
-          <ChevronLeft size={14} />
+        <button onClick={() => { setActiveTab('finance'); setFinanceSection('receivables'); }} style={{
+          marginTop: 16, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 10, padding: '8px 16px', color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600,
+          fontFamily: 'Cairo', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          عرض التفاصيل <ChevronLeft size={14} />
         </button>
       </div>
 
       {/* QUICK STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
         {[
-          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: PRIMARY, onClick: () => { setActiveTab('finance'); setFinanceSection('sales'); } },
+          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { setActiveTab('finance'); setFinanceSection('sales'); } },
           { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => navigate('/orders') },
           { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { setActiveTab('finance'); setFinanceSection('liquidity'); } },
           { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => setActiveTab('tasks') },
         ].map((stat, i) => (
           <div key={i} onClick={stat.onClick} style={{
-            background: 'white', borderRadius: 16, padding: 18, border: '1px solid #F1F5F9',
-            position: 'relative', overflow: 'hidden', cursor: 'pointer',
+            background: c.cardBg, borderRadius: 16, padding: 18,
+            border: `1px solid ${c.cardBorder}`, position: 'relative', overflow: 'hidden', cursor: 'pointer',
           }}>
             <div style={{ position: 'absolute', top: 0, right: 0, left: 0, height: 3, background: stat.color, borderRadius: '16px 16px 0 0' }} />
-            <div style={{ fontSize: 24, fontWeight: 800, color: PRIMARY, fontFamily: 'Cairo' }}>{stat.value}</div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8', marginTop: 2, fontFamily: 'Cairo' }}>{stat.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: c.textPrimary, fontFamily: 'Cairo' }}>{stat.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: c.textSecondary, marginTop: 2, fontFamily: 'Cairo' }}>{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* QUICK ACTIONS */}
       <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: PRIMARY, marginBottom: 12, fontFamily: 'Cairo' }}>إجراءات سريعة</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: c.textPrimary, marginBottom: 12, fontFamily: 'Cairo' }}>إجراءات سريعة</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: 'فاتورة جديدة', icon: '📄', onClick: () => navigate('/invoices/new') },
@@ -253,8 +302,8 @@ export default function PortalDashboard() {
           ].map((action, i) => (
             <button key={i} onClick={action.onClick} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              padding: 14, borderRadius: 14, border: '1.5px solid #E2E8F0', background: 'white',
-              fontSize: 13, fontWeight: 600, fontFamily: 'Cairo', color: PRIMARY, cursor: 'pointer',
+              padding: 14, borderRadius: 14, border: `1.5px solid ${c.cardBorder}`, background: c.cardBg,
+              fontSize: 13, fontWeight: 600, fontFamily: 'Cairo', color: c.textPrimary, cursor: 'pointer',
               transition: 'all 0.2s',
             }}>
               <span>{action.icon}</span>
@@ -267,7 +316,7 @@ export default function PortalDashboard() {
       {/* RECENT ACTIVITY */}
       {recentActivity.length > 0 && (
         <div style={{ padding: '24px 16px 0' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: PRIMARY, marginBottom: 12, fontFamily: 'Cairo' }}>آخر الحركات</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: c.textPrimary, marginBottom: 12, fontFamily: 'Cairo' }}>آخر الحركات</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {recentActivity.slice(0, 5).map((act: any) => (
               <div key={act.id} onClick={() => {
@@ -278,22 +327,21 @@ export default function PortalDashboard() {
                 }
               }} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
-                borderBottom: '1px solid #F8FAFC', cursor: act.referenceId ? 'pointer' : 'default',
+                borderBottom: `1px solid ${c.divider}`, cursor: act.referenceId ? 'pointer' : 'default',
               }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, flexShrink: 0,
-                  background: act.type === 'income' ? '#EFF6FF' : act.type === 'expense' ? '#FEF2F2' : '#FEF3C7',
+                  fontSize: 16, flexShrink: 0, background: c.activityIconBg(act.type),
                 }}>
                   {act.type === 'income' ? '🧾' : act.type === 'expense' ? '💸' : '💰'}
                 </div>
                 <div style={{ flex: 1, direction: 'rtl' as const }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1E293B', fontFamily: 'Cairo', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: c.textPrimary, fontFamily: 'Cairo', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                     {act.description}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2, fontFamily: 'Cairo' }}>{act.timeAgo}</div>
+                  <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2, fontFamily: 'Cairo' }}>{act.timeAgo}</div>
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: PRIMARY, fontFamily: 'Cairo', flexShrink: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: c.textPrimary, fontFamily: 'Cairo', flexShrink: 0 }}>
                   ₪{act.amount?.toLocaleString()}
                 </div>
               </div>
@@ -306,27 +354,26 @@ export default function PortalDashboard() {
 
   // ═══════ FINANCE TAB ═══════
   const renderFinance = () => (
-    <div style={{ paddingBottom: 90 }}>
-      {/* Sub-section pills */}
+    <div style={{ paddingBottom: CONTENT_BOTTOM_PAD }}>
       <div style={{ display: 'flex', gap: 6, padding: '12px 16px', overflowX: 'auto' as const }}>
-        {[
-          { key: 'all' as FinanceSection, label: 'الكل' },
-          { key: 'sales' as FinanceSection, label: 'المبيعات' },
-          { key: 'liquidity' as FinanceSection, label: 'السيولة' },
-          { key: 'receivables' as FinanceSection, label: 'الذمم' },
-        ].map(s => (
+        {([
+          { key: 'all' as FinanceSectionKey, label: 'الكل' },
+          { key: 'sales' as FinanceSectionKey, label: 'المبيعات' },
+          { key: 'liquidity' as FinanceSectionKey, label: 'السيولة' },
+          { key: 'receivables' as FinanceSectionKey, label: 'الذمم' },
+        ]).map(s => (
           <button key={s.key} onClick={() => setFinanceSection(s.key)} style={{
-            padding: '6px 16px', borderRadius: 20, border: 'none', fontSize: 12, fontFamily: 'Cairo',
+            padding: '6px 16px', borderRadius: 20, border: financeSection === s.key ? 'none' : `1px solid ${c.chipBorder}`,
+            fontSize: 12, fontFamily: 'Cairo',
             fontWeight: financeSection === s.key ? 700 : 500,
-            background: financeSection === s.key ? PRIMARY : '#F1F5F9',
-            color: financeSection === s.key ? 'white' : '#64748B',
+            background: financeSection === s.key ? c.chipActiveBg : c.chipBg,
+            color: financeSection === s.key ? c.chipActiveText : c.chipText,
             cursor: 'pointer', whiteSpace: 'nowrap' as const, transition: 'all 0.2s',
           }}>
             {s.label}
           </button>
         ))}
       </div>
-
       <div style={{ padding: '0 12px' }}>
         {(financeSection === 'all' || financeSection === 'sales') && (
           <div style={{ marginBottom: 16 }}>
@@ -350,8 +397,8 @@ export default function PortalDashboard() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: darkMode ? '#0D1117' : '#F8FAFC',
-      color: darkMode ? '#E6EDF3' : '#1E293B',
+      background: c.pageBg,
+      color: c.textPrimary,
       fontFamily: 'Cairo, sans-serif',
       direction: 'rtl',
       transition: 'background 0.3s, color 0.3s',
@@ -361,14 +408,13 @@ export default function PortalDashboard() {
       <div style={{
         padding: '16px 20px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-        background: PRIMARY,
+        background: c.headerBg,
         color: 'white',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         direction: 'rtl',
       }}>
-        {/* Right: greeting */}
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Cairo' }}>
             {getGreeting()} {user?.full_name?.split(' ')[0] || ''} 👋
@@ -376,16 +422,12 @@ export default function PortalDashboard() {
           <div style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.5)', marginTop: 2, fontFamily: 'Cairo' }}>
             {companyName || 'بوابة الإدارة'}
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'Cairo' }}>
-            {dateStr}
-          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'Cairo' }}>{dateStr}</div>
         </div>
-
-        {/* Left: actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={handleRefresh} style={{
             background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
             <RefreshCw size={16} color="rgba(255,255,255,0.7)" style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
@@ -413,38 +455,35 @@ export default function PortalDashboard() {
       {showMore && (
         <div onClick={() => setShowMore(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 55,
-          transition: 'background 0.3s',
         }} />
       )}
       <div style={{
         position: 'fixed',
         bottom: showMore ? 0 : '-100%',
         left: 0, right: 0,
-        background: 'white',
+        background: c.sheetBg,
         borderRadius: '24px 24px 0 0',
         padding: '20px',
         paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.1)',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
         transition: 'bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        zIndex: 60,
-        direction: 'rtl',
-        fontFamily: 'Cairo',
+        zIndex: 60, direction: 'rtl', fontFamily: 'Cairo',
       }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E2E8F0', margin: '0 auto 20px' }} />
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: c.cardBorder, margin: '0 auto 20px' }} />
         {moreItems.map((item, i) => (
           <button key={i} onClick={item.action} style={{
             display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0',
-            borderBottom: i < moreItems.length - 1 ? '1px solid #F8FAFC' : 'none',
+            borderBottom: i < moreItems.length - 1 ? `1px solid ${c.sheetDivider}` : 'none',
             cursor: 'pointer', width: '100%', background: 'none', border: 'none',
             direction: 'rtl', fontFamily: 'Cairo',
           }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 12, background: '#F1F5F9',
+              width: 40, height: 40, borderRadius: 12, background: c.sheetIcon,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <item.icon size={18} color="#475569" />
+              <item.icon size={18} color={c.sheetIconColor} />
             </div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: '#1E293B', fontFamily: 'Cairo' }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: c.sheetText, fontFamily: 'Cairo' }}>
               {item.label}
             </span>
           </button>
@@ -454,13 +493,13 @@ export default function PortalDashboard() {
       {/* ═══════ BOTTOM NAV BAR ═══════ */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: 72,
-        background: 'white',
-        borderTop: '1px solid #F1F5F9',
+        height: NAV_HEIGHT,
+        background: c.navBg,
+        borderTop: `1px solid ${c.navBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         zIndex: 50,
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
+        boxShadow: darkMode ? '0 -4px 20px rgba(0,0,0,0.3)' : '0 -4px 20px rgba(0,0,0,0.04)',
       }}>
         {navItems.map(item => {
           const active = item.key === activeTab;
@@ -475,21 +514,20 @@ export default function PortalDashboard() {
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 padding: '8px 16px', borderRadius: 12,
-                background: active ? 'rgba(13,27,46,0.06)' : 'transparent',
-                transition: 'all 0.2s', cursor: 'pointer', border: 'none',
-                position: 'relative',
+                background: active ? c.navActive : 'transparent',
+                transition: 'all 0.2s', cursor: 'pointer', border: 'none', position: 'relative',
               }}
             >
               {active && (
                 <div style={{
                   position: 'absolute', top: 2, width: 4, height: 4,
-                  borderRadius: '50%', background: PRIMARY,
+                  borderRadius: '50%', background: c.navIconActive,
                 }} />
               )}
-              <Icon size={22} color={active ? PRIMARY : '#94A3B8'} strokeWidth={active ? 2.5 : 1.5} />
+              <Icon size={22} color={active ? c.navIconActive : c.navIcon} strokeWidth={active ? 2.5 : 1.5} />
               <span style={{
                 fontSize: 10, fontWeight: active ? 700 : 500,
-                color: active ? PRIMARY : '#94A3B8', fontFamily: 'Cairo',
+                color: active ? c.navIconActive : c.navIcon, fontFamily: 'Cairo',
               }}>
                 {item.label}
               </span>
