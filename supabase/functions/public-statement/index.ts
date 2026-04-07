@@ -53,7 +53,6 @@ Deno.serve(async (req) => {
       .eq("id", stmt.contact_id)
       .single();
 
-    console.log("Contact lookup:", { contactId: stmt.contact_id, contactUserId: contact?.user_id, contactErr: contactErr?.message });
 
     // Use the contact's user_id (the real data owner)
     // Also resolve team owner via profiles.invited_by
@@ -71,7 +70,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("Resolved dataOwnerId:", dataOwnerId);
 
     // Fetch company info using the data owner
     const [companyRes, compSettingsRes, profileRes] = await Promise.all([
@@ -102,7 +100,6 @@ Deno.serve(async (req) => {
     const companyEmail = compSettings?.email || company?.email || "";
     const companyAddress = compSettings?.address || company?.address || "";
 
-    console.log("Company resolved:", { companyName, hasLogo: !!companyLogo });
 
     // Fetch transactions for the date range
     const { data: transactions, error: txErr } = await supabase
@@ -115,7 +112,6 @@ Deno.serve(async (req) => {
       .lte("transaction_date", stmt.date_to)
       .order("transaction_date", { ascending: true });
 
-    console.log("Transactions query:", { dataOwnerId, contactId: stmt.contact_id, dateFrom: stmt.date_from, dateTo: stmt.date_to, count: transactions?.length, error: txErr?.message });
 
     const contactTransactions = transactions || [];
     // Fetch invoices with items for this contact in date range
@@ -149,7 +145,6 @@ Deno.serve(async (req) => {
       .lte("invoice_date", stmt.date_to)
       .order("invoice_date", { ascending: true });
 
-    console.log("Invoices query:", { count: invoices?.length, error: invErr?.message });
 
     // Build invoice lookup by invoice_number
     const invoiceMap: Record<string, any> = {};
