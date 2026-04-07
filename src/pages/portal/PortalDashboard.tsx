@@ -112,9 +112,8 @@ function getGreeting() {
   return 'مساء النور';
 }
 
-const NAV_HEIGHT = 72;
-const NOTCH_EXTRA = 30;
-const CONTENT_BOTTOM_PAD = NAV_HEIGHT + NOTCH_EXTRA + 16; // ~118px
+const NAV_HEIGHT = 68;
+const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 16;
 
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
