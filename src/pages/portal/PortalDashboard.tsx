@@ -208,6 +208,7 @@ export default function PortalDashboard() {
   const switchTab = (tab: TabKey) => {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
+    setShowTasksPage(false);
   };
 
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
