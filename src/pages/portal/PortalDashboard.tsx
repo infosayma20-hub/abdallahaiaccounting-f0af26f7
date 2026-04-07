@@ -113,7 +113,7 @@ function getGreeting() {
 }
 
 const NAV_HEIGHT = 68;
-const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 16;
+const CONTENT_BOTTOM_PAD = NAV_HEIGHT + 32;
 
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
@@ -203,7 +203,7 @@ export default function PortalDashboard() {
     localStorage.setItem('portal_theme', next ? 'dark' : 'light');
   };
 
-  const tabIndexMap: Record<TabKey, number> = { home: 0, finance: 1, tasks: 2, reports: 3, more: 4 };
+  const tabIndexMap: Record<TabKey, number> = { home: 0, finance: 1, attendance: 2, reports: 3, more: 4 };
   const switchTab = (tab: TabKey) => {
     setActiveTab(tab);
     setActiveIndex(tabIndexMap[tab] ?? 0);
@@ -216,25 +216,28 @@ export default function PortalDashboard() {
   const navItems: { key: TabKey; label: string; icon: any }[] = [
     { key: 'home', label: 'الرئيسية', icon: Home },
     { key: 'finance', label: 'المالية', icon: Wallet },
-    { key: 'tasks', label: 'المهام', icon: ClipboardList },
+    { key: 'attendance', label: 'الحضور', icon: Users },
     { key: 'reports', label: 'التقارير', icon: BarChart3 },
     { key: 'more', label: 'المزيد', icon: MoreHorizontal },
   ];
 
   const moreItems = [
+    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setActiveTab('home'); /* render tasks inline */ setShowTasksPage(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('reports'); } },
-    ...(hasEmployees ? [{ label: 'الحضور', icon: Users, action: () => { setShowMore(false); } }] : []),
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
     ...(user.role === 'owner' ? [{ label: 'الإعدادات', icon: Settings, action: () => navigate('/portal/settings') }] : []),
     { label: 'تسجيل الخروج', icon: LogOut, action: () => { logout(); navigate('/auth'); } },
   ];
 
+  const [showTasksPage, setShowTasksPage] = useState(false);
+
   const renderContent = () => {
+    if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
     switch (activeTab) {
       case 'home': return renderHome();
       case 'finance': return renderFinance();
-      case 'tasks': return <PortalTasksTab theme={themeMode} />;
+      case 'attendance': return <PortalAttendanceTab theme={themeMode} />;
       case 'reports': return <PortalOverviewTab theme={themeMode} />;
       default: return renderHome();
     }
@@ -285,7 +288,7 @@ export default function PortalDashboard() {
           { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
           { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => navigate('/orders') },
           { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { switchTab('finance'); setFinanceSection('liquidity'); } },
-          { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => switchTab('tasks') },
+          { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => { setShowTasksPage(true); } },
         ].map((stat, i) => (
           <div key={i} onClick={stat.onClick} style={{
             background: c.cardBg, borderRadius: 16, padding: 18,
@@ -306,7 +309,7 @@ export default function PortalDashboard() {
             { label: 'فاتورة جديدة', icon: '📄', onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
             { label: 'سند قبض', icon: '💰', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
             { label: 'إرسال كشوفات', icon: '📤', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
-            { label: 'مهمة جديدة', icon: '📋', onClick: () => switchTab('tasks') },
+            { label: 'مهمة جديدة', icon: '📋', onClick: () => { setShowTasksPage(true); } },
           ].map((action, i) => (
             <button key={i} onClick={action.onClick} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
