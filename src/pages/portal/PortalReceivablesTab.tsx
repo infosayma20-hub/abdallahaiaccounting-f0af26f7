@@ -73,6 +73,20 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
       const todayISO = new Date().toISOString().slice(0, 10);
       const todayFmt = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
+      // Fetch invoice summaries
+      const { data: invoices } = await (supabase
+        .from('invoices')
+        .select('invoice_number, total_amount, invoice_items(description)') as any)
+        .eq('user_id', userId)
+        .eq('contact_id', contact.id)
+        .eq('type', 'sale')
+        .neq('status', 'cancelled')
+        .neq('status', 'paid')
+        .gte('issue_date', startOfYear)
+        .lte('issue_date', todayISO)
+        .order('issue_date', { ascending: true })
+        .limit(10);
+
       const { data } = await supabase
         .from('shared_statements')
         .insert({
@@ -91,7 +105,18 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
       if (!data?.token) return;
 
       const url = `${window.location.origin}/share/statement/${data.token}`;
-      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب:\n${url}\n\nنرجو التواصل لترتيب السداد.\nمع فائق الاحترام`;
+
+      // Build invoice summary
+      let invoiceSummary = '';
+      if (invoices && invoices.length > 0) {
+        const lines = (invoices as any[]).map((inv: any) => {
+          const itemNames = (inv.invoice_items || []).map((it: any) => it.description || 'صنف').join('، ');
+          return `• فاتورة ${inv.invoice_number} — ${fmt(inv.total_amount)}${itemNames ? ` (${itemNames})` : ''}`;
+        });
+        invoiceSummary = `\nملخص الحساب:\n${lines.join('\n')}\n`;
+      }
+
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n${invoiceSummary}\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nيرجى التسديد خلال 7 أيام.\nشكراً لتعاملكم معنا 🙏`;
 
       if (navigator.share) {
         await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });
