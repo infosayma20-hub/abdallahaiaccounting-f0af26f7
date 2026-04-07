@@ -47,14 +47,31 @@ Deno.serve(async (req) => {
       .eq("id", stmt.id);
 
     // Fetch contact info first to get real data owner
-    const { data: contact } = await supabase
+    const { data: contact, error: contactErr } = await supabase
       .from("contacts")
       .select("id, contact_name, phone, email, user_id, tax_number, city, address")
       .eq("id", stmt.contact_id)
       .single();
 
+    console.log("Contact lookup:", { contactId: stmt.contact_id, contactUserId: contact?.user_id, contactErr: contactErr?.message });
+
     // Use the contact's user_id (the real data owner)
-    const dataOwnerId = contact?.user_id || stmt.user_id;
+    // Also resolve team owner via profiles.invited_by
+    let dataOwnerId = contact?.user_id || stmt.user_id;
+
+    // If stmt.user_id is a team member, resolve to their owner
+    if (!contact?.user_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("invited_by")
+        .eq("user_id", stmt.user_id)
+        .single();
+      if (profile?.invited_by) {
+        dataOwnerId = profile.invited_by;
+      }
+    }
+
+    console.log("Resolved dataOwnerId:", dataOwnerId);
 
     // Fetch company info using the data owner
     const [companyRes, compSettingsRes, profileRes] = await Promise.all([
@@ -71,7 +88,7 @@ Deno.serve(async (req) => {
       supabase
         .from("profiles")
         .select("full_name")
-        .eq("id", dataOwnerId)
+        .eq("user_id", dataOwnerId)
         .single(),
     ]);
 
@@ -85,8 +102,10 @@ Deno.serve(async (req) => {
     const companyEmail = compSettings?.email || company?.email || "";
     const companyAddress = compSettings?.address || company?.address || "";
 
+    console.log("Company resolved:", { companyName, hasLogo: !!companyLogo });
+
     // Fetch transactions for the date range
-    const { data: transactions } = await supabase
+    const { data: transactions, error: txErr } = await supabase
       .from("transactions")
       .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id, linked_transaction_id")
       .eq("user_id", dataOwnerId)
@@ -96,8 +115,9 @@ Deno.serve(async (req) => {
       .lte("transaction_date", stmt.date_to)
       .order("transaction_date", { ascending: true });
 
-    const contactTransactions = transactions || [];
+    console.log("Transactions query:", { dataOwnerId, contactId: stmt.contact_id, dateFrom: stmt.date_from, dateTo: stmt.date_to, count: transactions?.length, error: txErr?.message });
 
+    const contactTransactions = transactions || [];
     // Fetch invoices with items for this contact in date range
     const { data: invoices } = await supabase
       .from("invoices")
