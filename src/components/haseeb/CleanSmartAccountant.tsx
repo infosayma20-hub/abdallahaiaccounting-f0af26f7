@@ -284,14 +284,13 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       if (commands.length > 1) {
         // ═══ MULTI-COMMAND PROCESSING ═══
         const results: { command: string; success: boolean; message: string; type?: string }[] = [];
-        let hasQuestion = false;
 
         for (const command of commands) {
           try {
             const result = await processSingleCommand(command, convId || '');
             if (result.type === 'question') {
-              hasQuestion = true;
-              continue; // Will be handled by AI below if needed
+              // Even questions in multi-command: skip silently, don't block
+              continue;
             }
             results.push({ command, ...result });
           } catch (err: any) {
@@ -303,7 +302,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           if (navigator.vibrate) navigator.vibrate(100);
           onTransactionSuccess();
 
-          // Build multi-result summary
           const successCount = results.filter(r => r.success).length;
           const failCount = results.filter(r => !r.success).length;
           
@@ -318,13 +316,18 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: summaryMsg, timestamp: new Date() }]);
           if (convId) saveMessage(convId, "assistant", summaryMsg);
           if (user?.id) buildAIContext(user.id).then(setAiContext);
+        } else {
+          // All commands were questions — send full text to AI chat
+          // (will be handled by the AI chat flow below)
+          // Fall through intentionally
+          const singleResult = await processSingleCommand(commands[0], convId || '');
+          if (singleResult.type && singleResult.type !== 'question') {
+            // Unlikely but handle gracefully
+          }
         }
 
-        // If there were question parts, don't send to AI — we already handled transactions
-        if (!hasQuestion || results.length > 0) {
-          setSending(false);
-          return;
-        }
+        setSending(false);
+        return;
       }
 
       // ═══ SINGLE COMMAND PROCESSING (original flow) ═══
