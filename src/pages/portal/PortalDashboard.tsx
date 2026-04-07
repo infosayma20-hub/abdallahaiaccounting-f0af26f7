@@ -307,8 +307,8 @@ export default function PortalDashboard() {
         <div style={{ fontSize: 16, fontWeight: 700, color: c.textPrimary, marginBottom: 12, fontFamily: 'Cairo' }}>إجراءات سريعة</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'فاتورة جديدة', icon: '📄', onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
-            { label: 'سند قبض', icon: '💰', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
+            { label: 'الزبائن', icon: '👥', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
+            { label: 'الموردين', icon: '🏭', onClick: () => { switchTab('reports'); } },
             { label: 'إرسال كشوفات', icon: '📤', onClick: () => { switchTab('finance'); setFinanceSection('receivables'); } },
             { label: 'مهمة جديدة', icon: '📋', onClick: () => { setShowTasksPage(true); } },
           ].map((action, i) => (
@@ -452,6 +452,12 @@ export default function PortalDashboard() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
             {darkMode ? <Sun size={16} color="rgba(255,255,255,0.7)" /> : <Moon size={16} color="rgba(255,255,255,0.7)" />}
+          </button>
+          <button onClick={() => { logout(); navigate('/auth'); }} style={{
+            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 10, width: 36, height: 36,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <LogOut size={16} color="rgba(255,255,255,0.7)" />
           </button>
         </div>
       </div>
