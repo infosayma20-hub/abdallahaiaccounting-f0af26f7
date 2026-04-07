@@ -212,6 +212,12 @@ export default function PortalDashboard() {
     localStorage.setItem('portal_theme', next ? 'dark' : 'light');
   };
 
+  const tabIndexMap: Record<TabKey, number> = { home: 0, finance: 1, tasks: 2, reports: 3, more: 4 };
+  const switchTab = (tab: TabKey) => {
+    setActiveTab(tab);
+    setActiveIndex(tabIndexMap[tab] ?? 0);
+  };
+
   const themeMode = darkMode ? 'dark' as const : 'light' as const;
   const today = new Date();
   const dateStr = today.toLocaleDateString('ar-PS', { day: 'numeric', month: 'long', year: 'numeric' });
