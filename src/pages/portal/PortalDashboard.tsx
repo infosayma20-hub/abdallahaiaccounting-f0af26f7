@@ -231,7 +231,6 @@ export default function PortalDashboard() {
     { label: 'تسجيل الخروج', icon: LogOut, action: () => { logout(); navigate('/auth'); } },
   ];
 
-  const [showTasksPage, setShowTasksPage] = useState(false);
 
   const renderContent = () => {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
