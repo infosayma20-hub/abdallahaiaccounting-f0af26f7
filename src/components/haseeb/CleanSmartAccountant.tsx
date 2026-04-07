@@ -155,6 +155,118 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     setRefreshing(false);
   };
 
+  // Process a single command (transaction or entity)
+  const processSingleCommand = async (text: string, convId: string): Promise<{ success: boolean; message: string; type?: string }> => {
+    const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: text.trim() } });
+    const parseData = parseRes.data;
+
+    if (parseData?.type === 'cheque') {
+      onCheque({ chequeType: parseData.chequeType || 'وارد', partyName: parseData.partyName || '', partyType: parseData.partyType || 'عميل', originalText: text, amount: parseData.amount || 0 });
+      return { success: true, message: `🧾 شيك ${parseData.chequeType || 'وارد'} — ${parseData.partyName || ''} — ₪${parseData.amount || 0}`, type: 'cheque' };
+    }
+
+    // Handle add entity
+    if (parseData?.type === 'add_entity') {
+      try {
+        let successMsg = '';
+        if (parseData.entityType === 'contact') {
+          const contactData: any = {
+            contact_name: parseData.name || '',
+            contact_type: parseData.contactType === 'مورد' ? 'مورد' : 'عميل',
+            user_id: user?.id,
+            is_active: true,
+            current_balance: 0,
+          };
+          if (parseData.phone) contactData.phone = parseData.phone;
+          if (parseData.email) contactData.email = parseData.email;
+          if (parseData.address) contactData.address = parseData.address;
+
+          const { data: existing } = await supabase.from('contacts')
+            .select('id, contact_name')
+            .eq('user_id', user?.id)
+            .eq('contact_name', contactData.contact_name)
+            .maybeSingle();
+
+          if (existing) {
+            const updateFields: any = {};
+            if (parseData.phone) updateFields.phone = parseData.phone;
+            if (parseData.email) updateFields.email = parseData.email;
+            if (parseData.address) updateFields.address = parseData.address;
+            if (Object.keys(updateFields).length > 0) {
+              await supabase.from('contacts').update(updateFields).eq('id', existing.id);
+            }
+            const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+            successMsg = `⚠️ ${typeLabel} "${parseData.name}" موجود مسبقاً${Object.keys(updateFields).length > 0 ? ' — تم تحديث بياناته' : ''}`;
+          } else {
+            const { error: insertError } = await supabase.from('contacts').insert(contactData);
+            if (insertError) throw insertError;
+            const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+            successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+          }
+        } else if (parseData.entityType === 'employee') {
+          const empData: any = {
+            full_name: parseData.name || '',
+            user_id: user?.id,
+            status: 'active',
+            start_date: new Date().toISOString().split('T')[0],
+          };
+          if (parseData.jobTitle) empData.job_title = parseData.jobTitle;
+          if (parseData.department) empData.department = parseData.department;
+          if (parseData.basicSalary) empData.basic_salary = parseData.basicSalary;
+          if (parseData.phone) empData.phone = parseData.phone;
+          const { error: insertError } = await supabase.from('employees').insert(empData);
+          if (insertError) throw insertError;
+          successMsg = `✅ تمت إضافة الموظف "${parseData.name}" بنجاح${parseData.jobTitle ? '\n💼 المسمى: ' + parseData.jobTitle : ''}${parseData.basicSalary ? '\n💰 الراتب: ₪' + parseData.basicSalary : ''}`;
+        } else if (parseData.entityType === 'product') {
+          const prodData: any = {
+            name: parseData.name || '',
+            user_id: user?.id,
+            is_active: true,
+            quantity: parseData.quantity || 0,
+          };
+          if (parseData.buyPrice) prodData.buy_price = parseData.buyPrice;
+          if (parseData.sellPrice) prodData.sell_price = parseData.sellPrice;
+          if (parseData.sku) prodData.sku = parseData.sku;
+          const { error: insertError } = await supabase.from('products').insert(prodData);
+          if (insertError) throw insertError;
+          successMsg = `✅ تمت إضافة المنتج "${parseData.name}" بنجاح${parseData.sellPrice ? '\n💲 سعر البيع: ₪' + parseData.sellPrice : ''}${parseData.quantity ? '\n📦 الكمية: ' + parseData.quantity : ''}`;
+        } else if (parseData.entityType === 'account') {
+          const accData: any = {
+            account_name: parseData.name || '',
+            account_code: parseData.accountCode || '',
+            account_type: parseData.accountType || 'أصول',
+            user_id: user?.id,
+            is_active: true,
+          };
+          const { error: insertError } = await supabase.from('accounts').insert(accData);
+          if (insertError) throw insertError;
+          successMsg = `✅ تمت إضافة الحساب "${parseData.name}" بنجاح${parseData.accountCode ? '\n🔢 الرمز: ' + parseData.accountCode : ''}${parseData.accountType ? '\n📂 النوع: ' + parseData.accountType : ''}`;
+        }
+        return { success: true, message: successMsg || '✅ تمت الإضافة', type: 'add_entity' };
+      } catch (err: any) {
+        const entityLabel = parseData.entityType === 'employee' ? 'الموظف' : parseData.entityType === 'product' ? 'المنتج' : parseData.entityType === 'account' ? 'الحساب' : 'الجهة';
+        return { success: false, message: `❌ فشل في إضافة ${entityLabel}: ${err.message || 'خطأ غير معروف'}` };
+      }
+    }
+
+    // Transaction
+    if (parseData?.type && !['question', 'unknown', 'add_entity', 'inventory_report'].includes(parseData.type)) {
+      const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
+      const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
+      if (error) throw error;
+      const invoiceInfo = txResult?.transaction?.invoice_number 
+        ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
+        : '';
+      const cmdType = classifyCommand(text);
+      const typeLabel = getCommandTypeLabel(cmdType);
+      const typeIcon = getCommandTypeIcon(cmdType);
+      return { success: true, message: `✅ ${typeIcon} ${typeLabel}${invoiceInfo}\n${text.trim()}`, type: parseData.type };
+    }
+
+    // Not a transaction — it's a question/general
+    return { success: false, message: '', type: 'question' };
+  };
+
   const handleSend = async (text: string, isVoice = false) => {
     if (!text.trim() || sending) return;
 
@@ -163,143 +275,80 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     setSending(true);
 
     try {
-      // Ensure conversation exists and save user message
       const convId = await ensureConversation(text.trim());
       if (convId) saveMessage(convId, "user", text.trim());
 
-      const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: text.trim() } });
-      const parseData = parseRes.data;
+      // Split into multiple commands
+      const commands = splitMultipleCommands(text.trim());
+      
+      if (commands.length > 1) {
+        // ═══ MULTI-COMMAND PROCESSING ═══
+        const results: { command: string; success: boolean; message: string; type?: string }[] = [];
+        let hasQuestion = false;
 
-      if (parseData?.type === 'cheque') {
-        onCheque({ chequeType: parseData.chequeType || 'وارد', partyName: parseData.partyName || '', partyType: parseData.partyType || 'عميل', originalText: text, amount: parseData.amount || 0 });
-        setSending(false);
-        return;
-      }
-
-      // Handle add entity (contact/employee/product/account)
-      if (parseData?.type === 'add_entity') {
-        try {
-          let successMsg = '';
-
-          if (parseData.entityType === 'contact') {
-            const contactData: any = {
-              contact_name: parseData.name || '',
-              contact_type: parseData.contactType === 'مورد' ? 'مورد' : 'عميل',
-              user_id: user?.id,
-              is_active: true,
-              current_balance: 0,
-            };
-            if (parseData.phone) contactData.phone = parseData.phone;
-            if (parseData.email) contactData.email = parseData.email;
-            if (parseData.address) contactData.address = parseData.address;
-
-            // Check if contact already exists
-            const { data: existing } = await supabase.from('contacts')
-              .select('id, contact_name')
-              .eq('user_id', user?.id)
-              .eq('contact_name', contactData.contact_name)
-              .maybeSingle();
-
-            if (existing) {
-              // Update existing contact with any new info
-              const updateFields: any = {};
-              if (parseData.phone) updateFields.phone = parseData.phone;
-              if (parseData.email) updateFields.email = parseData.email;
-              if (parseData.address) updateFields.address = parseData.address;
-              if (Object.keys(updateFields).length > 0) {
-                await supabase.from('contacts').update(updateFields).eq('id', existing.id);
-              }
-              const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
-              successMsg = `⚠️ ${typeLabel} "${parseData.name}" موجود مسبقاً${Object.keys(updateFields).length > 0 ? ' — تم تحديث بياناته' : ''}`;
-            } else {
-              const { error: insertError } = await supabase.from('contacts').insert(contactData);
-              if (insertError) throw insertError;
+        for (const command of commands) {
+          try {
+            const result = await processSingleCommand(command, convId || '');
+            if (result.type === 'question') {
+              hasQuestion = true;
+              continue; // Will be handled by AI below if needed
             }
-
-            if (!successMsg) {
-              const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
-              successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
-            }
-
-          } else if (parseData.entityType === 'employee') {
-            const empData: any = {
-              full_name: parseData.name || '',
-              user_id: user?.id,
-              status: 'active',
-              start_date: new Date().toISOString().split('T')[0],
-            };
-            if (parseData.jobTitle) empData.job_title = parseData.jobTitle;
-            if (parseData.department) empData.department = parseData.department;
-            if (parseData.basicSalary) empData.basic_salary = parseData.basicSalary;
-            if (parseData.phone) empData.phone = parseData.phone;
-
-            const { error: insertError } = await supabase.from('employees').insert(empData);
-            if (insertError) throw insertError;
-
-            successMsg = `✅ تمت إضافة الموظف "${parseData.name}" بنجاح${parseData.jobTitle ? '\n💼 المسمى: ' + parseData.jobTitle : ''}${parseData.basicSalary ? '\n💰 الراتب: ₪' + parseData.basicSalary : ''}`;
-
-          } else if (parseData.entityType === 'product') {
-            const prodData: any = {
-              name: parseData.name || '',
-              user_id: user?.id,
-              is_active: true,
-              quantity: parseData.quantity || 0,
-            };
-            if (parseData.buyPrice) prodData.buy_price = parseData.buyPrice;
-            if (parseData.sellPrice) prodData.sell_price = parseData.sellPrice;
-            if (parseData.sku) prodData.sku = parseData.sku;
-
-            const { error: insertError } = await supabase.from('products').insert(prodData);
-            if (insertError) throw insertError;
-
-            successMsg = `✅ تمت إضافة المنتج "${parseData.name}" بنجاح${parseData.sellPrice ? '\n💲 سعر البيع: ₪' + parseData.sellPrice : ''}${parseData.quantity ? '\n📦 الكمية: ' + parseData.quantity : ''}`;
-
-          } else if (parseData.entityType === 'account') {
-            const accData: any = {
-              account_name: parseData.name || '',
-              account_code: parseData.accountCode || '',
-              account_type: parseData.accountType || 'أصول',
-              user_id: user?.id,
-              is_active: true,
-            };
-
-            const { error: insertError } = await supabase.from('accounts').insert(accData);
-            if (insertError) throw insertError;
-
-            successMsg = `✅ تمت إضافة الحساب "${parseData.name}" بنجاح${parseData.accountCode ? '\n🔢 الرمز: ' + parseData.accountCode : ''}${parseData.accountType ? '\n📂 النوع: ' + parseData.accountType : ''}`;
+            results.push({ command, ...result });
+          } catch (err: any) {
+            results.push({ command, success: false, message: `❌ خطأ: ${err.message || 'غير معروف'}` });
           }
+        }
 
-          if (successMsg) {
-            if (navigator.vibrate) navigator.vibrate(100);
-            const convId2 = await ensureConversation(text.trim());
-            setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
-            if (convId2) saveMessage(convId2, "assistant", successMsg);
-            if (user?.id) buildAIContext(user.id).then(setAiContext);
-            setSending(false);
-            return;
-          }
-        } catch (err: any) {
-          const entityLabel = parseData.entityType === 'employee' ? 'الموظف' : parseData.entityType === 'product' ? 'المنتج' : parseData.entityType === 'account' ? 'الحساب' : 'الجهة';
-          const errorMsg = `❌ فشل في إضافة ${entityLabel}: ${err.message || 'خطأ غير معروف'}`;
-          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: errorMsg, timestamp: new Date() }]);
+        if (results.length > 0) {
+          if (navigator.vibrate) navigator.vibrate(100);
+          onTransactionSuccess();
+
+          // Build multi-result summary
+          const successCount = results.filter(r => r.success).length;
+          const failCount = results.filter(r => !r.success).length;
+          
+          let summaryMsg = `✅ تم تنفيذ ${successCount} ${successCount === 1 ? 'عملية' : 'عمليات'} بنجاح`;
+          if (failCount > 0) summaryMsg += ` | ❌ ${failCount} فشلت`;
+          summaryMsg += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+
+          results.forEach((r, i) => {
+            summaryMsg += `\n${i + 1}️⃣ ${r.message}\n`;
+          });
+
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: summaryMsg, timestamp: new Date() }]);
+          if (convId) saveMessage(convId, "assistant", summaryMsg);
+          if (user?.id) buildAIContext(user.id).then(setAiContext);
+        }
+
+        // If there were question parts, don't send to AI — we already handled transactions
+        if (!hasQuestion || results.length > 0) {
           setSending(false);
           return;
         }
       }
 
-      if (parseData?.type && !['question', 'unknown', 'add_entity', 'inventory_report'].includes(parseData.type)) {
-        const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
-        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
-        if (error) throw error;
+      // ═══ SINGLE COMMAND PROCESSING (original flow) ═══
+      const singleResult = await processSingleCommand(text.trim(), convId || '');
+      
+      if (singleResult.type === 'cheque') {
+        setSending(false);
+        return;
+      }
+
+      if (singleResult.type === 'add_entity') {
+        if (navigator.vibrate) navigator.vibrate(100);
+        setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: singleResult.message, timestamp: new Date() }]);
+        if (convId) saveMessage(convId, "assistant", singleResult.message);
+        if (user?.id) buildAIContext(user.id).then(setAiContext);
+        setSending(false);
+        return;
+      }
+
+      if (singleResult.type && singleResult.type !== 'question') {
         if (navigator.vibrate) navigator.vibrate(100);
         onTransactionSuccess();
-        const invoiceInfo = txResult?.transaction?.invoice_number 
-          ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
-          : '';
-        const successMsg = `✅ تم تسجيل العملية بنجاح${invoiceInfo}\n${text.trim()}`;
-        setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
-        if (convId) saveMessage(convId, "assistant", successMsg);
-        // Refresh context after transaction
+        setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: singleResult.message, timestamp: new Date() }]);
+        if (convId) saveMessage(convId, "assistant", singleResult.message);
         if (user?.id) buildAIContext(user.id).then(setAiContext);
         setSending(false);
         return;
@@ -309,7 +358,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       const allMessages = messages.map(m => ({ role: m.role, content: m.content }));
       allMessages.push({ role: 'user', content: text.trim() });
 
-      // Build financial context string for the system prompt
       const financialContext: any = {
         cash: data.cash, bank: data.bank,
         sales: data.totalSales, expenses: data.totalExpenses,
@@ -317,7 +365,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         payables: data.payables,
       };
 
-      // Add enriched context from buildAIContext
       if (aiContext) {
         financialContext.recentTransactions = aiContext.recentTransactions.slice(0, 10);
         financialContext.topContacts = aiContext.topContacts.slice(0, 10);
@@ -374,7 +421,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       }
       if (navigator.vibrate) navigator.vibrate(40);
 
-      // Save assistant response to DB
       if (convId && assistantContent) saveMessage(convId, "assistant", assistantContent);
     } catch {
       setMessages(prev => [...prev, { id: uid(), role: "assistant", content: "عذراً، حدث خطأ. حاول مرة أخرى.", timestamp: new Date() }]);
