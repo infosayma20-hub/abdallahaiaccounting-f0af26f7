@@ -115,27 +115,20 @@ export default function PortalDashboard() {
     setRefreshing(false);
   };
 
-  if (authLoading || !user) return null;
-
-  const toggleTheme = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    localStorage.setItem('portal_theme', next ? 'dark' : 'light');
-  };
-
-  const themeMode = darkMode ? 'dark' : 'light' as const;
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('ar-PS', { day: 'numeric', month: 'long', year: 'numeric' });
-
   const receivablesTotal = homeData?.kpis?.receivables || 0;
   const salesToday = homeData?.kpis?.revenue || 0;
   const cashBalance = homeData?.kpis?.cashBalance || 0;
-  const topDebtors = homeData?.topDebtors || [];
-  const recentActivity = homeData?.recentActivity || [];
 
   const animatedReceivables = useCountUp(receivablesTotal);
   const animatedSales = useCountUp(salesToday);
   const animatedCash = useCountUp(cashBalance);
+
+  if (authLoading || !user) return null;
+
+  const topDebtors = homeData?.topDebtors || [];
+  const recentActivity = homeData?.recentActivity || [];
+
+  const toggleTheme = () => {
 
   // ═══════ NAV ITEMS ═══════
   const navItems: { key: TabKey; label: string; icon: any }[] = [
