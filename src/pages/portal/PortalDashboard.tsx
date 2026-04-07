@@ -129,6 +129,10 @@ export default function PortalDashboard() {
   const recentActivity = homeData?.recentActivity || [];
 
   const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    localStorage.setItem('portal_theme', next ? 'dark' : 'light');
+  };
 
   // ═══════ NAV ITEMS ═══════
   const navItems: { key: TabKey; label: string; icon: any }[] = [
