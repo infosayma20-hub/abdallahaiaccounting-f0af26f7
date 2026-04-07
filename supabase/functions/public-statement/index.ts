@@ -119,12 +119,12 @@ Deno.serve(async (req) => {
 
     const contactTransactions = transactions || [];
     // Fetch invoices with items for this contact in date range
-    const { data: invoices } = await supabase
+    const { data: invoices, error: invErr } = await supabase
       .from("invoices")
       .select(`
         id,
         invoice_number,
-        issue_date,
+        invoice_date,
         due_date,
         total_amount,
         discount_amount,
@@ -132,21 +132,24 @@ Deno.serve(async (req) => {
         status,
         payment_method,
         notes,
-        type,
+        invoice_type,
         invoice_items (
           id,
           description,
+          product_name,
           quantity,
           unit_price,
-          total
+          total_amount
         )
       `)
       .eq("user_id", dataOwnerId)
       .eq("contact_id", stmt.contact_id)
       .neq("status", "cancelled")
-      .gte("issue_date", stmt.date_from)
-      .lte("issue_date", stmt.date_to)
-      .order("issue_date", { ascending: true });
+      .gte("invoice_date", stmt.date_from)
+      .lte("invoice_date", stmt.date_to)
+      .order("invoice_date", { ascending: true });
+
+    console.log("Invoices query:", { count: invoices?.length, error: invErr?.message });
 
     // Build invoice lookup by invoice_number
     const invoiceMap: Record<string, any> = {};
