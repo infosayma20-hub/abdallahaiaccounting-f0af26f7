@@ -18,6 +18,7 @@ import PortalTasksTab from './PortalTasksTab';
 import PortalOverviewTab from './PortalOverviewTab';
 import PortalReceivablesTab from './PortalReceivablesTab';
 import PortalStoreTab from './PortalStoreTab';
+import PortalSuppliersTab from './PortalSuppliersTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#0D1B2E';
@@ -85,7 +86,7 @@ function getColors(dark: boolean) {
 }
 
 type TabKey = 'home' | 'finance' | 'attendance' | 'reports' | 'more';
-type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables';
+type FinanceSectionKey = 'all' | 'sales' | 'liquidity' | 'receivables' | 'suppliers';
 
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0);
