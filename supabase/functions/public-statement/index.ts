@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     // Fetch contact info first to get real data owner
     const { data: contact } = await supabase
       .from("contacts")
-      .select("id, contact_name, phone, email, user_id")
+      .select("id, contact_name, phone, email, user_id, tax_number, city, address")
       .eq("id", stmt.contact_id)
       .single();
 
@@ -79,16 +79,16 @@ Deno.serve(async (req) => {
     const compSettings = compSettingsRes.data as any;
     const profile = profileRes.data;
 
-    // Prefer company_settings over companies table (companies often has default "شركتي")
     const companyName = compSettings?.company_name || company?.name || profile?.full_name || "";
     const companyLogo = compSettings?.logo_url || company?.logo_url || "";
     const companyPhone = compSettings?.phone || company?.phone || "";
     const companyEmail = compSettings?.email || company?.email || "";
+    const companyAddress = compSettings?.address || company?.address || "";
 
     // Fetch transactions for the date range
     const { data: transactions } = await supabase
       .from("transactions")
-      .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id")
+      .select("id, transaction_date, description, debit_account_code, credit_account_code, amount, reference, notes, currency, is_deleted, contact_id, linked_transaction_id")
       .eq("user_id", dataOwnerId)
       .eq("is_deleted", false)
       .eq("contact_id", stmt.contact_id)
@@ -97,6 +97,44 @@ Deno.serve(async (req) => {
       .order("transaction_date", { ascending: true });
 
     const contactTransactions = transactions || [];
+
+    // Fetch invoices with items for this contact in date range
+    const { data: invoices } = await supabase
+      .from("invoices")
+      .select(`
+        id,
+        invoice_number,
+        issue_date,
+        due_date,
+        total_amount,
+        discount_amount,
+        tax_amount,
+        status,
+        payment_method,
+        notes,
+        type,
+        invoice_items (
+          id,
+          description,
+          quantity,
+          unit_price,
+          total
+        )
+      `)
+      .eq("user_id", dataOwnerId)
+      .eq("contact_id", stmt.contact_id)
+      .neq("status", "cancelled")
+      .gte("issue_date", stmt.date_from)
+      .lte("issue_date", stmt.date_to)
+      .order("issue_date", { ascending: true });
+
+    // Build invoice lookup by invoice_number
+    const invoiceMap: Record<string, any> = {};
+    (invoices || []).forEach((inv: any) => {
+      if (inv.invoice_number) {
+        invoiceMap[inv.invoice_number] = inv;
+      }
+    });
 
     // Calculate opening balance (transactions before date_from)
     const { data: priorTxs } = await supabase
@@ -122,6 +160,33 @@ Deno.serve(async (req) => {
       const creditAmount = isCredit ? tx.amount : 0;
       runningBalance += debitAmount - creditAmount;
 
+      // Try to find matching invoice for items
+      let invoiceItems: any[] = [];
+      let dueDate: string | null = null;
+      let invoiceStatus: string | null = null;
+      let discountAmount = 0;
+      let taxAmount = 0;
+      let paymentMethod: string | null = null;
+
+      // Extract invoice number from description
+      const invMatch = tx.description?.match(/INV-\d{4}-\d{4}/);
+      if (invMatch) {
+        const inv = invoiceMap[invMatch[0]];
+        if (inv) {
+          invoiceItems = (inv.invoice_items || []).map((item: any) => ({
+            name: item.description || 'صنف',
+            quantity: item.quantity || 1,
+            unitPrice: item.unit_price || 0,
+            total: item.total || 0,
+          }));
+          dueDate = inv.due_date;
+          invoiceStatus = inv.status;
+          discountAmount = inv.discount_amount || 0;
+          taxAmount = inv.tax_amount || 0;
+          paymentMethod = inv.payment_method;
+        }
+      }
+
       return {
         date: tx.transaction_date,
         reference: tx.reference || "",
@@ -130,17 +195,52 @@ Deno.serve(async (req) => {
         debit: debitAmount,
         credit: creditAmount,
         balance: runningBalance,
+        items: invoiceItems,
+        dueDate,
+        invoiceStatus,
+        discountAmount,
+        taxAmount,
+        paymentMethod,
       };
     });
 
     const totalDebit = rows.reduce((s: number, r: any) => s + r.debit, 0);
     const totalCredit = rows.reduce((s: number, r: any) => s + r.credit, 0);
 
+    // Aging analysis
+    const today = new Date();
+    const aging = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
+    (invoices || []).forEach((inv: any) => {
+      if (inv.status === 'paid') return;
+      const due = new Date(inv.due_date || inv.issue_date);
+      const days = Math.floor((today.getTime() - due.getTime()) / 86400000);
+      const remaining = inv.total_amount - (inv.discount_amount || 0);
+
+      if (days <= 0) aging.current += remaining;
+      else if (days <= 30) aging.d30 += remaining;
+      else if (days <= 60) aging.d60 += remaining;
+      else if (days <= 90) aging.d90 += remaining;
+      else aging.over90 += remaining;
+    });
+
+    // Invoice summaries for WhatsApp message
+    const invoiceSummaries = (invoices || []).map((inv: any) => {
+      const itemNames = (inv.invoice_items || []).map((it: any) => it.description || 'صنف').join('، ');
+      return {
+        number: inv.invoice_number,
+        amount: inv.total_amount,
+        items: itemNames,
+        type: inv.type,
+      };
+    });
+
     return respond({
       success: true,
       statement: {
         contactName: stmt.contact_name || contact?.contact_name || "",
         contactPhone: contact?.phone || "",
+        contactCity: contact?.city || contact?.address || "",
+        contactTaxNumber: contact?.tax_number || "",
         dateFrom: stmt.date_from,
         dateTo: stmt.date_to,
         openingBalance,
@@ -148,12 +248,15 @@ Deno.serve(async (req) => {
         totalDebit,
         totalCredit,
         rows,
+        aging,
+        invoiceSummaries,
       },
       company: {
         name: companyName,
         logo: companyLogo,
         phone: companyPhone,
         email: companyEmail,
+        address: companyAddress,
       },
     });
   } catch (err) {
