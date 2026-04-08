@@ -1089,6 +1089,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
+          // Save payment_invoice_links for payment vouchers too (for cancel reversal)
+          const links = selectedInvoices.map(inv => ({
+            payment_id: voucher.id,
+            invoice_id: inv.id,
+            allocated_amount: inv.allocatedAmount || 0,
+          }));
+          await supabase.from("payment_invoice_links").insert(links);
+
           for (const inv of selectedInvoices) {
             if (!asDraft) {
               const newPaid = (inv.paid_amount || 0) + (inv.allocatedAmount || 0);
