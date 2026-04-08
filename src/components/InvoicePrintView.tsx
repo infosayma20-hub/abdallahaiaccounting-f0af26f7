@@ -83,6 +83,12 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
     const afterDiscount = base - (item.discount || 0);
     if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "none" as const };
     const cat = item.taxCategory || (item.taxRate > 0 ? "taxable" : "exempt");
+    if (invoice.taxInclusive) {
+      // Price already includes tax — extract tax, don't add
+      const rate = cat === "taxable" ? 16 : 0;
+      const tax = cat === "exempt" ? 0 : afterDiscount - (afterDiscount / (1 + rate / 100));
+      return { base, afterDiscount, tax, total: afterDiscount, category: cat };
+    }
     const rate = cat === "taxable" ? 16 : 0;
     const tax = cat === "exempt" ? 0 : afterDiscount * (rate / 100);
     return { base, afterDiscount, tax, total: afterDiscount + tax, category: cat };

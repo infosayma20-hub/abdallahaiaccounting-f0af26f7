@@ -1122,6 +1122,7 @@ const InvoiceCreatePage = () => {
     remainingAmount: summary.remainingAmount,
     currency: form.currency,
     terms: invoiceTerms || "",
+    taxInclusive: form.taxInclusive,
   });
 
   const handlePrint = () => {
