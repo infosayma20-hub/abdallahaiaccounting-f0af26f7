@@ -1280,7 +1280,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   </style>
 </head>
 <body>
-<div class="voucher-container">
+<div class="voucher-container" style="position:relative;">
+  ${isCancelled ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;font-weight:900;color:rgba(220,38,38,0.1);font-family:Cairo;pointer-events:none;z-index:10;white-space:nowrap;">ملغي</div>` : ""}
   <!-- HEADER -->
   <div class="voucher-header">
     <div>
