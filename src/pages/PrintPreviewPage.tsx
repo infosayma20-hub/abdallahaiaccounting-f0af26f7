@@ -9,6 +9,7 @@ import type { PrintOrder } from "@/hooks/usePrintBridge";
 import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
+  id: 'sample-preview-order',
   orderNumber: 5,
   queueNumber: 5,
   orderType: "delivery",
