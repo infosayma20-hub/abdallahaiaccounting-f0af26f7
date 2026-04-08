@@ -6,16 +6,16 @@ import { Download, Printer } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 const SAMPLE_ORDER: PrintOrder = {
-  orderNumber: "5",
+  orderNumber: 5,
   queueNumber: "5",
   orderType: "delivery",
   paymentMethod: "نقد",
   currency: "ILS",
   items: [
-    { name: "اجنحة 30 قطعة مشوي", quantity: 1, price: 75 },
-    { name: "اجنحة 25 قطعة مشوي", quantity: 1, price: 70 },
-    { name: "بيتزا 8 قطع شاورما", quantity: 1, price: 22 },
-    { name: "حبة 8 قطع", quantity: 2, price: 22 },
+    { id: "1", name: "اجنحة 30 قطعة مشوي", quantity: 1, price: 75 },
+    { id: "2", name: "اجنحة 25 قطعة مشوي", quantity: 1, price: 70 },
+    { id: "3", name: "بيتزا 8 قطع شاورما", quantity: 1, price: 22 },
+    { id: "4", name: "حبة 8 قطع", quantity: 2, price: 22 },
   ],
   subtotal: 211,
   total: 211,

@@ -435,6 +435,7 @@ const App = () => (
                       <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
                       <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
+                      <Route path="/print-preview" element={<PrintPreviewPage />} />
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
                       <Route path="/tax" element={<TaxCenterPage />} />
