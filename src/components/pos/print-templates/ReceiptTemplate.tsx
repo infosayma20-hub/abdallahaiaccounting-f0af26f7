@@ -1,6 +1,6 @@
 /**
  * Receipt Template — Customer invoice for 80mm thermal printer.
- * Width: 302px (80mm @ ~96 DPI for html2canvas). Uses Noto Sans Arabic for connected Arabic.
+ * Width: 320px for 80mm thermal. Uses Noto Sans Arabic for connected Arabic.
  * Uses <table> for items (not flex) to preserve RTL on thermal printers.
  */
 import { forwardRef } from "react";
