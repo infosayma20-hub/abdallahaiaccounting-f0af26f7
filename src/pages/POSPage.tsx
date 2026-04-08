@@ -2650,6 +2650,7 @@ const POSPage = () => {
       // Fire-and-forget: send to print bridge (local thermal printers)
       try {
         const bridgeOrder: BridgePrintOrder = {
+          id: orderId,
           orderNumber: res.order_number,
           branchName: company?.name || "مطعم الملكي",
           cashier: session.cashier_name,
