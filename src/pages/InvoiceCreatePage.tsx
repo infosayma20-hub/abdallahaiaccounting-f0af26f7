@@ -436,9 +436,11 @@ const InvoiceCreatePage = () => {
     const afterDiscount = base - discountAmount;
     // Only add tax if tax is enabled at company level
     if (!taxEnabled) return afterDiscount;
+    // If tax-inclusive, price already contains tax — don't add on top
+    if (form.taxInclusive) return afterDiscount;
     const tax = afterDiscount * (item.taxRate / 100);
     return afterDiscount + tax;
-  }, [taxEnabled]);
+  }, [taxEnabled, form.taxInclusive]);
 
   useEffect(() => {
     if (!isEditMode || !editInvoiceId) {
