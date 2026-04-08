@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
+import KitchenTicketTemplate from "@/components/pos/print-templates/KitchenTicketTemplate";
 import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, Image, Loader2 } from "lucide-react";
+import { Download, Printer, Image } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng, getKitchenPreviewPng } from "@/lib/image-print-service";
+import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
   orderNumber: 5,
@@ -74,43 +75,24 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "shift", label: "إغلاق العهدة" },
 ];
 
+const STATION_NAMES: Record<string, string> = {
+  kitchen: "المطبخ",
+  grill: "السخان",
+  pizza: "البيتزا",
+};
+
 export default function PrintPreviewPage() {
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const shiftRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("receipt");
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [downloadingServer, setDownloadingServer] = useState(false);
-  const [stationImg, setStationImg] = useState<string | null>(null);
-  const [loadingStation, setLoadingStation] = useState(false);
-
-  const loadStationPreview = async (station: TabKey) => {
-    if (station === "receipt" || station === "shift") { setStationImg(null); return; }
-    setLoadingStation(true);
-    setStationImg(null);
-    try {
-      const stationNames: Record<string, string> = { kitchen: "المطبخ", grill: "السخان", pizza: "البيتزا" };
-      const url = await getKitchenPreviewPng(SAMPLE_ORDER, SAMPLE_ORDER.items, stationNames[station]);
-      setStationImg(url);
-    } catch {
-      setStationImg(null);
-      alert("❌ تعذر الاتصال بـ Print Bridge");
-    } finally {
-      setLoadingStation(false);
-    }
-  };
-
-  const handleTabChange = (tab: TabKey) => {
-    setActiveTab(tab);
-    loadStationPreview(tab);
-  };
 
   const handleDownloadLocal = async () => {
-    const target = activeTab === "shift" ? shiftRef.current : receiptRef.current;
-    if (!target) return;
+    if (!previewRef.current) return;
     setDownloading(true);
     try {
-      const image = await captureElementAsPng(target);
+      const image = await captureElementAsPng(previewRef.current);
       const link = document.createElement("a");
       link.download = `${activeTab}-preview-${Date.now()}.png`;
       link.href = image;
@@ -136,14 +118,6 @@ export default function PrintPreviewPage() {
     } finally {
       setDownloadingServer(false);
     }
-  };
-
-  const handleDownloadStation = () => {
-    if (!stationImg) return;
-    const link = document.createElement("a");
-    link.download = `${activeTab}-ticket-${Date.now()}.png`;
-    link.href = stationImg;
-    link.click();
   };
 
   const handleTestPrint = async () => {
@@ -173,7 +147,7 @@ export default function PrintPreviewPage() {
             key={tab.key}
             variant={activeTab === tab.key ? "default" : "outline"}
             size="sm"
-            onClick={() => handleTabChange(tab.key)}
+            onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
           </Button>
@@ -193,33 +167,21 @@ export default function PrintPreviewPage() {
                 <Image className="h-4 w-4" />
                 {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
               </Button>
-              <Button onClick={handleDownloadLocal} size="sm" variant="outline" className="gap-2" disabled={downloading}>
-                <Download className="h-4 w-4" />
-                {downloading ? "جاري التحميل..." : "تحميل PNG (محلي)"}
-              </Button>
             </>
           )}
-          {activeTab === "shift" && (
-            <Button onClick={handleDownloadLocal} size="sm" variant="secondary" className="gap-2" disabled={downloading}>
-              <Download className="h-4 w-4" />
-              {downloading ? "جاري التحميل..." : "تحميل PNG"}
-            </Button>
-          )}
-          {isStationTab && (
-            <Button onClick={handleDownloadStation} size="sm" variant="secondary" className="gap-2" disabled={!stationImg}>
-              <Download className="h-4 w-4" />
-              تحميل PNG
-            </Button>
-          )}
+          <Button onClick={handleDownloadLocal} size="sm" variant="outline" className="gap-2" disabled={downloading}>
+            <Download className="h-4 w-4" />
+            {downloading ? "جاري التحميل..." : "تحميل PNG"}
+          </Button>
         </div>
       </div>
 
       {/* Preview area */}
       <div className="flex justify-center">
         {activeTab === "receipt" && (
-          <div className="bg-background" style={{ width: 302 }}>
+          <div className="bg-background" style={{ width: 320 }}>
             <ReceiptTemplate
-              ref={receiptRef}
+              ref={previewRef}
               order={SAMPLE_ORDER}
               companyName={SAMPLE_COMPANY_INFO.name}
               companyPhone={SAMPLE_COMPANY_INFO.phone}
@@ -231,24 +193,110 @@ export default function PrintPreviewPage() {
           </div>
         )}
 
-        {activeTab === "shift" && (
-          <div className="bg-background" style={{ width: 320 }}>
-            <ShiftSummaryTemplate ref={shiftRef} data={SAMPLE_SHIFT} />
+        {isStationTab && (
+          <div className="bg-background" style={{ width: 384 }}>
+            <div
+              ref={previewRef}
+              dir="rtl"
+              style={{
+                width: '384px',
+                backgroundColor: '#fff',
+                color: '#000',
+                fontFamily: "'Tahoma', 'Arial', sans-serif",
+                fontSize: '22px',
+                fontWeight: 700,
+                lineHeight: '1.4',
+                padding: '14px 16px',
+                position: 'relative',
+              }}
+            >
+              {/* Render kitchen ticket inline (not off-screen) */}
+              <KitchenTicketInline
+                order={SAMPLE_ORDER}
+                items={SAMPLE_ORDER.items}
+                stationName={STATION_NAMES[activeTab]}
+              />
+            </div>
           </div>
         )}
 
-        {isStationTab && (
-          <div className="bg-background p-2" style={{ minWidth: 302, minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {loadingStation ? (
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            ) : stationImg ? (
-              <img src={stationImg} alt={`${activeTab} ticket`} style={{ maxWidth: '100%' }} />
-            ) : (
-              <p className="text-muted-foreground text-sm">اضغط على التبويب لتحميل المعاينة من السيرفر</p>
-            )}
+        {activeTab === "shift" && (
+          <div className="bg-background" style={{ width: 320 }}>
+            <ShiftSummaryTemplate ref={previewRef} data={SAMPLE_SHIFT} />
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Inline version of KitchenTicketTemplate for preview (no position:absolute) */
+function KitchenTicketInline({ order, items, stationName }: { order: PrintOrder; items: PrintOrder["items"]; stationName: string }) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-GB');
+  const qNum = order.queueNumber || order.orderNumber || '---';
+  const orderTypeLabel = order.orderType === 'takeaway' ? 'تيك اواي'
+    : order.orderType === 'delivery' ? 'توصيل' : 'محلي';
+  const totalQty = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+  return (
+    <>
+      <div style={{ textAlign: 'center', fontSize: '28px', fontWeight: 900, padding: '8px 0', borderBottom: '3px solid #000', marginBottom: '10px' }}>
+        {stationName}
+      </div>
+      <div style={{ textAlign: 'center', fontSize: '44px', fontWeight: 900, margin: '8px 0' }}># {qNum}</div>
+      <div style={{ textAlign: 'center', fontSize: '26px', fontWeight: 900, padding: '8px', border: '3px solid #000', margin: '8px 0' }}>
+        {orderTypeLabel}
+      </div>
+      <div style={{ fontSize: '18px', fontWeight: 700, margin: '8px 0' }}>
+        <InfoRow label="التاريخ" value={dateStr} />
+        <InfoRow label="الوقت" value={timeStr} />
+        {order.tableNumber && <InfoRow label="طاولة" value={order.tableNumber} />}
+        {order.cashier && <InfoRow label="الكاشير" value={order.cashier} />}
+        <InfoRow label="عدد الاصناف" value={String(totalQty)} />
+      </div>
+      <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '20px', borderBottom: '2px solid #000', paddingBottom: '6px' }}>
+        <span>الكمية</span>
+        <span>الاسم</span>
+      </div>
+      {items.map((item, i) => (
+        <div key={i} style={{ padding: '10px 0', borderBottom: '2px dashed #666' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '30px', fontWeight: 900, minWidth: '50px' }}>{item.quantity || 1}</span>
+            <span style={{ fontSize: '24px', fontWeight: 800, textAlign: 'right', flex: 1 }}>{item.name}</span>
+          </div>
+          {item.modifiers?.map((m, j) => (
+            <div key={j} style={{ fontSize: '20px', fontWeight: 700, textAlign: 'right', paddingRight: '50px', marginTop: '2px' }}>
+              + {m.option_name}
+            </div>
+          ))}
+          {item.note && (
+            <div style={{ fontSize: '20px', fontWeight: 900, textAlign: 'right', paddingRight: '50px', marginTop: '4px', background: '#eee', padding: '4px 8px', borderRadius: '4px' }}>
+              ملاحظة: {item.note}
+            </div>
+          )}
+        </div>
+      ))}
+      {order.orderNote && (
+        <>
+          <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
+          <div style={{ fontSize: '22px', fontWeight: 900, background: '#eee', padding: '8px 10px', borderRadius: '4px', border: '2px solid #000' }}>
+            ملاحظات: {order.orderNote}
+          </div>
+        </>
+      )}
+      <div style={{ height: '20px' }} />
+    </>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontWeight: 700 }}>
+      <span>{label}</span>
+      <span style={{ fontWeight: 800 }}>{value}</span>
     </div>
   );
 }
