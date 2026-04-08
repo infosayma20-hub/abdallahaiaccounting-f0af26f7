@@ -197,6 +197,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   const [autoAllocate, setAutoAllocate] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const isCancelled = editVoucherStatus === "cancelled";
 
   // Attachments
   const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
