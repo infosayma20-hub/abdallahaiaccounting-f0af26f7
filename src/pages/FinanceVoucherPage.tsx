@@ -111,7 +111,38 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     if (!deleteTarget || !user) return;
     try {
       const table = isReceipt ? "receipt_vouchers" : "vouchers";
-      // Just cancel the voucher — DB trigger handles cascading to linked transaction
+      
+      // Reverse invoice paid amounts before cancelling (works for both receipt and payment vouchers)
+      const { data: links } = await supabase
+        .from("payment_invoice_links" as any)
+        .select("invoice_id, allocated_amount")
+        .eq("payment_id", deleteTarget.id);
+      
+      if (links && links.length > 0) {
+        for (const link of links as any[]) {
+          const { data: inv } = await supabase
+            .from("invoices")
+            .select("paid_amount, total_amount")
+            .eq("id", link.invoice_id)
+            .maybeSingle();
+          
+          if (inv) {
+            const newPaid = Math.max(0, (inv.paid_amount || 0) - (link.allocated_amount || 0));
+            const newRemaining = inv.total_amount - newPaid;
+            await supabase.from("invoices").update({
+              paid_amount: newPaid,
+              remaining_amount: newRemaining,
+              payment_status: newPaid <= 0 ? "unpaid" : "partial",
+            }).eq("id", link.invoice_id);
+          }
+        }
+        // Delete the payment_invoice_links
+        await supabase.from("payment_invoice_links" as any)
+          .delete()
+          .eq("payment_id", deleteTarget.id);
+      }
+      
+      // Cancel the voucher — DB trigger handles cascading to linked transaction
       const { error } = await supabase
         .from(table as any)
         .update({ status: "cancelled" } as any)
@@ -130,7 +161,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         changes: { action: "delete", reason },
       } as any);
 
-      toast({ title: "تم حذف المستند والقيد المرتبط بنجاح ✅" });
+      toast({ title: "تم إلغاء المستند وعكس تأثيره على الفواتير والقيود بنجاح ✅" });
       setDeleteDialog(false);
       fetchData();
     } catch (err: any) {
