@@ -833,7 +833,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const useDirectTransaction = isAccountPayment || currency !== "ILS";
 
       if (!asDraft && isReceipt && !useDirectTransaction) {
-        const { data: txResult } = await supabase.rpc("create_receipt_with_entry", {
+        const { data: txResult, error: rpcError } = await supabase.rpc("create_receipt_with_entry", {
           p_user_id: user.id,
           p_contact_id: selectedContact!.id,
           p_contact_name: selectedContact!.contact_name,
@@ -843,6 +843,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           p_currency: currencyLabel,
           p_idempotency_key: `RCV-NEW-${Date.now()}`,
         });
+        if (rpcError) throw rpcError;
         txId = (txResult as any)?.transaction_id || null;
 
         // Update deposit account and workshop if needed
