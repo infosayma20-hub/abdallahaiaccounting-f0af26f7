@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { MessageCircle, Loader2, Check, Share2, Copy, CheckCheck } from 'lucide-react';
-import { useCompany } from '@/hooks/useCompanyContext';
 import { toast } from 'sonner';
 
 interface Contact {
@@ -36,15 +35,16 @@ const formatPhoneForWhatsApp = (phone: string): string => {
 };
 
 export default function WhatsAppComposerSheet({
-  open, onClose, contact, theme = 'light', onSent,
+  open, onClose, contact, theme = 'light', onSent, portalCompanyName = '',
 }: {
   open: boolean;
   onClose: () => void;
   contact: Contact;
   theme?: 'light' | 'dark';
   onSent?: () => void;
+  portalCompanyName?: string;
 }) {
-  const { company } = useCompany();
+  const effectiveCompanyName = portalCompanyName || 'الشركة';
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [generating, setGenerating] = useState(false);
