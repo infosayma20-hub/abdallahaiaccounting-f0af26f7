@@ -87,7 +87,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       overflow: 'visible',
       boxSizing: 'border-box',
       direction: 'rtl',
-      padding: '12px 14px',
+      padding: '14px 16px',
       backgroundColor: '#ffffff',
       color: '#000000',
       fontFamily: FONT,
