@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { multiWordMatchAny } from "@/lib/utils";
+import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 
 interface Contact {
   id: string;
