@@ -1310,10 +1310,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       <div class="info-label">طريقة الدفع</div>
       <div class="info-value">${paymentMethod}</div>
     </div>
-    <div>
-      <div class="info-label">${isReceipt ? "الإيداع في" : "الدفع من"}</div>
-      <div class="info-value">${depositLabel}</div>
-    </div>
   </div>
 
   <!-- AMOUNT -->
