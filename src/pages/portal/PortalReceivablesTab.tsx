@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
-import { useCompany } from '@/hooks/useCompanyContext';
 import { toast } from 'sonner';
 
 const ACCENT = '#2A7B9B';
@@ -24,9 +23,9 @@ interface Receivable {
   lastSent: string | null;
 }
 
-export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+export default function PortalReceivablesTab({ theme = 'light', portalCompanyName = '', portalLinkedUserId = '' }: { theme?: 'light' | 'dark'; portalCompanyName?: string; portalLinkedUserId?: string }) {
   const t = getThemeColors(theme);
-  const { company } = useCompany();
+  const effectiveCompanyName = portalCompanyName || 'الشركة';
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

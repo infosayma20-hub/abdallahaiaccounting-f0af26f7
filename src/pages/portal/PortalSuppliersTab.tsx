@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, MessageCircle, Phone, ArrowUpDown, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
-import { useCompany } from '@/hooks/useCompanyContext';
 import { toast } from 'sonner';
 
 function getThemeColors(theme: 'light' | 'dark') {
@@ -22,9 +21,9 @@ interface Payable {
   lastSent: string | null;
 }
 
-export default function PortalSuppliersTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+export default function PortalSuppliersTab({ theme = 'light', portalCompanyName = '', portalLinkedUserId = '' }: { theme?: 'light' | 'dark'; portalCompanyName?: string; portalLinkedUserId?: string }) {
   const t = getThemeColors(theme);
-  const { company } = useCompany();
+  const effectiveCompanyName = portalCompanyName || 'الشركة';
   const [payables, setPayables] = useState<Payable[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
