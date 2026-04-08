@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
 import { Button } from "@/components/ui/button";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer, Image } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage } from "@/lib/image-print-service";
+import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
   orderNumber: 5,
@@ -39,10 +39,11 @@ export default function PrintPreviewPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [downloadingServer, setDownloadingServer] = useState(false);
 
+  /** Download using html2canvas (client-side — may have Arabic issues) */
   const handleDownload = async () => {
     if (!receiptRef.current) return;
-
     setDownloading(true);
     try {
       const image = await captureElementAsPng(receiptRef.current);
@@ -58,6 +59,25 @@ export default function PrintPreviewPage() {
     }
   };
 
+  /** Download server-rendered PNG (node-canvas — Arabic is correct) */
+  const handleDownloadServer = async () => {
+    setDownloadingServer(true);
+    try {
+      const objectUrl = await getReceiptPreviewPng(SAMPLE_ORDER, SAMPLE_COMPANY_INFO);
+      const link = document.createElement("a");
+      link.download = `receipt-server-${Date.now()}.png`;
+      link.href = objectUrl;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch (err) {
+      console.error("Server preview failed:", err);
+      alert("❌ تعذر الاتصال بـ Print Bridge — تأكد أنه يعمل على 192.168.1.65:3001");
+    } finally {
+      setDownloadingServer(false);
+    }
+  };
+
+  /** Print via bridge (server-side rendering) */
   const handleTestPrint = async () => {
     setPrinting(true);
     try {
@@ -76,15 +96,24 @@ export default function PrintPreviewPage() {
 
   return (
     <div className="min-h-screen bg-muted py-5">
-      <div className="mb-5 flex justify-center gap-3">
-        <Button onClick={handleTestPrint} className="gap-2" disabled={printing}>
-          <Printer className="h-4 w-4" />
-          {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
-        </Button>
-        <Button onClick={handleDownload} variant="outline" className="gap-2" disabled={downloading}>
-          <Download className="h-4 w-4" />
-          {downloading ? "جاري التحميل..." : "تحميل PNG"}
-        </Button>
+      <div className="mb-5 flex flex-col items-center gap-3">
+        <div className="flex gap-3">
+          <Button onClick={handleTestPrint} className="gap-2" disabled={printing}>
+            <Printer className="h-4 w-4" />
+            {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
+          </Button>
+          <Button onClick={handleDownloadServer} variant="secondary" className="gap-2" disabled={downloadingServer}>
+            <Image className="h-4 w-4" />
+            {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
+          </Button>
+          <Button onClick={handleDownload} variant="outline" className="gap-2" disabled={downloading}>
+            <Download className="h-4 w-4" />
+            {downloading ? "جاري التحميل..." : "تحميل PNG (محلي)"}
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          زر "سيرفر" يستخدم node-canvas — العربي يطلع صحيح ✅
+        </p>
       </div>
 
       <div className="flex justify-center">
@@ -98,8 +127,6 @@ export default function PrintPreviewPage() {
             taxNumber={SAMPLE_COMPANY_INFO.taxNumber}
             terminalName={SAMPLE_COMPANY_INFO.terminalName}
             logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
-            showReturnPolicy={true}
-            returnPolicyDays={7}
           />
         </div>
       </div>

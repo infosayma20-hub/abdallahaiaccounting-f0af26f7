@@ -1,18 +1,16 @@
 /**
- * Image-Mode Print Service
+ * Image-Mode Print Service v4
  * 
- * Renders receipt/ticket as HTML → captures with html2canvas → sends base64 image to bridge.
- * Uses scale:2 for sharp text on thermal printers. Font: Tahoma (system font, connected Arabic).
+ * Sends order DATA (JSON) to the print bridge which renders
+ * the receipt image server-side using node-canvas.
+ * Arabic text is rendered correctly on the server.
+ * 
+ * html2canvas is kept ONLY for the preview page download button.
  */
 
 import html2canvas from "html2canvas";
-import { createRoot } from "react-dom/client";
-import { createElement } from "react";
-import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
-import KitchenTicketTemplate from "@/components/pos/print-templates/KitchenTicketTemplate";
-import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
-import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
+import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 
 const BRIDGE_URL = "http://192.168.1.65:3001";
 
@@ -29,11 +27,37 @@ interface PrintImageResult {
   results?: { printerKey: string; name?: string; success: boolean; error?: string }[];
 }
 
-/**
- * Renders a React element off-screen, captures it with html2canvas,
- * and returns a base64 PNG string.
- * Scale: 2 for sharper output on thermal printers.
- */
+// ──────────────────────────────────────────
+// Bridge fetch helper
+// ──────────────────────────────────────────
+
+async function bridgeFetch(path: string, body: any): Promise<any> {
+  const res = await fetch(`${BRIDGE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    mode: 'cors',
+    signal: AbortSignal.timeout(15000),
+  });
+  return res.json();
+}
+
+async function bridgeFetchPng(path: string, body: any): Promise<string> {
+  const res = await fetch(`${BRIDGE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    mode: 'cors',
+    signal: AbortSignal.timeout(15000),
+  });
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+// ──────────────────────────────────────────
+// html2canvas capture — ONLY for preview page
+// ──────────────────────────────────────────
+
 let fontLoaded = false;
 async function ensureFont() {
   if (fontLoaded) return;
@@ -46,51 +70,33 @@ async function ensureFont() {
     document.head.appendChild(link);
   }
 
-  const testEl = document.createElement('span');
-  testEl.style.fontFamily = "'Noto Sans Arabic'";
-  testEl.style.position = 'absolute';
-  testEl.style.left = '-9999px';
-  testEl.textContent = 'تحميل الخط';
-  document.body.appendChild(testEl);
-
   await document.fonts.ready;
   await Promise.all([
     document.fonts.load('400 16px "Noto Sans Arabic"'),
     document.fonts.load('700 16px "Noto Sans Arabic"'),
   ]);
-
-  document.body.removeChild(testEl);
   fontLoaded = true;
 }
 
 async function waitForReceiptFonts() {
   await ensureFont();
   await document.fonts.ready;
-  await Promise.all([
-    document.fonts.load('400 16px "Noto Sans Arabic"'),
-    document.fonts.load('700 16px "Noto Sans Arabic"'),
-  ]);
   await new Promise((resolve) => setTimeout(resolve, 500));
 }
 
 function isCanvasBlank(canvas: HTMLCanvasElement) {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return false;
-
   try {
     const stepX = Math.max(1, Math.floor(canvas.width / 40));
     const stepY = Math.max(1, Math.floor(canvas.height / 40));
-
     for (let y = 0; y < canvas.height; y += stepY) {
       for (let x = 0; x < canvas.width; x += stepX) {
         const [r, g, b, a] = context.getImageData(x, y, 1, 1).data;
         if (a === 0) continue;
-        if (r < 250 || g < 250 || b < 250) {
-          return false;
-        }
+        if (r < 250 || g < 250 || b < 250) return false;
       }
     }
-
     return true;
   } catch {
     return false;
@@ -100,7 +106,6 @@ function isCanvasBlank(canvas: HTMLCanvasElement) {
 function buildCaptureOptions(target: HTMLElement, foreignObjectRendering: boolean) {
   const width = Math.ceil(target.scrollWidth || target.offsetWidth || target.clientWidth);
   const height = Math.ceil(target.scrollHeight || target.offsetHeight || target.clientHeight);
-
   return {
     backgroundColor: '#ffffff',
     scale: 3,
@@ -119,27 +124,22 @@ function buildCaptureOptions(target: HTMLElement, foreignObjectRendering: boolea
         html, body { background: #ffffff !important; }
       `;
       clonedDoc.head.appendChild(style);
-
       const clonedTarget = clonedDoc.querySelector('[data-receipt-capture-root="true"]') as HTMLElement | null;
-      if (clonedTarget) {
-        clonedTarget.style.backgroundColor = '#ffffff';
-      }
+      if (clonedTarget) clonedTarget.style.backgroundColor = '#ffffff';
     },
   };
 }
 
+/** Capture an on-screen element as PNG (for preview page download only) */
 export async function captureElementAsPng(target: HTMLElement): Promise<string> {
   await waitForReceiptFonts();
-
   const previousMarker = target.dataset.receiptCaptureRoot;
   target.dataset.receiptCaptureRoot = 'true';
-
   try {
     const foreignObjectCanvas = await html2canvas(target, buildCaptureOptions(target, true));
     if (!isCanvasBlank(foreignObjectCanvas)) {
       return foreignObjectCanvas.toDataURL('image/png');
     }
-
     const fallbackCanvas = await html2canvas(target, buildCaptureOptions(target, false));
     return fallbackCanvas.toDataURL('image/png');
   } finally {
@@ -151,79 +151,23 @@ export async function captureElementAsPng(target: HTMLElement): Promise<string> 
   }
 }
 
-async function renderToImage(element: React.ReactElement): Promise<string> {
-  await ensureFont();
-
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  document.body.appendChild(container);
-
-  const root = createRoot(container);
-
-  return new Promise<string>((resolve, reject) => {
-    root.render(element);
-
-    setTimeout(async () => {
-      try {
-        const target = container.firstElementChild as HTMLElement | null;
-        if (!target) throw new Error('Template not rendered');
-
-        const base64 = await captureElementAsPng(target);
-
-        root.unmount();
-        document.body.removeChild(container);
-
-        resolve(base64);
-      } catch (err) {
-        root.unmount();
-        document.body.removeChild(container);
-        reject(err);
-      }
-    }, 600);
-  });
-}
+// ──────────────────────────────────────────
+// SERVER-SIDE PRINT (JSON → bridge → node-canvas)
+// ──────────────────────────────────────────
 
 /**
- * Send a base64 image to a specific printer via the bridge.
- */
-async function sendImageToBridge(image: string, printerKey: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${BRIDGE_URL}/print-image`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image, printerKey }),
-      mode: 'cors',
-      signal: AbortSignal.timeout(15000),
-    });
-    return await res.json();
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Bridge connection failed' };
-  }
-}
-
-/**
- * Print a customer receipt (80mm printer).
+ * Print a customer receipt via server-side rendering.
  */
 export async function printReceiptImage(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string }
 ): Promise<PrintImageResult> {
   try {
-    const element = createElement(ReceiptTemplate, {
+    const result = await bridgeFetch('/print-receipt', {
       order,
-      companyName: companyInfo?.name,
-      companyPhone: companyInfo?.phone,
-      companyAddress: companyInfo?.address,
-      taxNumber: companyInfo?.taxNumber,
-      logoUrl: companyInfo?.logoUrl,
-      terminalName: companyInfo?.terminalName,
+      companyInfo: companyInfo || {},
+      printer: 'receipt',
     });
-
-    const image = await renderToImage(element);
-    const result = await sendImageToBridge(image, 'receipt');
-
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
@@ -236,8 +180,7 @@ export async function printReceiptImage(
  */
 export async function printKitchenTicketsImage(order: PrintOrder): Promise<PrintImageResult> {
   try {
-    const allItems = order.items || [];
-    const stationPrinters: { key: string; name: string }[] = [
+    const stationPrinters = [
       { key: 'kitchen', name: 'المطبخ' },
       { key: 'grill', name: 'السخان' },
       { key: 'pizza', name: 'البيتزا' },
@@ -246,21 +189,20 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
     const results: { printerKey: string; name?: string; success: boolean; error?: string }[] = [];
 
     for (const station of stationPrinters) {
-      const element = createElement(KitchenTicketTemplate, {
-        order,
-        items: allItems,
-        stationName: station.name,
-      });
-
-      const image = await renderToImage(element);
-      const result = await sendImageToBridge(image, station.key);
-      results.push({ printerKey: station.key, name: station.name, ...result });
+      try {
+        const result = await bridgeFetch('/print-kitchen', {
+          order,
+          items: order.items,
+          printerKey: station.key,
+          stationName: station.name,
+        });
+        results.push({ printerKey: station.key, name: station.name, ...result });
+      } catch (err: any) {
+        results.push({ printerKey: station.key, name: station.name, success: false, error: err.message });
+      }
     }
 
-    return {
-      success: results.every(r => r.success),
-      results,
-    };
+    return { success: results.every(r => r.success), results };
   } catch (err: any) {
     console.error('[printKitchenTicketsImage]', err);
     return { success: false, error: err.message };
@@ -274,24 +216,21 @@ export async function printAllImage(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string }
 ): Promise<PrintImageResult> {
-  const [receiptResult, kitchenResult] = await Promise.all([
-    printReceiptImage(order, companyInfo),
-    printKitchenTicketsImage(order),
-  ]);
-
-  const allResults = [
-    { printerKey: 'receipt', name: 'الوصل', success: receiptResult.success, error: receiptResult.error },
-    ...(kitchenResult.results || []),
-  ];
-
-  return {
-    success: allResults.every(r => r.success),
-    results: allResults,
-  };
+  try {
+    const result = await bridgeFetch('/print-all', { order, companyInfo: companyInfo || {} });
+    return {
+      success: result.success,
+      results: result.results,
+      error: result.error,
+    };
+  } catch (err: any) {
+    console.error('[printAllImage]', err);
+    return { success: false, error: err.message };
+  }
 }
 
 /**
- * Print a single kitchen ticket to a specific station (by stationId).
+ * Print a single kitchen ticket to a specific station.
  */
 export async function printStationTicketImage(order: PrintOrder, stationId: string, items: PrintItem[]): Promise<PrintImageResult> {
   const printerKey = STATION_TO_PRINTER[stationId] || 'kitchen';
@@ -301,9 +240,12 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
     : 'المطبخ';
 
   try {
-    const element = createElement(KitchenTicketTemplate, { order, items, stationName });
-    const image = await renderToImage(element);
-    const result = await sendImageToBridge(image, printerKey);
+    const result = await bridgeFetch('/print-kitchen', {
+      order,
+      items,
+      printerKey,
+      stationName,
+    });
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -311,16 +253,80 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
 }
 
 /**
- * Print a shift summary report (80mm printer).
+ * Print a shift summary report.
  */
 export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promise<PrintImageResult> {
+  // Shift summary still uses html2canvas since it's a complex report
+  // TODO: Add /print-shift-summary route to bridge v4
   try {
-    const element = createElement(ShiftSummaryTemplate, { data });
-    const image = await renderToImage(element);
-    const result = await sendImageToBridge(image, 'receipt');
-    return { success: result.success, error: result.error };
+    const { createRoot } = await import("react-dom/client");
+    const { createElement } = await import("react");
+    const { default: ShiftSummaryTemplate } = await import("@/components/pos/print-templates/ShiftSummaryTemplate");
+
+    await ensureFont();
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+
+    return new Promise<PrintImageResult>((resolve) => {
+      root.render(createElement(ShiftSummaryTemplate, { data }));
+
+      setTimeout(async () => {
+        try {
+          const target = container.firstElementChild as HTMLElement;
+          if (!target) throw new Error('Template not rendered');
+
+          const base64 = await captureElementAsPng(target);
+          root.unmount();
+          document.body.removeChild(container);
+
+          // Send to bridge legacy endpoint
+          const res = await fetch(`${BRIDGE_URL}/print-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64, printerKey: 'receipt' }),
+            mode: 'cors',
+            signal: AbortSignal.timeout(15000),
+          });
+          const result = await res.json();
+          resolve({ success: result.success, error: result.error });
+        } catch (err: any) {
+          resolve({ success: false, error: err.message });
+        }
+      }, 600);
+    });
   } catch (err: any) {
     console.error('[printShiftSummaryImage]', err);
     return { success: false, error: err.message };
   }
+}
+
+// ──────────────────────────────────────────
+// PREVIEW (server-side PNG for download)
+// ──────────────────────────────────────────
+
+/**
+ * Get a server-rendered PNG of the receipt for preview/download.
+ * Returns an object URL that can be used as image src or download href.
+ */
+export async function getReceiptPreviewPng(
+  order: PrintOrder,
+  companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; terminalName?: string }
+): Promise<string> {
+  return bridgeFetchPng('/preview-receipt', { order, companyInfo: companyInfo || {} });
+}
+
+/**
+ * Get a server-rendered PNG of a kitchen ticket for preview.
+ */
+export async function getKitchenPreviewPng(
+  order: PrintOrder,
+  items: PrintItem[],
+  stationName: string
+): Promise<string> {
+  return bridgeFetchPng('/preview-kitchen', { order, items, stationName });
 }
