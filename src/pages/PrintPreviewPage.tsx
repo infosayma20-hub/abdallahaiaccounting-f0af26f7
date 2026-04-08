@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
+import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
+import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, Image, Loader2 } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
@@ -35,17 +37,46 @@ const SAMPLE_COMPANY_INFO = {
   logoUrl: "/images/malaky-logo.png",
 };
 
-type TabKey = "receipt" | "kitchen" | "grill" | "pizza";
+const SAMPLE_SHIFT: ShiftSummaryPrintData = {
+  companyName: "مطعم الملكي",
+  logoUrl: "/images/malaky-logo.png",
+  terminalName: "نقطة بيع 1",
+  cashierName: "malaky broast",
+  cashBoxName: "صندوق رئيسي",
+  openedAt: new Date(Date.now() - 8 * 3600000).toISOString(),
+  closedAt: new Date().toISOString(),
+  openingCash: 500,
+  totalSales: 1250,
+  totalExpenses: 0,
+  totalOrders: 18,
+  closingCash: 1750,
+  expectedCash: 1750,
+  variance: 0,
+  varianceILS: 0,
+  currencyBreakdown: {
+    ILS: { sales: 1050, count: 14 },
+    USD: { sales: 50, count: 2 },
+    JOD: { sales: 30, count: 2 },
+  },
+  paymentMethodBreakdown: {
+    نقد: { ILS: 900, USD: 50, JOD: 30 },
+    بطاقة: { ILS: 150 },
+  },
+};
+
+type TabKey = "receipt" | "kitchen" | "grill" | "pizza" | "shift";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "receipt", label: "فاتورة الزبون" },
   { key: "kitchen", label: "مطبخ" },
   { key: "grill", label: "سخان" },
   { key: "pizza", label: "بيتزا" },
+  { key: "shift", label: "إغلاق العهدة" },
 ];
 
 export default function PrintPreviewPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const shiftRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("receipt");
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -54,7 +85,7 @@ export default function PrintPreviewPage() {
   const [loadingStation, setLoadingStation] = useState(false);
 
   const loadStationPreview = async (station: TabKey) => {
-    if (station === "receipt") { setStationImg(null); return; }
+    if (station === "receipt" || station === "shift") { setStationImg(null); return; }
     setLoadingStation(true);
     setStationImg(null);
     try {
@@ -74,13 +105,14 @@ export default function PrintPreviewPage() {
     loadStationPreview(tab);
   };
 
-  const handleDownload = async () => {
-    if (!receiptRef.current) return;
+  const handleDownloadLocal = async () => {
+    const target = activeTab === "shift" ? shiftRef.current : receiptRef.current;
+    if (!target) return;
     setDownloading(true);
     try {
-      const image = await captureElementAsPng(receiptRef.current);
+      const image = await captureElementAsPng(target);
       const link = document.createElement("a");
-      link.download = `receipt-preview-${Date.now()}.png`;
+      link.download = `${activeTab}-preview-${Date.now()}.png`;
       link.href = image;
       link.click();
     } catch {
@@ -130,10 +162,12 @@ export default function PrintPreviewPage() {
     }
   };
 
+  const isStationTab = activeTab === "kitchen" || activeTab === "grill" || activeTab === "pizza";
+
   return (
     <div className="min-h-screen bg-muted py-5" dir="rtl">
       {/* Tabs */}
-      <div className="flex justify-center gap-2 mb-4">
+      <div className="flex justify-center gap-2 mb-4 flex-wrap px-4">
         {TABS.map((tab) => (
           <Button
             key={tab.key}
@@ -149,7 +183,7 @@ export default function PrintPreviewPage() {
       {/* Action buttons */}
       <div className="mb-4 flex flex-col items-center gap-2">
         <div className="flex gap-2">
-          {activeTab === "receipt" ? (
+          {activeTab === "receipt" && (
             <>
               <Button onClick={handleTestPrint} size="sm" className="gap-2" disabled={printing}>
                 <Printer className="h-4 w-4" />
@@ -159,12 +193,19 @@ export default function PrintPreviewPage() {
                 <Image className="h-4 w-4" />
                 {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
               </Button>
-              <Button onClick={handleDownload} size="sm" variant="outline" className="gap-2" disabled={downloading}>
+              <Button onClick={handleDownloadLocal} size="sm" variant="outline" className="gap-2" disabled={downloading}>
                 <Download className="h-4 w-4" />
                 {downloading ? "جاري التحميل..." : "تحميل PNG (محلي)"}
               </Button>
             </>
-          ) : (
+          )}
+          {activeTab === "shift" && (
+            <Button onClick={handleDownloadLocal} size="sm" variant="secondary" className="gap-2" disabled={downloading}>
+              <Download className="h-4 w-4" />
+              {downloading ? "جاري التحميل..." : "تحميل PNG"}
+            </Button>
+          )}
+          {isStationTab && (
             <Button onClick={handleDownloadStation} size="sm" variant="secondary" className="gap-2" disabled={!stationImg}>
               <Download className="h-4 w-4" />
               تحميل PNG
@@ -175,7 +216,7 @@ export default function PrintPreviewPage() {
 
       {/* Preview area */}
       <div className="flex justify-center">
-        {activeTab === "receipt" ? (
+        {activeTab === "receipt" && (
           <div className="bg-background" style={{ width: 302 }}>
             <ReceiptTemplate
               ref={receiptRef}
@@ -188,7 +229,15 @@ export default function PrintPreviewPage() {
               logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
             />
           </div>
-        ) : (
+        )}
+
+        {activeTab === "shift" && (
+          <div className="bg-background" style={{ width: 320 }}>
+            <ShiftSummaryTemplate ref={shiftRef} data={SAMPLE_SHIFT} />
+          </div>
+        )}
+
+        {isStationTab && (
           <div className="bg-background p-2" style={{ minWidth: 302, minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {loadingStation ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
