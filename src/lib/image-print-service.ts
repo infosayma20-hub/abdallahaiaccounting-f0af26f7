@@ -2,7 +2,7 @@
  * Image-Mode Print Service
  * 
  * Renders receipt/ticket as HTML → captures with html2canvas → sends base64 image to bridge.
- * This bypasses all ESC/POS text encoding issues and guarantees perfect Arabic rendering.
+ * Uses scale:2 for sharp text on thermal printers. Font: Tahoma (system font, connected Arabic).
  */
 
 import html2canvas from "html2canvas";
@@ -32,16 +32,15 @@ interface PrintImageResult {
 /**
  * Renders a React element off-screen, captures it with html2canvas,
  * and returns a base64 PNG string.
+ * Scale: 2 for sharper output on thermal printers.
  */
 async function renderToImage(element: React.ReactElement): Promise<string> {
-  // Create container
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
   document.body.appendChild(container);
 
-  // Render React element
   const root = createRoot(container);
   
   return new Promise<string>((resolve, reject) => {
@@ -57,7 +56,7 @@ async function renderToImage(element: React.ReactElement): Promise<string> {
 
         const canvas = await html2canvas(target, {
           backgroundColor: '#ffffff',
-          scale: 1, // 1:1 pixel mapping for thermal printers
+          scale: 2, // 2x for sharp text on thermal printers
           logging: false,
           useCORS: true,
           allowTaint: true,
@@ -74,7 +73,7 @@ async function renderToImage(element: React.ReactElement): Promise<string> {
         document.body.removeChild(container);
         reject(err);
       }
-    }, 200); // Small delay for React render + font loading
+    }, 300); // Slightly longer delay for font loading
   });
 }
 
@@ -125,11 +124,10 @@ export async function printReceiptImage(
 }
 
 /**
- * Print kitchen tickets — groups items by station and sends each to the correct printer.
+ * Print kitchen tickets — sends to all station printers.
  */
 export async function printKitchenTicketsImage(order: PrintOrder): Promise<PrintImageResult> {
   try {
-    // TEST MODE: Send ALL items to ALL station printers (kitchen, grill, pizza)
     const allItems = order.items || [];
     const stationPrinters: { key: string; name: string }[] = [
       { key: 'kitchen', name: 'المطبخ' },
@@ -162,7 +160,7 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
 }
 
 /**
- * Print everything: receipt + all kitchen tickets (routed by station).
+ * Print everything: receipt + all kitchen tickets.
  */
 export async function printAllImage(
   order: PrintOrder,
@@ -205,7 +203,7 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
 }
 
 /**
- * Print a shift summary report using the dedicated template (80mm printer).
+ * Print a shift summary report (80mm printer).
  */
 export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promise<PrintImageResult> {
   try {
