@@ -90,7 +90,7 @@ export default function PortalReceivablesTab({ theme = 'light', portalCompanyNam
         .from('shared_statements')
         .insert({
           user_id: userId,
-          company_id: company.id || null,
+          company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,
           date_from: startOfYear,
@@ -115,7 +115,7 @@ export default function PortalReceivablesTab({ theme = 'light', portalCompanyNam
         invoiceSummary = `\nملخص الحساب:\n${lines.join('\n')}\n`;
       }
 
-      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n${invoiceSummary}\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nيرجى التسديد خلال 7 أيام.\nشكراً لتعاملكم معنا 🙏`;
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${effectiveCompanyName}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n${invoiceSummary}\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nيرجى التسديد خلال 7 أيام.\nشكراً لتعاملكم معنا 🙏`;
 
       if (navigator.share) {
         await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });

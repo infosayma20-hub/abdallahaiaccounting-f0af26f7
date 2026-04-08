@@ -69,7 +69,7 @@ export default function PortalSuppliersTab({ theme = 'light', portalCompanyName 
         .from('shared_statements')
         .insert({
           user_id: userId,
-          company_id: company.id || null,
+          company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,
           date_from: startOfYear,
@@ -84,7 +84,7 @@ export default function PortalSuppliersTab({ theme = 'light', portalCompanyName 
 
       const url = `${window.location.origin}/share/statement/${data.token}`;
 
-      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق لكم: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nشكراً لتعاونكم 🙏`;
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${effectiveCompanyName}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق لكم: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nشكراً لتعاونكم 🙏`;
 
       if (navigator.share) {
         await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });
