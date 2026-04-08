@@ -147,6 +147,7 @@ const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPr
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
+const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
@@ -435,6 +436,7 @@ const App = () => (
                       <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
                       <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
+                      <Route path="/print-preview" element={<PrintPreviewPage />} />
                       <Route path="/print-templates" element={<PrintTemplatesPage />} />
                       <Route path="/print-templates/designer/:templateType" element={<TemplateDesignerPage />} />
                       <Route path="/tax" element={<TaxCenterPage />} />
