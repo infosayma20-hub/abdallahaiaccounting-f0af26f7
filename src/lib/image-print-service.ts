@@ -34,7 +34,28 @@ interface PrintImageResult {
  * and returns a base64 PNG string.
  * Scale: 2 for sharper output on thermal printers.
  */
+let fontLoaded = false;
+async function ensureFont() {
+  if (fontLoaded) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&display=swap';
+  document.head.appendChild(link);
+  // Force-load the font so html2canvas picks it up
+  const testEl = document.createElement('span');
+  testEl.style.fontFamily = "'Noto Sans Arabic'";
+  testEl.style.position = 'absolute';
+  testEl.style.left = '-9999px';
+  testEl.textContent = 'تحميل الخط';
+  document.body.appendChild(testEl);
+  await document.fonts.ready;
+  document.body.removeChild(testEl);
+  fontLoaded = true;
+}
+
 async function renderToImage(element: React.ReactElement): Promise<string> {
+  await ensureFont();
+
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
@@ -73,7 +94,7 @@ async function renderToImage(element: React.ReactElement): Promise<string> {
         document.body.removeChild(container);
         reject(err);
       }
-    }, 300); // Slightly longer delay for font loading
+    }, 400); // Delay for Noto Sans Arabic font loading
   });
 }
 
