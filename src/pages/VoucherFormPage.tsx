@@ -524,17 +524,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load invoices when contact is selected
   useEffect(() => {
     if (!user || !selectedContact) { setInvoices([]); return; }
-    const paymentStatusFilter = ["unpaid", "partial"];
     const invoiceType = isReceipt ? "sale" : "purchase";
-    let query = supabase.from("invoices")
+    (supabase.from("invoices")
       .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate")
       .eq("user_id", user.id)
       .eq("contact_id", selectedContact.id)
       .eq("invoice_type", invoiceType)
-      .in("payment_status", paymentStatusFilter)
+      .in("payment_status", ["unpaid", "partial"]) as any)
       .neq("status", "cancelled")
-      .neq("is_deleted", true);
-    (query as any)
+      .neq("is_deleted", true)
       .not("status", "in", '("مسودة","draft")')
       .order("invoice_date", { ascending: true })
       .then(({ data }) => {
