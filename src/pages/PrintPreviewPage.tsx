@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, Image } from "lucide-react";
+import { Download, Printer, Image, Loader2 } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng } from "@/lib/image-print-service";
+import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng, getKitchenPreviewPng } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
   orderNumber: 5,
@@ -35,13 +35,45 @@ const SAMPLE_COMPANY_INFO = {
   logoUrl: "/images/malaky-logo.png",
 };
 
+type TabKey = "receipt" | "kitchen" | "grill" | "pizza";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "receipt", label: "فاتورة الزبون" },
+  { key: "kitchen", label: "مطبخ" },
+  { key: "grill", label: "سخان" },
+  { key: "pizza", label: "بيتزا" },
+];
+
 export default function PrintPreviewPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("receipt");
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [downloadingServer, setDownloadingServer] = useState(false);
+  const [stationImg, setStationImg] = useState<string | null>(null);
+  const [loadingStation, setLoadingStation] = useState(false);
 
-  /** Download using html2canvas (client-side — may have Arabic issues) */
+  const loadStationPreview = async (station: TabKey) => {
+    if (station === "receipt") { setStationImg(null); return; }
+    setLoadingStation(true);
+    setStationImg(null);
+    try {
+      const stationNames: Record<string, string> = { kitchen: "المطبخ", grill: "السخان", pizza: "البيتزا" };
+      const url = await getKitchenPreviewPng(SAMPLE_ORDER, SAMPLE_ORDER.items, stationNames[station]);
+      setStationImg(url);
+    } catch {
+      setStationImg(null);
+      alert("❌ تعذر الاتصال بـ Print Bridge");
+    } finally {
+      setLoadingStation(false);
+    }
+  };
+
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab);
+    loadStationPreview(tab);
+  };
+
   const handleDownload = async () => {
     if (!receiptRef.current) return;
     setDownloading(true);
@@ -51,15 +83,13 @@ export default function PrintPreviewPage() {
       link.download = `receipt-preview-${Date.now()}.png`;
       link.href = image;
       link.click();
-    } catch (err) {
-      console.error("Download failed:", err);
+    } catch {
       alert("❌ فشل تحميل المعاينة");
     } finally {
       setDownloading(false);
     }
   };
 
-  /** Download server-rendered PNG (node-canvas — Arabic is correct) */
   const handleDownloadServer = async () => {
     setDownloadingServer(true);
     try {
@@ -69,15 +99,21 @@ export default function PrintPreviewPage() {
       link.href = objectUrl;
       link.click();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-    } catch (err) {
-      console.error("Server preview failed:", err);
-      alert("❌ تعذر الاتصال بـ Print Bridge — تأكد أنه يعمل على 192.168.1.65:3001");
+    } catch {
+      alert("❌ تعذر الاتصال بـ Print Bridge");
     } finally {
       setDownloadingServer(false);
     }
   };
 
-  /** Print via bridge (server-side rendering) */
+  const handleDownloadStation = () => {
+    if (!stationImg) return;
+    const link = document.createElement("a");
+    link.download = `${activeTab}-ticket-${Date.now()}.png`;
+    link.href = stationImg;
+    link.click();
+  };
+
   const handleTestPrint = async () => {
     setPrinting(true);
     try {
@@ -95,40 +131,74 @@ export default function PrintPreviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted py-5">
-      <div className="mb-5 flex flex-col items-center gap-3">
-        <div className="flex gap-3">
-          <Button onClick={handleTestPrint} className="gap-2" disabled={printing}>
-            <Printer className="h-4 w-4" />
-            {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
+    <div className="min-h-screen bg-muted py-5" dir="rtl">
+      {/* Tabs */}
+      <div className="flex justify-center gap-2 mb-4">
+        {TABS.map((tab) => (
+          <Button
+            key={tab.key}
+            variant={activeTab === tab.key ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange(tab.key)}
+          >
+            {tab.label}
           </Button>
-          <Button onClick={handleDownloadServer} variant="secondary" className="gap-2" disabled={downloadingServer}>
-            <Image className="h-4 w-4" />
-            {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
-          </Button>
-          <Button onClick={handleDownload} variant="outline" className="gap-2" disabled={downloading}>
-            <Download className="h-4 w-4" />
-            {downloading ? "جاري التحميل..." : "تحميل PNG (محلي)"}
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          زر "سيرفر" يستخدم node-canvas — العربي يطلع صحيح ✅
-        </p>
+        ))}
       </div>
 
-      <div className="flex justify-center">
-        <div className="bg-background" style={{ width: 302 }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            order={SAMPLE_ORDER}
-            companyName={SAMPLE_COMPANY_INFO.name}
-            companyPhone={SAMPLE_COMPANY_INFO.phone}
-            companyAddress={SAMPLE_COMPANY_INFO.address}
-            taxNumber={SAMPLE_COMPANY_INFO.taxNumber}
-            terminalName={SAMPLE_COMPANY_INFO.terminalName}
-            logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
-          />
+      {/* Action buttons */}
+      <div className="mb-4 flex flex-col items-center gap-2">
+        <div className="flex gap-2">
+          {activeTab === "receipt" ? (
+            <>
+              <Button onClick={handleTestPrint} size="sm" className="gap-2" disabled={printing}>
+                <Printer className="h-4 w-4" />
+                {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
+              </Button>
+              <Button onClick={handleDownloadServer} size="sm" variant="secondary" className="gap-2" disabled={downloadingServer}>
+                <Image className="h-4 w-4" />
+                {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
+              </Button>
+              <Button onClick={handleDownload} size="sm" variant="outline" className="gap-2" disabled={downloading}>
+                <Download className="h-4 w-4" />
+                {downloading ? "جاري التحميل..." : "تحميل PNG (محلي)"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={handleDownloadStation} size="sm" variant="secondary" className="gap-2" disabled={!stationImg}>
+              <Download className="h-4 w-4" />
+              تحميل PNG
+            </Button>
+          )}
         </div>
+      </div>
+
+      {/* Preview area */}
+      <div className="flex justify-center">
+        {activeTab === "receipt" ? (
+          <div className="bg-background" style={{ width: 302 }}>
+            <ReceiptTemplate
+              ref={receiptRef}
+              order={SAMPLE_ORDER}
+              companyName={SAMPLE_COMPANY_INFO.name}
+              companyPhone={SAMPLE_COMPANY_INFO.phone}
+              companyAddress={SAMPLE_COMPANY_INFO.address}
+              taxNumber={SAMPLE_COMPANY_INFO.taxNumber}
+              terminalName={SAMPLE_COMPANY_INFO.terminalName}
+              logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
+            />
+          </div>
+        ) : (
+          <div className="bg-background p-2" style={{ minWidth: 302, minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {loadingStation ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : stationImg ? (
+              <img src={stationImg} alt={`${activeTab} ticket`} style={{ maxWidth: '100%' }} />
+            ) : (
+              <p className="text-muted-foreground text-sm">اضغط على التبويب لتحميل المعاينة من السيرفر</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
