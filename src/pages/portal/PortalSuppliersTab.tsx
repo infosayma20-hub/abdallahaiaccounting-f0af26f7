@@ -246,6 +246,7 @@ export default function PortalSuppliersTab({ theme = 'light', portalCompanyName 
           contact={selectedContact}
           theme={theme}
           onSent={() => fetchPayables()}
+          portalCompanyName={portalCompanyName}
         />
       )}
     </div>

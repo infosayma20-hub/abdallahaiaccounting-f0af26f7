@@ -278,6 +278,7 @@ export default function PortalReceivablesTab({ theme = 'light', portalCompanyNam
           contact={selectedContact}
           theme={theme}
           onSent={() => fetchReceivables()}
+          portalCompanyName={portalCompanyName}
         />
       )}
     </div>
