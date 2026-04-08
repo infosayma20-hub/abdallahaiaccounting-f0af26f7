@@ -81,9 +81,10 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
 
   return (
     <div ref={ref} style={{
-      width: '100%',
+      width: '320px',
+      minWidth: '320px',
       maxWidth: '320px',
-      overflow: 'hidden',
+      overflow: 'visible',
       boxSizing: 'border-box',
       direction: 'rtl',
       padding: '12px 14px',
@@ -173,13 +174,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <hr style={hrBold} />
 
       {/* ═══ 4. ITEMS TABLE ═══ */}
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid #000' }}>
-            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'right' }}>الصنف</th>
-            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'center', width: '40px' }}>الكمية</th>
-            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'center', width: '65px' }}>السعر</th>
-            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'left', width: '70px' }}>المجموع</th>
+            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'right', width: '45%' }}>الصنف</th>
+            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'center', width: '10%' }}>الكمية</th>
+            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'center', width: '22%' }}>السعر</th>
+            <th style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'left', width: '23%' }}>المجموع</th>
           </tr>
         </thead>
         <tbody>
@@ -206,9 +207,9 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                     </div>
                   )}
                 </td>
-                <td style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 400, textAlign: 'center', verticalAlign: 'top', width: '40px' }}>{qty}</td>
-                <td style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 400, textAlign: 'center', verticalAlign: 'top', width: '65px' }}>₪{(item.price || 0).toFixed(2)}</td>
-                <td style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top', width: '70px' }}>₪{lineTotal}</td>
+                <td style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 400, textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
+                <td style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 400, textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
+                <td style={{ padding: '6px 4px', fontSize: '13px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
               </tr>
             );
           })}
