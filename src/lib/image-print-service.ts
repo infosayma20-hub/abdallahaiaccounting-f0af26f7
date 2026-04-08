@@ -37,20 +37,118 @@ interface PrintImageResult {
 let fontLoaded = false;
 async function ensureFont() {
   if (fontLoaded) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&display=swap';
-  document.head.appendChild(link);
-  // Force-load the font so html2canvas picks it up
+
+  if (!document.getElementById('receipt-arabic-font')) {
+    const link = document.createElement('link');
+    link.id = 'receipt-arabic-font';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&display=swap';
+    document.head.appendChild(link);
+  }
+
   const testEl = document.createElement('span');
   testEl.style.fontFamily = "'Noto Sans Arabic'";
   testEl.style.position = 'absolute';
   testEl.style.left = '-9999px';
   testEl.textContent = 'تحميل الخط';
   document.body.appendChild(testEl);
+
   await document.fonts.ready;
+  await Promise.all([
+    document.fonts.load('400 16px "Noto Sans Arabic"'),
+    document.fonts.load('700 16px "Noto Sans Arabic"'),
+  ]);
+
   document.body.removeChild(testEl);
   fontLoaded = true;
+}
+
+async function waitForReceiptFonts() {
+  await ensureFont();
+  await document.fonts.ready;
+  await Promise.all([
+    document.fonts.load('400 16px "Noto Sans Arabic"'),
+    document.fonts.load('700 16px "Noto Sans Arabic"'),
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
+
+function isCanvasBlank(canvas: HTMLCanvasElement) {
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return false;
+
+  try {
+    const stepX = Math.max(1, Math.floor(canvas.width / 40));
+    const stepY = Math.max(1, Math.floor(canvas.height / 40));
+
+    for (let y = 0; y < canvas.height; y += stepY) {
+      for (let x = 0; x < canvas.width; x += stepX) {
+        const [r, g, b, a] = context.getImageData(x, y, 1, 1).data;
+        if (a === 0) continue;
+        if (r < 250 || g < 250 || b < 250) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function buildCaptureOptions(target: HTMLElement, foreignObjectRendering: boolean) {
+  const width = Math.ceil(target.scrollWidth || target.offsetWidth || target.clientWidth);
+  const height = Math.ceil(target.scrollHeight || target.offsetHeight || target.clientHeight);
+
+  return {
+    backgroundColor: '#ffffff',
+    scale: 3,
+    logging: false,
+    useCORS: true,
+    allowTaint: true,
+    foreignObjectRendering,
+    width,
+    height,
+    windowWidth: width,
+    windowHeight: height,
+    onclone: (clonedDoc: Document) => {
+      const style = clonedDoc.createElement('style');
+      style.textContent = `
+        * { font-family: 'Noto Sans Arabic', 'Cairo', sans-serif !important; }
+        html, body { background: #ffffff !important; }
+      `;
+      clonedDoc.head.appendChild(style);
+
+      const clonedTarget = clonedDoc.querySelector('[data-receipt-capture-root="true"]') as HTMLElement | null;
+      if (clonedTarget) {
+        clonedTarget.style.backgroundColor = '#ffffff';
+      }
+    },
+  };
+}
+
+export async function captureElementAsPng(target: HTMLElement): Promise<string> {
+  await waitForReceiptFonts();
+
+  const previousMarker = target.dataset.receiptCaptureRoot;
+  target.dataset.receiptCaptureRoot = 'true';
+
+  try {
+    const foreignObjectCanvas = await html2canvas(target, buildCaptureOptions(target, true));
+    if (!isCanvasBlank(foreignObjectCanvas)) {
+      return foreignObjectCanvas.toDataURL('image/png');
+    }
+
+    const fallbackCanvas = await html2canvas(target, buildCaptureOptions(target, false));
+    return fallbackCanvas.toDataURL('image/png');
+  } finally {
+    if (previousMarker === undefined) {
+      delete target.dataset.receiptCaptureRoot;
+    } else {
+      target.dataset.receiptCaptureRoot = previousMarker;
+    }
+  }
 }
 
 async function renderToImage(element: React.ReactElement): Promise<string> {
@@ -63,41 +161,20 @@ async function renderToImage(element: React.ReactElement): Promise<string> {
   document.body.appendChild(container);
 
   const root = createRoot(container);
-  
+
   return new Promise<string>((resolve, reject) => {
     root.render(element);
-    
-    // Wait for fonts + render
+
     setTimeout(async () => {
       try {
-        await document.fonts.ready;
-        await new Promise(r => setTimeout(r, 500));
-        
-        const target = container.firstElementChild as HTMLElement;
+        const target = container.firstElementChild as HTMLElement | null;
         if (!target) throw new Error('Template not rendered');
 
-        const canvas = await html2canvas(target, {
-          backgroundColor: '#ffffff',
-          scale: 3,
-          logging: false,
-          useCORS: true,
-          allowTaint: true,
-          foreignObjectRendering: true,
-          onclone: (clonedDoc) => {
-            const style = clonedDoc.createElement('style');
-            style.innerHTML = `
-              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
-              * { font-family: 'Noto Sans Arabic', sans-serif !important; }
-            `;
-            clonedDoc.head.appendChild(style);
-          },
-        });
+        const base64 = await captureElementAsPng(target);
 
-        const base64 = canvas.toDataURL('image/png');
-        
         root.unmount();
         document.body.removeChild(container);
-        
+
         resolve(base64);
       } catch (err) {
         root.unmount();
