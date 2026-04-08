@@ -42,9 +42,9 @@ const CMD = {
 // ─── Printer Configuration ──────────────────────────
 const PRINTERS = {
   receipt: { ip: '192.168.1.220', port: 9100, name: 'طابعة الوصل',    width: 576 },  // 80mm = 576 dots
-  kitchen: { ip: '192.168.1.120', port: 9100, name: 'طابعة المطبخ',   width: 384, stationId: 'a09ebd1b-392c-42b2-a8a7-d180fdde1f97' },  // 58mm = 384 dots
-  grill:   { ip: '192.168.1.10',  port: 9100, name: 'طابعة السخان',   width: 384, stationId: '4f64e6b4-89ab-4e22-b935-52f3ec665e54' },
-  pizza:   { ip: '192.168.1.228', port: 9100, name: 'طابعة البيتزا',  width: 384, stationId: '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516' },
+  kitchen: { ip: '192.168.1.120', port: 9100, name: 'طابعة المطبخ',   width: 576, stationId: 'a09ebd1b-392c-42b2-a8a7-d180fdde1f97' },  // 80mm = 576 dots
+  grill:   { ip: '192.168.1.10',  port: 9100, name: 'طابعة السخان',   width: 576, stationId: '4f64e6b4-89ab-4e22-b935-52f3ec665e54' },  // 80mm = 576 dots
+  pizza:   { ip: '192.168.1.228', port: 9100, name: 'طابعة البيتزا',  width: 576, stationId: '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516' },  // 80mm = 576 dots
 };
 
 const STATION_TO_PRINTER = {};
