@@ -35,12 +35,22 @@ export default function PrintPreviewPage() {
     setDownloading(true);
     try {
       await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 500));
       const canvas = await html2canvas(receiptRef.current, {
         backgroundColor: "#ffffff",
-        scale: 2,
+        scale: 3,
         logging: false,
         useCORS: true,
         allowTaint: true,
+        foreignObjectRendering: true,
+        onclone: (clonedDoc) => {
+          const style = clonedDoc.createElement('style');
+          style.innerHTML = `
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
+            * { font-family: 'Noto Sans Arabic', sans-serif !important; }
+          `;
+          clonedDoc.head.appendChild(style);
+        },
       });
       const link = document.createElement("a");
       link.download = `receipt-preview-${Date.now()}.png`;
@@ -57,12 +67,22 @@ export default function PrintPreviewPage() {
     if (!receiptRef.current) return;
     try {
       await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 500));
       const canvas = await html2canvas(receiptRef.current, {
         backgroundColor: "#ffffff",
-        scale: 2,
+        scale: 3,
         logging: false,
         useCORS: true,
         allowTaint: true,
+        foreignObjectRendering: true,
+        onclone: (clonedDoc) => {
+          const style = clonedDoc.createElement('style');
+          style.innerHTML = `
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
+            * { font-family: 'Noto Sans Arabic', sans-serif !important; }
+          `;
+          clonedDoc.head.appendChild(style);
+        },
       });
       const image = canvas.toDataURL("image/png");
       const res = await fetch("http://192.168.1.65:3001/print-image", {

@@ -71,16 +71,26 @@ async function renderToImage(element: React.ReactElement): Promise<string> {
     setTimeout(async () => {
       try {
         await document.fonts.ready;
+        await new Promise(r => setTimeout(r, 500));
         
         const target = container.firstElementChild as HTMLElement;
         if (!target) throw new Error('Template not rendered');
 
         const canvas = await html2canvas(target, {
           backgroundColor: '#ffffff',
-          scale: 2, // 2x for sharp text on thermal printers
+          scale: 3,
           logging: false,
           useCORS: true,
           allowTaint: true,
+          foreignObjectRendering: true,
+          onclone: (clonedDoc) => {
+            const style = clonedDoc.createElement('style');
+            style.innerHTML = `
+              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
+              * { font-family: 'Noto Sans Arabic', sans-serif !important; }
+            `;
+            clonedDoc.head.appendChild(style);
+          },
         });
 
         const base64 = canvas.toDataURL('image/png');
@@ -94,7 +104,7 @@ async function renderToImage(element: React.ReactElement): Promise<string> {
         document.body.removeChild(container);
         reject(err);
       }
-    }, 400); // Delay for Noto Sans Arabic font loading
+    }, 600);
   });
 }
 
