@@ -1509,8 +1509,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error(err.message || "فشل إلغاء السند");
     }
   };
-
-
+  return (
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
