@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { multiWordMatchAny } from "@/lib/utils";
+import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 
 interface Contact {
   id: string;
@@ -1871,16 +1872,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   </div>
                   <div>
                     <Label className="text-[10px] mb-1 block text-muted-foreground">اسم البنك</Label>
-                    <Select value={chq.bank} onValueChange={v => updateCheque(idx, "bank", v)}>
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue placeholder="اختر البنك" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
-                          <SelectItem key={name} value={name}>{name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isReceipt ? (
+                      <ChequeAllBankSelect value={chq.bank} onChange={v => updateCheque(idx, "bank", v)} userBanks={bankAccounts} />
+                    ) : (
+                      <Select value={chq.bank} onValueChange={v => updateCheque(idx, "bank", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="اختر البنك" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <Label className="text-[10px] mb-1 block text-muted-foreground">المبلغ</Label>
