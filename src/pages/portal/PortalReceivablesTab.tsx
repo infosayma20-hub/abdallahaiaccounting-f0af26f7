@@ -76,7 +76,7 @@ export default function PortalReceivablesTab({ theme = 'light', portalCompanyNam
       const { data: invoices } = await (supabase
         .from('invoices')
         .select('invoice_number, total_amount, invoice_items(description)') as any)
-        .eq('user_id', userId)
+        .eq('user_id', portalLinkedUserId || userId)
         .eq('contact_id', contact.id)
         .eq('type', 'sale')
         .neq('status', 'cancelled')
