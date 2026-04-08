@@ -422,8 +422,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Tax */}
           {taxEnabled && totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
-              <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة 16%</span>
-              <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>+{fmtAmount(totalTax)}</span>
+              <span style={{ color: "#6B7280" }}>{invoice.taxInclusive ? "ضريبة القيمة المضافة 16% (مستخرجة)" : "ضريبة القيمة المضافة 16%"}</span>
+              <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
             </div>
           )}
           {/* Exempt breakdown */}
