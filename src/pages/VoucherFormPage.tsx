@@ -2228,25 +2228,51 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-        {!isEditMode ? (
-          <button onClick={() => handleSave(true)} disabled={saving}
-            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-            حفظ كمسودة
-          </button>
-        ) : <div />}
-        <div className="flex items-center gap-3">
+      {!isCancelled && (
+        <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
+          {!isEditMode ? (
+            <button onClick={() => handleSave(true)} disabled={saving}
+              className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+              حفظ كمسودة
+            </button>
+          ) : <div />}
+          <div className="flex items-center gap-3">
+            <button onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+              <Printer className="h-4 w-4" /> طباعة
+            </button>
+            <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
+              <Save className="h-4 w-4" />
+              {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled — only show print */}
+      {isCancelled && (
+        <div className="flex items-center justify-center bg-card rounded-2xl border border-border p-4">
           <button onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-            <Printer className="h-4 w-4" /> طباعة
-          </button>
-          <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
-            <Save className="h-4 w-4" />
-            {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+            <Printer className="h-4 w-4" /> طباعة (ملغي)
           </button>
         </div>
-      </div>
+      )}
+
+      {/* Cancel Modal */}
+      <VoucherCancelModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelVoucher}
+        voucherRef={refNumber}
+        voucherType={voucherType}
+        contactName={selectedContact?.contact_name || selectedGlAccount?.account_name || selectedEmployee?.full_name || ""}
+        amount={amountNum}
+        date={paymentDate}
+        paymentMethod={paymentMethod}
+        currencySymbol={currencySymbol}
+      />
     </div>
   );
 };
