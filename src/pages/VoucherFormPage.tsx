@@ -1157,7 +1157,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               <tr style="border-bottom:1px solid #edf0f4;">
                 <td style="padding:6px 10px;">${i + 1}</td>
                 <td style="padding:6px 10px;">${c.number || "—"}</td>
-                <td style="padding:6px 10px;">${c.date ? new Date(c.date).toLocaleDateString("ar-PS") : "—"}</td>
+                <td style="padding:6px 10px;">${c.date ? fmtDate(c.date) : "—"}</td>
                 <td style="padding:6px 10px;">${c.bank || "—"}</td>
                 <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(Number(c.amount) || 0)}</td>
               </tr>
