@@ -96,15 +96,12 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const renderDouliaDemandBody = () => (
     <>
       <p style={{ fontSize: 14, lineHeight: 2.2 }}>تحية طيبة وبعد،</p>
-      <p style={{ fontSize: 14, lineHeight: 2.2 }}>
-        يسرنا في <strong>{companyName}</strong> أن نتواصل معكم بخصوص المبلغ المستحق على حسابكم لدينا.
-      </p>
-      <p style={{ fontSize: 14, lineHeight: 2.2 }}>
-        اعتباراً من تاريخ {doc.document_date}، تشير سجلاتنا إلى أن الرصيد المستحق يجدر تسويته في أقرب وقت.
+      <p style={{ fontSize: 14, lineHeight: 2.2, textAlign: 'justify' }}>
+        نتقدم إليكم من <strong>{companyName}</strong> بأطيب التحيات، ونود الإشارة إلى أن سجلاتنا المحاسبية تُظهر وجود رصيد مستحق على حسابكم الكريم لدينا. وانطلاقاً من حرصنا على استمرار العلاقة التجارية المتميزة التي تجمعنا بكم، والمبنية على أسس الثقة والاحترام المتبادل، فإننا نأمل التكرم بمراجعة تفاصيل الحساب أدناه وترتيب عملية التسوية في أقرب فرصة ممكنة. ونؤكد لكم استعدادنا التام للتعاون والتنسيق بما يحقق المصلحة المشتركة ويُعزز شراكتنا الناجحة.
       </p>
       {renderAmountBlock(data.amount || 0)}
-      <p style={{ fontSize: 14, lineHeight: 2.2 }}>
-        نحن على استعداد للتعاون لإيجاد حل يناسب الطرفين، ونرجو التواصل خلال <strong>{data.response_days || 7} أيام</strong> من تاريخ هذه الرسالة.
+      <p style={{ fontSize: 14, lineHeight: 2.2, textAlign: 'justify' }}>
+        نرجو التكرم بتسوية المبلغ المذكور أعلاه خلال مدة أقصاها <strong>{data.response_days || 7} أيام</strong> من تاريخ هذه الرسالة. وفي حال وجود أي استفسار أو رغبة في ترتيب جدول سداد مناسب، يُسعدنا التواصل معكم لإيجاد الحل الأمثل الذي يُرضي الطرفين.
       </p>
       <div style={{ marginTop: 32, fontSize: 13, lineHeight: 2 }}>
         <p>مع فائق الاحترام والتقدير،</p>
@@ -219,8 +216,8 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "DEM":
         return (
           <>
-            <p>نحيطكم علماً بأن المبلغ المستحق لدينا هو <strong>₪{fmt(data.amount || 0)}</strong>.</p>
-            <p>نرجو التكرم بتسديد المبلغ أعلاه خلال <strong>{data.response_days || 7} أيام</strong> من تاريخ هذا الخطاب.</p>
+            <p>نتقدم إليكم بأطيب التحيات، ونود الإشارة إلى أن سجلاتنا المحاسبية تُظهر وجود رصيد مستحق على حسابكم الكريم لدينا بقيمة <strong>₪{fmt(data.amount || 0)}</strong>. وانطلاقاً من حرصنا على استمرار العلاقة التجارية المتميزة التي تجمعنا بكم، فإننا نأمل التكرم بترتيب عملية التسوية في أقرب فرصة ممكنة، ونؤكد لكم استعدادنا التام للتعاون والتنسيق بما يحقق المصلحة المشتركة.</p>
+            <p>نرجو التكرم بتسوية المبلغ المذكور خلال مدة أقصاها <strong>{data.response_days || 7} أيام</strong> من تاريخ هذا الخطاب. وفي حال وجود أي استفسار، يُسعدنا التواصل معكم لإيجاد الحل الأمثل.</p>
             {isCustom && renderAmountBlock(data.amount || 0)}
           </>
         );
