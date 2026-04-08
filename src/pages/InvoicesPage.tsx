@@ -1120,7 +1120,7 @@ const InvoicesPage = () => {
               </TableHeader>
               <TableBody>
                 {paginated.map(inv => {
-                  const st = statusConfig[inv.status];
+                  const st = statusConfig[inv.status] || fallbackStatus;
                   return (
                     <TableRow key={inv.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
@@ -1209,7 +1209,7 @@ const InvoicesPage = () => {
       {!loading && viewMode === "cards" && paginated.length > 0 && (
         <div className="space-y-2">
           {paginated.map(inv => {
-            const st = statusConfig[inv.status];
+            const st = statusConfig[inv.status] || fallbackStatus;
             return (
               <Card key={inv.id} className="border-0 shadow-sm rounded-2xl cursor-pointer hover:shadow-md transition-all" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
                 <CardContent className="p-4">
