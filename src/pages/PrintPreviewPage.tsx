@@ -233,13 +233,9 @@ export default function PrintPreviewPage() {
 
 /** Inline version of KitchenTicketTemplate for preview (no position:absolute) */
 function KitchenTicketInline({ order, items, stationName }: { order: PrintOrder; items: PrintOrder["items"]; stationName: string }) {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const dateStr = now.toLocaleDateString('en-GB');
   const qNum = order.queueNumber || order.orderNumber || '---';
   const orderTypeLabel = order.orderType === 'takeaway' ? 'تيك اواي'
     : order.orderType === 'delivery' ? 'توصيل' : 'محلي';
-  const totalQty = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   return (
     <>
@@ -250,23 +246,17 @@ function KitchenTicketInline({ order, items, stationName }: { order: PrintOrder;
       <div style={{ textAlign: 'center', fontSize: '26px', fontWeight: 900, padding: '8px', border: '3px solid #000', margin: '8px 0' }}>
         {orderTypeLabel}
       </div>
-      <div style={{ fontSize: '18px', fontWeight: 700, margin: '8px 0' }}>
-        <InfoRow label="التاريخ" value={dateStr} />
-        <InfoRow label="الوقت" value={timeStr} />
-        {order.tableNumber && <InfoRow label="طاولة" value={order.tableNumber} />}
-        {order.cashier && <InfoRow label="الكاشير" value={order.cashier} />}
-        <InfoRow label="عدد الاصناف" value={String(totalQty)} />
-      </div>
+      {order.tableNumber && (
+        <div style={{ fontSize: '20px', fontWeight: 900, textAlign: 'center', margin: '4px 0' }}>
+          طاولة: {order.tableNumber}
+        </div>
+      )}
       <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '20px', borderBottom: '2px solid #000', paddingBottom: '6px' }}>
-        <span>الكمية</span>
-        <span>الاسم</span>
-      </div>
       {items.map((item, i) => (
         <div key={i} style={{ padding: '10px 0', borderBottom: '2px dashed #666' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '30px', fontWeight: 900, minWidth: '50px' }}>{item.quantity || 1}</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, textAlign: 'right', flex: 1 }}>{item.name}</span>
+            <span style={{ fontSize: '32px', fontWeight: 900, minWidth: '50px' }}>{item.quantity || 1}</span>
+            <span style={{ fontSize: '28px', fontWeight: 900, textAlign: 'right', flex: 1 }}>{item.name}</span>
           </div>
           {item.modifiers?.map((m, j) => (
             <div key={j} style={{ fontSize: '20px', fontWeight: 700, textAlign: 'right', paddingRight: '50px', marginTop: '2px' }}>
@@ -290,14 +280,5 @@ function KitchenTicketInline({ order, items, stationName }: { order: PrintOrder;
       )}
       <div style={{ height: '20px' }} />
     </>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontWeight: 700 }}>
-      <span>{label}</span>
-      <span style={{ fontWeight: 800 }}>{value}</span>
-    </div>
   );
 }

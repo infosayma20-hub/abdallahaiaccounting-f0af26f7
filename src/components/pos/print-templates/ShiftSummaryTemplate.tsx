@@ -71,7 +71,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB");
   const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-  const varianceType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "مطابق";
+  const variancePrefix = data.variance > 0 ? "⚠️ فائض" : data.variance < 0 ? "⚠️ عجز" : "✅ مطابق";
   const pmb = data.paymentMethodBreakdown || {};
   const cb = data.currencyBreakdown || {};
 
@@ -99,10 +99,9 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* ═══ HEADER ═══ */}
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
         <img src={data.logoUrl || '/images/malaky-logo.png'} alt="" style={{ maxWidth: '160px', maxHeight: '90px', margin: '0 auto 6px', display: 'block' }} />
-        <div style={{ fontSize: '24px', fontWeight: 900, color: '#000' }}>{data.companyName}</div>
         <div style={{ fontSize: '14px', color: '#000', fontWeight: 800 }}>{data.terminalName}</div>
         <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
-        <div style={{ fontSize: '20px', fontWeight: 900, color: '#000' }}>ملخص تسليم العهدة</div>
+        <div style={{ fontSize: '20px', fontWeight: 900, color: '#000' }}>📋 ملخص تسليم العهدة</div>
       </div>
 
       {/* ═══ META ═══ */}
@@ -155,9 +154,9 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
 
       {/* ILS */}
       <Row label="المتوقع (شيكل)" value={`₪${data.expectedCash.toFixed(2)}`} bold large />
-      <Row label="المسلم (شيكل)" value={`₪${data.closingCash.toFixed(2)}`} bold large />
+      <Row label="المسلّم (شيكل)" value={`₪${data.closingCash.toFixed(2)}`} bold large />
       {data.varianceILS !== undefined && data.varianceILS !== 0 && (
-        <Row label={`${(data.varianceILS || 0) > 0 ? 'فائض' : 'عجز'} (شيكل)`} value={`₪${Math.abs(data.varianceILS || 0).toFixed(2)}`} bold />
+        <Row label={`${(data.varianceILS || 0) > 0 ? '⬆ فائض' : '⬇ عجز'} (شيكل)`} value={`₪${Math.abs(data.varianceILS || 0).toFixed(2)}`} bold />
       )}
 
       {/* USD */}
@@ -165,9 +164,9 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         <>
           <div style={{ borderTop: '1px dashed #333', margin: '6px 0' }} />
           <Row label="المتوقع (دولار)" value={`$${(data.expectedCashUSD || 0).toFixed(2)}`} bold />
-          <Row label="المسلم (دولار)" value={`$${(data.closingCashUSD || 0).toFixed(2)}`} />
+          <Row label="المسلّم (دولار)" value={`$${(data.closingCashUSD || 0).toFixed(2)}`} />
           {data.varianceUSD !== undefined && data.varianceUSD !== 0 && (
-            <Row label={`${(data.varianceUSD || 0) > 0 ? 'فائض' : 'عجز'} (دولار)`} value={`$${Math.abs(data.varianceUSD || 0).toFixed(2)}`} bold />
+            <Row label={`${(data.varianceUSD || 0) > 0 ? '⬆ فائض' : '⬇ عجز'} (دولار)`} value={`$${Math.abs(data.varianceUSD || 0).toFixed(2)}`} bold />
           )}
         </>
       )}
@@ -177,9 +176,9 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         <>
           <div style={{ borderTop: '1px dashed #333', margin: '6px 0' }} />
           <Row label="المتوقع (دينار)" value={`${(data.expectedCashJOD || 0).toFixed(2)} د.ا`} bold />
-          <Row label="المسلم (دينار)" value={`${(data.closingCashJOD || 0).toFixed(2)} د.ا`} />
+          <Row label="المسلّم (دينار)" value={`${(data.closingCashJOD || 0).toFixed(2)} د.ا`} />
           {data.varianceJOD !== undefined && data.varianceJOD !== 0 && (
-            <Row label={`${(data.varianceJOD || 0) > 0 ? 'فائض' : 'عجز'} (دينار)`} value={`${Math.abs(data.varianceJOD || 0).toFixed(2)} د.ا`} bold />
+            <Row label={`${(data.varianceJOD || 0) > 0 ? '⬆ فائض' : '⬇ عجز'} (دينار)`} value={`${Math.abs(data.varianceJOD || 0).toFixed(2)} د.ا`} bold />
           )}
         </>
       )}
@@ -189,16 +188,16 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* ═══ TOTAL VARIANCE ═══ */}
       <div style={{
         textAlign: 'center',
-        padding: '12px',
+        padding: '14px',
         borderRadius: '6px',
         margin: '8px 0',
         fontWeight: 900,
-        fontSize: '22px',
+        fontSize: '24px',
         background: '#eee',
         color: '#000',
         border: '3px solid #000',
       }}>
-        {varianceType}: ₪{Math.abs(data.variance).toFixed(2)}
+        {variancePrefix}: ₪{Math.abs(data.variance).toFixed(2)}
       </div>
 
       <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
@@ -209,12 +208,6 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
           <span>توقيع الكاشير: _____________</span>
           <span>توقيع المسؤول: _____________</span>
         </div>
-      </div>
-
-      <div style={{ textAlign: 'center', fontSize: '12px', color: '#000', fontWeight: 700, lineHeight: 1.8 }}>
-        هذا المستند صادر تلقائيا من النظام
-        <br />
-        Powered by AMWALI
       </div>
 
       <div style={{ height: '16px' }} />
