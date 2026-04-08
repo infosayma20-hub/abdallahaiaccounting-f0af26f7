@@ -1189,7 +1189,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         <td style="padding:5px 10px;font-size:11px;text-align:left;">${isReceipt ? currencySymbol + fmtAmt(amt) : ""}</td>
       </tr>`;
 
-    const depositLabel = depositType === "cash_box"
+    const depositLabel = paymentMethod === "شيك" && selectedChequeBankAccount
+      ? (bankAccounts.find(b => b.id === selectedChequeBankAccount)?.name || "دفتر الشيكات")
+      : depositType === "cash_box"
       ? (cashBoxes.find(c => c.id === selectedCashBox)?.name || "الصندوق")
       : (bankAccounts.find(b => b.id === selectedBankAccount)?.name || "البنك");
 
