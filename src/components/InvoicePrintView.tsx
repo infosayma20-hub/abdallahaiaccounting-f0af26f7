@@ -97,12 +97,20 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   let taxableNetTotal = 0, zeroNetTotal = 0, exemptNetTotal = 0;
   invoice.items.forEach(item => {
     const calc = calcItemTotal(item);
-    if (calc.category === "taxable") taxableNetTotal += calc.afterDiscount;
+    const netAmount = invoice.taxInclusive && calc.category === "taxable" 
+      ? calc.afterDiscount / 1.16 
+      : calc.afterDiscount;
+    if (calc.category === "taxable") taxableNetTotal += netAmount;
     else if (calc.category === "zero") zeroNetTotal += calc.afterDiscount;
     else exemptNetTotal += calc.afterDiscount;
   });
 
-  const subtotalBeforeTax = invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
+  const subtotalBeforeTax = invoice.taxInclusive
+    ? invoice.items.reduce((s, item) => {
+        const calc = calcItemTotal(item);
+        return s + (calc.category === "taxable" ? calc.afterDiscount / 1.16 : calc.afterDiscount);
+      }, 0)
+    : invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
   const totalTax = taxEnabled ? invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0) : 0;
   const grandTotal = subtotalBeforeTax + totalTax;
 
