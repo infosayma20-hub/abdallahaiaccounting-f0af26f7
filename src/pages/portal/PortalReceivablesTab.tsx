@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, FileText, MessageCircle, Phone, ArrowUpDown, Send, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
-import { useCompany } from '@/hooks/useCompanyContext';
 import { toast } from 'sonner';
 
 const ACCENT = '#2A7B9B';
@@ -24,9 +23,9 @@ interface Receivable {
   lastSent: string | null;
 }
 
-export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+export default function PortalReceivablesTab({ theme = 'light', portalCompanyName = '', portalLinkedUserId = '' }: { theme?: 'light' | 'dark'; portalCompanyName?: string; portalLinkedUserId?: string }) {
   const t = getThemeColors(theme);
-  const { company } = useCompany();
+  const effectiveCompanyName = portalCompanyName || 'الشركة';
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -77,7 +76,7 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
       const { data: invoices } = await (supabase
         .from('invoices')
         .select('invoice_number, total_amount, invoice_items(description)') as any)
-        .eq('user_id', userId)
+        .eq('user_id', portalLinkedUserId || userId)
         .eq('contact_id', contact.id)
         .eq('type', 'sale')
         .neq('status', 'cancelled')
@@ -91,7 +90,7 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
         .from('shared_statements')
         .insert({
           user_id: userId,
-          company_id: company.id || null,
+          company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,
           date_from: startOfYear,
@@ -116,7 +115,7 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
         invoiceSummary = `\nملخص الحساب:\n${lines.join('\n')}\n`;
       }
 
-      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n${invoiceSummary}\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nيرجى التسديد خلال 7 أيام.\nشكراً لتعاملكم معنا 🙏`;
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${effectiveCompanyName}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n${invoiceSummary}\nالرصيد المستحق: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nيرجى التسديد خلال 7 أيام.\nشكراً لتعاملكم معنا 🙏`;
 
       if (navigator.share) {
         await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });
@@ -279,6 +278,7 @@ export default function PortalReceivablesTab({ theme = 'light' }: { theme?: 'lig
           contact={selectedContact}
           theme={theme}
           onSent={() => fetchReceivables()}
+          portalCompanyName={portalCompanyName}
         />
       )}
     </div>

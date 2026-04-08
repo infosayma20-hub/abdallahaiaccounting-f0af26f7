@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { MessageCircle, Loader2, Check, Share2, Copy, CheckCheck } from 'lucide-react';
-import { useCompany } from '@/hooks/useCompanyContext';
 import { toast } from 'sonner';
 
 interface Contact {
@@ -36,15 +35,16 @@ const formatPhoneForWhatsApp = (phone: string): string => {
 };
 
 export default function WhatsAppComposerSheet({
-  open, onClose, contact, theme = 'light', onSent,
+  open, onClose, contact, theme = 'light', onSent, portalCompanyName = '',
 }: {
   open: boolean;
   onClose: () => void;
   contact: Contact;
   theme?: 'light' | 'dark';
   onSent?: () => void;
+  portalCompanyName?: string;
 }) {
-  const { company } = useCompany();
+  const effectiveCompanyName = portalCompanyName || 'الشركة';
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -90,7 +90,7 @@ export default function WhatsAppComposerSheet({
         .from('shared_statements')
         .insert({
           user_id: userId,
-          company_id: company.id || null,
+          company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,
           date_from: startOfYear,
@@ -118,7 +118,7 @@ export default function WhatsAppComposerSheet({
 
         setMessage(
           `السلام عليكم ${contact.name}،\n\n` +
-          `نرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\n` +
+          `نرفق لكم كشف حسابكم لدى ${effectiveCompanyName}\n` +
           `للفترة من 01/01/${new Date().getFullYear()} حتى ${today}.\n` +
           invoiceSummary +
           `\nالرصيد المستحق: ${fmt(contact.balance)}\n\n` +
@@ -144,7 +144,7 @@ export default function WhatsAppComposerSheet({
         sent_via: via,
         sent_by: userData?.user?.id,
         balance_at_send: contact.balance,
-        company_id: company.id || null,
+        company_id: null,
       } as any);
     } catch {}
   };

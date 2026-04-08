@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, MessageCircle, Phone, ArrowUpDown, Share2 } from 'lucide-react';
 import WhatsAppComposerSheet from '@/components/portal/WhatsAppComposerSheet';
-import { useCompany } from '@/hooks/useCompanyContext';
 import { toast } from 'sonner';
 
 function getThemeColors(theme: 'light' | 'dark') {
@@ -22,9 +21,9 @@ interface Payable {
   lastSent: string | null;
 }
 
-export default function PortalSuppliersTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
+export default function PortalSuppliersTab({ theme = 'light', portalCompanyName = '', portalLinkedUserId = '' }: { theme?: 'light' | 'dark'; portalCompanyName?: string; portalLinkedUserId?: string }) {
   const t = getThemeColors(theme);
-  const { company } = useCompany();
+  const effectiveCompanyName = portalCompanyName || 'الشركة';
   const [payables, setPayables] = useState<Payable[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -70,7 +69,7 @@ export default function PortalSuppliersTab({ theme = 'light' }: { theme?: 'light
         .from('shared_statements')
         .insert({
           user_id: userId,
-          company_id: company.id || null,
+          company_id: null,
           contact_id: contact.id,
           contact_name: contact.name,
           date_from: startOfYear,
@@ -85,7 +84,7 @@ export default function PortalSuppliersTab({ theme = 'light' }: { theme?: 'light
 
       const url = `${window.location.origin}/share/statement/${data.token}`;
 
-      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${company.name || 'الشركة'}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق لكم: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nشكراً لتعاونكم 🙏`;
+      const msg = `السلام عليكم ${contact.name}،\n\nنرفق لكم كشف حسابكم لدى ${effectiveCompanyName}\nللفترة من 01/01/${new Date().getFullYear()} حتى ${todayFmt}.\n\nالرصيد المستحق لكم: ₪${Math.abs(contact.balance).toLocaleString('en')}\n\nرابط كشف الحساب التفصيلي:\n${url}\n\nشكراً لتعاونكم 🙏`;
 
       if (navigator.share) {
         await navigator.share({ title: `كشف حساب — ${contact.name}`, text: msg });
@@ -247,6 +246,7 @@ export default function PortalSuppliersTab({ theme = 'light' }: { theme?: 'light
           contact={selectedContact}
           theme={theme}
           onSent={() => fetchPayables()}
+          portalCompanyName={portalCompanyName}
         />
       )}
     </div>
