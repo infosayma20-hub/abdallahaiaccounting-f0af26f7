@@ -1450,7 +1450,67 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     toast.success("تم نسخ بيانات السند — أدخل المبلغ وارتبط بالفواتير");
   };
 
-  return (
+  const handleCancelVoucher = async (reason: string, details: string) => {
+    if (!user || !editId) return;
+    try {
+      const table = isReceipt ? "receipt_vouchers" : "vouchers";
+
+      // 1. Reverse invoice paid amounts
+      const { data: links } = await supabase
+        .from("payment_invoice_links" as any)
+        .select("invoice_id, allocated_amount")
+        .eq("payment_id", editId);
+
+      if (links && links.length > 0) {
+        for (const link of links as any[]) {
+          const { data: inv } = await supabase
+            .from("invoices")
+            .select("paid_amount, total_amount")
+            .eq("id", link.invoice_id)
+            .maybeSingle();
+          if (inv) {
+            const newPaid = Math.max(0, (inv.paid_amount || 0) - (link.allocated_amount || 0));
+            const newRemaining = inv.total_amount - newPaid;
+            await supabase.from("invoices").update({
+              paid_amount: newPaid,
+              remaining_amount: newRemaining,
+              payment_status: newPaid <= 0 ? "unpaid" : "partial",
+            }).eq("id", link.invoice_id);
+          }
+        }
+        await supabase.from("payment_invoice_links" as any)
+          .delete()
+          .eq("payment_id", editId);
+      }
+
+      // 2. Cancel the voucher — DB trigger cascades to linked transaction
+      const cancelReason = reason + (details ? ` — ${details}` : "");
+      const { error } = await supabase
+        .from(table as any)
+        .update({ status: "cancelled" } as any)
+        .eq("id", editId);
+      if (error) throw error;
+
+      // 3. Audit trail
+      await supabase.from("document_edit_history" as any).insert({
+        document_id: editId,
+        document_type: isReceipt ? "receipt" : "payment",
+        old_data: { ref_number: refNumber, amount: amountNum, contact_name: selectedContact?.contact_name },
+        edit_reason: cancelReason,
+        edited_by: user.id,
+        user_id: user.id,
+        changes: { action: "cancel", reason: cancelReason },
+      } as any);
+
+      setEditVoucherStatus("cancelled");
+      setShowCancelModal(false);
+      toast.success(`تم إلغاء ${voucherLabel} بنجاح وعكس القيود المرتبطة ✅`);
+    } catch (err: any) {
+      toast.error(err.message || "فشل إلغاء السند");
+    }
+  };
+
+
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
