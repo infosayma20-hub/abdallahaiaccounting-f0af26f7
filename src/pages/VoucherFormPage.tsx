@@ -1131,7 +1131,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       : selectedContact?.contact_name || "";
     const amt = amountNum;
     const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const dateFormatted = new Date(paymentDate).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
+    const fmtDate = (d: string | Date) => { const dt = new Date(d); const dd = String(dt.getDate()).padStart(2, '0'); const mm = String(dt.getMonth() + 1).padStart(2, '0'); const yyyy = dt.getFullYear(); return `${dd}/${mm}/${yyyy}`; };
+    const dateFormatted = fmtDate(paymentDate);
     const typeLabel = isReceipt ? "سند قبض" : "سند صرف";
     const typeBadge = typeLabel;
     const typeBadgeEn = isReceipt ? "Receipt Voucher" : "Payment Voucher";
@@ -1156,7 +1157,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               <tr style="border-bottom:1px solid #edf0f4;">
                 <td style="padding:6px 10px;">${i + 1}</td>
                 <td style="padding:6px 10px;">${c.number || "—"}</td>
-                <td style="padding:6px 10px;">${c.date ? new Date(c.date).toLocaleDateString("ar-PS") : "—"}</td>
+                <td style="padding:6px 10px;">${c.date ? fmtDate(c.date) : "—"}</td>
                 <td style="padding:6px 10px;">${c.bank || "—"}</td>
                 <td style="padding:6px 10px;text-align:left;font-weight:700;">${currencySymbol}${fmtAmt(Number(c.amount) || 0)}</td>
               </tr>
