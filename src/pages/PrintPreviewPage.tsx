@@ -7,7 +7,7 @@ import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 const SAMPLE_ORDER: PrintOrder = {
   orderNumber: 5,
-  queueNumber: "5",
+  queueNumber: 5,
   orderType: "delivery",
   paymentMethod: "نقد",
   currency: "ILS",
