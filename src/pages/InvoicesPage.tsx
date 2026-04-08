@@ -796,7 +796,20 @@ const InvoicesPage = () => {
 
     const updateStatus = async (id: string, status: Invoice["status"]) => {
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
+    
+    // Get current invoice to check linked_transaction_id
+    const { data: currentInv } = await supabase.from("invoices").select("linked_transaction_id, status").eq("id", id).maybeSingle();
+    
     await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
+    
+    // When changing to draft, soft-delete the linked transaction (remove from balances)
+    if (dbStatus === 'draft' && currentInv?.linked_transaction_id) {
+      await supabase.from("transactions").update({ is_deleted: true } as any).eq("id", currentInv.linked_transaction_id);
+    }
+    // When changing from draft to sent/paid, restore the linked transaction
+    if (dbStatus !== 'draft' && currentInv?.status === 'draft' && currentInv?.linked_transaction_id) {
+      await supabase.from("transactions").update({ is_deleted: false } as any).eq("id", currentInv.linked_transaction_id);
+    }
     
     const updated = invoices.map(inv => inv.id === id ? { ...inv, status } : inv);
     setInvoices(updated);
