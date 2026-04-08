@@ -876,8 +876,13 @@ const InvoicesPage = () => {
   const statusConfig: Record<string, { label: string; color: string }> = {
     draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
     sent: { label: "مُرسلة", color: "bg-primary/10 text-primary" },
+    approved: { label: "معتمدة", color: "bg-blue-100 text-blue-700" },
     paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
+    partial: { label: "مدفوعة جزئياً", color: "bg-amber-100 text-amber-700" },
+    overdue: { label: "متأخرة", color: "bg-destructive/10 text-destructive" },
+    cancelled: { label: "ملغاة", color: "bg-muted text-muted-foreground" },
   };
+  const fallbackStatus = { label: "غير محدد", color: "bg-muted text-muted-foreground" };
 
   const paymentLabels: Record<string, string> = {
     cash: "نقداً",
@@ -1115,7 +1120,7 @@ const InvoicesPage = () => {
               </TableHeader>
               <TableBody>
                 {paginated.map(inv => {
-                  const st = statusConfig[inv.status];
+                  const st = statusConfig[inv.status] || fallbackStatus;
                   return (
                     <TableRow key={inv.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
@@ -1204,7 +1209,7 @@ const InvoicesPage = () => {
       {!loading && viewMode === "cards" && paginated.length > 0 && (
         <div className="space-y-2">
           {paginated.map(inv => {
-            const st = statusConfig[inv.status];
+            const st = statusConfig[inv.status] || fallbackStatus;
             return (
               <Card key={inv.id} className="border-0 shadow-sm rounded-2xl cursor-pointer hover:shadow-md transition-all" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
                 <CardContent className="p-4">
