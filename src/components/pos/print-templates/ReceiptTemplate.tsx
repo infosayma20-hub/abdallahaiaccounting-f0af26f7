@@ -69,13 +69,17 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   const changeSym = '₪';
   const isCash = !order.paymentMethod || order.paymentMethod === 'cash' || order.paymentMethod === 'نقد' || order.paymentMethod === 'نقدي';
 
-  const qrContent = [
-    companyName || 'مطعم الملكي',
-    `طلب: ${qNum}`,
-    `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
-    `التاريخ: ${dateStr} ${timeStr}`,
-    taxNumber ? `الرقم الضريبي: ${taxNumber}` : '',
-  ].filter(Boolean).join('\n');
+  // Build QR: if order has ID, use URL for online receipt; otherwise fallback to text
+  const baseUrl = window.location.origin;
+  const qrContent = order.id
+    ? `${baseUrl}/receipt/${order.id}`
+    : [
+        companyName || 'مطعم الملكي',
+        `طلب: ${qNum}`,
+        `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
+        `التاريخ: ${dateStr} ${timeStr}`,
+        taxNumber ? `الرقم الضريبي: ${taxNumber}` : '',
+      ].filter(Boolean).join('\n');
 
   return (
     <div ref={ref} style={{

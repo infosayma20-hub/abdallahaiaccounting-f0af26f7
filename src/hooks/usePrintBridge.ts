@@ -31,6 +31,7 @@ export interface PrintItem {
 export type StationPrinterMap = Record<string, string>;
 
 export interface PrintOrder {
+  id?: string;
   orderNumber: string | number;
   queueNumber?: number;
   date?: string;
