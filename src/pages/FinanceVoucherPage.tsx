@@ -547,10 +547,16 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                     "مسودة": "bg-muted-foreground",
                     "ملغي": "bg-red-500",
                   };
+                  const isVoucherCancelled = v.status === "cancelled" || v.status_label === "ملغي";
                   return (
                     <tr
                       key={v.id}
                       className={`border-b border-border/50 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`}
+                      style={{
+                        opacity: isVoucherCancelled ? 0.5 : 1,
+                        textDecoration: isVoucherCancelled ? "line-through" : "none",
+                        background: isVoucherCancelled ? "#FEF2F2" : undefined,
+                      }}
                     >
                       <td className="px-3 py-3">
                         <button
