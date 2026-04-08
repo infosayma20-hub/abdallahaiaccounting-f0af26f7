@@ -526,6 +526,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .eq("user_id", user.id)
       .eq("contact_id", selectedContact.id)
       .in("payment_status", paymentStatusFilter)
+      .not("status", "eq", "cancelled")
+      .eq("is_deleted", false)
       .order("invoice_date", { ascending: true })
       .then(({ data }) => {
         setInvoices((data || []).map(inv => ({
