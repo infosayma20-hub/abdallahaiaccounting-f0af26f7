@@ -82,7 +82,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   return (
     <div ref={ref} style={{
       width: '100%',
-      maxWidth: '302px',
+      maxWidth: '320px',
       overflow: 'hidden',
       boxSizing: 'border-box',
       direction: 'rtl',
