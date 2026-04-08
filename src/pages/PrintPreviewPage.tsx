@@ -221,8 +221,17 @@ export default function PrintPreviewPage() {
         )}
 
         {activeTab === "shift" && (
-          <div className="bg-background" style={{ width: 320 }}>
-            <ShiftSummaryTemplate ref={previewRef} data={SAMPLE_SHIFT} />
+          <div className="bg-background" style={{ width: 576 }}>
+            <div ref={previewRef} style={{ position: 'relative' }}>
+              <ShiftSummaryTemplate data={SAMPLE_SHIFT} />
+              {/* Override the template's absolute positioning for preview */}
+              <style>{`
+                [data-shift-preview] > div {
+                  position: relative !important;
+                  left: auto !important;
+                }
+              `}</style>
+            </div>
           </div>
         )}
       </div>
