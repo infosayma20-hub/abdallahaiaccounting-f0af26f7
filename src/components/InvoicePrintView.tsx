@@ -33,6 +33,7 @@ interface InvoiceData {
   currency: string;
   terms?: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
+  taxInclusive?: boolean;
 }
 
 interface InvoicePrintViewProps {
@@ -82,6 +83,12 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
     const afterDiscount = base - (item.discount || 0);
     if (!taxEnabled) return { base, afterDiscount, tax: 0, total: afterDiscount, category: "none" as const };
     const cat = item.taxCategory || (item.taxRate > 0 ? "taxable" : "exempt");
+    if (invoice.taxInclusive) {
+      // Price already includes tax — extract tax, don't add
+      const rate = cat === "taxable" ? 16 : 0;
+      const tax = cat === "exempt" ? 0 : afterDiscount - (afterDiscount / (1 + rate / 100));
+      return { base, afterDiscount, tax, total: afterDiscount, category: cat };
+    }
     const rate = cat === "taxable" ? 16 : 0;
     const tax = cat === "exempt" ? 0 : afterDiscount * (rate / 100);
     return { base, afterDiscount, tax, total: afterDiscount + tax, category: cat };
@@ -90,12 +97,20 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   let taxableNetTotal = 0, zeroNetTotal = 0, exemptNetTotal = 0;
   invoice.items.forEach(item => {
     const calc = calcItemTotal(item);
-    if (calc.category === "taxable") taxableNetTotal += calc.afterDiscount;
+    const netAmount = invoice.taxInclusive && calc.category === "taxable" 
+      ? calc.afterDiscount / 1.16 
+      : calc.afterDiscount;
+    if (calc.category === "taxable") taxableNetTotal += netAmount;
     else if (calc.category === "zero") zeroNetTotal += calc.afterDiscount;
     else exemptNetTotal += calc.afterDiscount;
   });
 
-  const subtotalBeforeTax = invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
+  const subtotalBeforeTax = invoice.taxInclusive
+    ? invoice.items.reduce((s, item) => {
+        const calc = calcItemTotal(item);
+        return s + (calc.category === "taxable" ? calc.afterDiscount / 1.16 : calc.afterDiscount);
+      }, 0)
+    : invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
   const totalTax = taxEnabled ? invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0) : 0;
   const grandTotal = subtotalBeforeTax + totalTax;
 
@@ -407,8 +422,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Tax */}
           {taxEnabled && totalTax > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
-              <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة 16%</span>
-              <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>+{fmtAmount(totalTax)}</span>
+              <span style={{ color: "#6B7280" }}>{invoice.taxInclusive ? "ضريبة القيمة المضافة 16% (مستخرجة)" : "ضريبة القيمة المضافة 16%"}</span>
+              <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
             </div>
           )}
           {/* Exempt breakdown */}

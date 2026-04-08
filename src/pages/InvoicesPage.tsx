@@ -77,6 +77,7 @@ interface Invoice {
   currency: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
   transferDetails?: { reference: string; bank: string };
+  taxInclusive?: boolean;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
@@ -242,6 +243,7 @@ const InvoicesPage = () => {
         paidAmount: Number(inv.paid_amount) || 0,
         remainingAmount: Number(inv.remaining_amount) || 0,
         currency: inv.currency || 'شيكل',
+        taxInclusive: Boolean(inv.tax_inclusive),
       }));
 
       // Also load legacy localStorage invoices
