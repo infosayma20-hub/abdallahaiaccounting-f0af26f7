@@ -128,6 +128,7 @@ export default function PortalDashboard() {
   });
   const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState('');
+  const [linkedUserId, setLinkedUserId] = useState('');
   const [hasEmployees, setHasEmployees] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -160,6 +161,7 @@ export default function PortalDashboard() {
       if (settings?.logo_url) setCompanyLogo(settings.logo_url);
       const linkedId = settings?.linked_user_id;
       if (linkedId) {
+        setLinkedUserId(linkedId);
         const { count } = await supabase.from('employees').select('id', { count: 'exact', head: true }).eq('user_id', linkedId).eq('is_active', true);
         setHasEmployees((count || 0) > 0);
       }
@@ -288,7 +290,7 @@ export default function PortalDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
         {[
           { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
-          { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => navigate('/orders') },
+          { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
           { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { switchTab('finance'); setFinanceSection('liquidity'); } },
           { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => { setShowTasksPage(true); } },
         ].map((stat, i) => (
@@ -399,12 +401,12 @@ export default function PortalDashboard() {
         )}
         {(financeSection === 'all' || financeSection === 'receivables') && (
           <div style={{ marginBottom: 16 }}>
-          <PortalReceivablesTab theme={themeMode} />
+          <PortalReceivablesTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />
           </div>
         )}
         {(financeSection === 'all' || financeSection === 'suppliers') && (
           <div style={{ marginBottom: 16 }}>
-            <PortalSuppliersTab theme={themeMode} />
+            <PortalSuppliersTab theme={themeMode} portalCompanyName={companyName} portalLinkedUserId={linkedUserId} />
           </div>
         )}
       </div>
