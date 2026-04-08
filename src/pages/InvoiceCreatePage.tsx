@@ -220,7 +220,7 @@ const InvoiceCreatePage = () => {
   // Terms
   const [termsOpen, setTermsOpen] = useState(false);
   const [invoiceTerms, setInvoiceTerms] = useState("");
-  const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nفي حال التأخر تُطبق رسوم إضافية.\nشكراً لتعاملكم معنا.";
+  const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nشكراً لتعاملكم معنا.";
 
   // Initialize terms from company settings
   useEffect(() => {
