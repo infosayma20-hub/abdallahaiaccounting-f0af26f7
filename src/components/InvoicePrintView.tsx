@@ -33,6 +33,7 @@ interface InvoiceData {
   currency: string;
   terms?: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
+  taxInclusive?: boolean;
 }
 
 interface InvoicePrintViewProps {
