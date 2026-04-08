@@ -77,6 +77,7 @@ interface Invoice {
   currency: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
   transferDetails?: { reference: string; bank: string };
+  taxInclusive?: boolean;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
