@@ -1513,6 +1513,30 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
+      {/* Cancelled Banner */}
+      {isCancelled && (
+        <div style={{
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '4px',
+          direction: 'rtl',
+          fontFamily: 'Cairo, sans-serif',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '20px' }}>🚫</span>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: '#DC2626', fontFamily: 'Cairo' }}>
+              تم إلغاء هذا السند
+            </span>
+          </div>
+          <div style={{ fontSize: '13px', color: '#991B1B', fontFamily: 'Cairo', lineHeight: 1.8 }}>
+            لا يمكن تعديل سند ملغي — يمكنك إنشاء سند جديد مشابه
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton />
@@ -1525,14 +1549,49 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       </div>
 
-      {/* Navigation Toolbar */}
-      <VoucherNavToolbar
-        voucherType={voucherType}
-        currentRef={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
-        onPrint={handlePrint}
-        onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
-        showNavigation={isEditMode || saved}
-      />
+      {/* Navigation Toolbar + Cancel Button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex-1">
+          <VoucherNavToolbar
+            voucherType={voucherType}
+            currentRef={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
+            onPrint={handlePrint}
+            onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
+            showNavigation={isEditMode || saved}
+          />
+        </div>
+        {isEditMode && !isCancelled && editVoucherStatus === "posted" && (
+          <button
+            onClick={() => setShowCancelModal(true)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: '1.5px solid #FCA5A5',
+              background: 'white',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: 'Cairo',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = '#FEF2F2';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#DC2626';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'white';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#FCA5A5';
+            }}
+          >
+            🚫 إلغاء السند
+          </button>
+        )}
+      </div>
 
       {/* Row 1: Basic Info */}
       <Card>
