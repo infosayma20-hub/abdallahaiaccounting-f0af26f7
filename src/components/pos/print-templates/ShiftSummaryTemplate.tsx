@@ -1,6 +1,6 @@
 /**
  * Shift Summary Print Template — 80mm (576px) thermal printer.
- * Mirrors ShiftSummaryReceipt dialog layout exactly.
+ * Font: Tahoma for connected Arabic ligatures on thermal printers.
  */
 import { forwardRef } from "react";
 
@@ -37,17 +37,18 @@ export interface ShiftSummaryPrintData {
 }
 
 const CURRENCIES = ["ILS", "USD", "JOD"] as const;
+const FONT = "'Tahoma', 'Arial', sans-serif";
 
 function currencySymbol(cur: string) {
   if (cur === "ILS") return "₪";
   if (cur === "USD") return "$";
-  if (cur === "JOD") return "د.أ";
+  if (cur === "JOD") return "د.ا";
   if (cur === "EUR") return "€";
   return cur;
 }
 
 function formatCur(amount: number, cur: string) {
-  if (cur === "JOD") return `${amount.toFixed(2)} د.أ`;
+  if (cur === "JOD") return `${amount.toFixed(2)} د.ا`;
   return `${currencySymbol(cur)}${amount.toFixed(2)}`;
 }
 
@@ -62,13 +63,13 @@ function currencyLabel(cur: string) {
 const METHOD_LABELS: Record<string, string> = {
   cash: "نقدي",
   card: "بطاقة / فيزا",
-  credit: "آجل",
+  credit: "اجل",
   employee_account: "حساب موظف",
 };
 
 const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrintData }>(({ data }, ref) => {
-  const formatDate = (iso: string) => new Date(iso).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
-  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB");
+  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
   const varianceType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "مطابق";
   const pmb = data.paymentMethodBreakdown || {};
@@ -79,83 +80,56 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
     return Object.values(amounts).some(v => v > 0);
   });
 
-  const S = {
-    container: {
+  return (
+    <div ref={ref} style={{
       width: '576px',
       backgroundColor: '#fff',
       color: '#000',
-      fontFamily: "'Arial', 'Tahoma', 'Cairo', sans-serif",
-      fontSize: '13px',
-      fontWeight: 600 as const,
-      lineHeight: '1.4',
-      padding: '20px 24px',
-      position: 'absolute' as const,
+      fontFamily: FONT,
+      fontSize: '15px',
+      fontWeight: 700,
+      lineHeight: '1.5',
+      padding: '24px 28px',
+      position: 'absolute',
       left: '-9999px',
       top: 0,
-      direction: 'rtl' as const,
-    },
-    row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', fontSize: '13px', color: '#000', fontWeight: 700 } as React.CSSProperties,
-    amountStyle: { fontWeight: 800, fontVariantNumeric: 'tabular-nums' } as React.CSSProperties,
-    sectionTitle: { fontSize: '12px', fontWeight: 900, letterSpacing: '0.5px', color: '#000', textAlign: 'center' as const, margin: '6px 0 4px', borderBottom: '1px solid #333', paddingBottom: '4px' },
-    dashed: { border: 'none', borderTop: '1px dashed #333', margin: '6px 0' } as React.CSSProperties,
-    hrBold: { border: 'none', borderTop: '2px solid #000', margin: '8px 0' } as React.CSSProperties,
-  };
-
-  return (
-    <div ref={ref} style={S.container}>
+      direction: 'rtl',
+    }}>
 
       {/* ═══ HEADER ═══ */}
-      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-        <img src={data.logoUrl || '/images/malaky-logo.png'} alt="" style={{ maxWidth: '140px', maxHeight: '80px', margin: '0 auto 4px', display: 'block' }} />
-        <div style={{ fontSize: '20px', fontWeight: 900, color: '#000' }}>{data.companyName}</div>
-        <div style={{ fontSize: '12px', color: '#000', fontWeight: 700 }}>{data.terminalName}</div>
-        <hr style={S.hrBold} />
-        <div style={{ fontSize: '14px', fontWeight: 900, color: '#000' }}>📋 ملخص تسليم العهدة</div>
+      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+        <img src={data.logoUrl || '/images/malaky-logo.png'} alt="" style={{ maxWidth: '160px', maxHeight: '90px', margin: '0 auto 6px', display: 'block' }} />
+        <div style={{ fontSize: '24px', fontWeight: 900, color: '#000' }}>{data.companyName}</div>
+        <div style={{ fontSize: '14px', color: '#000', fontWeight: 800 }}>{data.terminalName}</div>
+        <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
+        <div style={{ fontSize: '20px', fontWeight: 900, color: '#000' }}>ملخص تسليم العهدة</div>
       </div>
 
       {/* ═══ META ═══ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#000', fontWeight: 700, marginBottom: '4px' }}>
-        <span>الكاشير: {data.cashierName}</span>
-        {data.cashBoxName && <span>الصندوق: {data.cashBoxName}</span>}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#000', fontWeight: 700, marginBottom: '8px' }}>
-        <span>الفتح: {formatDate(data.openedAt)} {formatTime(data.openedAt)}</span>
-        <span>الإغلاق: {formatDate(data.closedAt)} {formatTime(data.closedAt)}</span>
-      </div>
+      <div style={{ borderTop: '1px solid #333', margin: '8px 0' }} />
+      <Row label="الكاشير" value={data.cashierName} />
+      {data.cashBoxName && <Row label="الصندوق" value={data.cashBoxName} />}
+      <Row label="وقت الفتح" value={`${formatDate(data.openedAt)} ${formatTime(data.openedAt)}`} />
+      <Row label="وقت الاغلاق" value={`${formatDate(data.closedAt)} ${formatTime(data.closedAt)}`} />
 
-      <hr style={S.dashed} />
+      <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
 
       {/* ═══ SESSION DETAILS ═══ */}
-      <div style={S.sectionTitle}>تفاصيل الوردية</div>
-      <div style={S.row}>
-        <span>النقدية الافتتاحية</span>
-        <span style={S.amountStyle}>₪{data.openingCash.toFixed(2)}</span>
-      </div>
-      <div style={S.row}>
-        <span>إجمالي المبيعات</span>
-        <span style={S.amountStyle}>₪{data.totalSales.toFixed(2)}</span>
-      </div>
+      <SectionTitle text="تفاصيل الوردية" />
+      <Row label="النقدية الافتتاحية" value={`₪${data.openingCash.toFixed(2)}`} bold />
+      <Row label="اجمالي المبيعات" value={`₪${data.totalSales.toFixed(2)}`} bold />
       {(data.totalExpenses || 0) > 0 && (
-        <div style={S.row}>
-          <span>مصروفات من الصندوق</span>
-          <span style={S.amountStyle}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
-        </div>
+        <Row label="مصروفات من الصندوق" value={`-₪${(data.totalExpenses || 0).toFixed(2)}`} />
       )}
-      <div style={S.row}>
-        <span>عدد الطلبات</span>
-        <span style={{ fontWeight: 600 }}>{data.totalOrders}</span>
-      </div>
+      <Row label="عدد الطلبات" value={String(data.totalOrders)} />
 
       {/* ═══ CURRENCY BREAKDOWN ═══ */}
       {Object.keys(cb).length > 0 && (
         <>
-          <hr style={S.dashed} />
-          <div style={S.sectionTitle}>تفاصيل العملات المقبوضة</div>
+          <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
+          <SectionTitle text="تفاصيل العملات المقبوضة" />
           {Object.entries(cb).map(([cur, info]) => (
-            <div key={cur} style={{ ...S.row, fontSize: '12px' }}>
-              <span>{currencyLabel(cur)} ({info.count} طلب)</span>
-              <span style={S.amountStyle}>{formatCur(info.sales, cur)}</span>
-            </div>
+            <Row key={cur} label={`${currencyLabel(cur)} (${info.count} طلب)`} value={formatCur(info.sales, cur)} />
           ))}
         </>
       )}
@@ -163,58 +137,37 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* ═══ NON-CASH METHODS ═══ */}
       {nonCashMethods.length > 0 && (
         <>
-          <hr style={S.dashed} />
-          <div style={S.sectionTitle}>مبيعات غير نقدية</div>
+          <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
+          <SectionTitle text="مبيعات غير نقدية" />
           {nonCashMethods.map(method => {
             const amounts = pmb[method] || {};
             return CURRENCIES.filter(c => (amounts[c] || 0) > 0).map(c => (
-              <div key={`${method}-${c}`} style={{ ...S.row, fontSize: '12px' }}>
-                <span>{METHOD_LABELS[method] || method} ({currencyLabel(c)})</span>
-                <span style={S.amountStyle}>{formatCur(amounts[c], c)}</span>
-              </div>
+              <Row key={`${method}-${c}`} label={`${METHOD_LABELS[method] || method} (${currencyLabel(c)})`} value={formatCur(amounts[c], c)} />
             ));
           })}
         </>
       )}
 
-      <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '6px 0' }} />
+      <div style={{ borderTop: '2px solid #000', margin: '12px 0' }} />
 
       {/* ═══ CASH DELIVERY ═══ */}
-      <div style={S.sectionTitle}>تسليم النقدية</div>
+      <SectionTitle text="تسليم النقدية" />
 
       {/* ILS */}
-      <div style={{ ...S.row, fontSize: '14px', fontWeight: 900 }}>
-        <span>المتوقع (شيكل)</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>₪{data.expectedCash.toFixed(2)}</span>
-      </div>
-      <div style={{ ...S.row, fontSize: '14px', fontWeight: 900 }}>
-        <span>المسلّم (شيكل)</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>₪{data.closingCash.toFixed(2)}</span>
-      </div>
+      <Row label="المتوقع (شيكل)" value={`₪${data.expectedCash.toFixed(2)}`} bold large />
+      <Row label="المسلم (شيكل)" value={`₪${data.closingCash.toFixed(2)}`} bold large />
       {data.varianceILS !== undefined && data.varianceILS !== 0 && (
-        <div style={{ ...S.row, fontSize: '13px', fontWeight: 900 }}>
-          <span>{(data.varianceILS || 0) > 0 ? '⬆ فائض' : '⬇ عجز'} (شيكل)</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
-        </div>
+        <Row label={`${(data.varianceILS || 0) > 0 ? 'فائض' : 'عجز'} (شيكل)`} value={`₪${Math.abs(data.varianceILS || 0).toFixed(2)}`} bold />
       )}
 
       {/* USD */}
       {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
         <>
-          <hr style={{ border: 'none', borderTop: '1px dashed #333', margin: '4px 0' }} />
-          <div style={{ ...S.row, fontSize: '13px', fontWeight: 800 }}>
-            <span>المتوقع (دولار)</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>${(data.expectedCashUSD || 0).toFixed(2)}</span>
-          </div>
-          <div style={S.row}>
-            <span>المسلّم (دولار)</span>
-            <span style={S.amountStyle}>${(data.closingCashUSD || 0).toFixed(2)}</span>
-          </div>
+          <div style={{ borderTop: '1px dashed #333', margin: '6px 0' }} />
+          <Row label="المتوقع (دولار)" value={`$${(data.expectedCashUSD || 0).toFixed(2)}`} bold />
+          <Row label="المسلم (دولار)" value={`$${(data.closingCashUSD || 0).toFixed(2)}`} />
           {data.varianceUSD !== undefined && data.varianceUSD !== 0 && (
-            <div style={{ ...S.row, fontSize: '12px', fontWeight: 900 }}>
-              <span>{(data.varianceUSD || 0) > 0 ? '⬆ فائض' : '⬇ عجز'} (دولار)</span>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>${Math.abs(data.varianceUSD || 0).toFixed(2)}</span>
-            </div>
+            <Row label={`${(data.varianceUSD || 0) > 0 ? 'فائض' : 'عجز'} (دولار)`} value={`$${Math.abs(data.varianceUSD || 0).toFixed(2)}`} bold />
           )}
         </>
       )}
@@ -222,62 +175,80 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* JOD */}
       {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
         <>
-          <hr style={{ border: 'none', borderTop: '1px dashed #333', margin: '4px 0' }} />
-          <div style={{ ...S.row, fontSize: '13px', fontWeight: 800 }}>
-            <span>المتوقع (دينار)</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{(data.expectedCashJOD || 0).toFixed(2)} د.أ</span>
-          </div>
-          <div style={S.row}>
-            <span>المسلّم (دينار)</span>
-            <span style={S.amountStyle}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
-          </div>
+          <div style={{ borderTop: '1px dashed #333', margin: '6px 0' }} />
+          <Row label="المتوقع (دينار)" value={`${(data.expectedCashJOD || 0).toFixed(2)} د.ا`} bold />
+          <Row label="المسلم (دينار)" value={`${(data.closingCashJOD || 0).toFixed(2)} د.ا`} />
           {data.varianceJOD !== undefined && data.varianceJOD !== 0 && (
-            <div style={{ ...S.row, fontSize: '12px', fontWeight: 900 }}>
-              <span>{(data.varianceJOD || 0) > 0 ? '⬆ فائض' : '⬇ عجز'} (دينار)</span>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.abs(data.varianceJOD || 0).toFixed(2)} د.أ</span>
-            </div>
+            <Row label={`${(data.varianceJOD || 0) > 0 ? 'فائض' : 'عجز'} (دينار)`} value={`${Math.abs(data.varianceJOD || 0).toFixed(2)} د.ا`} bold />
           )}
         </>
       )}
 
-      <hr style={S.hrBold} />
+      <div style={{ borderTop: '3px solid #000', margin: '12px 0' }} />
 
       {/* ═══ TOTAL VARIANCE ═══ */}
       <div style={{
         textAlign: 'center',
-        padding: '10px',
+        padding: '12px',
         borderRadius: '6px',
         margin: '8px 0',
         fontWeight: 900,
-        fontSize: '18px',
+        fontSize: '22px',
         background: '#eee',
         color: '#000',
-        border: '2px solid #000',
+        border: '3px solid #000',
       }}>
         {varianceType}: ₪{Math.abs(data.variance).toFixed(2)}
       </div>
 
-      <hr style={S.dashed} />
+      <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
 
       {/* ═══ SIGNATURE ═══ */}
-      <div style={{ marginTop: '12px', fontSize: '11px', color: '#000', fontWeight: 700 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div style={{ marginTop: '16px', fontSize: '14px', color: '#000', fontWeight: 700 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <span>توقيع الكاشير: _____________</span>
           <span>توقيع المسؤول: _____________</span>
         </div>
       </div>
 
-      <div style={{ textAlign: 'center', fontSize: '10px', color: '#000', fontWeight: 600, lineHeight: 1.8 }}>
-        هذا المستند صادر آلياً من النظام
+      <div style={{ textAlign: 'center', fontSize: '12px', color: '#000', fontWeight: 700, lineHeight: 1.8 }}>
+        هذا المستند صادر تلقائيا من النظام
         <br />
         Powered by AMWALI
       </div>
 
-      <div style={{ height: '10px' }} />
+      <div style={{ height: '16px' }} />
     </div>
   );
 });
 
 ShiftSummaryTemplate.displayName = 'ShiftSummaryTemplate';
+
+function Row({ label, value, bold, large }: { label: string; value: string; bold?: boolean; large?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '4px 0',
+      fontSize: large ? '18px' : '15px',
+      color: '#000',
+      fontWeight: bold ? 900 : 700,
+    }}>
+      <span>{label}</span>
+      <span style={{ fontWeight: bold ? 900 : 800, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+    </div>
+  );
+}
+
+function SectionTitle({ text }: { text: string }) {
+  return (
+    <div style={{
+      fontSize: '16px', fontWeight: 900, color: '#000',
+      textAlign: 'center', margin: '8px 0 6px',
+      borderBottom: '1px solid #333', paddingBottom: '4px',
+    }}>
+      {text}
+    </div>
+  );
+}
 
 export default ShiftSummaryTemplate;

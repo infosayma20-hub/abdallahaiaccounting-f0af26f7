@@ -1,7 +1,7 @@
 /**
- * Kitchen Ticket Template — renders as off-screen HTML for html2canvas capture.
- * Width: 384px (58mm thermal printer @ 203 DPI)
- * Used for: Kitchen, Grill (Sakhaan), Pizza printers
+ * Kitchen Ticket Template — for Kitchen, Grill (Sakhaan), Pizza printers.
+ * Width: 384px (58mm thermal printer @ 203 DPI).
+ * Font: Tahoma — system font with perfect connected Arabic ligatures on thermal printers.
  */
 import { forwardRef } from "react";
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
@@ -12,6 +12,8 @@ interface Props {
   stationName?: string;
 }
 
+const FONT = "'Tahoma', 'Arial', sans-serif";
+
 const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items, stationName }, ref) => {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -19,9 +21,9 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
 
   const qNum = order.queueNumber || order.orderNumber || '---';
 
-  const orderTypeLabel = order.orderType === 'takeaway' ? 'تيك اواي - Take Away' 
-    : order.orderType === 'delivery' ? 'توصيل - Delivery' 
-    : 'محل - Dine In';
+  const orderTypeLabel = order.orderType === 'takeaway' ? 'تيك اواي'
+    : order.orderType === 'delivery' ? 'توصيل'
+    : 'محلي';
 
   const totalQty = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
@@ -33,10 +35,11 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         width: '384px',
         backgroundColor: '#fff',
         color: '#000',
-        fontFamily: "'Cairo', 'Noto Sans Arabic', 'Arial', sans-serif",
+        fontFamily: FONT,
         fontSize: '22px',
-        lineHeight: '1.3',
-        padding: '12px 14px',
+        fontWeight: 700,
+        lineHeight: '1.4',
+        padding: '14px 16px',
         position: 'absolute',
         left: '-9999px',
         top: 0,
@@ -46,22 +49,23 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {stationName && (
         <div style={{
           textAlign: 'center',
-          fontSize: '26px',
-          fontWeight: 700,
-          padding: '6px 0',
+          fontSize: '28px',
+          fontWeight: 900,
+          padding: '8px 0',
           borderBottom: '3px solid #000',
-          marginBottom: '8px',
+          marginBottom: '10px',
+          letterSpacing: '1px',
         }}>
-          [ {stationName} ]
+          {stationName}
         </div>
       )}
 
       {/* Order Number — BIG */}
       <div style={{
         textAlign: 'center',
-        fontSize: '40px',
-        fontWeight: 700,
-        margin: '6px 0',
+        fontSize: '44px',
+        fontWeight: 900,
+        margin: '8px 0',
       }}>
         # {qNum}
       </div>
@@ -69,27 +73,32 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {/* Order Type */}
       <div style={{
         textAlign: 'center',
-        fontSize: '24px',
-        fontWeight: 700,
-        padding: '6px',
-        border: '2px solid #000',
-        margin: '6px 0',
+        fontSize: '26px',
+        fontWeight: 900,
+        padding: '8px',
+        border: '3px solid #000',
+        margin: '8px 0',
       }}>
         {orderTypeLabel}
       </div>
 
       {/* Info */}
-      <div style={{ fontSize: '18px', margin: '6px 0' }}>
+      <div style={{ fontSize: '18px', fontWeight: 700, margin: '8px 0' }}>
         <InfoRow label="التاريخ" value={dateStr} />
         <InfoRow label="الوقت" value={timeStr} />
         {order.tableNumber && <InfoRow label="طاولة" value={order.tableNumber} />}
-        <InfoRow label="مجموع الكميات" value={String(totalQty)} />
+        {order.cashier && <InfoRow label="الكاشير" value={order.cashier} />}
+        <InfoRow label="عدد الاصناف" value={String(totalQty)} />
       </div>
 
-      <Separator />
+      <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
 
       {/* Items Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '20px', borderBottom: '2px solid #000', paddingBottom: '4px' }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontWeight: 900, fontSize: '20px',
+        borderBottom: '2px solid #000', paddingBottom: '6px',
+      }}>
         <span>الكمية</span>
         <span>الاسم</span>
       </div>
@@ -98,21 +107,28 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {items.map((item, i) => {
         const qty = item.quantity || 1;
         return (
-          <div key={i} style={{ padding: '8px 0', borderBottom: '1px dashed #999' }}>
+          <div key={i} style={{ padding: '10px 0', borderBottom: '2px dashed #666' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '26px', fontWeight: 700, minWidth: '40px' }}>{qty}</span>
-              <span style={{ fontSize: '22px', fontWeight: 600, textAlign: 'right', flex: 1 }}>{item.name}</span>
+              <span style={{ fontSize: '30px', fontWeight: 900, minWidth: '50px' }}>{qty}</span>
+              <span style={{ fontSize: '24px', fontWeight: 800, textAlign: 'right', flex: 1 }}>{item.name}</span>
             </div>
             {/* Modifiers */}
             {item.modifiers?.map((m, j) => (
-              <div key={j} style={{ fontSize: '18px', color: '#444', textAlign: 'right', paddingRight: '40px' }}>
+              <div key={j} style={{
+                fontSize: '20px', color: '#000', fontWeight: 700,
+                textAlign: 'right', paddingRight: '50px', marginTop: '2px',
+              }}>
                 + {m.option_name}
               </div>
             ))}
             {/* Note */}
             {item.note && (
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#333', textAlign: 'right', paddingRight: '40px' }}>
-                &gt;&gt;&gt; {item.note}
+              <div style={{
+                fontSize: '20px', fontWeight: 900, color: '#000',
+                textAlign: 'right', paddingRight: '50px', marginTop: '4px',
+                background: '#eee', padding: '4px 8px', borderRadius: '4px',
+              }}>
+                ملاحظة: {item.note}
               </div>
             )}
           </div>
@@ -122,14 +138,18 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {/* Order Note */}
       {order.orderNote && (
         <>
-          <Separator />
-          <div style={{ fontSize: '20px', fontWeight: 700 }}>
-            ملاحظات الطلبية: {order.orderNote}
+          <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
+          <div style={{
+            fontSize: '22px', fontWeight: 900,
+            background: '#eee', padding: '8px 10px', borderRadius: '4px',
+            border: '2px solid #000',
+          }}>
+            ملاحظات: {order.orderNote}
           </div>
         </>
       )}
 
-      <div style={{ height: '16px' }} />
+      <div style={{ height: '20px' }} />
     </div>
   );
 });
@@ -138,15 +158,11 @@ KitchenTicketTemplate.displayName = 'KitchenTicketTemplate';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
-      <span style={{ fontWeight: 600 }}>{label}</span>
-      <span>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontWeight: 700 }}>
+      <span>{label}</span>
+      <span style={{ fontWeight: 800 }}>{value}</span>
     </div>
   );
-}
-
-function Separator() {
-  return <div style={{ borderTop: '2px solid #000', margin: '8px 0' }} />;
 }
 
 export default KitchenTicketTemplate;

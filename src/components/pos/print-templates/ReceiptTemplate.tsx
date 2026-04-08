@@ -1,8 +1,9 @@
 /**
- * Receipt Template — mirrors POSReceiptDialog layout for thermal printing.
- * Width: 576px (80mm thermal printer @ 203 DPI)
+ * Receipt Template — Full-size customer invoice for 80mm thermal printer.
+ * Width: 576px (80mm @ 203 DPI). Uses Tahoma for guaranteed connected Arabic on thermal printers.
  */
 import { forwardRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
 
 interface Props {
@@ -22,6 +23,9 @@ const currencySymbols: Record<string, string> = {
   شيكل: "₪", دولار: "$", يورو: "€", دينار: "د.ا", جنيه: "ج.م",
 };
 
+/** Base font stack — Tahoma is a system font on Windows with perfect Arabic ligatures */
+const FONT = "'Tahoma', 'Arial', sans-serif";
+
 const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   order,
   companyName,
@@ -34,14 +38,18 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   returnPolicyDays = 7,
 }, ref) => {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('ar-PS', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  const timeStr = now.toLocaleTimeString('ar-PS', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-GB'); // dd/mm/yyyy
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   const qNum = order.queueNumber || order.orderNumber || '---';
 
-  const orderTypeLabel = order.orderType === 'takeaway' ? '🛍️ استلام'
-    : order.orderType === 'delivery' ? '🚚 توصيل'
-    : '🍽️ محلي';
+  const orderTypeLabel = order.orderType === 'takeaway' ? 'استلام'
+    : order.orderType === 'delivery' ? 'توصيل'
+    : 'محلي';
+
+  const orderTypeIcon = order.orderType === 'takeaway' ? '🛍️'
+    : order.orderType === 'delivery' ? '🚚'
+    : '🍽️';
 
   const paymentLabels: Record<string, string> = {
     'نقد': 'نقد', 'cash': 'نقد', 'نقدي': 'نقد',
@@ -52,110 +60,90 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   };
   const payLabel = paymentLabels[order.paymentMethod || ''] || order.paymentMethod || 'نقد';
 
-  // Currency symbol for tendered amount (could be foreign)
   const tenderedCurrSym = currencySymbols[order.currency || 'ILS'] || order.currency || '₪';
-  // Change is always in ILS
   const changeSym = '₪';
-
   const isCash = !order.paymentMethod || order.paymentMethod === 'cash' || order.paymentMethod === 'نقد' || order.paymentMethod === 'نقدي';
 
-  const S = {
-    container: {
+  // QR code content
+  const qrContent = [
+    companyName || 'مطعم الملكي',
+    `طلب: ${qNum}`,
+    `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
+    `التاريخ: ${dateStr} ${timeStr}`,
+    taxNumber ? `الرقم الضريبي: ${taxNumber}` : '',
+  ].filter(Boolean).join('\n');
+
+  return (
+    <div ref={ref} style={{
       width: '576px',
       backgroundColor: '#fff',
       color: '#000',
-      fontFamily: "'Arial', 'Tahoma', 'Cairo', sans-serif",
-      fontSize: '13px',
-      fontWeight: 600 as const,
-      lineHeight: '1.4',
-      padding: '20px 24px',
-      position: 'absolute' as const,
+      fontFamily: FONT,
+      fontSize: '16px',
+      fontWeight: 700,
+      lineHeight: '1.5',
+      padding: '24px 28px',
+      position: 'absolute',
       left: '-9999px',
       top: 0,
-      direction: 'rtl' as const,
-    },
-    row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0' } as React.CSSProperties,
-    hr: { border: 'none', borderTop: '1px solid #999', margin: '6px 0' } as React.CSSProperties,
-    hrBold: { border: 'none', borderTop: '2px solid #000', margin: '8px 0' } as React.CSSProperties,
-    hrDash: { border: 'none', borderTop: '1px dashed #333', margin: '8px 0' } as React.CSSProperties,
-  };
-
-  return (
-    <div ref={ref} style={S.container}>
+      direction: 'rtl',
+    }}>
 
       {/* ═══ LOGO & COMPANY ═══ */}
-      <div style={{ textAlign: 'center', paddingBottom: '2px' }}>
-        <img src={logoUrl || '/images/malaky-logo.png'} alt="" style={{ maxWidth: '140px', maxHeight: '80px', margin: '0 auto 4px', display: 'block' }} />
-        <div style={{ fontSize: '28px', fontWeight: 900, color: '#000', letterSpacing: '1px', lineHeight: 1.2 }}>
+      <div style={{ textAlign: 'center', paddingBottom: '8px' }}>
+        <img src={logoUrl || '/images/malaky-logo.png'} alt="" style={{ maxWidth: '160px', maxHeight: '90px', margin: '0 auto 6px', display: 'block' }} />
+        <div style={{ fontSize: '32px', fontWeight: 900, color: '#000', letterSpacing: '1px', lineHeight: 1.2 }}>
           {companyName || 'مطعم الملكي'}
         </div>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: '#333', letterSpacing: '2px', marginTop: '1px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#333', letterSpacing: '2px', marginTop: '2px' }}>
           MALAKY RESTAURANT
         </div>
-      </div>
-
-      <hr style={S.hr} />
-
-      {/* ═══ TERMINAL & DATE ═══ */}
-      <div style={{ textAlign: 'center', paddingBottom: '4px' }}>
-        {terminalName && (
-          <div style={{ fontSize: '12px', color: '#000', fontWeight: 700 }}>{terminalName}</div>
+        {companyPhone && (
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#333', marginTop: '2px' }}>
+            {companyPhone}
+          </div>
         )}
-        <div style={{ fontSize: '11px', color: '#333', fontWeight: 600, marginTop: '4px' }}>
-          {dateStr} • {timeStr}
-        </div>
+        {companyAddress && (
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#444', marginTop: '1px' }}>
+            {companyAddress}
+          </div>
+        )}
+        {taxNumber && (
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#333', marginTop: '2px' }}>
+            الرقم الضريبي: {taxNumber}
+          </div>
+        )}
       </div>
 
-      <hr style={S.hrBold} />
+      <div style={{ borderTop: '2px solid #000', margin: '10px 0' }} />
+
+      {/* ═══ INVOICE TITLE ═══ */}
+      <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 900, margin: '6px 0' }}>
+        فاتورة ضريبية / Tax Invoice
+      </div>
+
+      <div style={{ borderTop: '1px solid #333', margin: '8px 0' }} />
 
       {/* ═══ ORDER META ═══ */}
-      <div style={{ ...S.row, fontSize: '14px' }}>
-        <span style={{ color: '#000', fontWeight: 800 }}>رقم الطلب</span>
-        <span style={{ fontWeight: 900, color: '#000', fontSize: '16px' }}>{qNum}</span>
-      </div>
+      <Row label="رقم الطلب" value={String(qNum)} bold large />
+      {order.cashier && <Row label="الكاشير" value={order.cashier} />}
+      <Row label="نوع الطلب" value={`${orderTypeIcon} ${orderTypeLabel}`} />
+      {order.tableNumber && <Row label="الطاولة" value={order.tableNumber} bold />}
+      {order.branchName && <Row label="الفرع" value={order.branchName} />}
+      <Row label="التاريخ" value={dateStr} />
+      <Row label="الوقت" value={timeStr} />
+      {terminalName && <Row label="الكاشير" value={terminalName} />}
 
-      {order.cashier && (
-        <div style={{ ...S.row, fontSize: '12px' }}>
-          <span style={{ color: '#000', fontWeight: 700 }}>الكاشير</span>
-          <span style={{ fontWeight: 700, color: '#000' }}>{order.cashier}</span>
-        </div>
-      )}
-
-      <div style={{ ...S.row, fontSize: '12px' }}>
-        <span style={{ color: '#000', fontWeight: 700 }}>نوع الطلب</span>
-        <span style={{
-          fontWeight: 800, color: '#000', background: '#eee',
-          border: '1px solid #999', borderRadius: '4px',
-          padding: '1px 8px', fontSize: '11px',
-        }}>
-          {orderTypeLabel}
-        </span>
-      </div>
-
-      {order.tableNumber && (
-        <div style={{ ...S.row, fontSize: '12px' }}>
-          <span style={{ color: '#000', fontWeight: 700 }}>الطاولة</span>
-          <span style={{ fontWeight: 900, color: '#000' }}>{order.tableNumber}</span>
-        </div>
-      )}
-
-      {order.branchName && (
-        <div style={{ ...S.row, fontSize: '12px' }}>
-          <span style={{ color: '#000', fontWeight: 700 }}>الفرع</span>
-          <span style={{ fontWeight: 700, color: '#000' }}>{order.branchName}</span>
-        </div>
-      )}
-
-      <hr style={{ border: 'none', borderTop: '1px solid #000', margin: '8px 0' }} />
+      <div style={{ borderTop: '2px solid #000', margin: '10px 0' }} />
 
       {/* ═══ TABLE HEADER ═══ */}
       <div style={{
-        display: 'flex', justifyContent: 'space-between', padding: '4px 0',
-        fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px', color: '#000',
-        borderBottom: '1px solid #333',
+        display: 'flex', justifyContent: 'space-between', padding: '6px 0',
+        fontSize: '14px', fontWeight: 900, color: '#000',
+        borderBottom: '2px solid #000',
       }}>
         <span style={{ flex: 2 }}>الصنف</span>
-        <span style={{ flex: 1, textAlign: 'center' }}>الكمية</span>
+        <span style={{ flex: 0.8, textAlign: 'center' }}>الكمية</span>
         <span style={{ flex: 1, textAlign: 'center' }}>السعر</span>
         <span style={{ flex: 1, textAlign: 'left' }}>المجموع</span>
       </div>
@@ -165,84 +153,63 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         const qty = item.quantity || 1;
         const lineTotal = (qty * (item.price || 0)).toFixed(2);
         return (
-          <div key={i} style={{ padding: '6px 0', borderBottom: i < (order.items || []).length - 1 ? '1px solid #ccc' : 'none' }}>
+          <div key={i} style={{ padding: '8px 0', borderBottom: i < (order.items || []).length - 1 ? '1px solid #ccc' : 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span style={{ flex: 2, fontSize: '13px', fontWeight: 800, color: '#000', lineHeight: 1.3 }}>{item.name}</span>
-              <span style={{ flex: 1, textAlign: 'center', fontSize: '13px', color: '#000', fontWeight: 700 }}>{qty}</span>
-              <span style={{ flex: 1, textAlign: 'center', fontSize: '12px', color: '#000', fontWeight: 700 }}>₪{(item.price || 0).toFixed(2)}</span>
-              <span style={{ flex: 1, textAlign: 'left', fontSize: '13px', fontWeight: 800, color: '#000' }}>₪{lineTotal}</span>
+              <span style={{ flex: 2, fontSize: '16px', fontWeight: 800, color: '#000', lineHeight: 1.4 }}>{item.name}</span>
+              <span style={{ flex: 0.8, textAlign: 'center', fontSize: '16px', color: '#000', fontWeight: 800 }}>{qty}</span>
+              <span style={{ flex: 1, textAlign: 'center', fontSize: '15px', color: '#000', fontWeight: 700 }}>₪{(item.price || 0).toFixed(2)}</span>
+              <span style={{ flex: 1, textAlign: 'left', fontSize: '16px', fontWeight: 900, color: '#000' }}>₪{lineTotal}</span>
             </div>
             {item.modifiers && item.modifiers.length > 0 && (
-              <div style={{ paddingRight: '8px', marginTop: '3px' }}>
+              <div style={{ paddingRight: '10px', marginTop: '4px' }}>
                 {item.modifiers.map((mod, mi) => (
-                  <div key={mi} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#000', fontWeight: 600, lineHeight: 1.6 }}>
-                    <span>↳ {mod.option_name}</span>
+                  <div key={mi} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#000', fontWeight: 700, lineHeight: 1.6 }}>
+                    <span>+ {mod.option_name}</span>
                     {mod.extra_price && mod.extra_price > 0 && (
-                      <span style={{ fontWeight: 700 }}>+₪{mod.extra_price.toFixed(2)}</span>
+                      <span style={{ fontWeight: 800 }}>+₪{mod.extra_price.toFixed(2)}</span>
                     )}
                   </div>
                 ))}
               </div>
             )}
             {item.note && (
-              <div style={{ fontSize: '11px', color: '#000', fontWeight: 600, fontStyle: 'italic', paddingRight: '4px', marginTop: '1px' }}>
-                📝 {item.note}
+              <div style={{ fontSize: '13px', color: '#000', fontWeight: 700, paddingRight: '6px', marginTop: '2px' }}>
+                ملاحظة: {item.note}
               </div>
             )}
           </div>
         );
       })}
 
-      <hr style={{ border: 'none', borderTop: '1px solid #000', margin: '8px 0' }} />
+      <div style={{ borderTop: '2px solid #000', margin: '10px 0' }} />
 
       {/* ═══ SUMMARY ═══ */}
       {order.subtotal != null && (
-        <div style={{ ...S.row, fontSize: '12px', fontWeight: 700 }}>
-          <span>المجموع الفرعي</span>
-          <span>₪{Number(order.subtotal).toFixed(2)}</span>
-        </div>
+        <Row label="المجموع الفرعي" value={`₪${Number(order.subtotal).toFixed(2)}`} />
       )}
       {order.discount != null && Number(order.discount) > 0 && (
-        <div style={{ ...S.row, fontSize: '12px', fontWeight: 800 }}>
-          <span>الخصم</span>
-          <span>-₪{Number(order.discount).toFixed(2)}</span>
-        </div>
+        <Row label="الخصم" value={`-₪${Number(order.discount).toFixed(2)}`} />
       )}
 
-      <hr style={S.hrBold} />
+      <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
 
       {/* ═══ TOTAL ═══ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-        <span style={{ fontSize: '16px', fontWeight: 900, color: '#000' }}>الإجمالي</span>
-        <span style={{ fontSize: '24px', fontWeight: 900, color: '#000' }}>₪{Number(order.total || 0).toFixed(2)}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+        <span style={{ fontSize: '22px', fontWeight: 900, color: '#000' }}>الإجمالي</span>
+        <span style={{ fontSize: '30px', fontWeight: 900, color: '#000' }}>₪{Number(order.total || 0).toFixed(2)}</span>
       </div>
 
-      <hr style={S.hrDash} />
+      <div style={{ borderTop: '1px dashed #333', margin: '8px 0' }} />
 
       {/* ═══ PAYMENT ═══ */}
-      <div style={{ background: '#f0f0f0', borderRadius: '6px', padding: '8px 10px', margin: '4px 0', border: '1px solid #ccc' }}>
-        <div style={{ ...S.row, fontSize: '12px' }}>
-          <span style={{ color: '#000', fontWeight: 700 }}>طريقة الدفع</span>
-          <span style={{
-            background: '#ddd', border: '1px solid #999', borderRadius: '4px',
-            padding: '1px 8px', fontSize: '11px', fontWeight: 900, color: '#000',
-          }}>
-            {payLabel}
-          </span>
-        </div>
+      <div style={{ background: '#f0f0f0', borderRadius: '6px', padding: '10px 12px', margin: '6px 0', border: '1px solid #ccc' }}>
+        <Row label="طريقة الدفع" value={payLabel} bold />
 
-        {/* Show tendered + change for cash payments */}
         {isCash && order.tenderedAmount != null && Number(order.tenderedAmount) > 0 && (
           <>
-            <div style={{ ...S.row, fontSize: '12px' }}>
-              <span style={{ color: '#000', fontWeight: 700 }}>المبلغ المستلم</span>
-              <span style={{ fontWeight: 800, color: '#000' }}>{tenderedCurrSym}{Number(order.tenderedAmount).toFixed(2)}</span>
-            </div>
+            <Row label="المبلغ المستلم" value={`${tenderedCurrSym}${Number(order.tenderedAmount).toFixed(2)}`} />
             {order.change != null && Number(order.change) > 0 && (
-              <div style={{ ...S.row, fontSize: '13px', fontWeight: 900 }}>
-                <span style={{ color: '#000' }}>الباقي</span>
-                <span style={{ color: '#000' }}>{changeSym}{Number(order.change).toFixed(2)}</span>
-              </div>
+              <Row label="الباقي" value={`${changeSym}${Number(order.change).toFixed(2)}`} bold large />
             )}
           </>
         )}
@@ -251,43 +218,69 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       {/* ═══ ORDER NOTE ═══ */}
       {order.orderNote && (
         <div style={{
-          background: '#f0f0f0', borderRadius: '6px', padding: '6px 8px',
-          margin: '6px 0', fontSize: '11px', color: '#000', fontWeight: 700,
+          background: '#f0f0f0', borderRadius: '6px', padding: '8px 10px',
+          margin: '6px 0', fontSize: '14px', color: '#000', fontWeight: 800,
           border: '1px solid #999',
         }}>
-          <span style={{ fontWeight: 900 }}>ملاحظة:</span> {order.orderNote}
+          ملاحظة: {order.orderNote}
         </div>
       )}
 
-      <hr style={S.hrDash} />
+      <div style={{ borderTop: '1px dashed #333', margin: '10px 0' }} />
 
-      {/* ═══ BARCODE ═══ */}
-      <div style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '12px', letterSpacing: '3px', color: '#000', fontWeight: 700, margin: '4px 0' }}>
-        ║║║ {qNum} ║║║
+      {/* ═══ QR CODE ═══ */}
+      <div style={{ textAlign: 'center', margin: '10px 0' }}>
+        <QRCodeSVG
+          value={qrContent}
+          size={140}
+          level="M"
+          style={{ margin: '0 auto', display: 'block' }}
+        />
+        <div style={{ fontSize: '11px', color: '#555', fontWeight: 600, marginTop: '4px' }}>
+          امسح الكود للتحقق
+        </div>
       </div>
 
+      <div style={{ borderTop: '1px solid #333', margin: '8px 0' }} />
+
       {/* ═══ FOOTER ═══ */}
-      <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '8px 0' }} />
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '14px', fontWeight: 800, color: '#000', marginBottom: '2px' }}>شكراً لتعاملكم معنا ❤️</div>
-        <div style={{ fontSize: '11px', color: '#333', fontWeight: 600 }}>Thank you for your visit</div>
+        <div style={{ fontSize: '18px', fontWeight: 900, color: '#000', marginBottom: '4px' }}>
+          شكرا لتعاملكم معنا
+        </div>
+        <div style={{ fontSize: '13px', color: '#333', fontWeight: 700 }}>Thank you for your visit</div>
         {showReturnPolicy && (
           <>
-            <div style={{ fontSize: '10px', color: '#333', fontWeight: 600, marginTop: '4px' }}>
-              المرتجعات خلال {returnPolicyDays} أيام مع الإيصال الأصلي
+            <div style={{ fontSize: '12px', color: '#333', fontWeight: 700, marginTop: '6px' }}>
+              المرتجعات خلال {returnPolicyDays} ايام مع الايصال الاصلي
             </div>
-            <div style={{ fontSize: '10px', color: '#333', fontWeight: 600 }}>
+            <div style={{ fontSize: '11px', color: '#333', fontWeight: 600 }}>
               Returns within {returnPolicyDays} days with original receipt
             </div>
           </>
         )}
       </div>
 
-      <div style={{ height: '10px' }} />
+      <div style={{ height: '16px' }} />
     </div>
   );
 });
 
 ReceiptTemplate.displayName = 'ReceiptTemplate';
+
+function Row({ label, value, bold, large }: { label: string; value: string; bold?: boolean; large?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '4px 0',
+      fontSize: large ? '18px' : '15px',
+      color: '#000',
+      fontWeight: bold ? 900 : 700,
+    }}>
+      <span>{label}</span>
+      <span style={{ fontWeight: bold ? 900 : 800 }}>{value}</span>
+    </div>
+  );
+}
 
 export default ReceiptTemplate;
