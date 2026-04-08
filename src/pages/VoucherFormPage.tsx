@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench } from "lucide-react";
+import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,6 +197,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   const [autoAllocate, setAutoAllocate] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const isCancelled = editVoucherStatus === "cancelled";
 
   // Attachments
   const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
@@ -1277,7 +1280,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   </style>
 </head>
 <body>
-<div class="voucher-container">
+<div class="voucher-container" style="position:relative;">
+  ${isCancelled ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;font-weight:900;color:rgba(220,38,38,0.1);font-family:Cairo;pointer-events:none;z-index:10;white-space:nowrap;">ملغي</div>` : ""}
   <!-- HEADER -->
   <div class="voucher-header">
     <div>
@@ -1447,10 +1451,93 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     toast.success("تم نسخ بيانات السند — أدخل المبلغ وارتبط بالفواتير");
   };
 
+  const handleCancelVoucher = async (reason: string, details: string) => {
+    if (!user || !editId) return;
+    try {
+      const table = isReceipt ? "receipt_vouchers" : "vouchers";
+
+      // 1. Reverse invoice paid amounts
+      const { data: links } = await supabase
+        .from("payment_invoice_links" as any)
+        .select("invoice_id, allocated_amount")
+        .eq("payment_id", editId);
+
+      if (links && links.length > 0) {
+        for (const link of links as any[]) {
+          const { data: inv } = await supabase
+            .from("invoices")
+            .select("paid_amount, total_amount")
+            .eq("id", link.invoice_id)
+            .maybeSingle();
+          if (inv) {
+            const newPaid = Math.max(0, (inv.paid_amount || 0) - (link.allocated_amount || 0));
+            const newRemaining = inv.total_amount - newPaid;
+            await supabase.from("invoices").update({
+              paid_amount: newPaid,
+              remaining_amount: newRemaining,
+              payment_status: newPaid <= 0 ? "unpaid" : "partial",
+            }).eq("id", link.invoice_id);
+          }
+        }
+        await supabase.from("payment_invoice_links" as any)
+          .delete()
+          .eq("payment_id", editId);
+      }
+
+      // 2. Cancel the voucher — DB trigger cascades to linked transaction
+      const cancelReason = reason + (details ? ` — ${details}` : "");
+      const { error } = await supabase
+        .from(table as any)
+        .update({ status: "cancelled" } as any)
+        .eq("id", editId);
+      if (error) throw error;
+
+      // 3. Audit trail
+      await supabase.from("document_edit_history" as any).insert({
+        document_id: editId,
+        document_type: isReceipt ? "receipt" : "payment",
+        old_data: { ref_number: refNumber, amount: amountNum, contact_name: selectedContact?.contact_name },
+        edit_reason: cancelReason,
+        edited_by: user.id,
+        user_id: user.id,
+        changes: { action: "cancel", reason: cancelReason },
+      } as any);
+
+      setEditVoucherStatus("cancelled");
+      setShowCancelModal(false);
+      toast.success(`تم إلغاء ${voucherLabel} بنجاح وعكس القيود المرتبطة ✅`);
+    } catch (err: any) {
+      toast.error(err.message || "فشل إلغاء السند");
+    }
+  };
   return (
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
+      {/* Cancelled Banner */}
+      {isCancelled && (
+        <div style={{
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '4px',
+          direction: 'rtl',
+          fontFamily: 'Cairo, sans-serif',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '20px' }}>🚫</span>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: '#DC2626', fontFamily: 'Cairo' }}>
+              تم إلغاء هذا السند
+            </span>
+          </div>
+          <div style={{ fontSize: '13px', color: '#991B1B', fontFamily: 'Cairo', lineHeight: 1.8 }}>
+            لا يمكن تعديل سند ملغي — يمكنك إنشاء سند جديد مشابه
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton />
@@ -1463,14 +1550,49 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       </div>
 
-      {/* Navigation Toolbar */}
-      <VoucherNavToolbar
-        voucherType={voucherType}
-        currentRef={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
-        onPrint={handlePrint}
-        onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
-        showNavigation={isEditMode || saved}
-      />
+      {/* Navigation Toolbar + Cancel Button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex-1">
+          <VoucherNavToolbar
+            voucherType={voucherType}
+            currentRef={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
+            onPrint={handlePrint}
+            onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
+            showNavigation={isEditMode || saved}
+          />
+        </div>
+        {isEditMode && !isCancelled && editVoucherStatus === "posted" && (
+          <button
+            onClick={() => setShowCancelModal(true)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: '1.5px solid #FCA5A5',
+              background: 'white',
+              color: '#DC2626',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: 'Cairo',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = '#FEF2F2';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#DC2626';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'white';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#FCA5A5';
+            }}
+          >
+            🚫 إلغاء السند
+          </button>
+        )}
+      </div>
 
       {/* Row 1: Basic Info */}
       <Card>
@@ -2107,25 +2229,51 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-        {!isEditMode ? (
-          <button onClick={() => handleSave(true)} disabled={saving}
-            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-            حفظ كمسودة
-          </button>
-        ) : <div />}
-        <div className="flex items-center gap-3">
+      {!isCancelled && (
+        <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
+          {!isEditMode ? (
+            <button onClick={() => handleSave(true)} disabled={saving}
+              className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+              حفظ كمسودة
+            </button>
+          ) : <div />}
+          <div className="flex items-center gap-3">
+            <button onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+              <Printer className="h-4 w-4" /> طباعة
+            </button>
+            <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
+              <Save className="h-4 w-4" />
+              {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled — only show print */}
+      {isCancelled && (
+        <div className="flex items-center justify-center bg-card rounded-2xl border border-border p-4">
           <button onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-            <Printer className="h-4 w-4" /> طباعة
-          </button>
-          <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
-            <Save className="h-4 w-4" />
-            {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+            <Printer className="h-4 w-4" /> طباعة (ملغي)
           </button>
         </div>
-      </div>
+      )}
+
+      {/* Cancel Modal */}
+      <VoucherCancelModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelVoucher}
+        voucherRef={refNumber}
+        voucherType={voucherType}
+        contactName={selectedContact?.contact_name || selectedGlAccount?.account_name || selectedEmployee?.full_name || ""}
+        amount={amountNum}
+        date={paymentDate}
+        paymentMethod={paymentMethod}
+        currencySymbol={currencySymbol}
+      />
     </div>
   );
 };
