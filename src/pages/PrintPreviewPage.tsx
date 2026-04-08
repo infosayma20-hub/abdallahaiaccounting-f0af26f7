@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
 import ReceiptTemplate from "@/components/pos/print-templates/ReceiptTemplate";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
+import { captureElementAsPng, printReceiptImage } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
   orderNumber: 5,
@@ -26,73 +26,42 @@ const SAMPLE_ORDER: PrintOrder = {
   tableNumber: "",
 };
 
+const SAMPLE_COMPANY_INFO = {
+  name: "مطعم الملكي",
+  phone: "",
+  address: "",
+  taxNumber: "",
+  terminalName: "نقطة بيع 1",
+  logoUrl: "/images/malaky-logo.png",
+};
+
 export default function PrintPreviewPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const handleDownload = async () => {
     if (!receiptRef.current) return;
+
     setDownloading(true);
     try {
-      await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 500));
-      const canvas = await html2canvas(receiptRef.current, {
-        backgroundColor: "#ffffff",
-        scale: 3,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        foreignObjectRendering: true,
-        onclone: (clonedDoc) => {
-          const style = clonedDoc.createElement('style');
-          style.innerHTML = `
-            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
-            * { font-family: 'Noto Sans Arabic', sans-serif !important; }
-          `;
-          clonedDoc.head.appendChild(style);
-        },
-      });
+      const image = await captureElementAsPng(receiptRef.current);
       const link = document.createElement("a");
       link.download = `receipt-preview-${Date.now()}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = image;
       link.click();
     } catch (err) {
       console.error("Download failed:", err);
+      alert("❌ فشل تحميل المعاينة");
     } finally {
       setDownloading(false);
     }
   };
 
   const handleTestPrint = async () => {
-    if (!receiptRef.current) return;
+    setPrinting(true);
     try {
-      await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 500));
-      const canvas = await html2canvas(receiptRef.current, {
-        backgroundColor: "#ffffff",
-        scale: 3,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        foreignObjectRendering: true,
-        onclone: (clonedDoc) => {
-          const style = clonedDoc.createElement('style');
-          style.innerHTML = `
-            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
-            * { font-family: 'Noto Sans Arabic', sans-serif !important; }
-          `;
-          clonedDoc.head.appendChild(style);
-        },
-      });
-      const image = canvas.toDataURL("image/png");
-      const res = await fetch("http://192.168.1.65:3001/print-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, printerKey: "receipt" }),
-        mode: "cors",
-        signal: AbortSignal.timeout(15000),
-      });
-      const result = await res.json();
+      const result = await printReceiptImage(SAMPLE_ORDER, SAMPLE_COMPANY_INFO);
       if (result.success) {
         alert("✅ تم إرسال الطباعة بنجاح");
       } else {
@@ -100,35 +69,35 @@ export default function PrintPreviewPage() {
       }
     } catch (err: any) {
       alert("❌ لا يمكن الاتصال بالطابعة: " + err.message);
+    } finally {
+      setPrinting(false);
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f0f0", padding: "20px 0" }}>
-      {/* Controls */}
-      <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 20 }}>
-        <Button onClick={handleTestPrint} className="gap-2">
-          <Printer className="w-4 h-4" />
-          طباعة تجريبية
+    <div className="min-h-screen bg-muted py-5">
+      <div className="mb-5 flex justify-center gap-3">
+        <Button onClick={handleTestPrint} className="gap-2" disabled={printing}>
+          <Printer className="h-4 w-4" />
+          {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
         </Button>
         <Button onClick={handleDownload} variant="outline" className="gap-2" disabled={downloading}>
-          <Download className="w-4 h-4" />
+          <Download className="h-4 w-4" />
           {downloading ? "جاري التحميل..." : "تحميل PNG"}
         </Button>
       </div>
 
-      {/* Receipt - exact 302px width, no shadow, no extra padding */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <div style={{ width: 302, background: "#fff" }}>
+      <div className="flex justify-center">
+        <div className="bg-background" style={{ width: 302 }}>
           <ReceiptTemplate
             ref={receiptRef}
             order={SAMPLE_ORDER}
-            companyName="مطعم الملكي"
-            companyPhone=""
-            companyAddress=""
-            taxNumber=""
-            terminalName="نقطة بيع 1"
-            logoUrl="/images/malaky-logo.png"
+            companyName={SAMPLE_COMPANY_INFO.name}
+            companyPhone={SAMPLE_COMPANY_INFO.phone}
+            companyAddress={SAMPLE_COMPANY_INFO.address}
+            taxNumber={SAMPLE_COMPANY_INFO.taxNumber}
+            terminalName={SAMPLE_COMPANY_INFO.terminalName}
+            logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
             showReturnPolicy={true}
             returnPolicyDays={7}
           />
