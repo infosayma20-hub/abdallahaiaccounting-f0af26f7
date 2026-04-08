@@ -147,6 +147,7 @@ const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPr
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
+const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
