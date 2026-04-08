@@ -112,36 +112,34 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     try {
       const table = isReceipt ? "receipt_vouchers" : "vouchers";
       
-      // If receipt voucher, reverse invoice paid amounts before cancelling
-      if (isReceipt) {
-        const { data: links } = await supabase
-          .from("payment_invoice_links" as any)
-          .select("invoice_id, allocated_amount")
-          .eq("payment_id", deleteTarget.id);
-        
-        if (links && links.length > 0) {
-          for (const link of links as any[]) {
-            const { data: inv } = await supabase
-              .from("invoices")
-              .select("paid_amount, total_amount")
-              .eq("id", link.invoice_id)
-              .maybeSingle();
-            
-            if (inv) {
-              const newPaid = Math.max(0, (inv.paid_amount || 0) - (link.allocated_amount || 0));
-              const newRemaining = inv.total_amount - newPaid;
-              await supabase.from("invoices").update({
-                paid_amount: newPaid,
-                remaining_amount: newRemaining,
-                payment_status: newPaid <= 0 ? "unpaid" : "partial",
-              }).eq("id", link.invoice_id);
-            }
+      // Reverse invoice paid amounts before cancelling (works for both receipt and payment vouchers)
+      const { data: links } = await supabase
+        .from("payment_invoice_links" as any)
+        .select("invoice_id, allocated_amount")
+        .eq("payment_id", deleteTarget.id);
+      
+      if (links && links.length > 0) {
+        for (const link of links as any[]) {
+          const { data: inv } = await supabase
+            .from("invoices")
+            .select("paid_amount, total_amount")
+            .eq("id", link.invoice_id)
+            .maybeSingle();
+          
+          if (inv) {
+            const newPaid = Math.max(0, (inv.paid_amount || 0) - (link.allocated_amount || 0));
+            const newRemaining = inv.total_amount - newPaid;
+            await supabase.from("invoices").update({
+              paid_amount: newPaid,
+              remaining_amount: newRemaining,
+              payment_status: newPaid <= 0 ? "unpaid" : "partial",
+            }).eq("id", link.invoice_id);
           }
-          // Delete the payment_invoice_links
-          await supabase.from("payment_invoice_links" as any)
-            .delete()
-            .eq("payment_id", deleteTarget.id);
         }
+        // Delete the payment_invoice_links
+        await supabase.from("payment_invoice_links" as any)
+          .delete()
+          .eq("payment_id", deleteTarget.id);
       }
       
       // Cancel the voucher — DB trigger handles cascading to linked transaction
