@@ -240,6 +240,7 @@ export default function PortalDashboard() {
 
   const renderContent = () => {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
+    if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
     switch (activeTab) {
       case 'home': return renderHome();
       case 'finance': return renderFinance();
