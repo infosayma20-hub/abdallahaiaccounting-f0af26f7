@@ -545,6 +545,7 @@ export default function PortalDashboard() {
                   setActiveIndex(idx);
                   setShowMore(false);
                   setShowTasksPage(false);
+                  setShowEmployeeRequests(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
