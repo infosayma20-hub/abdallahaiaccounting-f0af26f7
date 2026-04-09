@@ -177,6 +177,68 @@ Deno.serve(async (req) => {
       return json({ success: true, total: orderNumbers.length, deleted: succeeded, failed, details: results });
     }
 
+    // ── Handle order_status_updated from Qamar trigger webhook ──
+    if (body.event === "order_status_updated" || body.event_type === "order_status_updated") {
+      const orderNumber = body.order_number;
+      if (!orderNumber) return json({ error: "Missing order_number" }, 400);
+
+      const { data: existingOrder } = await supabase
+        .from("qamar_orders")
+        .select("id, status")
+        .eq("reference_number", orderNumber)
+        .eq("user_id", DEFAULT_OWNER_ID)
+        .maybeSingle();
+
+      if (!existingOrder) {
+        return json({ error: "Order not found", order_number: orderNumber }, 404);
+      }
+
+      const newStatusEn = body.new_status?.toLowerCase();
+      const arabicNewStatus = statusMapToArabic[newStatusEn] || body.new_status || existingOrder.status;
+      const oldStatus = existingOrder.status;
+
+      if (oldStatus === arabicNewStatus) {
+        return json({ success: true, skipped: true, message: "Status unchanged" });
+      }
+
+      const { error: updateErr } = await supabase
+        .from("qamar_orders")
+        .update({
+          status: arabicNewStatus,
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq("id", existingOrder.id);
+
+      if (updateErr) return json({ error: updateErr.message }, 500);
+
+      await supabase.from("order_status_log").insert({
+        user_id: DEFAULT_OWNER_ID,
+        order_id: existingOrder.id,
+        order_table: "qamar_orders",
+        from_status: oldStatus,
+        to_status: arabicNewStatus,
+        changed_by: DEFAULT_OWNER_ID,
+        changed_by_name: body.updated_by || "قمر براند (trigger)",
+        changed_by_role: "external_system",
+        notes: `تحديث حالة تلقائي من قمر براند`,
+        metadata: {
+          sync_type: "order_status_updated",
+          source: "qamar_trigger",
+          old_status_en: body.old_status,
+          new_status_en: body.new_status,
+          qamar_order_id: body.order_id,
+          updated_at: body.updated_at,
+        },
+      });
+
+      return json({
+        success: true,
+        order_number: orderNumber,
+        from_status: oldStatus,
+        to_status: arabicNewStatus,
+      });
+    }
+
     if (!order) {
       return json({ error: "Missing order data" }, 400);
     }
