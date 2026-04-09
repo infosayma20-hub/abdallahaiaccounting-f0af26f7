@@ -136,6 +136,7 @@ export default function PortalDashboard() {
   const [homeLoading, setHomeLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [showTasksPage, setShowTasksPage] = useState(false);
+  const [showEmployeeRequests, setShowEmployeeRequests] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -227,7 +228,8 @@ export default function PortalDashboard() {
   ];
 
   const moreItems = [
-    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setActiveTab('home'); /* render tasks inline */ setShowTasksPage(true); } },
+    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowTasksPage(true); } },
+    { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
@@ -238,6 +240,7 @@ export default function PortalDashboard() {
 
   const renderContent = () => {
     if (showTasksPage) return <PortalTasksTab theme={themeMode} />;
+    if (showEmployeeRequests) return <PortalEmployeeRequestsTab theme={themeMode} />;
     switch (activeTab) {
       case 'home': return renderHome();
       case 'finance': return renderFinance();
@@ -542,6 +545,7 @@ export default function PortalDashboard() {
                   setActiveIndex(idx);
                   setShowMore(false);
                   setShowTasksPage(false);
+                  setShowEmployeeRequests(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{
