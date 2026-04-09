@@ -228,7 +228,8 @@ export default function PortalDashboard() {
   ];
 
   const moreItems = [
-    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setActiveTab('home'); /* render tasks inline */ setShowTasksPage(true); } },
+    { label: 'المهام', icon: ClipboardList, action: () => { setShowMore(false); setShowEmployeeRequests(false); setActiveTab('home'); setShowTasksPage(true); } },
+    { label: 'طلبات الموظفين', icon: FileText, action: () => { setShowMore(false); setShowTasksPage(false); setActiveTab('home'); setShowEmployeeRequests(true); } },
     { label: 'المتجر', icon: Store, action: () => { setShowMore(false); switchTab('reports'); } },
     { label: 'الموردين', icon: Factory, action: () => { setShowMore(false); switchTab('finance'); setFinanceSection('suppliers'); } },
     { label: darkMode ? 'الوضع الفاتح' : 'الوضع الداكن', icon: darkMode ? Sun : Moon, action: toggleTheme },
