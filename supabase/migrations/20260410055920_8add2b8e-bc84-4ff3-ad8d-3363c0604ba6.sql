@@ -1,0 +1,1 @@
+ALTER TABLE public.qamar_orders ADD COLUMN IF NOT EXISTS last_synced_at timestamptz DEFAULT NULL;
