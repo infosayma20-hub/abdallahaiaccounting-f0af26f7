@@ -186,41 +186,27 @@ export async function printAllImage(
   kitchenJobs?: KitchenJob[],
 ): Promise<PrintImageResult> {
   try {
-    // TEMPORARY: Send ALL items to ALL kitchen printers for hardware testing
-    const promises: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [];
+    const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
+    const kitchenOrder = toBridgeKitchenOrder(order, order.items);
 
-    // Receipt
-    promises.push(
-      bridgeFetch('/print-receipt', { order: toBridgeReceiptOrder(order, companyInfo) })
+    const results = await Promise.all([
+      bridgeFetch('/print-receipt', { order: receiptOrder })
         .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
-        .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message }))
-    );
+        .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'kitchen', stationLabel: 'المطبخ' })
+        .then((r: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: r.success, error: r.error }))
+        .catch((err: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: false, error: err.message })),
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'grill', stationLabel: 'السخان' })
+        .then((r: any) => ({ printerKey: 'grill', name: 'السخان', success: r.success, error: r.error }))
+        .catch((err: any) => ({ printerKey: 'grill', name: 'السخان', success: false, error: err.message })),
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'pizza', stationLabel: 'البيتزا' })
+        .then((r: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: r.success, error: r.error }))
+        .catch((err: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: false, error: err.message })),
+    ]);
 
-    // All items → all 3 kitchen printers (unfiltered — temporary for testing)
-    for (const station of ALL_STATIONS) {
-      const payload = {
-        order: toBridgeKitchenOrder(order, order.items),
-        printerKey: station.key,
-        stationLabel: station.label,
-      };
-      console.log(`[printAllImage] Kitchen → POST /print-kitchen | printerKey="${station.key}" | stationLabel="${station.label}" | items=${order.items.length}`);
-      promises.push(
-        bridgeFetch('/print-kitchen', payload)
-          .then((r: any) => {
-            console.log(`[printAllImage] Kitchen result: ${station.key} →`, r);
-            return { printerKey: station.key, name: station.label, success: r.success, error: r.error };
-          })
-          .catch((err: any) => {
-            console.error(`[printAllImage] Kitchen error: ${station.key} →`, err.message);
-            return { printerKey: station.key, name: station.label, success: false, error: err.message };
-          })
-      );
-    }
-
-    const allResults = await Promise.all(promises);
     return {
-      success: allResults.filter(r => r.printerKey === 'receipt').every(r => r.success),
-      results: allResults,
+      success: results.every(r => r.success),
+      results,
     };
   } catch (err: any) {
     console.error('[printAllImage]', err);
