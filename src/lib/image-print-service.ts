@@ -196,16 +196,24 @@ export async function printAllImage(
         .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message }))
     );
 
-    // All items → all 3 kitchen printers (unfiltered)
+    // All items → all 3 kitchen printers (unfiltered — temporary for testing)
     for (const station of ALL_STATIONS) {
+      const payload = {
+        order: toBridgeKitchenOrder(order, order.items),
+        printerKey: station.key,
+        stationLabel: station.label,
+      };
+      console.log(`[printAllImage] Kitchen → POST /print-kitchen | printerKey="${station.key}" | stationLabel="${station.label}" | items=${order.items.length}`);
       promises.push(
-        bridgeFetch('/print-kitchen', {
-          order: toBridgeKitchenOrder(order, order.items),
-          printerKey: station.key,
-          stationLabel: station.label,
-        })
-          .then((r: any) => ({ printerKey: station.key, name: station.label, success: r.success, error: r.error }))
-          .catch((err: any) => ({ printerKey: station.key, name: station.label, success: false, error: err.message }))
+        bridgeFetch('/print-kitchen', payload)
+          .then((r: any) => {
+            console.log(`[printAllImage] Kitchen result: ${station.key} →`, r);
+            return { printerKey: station.key, name: station.label, success: r.success, error: r.error };
+          })
+          .catch((err: any) => {
+            console.error(`[printAllImage] Kitchen error: ${station.key} →`, err.message);
+            return { printerKey: station.key, name: station.label, success: false, error: err.message };
+          })
       );
     }
 
