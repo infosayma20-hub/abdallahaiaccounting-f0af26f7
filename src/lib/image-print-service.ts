@@ -114,14 +114,19 @@ function buildCaptureOptions(target: HTMLElement, foreignObjectRendering: boolea
     windowWidth: width,
     windowHeight: height,
     onclone: (clonedDoc: Document) => {
+      clonedDoc.documentElement.setAttribute('dir', 'rtl');
+      clonedDoc.documentElement.setAttribute('lang', 'ar');
       const style = clonedDoc.createElement('style');
       style.textContent = `
         * { font-family: 'Noto Sans Arabic', 'Cairo', sans-serif !important; }
-        html, body { background: #ffffff !important; }
+        html, body { background: #ffffff !important; direction: rtl !important; unicode-bidi: embed !important; }
       `;
       clonedDoc.head.appendChild(style);
       const clonedTarget = clonedDoc.querySelector('[data-receipt-capture-root="true"]') as HTMLElement | null;
-      if (clonedTarget) clonedTarget.style.backgroundColor = '#ffffff';
+      if (clonedTarget) {
+        clonedTarget.style.backgroundColor = '#ffffff';
+        clonedTarget.style.direction = 'rtl';
+      }
     },
   };
 }
@@ -165,7 +170,9 @@ async function renderComponentToImage(
   await ensureFont();
 
   const container = document.createElement('div');
-  container.style.cssText = `position:absolute;left:-9999px;top:0;width:${width}px;background:#fff;`;
+  container.setAttribute('dir', 'rtl');
+  container.setAttribute('lang', 'ar');
+  container.style.cssText = `position:absolute;left:-9999px;top:0;width:${width}px;background:#fff;direction:rtl;unicode-bidi:embed;`;
   document.body.appendChild(container);
 
   const root = createRoot(container);
