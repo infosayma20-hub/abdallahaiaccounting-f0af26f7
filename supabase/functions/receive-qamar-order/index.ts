@@ -178,6 +178,86 @@ Deno.serve(async (req) => {
       return json({ success: true, total: orderNumbers.length, deleted: succeeded, failed, details: results });
     }
 
+    // ── Handle status_update event (top-level body from Qamar supervisor) ──
+    if (body.event === "status_update" && body.reference_number) {
+      const orderNumber = body.reference_number;
+      const newStatusEn = body.status?.toLowerCase();
+      const arabicNewStatus = statusMapToArabic[newStatusEn] || body.status;
+
+      const { data: existingOrder } = await supabase
+        .from("qamar_orders")
+        .select("id, status, total")
+        .eq("reference_number", orderNumber)
+        .eq("user_id", DEFAULT_OWNER_ID)
+        .maybeSingle();
+
+      if (!existingOrder) {
+        return json({ success: false, error: "Order not found" }, 404);
+      }
+
+      const oldStatus = existingOrder.status;
+
+      // Build update payload
+      const updatePayload: Record<string, unknown> = {
+        status: arabicNewStatus,
+        last_synced_at: new Date().toISOString(),
+      };
+
+      const isReadyToInvoice = newStatusEn === "ready_to_invoice";
+      if (isReadyToInvoice) {
+        if (body.production_cost != null) updatePayload.production_cost = body.production_cost;
+        if (body.cost_breakdown != null) updatePayload.cost_breakdown = body.cost_breakdown;
+        if (body.gross_profit != null) {
+          updatePayload.gross_profit = body.gross_profit;
+        } else if (body.production_cost != null && existingOrder.total != null) {
+          updatePayload.gross_profit = existingOrder.total - body.production_cost;
+        }
+      }
+
+      const { error: updateErr } = await supabase
+        .from("qamar_orders")
+        .update(updatePayload)
+        .eq("id", existingOrder.id);
+
+      if (updateErr) return json({ success: false, error: updateErr.message }, 500);
+
+      // Log status change
+      const logNotes = isReadyToInvoice
+        ? `تم تأكيد الاستلام من الإشراف — جاهز للفوترة | تكلفة: ₪${body.production_cost ?? 0}`
+        : (body.notes || "تحديث حالة من قمر براند");
+
+      await supabase.from("order_status_log").insert({
+        user_id: DEFAULT_OWNER_ID,
+        order_id: existingOrder.id,
+        order_table: "qamar_orders",
+        from_status: oldStatus,
+        to_status: arabicNewStatus,
+        changed_by: DEFAULT_OWNER_ID,
+        changed_by_name: body.updated_by || "قمر براند (مشرف)",
+        changed_by_role: "external_system",
+        notes: logNotes,
+        metadata: {
+          sync_type: "status_update",
+          source: "qamar_supervisor",
+          old_status_en: body.old_status,
+          new_status_en: body.status,
+          updated_at: body.updated_at,
+          ...(isReadyToInvoice ? {
+            supervisor_confirmed: true,
+            production_cost: body.production_cost,
+            cost_breakdown: body.cost_breakdown,
+            gross_profit: body.gross_profit ?? ((existingOrder.total ?? 0) - (body.production_cost ?? 0)),
+          } : {}),
+        },
+      });
+
+      return json({
+        success: true,
+        amwali_order_id: existingOrder.id,
+        message: `تم تحديث الحالة إلى ${arabicNewStatus}`,
+      });
+    }
+
     // ── Handle order_status_updated from Qamar trigger webhook ──
     if (body.event === "order_status_updated" || body.event_type === "order_status_updated") {
       const orderNumber = body.order_number;
