@@ -253,52 +253,38 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
 }
 
 /**
- * Print a shift summary report.
+ * Print a shift summary report via server-side rendering (Image Mode).
+ * Sends JSON data to the bridge which renders using node-canvas.
  */
 export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promise<PrintImageResult> {
-  // Shift summary still uses html2canvas since it's a complex report
-  // TODO: Add /print-shift-summary route to bridge v4
   try {
-    const { createRoot } = await import("react-dom/client");
-    const { createElement } = await import("react");
-    const { default: ShiftSummaryTemplate } = await import("@/components/pos/print-templates/ShiftSummaryTemplate");
-
-    await ensureFont();
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    document.body.appendChild(container);
-
-    const root = createRoot(container);
-
-    return new Promise<PrintImageResult>((resolve) => {
-      root.render(createElement(ShiftSummaryTemplate, { data }));
-
-      setTimeout(async () => {
-        try {
-          const target = container.firstElementChild as HTMLElement;
-          if (!target) throw new Error('Template not rendered');
-
-          const base64 = await captureElementAsPng(target);
-          root.unmount();
-          document.body.removeChild(container);
-
-          // Send to bridge legacy endpoint
-          const res = await fetch(`${BRIDGE_URL}/print-image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: base64, printerKey: 'receipt' }),
-            mode: 'cors',
-            signal: AbortSignal.timeout(15000),
-          });
-          const result = await res.json();
-          resolve({ success: result.success, error: result.error });
-        } catch (err: any) {
-          resolve({ success: false, error: err.message });
-        }
-      }, 600);
+    const result = await bridgeFetch('/print-shift-summary', {
+      companyName: data.companyName,
+      logoUrl: data.logoUrl,
+      terminalName: data.terminalName,
+      cashierName: data.cashierName,
+      cashBoxName: data.cashBoxName,
+      openedAt: data.openedAt,
+      closedAt: data.closedAt,
+      openingCash: data.openingCash,
+      totalSales: data.totalSales,
+      totalExpenses: data.totalExpenses,
+      totalOrders: data.totalOrders,
+      closingCash: data.closingCash,
+      closingCashUSD: data.closingCashUSD,
+      closingCashJOD: data.closingCashJOD,
+      expectedCash: data.expectedCash,
+      expectedCashUSD: data.expectedCashUSD,
+      expectedCashJOD: data.expectedCashJOD,
+      variance: data.variance,
+      varianceILS: data.varianceILS,
+      varianceUSD: data.varianceUSD,
+      varianceJOD: data.varianceJOD,
+      currencyBreakdown: data.currencyBreakdown,
+      paymentMethodBreakdown: data.paymentMethodBreakdown,
+      printer: 'receipt',
     });
+    return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printShiftSummaryImage]', err);
     return { success: false, error: err.message };
