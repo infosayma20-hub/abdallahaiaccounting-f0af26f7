@@ -7,7 +7,6 @@
  *   POST /print-receipt  → JSON order → bridge renders & prints
  *   POST /print-kitchen  → JSON order + printerKey → bridge renders & prints
  *   POST /print-shift    → JSON session → bridge renders & prints
- *   POST /print-image    → base64 image (legacy fallback)
  *   GET  /health
  */
 
@@ -20,6 +19,13 @@ interface PrintImageResult {
   success: boolean;
   error?: string;
   results?: { printerKey: string; name?: string; success: boolean; error?: string }[];
+}
+
+/** Kitchen job — a filtered set of items for one station printer */
+export interface KitchenJob {
+  printerKey: string;
+  stationLabel: string;
+  items: PrintItem[];
 }
 
 // ──────────────────────────────────────────
@@ -47,7 +53,10 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
-    branchName: companyInfo?.name || order.branchName,
+    branchName: order.branchName,
+    companyName: companyInfo?.name || order.branchName,
+    companyPhone: companyInfo?.phone,
+    taxNumber: companyInfo?.taxNumber,
     cashierName: order.cashier,
     orderType: order.orderType,
     tableNumber: order.tableNumber,
@@ -80,7 +89,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
 // Station mapping
 // ──────────────────────────────────────────
 
-const STATION_TO_PRINTER: Record<string, { key: string; label: string }> = {
+export const STATION_TO_PRINTER: Record<string, { key: string; label: string }> = {
   'a09ebd1b-392c-42b2-a8a7-d180fdde1f97': { key: 'kitchen', label: 'المطبخ' },
   '4f64e6b4-89ab-4e22-b935-52f3ec665e54': { key: 'grill', label: 'السخان' },
   '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516': { key: 'pizza', label: 'البيتزا' },
@@ -137,13 +146,12 @@ export async function printReceiptImage(
 }
 
 /**
- * Print kitchen tickets — sends to all station printers.
+ * Print kitchen tickets — sends to all station printers (unfiltered).
+ * Prefer printAllImage() with kitchenJobs for filtered station printing.
  */
 export async function printKitchenTicketsImage(order: PrintOrder): Promise<PrintImageResult> {
   try {
-    const results: PrintImageResult['results'] = [];
-
-    for (const station of ALL_STATIONS) {
+    const promises = ALL_STATIONS.map(async (station) => {
       try {
         const kitchenOrder = toBridgeKitchenOrder(order, order.items);
         const result = await bridgeFetch('/print-kitchen', {
@@ -151,12 +159,13 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
           printerKey: station.key,
           stationLabel: station.label,
         });
-        results.push({ printerKey: station.key, name: station.label, success: result.success, error: result.error });
+        return { printerKey: station.key, name: station.label, success: result.success, error: result.error };
       } catch (err: any) {
-        results.push({ printerKey: station.key, name: station.label, success: false, error: err.message });
+        return { printerKey: station.key, name: station.label, success: false, error: err.message };
       }
-    }
+    });
 
+    const results = await Promise.all(promises);
     return { success: results.every(r => r.success), results };
   } catch (err: any) {
     console.error('[printKitchenTicketsImage]', err);
@@ -165,40 +174,51 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
 }
 
 /**
- * Print everything: receipt + all kitchen tickets.
+ * Print everything: receipt + filtered kitchen tickets — all in parallel.
+ * 
+ * @param order       — The full order for receipt printing
+ * @param companyInfo — Company details for receipt header
+ * @param kitchenJobs — Optional filtered jobs per station. If omitted, sends all items to all stations (legacy).
  */
 export async function printAllImage(
   order: PrintOrder,
-  companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string }
+  companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; terminalName?: string },
+  kitchenJobs?: KitchenJob[],
 ): Promise<PrintImageResult> {
   try {
-    const allResults: { printerKey: string; name?: string; success: boolean; error?: string }[] = [];
+    // Build all print promises in parallel
+    const promises: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [];
 
     // Receipt
-    const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
-    try {
-      const r = await bridgeFetch('/print-receipt', { order: receiptOrder });
-      allResults.push({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error });
-    } catch (err: any) {
-      allResults.push({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message });
+    promises.push(
+      bridgeFetch('/print-receipt', { order: toBridgeReceiptOrder(order, companyInfo) })
+        .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
+        .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message }))
+    );
+
+    // Kitchen tickets — use filtered jobs if provided, otherwise send all items to all stations
+    const jobs = kitchenJobs && kitchenJobs.length > 0
+      ? kitchenJobs
+      : ALL_STATIONS.map(s => ({ printerKey: s.key, stationLabel: s.label, items: order.items }));
+
+    for (const job of jobs) {
+      if (job.items.length === 0) continue; // Skip empty stations
+      promises.push(
+        bridgeFetch('/print-kitchen', {
+          order: toBridgeKitchenOrder(order, job.items),
+          printerKey: job.printerKey,
+          stationLabel: job.stationLabel,
+        })
+          .then((r: any) => ({ printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error }))
+          .catch((err: any) => ({ printerKey: job.printerKey, name: job.stationLabel, success: false, error: err.message }))
+      );
     }
 
-    // Kitchen tickets
-    for (const station of ALL_STATIONS) {
-      try {
-        const kitchenOrder = toBridgeKitchenOrder(order, order.items);
-        const result = await bridgeFetch('/print-kitchen', {
-          order: kitchenOrder,
-          printerKey: station.key,
-          stationLabel: station.label,
-        });
-        allResults.push({ printerKey: station.key, name: station.label, success: result.success, error: result.error });
-      } catch {
-        // Skip failed
-      }
-    }
-
-    return { success: allResults.filter(r => r.printerKey === 'receipt').every(r => r.success), results: allResults };
+    const allResults = await Promise.all(promises);
+    return {
+      success: allResults.filter(r => r.printerKey === 'receipt').every(r => r.success),
+      results: allResults,
+    };
   } catch (err: any) {
     console.error('[printAllImage]', err);
     return { success: false, error: err.message };
@@ -301,7 +321,6 @@ export async function captureElementAsPng(target: HTMLElement): Promise<string> 
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, rect.width, rect.height);
 
-  // Use experimental SVG foreignObject approach
   const data = new XMLSerializer().serializeToString(target);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${rect.width}" height="${rect.height}">
     <foreignObject width="100%" height="100%">
@@ -331,7 +350,6 @@ export async function getReceiptPreviewPng(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; terminalName?: string }
 ): Promise<string> {
-  // For preview, we render the React template and capture it
   const { createRoot } = await import("react-dom/client");
   const { createElement } = await import("react");
   const { default: ReceiptTemplate } = await import("@/components/pos/print-templates/ReceiptTemplate");

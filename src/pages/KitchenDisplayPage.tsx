@@ -199,7 +199,7 @@ export default function KitchenDisplayPage() {
       })),
       total: 0,
     };
-    printStationTicketImage(bridgeOrder, "", bridgeOrder.items).catch(() => {
+    printStationTicketImage(bridgeOrder, ticket.station_id || "", bridgeOrder.items).catch(() => {
       console.warn("Print bridge unavailable");
     });
 
