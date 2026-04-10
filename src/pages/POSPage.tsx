@@ -39,7 +39,7 @@ import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import { sendToBridge } from "@/lib/print-bridge-client";
-import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage } from "@/lib/image-print-service";
+import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import PurchaseModal from "@/components/pos/PurchaseModal";
@@ -2647,41 +2647,8 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true); // Show receipt for viewing (print is still silent via bridge)
 
-      // Fire-and-forget: send to print bridge (local thermal printers)
-      try {
-        const bridgeOrder: BridgePrintOrder = {
-          id: orderId,
-          orderNumber: res.order_number,
-          branchName: company?.name || "مطعم الملكي",
-          cashier: session.cashier_name,
-          tableNumber: activeOrder.tableName || undefined,
-          orderType: activeOrder.orderType,
-          items: cart.map(item => ({
-            id: item.product_id || item.id,
-            name: item.name,
-            quantity: item.qty,
-            price: item.unit_price,
-            note: item.note || undefined,
-            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
-          })),
-          subtotal: cartTotals.subtotal,
-          discount: effectiveDiscount,
-          total: effectiveTotal,
-          paymentMethod: effectivePaymentMethod === "cash" ? "نقد" : effectivePaymentMethod === "card" ? "بطاقة" : "تحويل",
-          currency: paymentCurrency,
-          exchangeRate: rate,
-          tenderedAmount: tendered,
-          change: changeILS,
-          orderNote,
-        };
-
-        // Image Mode: Print receipt + kitchen tickets as rendered images
-        printAllImage(bridgeOrder).catch(() => console.warn("Image print failed"));
-      } catch (printErr) {
-        console.warn("Print bridge error:", printErr);
-      }
-
-      // Create kitchen tickets (split by station)
+      // Create kitchen tickets (split by station) + print via bridge
+      let kitchenJobs: KitchenJob[] = [];
       try {
         const { data: stationsData } = await supabase
           .from("kitchen_stations")
@@ -2712,7 +2679,7 @@ const POSPage = () => {
             });
           });
 
-          // Create a ticket per station
+          // Create a ticket per station in DB
           const ticketInserts = Object.entries(stationItems).map(([stationId, items]) => ({
             user_id: dataOwnerId,
             order_id: orderId,
@@ -2724,9 +2691,71 @@ const POSPage = () => {
           if (ticketInserts.length > 0) {
             await supabase.from("kitchen_tickets").insert(ticketInserts as any);
           }
+
+          // Build filtered kitchen print jobs
+          kitchenJobs = Object.entries(stationItems)
+            .map(([stationId, items]) => {
+              const printer = STATION_TO_PRINTER[stationId] || { key: 'kitchen', label: 'المطبخ' };
+              return {
+                printerKey: printer.key,
+                stationLabel: printer.label,
+                items: items.map(i => ({
+                  id: i.name,
+                  name: i.name,
+                  quantity: i.qty,
+                  price: 0,
+                  note: i.note || undefined,
+                  modifiers: (i.modifiers || []).map((m: any) => ({ option_name: m.option_name, extra_price: m.extra_price })),
+                })),
+              };
+            })
+            .filter(j => j.items.length > 0);
         }
       } catch (err) {
         console.error("Kitchen ticket creation error:", err);
+      }
+
+      // Fire-and-forget: send to print bridge (receipt + filtered kitchen tickets in parallel)
+      try {
+        const bridgeOrder: BridgePrintOrder = {
+          id: orderId,
+          orderNumber: res.order_number,
+          queueNumber: queueNumber || undefined,
+          branchName: company?.name || "مطعم الملكي",
+          cashier: session.cashier_name,
+          tableNumber: activeOrder.tableName || undefined,
+          orderType: activeOrder.orderType,
+          items: cart.map(item => ({
+            id: item.product_id || item.id,
+            name: item.name,
+            quantity: item.qty,
+            price: item.unit_price,
+            note: item.note || undefined,
+            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
+          })),
+          subtotal: cartTotals.subtotal,
+          discount: effectiveDiscount,
+          total: effectiveTotal,
+          paymentMethod: effectivePaymentMethod === "cash" ? "نقد" : effectivePaymentMethod === "card" ? "بطاقة" : "تحويل",
+          currency: paymentCurrency,
+          exchangeRate: rate,
+          tenderedAmount: tendered,
+          change: changeILS,
+          orderNote,
+        };
+
+        const companyPrintInfo = {
+          name: company?.name,
+          phone: company?.phone || undefined,
+          taxNumber: company?.tax_number || undefined,
+          terminalName: posDisplayName || undefined,
+        };
+
+        // Print receipt + filtered kitchen tickets — all in parallel
+        printAllImage(bridgeOrder, companyPrintInfo, kitchenJobs.length > 0 ? kitchenJobs : undefined)
+          .catch(() => console.warn("Image print failed"));
+      } catch (printErr) {
+        console.warn("Print bridge error:", printErr);
       }
 
       // Auto-open cash drawer after successful payment
