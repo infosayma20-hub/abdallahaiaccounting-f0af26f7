@@ -175,32 +175,6 @@ app.post('/print-image', async (req, res) => {
   }
 });
 
-// ── /print-images — Batch: send multiple images to multiple printers ──
-// Accepts: { jobs: [{ image, printerKey }, ...] }
-app.post('/print-images', async (req, res) => {
-  const { jobs } = req.body;
-  if (!jobs || !Array.isArray(jobs)) {
-    return res.status(400).json({ success: false, error: 'Missing jobs array' });
-  }
-
-  const results = [];
-  for (const job of jobs) {
-    const printer = PRINTERS[job.printerKey];
-    if (!printer) {
-      results.push({ printerKey: job.printerKey, success: false, error: 'Unknown printer' });
-      continue;
-    }
-    try {
-      const escposBuffer = await imageToEscPos(job.image, printer.width);
-      await sendToPrinter(printer.ip, printer.port, escposBuffer);
-      results.push({ printerKey: job.printerKey, name: printer.name, success: true });
-    } catch (err) {
-      results.push({ printerKey: job.printerKey, name: printer.name, success: false, error: err.message });
-    }
-  }
-
-  res.json({ success: results.every(r => r.success), results });
-});
 
 // ── /test — test print by printer key ──
 app.post('/test', async (req, res) => {
