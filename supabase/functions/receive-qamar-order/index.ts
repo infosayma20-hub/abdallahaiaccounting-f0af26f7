@@ -20,6 +20,7 @@ const statusMapToArabic: Record<string, string> = {
   confirmed: "مؤكد",
   in_production: "قيد التصنيع",
   inspection: "جاهز للفحص",
+  ready_to_invoice: "جاهز للفوترة",
   ready_delivery: "جاهز للتسليم",
   delivering: "قيد التوصيل",
   delivered: "تم التسليم",
@@ -408,19 +409,42 @@ Deno.serve(async (req) => {
     } else if (syncType === "status_update" && existing) {
       // Only update status + log
       const oldStatus = existing.status;
+
+      // Build update payload
+      const updatePayload: Record<string, unknown> = {
+        status: arabicStatus,
+        last_synced_at: new Date().toISOString(),
+      };
+
+      // Enhanced: when ready_to_invoice, also update production data + payment
+      const isReadyToInvoice = order.status?.toLowerCase() === "ready_to_invoice";
+      if (isReadyToInvoice) {
+        if (order.production_cost != null) updatePayload.production_cost = order.production_cost;
+        if (order.cost_breakdown != null) updatePayload.cost_breakdown = order.cost_breakdown;
+        if (order.gross_profit != null) {
+          updatePayload.gross_profit = order.gross_profit;
+        } else if (order.production_cost != null && order.total != null) {
+          updatePayload.gross_profit = order.total - order.production_cost;
+        }
+        if (order.payment != null) updatePayload.payment = order.payment;
+        if (order.payment?.status) updatePayload.payment_status = order.payment.status;
+        if (order.synced_at) updatePayload.synced_at = order.synced_at;
+      }
+
       const { error: updateErr } = await supabase
         .from("qamar_orders")
-        .update({
-          status: arabicStatus,
-          last_synced_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", existing.id);
 
       if (updateErr) {
         return json({ error: updateErr.message }, 500);
       }
 
-      // Log status change
+      // Log status change with enhanced notes for ready_to_invoice
+      const logNotes = isReadyToInvoice
+        ? `تم تأكيد الاستلام من الإشراف — جاهز للفوترة والتوصيل | تكلفة: ₪${order.production_cost ?? 0}`
+        : (order.all_notes || null);
+
       await supabase.from("order_status_log").insert({
         user_id: DEFAULT_OWNER_ID,
         order_id: existing.id,
@@ -430,10 +454,17 @@ Deno.serve(async (req) => {
         changed_by: DEFAULT_OWNER_ID,
         changed_by_name: order.agent_name || "قمر براند",
         changed_by_role: "external_system",
-        notes: order.all_notes || null,
+        notes: logNotes,
         metadata: {
           sync_type: syncType,
           source: "qamar_brand",
+          ...(isReadyToInvoice ? {
+            supervisor_confirmed: true,
+            production_cost: order.production_cost,
+            cost_breakdown: order.cost_breakdown,
+            gross_profit: order.gross_profit ?? ((order.total ?? 0) - (order.production_cost ?? 0)),
+            payment_summary: order.payment?.summary || null,
+          } : {}),
         },
       });
 
@@ -666,11 +697,15 @@ Deno.serve(async (req) => {
       amwaliOrderId = newOrder.id;
     }
 
+    // Build response message
+    const statusMsg = arabicStatus ? `تم تحديث الحالة إلى ${arabicStatus}` : "تمت المعالجة";
+
     console.log(`receive-qamar-order: sync_type=${syncType}, ref=${refNumber}, id=${amwaliOrderId}`);
 
     return json({
       success: true,
       amwali_order_id: amwaliOrderId,
+      message: statusMsg,
     });
   } catch (err) {
     console.error("receive-qamar-order error:", err);
