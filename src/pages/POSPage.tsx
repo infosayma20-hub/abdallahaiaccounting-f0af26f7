@@ -870,7 +870,7 @@ const POSPage = () => {
           .single();
         comp = newComp;
       }
-      setCompany(comp ? { id: comp.id, name: comp.name, logo_url: comp.logo_url } : null);
+      setCompany(comp ? { id: comp.id, name: comp.name, logo_url: comp.logo_url, phone: (comp as any).phone, tax_number: (comp as any).tax_number, address: (comp as any).address } : null);
 
       if (comp) {
         let { data: terminals } = await supabase
