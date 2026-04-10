@@ -20,6 +20,7 @@ const statusMapToArabic: Record<string, string> = {
   confirmed: "مؤكد",
   in_production: "قيد التصنيع",
   inspection: "جاهز للفحص",
+  ready_to_invoice: "جاهز للفوترة",
   ready_delivery: "جاهز للتسليم",
   delivering: "قيد التوصيل",
   delivered: "تم التسليم",
