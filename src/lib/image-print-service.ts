@@ -1,11 +1,16 @@
 /**
- * Image-Mode Print Service v4
+ * Image-Mode Print Service v5
  * 
- * Sends order DATA (JSON) to the print bridge which renders
- * the receipt image server-side using node-canvas.
- * Arabic text is rendered correctly on the server.
+ * Bridge v5 is a "dumb" image printer — it only accepts base64 images
+ * and sends them to thermal printers via ESC/POS.
  * 
- * html2canvas is kept ONLY for the preview page download button.
+ * Flow: Render component → html2canvas → base64 PNG → POST /print-image
+ * 
+ * Bridge v5 endpoints:
+ *   POST /print-image   { image: "base64...", printerKey: "receipt" }
+ *   POST /print-images  { jobs: [{ image, printerKey }] }
+ *   POST /test          { printer: "receipt" }
+ *   GET  /health
  */
 
 import html2canvas from "html2canvas";
@@ -14,13 +19,6 @@ import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/Shi
 
 const BRIDGE_URL = "http://192.168.1.65:3001";
 
-/** Station-to-printer mapping (must match bridge config) */
-const STATION_TO_PRINTER: Record<string, string> = {
-  'a09ebd1b-392c-42b2-a8a7-d180fdde1f97': 'kitchen',
-  '4f64e6b4-89ab-4e22-b935-52f3ec665e54': 'grill',
-  '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516': 'pizza',
-};
-
 interface PrintImageResult {
   success: boolean;
   error?: string;
@@ -28,7 +26,7 @@ interface PrintImageResult {
 }
 
 // ──────────────────────────────────────────
-// Bridge fetch helper
+// Bridge fetch helpers
 // ──────────────────────────────────────────
 
 async function bridgeFetch(path: string, body: any): Promise<any> {
@@ -42,20 +40,18 @@ async function bridgeFetch(path: string, body: any): Promise<any> {
   return res.json();
 }
 
-async function bridgeFetchPng(path: string, body: any): Promise<string> {
-  const res = await fetch(`${BRIDGE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    mode: 'cors',
-    signal: AbortSignal.timeout(15000),
-  });
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+/** Send a single base64 image to a printer */
+async function sendImageToPrinter(base64: string, printerKey: string): Promise<any> {
+  return bridgeFetch('/print-image', { image: base64, printerKey });
+}
+
+/** Send multiple images to different printers in one call */
+async function sendImagesToPrinters(jobs: { image: string; printerKey: string }[]): Promise<any> {
+  return bridgeFetch('/print-images', { jobs });
 }
 
 // ──────────────────────────────────────────
-// html2canvas capture — ONLY for preview page
+// Font loading & html2canvas capture
 // ──────────────────────────────────────────
 
 let fontLoaded = false;
@@ -130,7 +126,7 @@ function buildCaptureOptions(target: HTMLElement, foreignObjectRendering: boolea
   };
 }
 
-/** Capture an on-screen element as PNG (for preview page download only) */
+/** Capture an on-screen element as base64 PNG */
 export async function captureElementAsPng(target: HTMLElement): Promise<string> {
   await waitForReceiptFonts();
   const previousMarker = target.dataset.receiptCaptureRoot;
@@ -152,22 +148,79 @@ export async function captureElementAsPng(target: HTMLElement): Promise<string> 
 }
 
 // ──────────────────────────────────────────
-// SERVER-SIDE PRINT (JSON → bridge → node-canvas)
+// Off-screen render helper
 // ──────────────────────────────────────────
 
 /**
- * Print a customer receipt via server-side rendering.
+ * Render a React component off-screen and capture it as base64 PNG.
+ */
+async function renderComponentToImage(
+  Component: React.ComponentType<any>,
+  props: any,
+  width: number = 576,
+): Promise<string> {
+  const { createRoot } = await import("react-dom/client");
+  const { createElement } = await import("react");
+
+  await ensureFont();
+
+  const container = document.createElement('div');
+  container.style.cssText = `position:absolute;left:-9999px;top:0;width:${width}px;background:#fff;`;
+  document.body.appendChild(container);
+
+  const root = createRoot(container);
+
+  return new Promise<string>((resolve, reject) => {
+    root.render(createElement(Component, props));
+
+    setTimeout(async () => {
+      try {
+        const target = container.firstElementChild as HTMLElement;
+        if (!target) throw new Error('Template not rendered');
+
+        // Make sure element is visible for capture
+        target.style.position = 'relative';
+        target.style.left = 'auto';
+
+        const base64 = await captureElementAsPng(target);
+        root.unmount();
+        document.body.removeChild(container);
+        resolve(base64);
+      } catch (err: any) {
+        root.unmount();
+        if (container.parentNode) document.body.removeChild(container);
+        reject(err);
+      }
+    }, 600);
+  });
+}
+
+// ──────────────────────────────────────────
+// PRINT FUNCTIONS (render → capture → bridge)
+// ──────────────────────────────────────────
+
+/**
+ * Print a customer receipt.
+ * Renders ReceiptTemplate → captures as PNG → sends to bridge /print-image
  */
 export async function printReceiptImage(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string }
 ): Promise<PrintImageResult> {
   try {
-    const result = await bridgeFetch('/print-receipt', {
+    const { default: ReceiptTemplate } = await import("@/components/pos/print-templates/ReceiptTemplate");
+    
+    const base64 = await renderComponentToImage(ReceiptTemplate, {
       order,
-      companyInfo: companyInfo || {},
-      printer: 'receipt',
-    });
+      companyName: companyInfo?.name,
+      companyPhone: companyInfo?.phone,
+      companyAddress: companyInfo?.address,
+      taxNumber: companyInfo?.taxNumber,
+      terminalName: companyInfo?.terminalName,
+      logoUrl: companyInfo?.logoUrl,
+    }, 320);
+
+    const result = await sendImageToPrinter(base64, 'receipt');
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
@@ -176,10 +229,12 @@ export async function printReceiptImage(
 }
 
 /**
- * Print kitchen tickets — sends to all station printers.
+ * Print kitchen tickets — renders each station ticket and sends to its printer.
  */
 export async function printKitchenTicketsImage(order: PrintOrder): Promise<PrintImageResult> {
   try {
+    const { default: KitchenTicketTemplate } = await import("@/components/pos/print-templates/KitchenTicketTemplate");
+    
     const stationPrinters = [
       { key: 'kitchen', name: 'المطبخ' },
       { key: 'grill', name: 'السخان' },
@@ -190,12 +245,13 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
 
     for (const station of stationPrinters) {
       try {
-        const result = await bridgeFetch('/print-kitchen', {
+        const base64 = await renderComponentToImage(KitchenTicketTemplate, {
           order,
           items: order.items,
-          printerKey: station.key,
           stationName: station.name,
-        });
+        }, 576);
+
+        const result = await sendImageToPrinter(base64, station.key);
         results.push({ printerKey: station.key, name: station.name, ...result });
       } catch (err: any) {
         results.push({ printerKey: station.key, name: station.name, success: false, error: err.message });
@@ -210,19 +266,50 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
 }
 
 /**
- * Print everything: receipt + all kitchen tickets.
+ * Print everything: receipt + all kitchen tickets (batch).
  */
 export async function printAllImage(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string }
 ): Promise<PrintImageResult> {
   try {
-    const result = await bridgeFetch('/print-images', { order, companyInfo: companyInfo || {} });
-    return {
-      success: result.success,
-      results: result.results,
-      error: result.error,
-    };
+    const { default: ReceiptTemplate } = await import("@/components/pos/print-templates/ReceiptTemplate");
+    const { default: KitchenTicketTemplate } = await import("@/components/pos/print-templates/KitchenTicketTemplate");
+
+    const jobs: { image: string; printerKey: string }[] = [];
+
+    // Receipt
+    const receiptBase64 = await renderComponentToImage(ReceiptTemplate, {
+      order,
+      companyName: companyInfo?.name,
+      companyPhone: companyInfo?.phone,
+      companyAddress: companyInfo?.address,
+      taxNumber: companyInfo?.taxNumber,
+    }, 320);
+    jobs.push({ image: receiptBase64, printerKey: 'receipt' });
+
+    // Kitchen tickets
+    const stations = [
+      { key: 'kitchen', name: 'المطبخ' },
+      { key: 'grill', name: 'السخان' },
+      { key: 'pizza', name: 'البيتزا' },
+    ];
+
+    for (const station of stations) {
+      try {
+        const base64 = await renderComponentToImage(KitchenTicketTemplate, {
+          order,
+          items: order.items,
+          stationName: station.name,
+        }, 576);
+        jobs.push({ image: base64, printerKey: station.key });
+      } catch {
+        // Skip failed renders
+      }
+    }
+
+    const result = await sendImagesToPrinters(jobs);
+    return { success: result.success, results: result.results, error: result.error };
   } catch (err: any) {
     console.error('[printAllImage]', err);
     return { success: false, error: err.message };
@@ -233,6 +320,12 @@ export async function printAllImage(
  * Print a single kitchen ticket to a specific station.
  */
 export async function printStationTicketImage(order: PrintOrder, stationId: string, items: PrintItem[]): Promise<PrintImageResult> {
+  const STATION_TO_PRINTER: Record<string, string> = {
+    'a09ebd1b-392c-42b2-a8a7-d180fdde1f97': 'kitchen',
+    '4f64e6b4-89ab-4e22-b935-52f3ec665e54': 'grill',
+    '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516': 'pizza',
+  };
+
   const printerKey = STATION_TO_PRINTER[stationId] || 'kitchen';
   const stationName = printerKey === 'kitchen' ? 'المطبخ'
     : printerKey === 'grill' ? 'السخان'
@@ -240,12 +333,15 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
     : 'المطبخ';
 
   try {
-    const result = await bridgeFetch('/print-kitchen', {
+    const { default: KitchenTicketTemplate } = await import("@/components/pos/print-templates/KitchenTicketTemplate");
+
+    const base64 = await renderComponentToImage(KitchenTicketTemplate, {
       order,
       items,
-      printerKey,
       stationName,
-    });
+    }, 576);
+
+    const result = await sendImageToPrinter(base64, printerKey);
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -253,37 +349,15 @@ export async function printStationTicketImage(order: PrintOrder, stationId: stri
 }
 
 /**
- * Print a shift summary report via server-side rendering (Image Mode).
- * Sends JSON data to the bridge which renders using node-canvas.
+ * Print a shift summary report.
+ * Renders ShiftSummaryTemplate → captures as PNG → sends to receipt printer.
  */
 export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promise<PrintImageResult> {
   try {
-    const result = await bridgeFetch('/print-shift-summary', {
-      companyName: data.companyName,
-      logoUrl: data.logoUrl,
-      terminalName: data.terminalName,
-      cashierName: data.cashierName,
-      cashBoxName: data.cashBoxName,
-      openedAt: data.openedAt,
-      closedAt: data.closedAt,
-      openingCash: data.openingCash,
-      totalSales: data.totalSales,
-      totalExpenses: data.totalExpenses,
-      totalOrders: data.totalOrders,
-      closingCash: data.closingCash,
-      closingCashUSD: data.closingCashUSD,
-      closingCashJOD: data.closingCashJOD,
-      expectedCash: data.expectedCash,
-      expectedCashUSD: data.expectedCashUSD,
-      expectedCashJOD: data.expectedCashJOD,
-      variance: data.variance,
-      varianceILS: data.varianceILS,
-      varianceUSD: data.varianceUSD,
-      varianceJOD: data.varianceJOD,
-      currencyBreakdown: data.currencyBreakdown,
-      paymentMethodBreakdown: data.paymentMethodBreakdown,
-      printer: 'receipt',
-    });
+    const { default: ShiftSummaryTemplate } = await import("@/components/pos/print-templates/ShiftSummaryTemplate");
+
+    const base64 = await renderComponentToImage(ShiftSummaryTemplate, { data }, 576);
+    const result = await sendImageToPrinter(base64, 'receipt');
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printShiftSummaryImage]', err);
@@ -292,27 +366,50 @@ export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promi
 }
 
 // ──────────────────────────────────────────
-// PREVIEW (server-side PNG for download)
+// BRIDGE CONNECTIVITY
 // ──────────────────────────────────────────
 
-/**
- * Get a server-rendered PNG of the receipt for preview/download.
- * Returns an object URL that can be used as image src or download href.
- */
+/** Check if the print bridge is reachable */
+export async function checkBridgeHealth(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BRIDGE_URL}/health`, {
+      signal: AbortSignal.timeout(3000),
+      mode: 'cors',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ──────────────────────────────────────────
+// PREVIEW (for download button only)
+// ──────────────────────────────────────────
+
 export async function getReceiptPreviewPng(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; terminalName?: string }
 ): Promise<string> {
-  return bridgeFetchPng('/preview-receipt', { order, companyInfo: companyInfo || {} });
+  const { default: ReceiptTemplate } = await import("@/components/pos/print-templates/ReceiptTemplate");
+  return renderComponentToImage(ReceiptTemplate, {
+    order,
+    companyName: companyInfo?.name,
+    companyPhone: companyInfo?.phone,
+    companyAddress: companyInfo?.address,
+    taxNumber: companyInfo?.taxNumber,
+    terminalName: companyInfo?.terminalName,
+  }, 320);
 }
 
-/**
- * Get a server-rendered PNG of a kitchen ticket for preview.
- */
 export async function getKitchenPreviewPng(
   order: PrintOrder,
   items: PrintItem[],
   stationName: string
 ): Promise<string> {
-  return bridgeFetchPng('/preview-kitchen', { order, items, stationName });
+  const { default: KitchenTicketTemplate } = await import("@/components/pos/print-templates/KitchenTicketTemplate");
+  return renderComponentToImage(KitchenTicketTemplate, {
+    order,
+    items,
+    stationName,
+  }, 576);
 }
