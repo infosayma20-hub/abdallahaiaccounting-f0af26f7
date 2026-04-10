@@ -9091,6 +9091,7 @@ export type Database = {
           id: string
           invoice_number: string | null
           invoiced_at: string | null
+          last_synced_at: string | null
           linked_invoice_id: string | null
           net_delivery: number | null
           payment: Json | null
@@ -9144,6 +9145,7 @@ export type Database = {
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
+          last_synced_at?: string | null
           linked_invoice_id?: string | null
           net_delivery?: number | null
           payment?: Json | null
@@ -9197,6 +9199,7 @@ export type Database = {
           id?: string
           invoice_number?: string | null
           invoiced_at?: string | null
+          last_synced_at?: string | null
           linked_invoice_id?: string | null
           net_delivery?: number | null
           payment?: Json | null
