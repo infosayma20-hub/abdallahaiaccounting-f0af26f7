@@ -163,16 +163,18 @@ export default function PrintPreviewPage() {
       {/* Action buttons */}
       <div className="mb-4 flex flex-col items-center gap-2">
         <div className="flex gap-2">
-          {activeTab === "receipt" && (
+          {(activeTab === "receipt" || activeTab === "shift") && (
             <>
               <Button onClick={handleTestPrint} size="sm" className="gap-2" disabled={printing}>
                 <Printer className="h-4 w-4" />
                 {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
               </Button>
-              <Button onClick={handleDownloadServer} size="sm" variant="secondary" className="gap-2" disabled={downloadingServer}>
-                <Image className="h-4 w-4" />
-                {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
-              </Button>
+              {activeTab === "receipt" && (
+                <Button onClick={handleDownloadServer} size="sm" variant="secondary" className="gap-2" disabled={downloadingServer}>
+                  <Image className="h-4 w-4" />
+                  {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
+                </Button>
+              )}
             </>
           )}
           <Button onClick={handleDownloadLocal} size="sm" variant="outline" className="gap-2" disabled={downloading}>
