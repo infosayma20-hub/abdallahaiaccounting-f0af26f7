@@ -217,7 +217,7 @@ export async function printAllImage(
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string }
 ): Promise<PrintImageResult> {
   try {
-    const result = await bridgeFetch('/print-all', { order, companyInfo: companyInfo || {} });
+    const result = await bridgeFetch('/print-images', { order, companyInfo: companyInfo || {} });
     return {
       success: result.success,
       results: result.results,
