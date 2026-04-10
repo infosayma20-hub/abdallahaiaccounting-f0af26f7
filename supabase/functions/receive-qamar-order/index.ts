@@ -697,11 +697,15 @@ Deno.serve(async (req) => {
       amwaliOrderId = newOrder.id;
     }
 
+    // Build response message
+    const statusMsg = arabicStatus ? `تم تحديث الحالة إلى ${arabicStatus}` : "تمت المعالجة";
+
     console.log(`receive-qamar-order: sync_type=${syncType}, ref=${refNumber}, id=${amwaliOrderId}`);
 
     return json({
       success: true,
       amwali_order_id: amwaliOrderId,
+      message: statusMsg,
     });
   } catch (err) {
     console.error("receive-qamar-order error:", err);
