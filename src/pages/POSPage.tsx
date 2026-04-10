@@ -192,6 +192,9 @@ interface Company {
   id: string;
   name: string;
   logo_url?: string;
+  phone?: string;
+  tax_number?: string;
+  address?: string;
 }
 
 interface Terminal {
