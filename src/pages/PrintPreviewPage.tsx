@@ -124,7 +124,12 @@ export default function PrintPreviewPage() {
   const handleTestPrint = async () => {
     setPrinting(true);
     try {
-      const result = await printReceiptImage(SAMPLE_ORDER, SAMPLE_COMPANY_INFO);
+      let result;
+      if (activeTab === "shift") {
+        result = await printShiftSummaryImage(SAMPLE_SHIFT);
+      } else {
+        result = await printReceiptImage(SAMPLE_ORDER, SAMPLE_COMPANY_INFO);
+      }
       if (result.success) {
         alert("✅ تم إرسال الطباعة بنجاح");
       } else {
