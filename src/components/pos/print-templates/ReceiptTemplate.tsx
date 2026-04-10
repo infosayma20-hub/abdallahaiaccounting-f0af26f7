@@ -82,7 +82,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       ].filter(Boolean).join('\n');
 
   return (
-    <div ref={ref} style={{
+    <div ref={ref} dir="rtl" lang="ar" style={{
       width: '320px',
       minWidth: '320px',
       maxWidth: '320px',
