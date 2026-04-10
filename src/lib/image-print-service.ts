@@ -186,7 +186,7 @@ export async function printAllImage(
   kitchenJobs?: KitchenJob[],
 ): Promise<PrintImageResult> {
   try {
-    // Build all print promises in parallel
+    // TEMPORARY: Send ALL items to ALL kitchen printers for hardware testing
     const promises: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [];
 
     // Receipt
@@ -196,21 +196,16 @@ export async function printAllImage(
         .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message }))
     );
 
-    // Kitchen tickets — use filtered jobs if provided, otherwise send all items to all stations
-    const jobs = kitchenJobs && kitchenJobs.length > 0
-      ? kitchenJobs
-      : ALL_STATIONS.map(s => ({ printerKey: s.key, stationLabel: s.label, items: order.items }));
-
-    for (const job of jobs) {
-      if (job.items.length === 0) continue; // Skip empty stations
+    // All items → all 3 kitchen printers (unfiltered)
+    for (const station of ALL_STATIONS) {
       promises.push(
         bridgeFetch('/print-kitchen', {
-          order: toBridgeKitchenOrder(order, job.items),
-          printerKey: job.printerKey,
-          stationLabel: job.stationLabel,
+          order: toBridgeKitchenOrder(order, order.items),
+          printerKey: station.key,
+          stationLabel: station.label,
         })
-          .then((r: any) => ({ printerKey: job.printerKey, name: job.stationLabel, success: r.success, error: r.error }))
-          .catch((err: any) => ({ printerKey: job.printerKey, name: job.stationLabel, success: false, error: err.message }))
+          .then((r: any) => ({ printerKey: station.key, name: station.label, success: r.success, error: r.error }))
+          .catch((err: any) => ({ printerKey: station.key, name: station.label, success: false, error: err.message }))
       );
     }
 
