@@ -6,7 +6,7 @@ import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/Shi
 import { Button } from "@/components/ui/button";
 import { Download, Printer, Image } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng } from "@/lib/image-print-service";
+import { captureElementAsPng, printReceiptImage, printShiftSummaryImage, getReceiptPreviewPng } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
   id: 'sample-preview-order',
@@ -124,7 +124,12 @@ export default function PrintPreviewPage() {
   const handleTestPrint = async () => {
     setPrinting(true);
     try {
-      const result = await printReceiptImage(SAMPLE_ORDER, SAMPLE_COMPANY_INFO);
+      let result;
+      if (activeTab === "shift") {
+        result = await printShiftSummaryImage(SAMPLE_SHIFT);
+      } else {
+        result = await printReceiptImage(SAMPLE_ORDER, SAMPLE_COMPANY_INFO);
+      }
       if (result.success) {
         alert("✅ تم إرسال الطباعة بنجاح");
       } else {
@@ -158,16 +163,18 @@ export default function PrintPreviewPage() {
       {/* Action buttons */}
       <div className="mb-4 flex flex-col items-center gap-2">
         <div className="flex gap-2">
-          {activeTab === "receipt" && (
+          {(activeTab === "receipt" || activeTab === "shift") && (
             <>
               <Button onClick={handleTestPrint} size="sm" className="gap-2" disabled={printing}>
                 <Printer className="h-4 w-4" />
                 {printing ? "جاري الإرسال..." : "طباعة تجريبية"}
               </Button>
-              <Button onClick={handleDownloadServer} size="sm" variant="secondary" className="gap-2" disabled={downloadingServer}>
-                <Image className="h-4 w-4" />
-                {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
-              </Button>
+              {activeTab === "receipt" && (
+                <Button onClick={handleDownloadServer} size="sm" variant="secondary" className="gap-2" disabled={downloadingServer}>
+                  <Image className="h-4 w-4" />
+                  {downloadingServer ? "جاري التحميل..." : "تحميل PNG (سيرفر)"}
+                </Button>
+              )}
             </>
           )}
           <Button onClick={handleDownloadLocal} size="sm" variant="outline" className="gap-2" disabled={downloading}>
