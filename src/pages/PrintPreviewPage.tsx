@@ -6,7 +6,7 @@ import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/Shi
 import { Button } from "@/components/ui/button";
 import { Download, Printer, Image } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage, getReceiptPreviewPng } from "@/lib/image-print-service";
+import { captureElementAsPng, printReceiptImage, printShiftSummaryImage, getReceiptPreviewPng } from "@/lib/image-print-service";
 
 const SAMPLE_ORDER: PrintOrder = {
   id: 'sample-preview-order',
