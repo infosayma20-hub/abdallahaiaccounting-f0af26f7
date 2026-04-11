@@ -290,9 +290,10 @@ const FinanceJournalPage = () => {
         // Delete old voucher lines
         await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
         // Delete old linked transactions (Golden Rule: always delete & recreate)
-        await supabase.from("transactions").update({ is_deleted: true } as any)
+        // Clear idempotency_key first to avoid unique constraint conflicts, then soft-delete
+        await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any)
           .eq("user_id", user.id)
-          .eq("idempotency_key", `VOUCHER-${editingVoucherId}`);
+          .like("idempotency_key", `VOUCHER-${editingVoucherId}%`);
       }
     } else {
       const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
