@@ -286,7 +286,14 @@ const FinanceJournalPage = () => {
       const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editingVoucherId).select().single();
       voucher = res.data;
       error = res.error;
-      if (voucher) await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
+      if (voucher) {
+        // Delete old voucher lines
+        await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
+        // Delete old linked transactions (Golden Rule: always delete & recreate)
+        await supabase.from("transactions").update({ is_deleted: true } as any)
+          .eq("user_id", user.id)
+          .eq("idempotency_key", `VOUCHER-${editingVoucherId}`);
+      }
     } else {
       const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
       voucher = res.data;
@@ -311,24 +318,31 @@ const FinanceJournalPage = () => {
       }))
     );
 
-    // If posted, create transactions for each debit/credit pair
+    // If posted, create transactions for each debit/credit line pair
     if (status === "posted") {
       const debitLines = validLines.filter(l => Number(l.debit) > 0);
       const creditLines = validLines.filter(l => Number(l.credit) > 0);
-      // Create a single compound entry using first debit/credit
-      if (debitLines.length > 0 && creditLines.length > 0) {
-        await supabase.from("transactions").insert({
-          user_id: user.id,
-          transaction_date: formDate,
-          description: formDescription,
-          debit_account_code: debitLines[0].account_code,
-          credit_account_code: creditLines[0].account_code,
-          amount: totalDebit,
-          currency: "شيكل",
-          transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
-          reference: voucher.ref_number,
-          idempotency_key: `VOUCHER-${voucher.id}`,
-        });
+
+      // Create individual transactions for each debit-credit pair for full traceability
+      for (const dl of debitLines) {
+        for (const cl of creditLines) {
+          // Proportional amount based on debit share
+          const pairAmount = (Number(dl.debit) / totalDebit) * Number(cl.credit);
+          if (pairAmount <= 0) continue;
+          await supabase.from("transactions").insert({
+            user_id: user.id,
+            transaction_date: formDate,
+            description: formDescription,
+            debit_account_code: dl.account_code,
+            credit_account_code: cl.account_code,
+            amount: Math.round(pairAmount * 100) / 100,
+            currency: "شيكل",
+            transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
+            reference: voucher.ref_number,
+            idempotency_key: `VOUCHER-${voucher.id}`,
+            contact_id: (dl as any).contact_id || (cl as any).contact_id || null,
+          });
+        }
       }
     }
 
