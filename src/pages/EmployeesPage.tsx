@@ -855,6 +855,13 @@ const EmployeesPage = () => {
                       </div>
                     ))}
                   </div>
+
+                  {/* ── Opening Balance Section ── */}
+                  <EmployeeOpeningBalance
+                    employee={selectedEmployee}
+                    userId={user?.id || ""}
+                    onSaved={() => fetchEmployeeDetails(selectedEmployee.id)}
+                  />
                 </TabsContent>
 
                 <TabsContent value="allowances">
