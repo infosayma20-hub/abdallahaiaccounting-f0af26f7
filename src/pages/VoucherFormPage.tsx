@@ -786,6 +786,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
         if (isReceipt) {
+          // Get linked transaction ID before updating
+          const { data: existingReceipt } = await supabase.from("receipt_vouchers")
+            .select("linked_transaction_id")
+            .eq("id", editId).single();
+
           const { error } = await supabase
             .from("receipt_vouchers")
             .update({
@@ -806,8 +811,33 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("id", editId)
             .eq("user_id", user.id);
           if (error) throw error;
+
+          // Update linked transaction (Golden Rule)
+          const linkedTxId = (existingReceipt as any)?.linked_transaction_id;
+          if (linkedTxId) {
+            await supabase.from("transactions").update({
+              transaction_date: paymentDate,
+              description: notes || `سند قبض من ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
+              debit_account_code: depositAccountCode,
+              credit_account_code: counterAccountCode,
+              amount: amountInILS,
+              currency: currencyLabel,
+              contact_id: selectedContact?.id || null,
+              payment_method: paymentMethod,
+              foreign_amount: currency !== "ILS" ? amountNum : null,
+              exchange_rate: currency !== "ILS" ? exchangeRate : null,
+              workshop_id: selectedWorkshop?.id || null,
+              cost_center_name: selectedWorkshop?.name || null,
+            } as any).eq("id", linkedTxId);
+          }
+
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
         } else {
+          // Get linked transaction ID before updating
+          const { data: existingVoucher } = await supabase.from("vouchers")
+            .select("linked_transaction_id")
+            .eq("id", editId).single();
+
           const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
           const { error } = await supabase
             .from("vouchers")
@@ -830,6 +860,27 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("id", editId)
             .eq("user_id", user.id);
           if (error) throw error;
+
+          // Update linked transaction (Golden Rule)
+          const linkedTxId = (existingVoucher as any)?.linked_transaction_id;
+          if (linkedTxId) {
+            const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
+            await supabase.from("transactions").update({
+              transaction_date: paymentDate,
+              description: notes || `سند صرف إلى ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
+              debit_account_code: counterAccountCode,
+              credit_account_code: depositAccountCode,
+              amount: amountInILS,
+              currency: currencyLabel,
+              contact_id: selectedContact?.id || null,
+              payment_method: payMethodMapAr[paymentMethod] || "نقدي",
+              foreign_amount: currency !== "ILS" ? amountNum : null,
+              exchange_rate: currency !== "ILS" ? exchangeRate : null,
+              workshop_id: selectedWorkshop?.id || null,
+              cost_center_name: selectedWorkshop?.name || null,
+            } as any).eq("id", linkedTxId);
+          }
+
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
         }
         navigate(listPath);
