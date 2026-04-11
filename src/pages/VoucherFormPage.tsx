@@ -1098,6 +1098,51 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
 
+        // Handle endorsed cheques — update existing cheques to "مظهر" status
+        if (paymentMethod === "شيك" && !asDraft && endorsedCheques.length > 0 && voucher) {
+          const supplierName = selectedContact?.contact_name || selectedGlAccount?.account_name || "";
+          for (const ec of endorsedCheques) {
+            // Update the cheque status to endorsed
+            await supabase.from("cheques").update({
+              status: "مظهر" as any,
+              endorsed_to_contact_id: selectedContact?.id || null,
+              endorsed_to_name: supplierName,
+              endorsed_at: new Date().toISOString(),
+              endorsement_voucher_id: voucher.id,
+            } as any).eq("id", ec.id).eq("user_id", user.id);
+
+            // Create endorsement accounting entry:
+            // Debit: supplier account (2110) — reduces payable
+            // Credit: received cheques account (1150) — reduces cheques held
+            const endorseDescription = `تجيير شيك رقم ${ec.cheque_number || "-"} للمورد ${supplierName}`;
+            await supabase.from("transactions").insert({
+              user_id: user.id,
+              transaction_date: paymentDate,
+              description: endorseDescription,
+              debit_account_code: "2110",
+              credit_account_code: "1150",
+              amount: ec.amount,
+              currency: ec.currency || currencyLabel,
+              transaction_type: "payment",
+              contact_id: selectedContact?.id || null,
+              payment_method: "شيك",
+              reference: voucher.ref_number,
+              idempotency_key: `ENDORSE-${ec.id}-${Date.now()}`,
+              linked_transaction_id: txId,
+            } as any);
+
+            // Record status change in cheque_status_history
+            await supabase.from("cheque_status_history").insert({
+              cheque_id: ec.id,
+              user_id: user.id,
+              from_status: ec.status as any,
+              to_status: "مظهر" as any,
+              action_type: "endorsement",
+              reason: `تجيير إلى ${supplierName} - سند ${voucher.ref_number}`,
+            });
+          }
+        }
+
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
           // Save payment_invoice_links for payment vouchers too (for cancel reversal)
