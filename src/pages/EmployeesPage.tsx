@@ -27,6 +27,7 @@ import OfficialHolidaysDialog from "@/components/hr/OfficialHolidaysDialog";
 import TerminationDialog from "@/components/hr/TerminationDialog";
 import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
 import DeductionsExportDialog from "@/components/hr/DeductionsExportDialog";
+import EmployeeOpeningBalance from "@/components/hr/EmployeeOpeningBalance";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -855,6 +856,13 @@ const EmployeesPage = () => {
                       </div>
                     ))}
                   </div>
+
+                  {/* ── Opening Balance Section ── */}
+                  <EmployeeOpeningBalance
+                    employee={selectedEmployee}
+                    userId={user?.id || ""}
+                    onSaved={() => fetchEmployeeDetails(selectedEmployee.id)}
+                  />
                 </TabsContent>
 
                 <TabsContent value="allowances">

@@ -3982,6 +3982,9 @@ export type Database = {
           meal_allowance_per_day: number | null
           nationality: string | null
           notes: string | null
+          opening_balance: number | null
+          opening_balance_date: string | null
+          opening_balance_type: string | null
           other_allowances: number | null
           phone: string | null
           photo_url: string | null
@@ -4043,6 +4046,9 @@ export type Database = {
           meal_allowance_per_day?: number | null
           nationality?: string | null
           notes?: string | null
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          opening_balance_type?: string | null
           other_allowances?: number | null
           phone?: string | null
           photo_url?: string | null
@@ -4104,6 +4110,9 @@ export type Database = {
           meal_allowance_per_day?: number | null
           nationality?: string | null
           notes?: string | null
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          opening_balance_type?: string | null
           other_allowances?: number | null
           phone?: string | null
           photo_url?: string | null
