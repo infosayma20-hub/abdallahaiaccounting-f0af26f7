@@ -58,7 +58,7 @@ const JournalNewPage = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedRefNumber, setSavedRefNumber] = useState("");
-  const [lineSortOrder, setLineSortOrder] = useState<"debit_first" | "original">("debit_first");
+  const [lineSortOrder, setLineSortOrder] = useState<"debit_first" | "original">("original");
 
   // Attachments
   const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
