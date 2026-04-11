@@ -942,6 +942,14 @@ const AccountStatementV2Page = () => {
         )}
       </div>
 
+      {/* ─── TRANSACTION DETAIL DRAWER ─── */}
+      <TransactionDetailDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        row={drawerRow}
+        userId={user?.id || ""}
+      />
+
       {/* ─── PDF PREVIEW MODAL ─── */}
       {showPdfModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column" }}>
