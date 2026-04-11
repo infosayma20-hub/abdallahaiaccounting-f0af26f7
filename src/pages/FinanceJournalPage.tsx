@@ -290,9 +290,10 @@ const FinanceJournalPage = () => {
         // Delete old voucher lines
         await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
         // Delete old linked transactions (Golden Rule: always delete & recreate)
-        await supabase.from("transactions").update({ is_deleted: true } as any)
+        // Clear idempotency_key first to avoid unique constraint conflicts, then soft-delete
+        await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any)
           .eq("user_id", user.id)
-          .eq("idempotency_key", `VOUCHER-${editingVoucherId}`);
+          .like("idempotency_key", `VOUCHER-${editingVoucherId}%`);
       }
     } else {
       const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
@@ -324,6 +325,8 @@ const FinanceJournalPage = () => {
       const creditLines = validLines.filter(l => Number(l.credit) > 0);
 
       // Create individual transactions for each debit-credit pair for full traceability
+      const batchTs = Date.now();
+      let pairIdx = 0;
       for (const dl of debitLines) {
         for (const cl of creditLines) {
           // Proportional amount based on debit share
@@ -339,7 +342,7 @@ const FinanceJournalPage = () => {
             currency: "شيكل",
             transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
             reference: voucher.ref_number,
-            idempotency_key: `VOUCHER-${voucher.id}`,
+            idempotency_key: `VOUCHER-${voucher.id}-${batchTs}-${pairIdx++}`,
             contact_id: (dl as any).contact_id || (cl as any).contact_id || null,
           });
         }
