@@ -64,11 +64,9 @@ const fmtBal = (n: number, txCount: number) => {
 
 const balColor = (n: number, txCount: number, tab?: EntityTab) => {
   if (n === 0) return txCount > 0 ? "text-emerald-600" : "text-muted-foreground";
-  // Customers & Employees: debit (positive) = green (asset), credit (negative) = red
-  // Suppliers: credit (negative) = green (normal liability), debit (positive) = red
-  if (tab === "customers" || tab === "employees") return n > 0 ? "text-emerald-600" : "text-red-600";
-  if (tab === "suppliers") return n > 0 ? "text-emerald-600" : "text-red-600";
-  return n > 0 ? "text-red-600" : "text-emerald-600";
+  // مدين (positive) = أخضر (الجهة مدينة لنا = جيد)
+  // دائن (negative) = أحمر (نحن مدينون للجهة = التزام)
+  return n > 0 ? "text-emerald-600" : "text-red-600";
 };
 
 const balLabel = (n: number) => {
