@@ -183,6 +183,18 @@ const AccountStatementV2Page = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  // ─── Realtime: auto-refresh on transaction changes ───
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('account_statement_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
+        fetchData();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   // ─── Fetch exchange rates for foreign display mode ───
   useEffect(() => {
     if (displayCurrency === "ILS" || !user) return;
