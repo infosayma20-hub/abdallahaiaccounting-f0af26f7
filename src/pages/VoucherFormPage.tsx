@@ -2368,6 +2368,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         paymentMethod={paymentMethod}
         currencySymbol={currencySymbol}
       />
+
+      {/* Endorse Cheque Modal */}
+      <EndorseChequeModal
+        open={showEndorseModal}
+        onClose={() => setShowEndorseModal(false)}
+        onSelect={(ec) => {
+          setEndorsedCheques(prev => [...prev, ec]);
+          // Auto-update amount to include endorsed cheque
+          const currentTotal = (parseFloat(amount) || 0) + ec.amount;
+          setAmount(String(currentTotal));
+          toast.success(`تم اختيار شيك رقم ${ec.cheque_number || "-"} للتجيير (${ec.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })})`);
+        }}
+        excludeIds={endorsedCheques.map(c => c.id)}
+      />
     </div>
   );
 };
