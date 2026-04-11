@@ -281,19 +281,64 @@ const FinanceJournalPage = () => {
 
     let voucher: any = null;
     let error: any = null;
+    let previousRefNumber: string | null = null;
+    const softDeletePayload = { is_deleted: true, idempotency_key: null } as any;
 
     if (editingVoucherId) {
+      const { data: existingVoucher, error: existingVoucherError } = await supabase
+        .from("vouchers")
+        .select("ref_number")
+        .eq("id", editingVoucherId)
+        .single();
+
+      if (existingVoucherError) {
+        toast({ title: "خطأ", description: existingVoucherError.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+
+      previousRefNumber = existingVoucher?.ref_number || null;
+
       const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editingVoucherId).select().single();
       voucher = res.data;
       error = res.error;
+
       if (voucher) {
-        // Delete old voucher lines
-        await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
-        // Delete old linked transactions (Golden Rule: always delete & recreate)
-        // Clear idempotency_key first to avoid unique constraint conflicts, then soft-delete
-        await supabase.from("transactions").update({ is_deleted: true, idempotency_key: null } as any)
-          .eq("user_id", user.id)
-          .like("idempotency_key", `VOUCHER-${editingVoucherId}%`);
+        const [{ error: deleteLinesError }, { error: softDeleteByKeyError }] = await Promise.all([
+          supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId),
+          supabase
+            .from("transactions")
+            .update(softDeletePayload)
+            .eq("user_id", user.id)
+            .like("idempotency_key", `VOUCHER-${editingVoucherId}%`),
+        ]);
+
+        if (deleteLinesError || softDeleteByKeyError) {
+          toast({
+            title: "خطأ",
+            description: deleteLinesError?.message || softDeleteByKeyError?.message || "تعذر تحديث القيود السابقة",
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+
+        const refsToClear = Array.from(new Set([previousRefNumber, voucher.ref_number].filter(Boolean))) as string[];
+        for (const ref of refsToClear) {
+          const { error: softDeleteByRefError } = await supabase
+            .from("transactions")
+            .update(softDeletePayload)
+            .eq("user_id", user.id)
+            .eq("reference", ref)
+            .in("transaction_type", ["journal", "opening_balance"])
+            .eq("is_deleted", false);
+
+          if (softDeleteByRefError) {
+            toast({ title: "خطأ", description: softDeleteByRefError.message, variant: "destructive" });
+            setSaving(false);
+            return;
+          }
+        }
       }
     } else {
       const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
@@ -307,8 +352,7 @@ const FinanceJournalPage = () => {
       return;
     }
 
-    // Insert voucher lines
-    await supabase.from("voucher_lines").insert(
+    const { error: voucherLinesError } = await supabase.from("voucher_lines").insert(
       validLines.map((l, i) => ({
         voucher_id: voucher.id,
         account_code: l.account_code,
@@ -319,20 +363,24 @@ const FinanceJournalPage = () => {
       }))
     );
 
-    // If posted, create transactions for each debit/credit line pair
+    if (voucherLinesError) {
+      toast({ title: "خطأ", description: voucherLinesError.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
     if (status === "posted") {
       const debitLines = validLines.filter(l => Number(l.debit) > 0);
       const creditLines = validLines.filter(l => Number(l.credit) > 0);
-
-      // Create individual transactions for each debit-credit pair for full traceability
       const batchTs = Date.now();
       let pairIdx = 0;
+      const transactionRows = [];
+
       for (const dl of debitLines) {
         for (const cl of creditLines) {
-          // Proportional amount based on debit share
           const pairAmount = (Number(dl.debit) / totalDebit) * Number(cl.credit);
           if (pairAmount <= 0) continue;
-          await supabase.from("transactions").insert({
+          transactionRows.push({
             user_id: user.id,
             transaction_date: formDate,
             description: formDescription,
@@ -343,8 +391,17 @@ const FinanceJournalPage = () => {
             transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
             reference: voucher.ref_number,
             idempotency_key: `VOUCHER-${voucher.id}-${batchTs}-${pairIdx++}`,
-            contact_id: (dl as any).contact_id || (cl as any).contact_id || null,
+            contact_id: formContactId || (dl as any).contact_id || (cl as any).contact_id || null,
           });
+        }
+      }
+
+      if (transactionRows.length > 0) {
+        const { error: txInsertError } = await supabase.from("transactions").insert(transactionRows);
+        if (txInsertError) {
+          toast({ title: "خطأ", description: txInsertError.message, variant: "destructive" });
+          setSaving(false);
+          return;
         }
       }
     }
