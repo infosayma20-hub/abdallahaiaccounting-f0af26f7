@@ -1615,8 +1615,11 @@ export type Database = {
           currency: string
           deposit_bank_account_id: string | null
           deposit_date: string | null
+          endorsed_at: string | null
           endorsed_to_contact_id: string | null
           endorsed_to_name: string | null
+          endorsement_notes: string | null
+          endorsement_voucher_id: string | null
           id: string
           image_url: string | null
           linked_account: string | null
@@ -1646,8 +1649,11 @@ export type Database = {
           currency?: string
           deposit_bank_account_id?: string | null
           deposit_date?: string | null
+          endorsed_at?: string | null
           endorsed_to_contact_id?: string | null
           endorsed_to_name?: string | null
+          endorsement_notes?: string | null
+          endorsement_voucher_id?: string | null
           id?: string
           image_url?: string | null
           linked_account?: string | null
@@ -1677,8 +1683,11 @@ export type Database = {
           currency?: string
           deposit_bank_account_id?: string | null
           deposit_date?: string | null
+          endorsed_at?: string | null
           endorsed_to_contact_id?: string | null
           endorsed_to_name?: string | null
+          endorsement_notes?: string | null
+          endorsement_voucher_id?: string | null
           id?: string
           image_url?: string | null
           linked_account?: string | null

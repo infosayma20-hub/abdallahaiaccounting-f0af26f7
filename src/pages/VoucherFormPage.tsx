@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus, BookOpen, X, RefreshCw, Upload, Trash2, Paperclip, ChevronDown, Wrench, ArrowLeftRight } from "lucide-react";
+import EndorseChequeModal, { type EndorsedCheque } from "@/components/EndorseChequeModal";
 import VoucherCancelModal from "@/components/VoucherCancelModal";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import DuplicateBanner from "@/components/DuplicateBanner";
@@ -135,6 +136,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string }[]>([]);
+  const [endorsedCheques, setEndorsedCheques] = useState<EndorsedCheque[]>([]);
+  const [showEndorseModal, setShowEndorseModal] = useState(false);
 
   const addCheque = () => setCheques(prev => {
     const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
@@ -1095,6 +1098,51 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
 
+        // Handle endorsed cheques — update existing cheques to "مظهر" status
+        if (paymentMethod === "شيك" && !asDraft && endorsedCheques.length > 0 && voucher) {
+          const supplierName = selectedContact?.contact_name || selectedGlAccount?.account_name || "";
+          for (const ec of endorsedCheques) {
+            // Update the cheque status to endorsed
+            await supabase.from("cheques").update({
+              status: "مظهر" as any,
+              endorsed_to_contact_id: selectedContact?.id || null,
+              endorsed_to_name: supplierName,
+              endorsed_at: new Date().toISOString(),
+              endorsement_voucher_id: voucher.id,
+            } as any).eq("id", ec.id).eq("user_id", user.id);
+
+            // Create endorsement accounting entry:
+            // Debit: supplier account (2110) — reduces payable
+            // Credit: received cheques account (1150) — reduces cheques held
+            const endorseDescription = `تجيير شيك رقم ${ec.cheque_number || "-"} للمورد ${supplierName}`;
+            await supabase.from("transactions").insert({
+              user_id: user.id,
+              transaction_date: paymentDate,
+              description: endorseDescription,
+              debit_account_code: "2110",
+              credit_account_code: "1150",
+              amount: ec.amount,
+              currency: ec.currency || currencyLabel,
+              transaction_type: "payment",
+              contact_id: selectedContact?.id || null,
+              payment_method: "شيك",
+              reference: voucher.ref_number,
+              idempotency_key: `ENDORSE-${ec.id}-${Date.now()}`,
+              linked_transaction_id: txId,
+            } as any);
+
+            // Record status change in cheque_status_history
+            await supabase.from("cheque_status_history").insert({
+              cheque_id: ec.id,
+              user_id: user.id,
+              from_status: ec.status as any,
+              to_status: "مظهر" as any,
+              action_type: "endorsement",
+              reason: `تجيير إلى ${supplierName} - سند ${voucher.ref_number}`,
+            });
+          }
+        }
+
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
           // Save payment_invoice_links for payment vouchers too (for cancel reversal)
@@ -1422,7 +1470,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             <button onClick={() => navigate(listPath)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
               العودة للسندات
             </button>
-            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheques([]); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
+            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setSelectedGlAccount(null); setInvoices([]); setCheques([]); setEndorsedCheques([]); setCurrency("ILS"); setExchangeRate(1); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               {isReceipt ? "سند قبض جديد" : "سند صرف جديد"}
             </button>
           </div>
@@ -1970,18 +2018,61 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           {/* Cheque details - Multi cheque */}
           {paymentMethod === "شيك" && (
             <div className="pt-2 border-t border-border/30 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-xs font-bold flex items-center gap-1.5">
                   <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
-                  بيانات الشيكات ({cheques.length})
+                  بيانات الشيكات ({cheques.length + endorsedCheques.length})
                 </Label>
-                <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
-                  <Plus className="h-3 w-3" /> إضافة شيك
-                </button>
+                <div className="flex items-center gap-2">
+                  {!isReceipt && (
+                    <button type="button" onClick={() => setShowEndorseModal(true)} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-all font-medium border border-amber-200">
+                      <ArrowLeftRight className="h-3 w-3" /> تجيير شيك مستلم
+                    </button>
+                  )}
+                  <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
+                    <Plus className="h-3 w-3" /> إضافة شيك
+                  </button>
+                </div>
               </div>
-              {cheques.length === 0 && (
+
+              {/* Endorsed cheques */}
+              {endorsedCheques.map((ec, idx) => (
+                <div key={`endorsed-${ec.id}`} className="relative bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                      <ArrowLeftRight className="h-2.5 w-2.5" /> مُجيَّر
+                    </span>
+                    <button type="button" onClick={() => setEndorsedCheques(prev => prev.filter(c => c.id !== ec.id))} className="p-1 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">رقم الشيك</span>
+                      <span className="font-mono font-medium">{ec.cheque_number || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">البنك</span>
+                      <span>{ec.bank_name || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">الساحب</span>
+                      <span className="font-medium">{ec.party_name}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">المبلغ</span>
+                      <span className="font-mono font-bold text-amber-700">{ec.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    تاريخ الاستحقاق: {ec.cheque_date} | الحالة الأصلية: {ec.status}
+                  </div>
+                </div>
+              ))}
+
+              {cheques.length === 0 && endorsedCheques.length === 0 && (
                 <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
-                  اضغط "إضافة شيك" لإدخال بيانات الشيك
+                  اضغط "إضافة شيك" لإدخال بيانات الشيك أو "تجيير شيك مستلم" لتحويل شيك موجود
                 </div>
               )}
               {cheques.map((chq, idx) => (
@@ -2276,6 +2367,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         date={paymentDate}
         paymentMethod={paymentMethod}
         currencySymbol={currencySymbol}
+      />
+
+      {/* Endorse Cheque Modal */}
+      <EndorseChequeModal
+        open={showEndorseModal}
+        onClose={() => setShowEndorseModal(false)}
+        onSelect={(ec) => {
+          setEndorsedCheques(prev => [...prev, ec]);
+          // Auto-update amount to include endorsed cheque
+          const currentTotal = (parseFloat(amount) || 0) + ec.amount;
+          setAmount(String(currentTotal));
+          toast.success(`تم اختيار شيك رقم ${ec.cheque_number || "-"} للتجيير (${ec.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })})`);
+        }}
+        excludeIds={endorsedCheques.map(c => c.id)}
       />
     </div>
   );
