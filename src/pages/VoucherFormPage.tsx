@@ -2018,18 +2018,61 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           {/* Cheque details - Multi cheque */}
           {paymentMethod === "شيك" && (
             <div className="pt-2 border-t border-border/30 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-xs font-bold flex items-center gap-1.5">
                   <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
-                  بيانات الشيكات ({cheques.length})
+                  بيانات الشيكات ({cheques.length + endorsedCheques.length})
                 </Label>
-                <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
-                  <Plus className="h-3 w-3" /> إضافة شيك
-                </button>
+                <div className="flex items-center gap-2">
+                  {!isReceipt && (
+                    <button type="button" onClick={() => setShowEndorseModal(true)} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-all font-medium border border-amber-200">
+                      <ArrowLeftRight className="h-3 w-3" /> تجيير شيك مستلم
+                    </button>
+                  )}
+                  <button type="button" onClick={addCheque} className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all font-medium">
+                    <Plus className="h-3 w-3" /> إضافة شيك
+                  </button>
+                </div>
               </div>
-              {cheques.length === 0 && (
+
+              {/* Endorsed cheques */}
+              {endorsedCheques.map((ec, idx) => (
+                <div key={`endorsed-${ec.id}`} className="relative bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                      <ArrowLeftRight className="h-2.5 w-2.5" /> مُجيَّر
+                    </span>
+                    <button type="button" onClick={() => setEndorsedCheques(prev => prev.filter(c => c.id !== ec.id))} className="p-1 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">رقم الشيك</span>
+                      <span className="font-mono font-medium">{ec.cheque_number || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">البنك</span>
+                      <span>{ec.bank_name || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">الساحب</span>
+                      <span className="font-medium">{ec.party_name}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">المبلغ</span>
+                      <span className="font-mono font-bold text-amber-700">{ec.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    تاريخ الاستحقاق: {ec.cheque_date} | الحالة الأصلية: {ec.status}
+                  </div>
+                </div>
+              ))}
+
+              {cheques.length === 0 && endorsedCheques.length === 0 && (
                 <div className="text-center py-4 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
-                  اضغط "إضافة شيك" لإدخال بيانات الشيك
+                  اضغط "إضافة شيك" لإدخال بيانات الشيك أو "تجيير شيك مستلم" لتحويل شيك موجود
                 </div>
               )}
               {cheques.map((chq, idx) => (
