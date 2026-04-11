@@ -172,14 +172,32 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
 
       setJournalLines(lines);
 
-      // Try to find linked voucher
-      const { data: voucher } = await supabase
-        .from("vouchers")
-        .select("id, type")
-        .eq("user_id", userId)
-        .eq("linked_transaction_id", row.transaction_id)
-        .maybeSingle();
-      setVoucherId(voucher?.id || null);
+      let resolvedVoucherId: string | null = null;
+      const isJournalDocument = row.transaction_type.includes("journal") || row.transaction_type.includes("قيد");
+
+      if (isJournalDocument && row.reference) {
+        const { data: journalVoucher } = await supabase
+          .from("vouchers")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("type", "journal")
+          .eq("ref_number", row.reference)
+          .neq("status", "cancelled")
+          .maybeSingle();
+        resolvedVoucherId = journalVoucher?.id || null;
+      }
+
+      if (!resolvedVoucherId) {
+        const { data: voucher } = await supabase
+          .from("vouchers")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("linked_transaction_id", row.transaction_id)
+          .maybeSingle();
+        resolvedVoucherId = voucher?.id || null;
+      }
+
+      setVoucherId(resolvedVoucherId);
     } catch (err) {
       console.error("Error fetching transaction details:", err);
     } finally {
@@ -191,8 +209,14 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
 
   const badge = getTypeBadge(row.transaction_type);
   const { viewUrl } = resolveSourceUrl(row.transaction_type, row.reference, row.transaction_id);
+  const isJournalDocument = row.transaction_type.includes("journal") || row.transaction_type.includes("قيد");
 
   const handleOpenDocument = () => {
+    if (voucherId && isJournalDocument) {
+      navigate(`/finance/journal/new?edit=${voucherId}`);
+      onClose();
+      return;
+    }
     if (voucherId) {
       const type = row.transaction_type.includes("receipt") || row.transaction_type.includes("قبض") ? "receipt" : "payment";
       navigate(`/finance/${type}/${voucherId}/edit`);
@@ -206,19 +230,17 @@ export default function TransactionDetailDrawer({ open, onClose, row, userId }: 
   };
 
   const handleEdit = () => {
+    if (voucherId && isJournalDocument) {
+      navigate(`/finance/journal/new?edit=${voucherId}`);
+      onClose();
+      return;
+    }
     if (voucherId) {
       const type = row.transaction_type.includes("receipt") || row.transaction_type.includes("قبض") ? "receipt" : "payment";
       navigate(`/finance/${type}/${voucherId}/edit`);
       onClose();
       return;
     }
-    // Journal entries
-    if (row.transaction_type.includes("journal") || row.transaction_type.includes("قيد")) {
-      navigate(`/finance/journal/new?edit=${row.transaction_id}`);
-      onClose();
-      return;
-    }
-    // Invoices
     if (row.reference?.startsWith("INV-") || row.transaction_type.includes("sale")) {
       navigate(`/invoices/new?edit=${row.transaction_id}`);
       onClose();
