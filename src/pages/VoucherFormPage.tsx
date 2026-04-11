@@ -136,6 +136,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string }[]>([]);
+  const [endorsedCheques, setEndorsedCheques] = useState<EndorsedCheque[]>([]);
+  const [showEndorseModal, setShowEndorseModal] = useState(false);
 
   const addCheque = () => setCheques(prev => {
     const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
