@@ -4,7 +4,9 @@ import {
   Printer, ChevronLeft, ChevronDown, ChevronUp,
   Settings2, Eye, Send, X, Mail, MessageSquare, Link2,
   Filter, Download, AlertTriangle, Zap,
+  ArrowLeft,
 } from "lucide-react";
+import TransactionDetailDrawer from "@/components/account-statement/TransactionDetailDrawer";
 import * as XLSX from "xlsx";
 import { generateStatementPDF } from "@/utils/generateStatementPDF";
 import { Button } from "@/components/ui/button";
@@ -125,7 +127,8 @@ const AccountStatementV2Page = () => {
   const [agingOpen, setAgingOpen] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
-
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerRow, setDrawerRow] = useState<StatementRow | null>(null);
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
@@ -759,12 +762,22 @@ const AccountStatementV2Page = () => {
                     <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
                     filteredRows.map((row, i) => (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6" }} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer" }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
                         <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
                           <div>{fmtDate(row.date)}</div>
                           <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
                         </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151", fontFamily: "monospace", wordBreak: "break-all" }}>{row.reference || "—"}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
+                          {row.reference ? (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDrawerRow(row); setDrawerOpen(true); }}
+                              className="hover:underline text-left"
+                              style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace" }}
+                            >
+                              {row.reference}
+                            </button>
+                          ) : "—"}
+                        </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>{row.description}</td>
                         <td style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
                         <td style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280" }}>{getTypeBadge(row.transaction_type)}</td>
@@ -781,8 +794,13 @@ const AccountStatementV2Page = () => {
                           {row.credit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
                         </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
-                          {fmtAmount(row.balance, row.currency)}
-                          <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
+                          <div className="flex items-center gap-1">
+                            <span>
+                              {fmtAmount(row.balance, row.currency)}
+                              <span style={{ fontSize: 9, fontWeight: 400, color: "#9CA3AF", marginRight: 2 }}>{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
+                            </span>
+                            <ArrowLeft className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" style={{ color: "#9CA3AF" }} />
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -923,6 +941,14 @@ const AccountStatementV2Page = () => {
           </>
         )}
       </div>
+
+      {/* ─── TRANSACTION DETAIL DRAWER ─── */}
+      <TransactionDetailDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        row={drawerRow}
+        userId={user?.id || ""}
+      />
 
       {/* ─── PDF PREVIEW MODAL ─── */}
       {showPdfModal && (
