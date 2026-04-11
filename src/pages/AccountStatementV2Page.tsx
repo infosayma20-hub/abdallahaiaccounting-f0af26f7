@@ -127,7 +127,8 @@ const AccountStatementV2Page = () => {
   const [agingOpen, setAgingOpen] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
-
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerRow, setDrawerRow] = useState<StatementRow | null>(null);
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
