@@ -324,6 +324,8 @@ const FinanceJournalPage = () => {
       const creditLines = validLines.filter(l => Number(l.credit) > 0);
 
       // Create individual transactions for each debit-credit pair for full traceability
+      const batchTs = Date.now();
+      let pairIdx = 0;
       for (const dl of debitLines) {
         for (const cl of creditLines) {
           // Proportional amount based on debit share
@@ -339,7 +341,7 @@ const FinanceJournalPage = () => {
             currency: "شيكل",
             transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
             reference: voucher.ref_number,
-            idempotency_key: `VOUCHER-${voucher.id}`,
+            idempotency_key: `VOUCHER-${voucher.id}-${batchTs}-${pairIdx++}`,
             contact_id: (dl as any).contact_id || (cl as any).contact_id || null,
           });
         }
