@@ -344,7 +344,7 @@ const TransactionsPage = () => {
     });
 
     return result;
-  }, [transactions, typeFilter, accountFilter, dateFilter, searchQuery, sortField, sortAsc, accounts]);
+  }, [transactions, typeFilter, accountFilter, dateFilter, dateFrom, dateTo, searchQuery, sortField, sortAsc, accounts]);
 
   // ━━ Totals ━━
   const totalDebit = useMemo(() => filteredTransactions.reduce((s, t) => s + (t.amount || 0), 0), [filteredTransactions]);
@@ -358,7 +358,7 @@ const TransactionsPage = () => {
     return filteredTransactions.slice(start, start + pageSize);
   }, [filteredTransactions, currentPage, pageSize]);
 
-  useEffect(() => { setCurrentPage(1); }, [typeFilter, accountFilter, dateFilter, searchQuery, pageSize]);
+  useEffect(() => { setCurrentPage(1); }, [typeFilter, accountFilter, dateFilter, dateFrom, dateTo, searchQuery, pageSize]);
 
   // ━━ Expand/Collapse ━━
   const toggleExpand = (id: string) => {
