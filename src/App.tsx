@@ -1,4 +1,6 @@
 import { Suspense, lazy } from "react";
+import { useCrossTabSync } from "@/hooks/useCrossTabSync";
+const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
 import { useSearchParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -205,6 +207,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <CrossTabSyncProvider />
         <BrowserRouter>
           <AuthProvider>
             <ReadOnlyProvider>

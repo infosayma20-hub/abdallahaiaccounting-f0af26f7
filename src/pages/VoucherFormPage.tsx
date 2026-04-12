@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { multiWordMatchAny } from "@/lib/utils";
+import { broadcastChange } from "@/lib/crossTabSync";
 import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 
 interface Contact {
@@ -867,6 +868,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             }
           }
 
+          broadcastChange("receipt_voucher", "updated", editId);
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
         } else {
           // Get linked transaction ID before updating
@@ -989,6 +991,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             }
           }
 
+          broadcastChange("payment_voucher", "updated", editId);
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
         }
         navigate(listPath);
@@ -1193,6 +1196,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
 
+        broadcastChange("receipt_voucher", "created", receipt?.id);
         toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`);
         setSaved(true);
         setSavedReceiptNumber(receipt?.receipt_number || "");
@@ -1325,6 +1329,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
+        broadcastChange("payment_voucher", "created", voucher?.id);
         toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`);
         setSaved(true);
         setSavedReceiptNumber(voucher?.ref_number || "");
@@ -1715,6 +1720,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       setEditVoucherStatus("cancelled");
       setShowCancelModal(false);
+      broadcastChange(isReceipt ? "receipt_voucher" : "payment_voucher", "deleted", editId);
       toast.success(`تم إلغاء ${voucherLabel} بنجاح وعكس القيود المرتبطة ✅`);
     } catch (err: any) {
       toast.error(err.message || "فشل إلغاء السند");

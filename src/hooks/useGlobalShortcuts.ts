@@ -16,10 +16,10 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
       if (inInput) return;
 
       // F-keys
-      if (e.key === "F1") { e.preventDefault(); navigate("/invoices/new"); return; }
-      if (e.key === "F2") { e.preventDefault(); navigate("/finance/receipt/new"); return; }
-      if (e.key === "F3") { e.preventDefault(); navigate("/finance/payment/new"); return; }
-      if (e.key === "F4") { e.preventDefault(); navigate("/finance/journal/new"); return; }
+      if (e.key === "F1") { e.preventDefault(); window.open("/invoices/new", "_blank", "noopener,noreferrer"); return; }
+      if (e.key === "F2") { e.preventDefault(); window.open("/finance/receipt/new", "_blank", "noopener,noreferrer"); return; }
+      if (e.key === "F3") { e.preventDefault(); window.open("/finance/payment/new", "_blank", "noopener,noreferrer"); return; }
+      if (e.key === "F4") { e.preventDefault(); window.open("/finance/journal/new", "_blank", "noopener,noreferrer"); return; }
 
       // Alt combos — use e.code for keyboard-layout independence (works with Arabic keyboards)
       if (e.altKey) {
