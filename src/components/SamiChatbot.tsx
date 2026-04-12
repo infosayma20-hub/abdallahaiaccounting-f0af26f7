@@ -421,7 +421,7 @@ export default function SamiChatbot() {
               backdropFilter: "none",
             }}
           >
-            <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> احكيلي شو بتحتاج مالياً وإدارياً
+            <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> {HINT_PHRASES[hintIndex]}
           </div>
         )}
 
