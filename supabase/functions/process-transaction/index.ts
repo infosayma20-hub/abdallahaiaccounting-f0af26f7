@@ -457,15 +457,116 @@ ${contactContext}
     // ═══ AUTO-CREATE BUSINESS DOCUMENTS ═══
     let invoiceNumber = null;
     let invoiceId = null;
+    let voucherId = null;
+    let receiptVoucherId = null;
 
-    // Determine if we need to create a business document
-    const isSale = ['فاتورة مبيعات', 'سند قبض'].includes(transactionType) || 
-                   /مبيعات|بعت|قبضت/.test(description);
+    // Determine document type
+    const isSale = ['فاتورة مبيعات'].includes(transactionType) || 
+                   (/مبيعات|بعت/.test(description) && transactionType !== 'سند قبض');
     const isPurchase = ['فاتورة مشتريات'].includes(transactionType) || 
                        /مشتريات|اشتريت/.test(description);
+    const isReceipt = transactionType === 'سند قبض' || /قبضت|استلمت/.test(description);
+    const isPayment = transactionType === 'سند صرف' || (/دفعت|صرفت|سددت/.test(description) && !isPurchase);
 
+    // ═══ Fixed Asset Detection ═══
+    const assetKeywords = /سيارة|شاحنة|معدات|آلة|مكينة|أثاث|كمبيوتر|تجهيزات|عقار|أرض|مولد|مكيف|طابعة|خادم|سيرفر/;
+    const isFixedAsset = assetKeywords.test(text) && (isPurchase || /اشتريت|جبت/.test(text));
+
+    if (isFixedAsset && amount > 0) {
+      // Create fixed asset record
+      const assetName = text.match(assetKeywords)?.[0] || 'أصل ثابت';
+      const categoryMap: Record<string, string> = {
+        'سيارة': 'vehicles', 'شاحنة': 'vehicles',
+        'معدات': 'equipment', 'آلة': 'equipment', 'مكينة': 'equipment',
+        'أثاث': 'furniture', 'كمبيوتر': 'equipment', 'تجهيزات': 'equipment',
+        'عقار': 'buildings', 'أرض': 'land',
+        'مولد': 'equipment', 'مكيف': 'equipment', 'طابعة': 'equipment',
+        'خادم': 'equipment', 'سيرفر': 'equipment',
+      };
+      const matchedKeyword = text.match(assetKeywords)?.[0] || '';
+      
+      // Generate asset number
+      const { count: assetCount } = await supabaseAdmin
+        .from('assets')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      const assetNumber = `AST-${new Date().getFullYear()}-${String((assetCount || 0) + 1).padStart(4, '0')}`;
+
+      const { data: assetData, error: assetErr } = await supabaseAdmin.from('assets').insert({
+        user_id: userId,
+        asset_number: assetNumber,
+        name_ar: assetName,
+        acquisition_date: transactionDate,
+        acquisition_cost: amount,
+        net_book_value: amount,
+        depreciation_method: 'straight_line',
+        useful_life_years: matchedKeyword === 'أرض' ? null : (matchedKeyword === 'سيارة' || matchedKeyword === 'شاحنة' ? 5 : 10),
+        status: 'active',
+        description: description,
+        supplier_name: contactNameParsed || null,
+        notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
+      }).select('id, asset_number').single();
+
+      if (assetData) {
+        console.log('Auto-created fixed asset:', assetData.asset_number);
+      } else {
+        console.error('Failed to create fixed asset:', assetErr);
+      }
+    }
+
+    // ═══ Receipt Voucher (سند قبض) ═══
+    if (isReceipt && amount > 0) {
+      const { data: recData, error: recErr } = await supabaseAdmin.from('receipt_vouchers').insert({
+        user_id: userId,
+        amount: amount,
+        payment_date: transactionDate,
+        payment_method: paymentMethod,
+        contact_id: contactId,
+        contact_name: contactNameParsed || 'عميل نقدي',
+        deposit_account_code: debitAccountCode,
+        linked_transaction_id: txData.id,
+        notes: description,
+        status: 'posted',
+      }).select('id, receipt_number').single();
+
+      if (!recErr && recData) {
+        receiptVoucherId = recData.id;
+        invoiceNumber = recData.receipt_number;
+        console.log('Auto-created receipt voucher:', recData.receipt_number);
+      } else {
+        console.error('Failed to create receipt voucher:', recErr);
+      }
+    }
+
+    // ═══ Payment Voucher (سند صرف) ═══
+    if (isPayment && amount > 0 && !isPurchase) {
+      const refNum = `PV-${Date.now()}`;
+      const { data: pvData, error: pvErr } = await supabaseAdmin.from('vouchers').insert({
+        user_id: userId,
+        type: 'صرف',
+        ref_number: refNum,
+        date: transactionDate,
+        amount: amount,
+        currency: currency,
+        payment_method: paymentMethod,
+        description: description,
+        contact_id: contactId,
+        linked_transaction_id: txData.id,
+        status: 'posted',
+        notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
+      }).select('id, ref_number').single();
+
+      if (!pvErr && pvData) {
+        voucherId = pvData.id;
+        invoiceNumber = pvData.ref_number;
+        console.log('Auto-created payment voucher:', pvData.ref_number);
+      } else {
+        console.error('Failed to create payment voucher:', pvErr);
+      }
+    }
+
+    // ═══ Sales Invoice ═══
     if (isSale && amount > 0) {
-      // Create sales invoice in invoices table
       const { data: invData, error: invErr } = await supabaseAdmin.from('invoices').insert({
         user_id: userId,
         invoice_type: 'sale',
@@ -493,7 +594,6 @@ ${contactContext}
         invoiceNumber = invData.invoice_number;
         console.log('Auto-created invoice:', invoiceNumber, invoiceId);
 
-        // Create invoice item
         await supabaseAdmin.from('invoice_items').insert({
           invoice_id: invData.id,
           product_name: description || 'خدمات',
@@ -506,7 +606,6 @@ ${contactContext}
         console.error('Failed to auto-create invoice:', invErr);
       }
     } else if (isPurchase && amount > 0) {
-      // Create purchase invoice in purchase_invoices table
       const { data: purData, error: purErr } = await supabaseAdmin.from('purchase_invoices').insert({
         user_id: userId,
         supplier_id: contactId,
@@ -528,6 +627,63 @@ ${contactContext}
         console.log('Auto-created purchase invoice:', invoiceNumber);
       } else {
         console.error('Failed to auto-create purchase invoice:', purErr);
+      }
+    }
+
+    // ═══ Employee Salary Detection ═══
+    const isSalary = /راتب|رواتب|صرّفت راتب|صرفت راتب/.test(text) && /موظف|عامل|عمال/.test(text + ' ' + description);
+    if (isSalary && contactNameParsed && amount > 0) {
+      // Try to find employee
+      const { data: emp } = await supabaseAdmin.from('employees')
+        .select('id')
+        .eq('user_id', userId)
+        .ilike('full_name', `%${contactNameParsed}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (emp) {
+        const now = new Date();
+        await supabaseAdmin.from('employee_payroll').insert({
+          user_id: userId,
+          employee_id: emp.id,
+          period_month: now.getMonth() + 1,
+          period_year: now.getFullYear(),
+          basic_salary: amount,
+          net_salary: amount,
+          is_paid: true,
+          paid_date: transactionDate,
+          linked_transaction_id: txData.id,
+        }).then(r => {
+          if (r.error) console.error('Failed to create payroll entry:', r.error);
+          else console.log('Auto-created payroll entry for:', contactNameParsed);
+        });
+      }
+    }
+
+    // ═══ Employee Loan Detection ═══
+    const isLoan = /سلف|سلّف|سلفة|أعطيت سلفة/.test(text);
+    if (isLoan && contactNameParsed && amount > 0) {
+      const { data: emp } = await supabaseAdmin.from('employees')
+        .select('id')
+        .eq('user_id', userId)
+        .ilike('full_name', `%${contactNameParsed}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (emp) {
+        await supabaseAdmin.from('employee_loans').insert({
+          user_id: userId,
+          employee_id: emp.id,
+          amount: amount,
+          remaining_amount: amount,
+          loan_date: transactionDate,
+          status: 'active',
+          installment_amount: 0,
+          notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
+        }).then(r => {
+          if (r.error) console.error('Failed to create employee loan:', r.error);
+          else console.log('Auto-created employee loan for:', contactNameParsed);
+        });
       }
     }
 
