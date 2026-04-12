@@ -2,6 +2,7 @@ import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
 import AppFooter from "./AppFooter";
+import TabBar from "./TabBar";
 
 import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
@@ -9,6 +10,7 @@ import TrialExpiredGate from "../trial/TrialExpiredGate";
 import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
 import SessionManager from "../SessionManager";
 import { useSubscription } from "@/hooks/useSubscription";
+import { TabsProvider } from "@/contexts/TabsContext";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -23,6 +25,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   const isTrial = subscription?.isTrial ?? false;
 
   return (
+    <TabsProvider>
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Sidebar — always visible */}
       <AppSidebar
@@ -39,6 +42,9 @@ const WebLayout = ({ children }: WebLayoutProps) => {
           sidebarCollapsed={sidebarCollapsed}
           onOpenHelpGuide={() => {}}
         />
+
+        {/* Tab bar */}
+        <TabBar />
 
         {/* Single subscription/trial banner — never both */}
         {isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />}
@@ -58,6 +64,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Session timeout manager */}
       <SessionManager />
     </div>
+    </TabsProvider>
   );
 };
 
