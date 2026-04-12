@@ -385,8 +385,10 @@ const InventoryPage = () => {
     if (searchQuery) {
       data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category, p.barcode));
     }
+    if (dateFrom) data = data.filter(p => (p.created_at?.split("T")[0] || "") >= dateFrom);
+    if (dateTo) data = data.filter(p => (p.created_at?.split("T")[0] || "") <= dateTo);
     return data;
-  }, [products, filterCategory, stockFilter, searchQuery]);
+  }, [products, filterCategory, stockFilter, searchQuery, dateFrom, dateTo]);
 
   // Sorting
   const sorted = useMemo(() => {
