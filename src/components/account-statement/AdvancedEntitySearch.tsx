@@ -73,11 +73,6 @@ const balLabel = (n: number) => {
   return n > 0 ? "مدين" : "دائن";
 };
 
-const TABS: { key: EntityTab; label: string; icon: any }[] = [
-  { key: "accounts", label: "الحسابات", icon: LayoutGrid },
-  { key: "contacts", label: "الجهات", icon: Users },
-  { key: "employees", label: "الموظفين", icon: UserCheck },
-];
 
 export default function AdvancedEntitySearch({
   allContacts, allAccounts, allEmployees,
