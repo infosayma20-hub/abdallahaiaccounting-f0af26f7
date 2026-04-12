@@ -167,7 +167,7 @@ const InvoiceCreatePageWrapper = () => {
 
 // Minimal inline spinner for auth checks and lazy loading
 const AuthCheckSpinner = () => (
-  <div className="flex h-screen w-full items-center justify-center bg-background">
+  <div className="flex h-full min-h-[200px] w-full items-center justify-center">
     <div
       className="w-8 h-8 rounded-full border-2 border-transparent"
       style={{
