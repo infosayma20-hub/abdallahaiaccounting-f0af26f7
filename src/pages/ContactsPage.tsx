@@ -637,8 +637,16 @@ const ContactsPage = () => {
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
                 )}
               </Button>
-              {(filterType || filterClass) && (
-                <Button variant="ghost" size="sm" className="text-xs gap-1 h-9" onClick={() => { setFilterType(null); setFilterClass(null); }}>
+              <DateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                onClear={() => { setDateFrom(""); setDateTo(""); }}
+                compact
+              />
+              {(filterType || filterClass || dateFrom || dateTo) && (
+                <Button variant="ghost" size="sm" className="text-xs gap-1 h-9" onClick={() => { setFilterType(null); setFilterClass(null); setDateFrom(""); setDateTo(""); }}>
                   <X className="h-3 w-3" /> مسح
                 </Button>
               )}
