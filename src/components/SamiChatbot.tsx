@@ -432,40 +432,43 @@ export default function SamiChatbot() {
           </div>
         )}
 
-        {/* 3D Glow rings */}
-        {!open && (
-          <>
-            <div className="sami-ring sami-ring-1" />
-            <div className="sami-ring sami-ring-2" />
-            <div className="sami-ring sami-ring-3" />
-          </>
-        )}
+        {/* Button wrapper with rings */}
+        <div style={{ position: "relative", width: 56, height: 56 }}>
+          {/* 3D Glow rings */}
+          {!open && (
+            <>
+              <div className="sami-ring sami-ring-1" />
+              <div className="sami-ring sami-ring-2" />
+              <div className="sami-ring sami-ring-3" />
+            </>
+          )}
 
-        {/* Main button */}
-        <button
-          onClick={() => setOpen(o => !o)}
-          aria-label={open ? "إغلاق المحادثة" : "فتح المحادثة مع سامي"}
-          className="sami-fab"
-          style={{
-            position: "relative",
-            width: 56, height: 56, borderRadius: "50%",
-            background: "linear-gradient(145deg, #152d4a 0%, #0D1B2E 50%, #0a1420 100%)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            cursor: "pointer",
-            boxShadow: "0 8px 32px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s",
-            zIndex: 2,
-          }}
-        >
-          <div style={{
-            transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
-            transform: open ? "rotate(90deg) scale(0.9)" : "rotate(0deg) scale(1)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            {open ? <X size={22} color="white" /> : <MessageCircle size={22} color="white" />}
-          </div>
-        </button>
+          {/* Main button */}
+          <button
+            onClick={() => setOpen(o => !o)}
+            aria-label={open ? "إغلاق المحادثة" : "فتح المحادثة مع سامي"}
+            className="sami-fab"
+            style={{
+              position: "relative",
+              width: 56, height: 56, borderRadius: "50%",
+              background: "linear-gradient(145deg, #152d4a 0%, #0D1B2E 50%, #0a1420 100%)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              cursor: "pointer",
+              boxShadow: "0 8px 32px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s",
+              zIndex: 2,
+            }}
+          >
+            <div style={{
+              transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              transform: open ? "rotate(90deg) scale(0.9)" : "rotate(0deg) scale(1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {open ? <X size={22} color="white" /> : <MessageCircle size={22} color="white" />}
+            </div>
+          </button>
+        </div>
       </div>
 
       <style>{`
