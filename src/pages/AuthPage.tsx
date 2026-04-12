@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import SamiChatbot from "@/components/SamiChatbot";
 import amwaliLogoFull from "@/assets/amwali-logo-full.png";
 import amwaliMarkWhiteNavy from "@/assets/amwali-mark-white-navy.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -487,6 +488,8 @@ const AuthPage = () => {
         </div>
       </div>
     </div>
+    <SamiChatbot />
+    </>
   );
 };
 
