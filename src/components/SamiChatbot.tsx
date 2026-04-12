@@ -112,6 +112,19 @@ export default function SamiChatbot() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Rotate hint phrases every 5 seconds
+  useEffect(() => {
+    if (open) return;
+    const interval = setInterval(() => {
+      setHintIndex(prev => {
+        let next;
+        do { next = Math.floor(Math.random() * HINT_PHRASES.length); } while (next === prev && HINT_PHRASES.length > 1);
+        return next;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [open]);
+
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }), 50);
   }, []);
