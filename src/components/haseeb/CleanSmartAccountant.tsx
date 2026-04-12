@@ -8,10 +8,11 @@ import CleanInputDock from "./CleanInputDock";
 import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
 import ChatHistorySidebar from "./ChatHistorySidebar";
+import MultiTransactionCards, { type ParsedTransaction } from "./MultiTransactionCards";
 import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 import type { User } from "@supabase/supabase-js";
-import { splitMultipleCommands, classifyCommand, getCommandTypeLabel, getCommandTypeIcon } from "@/lib/multiCommandParser";
+import { classifyCommand, getCommandTypeLabel, getCommandTypeIcon } from "@/lib/multiCommandParser";
 
 type Message = {
   id: string;
