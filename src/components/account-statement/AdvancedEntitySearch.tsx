@@ -94,10 +94,12 @@ export default function AdvancedEntitySearch({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus on mount
+  // Auto-focus on mount (without opening dropdown)
   useEffect(() => {
     if (!selectedEntityId) {
-      setTimeout(() => inputRef.current?.focus(), 200);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
     }
   }, []);
 
@@ -115,7 +117,7 @@ export default function AdvancedEntitySearch({
   // Build grouped results across all tabs
   const groupedResults = useMemo(() => {
     const q = search.trim();
-    if (!q && !open) return [];
+    if (!q) return [];
 
     const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; txCount: number; tab: EntityTab }[] }[] = [];
 
