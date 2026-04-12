@@ -319,6 +319,17 @@ serve(async (req) => {
         };
       }
 
+      // Edit/Delete transaction
+      if (parsed.intent === 'edit_transaction' || parsed.intent === 'delete_transaction' || parsed.type === 'edit_transaction') {
+        return {
+          type: 'edit_transaction',
+          action: parsed.action || (parsed.intent === 'delete_transaction' ? 'delete' : 'edit'),
+          target: parsed.target || '',
+          correction: parsed.correction || null,
+          status: parsed.status || 'complete',
+        };
+      }
+
       // Add entity
       if (parsed.intent === 'add_entity' || parsed.type === 'add_entity') {
         return {
