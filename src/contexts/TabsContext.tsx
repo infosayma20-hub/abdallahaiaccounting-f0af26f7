@@ -81,6 +81,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/finance/receipt/new": { title: "سند قبض جديد", icon: "landmark" },
   "/finance/payment/new": { title: "سند صرف جديد", icon: "banknote" },
   "/finance/journal/new": { title: "قيد جديد", icon: "clipboard" },
+  "/tax": { title: "المحاسبة الضريبية", icon: "calculator" },
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
