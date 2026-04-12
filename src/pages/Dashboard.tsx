@@ -538,7 +538,7 @@ const Dashboard = () => {
       {/* ═══ 1. HEADER ═══ */}
       <div className="flex items-center justify-between h-[56px]">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+          <button onClick={(e) => smartNavigate(e, "/profile", navigate)} className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
             <span className="text-sm font-bold text-primary">{displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}</span>
           </button>
           <div>
