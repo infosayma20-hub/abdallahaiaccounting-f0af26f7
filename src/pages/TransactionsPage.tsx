@@ -803,7 +803,7 @@ const TransactionsPage = () => {
             <Search className="h-10 w-10 text-muted-foreground/40" />
           </div>
           <p className="text-sm text-muted-foreground mb-3">لا توجد قيود مطابقة</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setAccountFilter("all"); setDateFilter("all"); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setAccountFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); }}>مسح الفلاتر</Button>
         </div>
       )}
 
