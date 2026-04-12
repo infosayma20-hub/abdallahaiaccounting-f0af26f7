@@ -423,7 +423,29 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     fontFamily: "Tajawal, sans-serif",
                   }}
                 >
-                  <AIMessageRenderer content={msg.content} />
+                  {msg.content.startsWith('__MULTI_TX__') ? (
+                    <MultiTransactionCards
+                      transactions={JSON.parse(msg.content.replace('__MULTI_TX__', ''))}
+                      onConfirm={async (tx) => {
+                        const body: any = { text: tx.description || '', userId: user?.id, email: user?.email };
+                        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
+                        if (error) return { success: false, message: `❌ ${error.message}` };
+                        onTransactionSuccess();
+                        return { success: true, message: `✅ تم التسجيل` };
+                      }}
+                      onConfirmAll={async (txs) => {
+                        for (const tx of txs) {
+                          const body: any = { text: tx.description || '', userId: user?.id, email: user?.email };
+                          await supabase.functions.invoke("process-transaction", { body });
+                        }
+                        onTransactionSuccess();
+                      }}
+                      onSkip={() => {}}
+                      onDone={() => {}}
+                    />
+                  ) : (
+                    <AIMessageRenderer content={msg.content} />
+                  )}
                   <p className="text-[10px] mt-1.5" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.4)" : "hsl(var(--muted-foreground))" }}>
                     {msg.timestamp.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
                   </p>
