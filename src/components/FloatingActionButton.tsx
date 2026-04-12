@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, X, Receipt, FileText, Users, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { smartNavigate } from "@/lib/smartNavigate";
 
 const actions = [
   { icon: Receipt, label: "قيد جديد", path: "/", color: "bg-primary text-primary-foreground" },
@@ -21,7 +22,7 @@ const FloatingActionButton = () => {
         {actions.map((action, i) => (
           <button
             key={action.label}
-            onClick={() => { navigate(action.path); setOpen(false); }}
+            onClick={(e) => { smartNavigate(e, action.path, navigate); setOpen(false); }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-lg ${action.color} text-xs font-semibold transition-all duration-300 hover:scale-105 active:scale-95`}
             style={{ transitionDelay: open ? `${i * 50}ms` : "0ms" }}
           >
