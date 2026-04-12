@@ -830,23 +830,41 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("user_id", user.id);
           if (error) throw error;
 
-          // Update linked transaction (Golden Rule)
+          // Update linked transaction (Golden Rule: delete old + insert fresh)
           const linkedTxId = (existingReceipt as any)?.linked_transaction_id;
           if (linkedTxId) {
+            // Soft-delete old transaction
             await supabase.from("transactions").update({
+              is_deleted: true,
+              idempotency_key: null,
+            } as any).eq("id", linkedTxId);
+
+            // Insert fresh transaction
+            const { data: newTx } = await supabase.from("transactions").insert({
+              user_id: user.id,
               transaction_date: paymentDate,
               description: notes || `سند قبض من ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
               debit_account_code: depositAccountCode,
               credit_account_code: counterAccountCode,
               amount: amountInILS,
               currency: currencyLabel,
+              transaction_type: "receipt",
               contact_id: selectedContact?.id || null,
               payment_method: paymentMethod,
+              idempotency_key: `RCV-EDIT-${Date.now()}`,
               foreign_amount: currency !== "ILS" ? amountNum : null,
               exchange_rate: currency !== "ILS" ? exchangeRate : null,
               workshop_id: selectedWorkshop?.id || null,
               cost_center_name: selectedWorkshop?.name || null,
-            } as any).eq("id", linkedTxId);
+              reference: refNumber || null,
+            } as any).select("id").single();
+
+            // Update receipt voucher with new linked_transaction_id
+            if (newTx?.id) {
+              await supabase.from("receipt_vouchers").update({
+                linked_transaction_id: newTx.id,
+              } as any).eq("id", editId);
+            }
           }
 
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
