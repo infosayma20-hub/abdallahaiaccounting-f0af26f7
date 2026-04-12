@@ -30,74 +30,56 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
         return;
       }
 
-      // Escape — close dialogs (handled natively by Radix, but also useful)
-      // Don't block if in input
+      // Don't block if in input (unless Alt/Ctrl combo)
       if (inInput && !e.altKey && !e.ctrlKey && !e.metaKey) return;
-
-      // F-keys
-      if (e.key === "F1") { e.preventDefault(); window.open("/invoices/new", "_blank", "noopener,noreferrer"); return; }
-      if (e.key === "F2") { e.preventDefault(); window.open("/finance/receipt/new", "_blank", "noopener,noreferrer"); return; }
-      if (e.key === "F3") { e.preventDefault(); window.open("/finance/payment/new", "_blank", "noopener,noreferrer"); return; }
-      if (e.key === "F4") { e.preventDefault(); window.open("/finance/journal/new", "_blank", "noopener,noreferrer"); return; }
 
       // Alt combos — use e.code for keyboard-layout independence (works with Arabic keyboards)
       if (e.altKey) {
         const code = e.code;
 
-        // Tab management (Chrome-like with Alt)
-        // Alt+W — Close current tab
-        if (code === "KeyW") {
-          e.preventDefault();
-          if (activeTabId) closeTab(activeTabId);
-          return;
-        }
+        // Tab management
+        if (code === "KeyW") { e.preventDefault(); if (activeTabId) closeTab(activeTabId); return; }
 
-        // Alt+ArrowRight — Next tab
         if (e.key === "ArrowRight") {
           e.preventDefault();
           if (tabs.length > 1 && activeTabId) {
             const idx = tabs.findIndex(t => t.id === activeTabId);
-            const nextIdx = (idx + 1) % tabs.length;
-            switchTab(tabs[nextIdx].id);
+            switchTab(tabs[(idx + 1) % tabs.length].id);
           }
           return;
         }
 
-        // Alt+ArrowLeft — Previous tab
         if (e.key === "ArrowLeft") {
           e.preventDefault();
           if (tabs.length > 1 && activeTabId) {
             const idx = tabs.findIndex(t => t.id === activeTabId);
-            const prevIdx = (idx - 1 + tabs.length) % tabs.length;
-            switchTab(tabs[prevIdx].id);
+            switchTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
           }
           return;
         }
 
-        // Alt+1..9 — Switch to tab by index
         const numKey = parseInt(e.key);
         if (numKey >= 1 && numKey <= 9) {
           e.preventDefault();
-          const targetIdx = numKey - 1;
-          if (targetIdx < tabs.length) {
-            switchTab(tabs[targetIdx].id);
-          }
+          if (numKey - 1 < tabs.length) switchTab(tabs[numKey - 1].id);
           return;
         }
 
+        // Quick create (Alt + letter)
+        if (code === "KeyI") { e.preventDefault(); navigate("/invoices/new"); return; }
+        if (code === "KeyR") { e.preventDefault(); navigate("/finance/receipt/new"); return; }
+        if (code === "KeyE") { e.preventDefault(); navigate("/finance/payment/new"); return; }
+        if (code === "KeyJ") { e.preventDefault(); navigate("/finance/journal/new"); return; }
+
         // Alt+P — Print
-        if (code === "KeyP") {
-          e.preventDefault();
-          window.print();
-          return;
-        }
+        if (code === "KeyP") { e.preventDefault(); window.print(); return; }
 
         // Navigation shortcuts
         if (code === "KeyC") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
         if (code === "KeyM") { e.preventDefault(); navigate("/contacts?type=supplier"); return; }
         if (code === "KeyK") { e.preventDefault(); navigate("/account-statement"); return; }
         if (code === "KeyS") { e.preventDefault(); navigate("/finance/cash-boxes"); return; }
-        if (code === "KeyI") { e.preventDefault(); navigate("/inventory"); return; }
+        if (code === "KeyX") { e.preventDefault(); navigate("/inventory"); return; }
         if (code === "KeyL") { e.preventDefault(); navigate("/journal-entries"); return; }
         if (code === "KeyQ") { e.preventDefault(); navigate("/finance/cheques"); return; }
         if (code === "KeyT") { e.preventDefault(); navigate("/trial-balance"); return; }
@@ -108,7 +90,6 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
           return;
         }
         if (code === "KeyN") { e.preventDefault(); onShowNewModal?.(); return; }
-        
       }
     };
 
