@@ -54,6 +54,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [lastTransactionId, setLastTransactionId] = useState<string | null>(null);
 
   // Conversation persistence
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -222,6 +223,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       const body: any = { text: originalText.trim(), userId: user?.id, email: user?.email };
       const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
       if (error) throw error;
+      if (txResult?.transaction?.id) setLastTransactionId(txResult.transaction.id);
       const invoiceInfo = txResult?.transaction?.invoice_number ? `\n📋 ${txResult.transaction.invoice_number}` : '';
       const cmdType = classifyCommand(originalText);
       return { success: true, message: `✅ ${getCommandTypeIcon(cmdType)} ${getCommandTypeLabel(cmdType)}${invoiceInfo}`, type: tx.type };
@@ -266,8 +268,57 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         return;
       }
 
+      // ═══ EDIT/DELETE INTENT ═══
+      const editTx = transactions.find(t => t.type === 'edit_transaction');
+      if (editTx) {
+        const { data: editResult, error: editErr } = await supabase.functions.invoke("process-transaction", {
+          body: {
+            text: text.trim(),
+            userId: user?.id,
+            email: user?.email,
+            editIntent: editTx,
+            lastTransactionId,
+          },
+        });
+
+        if (editErr) {
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: `❌ خطأ: ${editErr.message}`, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
+
+        const editResponse = editResult?.edit_response;
+        if (editResponse) {
+          let msg = editResponse.message || '';
+          if (editResponse.reason) msg += `\n${editResponse.reason}`;
+          if (editResponse.hint) msg += `\n💡 ${editResponse.hint}`;
+          if (editResponse.suggestion?.title) msg += `\n\n${editResponse.suggestion.title}`;
+          if (editResponse.suggestion?.explanation) msg += `\n${editResponse.suggestion.explanation}`;
+          if (editResponse.alternatives?.length) {
+            msg += '\n\n' + editResponse.alternatives.map((a: string) => `• ${a}`).join('\n');
+          }
+          if (editResponse.buttons?.length) {
+            msg += '\n\n' + editResponse.buttons.map((b: any) => {
+              if (b.action === 'navigate' && b.url) return `[action:${b.label}:${b.url}]`;
+              if (b.action === 'cancel') return `[action:${b.label}:@cancel]`;
+              return `[action:${b.label}:@${b.action}]`;
+            }).join('  ');
+          }
+
+          const msgType = editResponse.type === 'success' ? 'success' as const : undefined;
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: msg, type: msgType, timestamp: new Date() }]);
+          if (convId) saveMessage(convId, "assistant", msg);
+          if (editResponse.type === 'success') {
+            if (navigator.vibrate) navigator.vibrate(100);
+            onTransactionSuccess();
+          }
+          setSending(false);
+          return;
+        }
+      }
+
       // Filter out unknowns/questions
-      const actionable = transactions.filter(t => t.type && !['unknown', 'question', 'clarification'].includes(t.type));
+      const actionable = transactions.filter(t => t.type && !['unknown', 'question', 'clarification', 'edit_transaction'].includes(t.type));
 
       if (actionable.length > 1) {
         // ═══ MULTI-TRANSACTION → Show cards UI ═══
