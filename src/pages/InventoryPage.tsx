@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
 import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat, Camera, ScanLine } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +92,8 @@ const InventoryPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showMovementsDialog, setShowMovementsDialog] = useState(false);
   const [movements, setMovements] = useState<StockMovement[]>([]);
