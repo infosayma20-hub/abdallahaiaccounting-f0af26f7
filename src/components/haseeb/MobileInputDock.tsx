@@ -1,9 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { ArrowUp, Mic, X, Square, AtSign } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { ArrowUp, AtSign } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
-
-type DockState = "idle" | "recording" | "processing";
+import WhatsAppVoiceRecorder from "./WhatsAppVoiceRecorder";
 
 interface Props {
   onSend: (text: string, isVoice?: boolean) => void;
@@ -12,214 +10,11 @@ interface Props {
   userId?: string;
 }
 
-const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
-  const { toast } = useToast();
-  const [state, setState] = useState<DockState>("idle");
+const MobileInputDock = ({ onSend, sending, quickChips }: Props) => {
   const [inputValue, setInputValue] = useState("");
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioLevels, setAudioLevels] = useState<number[]>(new Array(40).fill(2));
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animFrameRef = useRef<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isRecordingActive, setIsRecordingActive] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
   const hasText = inputValue.trim().length > 0;
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopRecordingCleanup();
-    };
-  }, []);
-
-  const stopRecordingCleanup = () => {
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (timerRef.current) clearInterval(timerRef.current);
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    mediaRecorderRef.current = null;
-    streamRef.current = null;
-    analyserRef.current = null;
-  };
-
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true }
-      });
-      streamRef.current = stream;
-
-      // Web Audio API for visualization
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      // Start visualization
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const visualize = () => {
-        analyser.getByteTimeDomainData(dataArray);
-        const levels: number[] = [];
-        const step = Math.floor(dataArray.length / 40);
-        for (let i = 0; i < 40; i++) {
-          const val = dataArray[i * step] || 128;
-          levels.push(Math.max(2, ((val - 128) / 128) * 48 + 2));
-        }
-        setAudioLevels(levels);
-        animFrameRef.current = requestAnimationFrame(visualize);
-      };
-      visualize();
-
-      // MediaRecorder
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm'
-      });
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-
-      // Timer
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev >= 29) {
-            stopAndSend();
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-
-      if (navigator.vibrate) navigator.vibrate(30);
-      setState("recording");
-    } catch (err) {
-      toast({ title: "لم يتم السماح بالميكروفون", description: "يرجى السماح للميكروفون للتسجيل الصوتي" });
-    }
-  }, [toast]);
-
-  const stopAndSend = useCallback(() => {
-    if (!mediaRecorderRef.current) return;
-
-    setState("processing");
-    const recorder = mediaRecorderRef.current;
-
-    recorder.onstop = async () => {
-      stopRecordingCleanup();
-      setAudioLevels(new Array(40).fill(2));
-
-      // Use Web Speech API for transcription
-      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (!SR) {
-        toast({ title: "المتصفح لا يدعم التحويل الصوتي" });
-        setState("idle");
-        return;
-      }
-
-      // Since MediaRecorder already captured, we fallback to text input
-      // In production, send audio blob to backend for Whisper transcription
-      setState("idle");
-    };
-
-    recorder.stop();
-  }, [toast]);
-
-  const cancelRecording = useCallback(() => {
-    stopRecordingCleanup();
-    setAudioLevels(new Array(40).fill(2));
-    setRecordingTime(0);
-    setState("idle");
-  }, []);
-
-  // Use SpeechRecognition for real-time voice
-  const startVoiceInput = useCallback(async () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) {
-      toast({ title: "المتصفح لا يدعم التسجيل الصوتي" });
-      return;
-    }
-
-    try {
-      // Also start actual recording for waveform
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true }
-      });
-      streamRef.current = stream;
-
-      // Visualization
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const visualize = () => {
-        analyser.getByteTimeDomainData(dataArray);
-        const levels: number[] = [];
-        const step = Math.floor(dataArray.length / 40);
-        for (let i = 0; i < 40; i++) {
-          const val = dataArray[i * step] || 128;
-          levels.push(Math.max(2, Math.abs(val - 128) / 128 * 48 + 2));
-        }
-        setAudioLevels(levels);
-        animFrameRef.current = requestAnimationFrame(visualize);
-      };
-      visualize();
-
-      if (navigator.vibrate) navigator.vibrate(30);
-      setState("recording");
-
-      // Timer
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-
-      const recognition = new SR();
-      recognition.lang = "ar-SA";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.onresult = (e: any) => {
-        const text = e.results[0][0].transcript;
-        stopRecordingCleanup();
-        setAudioLevels(new Array(40).fill(2));
-        setRecordingTime(0);
-        setState("processing");
-
-        // Brief processing state then send
-        setTimeout(() => {
-          setState("idle");
-          onSend(text, true);
-        }, 500);
-      };
-      recognition.onerror = () => {
-        stopRecordingCleanup();
-        setAudioLevels(new Array(40).fill(2));
-        setRecordingTime(0);
-        setState("idle");
-      };
-      recognition.onend = () => {
-        if (state === "recording") {
-          stopRecordingCleanup();
-          setAudioLevels(new Array(40).fill(2));
-          setRecordingTime(0);
-          setState("idle");
-        }
-      };
-      recognition.start();
-    } catch {
-      toast({ title: "لم يتم السماح بالميكروفون" });
-    }
-  }, [onSend, toast, state]);
 
   const handleTextSend = () => {
     if (!hasText || sending) return;
@@ -227,64 +22,11 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
     setInputValue("");
   };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const handleVoiceTranscription = useCallback((text: string) => {
+    setIsRecordingActive(false);
+    onSend(text, true);
+  }, [onSend]);
 
-  // RECORDING STATE
-  if (state === "recording") {
-    return (
-      <div className="finix-dock finix-dock-recording">
-        {/* Waveform */}
-        <div className="flex items-center justify-center gap-[2px] h-14 w-full px-4">
-          {audioLevels.map((level, i) => (
-            <div
-              key={i}
-              className="w-[3px] rounded-full transition-all duration-75"
-              style={{
-                height: `${level}px`,
-                background: `linear-gradient(to top, hsl(var(--finix-navy-dark)), hsl(var(--accent)), hsl(var(--finix-gold)))`,
-                opacity: 0.8 + (level / 48) * 0.2,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Controls row */}
-        <div className="flex items-center justify-between px-4 pb-2">
-          <button onClick={cancelRecording} className="flex items-center gap-1.5 h-11 px-4 text-white/60 text-sm">
-            <X className="h-4 w-4" />
-            إلغاء
-          </button>
-
-          <div className="flex items-center gap-2">
-            <span className="finix-rec-dot" />
-            <span className="text-[13px] text-white/80">جاري التسجيل...</span>
-          </div>
-
-          <span
-            className="text-lg font-semibold text-white"
-            style={{ fontFamily: "JetBrains Mono, monospace", color: recordingTime >= 25 ? "hsl(var(--warning))" : "white" }}
-          >
-            {formatTime(recordingTime)}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // PROCESSING STATE
-  if (state === "processing") {
-    return (
-      <div className="finix-dock">
-        <div className="finix-shimmer-bar" />
-        <div className="flex items-center justify-center gap-2 py-4">
-          <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "hsl(var(--accent))", borderTopColor: "transparent" }} />
-          <span className="text-[13px] text-muted-foreground">🤖 يحلل كلامك...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // IDLE STATE (default)
   return (
     <div className="finix-dock">
       {/* Quick chips strip */}
@@ -314,7 +56,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleTextSend(); } }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleTextSend(); } }}
             placeholder="اكتب أو اضغط 🎤 للتحدث..."
             rows={1}
             className="w-full h-[52px] rounded-[26px] px-4 pr-12 text-[14px] resize-none bg-muted/50 border-2 border-border focus:border-foreground focus:bg-white focus:shadow-sm outline-none transition-all"
@@ -322,6 +64,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
               fontFamily: "Tajawal, sans-serif",
               color: "hsl(var(--foreground))",
               paddingTop: "14px",
+              fontSize: "16px", // prevent iOS zoom
             }}
           />
           {/* @ button inside */}
@@ -354,19 +97,10 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
             <TooltipContent side="top"><p>إرسال الرسالة</p></TooltipContent>
           </Tooltip>
         ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onTouchStart={startVoiceInput}
-                onMouseDown={startVoiceInput}
-                className="finix-mic-btn"
-                aria-label="تسجيل صوتي"
-              >
-                <Mic className="h-6 w-6 text-white" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top"><p>تسجيل صوتي</p></TooltipContent>
-          </Tooltip>
+          <WhatsAppVoiceRecorder
+            onTranscription={handleVoiceTranscription}
+            disabled={sending}
+          />
         )}
       </div>
     </div>
