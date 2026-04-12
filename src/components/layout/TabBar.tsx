@@ -1,5 +1,5 @@
-import { useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import { useRef, useEffect, useState, useCallback } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppTabs, ICON_MAP } from "@/contexts/TabsContext";
 import { cn } from "@/lib/utils";
 
@@ -7,6 +7,25 @@ const TabBar = () => {
   const { tabs, activeTabId, switchTab, closeTab, closeAllTabs } = useAppTabs();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", checkScroll); ro.disconnect(); };
+  }, [tabs.length, checkScroll]);
 
   // Auto-scroll to active tab
   useEffect(() => {
@@ -15,16 +34,30 @@ const TabBar = () => {
     }
   }, [activeTabId]);
 
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+  };
+
   if (tabs.length === 0) return null;
 
   return (
     <div
       className="flex items-center border-b border-border/40 select-none overflow-hidden flex-shrink-0"
-      style={{
-        height: 38,
-        background: "hsl(var(--card))",
-      }}
+      style={{ height: 38, background: "hsl(var(--card))" }}
     >
+      {/* Scroll right arrow (RTL: right = start) */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="flex items-center justify-center w-5 h-full text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0"
+          aria-label="تمرير لليمين"
+        >
+          <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+      )}
+
       <div
         ref={scrollRef}
         className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide px-2 flex-1"
@@ -39,7 +72,6 @@ const TabBar = () => {
               ref={isActive ? activeRef : undefined}
               onClick={() => switchTab(tab.id)}
               onMouseDown={(e) => {
-                // Middle-click to close
                 if (e.button === 1) { e.preventDefault(); closeTab(tab.id); }
               }}
               className={cn(
@@ -62,7 +94,6 @@ const TabBar = () => {
               >
                 <X className="h-3 w-3" />
               </span>
-              {/* Active indicator line */}
               {isActive && (
                 <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-primary" />
               )}
@@ -71,10 +102,21 @@ const TabBar = () => {
         })}
       </div>
 
+      {/* Scroll left arrow (RTL: left = end) */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="flex items-center justify-center w-5 h-full text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors flex-shrink-0"
+          aria-label="تمرير لليسار"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+      )}
+
       {/* Close all tabs button */}
       {tabs.length > 1 && (
         <div className="flex items-center px-2 border-r border-border/30 flex-shrink-0">
-        <button
+          <button
             onClick={closeAllTabs}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors px-1.5 py-1 rounded hover:bg-muted/50"
             title="إغلاق الكل"
