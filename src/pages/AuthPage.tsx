@@ -484,12 +484,12 @@ const AuthPage = () => {
                   <button onClick={() => setMode("login")} className="hover:underline" style={{ color: '#0D1B2E', fontWeight: 400 }}>العودة لتسجيل الدخول</button>
                 </p>
               )}
+              <SamiChatbot inline />
             </div>
           </div>
         </div>
       </div>
     </div>
-    <SamiChatbot />
     </>
   );
 };
