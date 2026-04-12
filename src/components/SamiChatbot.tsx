@@ -401,16 +401,18 @@ export default function SamiChatbot({ inline = false }: { inline?: boolean }) {
 
       {/* Floating Button with 3D Animation */}
       <div style={{
-        position: "fixed",
-        bottom: isMobile ? 8 : 24,
-        left: isMobile ? "50%" : 24,
-        transform: isMobile ? "translateX(-50%)" : "none",
-        zIndex: 9999,
+        position: inline ? "relative" : "fixed",
+        bottom: inline ? "auto" : (isMobile ? 8 : 24),
+        left: inline ? "auto" : (isMobile ? "50%" : 24),
+        transform: inline ? "none" : (isMobile ? "translateX(-50%)" : "none"),
+        zIndex: inline ? 1 : 9999,
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         gap: 10,
         direction: "rtl",
+        ...(inline ? { width: "100%", marginTop: 12 } : {}),
       }}>
         {/* Animated hint bubble */}
         {!open && (
