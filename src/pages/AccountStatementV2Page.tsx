@@ -32,7 +32,7 @@ interface Transaction { id: string; description: string; transaction_type: strin
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
 interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; }
 
-type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
+type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contacts";
 
 // ─── HELPERS ───
 const normalizeCurrency = (c: string): string => {
