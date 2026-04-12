@@ -1,5 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+async function saveLead(name: string, phone: string, business: string, messages: { role: string; content: string }[]) {
+  try {
+    await supabase.from("sami_leads").insert({
+      name,
+      phone,
+      business_type: business || null,
+      conversation_log: messages.map(m => ({ role: m.role, content: m.content })),
+    } as any);
+  } catch (e) {
+    console.error("Failed to save lead:", e);
+  }
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -254,6 +268,8 @@ export default function SamiChatbot() {
                         {msg.showLeadForm && <LeadForm onSubmit={(data) => {
                           sendMessage(`اسمي ${data.name}، رقمي ${data.phone}، نوع عملي: ${data.business}`);
                           setMessages(prev => prev.map((m, idx) => idx === i ? { ...m, showLeadForm: false } : m));
+                          // Save lead to database
+                          saveLead(data.name, data.phone, data.business, messages);
                         }} />}
                         {msg.quickReplies && msg.quickReplies.length > 0 && (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>

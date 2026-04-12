@@ -8,8 +8,9 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon, LayoutDashboard,
+  Sun, Moon, LayoutDashboard, UserPlus,
 } from "lucide-react";
+import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -2216,6 +2217,7 @@ export default function SuperAdminDashboard() {
                 { value: "settings", icon: Settings, label: "إعدادات المنصة" },
                 { value: "tools", icon: Zap, label: "أدوات" },
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+                { value: "leads", icon: UserPlus, label: "زبائن سامي" },
                 { value: "revenue", icon: BarChart3, label: "الإيرادات" },
               ].map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value} className="whitespace-nowrap text-xs sm:text-sm"
@@ -2530,6 +2532,9 @@ export default function SuperAdminDashboard() {
 
           <TabsContent value="revenue">
             <RevenueReports />
+          </TabsContent>
+          <TabsContent value="leads">
+            <SamiLeadsPanel />
           </TabsContent>
         </Tabs>
       </div>
