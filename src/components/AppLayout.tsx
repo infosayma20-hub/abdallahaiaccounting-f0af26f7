@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, FileText, Receipt, Menu } from "lucide-react";
-
+import { smartNavigate } from "@/lib/smartNavigate";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -26,8 +26,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         {children}
       </main>
 
-      
-
       {/* Bottom Navigation - Premium Dark */}
       <nav className="fixed bottom-2 left-2 right-2 z-40">
         <div className="max-w-md mx-auto bg-card rounded-2xl shadow-lg" style={{ border: "1px solid rgba(128,128,128,0.15)" }}>
@@ -38,7 +36,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               return (
                 <button
                   key={item.path}
-                  onClick={() => navigate(item.path)}
+                  onClick={(e) => smartNavigate(e, item.path, navigate)}
                   className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all duration-200 ${
                     active ? "text-primary" : "text-muted-foreground"
                   } ${isAI && active ? "animate-pulse-glow" : ""}`}

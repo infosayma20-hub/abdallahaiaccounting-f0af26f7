@@ -1,6 +1,7 @@
 import { BookOpen, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard, Package, Wrench, MessageCircle, PieChart, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { smartNavigate } from "@/lib/smartNavigate";
 
 const sections = [
   {
@@ -43,7 +44,7 @@ const MenuPage = () => {
 
       {/* 🧠 الذكاء المالي - شريط عريض مستقل */}
       <button
-        onClick={() => navigate("/smart-report")}
+        onClick={(e) => smartNavigate(e, "/smart-report", navigate)}
         className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-gradient-to-l from-primary/15 to-primary/5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
       >
         <div className="p-2.5 rounded-xl bg-primary/10">
@@ -64,7 +65,7 @@ const MenuPage = () => {
               <Card
                 key={item.label}
                 className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow active:scale-[0.97]"
-                onClick={() => navigate(item.path)}
+                onClick={(e) => smartNavigate(e, item.path, navigate)}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center gap-2.5">
                   <div className={`p-2.5 rounded-xl ${item.color}`}>
