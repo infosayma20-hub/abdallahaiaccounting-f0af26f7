@@ -34,11 +34,9 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
       // Don't block if in input
       if (inInput && !e.altKey && !e.ctrlKey && !e.metaKey) return;
 
-      // F-keys
-      if (e.key === "F1") { e.preventDefault(); window.open("/invoices/new", "_blank", "noopener,noreferrer"); return; }
-      if (e.key === "F2") { e.preventDefault(); window.open("/finance/receipt/new", "_blank", "noopener,noreferrer"); return; }
-      if (e.key === "F3") { e.preventDefault(); window.open("/finance/payment/new", "_blank", "noopener,noreferrer"); return; }
-      if (e.key === "F4") { e.preventDefault(); window.open("/finance/journal/new", "_blank", "noopener,noreferrer"); return; }
+      // Alt combos — use e.code for keyboard-layout independence (works with Arabic keyboards)
+      if (e.altKey) {
+        const code = e.code;
 
       // Alt combos — use e.code for keyboard-layout independence (works with Arabic keyboards)
       if (e.altKey) {
