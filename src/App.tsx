@@ -38,6 +38,7 @@ const TrialBalancePage = lazy(() => import("./pages/TrialBalancePage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
+const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
 const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
@@ -220,6 +221,7 @@ const App = () => (
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/share" element={<ShareQRPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
