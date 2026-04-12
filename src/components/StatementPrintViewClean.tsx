@@ -115,7 +115,7 @@ const StatementPrintViewClean = ({
   totalDebit, totalCredit, dateFrom, dateTo, statementNumber, contactCode,
 }: Props) => {
   const balColor = (v: number) => v > 0 ? "#DC2626" : v < 0 ? "#059669" : "#6B7280";
-  const soaNum = statementNumber || `SOA-${Date.now()}`;
+  const soaNum = statementNumber || `SOA-0000`;
 
   return (
     <div style={S.page} dir="rtl">

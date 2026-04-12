@@ -210,7 +210,7 @@ const StatementPrintView = ({
 }: StatementPrintViewProps & { isPreview?: boolean }) => {
   const isDebit = closingBalance >= 0;
   const today = new Date();
-  const soaNumber = statementNumber || `SOA-${today.getFullYear()}-${String(Date.now()).slice(-4).padStart(4, "0")}`;
+  const soaNumber = statementNumber || `SOA-0000`;
   const isDetailMode = detailLevel === "lineItems";
 
   const smartColumns = useMemo(() => {
