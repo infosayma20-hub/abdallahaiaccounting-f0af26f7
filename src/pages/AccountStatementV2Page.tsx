@@ -112,7 +112,7 @@ const AccountStatementV2Page = () => {
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
-    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
+    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : urlContactId ? "customers" : "contacts"
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [txSearch, setTxSearch] = useState("");
