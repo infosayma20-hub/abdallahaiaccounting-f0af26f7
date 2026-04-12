@@ -223,6 +223,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       const body: any = { text: originalText.trim(), userId: user?.id, email: user?.email };
       const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
       if (error) throw error;
+      if (txResult?.transaction?.id) setLastTransactionId(txResult.transaction.id);
       const invoiceInfo = txResult?.transaction?.invoice_number ? `\n📋 ${txResult.transaction.invoice_number}` : '';
       const cmdType = classifyCommand(originalText);
       return { success: true, message: `✅ ${getCommandTypeIcon(cmdType)} ${getCommandTypeLabel(cmdType)}${invoiceInfo}`, type: tx.type };
