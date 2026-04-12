@@ -274,12 +274,10 @@ export default function AdvancedEntitySearch({
               let idx = 0;
               return groupedResults.map(group => (
                 <div key={group.key}>
-                  {/* Group header - only show when contacts tab has both groups */}
-                  {normalizedTab === "contacts" && (
-                    <div className="px-5 py-2 text-[11px] font-semibold text-muted-foreground bg-muted/50 sticky top-0">
-                      {group.emoji} {group.label}
-                    </div>
-                  )}
+                  {/* Group header */}
+                  <div className="px-5 py-2 text-[11px] font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                    {group.emoji} {group.label}
+                  </div>
                   {group.items.map(item => {
                     const currentIdx = idx++;
                     const isHighlighted = currentIdx === highlightIdx;
