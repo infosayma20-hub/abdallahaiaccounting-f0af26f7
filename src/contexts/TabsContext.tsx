@@ -213,6 +213,15 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
     const existing = tabs.find(t => t.path === currentPath);
     if (existing) {
+      // Refresh title from latest ROUTE_META (fixes stale cached names)
+      const meta = getRouteMeta(currentPath);
+      if (existing.title !== meta.title) {
+        setTabs(prev => {
+          const next = prev.map(t => t.id === existing.id ? { ...t, title: meta.title, icon: meta.icon } : t);
+          saveTabs(next);
+          return next;
+        });
+      }
       setActiveTabId(existing.id);
     } else {
       // Auto-open a tab for the current route
