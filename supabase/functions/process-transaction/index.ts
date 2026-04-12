@@ -51,8 +51,225 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { text, mentionedContactName, mentionedContactId } = await req.json();
+    const { text, mentionedContactName, mentionedContactId, editIntent, lastTransactionId } = await req.json();
     if (!text) throw new Error('Transaction text is required');
+
+    // ═══ EDIT/DELETE INTENT HANDLING ═══
+    if (editIntent && editIntent.type === 'edit_transaction') {
+      const action = editIntent.action || 'edit';
+      const target = editIntent.target || '';
+      const correction = editIntent.correction || null;
+
+      // Find the target transaction
+      let targetTx: any = null;
+
+      // 1. "آخر معاملة" or last recorded
+      if (lastTransactionId || /آخر|هلق|هاي|اللي سجلتها/.test(target)) {
+        if (lastTransactionId) {
+          const { data } = await supabaseAdmin.from('transactions')
+            .select('*').eq('id', lastTransactionId).eq('user_id', userId).eq('is_deleted', false).maybeSingle();
+          targetTx = data;
+        }
+        if (!targetTx) {
+          const { data } = await supabaseAdmin.from('transactions')
+            .select('*').eq('user_id', userId).eq('is_deleted', false)
+            .order('created_at', { ascending: false }).limit(1).maybeSingle();
+          targetTx = data;
+        }
+      }
+
+      // 2. Reference number match
+      if (!targetTx) {
+        const refMatch = target.match(/[A-Z]+-\d{4}-\d+/i);
+        if (refMatch) {
+          const { data } = await supabaseAdmin.from('transactions')
+            .select('*').eq('user_id', userId).eq('reference', refMatch[0]).eq('is_deleted', false).maybeSingle();
+          targetTx = data;
+        }
+      }
+
+      // 3. Search by party name from the text
+      if (!targetTx && target) {
+        const partyWords = target.replace(/فاتورة|سند|معاملة|حساب/g, '').trim();
+        if (partyWords.length > 1) {
+          const { data } = await supabaseAdmin.from('transactions')
+            .select('*').eq('user_id', userId).eq('is_deleted', false)
+            .ilike('description', `%${partyWords}%`)
+            .order('created_at', { ascending: false }).limit(1).maybeSingle();
+          targetTx = data;
+        }
+      }
+
+      // 4. Search by amount
+      if (!targetTx) {
+        const amtMatch = target.match(/\d+/);
+        if (amtMatch) {
+          const { data } = await supabaseAdmin.from('transactions')
+            .select('*').eq('user_id', userId).eq('is_deleted', false)
+            .eq('amount', Number(amtMatch[0]))
+            .order('created_at', { ascending: false }).limit(1).maybeSingle();
+          targetTx = data;
+        }
+      }
+
+      if (!targetTx) {
+        return new Response(JSON.stringify({
+          success: false,
+          edit_response: {
+            type: 'not_found',
+            message: 'ما لقيت المعاملة — حدّدلي أكثر (رقم الفاتورة أو اسم الجهة أو المبلغ)',
+            buttons: [{ label: 'افتح السندات ←', action: 'navigate', url: '/transactions' }],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Check linked documents status
+      let linkedInvoice: any = null;
+      const [invRes, purRes, vchRes, recRes] = await Promise.all([
+        supabaseAdmin.from('invoices').select('id, invoice_number, status, paid_amount, total_amount, contact_name')
+          .eq('linked_transaction_id', targetTx.id).maybeSingle(),
+        supabaseAdmin.from('purchase_invoices').select('id, invoice_number, status, paid_amount, total_amount, supplier_name')
+          .eq('linked_transaction_id', targetTx.id).maybeSingle(),
+        supabaseAdmin.from('vouchers').select('id, ref_number, status')
+          .eq('linked_transaction_id', targetTx.id).maybeSingle(),
+        supabaseAdmin.from('receipt_vouchers').select('id, receipt_number, status')
+          .eq('linked_transaction_id', targetTx.id).maybeSingle(),
+      ]);
+      linkedInvoice = invRes.data || purRes.data || null;
+
+      const docStatus = linkedInvoice?.status || vchRes.data?.status || recRes.data?.status || 'draft';
+      const paidAmount = linkedInvoice?.paid_amount || 0;
+      const totalAmount = linkedInvoice?.total_amount || targetTx.amount || 0;
+      const isPaid = paidAmount > 0;
+      const docRef = linkedInvoice?.invoice_number || vchRes.data?.ref_number || recRes.data?.receipt_number || targetTx.reference || targetTx.id;
+      const partyName = linkedInvoice?.contact_name || linkedInvoice?.supplier_name || targetTx.description || '';
+
+      // ═══ DELETE REQUEST ═══
+      if (action === 'delete') {
+        if (docStatus === 'draft') {
+          await supabaseAdmin.from('transactions').update({ is_deleted: true, idempotency_key: null }).eq('id', targetTx.id);
+          return new Response(JSON.stringify({
+            success: true,
+            edit_response: { type: 'success', message: `✓ تم حذف المعاملة ${docRef} — كانت مسودة` },
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({
+          success: false,
+          edit_response: {
+            type: 'blocked',
+            message: `❌ ما أقدر أحذف ${docRef} — هي مؤكدة${isPaid ? ' ومدفوعة' : ''}.`,
+            reason: 'حذف المعاملات المؤكدة يكسر القيود المحاسبية والتقارير.',
+            alternatives: isPaid
+              ? [`أنشئ إشعار دائن بـ ₪${totalAmount} لإلغاء أثرها`]
+              : [`غيّر حالتها لـ "ملغاة" من داخل الفاتورة`],
+            buttons: isPaid
+              ? [{ label: `أنشئ إشعار دائن ₪${totalAmount}`, action: 'create_credit_note', params: { transactionId: targetTx.id, amount: totalAmount } }]
+              : [{ label: `افتح الفاتورة ←`, action: 'navigate', url: '/invoices' }],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // ═══ EDIT REQUEST ═══
+      // Case 1: Draft → edit directly
+      if (docStatus === 'draft' || !linkedInvoice) {
+        if (correction && correction.field === 'amount' && correction.new_value) {
+          const newAmount = Number(correction.new_value);
+          await supabaseAdmin.from('transactions').update({ amount: newAmount }).eq('id', targetTx.id);
+          if (linkedInvoice) {
+            const updateData: any = { subtotal: newAmount, total_amount: newAmount };
+            if (!isPaid) { updateData.remaining_amount = newAmount; }
+            if (invRes.data) await supabaseAdmin.from('invoices').update(updateData).eq('id', linkedInvoice.id);
+            else if (purRes.data) await supabaseAdmin.from('purchase_invoices').update(updateData).eq('id', linkedInvoice.id);
+          }
+          return new Response(JSON.stringify({
+            success: true,
+            edit_response: {
+              type: 'success',
+              message: `✓ تم تعديل ${docRef}\nالمبلغ: ${targetTx.amount} → ₪${newAmount}`,
+              buttons: [{ label: `عرض المعاملة ←`, action: 'navigate', url: '/transactions' }],
+            },
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({
+          success: true,
+          edit_response: {
+            type: 'open_document',
+            message: `المعاملة ${docRef} — افتحها وعدّل من هناك:`,
+            buttons: [{ label: `افتح ${docRef} ←`, action: 'navigate', url: '/transactions' }],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Case 2: Confirmed but not paid
+      if (['sent', 'confirmed', 'posted', 'approved', 'pending'].includes(docStatus) && !isPaid) {
+        return new Response(JSON.stringify({
+          success: true,
+          edit_response: {
+            type: 'open_document',
+            message: `الفاتورة ${docRef} مؤكدة بس ما فيها مدفوعات — افتحها وعدّل من هناك:`,
+            hint: 'بعد التعديل راجع أن القيد المحاسبي اتحدّث',
+            buttons: [{ label: `افتح ${docRef} ←`, action: 'navigate', url: '/invoices' }],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Case 3: Paid → suggest credit/debit note
+      if (isPaid && correction?.field === 'amount' && correction.new_value) {
+        const newAmount = Number(correction.new_value);
+        const diff = newAmount - totalAmount;
+        if (Math.abs(diff) < 0.01) {
+          return new Response(JSON.stringify({
+            success: true, edit_response: { type: 'info', message: 'المبلغ نفسه — ما في شي يتغير' },
+          }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const noteLabel = diff > 0 ? 'إشعار مدين' : 'إشعار دائن';
+        const absDiff = Math.abs(diff);
+        return new Response(JSON.stringify({
+          success: false,
+          edit_response: {
+            type: 'suggest_note',
+            message: `الفاتورة ${docRef} فيها مدفوعات — ما أقدر أعدّل المبلغ مباشرة.`,
+            suggestion: {
+              title: `الحل: أنشئ ${noteLabel} بمبلغ ₪${absDiff}`,
+              explanation: diff > 0
+                ? `يعني ${partyName} بده يدفع ₪${absDiff} إضافي`
+                : `يعني رح ترجع لـ${partyName} ₪${absDiff}`,
+            },
+            buttons: [
+              { label: `✓ أنشئ ${noteLabel} ₪${absDiff}`, action: 'create_note', params: { type: diff > 0 ? 'debit_note' : 'credit_note', amount: absDiff, transactionId: targetTx.id } },
+              { label: 'افتح الفاتورة يدوياً', action: 'navigate', url: '/invoices' },
+              { label: 'إلغاء', action: 'cancel' },
+            ],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Case 3b: Paid but general edit
+      if (isPaid) {
+        return new Response(JSON.stringify({
+          success: false,
+          edit_response: {
+            type: 'suggest_note',
+            message: `الفاتورة ${docRef} مؤكدة ومدفوعة — ما أقدر أعدّلها مباشرة.`,
+            suggestion: { title: 'أنشئ إشعار دائن لإلغاء أثرها أو تصحيحها' },
+            buttons: [
+              { label: `أنشئ إشعار دائن ₪${totalAmount}`, action: 'create_credit_note', params: { transactionId: targetTx.id, amount: totalAmount } },
+              { label: 'افتح الفاتورة ←', action: 'navigate', url: '/invoices' },
+            ],
+          },
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Fallback
+      return new Response(JSON.stringify({
+        success: true,
+        edit_response: {
+          type: 'open_document', message: `افتح ${docRef} وعدّلها يدوياً:`,
+          buttons: [{ label: `افتح المعاملة ←`, action: 'navigate', url: '/transactions' }],
+        },
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    // ═══ END EDIT/DELETE HANDLING ═══
 
     // Fetch user's accounts and contacts for AI context
     const [accountsRes, contactsRes] = await Promise.all([
