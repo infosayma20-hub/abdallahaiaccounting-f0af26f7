@@ -32,7 +32,7 @@ interface Transaction { id: string; description: string; transaction_type: strin
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
 interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; }
 
-type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
+type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contacts";
 
 // ─── HELPERS ───
 const normalizeCurrency = (c: string): string => {
@@ -112,7 +112,7 @@ const AccountStatementV2Page = () => {
   const [companyInfo, setCompanyInfo] = useState({ name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" });
 
   const [activeTab, setActiveTab] = useState<EntityTab>(
-    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
+    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : urlContactId ? "customers" : "contacts"
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [txSearch, setTxSearch] = useState("");
@@ -633,9 +633,9 @@ const AccountStatementV2Page = () => {
               employeeTxCounts={employeeTxCounts}
               selectedEntityId={selectedEntityId}
               activeTab={activeTab}
-              onSelect={(id, tab) => { if (tab && tab !== activeTab) setActiveTab(tab); selectEntity(id); }}
+              onSelect={(id, tab) => { if (tab) setActiveTab(tab as EntityTab); selectEntity(id); }}
               onClear={() => setSelectedEntityId("")}
-              onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+              onTabFilter={(tab) => { setActiveTab(tab as EntityTab); setSelectedEntityId(""); }}
               loading={loading}
             />
           </div>
