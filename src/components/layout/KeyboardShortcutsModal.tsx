@@ -40,10 +40,10 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-secondary/30 rounded-lg p-2.5 space-y-0.5">
             <h3 className="text-[10px] font-bold text-primary mb-1">📄 إنشاء سريع</h3>
-            <ShortcutRow keys="F1" label="فاتورة جديدة" />
-            <ShortcutRow keys="F2" label="سند قبض" />
-            <ShortcutRow keys="F3" label="سند صرف" />
-            <ShortcutRow keys="F4" label="سند قيد" />
+            <ShortcutRow keys="Alt + I" label="فاتورة جديدة" />
+            <ShortcutRow keys="Alt + R" label="سند قبض" />
+            <ShortcutRow keys="Alt + E" label="سند صرف" />
+            <ShortcutRow keys="Alt + J" label="سند قيد" />
           </div>
 
           <div className="bg-secondary/30 rounded-lg p-2.5 space-y-0.5">
@@ -79,10 +79,9 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
 
           <div className="bg-secondary/30 rounded-lg p-2.5 space-y-0.5">
             <h3 className="text-[10px] font-bold text-primary mb-1">📊 تقارير ومخزون</h3>
-            <ShortcutRow keys="Alt + I" label="المخزون" />
+            <ShortcutRow keys="Alt + X" label="المخزون" />
             <ShortcutRow keys="Alt + L" label="دفتر الأستاذ" />
             <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
-            
           </div>
         </div>
 
