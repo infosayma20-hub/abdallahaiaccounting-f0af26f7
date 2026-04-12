@@ -633,9 +633,9 @@ const AccountStatementV2Page = () => {
               employeeTxCounts={employeeTxCounts}
               selectedEntityId={selectedEntityId}
               activeTab={activeTab}
-              onSelect={(id, tab) => { if (tab && tab !== activeTab) setActiveTab(tab); selectEntity(id); }}
+              onSelect={(id, tab) => { if (tab) setActiveTab(tab as EntityTab); selectEntity(id); }}
               onClear={() => setSelectedEntityId("")}
-              onTabFilter={(tab) => { setActiveTab(tab); setSelectedEntityId(""); }}
+              onTabFilter={(tab) => { setActiveTab(tab as EntityTab); setSelectedEntityId(""); }}
               loading={loading}
             />
           </div>
