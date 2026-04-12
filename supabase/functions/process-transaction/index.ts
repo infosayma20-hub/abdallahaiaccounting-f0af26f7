@@ -1013,9 +1013,18 @@ ${contactContext}
       }
     }
 
-    // Get account names for response
-    const debitAcc = accounts.find(a => a.account_code === debitAccountCode);
-    const creditAcc = accounts.find(a => a.account_code === creditAccountCode);
+    // Get account names for response (re-fetch if new accounts were created)
+    let debitAcc = accounts.find(a => a.account_code === debitAccountCode);
+    let creditAcc = accounts.find(a => a.account_code === creditAccountCode);
+    if (!debitAcc || !creditAcc) {
+      const { data: freshAccounts } = await supabaseAdmin.from('accounts')
+        .select('account_code, account_name').eq('user_id', userId)
+        .in('account_code', [debitAccountCode, creditAccountCode].filter(Boolean));
+      if (freshAccounts) {
+        if (!debitAcc) debitAcc = freshAccounts.find(a => a.account_code === debitAccountCode);
+        if (!creditAcc) creditAcc = freshAccounts.find(a => a.account_code === creditAccountCode);
+      }
+    }
 
     return new Response(JSON.stringify({
       success: true,
