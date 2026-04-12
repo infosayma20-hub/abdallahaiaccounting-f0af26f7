@@ -71,6 +71,29 @@ function shouldShowCta(content: string): boolean {
   return /amwali\.app|ابدأ.*تجرب|تجربت.*مجان|14 يوم/i.test(content);
 }
 
+const HINT_PHRASES = [
+  "شو عم يخسر عملك هسا؟",
+  "في مشكلة ما لقتلها حل؟",
+  "بتحكي بالعربي وبيفهم 🧠",
+  "جرب سامي — بدون ما تلتزم",
+  "كيف بيشتغل المحاسب الذكي؟",
+  "كم ساعة بتضيع على الحسابات؟",
+  "محاسبك بيغلط؟ في حل 💡",
+  "مخزونك بيروح بلا حساب؟",
+  "آخر مرة طلعت كشف حساب؟",
+  "قديش بيكلفك محاسبك بالشهر؟",
+  "مطعم؟ ورشة؟ شركة؟ حكيلي",
+  "شو بتحتاج — محاسبة ولا مخزون؟",
+  "فواتيرك ضريبية؟ خليني أساعدك",
+  "رواتب موظفينك بتاخد وقت؟",
+  "دقيقة وبتفهم شو بيقدر يسويلك",
+  "بلا بيروقراطية — حكيلي مباشرة",
+  "في جواب — ابدأ من هون 👇",
+  "أموالي فاهم السوق الفلسطيني 🇵🇸",
+  "تجربة 14 يوم — ابدأ بلا خوف",
+  "احكيلي شو بتحتاج مالياً وإدارياً",
+];
+
 export default function SamiChatbot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -78,6 +101,7 @@ export default function SamiChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hintIndex, setHintIndex] = useState(() => Math.floor(Math.random() * HINT_PHRASES.length));
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -87,6 +111,19 @@ export default function SamiChatbot() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Rotate hint phrases every 5 seconds
+  useEffect(() => {
+    if (open) return;
+    const interval = setInterval(() => {
+      setHintIndex(prev => {
+        let next;
+        do { next = Math.floor(Math.random() * HINT_PHRASES.length); } while (next === prev && HINT_PHRASES.length > 1);
+        return next;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [open]);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }), 50);
@@ -384,7 +421,7 @@ export default function SamiChatbot() {
               backdropFilter: "none",
             }}
           >
-            <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> احكيلي شو بتحتاج مالياً وإدارياً
+            <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> {HINT_PHRASES[hintIndex]}
           </div>
         )}
 
