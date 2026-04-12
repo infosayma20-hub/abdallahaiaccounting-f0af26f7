@@ -248,8 +248,26 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       // New format: { transactions: [...], count: N }
       const transactions: ParsedTransaction[] = parseData?.transactions || [];
       
+      // Check for clarification requests first
+      const clarifications = transactions.filter(t => t.type === 'clarification' || t.status === 'needs_clarification');
+      if (clarifications.length > 0) {
+        const cl = clarifications[0];
+        const question = (cl as any).question || (cl as any).clarificationQuestion || 'هل يمكنك التوضيح أكثر؟';
+        const options: string[] = (cl as any).options || (cl as any).clarificationOptions || [];
+        
+        let clarificationMsg = question;
+        if (options.length > 0) {
+          clarificationMsg += '\n\n' + options.map((opt: string) => `[action:${opt}:@${opt}]`).join('  ');
+        }
+        
+        setMessages(prev => [...prev, { id: uid(), role: "assistant", content: clarificationMsg, timestamp: new Date() }]);
+        if (convId) saveMessage(convId, "assistant", clarificationMsg);
+        setSending(false);
+        return;
+      }
+
       // Filter out unknowns/questions
-      const actionable = transactions.filter(t => t.type && !['unknown', 'question'].includes(t.type));
+      const actionable = transactions.filter(t => t.type && !['unknown', 'question', 'clarification'].includes(t.type));
 
       if (actionable.length > 1) {
         // ═══ MULTI-TRANSACTION → Show cards UI ═══
@@ -266,6 +284,20 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       if (actionable.length === 1) {
         // ═══ SINGLE TRANSACTION ═══
         const tx = actionable[0];
+
+        // Check if this single tx also needs clarification
+        if ((tx as any).clarificationQuestion && tx.status !== 'complete') {
+          const question = (tx as any).clarificationQuestion;
+          const options: string[] = (tx as any).clarificationOptions || [];
+          let clarificationMsg = question;
+          if (options.length > 0) {
+            clarificationMsg += '\n\n' + options.map((opt: string) => `[action:${opt}:@${opt}]`).join('  ');
+          }
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: clarificationMsg, timestamp: new Date() }]);
+          if (convId) saveMessage(convId, "assistant", clarificationMsg);
+          setSending(false);
+          return;
+        }
 
         if (tx.type === 'cheque') {
           await executeTransaction(tx, text.trim());
@@ -298,7 +330,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           }
         }
       }
-
       // AI chat with full context
       const allMessages = messages.map(m => ({ role: m.role, content: m.content }));
       allMessages.push({ role: 'user', content: text.trim() });
