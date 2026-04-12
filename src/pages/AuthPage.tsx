@@ -186,6 +186,7 @@ const AuthPage = () => {
   ];
 
   return (
+    <>
     <div className="h-screen flex flex-col" dir="ltr">
       {/* Top Nav — white like Qoyod */}
       <nav
