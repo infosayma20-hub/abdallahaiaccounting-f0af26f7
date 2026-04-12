@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
 import { multiWordMatchAny } from "@/lib/utils";
 import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X, Archive, ArchiveRestore } from "lucide-react";
@@ -137,6 +138,8 @@ const ContactsPage = () => {
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [adding, setAdding] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [editData, setEditData] = useState<any>({});
