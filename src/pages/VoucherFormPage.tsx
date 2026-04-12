@@ -1720,6 +1720,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       setEditVoucherStatus("cancelled");
       setShowCancelModal(false);
+      broadcastChange(isReceipt ? "receipt_voucher" : "payment_voucher", "deleted", editId);
       toast.success(`تم إلغاء ${voucherLabel} بنجاح وعكس القيود المرتبطة ✅`);
     } catch (err: any) {
       toast.error(err.message || "فشل إلغاء السند");
