@@ -54,6 +54,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [lastTransactionId, setLastTransactionId] = useState<string | null>(null);
 
   // Conversation persistence
   const [conversationId, setConversationId] = useState<string | null>(null);
