@@ -343,7 +343,7 @@ export default function SamiChatbot() {
                 transition: "opacity 0.15s",
               }}
             >
-              <Send size={16} color="white" style={{ transform: "scaleX(-1)" }} />
+              <Send size={16} color="white" style={{ transform: "rotate(-90deg)" }} />
             </button>
           </div>
         </div>
