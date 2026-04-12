@@ -400,23 +400,32 @@ export default function SamiChatbot() {
       )}
 
       {/* Floating Button with 3D Animation */}
-      <div style={{ position: "fixed", bottom: isMobile ? 80 : 24, left: 24, zIndex: 9999 }}>
+      <div style={{
+        position: "fixed",
+        bottom: isMobile ? 16 : 24,
+        left: isMobile ? "50%" : 24,
+        transform: isMobile ? "translateX(-50%)" : "none",
+        zIndex: 9999,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}>
         {/* Animated hint bubble */}
         {!open && (
           <div
             className="sami-hint-bubble"
             onClick={() => setOpen(true)}
             style={{
-              position: "absolute", bottom: 4, left: 60, cursor: "pointer",
+              cursor: "pointer",
               background: "linear-gradient(135deg, #0D1B2E 0%, #1a3a5c 50%, #0D1B2E 100%)",
               backgroundSize: "200% 200%",
-              color: "white", borderRadius: "14px 14px 14px 4px",
+              color: "white", borderRadius: "14px",
               padding: "8px 14px", fontSize: 12, fontFamily: "'Cairo', sans-serif",
               boxShadow: "0 8px 32px rgba(13,27,46,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset",
               direction: "rtl", whiteSpace: "nowrap",
               animation: "samiGradientShift 3s ease infinite",
-              backdropFilter: "none",
-              maxWidth: "calc(100vw - 100px)",
+              marginBottom: 8,
+              maxWidth: "calc(100vw - 40px)",
             }}
           >
             <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> {HINT_PHRASES[hintIndex]}
