@@ -256,7 +256,7 @@ export default function AdvancedEntitySearch({
         {TABS.map(tab => (
           <button
             key={tab.key}
-            onClick={() => { onTabFilter(tab.key); setSearch(""); setOpen(true); }}
+            onClick={() => { onTabFilter(tab.key); setSearch(""); }}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === tab.key
@@ -284,7 +284,7 @@ export default function AdvancedEntitySearch({
           ref={inputRef}
           value={search}
           onChange={e => { setSearch(e.target.value); setOpen(true); setHighlightIdx(-1); }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { if (search.trim()) setOpen(true); }}
           onKeyDown={handleKeyDown}
           placeholder="ابحث عن حساب، زبون، مورد، موظف..."
           className="flex-1 bg-transparent border-0 outline-none text-base text-foreground placeholder:text-muted-foreground"
