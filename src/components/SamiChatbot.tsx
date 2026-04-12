@@ -349,45 +349,117 @@ export default function SamiChatbot() {
         </div>
       )}
 
-      {/* Floating Button */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        aria-label={open ? "إغلاق المحادثة" : "فتح المحادثة مع سامي"}
-        style={{
-          position: "fixed", bottom: 24, left: 24, zIndex: 9999,
-          width: 54, height: 54, borderRadius: "50%", background: "#0D1B2E",
-          border: "none", cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transition: "transform 0.2s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.08)")}
-        onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
-      >
-        {open ? <X size={22} color="white" /> : <MessageCircle size={22} color="white" />}
-      </button>
+      {/* Floating Button with 3D Animation */}
+      <div style={{ position: "fixed", bottom: 24, left: 24, zIndex: 9999 }}>
+        {/* Animated hint bubble */}
+        {!open && (
+          <div
+            className="sami-hint-bubble"
+            onClick={() => setOpen(true)}
+            style={{
+              position: "absolute", bottom: 62, left: -4, cursor: "pointer",
+              background: "linear-gradient(135deg, #0D1B2E 0%, #1a3a5c 50%, #0D1B2E 100%)",
+              backgroundSize: "200% 200%",
+              color: "white", borderRadius: "14px 14px 14px 4px",
+              padding: "10px 16px", fontSize: 12, fontFamily: "'Cairo', sans-serif",
+              boxShadow: "0 8px 32px rgba(13,27,46,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset",
+              direction: "rtl", whiteSpace: "nowrap",
+              animation: "samiHintFloat 4s ease-in-out infinite, samiGradientShift 3s ease infinite",
+              backdropFilter: "none",
+            }}
+          >
+            <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> احكيلي شو بتحتاج مالياً وإدارياً
+          </div>
+        )}
 
-      {/* Pulse animation for unread hint */}
-      {!open && !initialized && (
-        <div style={{
-          position: "fixed", bottom: 82, left: 20, zIndex: 9999,
-          background: "#0D1B2E", color: "white", borderRadius: 12,
-          padding: "6px 12px", fontSize: 11.5, fontFamily: "'Cairo', sans-serif",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.2)", direction: "rtl",
-          animation: "samiPulse 3s ease-in-out infinite",
-        }}>
-          💬 محتاج مساعدة؟
-        </div>
-      )}
+        {/* 3D Glow rings */}
+        {!open && (
+          <>
+            <div className="sami-ring sami-ring-1" />
+            <div className="sami-ring sami-ring-2" />
+            <div className="sami-ring sami-ring-3" />
+          </>
+        )}
+
+        {/* Main button */}
+        <button
+          onClick={() => setOpen(o => !o)}
+          aria-label={open ? "إغلاق المحادثة" : "فتح المحادثة مع سامي"}
+          className="sami-fab"
+          style={{
+            position: "relative",
+            width: 56, height: 56, borderRadius: "50%",
+            background: "linear-gradient(145deg, #152d4a 0%, #0D1B2E 50%, #0a1420 100%)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            cursor: "pointer",
+            boxShadow: "0 8px 32px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s",
+            zIndex: 2,
+          }}
+        >
+          <div style={{
+            transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+            transform: open ? "rotate(90deg) scale(0.9)" : "rotate(0deg) scale(1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {open ? <X size={22} color="white" /> : <MessageCircle size={22} color="white" />}
+          </div>
+        </button>
+      </div>
 
       <style>{`
         @keyframes samiBounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
           40% { transform: translateY(-6px); opacity: 1; }
         }
-        @keyframes samiPulse {
-          0%, 100% { opacity: 1; transform: translateY(0); }
-          50% { opacity: 0.7; transform: translateY(-3px); }
+        @keyframes samiHintFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes samiGradientShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes samiRingPulse {
+          0% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+        @keyframes samiRingSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .sami-fab:hover {
+          transform: scale(1.12) translateY(-2px) !important;
+          box-shadow: 0 12px 40px rgba(13,27,46,0.6), 0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+        }
+        .sami-fab:active {
+          transform: scale(0.95) !important;
+        }
+        .sami-ring {
+          position: absolute;
+          bottom: 0; left: 0;
+          width: 56px; height: 56px;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .sami-ring-1 {
+          border: 2px solid rgba(13,27,46,0.3);
+          animation: samiRingPulse 3s ease-out infinite;
+        }
+        .sami-ring-2 {
+          border: 1.5px solid rgba(13,27,46,0.2);
+          animation: samiRingPulse 3s ease-out infinite 1s;
+        }
+        .sami-ring-3 {
+          border: 1px solid rgba(13,27,46,0.15);
+          animation: samiRingPulse 3s ease-out infinite 2s;
+        }
+        .sami-hint-bubble:hover {
+          transform: translateY(-8px) scale(1.03) !important;
+          box-shadow: 0 12px 40px rgba(13,27,46,0.45), 0 0 0 1px rgba(255,255,255,0.12) inset !important;
         }
         .sami-qr-btn:hover {
           background: #0D1B2E !important;
