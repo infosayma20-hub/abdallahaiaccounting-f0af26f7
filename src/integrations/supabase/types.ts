@@ -9889,6 +9889,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sami_leads: {
+        Row: {
+          business_type: string | null
+          conversation_log: Json | null
+          created_at: string
+          id: string
+          is_read: boolean | null
+          name: string
+          notes: string | null
+          phone: string
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_type?: string | null
+          conversation_log?: Json | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          name: string
+          notes?: string | null
+          phone: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_type?: string | null
+          conversation_log?: Json | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sensitive_data_audit: {
         Row: {
           action: string
