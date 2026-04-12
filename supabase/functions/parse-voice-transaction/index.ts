@@ -19,7 +19,16 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
-    const systemPrompt = `أنت محاسب ذكي ومساعد مالي احترافي. المستخدم سيعطيك جملة تصف عملية مالية بالعربية.
+    const systemPrompt = `أنت محاسب ذكي ومساعد مالي احترافي. المستخدم سيعطيك جملة تصف عملية مالية أو أكثر بالعربية.
+
+## قاعدة المصفوفة (مهم جداً):
+- دائماً أرجع JSON مصفوفة (Array) حتى لو كانت معاملة واحدة
+- إذا وجدت أكثر من معاملة في نفس النص، حللها كلها وأرجعها كعناصر منفصلة في المصفوفة
+- علامات وجود معاملات متعددة: "و" / "وكمان" / "وبعدين" / "وكذلك" / جمل منفصلة بأحداث مالية مختلفة / أشخاص مختلفين
+
+## قاعدة الأصناف المتعددة في فاتورة واحدة:
+إذا كانت المعاملة الواحدة تحتوي على عدة أصناف لنفس الشخص (مثل: "بعت لأحمد كابل بـ500 وسلك بـ300")
+→ هذه فاتورة واحدة بأصناف متعددة (items)، وليست معاملتان منفصلتان
 
 ## الخطوة 0: كشف نية إضافة كيان جديد
 إذا احتوى النص على: أضف زبون، أضف عميل، أضف مورد، أضف موظف، أضف منتج، أضف حساب، عميل جديد، مورد جديد، موظف جديد، سجل زبون، سجل مورد، منتج جديد، حساب جديد
@@ -48,29 +57,6 @@ serve(async (req) => {
 - accountCode: رمز الحساب إن ذُكر
 - accountType: نوع الحساب (أصول/خصوم/مصروفات/إيرادات/حقوق ملكية)
 
-أرجع JSON:
-{
-  "intent": "add_entity",
-  "type": "add_entity",
-  "entityType": "",
-  "contactType": "",
-  "name": "",
-  "phone": "",
-  "email": "",
-  "address": "",
-  "jobTitle": "",
-  "department": "",
-  "basicSalary": 0,
-  "buyPrice": 0,
-  "sellPrice": 0,
-  "quantity": 0,
-  "sku": "",
-  "accountCode": "",
-  "accountType": "",
-  "status": "complete"
-}
-
-
 ## الخطوة 0A: كشف نية الشيكات
 إذا احتوى النص على: شيك، شيكات، قبضت شيك، دفعت شيك، أودعت شيك، حصّلت شيك، شيك مرتجع
 فإن intent = "cheque"
@@ -96,10 +82,115 @@ serve(async (req) => {
 عند تحصيل شيك وارد: مدين: البنك، دائن: شيكات واردة
 عند صرف شيك صادر: مدين: شيكات صادرة، دائن: البنك
 
-أرجع JSON:
+## الخطوة 0B: كشف نية المخزون
+إذا احتوى نص المستخدم على أي من الكلمات التالية:
+المخزون، رصيد المخزون، كم عندي، كمية المنتج، حركة مخزون، تقرير مخزون، قيمة المخزون، تحليل مخزون، منتجات منخفضة، منتجات ناقصة، تكلفة المنتج، ربحية المنتج
+
+فإن intent = "inventory_report"
+
+في هذه الحالة لا تنشئ أي حركة مالية أو فاتورة أو سند. بدلاً من ذلك حدد نوع التقرير:
+- سؤال عن منتج محدد → نوع_التقرير = "رصيد منتج"
+- "اعرض حركة X" → نوع_التقرير = "حركة منتج"
+- "قيمة المخزون" → نوع_التقرير = "تقييم المخزون"
+- "منتجات منخفضة" أو "ناقصة" → نوع_التقرير = "منتجات منخفضة"
+- "تحليل ربحية X" → نوع_التقرير = "تحليل ربحية منتج"
+
+## الخطوة 1: تصنيف العملية
+- إذا تضمن النص "بعت" أو "بيع" أو "مبيعات" → النوع = "فاتورة مبيعات"
+- إذا تضمن النص "اشتريت" أو "شراء" أو "مشتريات" → النوع = "فاتورة مشتريات"
+- إذا تضمن "قبضت" أو "استلمت" أو "تحصيل" (بدون كلمة شيك) → النوع = "سند قبض"
+- إذا تضمن "دفعت" أو "صرفت" أو "سددت" (بدون كلمة شيك) → النوع = "سند صرف"
+- غير ذلك → حاول تصنيفها
+
+## الخطوة 2: استخراج الحقول
+
+### لعمليات البيع ("بعت"):
+المطلوب (إجباري):
+- اسم الزبون (customerName)
+- اسم المنتج/الخدمة (productName) — أو items إذا أصناف متعددة
+- الكمية (quantity)
+- طريقة الدفع: نقد / شيك / تحويل / آجل (paymentMethod)
+اختياري:
+- سعر الوحدة (unitPrice) - إذا لم يُذكر، ضعه 0 ولا تعتبره ناقصاً
+
+### لعمليات الشراء ("اشتريت"):
+المطلوب (إجباري):
+- اسم المورد (supplierName)
+- اسم المنتج/الخدمة (productName) — أو items إذا أصناف متعددة
+- الكمية (quantity)
+- طريقة الدفع (paymentMethod)
+اختياري:
+- سعر الوحدة (unitPrice) - إذا لم يُذكر، ضعه 0 ولا تعتبره ناقصاً
+
+### لعمليات القبض/الصرف:
+المطلوب:
+- الحساب المدين (debit)
+- الحساب الدائن (credit)
+- المبلغ (amount)
+- الوصف (description)
+- اسم جهة الاتصال إن وُجد (contactName)
+
+## الخطوة 3: بناء المصفوفة
+
+### فاتورة بصنف واحد:
 {
-  "intent": "cheque",
+  "type": "invoice",
+  "invoiceType": "sales" أو "purchase",
+  "status": "complete" أو "incomplete",
+  "contactName": "الاسم",
+  "productName": "المنتج",
+  "quantity": الكمية,
+  "unitPrice": السعر,
+  "total": الإجمالي,
+  "paymentMethod": "نقد/شيك/تحويل/آجل",
+  "description": "وصف مختصر",
+  "confirmationMessage": "نص تأكيد",
+  "missingFields": [],
+  "partialData": null
+}
+
+### فاتورة بأصناف متعددة (لنفس الشخص):
+{
+  "type": "invoice",
+  "invoiceType": "sales" أو "purchase",
+  "status": "complete",
+  "contactName": "الاسم",
+  "items": [
+    { "name": "كابل", "quantity": 1, "unitPrice": 500, "total": 500 },
+    { "name": "سلك", "quantity": 1, "unitPrice": 300, "total": 300 }
+  ],
+  "total": 800,
+  "paymentMethod": "نقد",
+  "description": "وصف مختصر",
+  "confirmationMessage": "نص تأكيد"
+}
+
+### إضافة كيان:
+{
+  "type": "add_entity",
+  "intent": "add_entity",
+  "entityType": "",
+  "contactType": "",
+  "name": "",
+  "phone": "",
+  "email": "",
+  "address": "",
+  "jobTitle": "",
+  "department": "",
+  "basicSalary": 0,
+  "buyPrice": 0,
+  "sellPrice": 0,
+  "quantity": 0,
+  "sku": "",
+  "accountCode": "",
+  "accountType": "",
+  "status": "complete"
+}
+
+### شيك:
+{
   "type": "cheque",
+  "intent": "cheque",
   "status": "complete" أو "incomplete",
   "chequeType": "وارد" أو "صادر",
   "partyName": "",
@@ -118,24 +209,9 @@ serve(async (req) => {
   "confirmationMessage": ""
 }
 
-إذا بعض الحقول ناقصة (المبلغ أو التاريخ أو الاسم):
-status = "incomplete" مع missingFields
-
-## الخطوة 0B: كشف نية المخزون
-إذا احتوى نص المستخدم على أي من الكلمات التالية:
-المخزون، رصيد المخزون، كم عندي، كمية المنتج، حركة مخزون، تقرير مخزون، قيمة المخزون، تحليل مخزون، منتجات منخفضة، منتجات ناقصة، تكلفة المنتج، ربحية المنتج
-
-فإن intent = "inventory_report"
-
-في هذه الحالة لا تنشئ أي حركة مالية أو فاتورة أو سند. بدلاً من ذلك حدد نوع التقرير:
-- سؤال عن منتج محدد (مثل "كم عندي من كابل كهرباء") → نوع_التقرير = "رصيد منتج"
-- "اعرض حركة X" → نوع_التقرير = "حركة منتج"
-- "قيمة المخزون" → نوع_التقرير = "تقييم المخزون"
-- "منتجات منخفضة" أو "ناقصة" → نوع_التقرير = "منتجات منخفضة"
-- "تحليل ربحية X" → نوع_التقرير = "تحليل ربحية منتج"
-
-أرجع JSON:
+### تقرير مخزون:
 {
+  "type": "inventory_report",
   "intent": "inventory_report",
   "نوع_التقرير": "",
   "اسم_المنتج": "",
@@ -144,81 +220,7 @@ status = "incomplete" مع missingFields
   "تحقق_من_الربط": true
 }
 
-## الخطوة 1: تصنيف العملية (إذا لم تكن شيك أو مخزون)
-- إذا تضمن النص "بعت" أو "بيع" أو "مبيعات" أو ما يشير للبيع → النوع = "فاتورة مبيعات"
-- إذا تضمن النص "اشتريت" أو "شراء" أو "مشتريات" أو ما يشير للشراء → النوع = "فاتورة مشتريات"
-- إذا تضمن "قبضت" أو "استلمت" أو "تحصيل" (بدون كلمة شيك) → النوع = "سند قبض"
-- إذا تضمن "دفعت" أو "صرفت" أو "سددت" (بدون كلمة شيك) → النوع = "سند صرف"
-- غير ذلك → حاول تصنيفها
-
-## الخطوة 2: استخراج الحقول
-
-### لعمليات البيع ("بعت"):
-المطلوب (إجباري):
-- اسم الزبون (customerName)
-- اسم المنتج/الخدمة (productName)
-- الكمية (quantity)
-- طريقة الدفع: نقد / شيك / تحويل / آجل (paymentMethod)
-اختياري:
-- سعر الوحدة (unitPrice) - إذا لم يُذكر، ضعه 0 ولا تعتبره ناقصاً
-
-### لعمليات الشراء ("اشتريت"):
-المطلوب (إجباري):
-- اسم المورد (supplierName)
-- اسم المنتج/الخدمة (productName)
-- الكمية (quantity)
-- طريقة الدفع (paymentMethod)
-اختياري:
-- سعر الوحدة (unitPrice) - إذا لم يُذكر، ضعه 0 ولا تعتبره ناقصاً
-
-### لعمليات القبض/الصرف:
-المطلوب:
-- الحساب المدين (debit)
-- الحساب الدائن (credit)
-- المبلغ (amount)
-- الوصف (description)
-- اسم جهة الاتصال إن وُجد (contactName)
-
-## الخطوة 3: التحقق
-
-أعد JSON بالصيغة التالية:
-
-### إذا كانت فاتورة (بيع أو شراء) وجميع الحقول موجودة:
-{
-  "type": "invoice",
-  "invoiceType": "sales" أو "purchase",
-  "status": "complete",
-  "contactName": "الاسم",
-  "productName": "المنتج",
-  "quantity": الكمية,
-  "unitPrice": السعر,
-  "total": الإجمالي,
-  "paymentMethod": "نقد/شيك/تحويل/آجل",
-  "description": "وصف مختصر",
-  "confirmationMessage": "نص تأكيد منسق"
-}
-
-### إذا كانت فاتورة لكن بعض الحقول ناقصة:
-{
-  "type": "invoice",
-  "invoiceType": "sales" أو "purchase",
-  "status": "incomplete",
-  "missingFields": ["الكمية", "سعر الوحدة"],
-  "message": "تقريباً انتهينا 🙌\nلكن أحتاج المعلومات التالية لإكمال العملية:",
-
-ملاحظة مهمة جداً: يجب أن تكون أسماء الحقول في missingFields بالعربي دائماً. استخدم هذا التحويل:
-- contactName أو customerName أو supplierName → "اسم الجهة"
-- productName → "اسم المنتج"
-- quantity → "الكمية"
-- unitPrice → "سعر الوحدة"
-- paymentMethod → "طريقة الدفع"
-- amount → "المبلغ"
-- description → "الوصف"
-لا تستخدم أسماء إنجليزية أبداً في missingFields.
-  "partialData": { الحقول المتوفرة }
-}
-
-### إذا كانت عملية قبض/صرف عادية:
+### عملية قبض/صرف:
 {
   "type": "transaction",
   "status": "complete",
@@ -229,14 +231,14 @@ status = "incomplete" مع missingFields
   "contactName": "الاسم أو null"
 }
 
-### إذا لم تُفهم:
+### غير معروف:
 {
   "type": "unknown",
   "status": "error",
   "message": "لم أتمكن من فهم العملية"
 }
 
-ملاحظات:
+## ملاحظات:
 - كلمة "الزبون" و"العميل" لهما نفس المعنى.
 - إذا لم يُذكر طريقة الدفع في فاتورة، اعتبرها ناقصة.
 - إذا ذُكر "نقداً" أو "كاش" → paymentMethod = "نقد"
@@ -245,8 +247,12 @@ status = "incomplete" مع missingFields
 - إذا ذُكر "تحويل" أو "بنك" → paymentMethod = "تحويل"
 - اجعل confirmationMessage بهذا الشكل:
 "تأكيد العملية:\\nالنوع: مبيعات/مشتريات\\nالجهة: الاسم\\nالمنتج: المنتج\\nالكمية: العدد\\nالسعر: السعر\\nالإجمالي: المجموع\\nطريقة الدفع: الطريقة\\n\\nهل تريد إنشاء الفاتورة الآن؟"
+- ملاحظة مهمة: يجب أن تكون أسماء الحقول في missingFields بالعربي دائماً.
 
-أعد JSON فقط بدون أي نص إضافي.`;
+## تذكير نهائي: 
+أرجع JSON مصفوفة فقط بدون أي نص إضافي.
+مثال لمعاملة واحدة: [{ ... }]
+مثال لمعاملتين: [{ ... }, { ... }]`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -277,132 +283,146 @@ status = "incomplete" مع missingFields
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content || '';
 
-    let parsed;
+    // Parse response — expect array but handle object fallback
+    let parsedArray: any[] = [];
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      // Try array first
+      const arrayMatch = content.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        parsedArray = JSON.parse(arrayMatch[0]);
+        if (!Array.isArray(parsedArray)) parsedArray = [parsedArray];
+      } else {
+        // Fallback to single object
+        const objMatch = content.match(/\{[\s\S]*\}/);
+        if (objMatch) {
+          parsedArray = [JSON.parse(objMatch[0])];
+        }
+      }
     } catch {
-      parsed = null;
+      parsedArray = [];
     }
 
-    if (!parsed) {
+    if (parsedArray.length === 0) {
       return new Response(JSON.stringify({
-        transaction: null,
+        transactions: [],
+        count: 0,
         message: 'لم أتمكن من فهم العملية',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Handle cheque intent
-    if (parsed.intent === 'cheque' || parsed.type === 'cheque') {
-      return new Response(JSON.stringify({
-        type: 'cheque',
-        status: parsed.status || 'complete',
-        chequeType: parsed.chequeType || '',
-        partyName: parsed.partyName || '',
-        partyType: parsed.partyType || 'عميل',
-        chequeNumber: parsed.chequeNumber || '',
-        bankName: parsed.bankName || '',
-        chequeDate: parsed.chequeDate || '',
-        amount: parsed.amount || 0,
-        currency: parsed.currency || 'شيكل',
-        chequeStatus: parsed.chequeStatus || 'مسجل',
-        action: parsed.action || 'تسجيل',
-        debit: parsed.debit || '',
-        credit: parsed.credit || '',
-        description: parsed.description || text,
-        missingFields: parsed.missingFields || [],
-        confirmationMessage: parsed.confirmationMessage || '',
-        message: parsed.message || '',
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    // Normalize each transaction
+    const normalized = parsedArray.map((parsed: any) => {
+      // Cheque
+      if (parsed.intent === 'cheque' || parsed.type === 'cheque') {
+        return {
+          type: 'cheque',
+          status: parsed.status || 'complete',
+          chequeType: parsed.chequeType || '',
+          partyName: parsed.partyName || '',
+          partyType: parsed.partyType || 'عميل',
+          chequeNumber: parsed.chequeNumber || '',
+          bankName: parsed.bankName || '',
+          chequeDate: parsed.chequeDate || '',
+          amount: parsed.amount || 0,
+          currency: parsed.currency || 'شيكل',
+          chequeStatus: parsed.chequeStatus || 'مسجل',
+          action: parsed.action || 'تسجيل',
+          debit: parsed.debit || '',
+          credit: parsed.credit || '',
+          description: parsed.description || text,
+          missingFields: parsed.missingFields || [],
+          confirmationMessage: parsed.confirmationMessage || '',
+          message: parsed.message || '',
+        };
+      }
 
-    // Handle add entity intent
-    if (parsed.intent === 'add_entity' || parsed.type === 'add_entity') {
-      return new Response(JSON.stringify({
-        type: 'add_entity',
-        intent: 'add_entity',
-        entityType: parsed.entityType || 'contact',
-        contactType: parsed.contactType || 'عميل',
-        name: parsed.name || '',
-        phone: parsed.phone || '',
-        email: parsed.email || '',
-        address: parsed.address || '',
-        jobTitle: parsed.jobTitle || '',
-        department: parsed.department || '',
-        basicSalary: parsed.basicSalary || 0,
-        buyPrice: parsed.buyPrice || 0,
-        sellPrice: parsed.sellPrice || 0,
-        quantity: parsed.quantity || 0,
-        sku: parsed.sku || '',
-        accountCode: parsed.accountCode || '',
-        accountType: parsed.accountType || '',
-        status: parsed.status || 'complete',
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+      // Add entity
+      if (parsed.intent === 'add_entity' || parsed.type === 'add_entity') {
+        return {
+          type: 'add_entity',
+          intent: 'add_entity',
+          entityType: parsed.entityType || 'contact',
+          contactType: parsed.contactType || 'عميل',
+          name: parsed.name || '',
+          phone: parsed.phone || '',
+          email: parsed.email || '',
+          address: parsed.address || '',
+          jobTitle: parsed.jobTitle || '',
+          department: parsed.department || '',
+          basicSalary: parsed.basicSalary || 0,
+          buyPrice: parsed.buyPrice || 0,
+          sellPrice: parsed.sellPrice || 0,
+          quantity: parsed.quantity || 0,
+          sku: parsed.sku || '',
+          accountCode: parsed.accountCode || '',
+          accountType: parsed.accountType || '',
+          status: parsed.status || 'complete',
+        };
+      }
 
-    // Handle inventory report intent
-    if (parsed.intent === 'inventory_report') {
-      return new Response(JSON.stringify({
-        type: 'inventory_report',
-        intent: 'inventory_report',
-        reportType: parsed['نوع_التقرير'] || '',
-        productName: parsed['اسم_المنتج'] || '',
-        dateFrom: parsed['فترة_من'] || '',
-        dateTo: parsed['فترة_إلى'] || '',
-        verifyLink: parsed['تحقق_من_الربط'] ?? true,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+      // Inventory report
+      if (parsed.intent === 'inventory_report' || parsed.type === 'inventory_report') {
+        return {
+          type: 'inventory_report',
+          intent: 'inventory_report',
+          reportType: parsed['نوع_التقرير'] || parsed.reportType || '',
+          productName: parsed['اسم_المنتج'] || parsed.productName || '',
+          dateFrom: parsed['فترة_من'] || '',
+          dateTo: parsed['فترة_إلى'] || '',
+          verifyLink: parsed['تحقق_من_الربط'] ?? true,
+        };
+      }
 
-    // Handle invoice type (sales/purchase)
-    if (parsed.type === 'invoice') {
-      return new Response(JSON.stringify({
-        type: 'invoice',
-        invoiceType: parsed.invoiceType,
-        status: parsed.status,
-        transaction: parsed.status === 'complete' ? {
+      // Invoice (with possible multi-items)
+      if (parsed.type === 'invoice') {
+        const fieldMap: Record<string, string> = {
+          'contactName': 'اسم الجهة', 'customerName': 'اسم الزبون', 'supplierName': 'اسم المورد',
+          'productName': 'اسم المنتج', 'quantity': 'الكمية', 'unitPrice': 'سعر الوحدة',
+          'paymentMethod': 'طريقة الدفع', 'amount': 'المبلغ', 'description': 'الوصف',
+        };
+        return {
+          type: 'invoice',
+          invoiceType: parsed.invoiceType,
+          status: parsed.status,
           contactName: parsed.contactName || null,
           productName: parsed.productName || '',
+          items: parsed.items || null,
           quantity: parsed.quantity || 0,
           unitPrice: parsed.unitPrice || 0,
           total: parsed.total || 0,
           paymentMethod: parsed.paymentMethod || '',
           description: parsed.description || text,
-        } : null,
-        missingFields: (parsed.missingFields || []).map((f: string) => {
-          const fieldMap: Record<string, string> = {
-            'contactName': 'اسم الجهة', 'customerName': 'اسم الزبون', 'supplierName': 'اسم المورد',
-            'productName': 'اسم المنتج', 'quantity': 'الكمية', 'unitPrice': 'سعر الوحدة',
-            'paymentMethod': 'طريقة الدفع', 'amount': 'المبلغ', 'description': 'الوصف',
-          };
-          return fieldMap[f] || f;
-        }),
-        message: parsed.status === 'complete'
-          ? parsed.confirmationMessage
-          : parsed.message,
-        partialData: parsed.partialData || null,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+          confirmationMessage: parsed.confirmationMessage || '',
+          missingFields: (parsed.missingFields || []).map((f: string) => fieldMap[f] || f),
+          partialData: parsed.partialData || null,
+          message: parsed.message || '',
+        };
+      }
 
-    // Handle regular transaction
-    if (parsed.type === 'transaction' || parsed.debit) {
-      return new Response(JSON.stringify({
-        type: 'transaction',
-        status: 'complete',
-        transaction: {
+      // Transaction
+      if (parsed.type === 'transaction' || parsed.debit) {
+        return {
+          type: 'transaction',
+          status: 'complete',
           debit: parsed.debit || '',
           credit: parsed.credit || '',
           amount: parsed.amount || '',
           description: parsed.description || text,
           contactName: parsed.contactName || null,
-        },
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+        };
+      }
 
-    // Unknown
+      // Unknown
+      return {
+        type: 'unknown',
+        status: 'error',
+        message: parsed.message || 'لم أتمكن من فهم العملية',
+      };
+    });
+
     return new Response(JSON.stringify({
-      type: 'unknown',
-      transaction: null,
-      message: parsed.message || 'لم أتمكن من فهم العملية',
+      transactions: normalized,
+      count: normalized.length,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
