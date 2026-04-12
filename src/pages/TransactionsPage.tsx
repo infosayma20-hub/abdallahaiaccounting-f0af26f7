@@ -736,6 +736,14 @@ const TransactionsPage = () => {
                 <SelectItem value="last_month">الشهر السابق</SelectItem>
               </SelectContent>
             </Select>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={(v) => { setDateFrom(v); setDateFilter("all"); }}
+              onDateToChange={(v) => { setDateTo(v); setDateFilter("all"); }}
+              onClear={() => { setDateFrom(""); setDateTo(""); }}
+              compact
+            />
             <Select value={accountFilter} onValueChange={setAccountFilter}>
               <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
                 <SelectValue placeholder="كل الحسابات" />
