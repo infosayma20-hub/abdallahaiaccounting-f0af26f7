@@ -253,11 +253,7 @@ export default function AdvancedEntitySearch({
           onChange={e => { setSearch(e.target.value); setOpen(true); setHighlightIdx(-1); }}
           onFocus={() => { if (search.trim()) setOpen(true); }}
           onKeyDown={handleKeyDown}
-          placeholder={
-            normalizedTab === "contacts" ? "ابحث عن زبون أو مورد..." :
-            normalizedTab === "employees" ? "ابحث عن موظف..." :
-            "ابحث عن حساب..."
-          }
+          placeholder="ابحث عن حساب، زبون، مورد، موظف..."
           className="flex-1 bg-transparent border-0 outline-none text-base text-foreground placeholder:text-muted-foreground"
         />
       </div>
