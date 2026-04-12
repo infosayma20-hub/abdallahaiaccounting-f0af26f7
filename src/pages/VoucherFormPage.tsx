@@ -476,7 +476,25 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               setCurrency(data.currency);
               setExchangeRate(data.exchange_rate || 1);
             }
-            if (data.contact_id) {
+            // ─── Restore employee state if voucher has employee_id ───
+            if ((data as any).employee_id) {
+              const { data: emp } = await supabase.from("employees")
+                .select("id, full_name, department, job_title")
+                .eq("id", (data as any).employee_id)
+                .single();
+              if (emp) {
+                setPartyType("employee");
+                setSelectedEmployee(emp);
+                setEmployeeSearch(emp.full_name);
+                // Try to restore category from transaction description
+                const desc = data.description || "";
+                if (desc.includes("سلفة")) setEmpCategory("سلفة");
+                else if (desc.includes("رواتب") || desc.includes("راتب")) setEmpCategory("رواتب");
+                else if (desc.includes("مخالفة")) setEmpCategory("مخالفة");
+                else if (desc.includes("عهدة")) setEmpCategory("عهدة");
+                else setEmpCategory("سلفة");
+              }
+            } else if (data.contact_id) {
               const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
               if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
             }
@@ -838,18 +856,71 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .select("linked_transaction_id")
             .eq("id", editId).single();
 
+          const isEmployeePaymentEdit = !isReceipt && partyType === "employee" && selectedEmployee;
+
+          // ─── Resolve employee account for edit mode (same as create) ───
+          let editDebitAccountCode = counterAccountCode; // default: 2110
+          let editTxDescription = notes || `سند صرف إلى ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`;
+          let editTxContactId: string | null = selectedContact?.id || null;
+
+          if (isEmployeePaymentEdit && selectedEmployee) {
+            const categoryLabel = empCategory === "أخرى" ? empCategoryCustom : empCategory;
+            const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+            editTxDescription = `${categoryLabel} - ${selectedEmployee.full_name}${violationNote}`;
+            if (notes) editTxDescription += ` | ${notes}`;
+            editTxContactId = null;
+
+            const { data: empAccount } = await supabase
+              .from("accounts")
+              .select("account_code")
+              .eq("user_id", user.id)
+              .eq("parent_code", "2180")
+              .like("account_name", `%${selectedEmployee.full_name}%`)
+              .limit(1)
+              .single();
+
+            if (empAccount) {
+              editDebitAccountCode = empAccount.account_code;
+            } else {
+              const { data: maxCode } = await supabase
+                .from("accounts")
+                .select("account_code")
+                .eq("user_id", user.id)
+                .eq("parent_code", "2180")
+                .order("account_code", { ascending: false })
+                .limit(1)
+                .single();
+              const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "21801";
+              await supabase.from("accounts").insert({
+                user_id: user.id,
+                account_code: nextCode,
+                account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
+                account_type: "التزامات",
+                parent_code: "2180",
+                is_system: false,
+              });
+              editDebitAccountCode = nextCode;
+            }
+          }
+
+          if (isAccountPayment && selectedGlAccount) {
+            editDebitAccountCode = selectedGlAccount.account_code;
+            editTxContactId = null;
+          }
+
           const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
           const { error } = await supabase
             .from("vouchers")
             .update({
               date: paymentDate,
-              contact_id: isAccountPayment ? null : selectedContact?.id,
+              contact_id: isEmployeePaymentEdit ? null : (isAccountPayment ? null : selectedContact?.id),
+              employee_id: isEmployeePaymentEdit ? selectedEmployee.id : null,
               payment_method: payMethodMap[paymentMethod] || "cash",
               amount: amountNum,
               amount_ils: amountInILS,
               currency: currency,
               exchange_rate: exchangeRate,
-              description: notes || `سند صرف إلى ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
+              description: editTxDescription,
               notes: notes || null,
               bank_account_id: bankAccountId,
               cheque_number: paymentMethod === "شيك" ? checkNumber : null,
@@ -861,24 +932,43 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("user_id", user.id);
           if (error) throw error;
 
-          // Update linked transaction (Golden Rule)
+          // Update linked transaction (Golden Rule: delete old + insert fresh)
           const linkedTxId = (existingVoucher as any)?.linked_transaction_id;
           if (linkedTxId) {
-            const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
+            // Soft-delete old transaction
             await supabase.from("transactions").update({
+              is_deleted: true,
+              idempotency_key: null,
+            } as any).eq("id", linkedTxId);
+
+            // Insert fresh transaction
+            const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
+            const { data: newTx } = await supabase.from("transactions").insert({
+              user_id: user.id,
               transaction_date: paymentDate,
-              description: notes || `سند صرف إلى ${selectedContact?.contact_name || selectedGlAccount?.account_name || ""}`,
-              debit_account_code: counterAccountCode,
+              description: editTxDescription,
+              debit_account_code: editDebitAccountCode,
               credit_account_code: depositAccountCode,
               amount: amountInILS,
               currency: currencyLabel,
-              contact_id: selectedContact?.id || null,
+              transaction_type: isEmployeePaymentEdit ? "employee_payment" : isAccountPayment ? "journal" : "payment",
+              contact_id: editTxContactId,
               payment_method: payMethodMapAr[paymentMethod] || "نقدي",
+              idempotency_key: `PAY-EDIT-${Date.now()}`,
               foreign_amount: currency !== "ILS" ? amountNum : null,
               exchange_rate: currency !== "ILS" ? exchangeRate : null,
+              expense_category: isEmployeePaymentEdit ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
               workshop_id: selectedWorkshop?.id || null,
               cost_center_name: selectedWorkshop?.name || null,
-            } as any).eq("id", linkedTxId);
+              reference: refNumber || null,
+            } as any).select("id").single();
+
+            // Update voucher with new linked_transaction_id
+            if (newTx?.id) {
+              await supabase.from("vouchers").update({
+                linked_transaction_id: newTx.id,
+              } as any).eq("id", editId);
+            }
           }
 
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
