@@ -469,8 +469,11 @@ const ContactsPage = () => {
     const matchesClass = !filterClass || c.contact_class === filterClass;
     const matchesSearch = !searchQuery || 
       multiWordMatchAny(searchQuery, c.contact_name, c.phone, c.tax_number, c.email);
-    return matchesType && matchesClass && matchesSearch;
-  }), [activeContacts, filterType, filterClass, searchQuery]);
+    const createdDate = c.created_at?.split("T")[0] || "";
+    const matchesDateFrom = !dateFrom || createdDate >= dateFrom;
+    const matchesDateTo = !dateTo || createdDate <= dateTo;
+    return matchesType && matchesClass && matchesSearch && matchesDateFrom && matchesDateTo;
+  }), [activeContacts, filterType, filterClass, searchQuery, dateFrom, dateTo]);
 
   const nonArchivedContacts = useMemo(() => contacts.filter(c => !c.is_archived), [contacts]);
   const customerCount = nonArchivedContacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
