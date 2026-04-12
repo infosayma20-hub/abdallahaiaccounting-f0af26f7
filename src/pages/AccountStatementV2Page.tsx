@@ -470,7 +470,7 @@ const AccountStatementV2Page = () => {
           entityCode,
           dateFrom,
           dateTo,
-          statementNumber: `SOA-${Date.now()}`,
+          statementNumber: stableSOANumber,
           currency: statementCurrency,
           openingBalance,
           closingBalance,
