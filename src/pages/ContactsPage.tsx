@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
 import { multiWordMatchAny } from "@/lib/utils";
 import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X, Archive, ArchiveRestore } from "lucide-react";
@@ -49,6 +50,7 @@ interface Contact {
   avg_payment_days: number | null;
   is_archived: boolean | null;
   archived_at: string | null;
+  created_at: string | null;
 }
 
 interface ContactAlert {
@@ -137,6 +139,8 @@ const ContactsPage = () => {
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [adding, setAdding] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [editData, setEditData] = useState<any>({});
@@ -466,8 +470,11 @@ const ContactsPage = () => {
     const matchesClass = !filterClass || c.contact_class === filterClass;
     const matchesSearch = !searchQuery || 
       multiWordMatchAny(searchQuery, c.contact_name, c.phone, c.tax_number, c.email);
-    return matchesType && matchesClass && matchesSearch;
-  }), [activeContacts, filterType, filterClass, searchQuery]);
+    const createdDate = c.created_at?.split("T")[0] || "";
+    const matchesDateFrom = !dateFrom || createdDate >= dateFrom;
+    const matchesDateTo = !dateTo || createdDate <= dateTo;
+    return matchesType && matchesClass && matchesSearch && matchesDateFrom && matchesDateTo;
+  }), [activeContacts, filterType, filterClass, searchQuery, dateFrom, dateTo]);
 
   const nonArchivedContacts = useMemo(() => contacts.filter(c => !c.is_archived), [contacts]);
   const customerCount = nonArchivedContacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
@@ -630,8 +637,16 @@ const ContactsPage = () => {
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
                 )}
               </Button>
-              {(filterType || filterClass) && (
-                <Button variant="ghost" size="sm" className="text-xs gap-1 h-9" onClick={() => { setFilterType(null); setFilterClass(null); }}>
+              <DateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                onClear={() => { setDateFrom(""); setDateTo(""); }}
+                compact
+              />
+              {(filterType || filterClass || dateFrom || dateTo) && (
+                <Button variant="ghost" size="sm" className="text-xs gap-1 h-9" onClick={() => { setFilterType(null); setFilterClass(null); setDateFrom(""); setDateTo(""); }}>
                   <X className="h-3 w-3" /> مسح
                 </Button>
               )}

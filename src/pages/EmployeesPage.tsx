@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -121,6 +122,8 @@ const EmployeesPage = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterJob, setFilterJob] = useState<string>("all");
   const [groupByBranch, setGroupByBranch] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Sort & Pagination
   const [sortField, setSortField] = useState<SortField>("full_name");
@@ -371,6 +374,8 @@ const EmployeesPage = () => {
     if (filterStatus === "active") list = list.filter(e => e.is_active);
     else if (filterStatus === "inactive") list = list.filter(e => !e.is_active);
     if (filterJob !== "all") list = list.filter(e => e.job_title === filterJob);
+    if (dateFrom) list = list.filter(e => (e.start_date || "") >= dateFrom);
+    if (dateTo) list = list.filter(e => (e.start_date || "") <= dateTo);
 
     list.sort((a, b) => {
       let va: any = a[sortField];
@@ -383,7 +388,7 @@ const EmployeesPage = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [employees, search, filterBranch, filterStatus, filterJob, sortField, sortDir]);
+  }, [employees, search, filterBranch, filterStatus, filterJob, dateFrom, dateTo, sortField, sortDir]);
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / perPage);
@@ -613,6 +618,14 @@ const EmployeesPage = () => {
               >
                 <Layers className="h-3 w-3" /> تجميع بالفرع
               </Button>
+              <DateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                onClear={() => { setDateFrom(""); setDateTo(""); }}
+                compact
+              />
 
               <span className="text-[11px] text-muted-foreground mr-auto">{filtered.length} موظف</span>
             </div>

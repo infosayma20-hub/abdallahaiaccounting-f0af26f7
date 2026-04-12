@@ -11,6 +11,7 @@ import {
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
   Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle
 } from "lucide-react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +207,8 @@ const TransactionsPage = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [accountFilter, setAccountFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Expansion
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -325,6 +328,8 @@ const TransactionsPage = () => {
         const range = getDateRange(dateFilter);
         if (range && (tx.transaction_date < range.from || tx.transaction_date > range.to)) return false;
       }
+      if (dateFrom && tx.transaction_date < dateFrom) return false;
+      if (dateTo && tx.transaction_date > dateTo) return false;
       if (searchQuery.trim()) {
         if (!multiWordMatchAny(searchQuery, tx.description, tx.reference, getAccountName(tx.debit_account_code), getAccountName(tx.credit_account_code))) return false;
       }
@@ -340,7 +345,7 @@ const TransactionsPage = () => {
     });
 
     return result;
-  }, [transactions, typeFilter, accountFilter, dateFilter, searchQuery, sortField, sortAsc, accounts]);
+  }, [transactions, typeFilter, accountFilter, dateFilter, dateFrom, dateTo, searchQuery, sortField, sortAsc, accounts]);
 
   // ━━ Totals ━━
   const totalDebit = useMemo(() => filteredTransactions.reduce((s, t) => s + (t.amount || 0), 0), [filteredTransactions]);
@@ -354,7 +359,7 @@ const TransactionsPage = () => {
     return filteredTransactions.slice(start, start + pageSize);
   }, [filteredTransactions, currentPage, pageSize]);
 
-  useEffect(() => { setCurrentPage(1); }, [typeFilter, accountFilter, dateFilter, searchQuery, pageSize]);
+  useEffect(() => { setCurrentPage(1); }, [typeFilter, accountFilter, dateFilter, dateFrom, dateTo, searchQuery, pageSize]);
 
   // ━━ Expand/Collapse ━━
   const toggleExpand = (id: string) => {
@@ -731,6 +736,14 @@ const TransactionsPage = () => {
                 <SelectItem value="last_month">الشهر السابق</SelectItem>
               </SelectContent>
             </Select>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={(v) => { setDateFrom(v); setDateFilter("all"); }}
+              onDateToChange={(v) => { setDateTo(v); setDateFilter("all"); }}
+              onClear={() => { setDateFrom(""); setDateTo(""); }}
+              compact
+            />
             <Select value={accountFilter} onValueChange={setAccountFilter}>
               <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
                 <SelectValue placeholder="كل الحسابات" />
@@ -790,7 +803,7 @@ const TransactionsPage = () => {
             <Search className="h-10 w-10 text-muted-foreground/40" />
           </div>
           <p className="text-sm text-muted-foreground mb-3">لا توجد قيود مطابقة</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setAccountFilter("all"); setDateFilter("all"); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setAccountFilter("all"); setDateFilter("all"); setDateFrom(""); setDateTo(""); }}>مسح الفلاتر</Button>
         </div>
       )}
 
