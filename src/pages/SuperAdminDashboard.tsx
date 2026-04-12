@@ -2217,6 +2217,7 @@ export default function SuperAdminDashboard() {
                 { value: "settings", icon: Settings, label: "إعدادات المنصة" },
                 { value: "tools", icon: Zap, label: "أدوات" },
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+                { value: "leads", icon: UserPlus, label: "زبائن سامي" },
                 { value: "revenue", icon: BarChart3, label: "الإيرادات" },
               ].map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value} className="whitespace-nowrap text-xs sm:text-sm"
@@ -2531,6 +2532,9 @@ export default function SuperAdminDashboard() {
 
           <TabsContent value="revenue">
             <RevenueReports />
+          </TabsContent>
+          <TabsContent value="leads">
+            <SamiLeadsPanel />
           </TabsContent>
         </Tabs>
       </div>
