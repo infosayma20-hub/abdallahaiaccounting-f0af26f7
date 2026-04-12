@@ -94,10 +94,12 @@ export default function AdvancedEntitySearch({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus on mount
+  // Auto-focus on mount (without opening dropdown)
   useEffect(() => {
     if (!selectedEntityId) {
-      setTimeout(() => inputRef.current?.focus(), 200);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
     }
   }, []);
 
@@ -115,14 +117,14 @@ export default function AdvancedEntitySearch({
   // Build grouped results across all tabs
   const groupedResults = useMemo(() => {
     const q = search.trim();
-    if (!q && !open) return [];
+    if (!q) return [];
 
     const groups: { key: EntityTab; label: string; emoji: string; items: { id: string; name: string; code: string; balance: number; txCount: number; tab: EntityTab }[] }[] = [];
 
-    const showAll = !q && open; // browsing mode — filter by activeTab
+    const filterByTab = activeTab; // filter results by selected tab
 
     // Accounts
-    if (!showAll || activeTab === "accounts") {
+    {
       const accs = allAccounts.filter(a => !q || multiWordMatchAny(q, a.account_name, a.account_code));
       if (accs.length > 0) {
         groups.push({
@@ -136,7 +138,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Customers
-    if (!showAll || activeTab === "customers") {
+    {
       const custs = allContacts.filter(c => c.contact_type === "عميل" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
       if (custs.length > 0) {
         groups.push({
@@ -150,7 +152,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Suppliers
-    if (!showAll || activeTab === "suppliers") {
+    {
       const sups = allContacts.filter(c => c.contact_type === "مورد" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
       if (sups.length > 0) {
         groups.push({
@@ -164,7 +166,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Employees
-    if (!showAll || activeTab === "employees") {
+    {
       const emps = allEmployees.filter(e => !q || multiWordMatchAny(q, e.full_name, e.department));
       if (emps.length > 0) {
         groups.push({
@@ -254,7 +256,7 @@ export default function AdvancedEntitySearch({
         {TABS.map(tab => (
           <button
             key={tab.key}
-            onClick={() => { onTabFilter(tab.key); setSearch(""); setOpen(true); }}
+            onClick={() => { onTabFilter(tab.key); setSearch(""); }}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === tab.key
@@ -282,7 +284,7 @@ export default function AdvancedEntitySearch({
           ref={inputRef}
           value={search}
           onChange={e => { setSearch(e.target.value); setOpen(true); setHighlightIdx(-1); }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { if (search.trim()) setOpen(true); }}
           onKeyDown={handleKeyDown}
           placeholder="ابحث عن حساب، زبون، مورد، موظف..."
           className="flex-1 bg-transparent border-0 outline-none text-base text-foreground placeholder:text-muted-foreground"
