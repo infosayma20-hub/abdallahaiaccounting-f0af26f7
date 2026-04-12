@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
+import { smartNavigate } from "@/lib/smartNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
