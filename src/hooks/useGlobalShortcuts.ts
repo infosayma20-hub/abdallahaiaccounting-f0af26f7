@@ -40,7 +40,8 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
         // Tab management
         if (code === "KeyW") { e.preventDefault(); if (activeTabId) closeTab(activeTabId); return; }
 
-        if (e.key === "ArrowRight") {
+        // Alt+. — Next tab
+        if (code === "Period") {
           e.preventDefault();
           if (tabs.length > 1 && activeTabId) {
             const idx = tabs.findIndex(t => t.id === activeTabId);
@@ -49,7 +50,8 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
           return;
         }
 
-        if (e.key === "ArrowLeft") {
+        // Alt+, — Previous tab
+        if (code === "Comma") {
           e.preventDefault();
           if (tabs.length > 1 && activeTabId) {
             const idx = tabs.findIndex(t => t.id === activeTabId);
