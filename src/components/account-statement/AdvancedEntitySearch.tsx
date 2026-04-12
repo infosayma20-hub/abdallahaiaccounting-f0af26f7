@@ -124,7 +124,7 @@ export default function AdvancedEntitySearch({
     const filterByTab = activeTab; // filter results by selected tab
 
     // Accounts
-    if (activeTab === "accounts" || !activeTab) {
+    {
       const accs = allAccounts.filter(a => !q || multiWordMatchAny(q, a.account_name, a.account_code));
       if (accs.length > 0) {
         groups.push({
@@ -138,7 +138,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Customers
-    if (activeTab === "customers" || !activeTab) {
+    {
       const custs = allContacts.filter(c => c.contact_type === "عميل" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
       if (custs.length > 0) {
         groups.push({
@@ -152,7 +152,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Suppliers
-    if (activeTab === "suppliers" || !activeTab) {
+    {
       const sups = allContacts.filter(c => c.contact_type === "مورد" && (!q || multiWordMatchAny(q, c.contact_name, c.phone)));
       if (sups.length > 0) {
         groups.push({
@@ -166,7 +166,7 @@ export default function AdvancedEntitySearch({
     }
 
     // Employees
-    if (activeTab === "employees" || !activeTab) {
+    {
       const emps = allEmployees.filter(e => !q || multiWordMatchAny(q, e.full_name, e.department));
       if (emps.length > 0) {
         groups.push({
