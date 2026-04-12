@@ -101,6 +101,7 @@ export default function SamiChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hintIndex, setHintIndex] = useState(() => Math.floor(Math.random() * HINT_PHRASES.length));
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
