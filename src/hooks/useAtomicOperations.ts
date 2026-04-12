@@ -174,7 +174,7 @@ export function useAtomicOperations() {
     if (!user) return false;
     setLoading(true);
     try {
-      // Update cheque status - trigger auto-creates journal entry
+      // Update cheque status only - journal entry is created by ChequesPage action handler
       const { error } = await supabase.from('cheques')
         .update({ status: 'محصل' as any })
         .eq('id', chequeId)
