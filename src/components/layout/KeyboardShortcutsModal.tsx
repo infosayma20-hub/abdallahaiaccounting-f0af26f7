@@ -49,6 +49,17 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="F4" label="سند قيد" />
           </div>
 
+          {/* Tab Management */}
+          <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
+            <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
+              🗂️ إدارة التبويبات
+            </h3>
+            <ShortcutRow keys="Alt + W" label="إغلاق التبويب" />
+            <ShortcutRow keys="Alt + →" label="التبويب التالي" />
+            <ShortcutRow keys="Alt + ←" label="التبويب السابق" />
+            <ShortcutRow keys="Alt + 1-9" label="انتقال للتبويب رقم X" />
+          </div>
+
           {/* Navigation */}
           <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
@@ -58,6 +69,16 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + K" label="كشف حساب" />
             <ShortcutRow keys="Alt + N" label="إنشاء جديد" />
             <ShortcutRow keys="Ctrl + /" label="هذه النافذة" />
+          </div>
+
+          {/* Actions */}
+          <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
+            <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
+              ⚡ إجراءات
+            </h3>
+            <ShortcutRow keys="Ctrl + S" label="حفظ" />
+            <ShortcutRow keys="Alt + P" label="طباعة" />
+            <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
           </div>
 
           {/* Contacts & Finance */}
@@ -71,7 +92,7 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + Q" label="الشيكات" />
           </div>
 
-          {/* More shortcuts */}
+          {/* Reports */}
           <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               📊 تقارير ومخزون
@@ -79,7 +100,6 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + I" label="المخزون" />
             <ShortcutRow keys="Alt + L" label="دفتر الأستاذ" />
             <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
-            <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
           </div>
 
           {/* Admin */}
