@@ -327,6 +327,8 @@ const TransactionsPage = () => {
         const range = getDateRange(dateFilter);
         if (range && (tx.transaction_date < range.from || tx.transaction_date > range.to)) return false;
       }
+      if (dateFrom && tx.transaction_date < dateFrom) return false;
+      if (dateTo && tx.transaction_date > dateTo) return false;
       if (searchQuery.trim()) {
         if (!multiWordMatchAny(searchQuery, tx.description, tx.reference, getAccountName(tx.debit_account_code), getAccountName(tx.credit_account_code))) return false;
       }
