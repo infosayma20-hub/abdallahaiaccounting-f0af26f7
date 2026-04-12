@@ -407,8 +407,10 @@ export default function SamiChatbot() {
         transform: isMobile ? "translateX(-50%)" : "none",
         zIndex: 9999,
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         alignItems: "center",
+        gap: 10,
+        direction: "rtl",
       }}>
         {/* Animated hint bubble */}
         {!open && (
@@ -424,8 +426,7 @@ export default function SamiChatbot() {
               boxShadow: "0 8px 32px rgba(13,27,46,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset",
               direction: "rtl", whiteSpace: "nowrap",
               animation: "samiGradientShift 3s ease infinite",
-              marginBottom: 8,
-              maxWidth: "calc(100vw - 40px)",
+              maxWidth: "calc(100vw - 100px)",
             }}
           >
             <span style={{ fontSize: 14, marginLeft: 4 }}>💬</span> {HINT_PHRASES[hintIndex]}
@@ -433,7 +434,7 @@ export default function SamiChatbot() {
         )}
 
         {/* Button wrapper with rings */}
-        <div style={{ position: "relative", width: 56, height: 56 }}>
+        <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
           {/* 3D Glow rings */}
           {!open && (
             <>
