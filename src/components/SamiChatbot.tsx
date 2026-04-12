@@ -402,7 +402,7 @@ export default function SamiChatbot() {
       {/* Floating Button with 3D Animation */}
       <div style={{
         position: "fixed",
-        bottom: isMobile ? 16 : 24,
+        bottom: isMobile ? 8 : 24,
         left: isMobile ? "50%" : 24,
         transform: isMobile ? "translateX(-50%)" : "none",
         zIndex: 9999,
