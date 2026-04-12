@@ -12,21 +12,49 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sami-chat`;
 
 function getQuickReplies(content: string, isFirst: boolean): string[] {
-  if (isFirst) return ["المحاسب الذكي AI", "نقطة البيع", "الأسعار", "تواصلوا معي"];
-  const lower = content;
-  if (/سعر|باقة|₪|شهر|Starter|Professional|Enterprise/i.test(lower))
-    return ["Starter ₪99", "Professional ₪199", "اعرف أكثر"];
-  if (/تجربة|ابدأ|سجل|مجان/i.test(lower))
-    return ["ابدأ الآن", "اعرف أكثر"];
-  return [];
+  if (isFirst) return ["شو البرنامج بالزبط؟", "عندي مطعم", "عندي محل", "الأسعار والباقات"];
+
+  // Price/plan context
+  if (/سعر|باقة|₪|شهر|Starter|Professional|Enterprise|غالي|كم|تكلف/i.test(content))
+    return ["جرب مجاناً 14 يوم", "شو الفرق بين الباقات؟", "تواصلوا معي"];
+
+  // Trial/start context
+  if (/تجربة|ابدأ|سجل|مجان|14 يوم/i.test(content))
+    return ["ابدأ الآن", "عندي أسئلة ثانية"];
+
+  // POS/restaurant context
+  if (/مطعم|كافيه|POS|نقطة بيع|طباعة|مطبخ/i.test(content))
+    return ["شو يميز الـ POS؟", "بدعم طابعة حرارية؟", "الأسعار"];
+
+  // Inventory/retail context
+  if (/محل|مخزون|باركود|بضاعة|سوبرماركت/i.test(content))
+    return ["كيف المخزون بشتغل؟", "بدعم باركود؟", "جرب مجاناً"];
+
+  // Accounting context
+  if (/محاسب|قيد|فاتورة|ميزان|كشف حساب|ذمم/i.test(content))
+    return ["المحاسب الذكي AI", "تقارير مالية", "جرب مجاناً"];
+
+  // HR context
+  if (/موظف|رواتب|حضور|إجاز|بصمة/i.test(content))
+    return ["كيف نظام الحضور؟", "الرواتب التلقائية", "الأسعار"];
+
+  // Contact request
+  if (/تواصل|اتصل|رقم|واتساب/i.test(content))
+    return [];
+
+  // Generic follow-up
+  if (/شكر|ممتاز|حلو|تمام/i.test(content))
+    return ["عندي سؤال ثاني", "ابدأ التجربة", "تواصلوا معي"];
+
+  return ["عندي سؤال ثاني", "الأسعار والباقات", "تواصلوا معي"];
 }
 
 function shouldShowLeadForm(content: string): boolean {
-  return /تواصل|اسم.*رقم|رقم.*جوال|بيانات/i.test(content);
+  return /تواصل|اسم.*رقم|رقم.*جوال|بيانات|أربطك.*فريق|نتواصل/i.test(content);
 }
 
 function shouldShowCta(content: string): boolean {
-  return /amwali\.app|ابدأ الآن/i.test(content);
+  return /amwali\.app|ابدأ.*تجرب|تجربت.*مجان|14 يوم/i.test(content);
 }
 
 export default function SamiChatbot() {
@@ -35,24 +63,34 @@ export default function SamiChatbot() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }), 50);
   }, []);
 
-  // Opening message
   useEffect(() => {
     if (open && !initialized) {
       setInitialized(true);
       setTimeout(() => {
         setMessages([{
           role: "assistant",
-          content: "هلا! أنا سامي من أموالي 👋\nشو بتحتاج؟",
-          quickReplies: ["المحاسب الذكي AI", "نقطة البيع", "الأسعار", "تواصلوا معي"],
+          content: "هلا وغلا! أنا سامي من أموالي 👋\nكيف بقدر أساعدك اليوم؟",
+          quickReplies: ["شو البرنامج بالزبط؟", "عندي مطعم", "عندي محل", "الأسعار والباقات"],
         }]);
-      }, 500);
+      }, 400);
+    }
+    if (open) {
+      setTimeout(() => textareaRef.current?.focus(), 300);
     }
   }, [open, initialized]);
 
@@ -73,6 +111,10 @@ export default function SamiChatbot() {
       });
 
       if (!resp.ok || !resp.body) {
+        if (resp.status === 429) {
+          setMessages(prev => [...prev, { role: "assistant", content: "الخط مشغول شوي — جرب بعد ثواني 😅" }]);
+          return;
+        }
         throw new Error(`HTTP ${resp.status}`);
       }
 
@@ -110,7 +152,6 @@ export default function SamiChatbot() {
         }
       }
 
-      // Add quick replies + special actions to final message
       const qr = getQuickReplies(assistantContent, false);
       const showLead = shouldShowLeadForm(assistantContent);
       const showCta = shouldShowCta(assistantContent);
@@ -123,7 +164,7 @@ export default function SamiChatbot() {
       );
     } catch (err) {
       console.error("Sami chat error:", err);
-      setMessages(prev => [...prev, { role: "assistant", content: "عذراً، صار خطأ. جرب مرة ثانية." }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "عذراً صار خطأ تقني — جرب مرة ثانية 🙏" }]);
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +187,10 @@ export default function SamiChatbot() {
     }
   };
 
+  const chatWindowStyle: React.CSSProperties = isMobile
+    ? { bottom: 80, left: 8, width: "calc(100vw - 16px)", height: "75vh" }
+    : { bottom: 90, left: 24, width: 370, height: 520 };
+
   return (
     <>
       {/* Chat Window */}
@@ -153,7 +198,7 @@ export default function SamiChatbot() {
         <div
           className="fixed z-[9998] flex flex-col overflow-hidden"
           style={{
-            bottom: 90, left: 24, width: 370, height: 520,
+            ...chatWindowStyle,
             background: "#FFFFFF", borderRadius: 16,
             boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
             border: "1px solid rgba(0,0,0,0.08)",
@@ -161,7 +206,7 @@ export default function SamiChatbot() {
           }}
         >
           {/* Header */}
-          <div style={{ background: "#0D1B2E", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ background: "#0D1B2E", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <User size={18} color="white" />
             </div>
@@ -172,7 +217,7 @@ export default function SamiChatbot() {
                 <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>متاح الآن</span>
               </div>
             </div>
-            <span style={{ color: "white", fontSize: 13, letterSpacing: 1, fontWeight: 600 }}>AMWALI</span>
+            <span style={{ color: "white", fontSize: 12, letterSpacing: 1, fontWeight: 600, opacity: 0.7 }}>AMWALI</span>
           </div>
 
           {/* Messages */}
@@ -181,50 +226,51 @@ export default function SamiChatbot() {
               {messages.map((msg, i) => (
                 <div key={i}>
                   {msg.role === "assistant" ? (
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#0D1B2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#0D1B2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
                         <User size={14} color="white" />
                       </div>
-                      <div>
+                      <div style={{ maxWidth: "calc(100% - 44px)" }}>
                         <div style={{
                           background: "white", border: "0.5px solid rgba(0,0,0,0.08)",
                           borderRadius: "16px 16px 16px 4px", padding: "10px 13px",
-                          fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", maxWidth: 260,
+                          fontSize: 13.5, lineHeight: 1.7, whiteSpace: "pre-wrap",
                         }}>
                           {msg.content}
                         </div>
-                        {/* CTA button */}
                         {msg.showCtaButton && (
                           <button
-                            onClick={() => window.open("https://amwali.app", "_blank")}
+                            onClick={() => window.open("https://amwali.app/auth", "_blank")}
                             style={{
                               marginTop: 8, background: "#0D1B2E", color: "white",
-                              border: "none", borderRadius: 10, padding: "8px 16px",
-                              fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo', sans-serif",
+                              border: "none", borderRadius: 10, padding: "9px 18px",
+                              fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+                              fontFamily: "'Cairo', sans-serif", display: "flex", alignItems: "center", gap: 6,
                             }}
                           >
-                            ابدأ مجاناً — amwali.app ←
+                            🚀 ابدأ مجاناً — 14 يوم تجربة
                           </button>
                         )}
-                        {/* Lead form */}
                         {msg.showLeadForm && <LeadForm onSubmit={(data) => {
                           sendMessage(`اسمي ${data.name}، رقمي ${data.phone}، نوع عملي: ${data.business}`);
                           setMessages(prev => prev.map((m, idx) => idx === i ? { ...m, showLeadForm: false } : m));
                         }} />}
-                        {/* Quick replies */}
                         {msg.quickReplies && msg.quickReplies.length > 0 && (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                             {msg.quickReplies.map((qr) => (
                               <button
                                 key={qr}
-                                onClick={() => sendMessage(qr)}
+                                onClick={() => {
+                                  // Clear quick replies from this message so they disappear
+                                  setMessages(prev => prev.map((m, idx) => idx === i ? { ...m, quickReplies: undefined } : m));
+                                  sendMessage(qr);
+                                }}
+                                className="sami-qr-btn"
                                 style={{
                                   background: "white", border: "1px solid #0D1B2E", color: "#0D1B2E",
                                   borderRadius: 20, fontSize: 12, padding: "5px 11px", cursor: "pointer",
                                   fontFamily: "'Cairo', sans-serif", transition: "all 0.15s",
                                 }}
-                                onMouseEnter={e => { (e.target as HTMLButtonElement).style.background = "#0D1B2E"; (e.target as HTMLButtonElement).style.color = "white"; }}
-                                onMouseLeave={e => { (e.target as HTMLButtonElement).style.background = "white"; (e.target as HTMLButtonElement).style.color = "#0D1B2E"; }}
                               >
                                 {qr}
                               </button>
@@ -238,7 +284,7 @@ export default function SamiChatbot() {
                       <div style={{
                         background: "#0D1B2E", color: "white",
                         borderRadius: "16px 16px 4px 16px", padding: "10px 13px",
-                        fontSize: 13.5, lineHeight: 1.6, maxWidth: 260, whiteSpace: "pre-wrap",
+                        fontSize: 13.5, lineHeight: 1.7, maxWidth: "calc(100% - 44px)", whiteSpace: "pre-wrap",
                       }}>
                         {msg.content}
                       </div>
@@ -247,12 +293,12 @@ export default function SamiChatbot() {
                 </div>
               ))}
               {isLoading && (
-                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#0D1B2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <User size={14} color="white" />
                   </div>
-                  <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "16px 16px 16px 4px", padding: "10px 16px" }}>
-                    <div style={{ display: "flex", gap: 4 }}>
+                  <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "16px 16px 16px 4px", padding: "12px 16px" }}>
+                    <div style={{ display: "flex", gap: 5 }}>
                       {[0, 1, 2].map(d => (
                         <div key={d} style={{
                           width: 7, height: 7, borderRadius: "50%", background: "#0D1B2E",
@@ -267,7 +313,7 @@ export default function SamiChatbot() {
           </div>
 
           {/* Input */}
-          <div style={{ borderTop: "0.5px solid rgba(0,0,0,0.08)", padding: "10px 12px", background: "white", display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <div style={{ borderTop: "0.5px solid rgba(0,0,0,0.08)", padding: "10px 12px", background: "white", display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0 }}>
             <textarea
               ref={textareaRef}
               value={input}
@@ -292,7 +338,8 @@ export default function SamiChatbot() {
               style={{
                 width: 38, height: 38, borderRadius: "50%", background: "#0D1B2E",
                 border: "none", cursor: "pointer", display: "flex", alignItems: "center",
-                justifyContent: "center", opacity: !input.trim() || isLoading ? 0.5 : 1,
+                justifyContent: "center", flexShrink: 0,
+                opacity: !input.trim() || isLoading ? 0.5 : 1,
                 transition: "opacity 0.15s",
               }}
             >
@@ -305,6 +352,7 @@ export default function SamiChatbot() {
       {/* Floating Button */}
       <button
         onClick={() => setOpen(o => !o)}
+        aria-label={open ? "إغلاق المحادثة" : "فتح المحادثة مع سامي"}
         style={{
           position: "fixed", bottom: 24, left: 24, zIndex: 9999,
           width: 54, height: 54, borderRadius: "50%", background: "#0D1B2E",
@@ -319,19 +367,31 @@ export default function SamiChatbot() {
         {open ? <X size={22} color="white" /> : <MessageCircle size={22} color="white" />}
       </button>
 
-      {/* Bounce animation */}
+      {/* Pulse animation for unread hint */}
+      {!open && !initialized && (
+        <div style={{
+          position: "fixed", bottom: 82, left: 20, zIndex: 9999,
+          background: "#0D1B2E", color: "white", borderRadius: 12,
+          padding: "6px 12px", fontSize: 11.5, fontFamily: "'Cairo', sans-serif",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.2)", direction: "rtl",
+          animation: "samiPulse 3s ease-in-out infinite",
+        }}>
+          💬 محتاج مساعدة؟
+        </div>
+      )}
+
       <style>{`
         @keyframes samiBounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
           40% { transform: translateY(-6px); opacity: 1; }
         }
-        @media (max-width: 639px) {
-          div[style*="width: 370"] {
-            width: calc(100vw - 16px) !important;
-            height: 75vh !important;
-            bottom: 80px !important;
-            left: 8px !important;
-          }
+        @keyframes samiPulse {
+          0%, 100% { opacity: 1; transform: translateY(0); }
+          50% { opacity: 0.7; transform: translateY(-3px); }
+        }
+        .sami-qr-btn:hover {
+          background: #0D1B2E !important;
+          color: white !important;
         }
       `}</style>
     </>
@@ -349,44 +409,39 @@ function LeadForm({ onSubmit }: { onSubmit: (data: { name: string; phone: string
       <div style={{
         marginTop: 8, background: "#ECFDF5", border: "1px solid #A7F3D0",
         borderRadius: 12, padding: "10px 12px", fontSize: 12.5, color: "#065F46",
-        fontFamily: "'Cairo', sans-serif",
+        fontFamily: "'Cairo', sans-serif", direction: "rtl",
       }}>
-        ✓ تم الإرسال — سنتواصل معك قريباً
+        ✅ تم الإرسال — فريقنا رح يتواصل معك قريباً
       </div>
     );
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", border: "0.5px solid rgba(0,0,0,0.12)", borderRadius: 8,
+    padding: "8px 10px", fontSize: 12.5, marginBottom: 6, direction: "rtl",
+    fontFamily: "'Cairo', sans-serif", outline: "none", background: "#F9FAFB",
+  };
+
   return (
     <div style={{
       marginTop: 8, background: "white", border: "0.5px solid rgba(0,0,0,0.1)",
-      borderRadius: 12, padding: 12, maxWidth: 260, fontFamily: "'Cairo', sans-serif",
+      borderRadius: 12, padding: 12, fontFamily: "'Cairo', sans-serif", direction: "rtl",
     }}>
-      <input
-        value={name} onChange={e => setName(e.target.value)}
-        placeholder="اسمك الكامل" required
-        style={{ width: "100%", border: "0.5px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "7px 10px", fontSize: 12.5, marginBottom: 6, direction: "rtl", fontFamily: "'Cairo', sans-serif", outline: "none" }}
-      />
-      <input
-        value={phone} onChange={e => setPhone(e.target.value)}
-        placeholder="رقم الجوال / واتساب" type="tel" required
-        style={{ width: "100%", border: "0.5px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "7px 10px", fontSize: 12.5, marginBottom: 6, direction: "rtl", fontFamily: "'Cairo', sans-serif", outline: "none" }}
-      />
-      <input
-        value={business} onChange={e => setBusiness(e.target.value)}
-        placeholder="نوع عملك (مطعم، محل، شركة...)"
-        style={{ width: "100%", border: "0.5px solid rgba(0,0,0,0.12)", borderRadius: 8, padding: "7px 10px", fontSize: 12.5, marginBottom: 8, direction: "rtl", fontFamily: "'Cairo', sans-serif", outline: "none" }}
-      />
+      <div style={{ fontSize: 11.5, color: "#6B7280", marginBottom: 8, fontWeight: 500 }}>
+        📋 حتى نتواصل معك:
+      </div>
+      <input value={name} onChange={e => setName(e.target.value)} placeholder="اسمك الكامل" required style={inputStyle} />
+      <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="رقم الجوال / واتساب" type="tel" required style={inputStyle} />
+      <input value={business} onChange={e => setBusiness(e.target.value)} placeholder="نوع عملك (مطعم، محل، شركة...)" style={inputStyle} />
       <button
-        onClick={() => {
-          if (name && phone) { setSubmitted(true); onSubmit({ name, phone, business }); }
-        }}
+        onClick={() => { if (name && phone) { setSubmitted(true); onSubmit({ name, phone, business }); } }}
         style={{
           width: "100%", background: "#0D1B2E", color: "white", border: "none",
-          borderRadius: 8, padding: "8px 0", fontSize: 12.5, fontWeight: 600,
-          cursor: "pointer", fontFamily: "'Cairo', sans-serif",
+          borderRadius: 8, padding: "9px 0", fontSize: 12.5, fontWeight: 600,
+          cursor: "pointer", fontFamily: "'Cairo', sans-serif", marginTop: 2,
         }}
       >
-        إرسال
+        إرسال ←
       </button>
     </div>
   );
