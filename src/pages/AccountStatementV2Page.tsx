@@ -214,6 +214,17 @@ const AccountStatementV2Page = () => {
   const selectedEntityEmoji = selectedAccount ? "📊" : selectedContact ? (selectedContact.contact_type === "عميل" ? "👤" : "🚚") : selectedEmployee ? "👨‍💼" : "";
   const selectedEntityCode = isAccountsTab ? selectedAccount?.account_code || "" : selectedContact?.linked_account_code || selectedEmployee?.account_code || "";
 
+  // Stable SOA number: based on entity + date range, doesn't change during session
+  const stableSOANumber = useMemo(() => {
+    const seed = `${selectedEntityName}|${dateFrom}|${dateTo}`;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+    }
+    const num = Math.abs(hash) % 10000000000;
+    return `SOA-${String(num).padStart(10, "0")}`;
+  }, [selectedEntityName, dateFrom, dateTo]);
+
   const isDebitNature = useMemo(() => {
     if (isAccountsTab && selectedAccount) {
       const code = selectedAccount.account_code;
