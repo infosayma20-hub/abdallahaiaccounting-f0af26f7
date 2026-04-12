@@ -1013,6 +1013,7 @@ const AccountStatementV2Page = () => {
                 dateFrom={dateFrom}
                 dateTo={dateTo}
                 contactCode={selectedEntityCode}
+                statementNumber={stableSOANumber}
               />
             </div>
           </div>
