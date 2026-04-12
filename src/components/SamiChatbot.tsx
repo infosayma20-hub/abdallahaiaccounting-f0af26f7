@@ -90,7 +90,7 @@ const HINT_PHRASES = [
   "احكيلي شو بتحتاج مالياً وإدارياً",
 ];
 
-export default function SamiChatbot() {
+export default function SamiChatbot({ inline = false }: { inline?: boolean }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
