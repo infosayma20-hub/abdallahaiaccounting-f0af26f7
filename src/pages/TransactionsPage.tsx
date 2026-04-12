@@ -206,6 +206,8 @@ const TransactionsPage = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [accountFilter, setAccountFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Expansion
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
