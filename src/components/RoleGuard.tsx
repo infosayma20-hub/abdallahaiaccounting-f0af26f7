@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import LoadingScreen from "@/components/LoadingScreen";
+
 
 type AllowedRole = "admin" | "hr_manager" | "employee" | "accountant_senior" | "accountant_sales" | "accountant_purchases" | "store_tracker";
 
@@ -38,7 +38,11 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Pr
     checkRoles();
   }, [user, authLoading, allowedRoles]);
 
-  if (authLoading || checking) return <LoadingScreen />;
+  if (authLoading || checking) return (
+    <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "hsl(var(--accent))", borderRightColor: "hsl(var(--accent) / 0.3)" }} />
+    </div>
+  );
   if (!hasAccess) return <Navigate to={fallback} replace />;
   return <>{children}</>;
 }
