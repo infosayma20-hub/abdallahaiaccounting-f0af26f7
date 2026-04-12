@@ -493,7 +493,26 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                       boxShadow: "0 2px 8px rgba(10,35,66,0.06)", fontFamily: "Tajawal, sans-serif",
                     }}
                   >
-                    <AIMessageRenderer content={msg.content} />
+                    {msg.content.startsWith('__MULTI_TX__') ? (
+                      <MultiTransactionCards
+                        transactions={JSON.parse(msg.content.replace('__MULTI_TX__', ''))}
+                        onConfirm={async (tx, idx) => {
+                          const result = await executeTransaction(tx, tx.description || '');
+                          if (result.success) onTransactionSuccess();
+                          return { success: result.success, message: result.message };
+                        }}
+                        onConfirmAll={async (txs) => {
+                          for (const tx of txs) {
+                            await executeTransaction(tx, tx.description || '');
+                          }
+                          onTransactionSuccess();
+                        }}
+                        onSkip={() => {}}
+                        onDone={() => {}}
+                      />
+                    ) : (
+                      <AIMessageRenderer content={msg.content} />
+                    )}
                     {sending && msg.id === messages[messages.length - 1]?.id && msg.role === "assistant" && (
                       <span className="inline-block w-[2px] h-4 ml-0.5 align-middle" style={{ background: "#0A2342", animation: "blink 1s infinite" }} />
                     )}

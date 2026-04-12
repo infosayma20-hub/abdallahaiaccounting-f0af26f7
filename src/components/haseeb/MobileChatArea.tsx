@@ -7,6 +7,7 @@ import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, Check, X, Pencil } from "lucide-react";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
+import MultiTransactionCards, { type ParsedTransaction } from "./MultiTransactionCards";
 import { splitMultipleCommands, classifyCommand, getCommandTypeLabel, getCommandTypeIcon } from "@/lib/multiCommandParser";
 
 type Message = {
