@@ -49,8 +49,8 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
           <div className="bg-secondary/30 rounded-lg p-2.5 space-y-0.5">
             <h3 className="text-[10px] font-bold text-primary mb-1">🗂️ التبويبات</h3>
             <ShortcutRow keys="Alt + W" label="إغلاق التبويب" />
-            <ShortcutRow keys="Alt + ." label="التالي" />
-            <ShortcutRow keys="Alt + ," label="السابق" />
+            <ShortcutRow keys="Alt + →" label="التالي" />
+            <ShortcutRow keys="Alt + ←" label="السابق" />
             <ShortcutRow keys="Alt + 1-9" label="تبويب رقم X" />
           </div>
 
