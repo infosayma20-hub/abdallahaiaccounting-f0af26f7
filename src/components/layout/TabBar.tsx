@@ -4,7 +4,7 @@ import { useAppTabs, ICON_MAP } from "@/contexts/TabsContext";
 import { cn } from "@/lib/utils";
 
 const TabBar = () => {
-  const { tabs, activeTabId, switchTab, closeTab } = useAppTabs();
+  const { tabs, activeTabId, switchTab, closeTab, closeAllTabs } = useAppTabs();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -74,11 +74,8 @@ const TabBar = () => {
       {/* Close all tabs button */}
       {tabs.length > 1 && (
         <div className="flex items-center px-2 border-r border-border/30 flex-shrink-0">
-          <button
-            onClick={() => {
-              const { closeAllTabs } = useAppTabs();
-              closeAllTabs();
-            }}
+        <button
+            onClick={closeAllTabs}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors px-1.5 py-1 rounded hover:bg-muted/50"
             title="إغلاق الكل"
           >
