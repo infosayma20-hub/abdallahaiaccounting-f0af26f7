@@ -604,17 +604,80 @@ ${contactContext}
 
     // Auto-create contact if AI says so and contact doesn't exist
     if (shouldCreateContact && contactNameParsed && !contactId) {
+      const resolvedType = contactType === 'مورد' ? 'مورد' : 'عميل';
+      const parentCode = resolvedType === 'مورد' ? '2110' : '1130';
+      const parentName = resolvedType === 'مورد' ? 'ذمم موردين' : 'ذمم عملاء';
+      const accountType = resolvedType === 'مورد' ? 'التزامات' : 'أصول';
+
+      // Generate a unique sub-account code under the parent
+      const { data: existingSubs } = await supabaseAdmin.from('accounts')
+        .select('account_code')
+        .eq('user_id', userId)
+        .like('account_code', `${parentCode}%`)
+        .neq('account_code', parentCode)
+        .order('account_code', { ascending: false })
+        .limit(1);
+
+      let nextCode = `${parentCode}01`;
+      if (existingSubs && existingSubs.length > 0) {
+        const lastCode = existingSubs[0].account_code;
+        const lastNum = parseInt(lastCode.replace(parentCode, ''), 10) || 0;
+        nextCode = `${parentCode}${String(lastNum + 1).padStart(2, '0')}`;
+      }
+
+      // Create sub-account in chart of accounts
+      const { error: accErr } = await supabaseAdmin.from('accounts').insert({
+        user_id: userId,
+        account_code: nextCode,
+        account_name: contactNameParsed,
+        account_type: accountType,
+        parent_code: parentCode,
+        is_active: true,
+        notes: `حساب ${resolvedType} — تم إنشاؤه تلقائياً بواسطة المحاسب الذكي`,
+      });
+      if (accErr) {
+        console.error('Failed to create sub-account for contact:', accErr);
+      } else {
+        console.log(`Auto-created account ${nextCode} - ${contactNameParsed} under ${parentCode}`);
+      }
+
+      // Create contact with linked account
       const { data: newContact, error: contactErr } = await supabaseAdmin.from('contacts').insert({
         user_id: userId,
         contact_name: contactNameParsed,
-        contact_type: contactType === 'مورد' ? 'مورد' : 'عميل',
-      }).select('id').single();
+        contact_type: resolvedType,
+        linked_account_code: accErr ? null : nextCode,
+        source: 'ai_accountant',
+      }).select('id, linked_account_code').single();
 
       if (!contactErr && newContact) {
         contactId = newContact.id;
-        console.log('Auto-created contact:', contactNameParsed, newContact.id);
+        console.log('Auto-created contact:', contactNameParsed, newContact.id, 'linked to', newContact.linked_account_code);
+
+        // Update debit/credit to use the specific contact account instead of generic parent
+        if (!accErr) {
+          if (resolvedType === 'عميل') {
+            // Customer: receivables side uses the sub-account
+            if (debitAccountCode === parentCode) debitAccountCode = nextCode;
+            if (creditAccountCode === parentCode) creditAccountCode = nextCode;
+          } else {
+            // Supplier: payables side uses the sub-account
+            if (debitAccountCode === parentCode) debitAccountCode = nextCode;
+            if (creditAccountCode === parentCode) creditAccountCode = nextCode;
+          }
+        }
       } else {
         console.error('Failed to auto-create contact:', contactErr);
+      }
+    }
+
+    // If contact exists and has a linked account, use it instead of generic parent
+    if (contactId && !shouldCreateContact) {
+      const existingContact = contacts.find(c => c.id === contactId);
+      if (existingContact?.linked_account_code) {
+        const lac = existingContact.linked_account_code;
+        if (debitAccountCode === '1130' || debitAccountCode === '2110') debitAccountCode = lac;
+        if (creditAccountCode === '1130' || creditAccountCode === '2110') creditAccountCode = lac;
       }
     }
 
