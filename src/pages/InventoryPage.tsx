@@ -529,6 +529,14 @@ const InventoryPage = () => {
                 <SelectItem value="نفد">🔴 نفد</SelectItem>
               </SelectContent>
             </Select>
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+              onClear={() => { setDateFrom(""); setDateTo(""); }}
+              compact
+            />
           </div>
 
           {selected.size > 0 && (
