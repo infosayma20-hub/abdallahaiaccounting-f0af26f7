@@ -235,7 +235,7 @@ export default function SamiChatbot() {
   };
 
   const chatWindowStyle: React.CSSProperties = isMobile
-    ? { bottom: 80, left: 8, width: "calc(100vw - 16px)", height: "75vh" }
+    ? { bottom: 140, left: 8, width: "calc(100vw - 16px)", height: "60vh" }
     : { bottom: 90, left: 24, width: 370, height: 520 };
 
   return (
@@ -372,10 +372,11 @@ export default function SamiChatbot() {
                 e.target.style.height = Math.min(e.target.scrollHeight, 80) + "px";
               }}
               onKeyDown={handleKeyDown}
+              onFocus={() => { if (isMobile) setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current!.scrollHeight, behavior: "smooth" }), 300); }}
               placeholder="اكتب سؤالك هون..."
               style={{
                 flex: 1, border: "0.5px solid rgba(0,0,0,0.1)", borderRadius: 20,
-                padding: "9px 14px", fontSize: 13.5, direction: "rtl",
+                padding: "9px 14px", fontSize: 16, direction: "rtl",
                 fontFamily: "'Cairo', sans-serif", resize: "none", maxHeight: 80,
                 minHeight: 38, background: "#F5F7FA", outline: "none",
               }}
@@ -399,7 +400,7 @@ export default function SamiChatbot() {
       )}
 
       {/* Floating Button with 3D Animation */}
-      <div style={{ position: "fixed", bottom: 24, left: 24, zIndex: 9999 }}>
+      <div style={{ position: "fixed", bottom: isMobile ? 80 : 24, left: 24, zIndex: 9999 }}>
         {/* Animated hint bubble */}
         {!open && (
           <div
