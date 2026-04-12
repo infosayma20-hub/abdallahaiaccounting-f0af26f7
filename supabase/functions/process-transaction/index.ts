@@ -937,18 +937,64 @@ ${contactContext}
           if (r.error) console.error('Failed to create payroll entry:', r.error);
           else console.log('Auto-created payroll entry for:', contactNameParsed);
         });
+      } else {
+        // Auto-create employee if not found
+        const { data: newEmp, error: empErr } = await supabaseAdmin.from('employees').insert({
+          user_id: userId,
+          full_name: contactNameParsed,
+          status: 'active',
+          basic_salary: amount,
+          hire_date: transactionDate,
+          notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
+        }).select('id').single();
+
+        if (!empErr && newEmp) {
+          console.log('Auto-created employee:', contactNameParsed, newEmp.id);
+          const now = new Date();
+          await supabaseAdmin.from('employee_payroll').insert({
+            user_id: userId,
+            employee_id: newEmp.id,
+            period_month: now.getMonth() + 1,
+            period_year: now.getFullYear(),
+            basic_salary: amount,
+            net_salary: amount,
+            is_paid: true,
+            paid_date: transactionDate,
+            linked_transaction_id: txData.id,
+          }).then(r => {
+            if (r.error) console.error('Failed to create payroll entry:', r.error);
+            else console.log('Auto-created payroll entry for new employee:', contactNameParsed);
+          });
+        } else {
+          console.error('Failed to auto-create employee:', empErr);
+        }
       }
     }
 
     // ═══ Employee Loan Detection ═══
     const isLoan = /سلف|سلّف|سلفة|أعطيت سلفة/.test(text);
     if (isLoan && contactNameParsed && amount > 0) {
-      const { data: emp } = await supabaseAdmin.from('employees')
+      let { data: emp } = await supabaseAdmin.from('employees')
         .select('id')
         .eq('user_id', userId)
         .ilike('full_name', `%${contactNameParsed}%`)
         .limit(1)
         .maybeSingle();
+
+      // Auto-create employee if not found for loans too
+      if (!emp) {
+        const { data: newEmp } = await supabaseAdmin.from('employees').insert({
+          user_id: userId,
+          full_name: contactNameParsed,
+          status: 'active',
+          hire_date: transactionDate,
+          notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
+        }).select('id').single();
+        if (newEmp) {
+          emp = newEmp;
+          console.log('Auto-created employee for loan:', contactNameParsed);
+        }
+      }
 
       if (emp) {
         await supabaseAdmin.from('employee_loans').insert({
