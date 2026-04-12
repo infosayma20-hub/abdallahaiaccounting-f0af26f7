@@ -205,6 +205,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <CrossTabSyncProvider />
         <BrowserRouter>
           <AuthProvider>
             <ReadOnlyProvider>
