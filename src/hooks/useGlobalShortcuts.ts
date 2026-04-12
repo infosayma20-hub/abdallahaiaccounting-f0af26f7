@@ -108,7 +108,7 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
           return;
         }
         if (code === "KeyN") { e.preventDefault(); onShowNewModal?.(); return; }
-        if (code === "KeyA") { e.preventDefault(); navigate("/super-admin/dashboard"); return; }
+        
       }
     };
 

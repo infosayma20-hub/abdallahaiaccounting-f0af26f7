@@ -82,7 +82,7 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + I" label="المخزون" />
             <ShortcutRow keys="Alt + L" label="دفتر الأستاذ" />
             <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
-            <ShortcutRow keys="Alt + A" label="لوحة الإدارة" />
+            
           </div>
         </div>
 
