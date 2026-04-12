@@ -1,5 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
-import amwaliLogo from "@/assets/amwali-logo-full.png";
+import amwaliLogo from "@/assets/amwali-logo-large.png";
 
 const REGISTER_URL = "https://abdallahaiaccounting.lovable.app/auth";
 
