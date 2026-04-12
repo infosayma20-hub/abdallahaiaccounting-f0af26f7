@@ -50,6 +50,7 @@ interface Contact {
   avg_payment_days: number | null;
   is_archived: boolean | null;
   archived_at: string | null;
+  created_at: string | null;
 }
 
 interface ContactAlert {
