@@ -407,14 +407,14 @@ export default function SamiChatbot() {
             className="sami-hint-bubble"
             onClick={() => setOpen(true)}
             style={{
-              position: "absolute", bottom: 60, left: 56, cursor: "pointer",
+              position: "absolute", bottom: 4, left: 60, cursor: "pointer",
               background: "linear-gradient(135deg, #0D1B2E 0%, #1a3a5c 50%, #0D1B2E 100%)",
               backgroundSize: "200% 200%",
               color: "white", borderRadius: "14px 14px 14px 4px",
               padding: "8px 14px", fontSize: 12, fontFamily: "'Cairo', sans-serif",
               boxShadow: "0 8px 32px rgba(13,27,46,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset",
               direction: "rtl", whiteSpace: "nowrap",
-              animation: "samiHintFloat 4s ease-in-out infinite, samiGradientShift 3s ease infinite",
+              animation: "samiGradientShift 3s ease infinite",
               backdropFilter: "none",
               maxWidth: "calc(100vw - 100px)",
             }}
