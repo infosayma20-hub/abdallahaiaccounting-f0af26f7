@@ -235,23 +235,6 @@ export default function AdvancedEntitySearch({
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Tab filters */}
-      <div className="flex items-center gap-1 mb-2">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => { onTabFilter(tab.key); setSearch(""); }}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-              normalizedTab === tab.key
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {/* Search input */}
       <div
