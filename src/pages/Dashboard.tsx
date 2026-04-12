@@ -783,7 +783,7 @@ const Dashboard = () => {
 
             {/* ═══ Smart Report Quick Access ═══ */}
             <button
-              onClick={() => navigate("/smart-report")}
+              onClick={(e) => smartNavigate(e, "/smart-report", navigate)}
               className="w-full premium-card p-4 neon-border hover:bg-primary/5 transition-all active:scale-[0.99] group"
             >
               <div className="flex items-center justify-between">
@@ -807,7 +807,7 @@ const Dashboard = () => {
               {quickActions.map((action) => (
                 <button
                   key={action.label}
-                  onClick={() => navigate(action.path)}
+                  onClick={(e) => smartNavigate(e, action.path, navigate)}
                   className="premium-card p-4 text-right space-y-1.5 neon-border hover:bg-secondary/50 transition-all active:scale-[0.98]"
                 >
                   <action.icon className="h-5 w-5 text-primary mb-1" />
@@ -849,7 +849,7 @@ const Dashboard = () => {
               )}
 
               <button
-                onClick={() => navigate("/smart-report?q=" + encodeURIComponent("اقترح خطة تحصيل للذمم المتأخرة"))}
+                onClick={(e) => smartNavigate(e, "/smart-report?q=" + encodeURIComponent("اقترح خطة تحصيل للذمم المتأخرة"), navigate)}
                 className="w-full py-2.5 rounded-xl neon-border bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-all active:scale-[0.98]"
               >
                 ✨ اقترح خطة تحصيل
