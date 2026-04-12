@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -121,6 +122,8 @@ const EmployeesPage = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterJob, setFilterJob] = useState<string>("all");
   const [groupByBranch, setGroupByBranch] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Sort & Pagination
   const [sortField, setSortField] = useState<SortField>("full_name");
