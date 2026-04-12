@@ -362,6 +362,18 @@ serve(async (req) => {
         };
       }
 
+      // Clarification
+      if (parsed.type === 'clarification' || parsed.status === 'needs_clarification') {
+        return {
+          type: 'clarification',
+          status: 'needs_clarification',
+          question: parsed.question || parsed.clarificationQuestion || '',
+          options: parsed.options || parsed.clarificationOptions || [],
+          partialData: parsed.partialData || null,
+          confidence: parsed.confidence || 'low',
+        };
+      }
+
       // Unknown
       return {
         type: 'unknown',
