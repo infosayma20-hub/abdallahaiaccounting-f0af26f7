@@ -11,6 +11,7 @@ import {
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
   Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle
 } from "lucide-react";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
