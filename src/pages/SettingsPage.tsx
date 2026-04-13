@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/layout/PageHeader";
-import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch, Receipt } from "lucide-react";
+import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch, Receipt, HardDrive } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,6 +23,7 @@ import IntegrationsSettingsSection from "@/components/settings/IntegrationsSetti
 import AISettingsSection from "@/components/settings/AISettingsSection";
 import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 import TaxSettingsInline from "@/components/tax/TaxSettingsSection";
+import BackupSettingsSection from "@/components/settings/BackupSettingsSection";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const sections = [
@@ -41,6 +42,7 @@ const sections = [
   { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true, keywords: "بوابة إدارة تقارير مراقبة" },
   { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true, keywords: "ذكاء اصطناعي مساعد حسيب" },
   { id: "tax", label: "الضريبة", icon: Receipt, ready: true, keywords: "ضريبة قيمة مضافة VAT تقرير دوري" },
+  { id: "backup", label: "النسخ الاحتياطي", icon: HardDrive, ready: true, keywords: "نسخة احتياطية تصدير بيانات backup export" },
 ];
 
 const SettingsPage = () => {
@@ -100,6 +102,8 @@ const SettingsPage = () => {
         return <AISettingsSection settings={settings} onChange={updateSettings} />;
       case "tax":
         return <TaxSettingsInline ownerId={taxOwnerId} />;
+      case "backup":
+        return <BackupSettingsSection />;
       default:
         return (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
