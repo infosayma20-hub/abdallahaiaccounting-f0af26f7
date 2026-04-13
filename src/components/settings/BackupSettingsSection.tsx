@@ -142,6 +142,7 @@ const BackupSettingsSection = () => {
       const excelBuf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
       const blob = new Blob([excelBuf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       saveAs(blob, `amwali_backup_${getTimestamp()}.xlsx`);
+      localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       const totalRows = Object.values(allData).reduce((s, a) => s + a.length, 0);
       toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${totalRows} سجل في ملف Excel` });
