@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Bell, Package, AlertTriangle, Calendar, ShoppingCart, Users, CreditCard, Check, Loader2, X, Clock, RefreshCw, Store, TruckIcon } from "lucide-react";
+import { Bell, Package, AlertTriangle, Calendar, ShoppingCart, Users, CreditCard, Check, Loader2, X, Clock, RefreshCw, Store, TruckIcon, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -277,6 +277,28 @@ export function useNotifications() {
         });
       });
 
+      // ── 11. Backup reminder (every 30 days) ──
+      const lastBackup = localStorage.getItem(`amwali_last_backup_${user.id}`);
+      const daysSinceBackup = lastBackup
+        ? Math.floor((now.getTime() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24))
+        : 999;
+
+      if (daysSinceBackup >= 30) {
+        notifs.push({
+          id: "backup-reminder",
+          icon: HardDrive,
+          iconColor: "#8B5CF6",
+          iconBg: "rgba(139,92,246,0.1)",
+          title: lastBackup
+            ? `مضى ${daysSinceBackup} يوماً على آخر نسخة احتياطية`
+            : "لم تقم بإنشاء نسخة احتياطية بعد",
+          description: "اذهب للإعدادات ← النسخ الاحتياطي لتصدير بياناتك",
+          time: new Date(),
+          path: "/settings",
+          read: false,
+          category: "warning",
+        });
+      }
     } catch (err) {
       console.error("Error generating notifications:", err);
     }

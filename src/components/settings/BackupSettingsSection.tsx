@@ -102,6 +102,7 @@ const BackupSettingsSection = () => {
 
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       saveAs(blob, `amwali_backup_${getTimestamp()}.json`);
+      localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${backup._meta.total_rows} سجل في ${backup._meta.tables} جدول` });
     } catch (err: any) {
@@ -141,6 +142,7 @@ const BackupSettingsSection = () => {
       const excelBuf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
       const blob = new Blob([excelBuf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       saveAs(blob, `amwali_backup_${getTimestamp()}.xlsx`);
+      localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       const totalRows = Object.values(allData).reduce((s, a) => s + a.length, 0);
       toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${totalRows} سجل في ملف Excel` });
