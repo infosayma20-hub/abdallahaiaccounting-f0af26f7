@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import TeamAccountManager from "./TeamAccountManager";
+import FiscalPeriodsManager from "./FiscalPeriodsManager";
 
 interface Props {
   settings: CompanySettings;
@@ -185,28 +186,7 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
-      {/* Period Locking */}
-      <div>
-        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-primary rounded-full" />
-          قفل الفترة المحاسبية
-        </h3>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>قفل الإدخال على الشهور المنتهية</Label>
-            <Select value={settings.period_lock_mode} onValueChange={v => onChange({ period_lock_mode: v })}>
-              <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">تلقائي (بعد إغلاق الشهر)</SelectItem>
-                <SelectItem value="manual">يدوي</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {settings.last_locked_period && (
-            <p className="text-sm text-muted-foreground">آخر فترة مقفلة: {settings.last_locked_period}</p>
-          )}
-        </div>
-      </div>
+      <FiscalPeriodsManager />
       <TeamAccountManager type="accountant" />
     </div>
   );
