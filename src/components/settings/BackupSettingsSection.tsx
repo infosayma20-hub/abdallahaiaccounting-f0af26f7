@@ -102,6 +102,7 @@ const BackupSettingsSection = () => {
 
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       saveAs(blob, `amwali_backup_${getTimestamp()}.json`);
+      localStorage.setItem(`amwali_last_backup_${user.id}`, new Date().toISOString());
 
       toast({ title: "تم تصدير النسخة الاحتياطية ✅", description: `${backup._meta.total_rows} سجل في ${backup._meta.tables} جدول` });
     } catch (err: any) {
