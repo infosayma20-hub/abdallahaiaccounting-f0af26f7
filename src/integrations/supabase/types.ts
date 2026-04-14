@@ -1786,6 +1786,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          invoice_number_offset: number
           is_active: boolean
           logo_url: string | null
           name: string
@@ -1799,6 +1800,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          invoice_number_offset?: number
           is_active?: boolean
           logo_url?: string | null
           name?: string
@@ -1812,6 +1814,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          invoice_number_offset?: number
           is_active?: boolean
           logo_url?: string | null
           name?: string
