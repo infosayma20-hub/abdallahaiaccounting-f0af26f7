@@ -1,0 +1,1 @@
+UPDATE public.company_settings SET invoice_header_layout = 'logo_center' WHERE user_id = (SELECT id FROM auth.users WHERE email = 'k.malhis@outlook.com' LIMIT 1);
