@@ -362,11 +362,12 @@ const InvoiceCreatePage = () => {
         }));
       }
 
-      // Generate next invoice number based on current type
+      // Generate next invoice number based on current type + offset
       const prefix = form.type === "sales" ? "INV" : "PO";
       const totalCount = invCountRes.count || 0;
+      const invoiceOffset = (companyRes.data as any)?.invoice_number_offset || 0;
       const year = new Date().getFullYear();
-      const nextNum = String(totalCount + 1).padStart(4, "0");
+      const nextNum = String(totalCount + 1 + invoiceOffset).padStart(4, "0");
       setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
 
       // Resolve duplicate contact after contacts load
