@@ -360,7 +360,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {[
             { label: "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
             { label: "تاريخ الإصدار", value: fmtDate(invoice.date) },
-            ...(invoice.dueDate ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
+            ...(invoice.dueDate && settings.invoice_show_due_date !== false ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
             { label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod },
             { label: "الحالة", value: statusLabels[invoice.status] || invoice.status },
           ].map((row, i) => (

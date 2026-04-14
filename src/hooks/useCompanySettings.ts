@@ -65,6 +65,7 @@ export interface CompanySettings {
   invoice_show_signature: boolean;
   invoice_show_tax_summary: boolean;
   invoice_show_amount_words: boolean;
+  invoice_show_due_date: boolean;
   invoice_footer_message: string;
   // POS
   pos_name: string;
@@ -190,6 +191,7 @@ const defaultSettings: CompanySettings = {
   invoice_show_signature: true,
   invoice_show_tax_summary: false,
   invoice_show_amount_words: true,
+  invoice_show_due_date: true,
   invoice_footer_message: "شكراً لتعاملكم معنا",
   pos_name: "نقطة البيع الرئيسية",
   pos_branch_id: "",
@@ -352,7 +354,7 @@ export function useCompanySettings() {
     "employee_count_range","has_pos","pos_count","inventory_method",
     "onboarding_skipped","onboarding_completed_at",
     "invoice_header_layout","invoice_primary_color","invoice_show_signature",
-    "invoice_show_tax_summary","invoice_show_amount_words","invoice_footer_message",
+    "invoice_show_tax_summary","invoice_show_amount_words","invoice_show_due_date","invoice_footer_message",
     "can_edit_posted","can_delete_posted","card_bank_account_id",
     // Inventory
     "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
