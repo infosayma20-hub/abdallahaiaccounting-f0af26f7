@@ -172,63 +172,106 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       )}
 
       {/* ━━━ HEADER ━━━ */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
-          color: "white",
-          padding: "16px 28px 14px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {/* Company Info - Right */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", flex: 1 }}>
-          {settings.logo_url ? (
-            <img
-              src={settings.logo_url}
-              alt="Logo"
-              style={{ width: "56px", height: "56px", borderRadius: "8px", objectFit: "contain", background: "white", padding: "3px" }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "8px",
-                background: "rgba(255,255,255,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "22px",
-                fontWeight: 800,
-                color: "#4A9EE8",
-              }}
-            >
-              {(settings.company_name || "Q").charAt(0)}
+      {settings.invoice_header_layout === "logo_center" ? (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
+            color: "white",
+            padding: "18px 28px 16px",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {/* Row 1: Invoice title left, company details right */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: "20px", fontWeight: 700 }}>
+                {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+              </div>
+              <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
+                {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+              </div>
             </div>
-          )}
-          <div>
-            <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
-            {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
-            {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
-            {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
-            {taxEnabled && settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
+              {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
+              {taxEnabled && settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
+            </div>
+          </div>
+          {/* Row 2: Centered large logo */}
+          <div style={{ textAlign: "center", marginTop: "12px" }}>
+            {settings.logo_url ? (
+              <img
+                src={settings.logo_url}
+                alt="Logo"
+                style={{ maxWidth: "200px", maxHeight: "100px", objectFit: "contain", background: "white", borderRadius: "10px", padding: "6px", display: "inline-block" }}
+              />
+            ) : (
+              <div style={{ fontSize: "28px", fontWeight: 800, color: "#4A9EE8" }}>
+                {(settings.company_name || "Q").charAt(0)}
+              </div>
+            )}
           </div>
         </div>
+      ) : (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
+            color: "white",
+            padding: "16px 28px 14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {/* Company Info - Right */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", flex: 1 }}>
+            {settings.logo_url ? (
+              <img
+                src={settings.logo_url}
+                alt="Logo"
+                style={{ width: "56px", height: "56px", borderRadius: "8px", objectFit: "contain", background: "white", padding: "3px" }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "8px",
+                  background: "rgba(255,255,255,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "22px",
+                  fontWeight: 800,
+                  color: "#4A9EE8",
+                }}
+              >
+                {(settings.company_name || "Q").charAt(0)}
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
+              {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
+              {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
+              {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
+              {taxEnabled && settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
+            </div>
+          </div>
 
-        {/* Invoice Title - Left */}
-        <div style={{ textAlign: "left" }}>
-          <div style={{ fontSize: "20px", fontWeight: 700 }}>
-            {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
-          </div>
-          <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
-            {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+          {/* Invoice Title - Left */}
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontSize: "20px", fontWeight: 700 }}>
+              {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+            </div>
+            <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
+              {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ━━━ COPY LABEL (centered badge) ━━━ */}
       {copyLabel && (

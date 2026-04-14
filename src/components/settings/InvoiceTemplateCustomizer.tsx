@@ -22,6 +22,7 @@ const COLOR_PRESETS = [
 const LAYOUT_OPTIONS = [
   { value: "logo_left", label: "شعار يسار" },
   { value: "logo_right", label: "شعار يمين" },
+  { value: "logo_center", label: "شعار وسط" },
   { value: "no_logo", label: "بدون شعار" },
 ];
 
