@@ -1965,6 +1965,7 @@ export type Database = {
           invoice_prefix: string | null
           invoice_primary_color: string | null
           invoice_show_amount_words: boolean | null
+          invoice_show_due_date: boolean | null
           invoice_show_signature: boolean | null
           invoice_show_tax_summary: boolean | null
           journal_prefix: string | null
@@ -2103,6 +2104,7 @@ export type Database = {
           invoice_prefix?: string | null
           invoice_primary_color?: string | null
           invoice_show_amount_words?: boolean | null
+          invoice_show_due_date?: boolean | null
           invoice_show_signature?: boolean | null
           invoice_show_tax_summary?: boolean | null
           journal_prefix?: string | null
@@ -2241,6 +2243,7 @@ export type Database = {
           invoice_prefix?: string | null
           invoice_primary_color?: string | null
           invoice_show_amount_words?: boolean | null
+          invoice_show_due_date?: boolean | null
           invoice_show_signature?: boolean | null
           invoice_show_tax_summary?: boolean | null
           journal_prefix?: string | null

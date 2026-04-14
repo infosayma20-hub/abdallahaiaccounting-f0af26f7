@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS invoice_show_due_date BOOLEAN DEFAULT true;
