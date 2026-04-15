@@ -12412,6 +12412,14 @@ export type Database = {
         }
         Returns: Json
       }
+      create_reverse_entry: {
+        Args: {
+          original_transaction_id: string
+          reason: string
+          reversed_by: string
+        }
+        Returns: string
+      }
       create_task_user: {
         Args: {
           p_avatar_color?: string
