@@ -96,13 +96,13 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
       };
   const centeredLogoImageStyle = hasExtraWideLogo
-    ? { width: "500px", height: "auto", maxHeight: "120px", objectFit: "contain" as const, display: "block", borderRadius: "6px" }
+    ? { height: "140px", width: "auto", objectFit: "contain" as const, display: "block", borderRadius: "6px" }
     : { height: "52px", objectFit: "contain" as const, display: "block" };
   const sideLogoImageStyle = hasExtraWideLogo
     ? {
-        width: "500px",
-        height: "auto",
-        maxHeight: "120px",
+        height: "140px",
+        width: "auto",
+        maxWidth: "100%",
         borderRadius: "6px",
         objectFit: "contain" as const,
         background: "white",
