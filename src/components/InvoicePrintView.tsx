@@ -201,6 +201,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {/* Right: company info */}
           <div style={{ textAlign: "right", fontSize: "9px", flex: "0 0 auto" }}>
             <div style={{ fontSize: "11px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
+            {settings.address && <div style={{ opacity: 0.85 }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
+            {settings.phone && <div style={{ opacity: 0.85 }}>📞 {settings.phone}</div>}
             {settings.email && <div style={{ opacity: 0.75 }}>✉️ {settings.email}</div>}
             {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
