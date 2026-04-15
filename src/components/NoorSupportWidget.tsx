@@ -263,7 +263,9 @@ const NoorSupportWidget = () => {
 
             {loading && (
               <div className="flex justify-end items-end gap-1.5">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px]">🤖</div>
+                <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
+                  <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                </div>
                 <div className="bg-muted rounded-xl rounded-br-sm px-3 py-2.5">
                   <div className="flex gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
