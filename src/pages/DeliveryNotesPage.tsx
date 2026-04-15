@@ -61,6 +61,7 @@ interface Product {
   sell_price: number;
   unit?: string;
   quantity?: number;
+  product_type?: string;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -110,7 +111,7 @@ const DeliveryNotesPage = () => {
   const fetchLookups = async () => {
     if (!user) return;
     const cRes = await (supabase.from("contacts").select("id, contact_name").eq("user_id", user.id) as any).eq("is_archived", false).order("contact_name");
-    const pRes = await supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id).order("name");
+    const pRes = await supabase.from("products").select("id, name, sell_price, unit, quantity, product_type").eq("user_id", user.id).order("name");
     setContacts(cRes.data || []);
     setProducts(pRes.data || []);
   };
@@ -650,7 +651,13 @@ const DeliveryNotesPage = () => {
                           <SelectContent>
                             {products.map(p => (
                               <SelectItem key={p.id} value={p.id}>
-                                {p.name} {p.quantity != null ? `(${p.quantity})` : ""}
+                                <span className="flex items-center gap-2">
+                                  {p.name}
+                                  {p.product_type === "service" 
+                                    ? <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded">خدمة</span>
+                                    : <span className="text-[10px] bg-muted text-muted-foreground px-1.5 rounded">{p.quantity ?? 0}</span>
+                                  }
+                                </span>
                               </SelectItem>
                             ))}
                           </SelectContent>
