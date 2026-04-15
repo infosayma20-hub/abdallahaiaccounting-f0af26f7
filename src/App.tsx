@@ -155,6 +155,7 @@ const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
 const StoreTrackerOrderDetail = lazy(() => import("./pages/store-tracker/StoreTrackerOrderDetail"));
+const NoorSupportPage = lazy(() => import("./pages/NoorSupportPage"));
 
 const queryClient = new QueryClient();
 

@@ -207,7 +207,7 @@ export default function NoorSupportPage() {
         <button
           onClick={openWhatsApp}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
-          style={{ background: "#25d366" }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
         >
           <Phone className="h-3.5 w-3.5" />
           واتساب
@@ -272,8 +272,7 @@ export default function NoorSupportPage() {
             <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">تحويل للدعم البشري 👨‍💻</p>
             <button
               onClick={openWhatsApp}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold transition-transform active:scale-95"
-              style={{ background: "#25d366" }}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-bold transition-transform active:scale-95 bg-emerald-600 hover:bg-emerald-700"
             >
               💬 تواصل مع الدعم عبر واتساب
             </button>
