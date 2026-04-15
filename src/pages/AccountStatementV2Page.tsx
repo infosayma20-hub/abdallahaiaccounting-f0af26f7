@@ -588,10 +588,34 @@ const AccountStatementV2Page = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 rounded-lg px-2 py-1" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
               <label className="text-[10px] font-semibold" style={{ color: "#6B7280" }}>من</label>
-              <Input type="date" lang="en-GB" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-7 w-32 text-xs bg-transparent border-0 p-0 shadow-none focus-visible:ring-0" />
+              <div className="relative h-7 w-32" dir="ltr">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }}
+                  aria-label="من تاريخ"
+                  className="h-7 w-full bg-transparent border-0 p-0 shadow-none focus-visible:ring-0 text-transparent caret-transparent"
+                  style={{ color: "transparent" }}
+                />
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-xs text-foreground tabular-nums">
+                  {fmtDate(dateFrom)}
+                </span>
+              </div>
               <div className="w-px h-4" style={{ background: "#D1D5DB" }} />
               <label className="text-[10px] font-semibold" style={{ color: "#6B7280" }}>إلى</label>
-              <Input type="date" lang="en-GB" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-7 w-32 text-xs bg-transparent border-0 p-0 shadow-none focus-visible:ring-0" />
+              <div className="relative h-7 w-32" dir="ltr">
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }}
+                  aria-label="إلى تاريخ"
+                  className="h-7 w-full bg-transparent border-0 p-0 shadow-none focus-visible:ring-0 text-transparent caret-transparent"
+                  style={{ color: "transparent" }}
+                />
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-xs text-foreground tabular-nums">
+                  {fmtDate(dateTo)}
+                </span>
+              </div>
             </div>
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
