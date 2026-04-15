@@ -1995,8 +1995,12 @@ const POSPage = () => {
           customer_id: activeOrder.customerId || null,
           guest_count: activeOrder.guestCount,
           guest_name: activeOrder.guestName || null,
-          order_type: activeOrder.orderType,
-          delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+           order_type: activeOrder.orderType,
+           delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+           is_delivery: activeOrder.orderType === "delivery",
+           customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+           zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+           area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
           pos_customer_id: activeOrder.posCustomerId || null,
         } as any).eq("id", existingOrder.id);
       } else {
@@ -2019,6 +2023,10 @@ const POSPage = () => {
             guest_name: activeOrder.guestName || null,
             order_type: activeOrder.orderType,
             delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            is_delivery: activeOrder.orderType === "delivery",
+            customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+            area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
           } as any)
           .select()
