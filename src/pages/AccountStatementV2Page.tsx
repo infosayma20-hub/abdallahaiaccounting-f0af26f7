@@ -684,9 +684,15 @@ const AccountStatementV2Page = () => {
             <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
               <div className="flex items-center gap-8 flex-wrap text-[13px]">
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{fmtAmount(totalDebit, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{fmtAmount(totalCredit, statementCurrency)}</span></div>
-                <div className="mr-auto"><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></div>
+                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
+                <div className="mr-auto">
+                  {hasMixedCurrencies ? (
+                    <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
+                  ) : (
+                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -806,13 +812,13 @@ const AccountStatementV2Page = () => {
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
-                          {row.debit > 0 && row.isConverted && <span title="محوّل بسعر صرف اليوم (قد يختلف عن سعر التسجيل)" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
+                          {row.debit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
                           {row.debit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
                         </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                           {row.credit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
-                          {row.credit > 0 && row.isConverted && <span title="محوّل بسعر صرف اليوم (قد يختلف عن سعر التسجيل)" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
+                          {row.credit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
                           {row.credit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
                         </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
@@ -833,12 +839,12 @@ const AccountStatementV2Page = () => {
                     <tr style={{ background: "#F3F4F6", borderTop: "2px solid #E5E7EB" }}>
                       <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>
                       <td style={{ padding: "10px 12px", fontSize: 11 }}>—</td>
-                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>رصيد الختام</td>
+                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>
                       <td style={{ padding: "10px 12px" }} />
                       <td style={{ padding: "10px 12px" }} />
-                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{fmtAmount(totalDebit, statementCurrency)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{fmtAmount(totalCredit, statementCurrency)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(closingBalance, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>
                     </tr>
                   )}
                 </tbody>
