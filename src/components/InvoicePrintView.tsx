@@ -79,44 +79,30 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
 
   const taxEnabled = settings.vat_enabled ?? true;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
-  const centeredLogoWrapperStyle = hasExtraWideLogo
-    ? {
-        display: "inline-block",
-        background: "white",
-        borderRadius: "6px",
-        padding: "0px",
-        boxShadow: "none",
-        lineHeight: 0,
-      }
-    : {
-        display: "inline-block",
-        background: "white",
-        borderRadius: "6px",
-        padding: "2px 4px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-      };
-  const centeredLogoImageStyle = hasExtraWideLogo
-    ? { height: "140px", width: "auto", objectFit: "contain" as const, display: "block", borderRadius: "6px" }
-    : { height: "52px", objectFit: "contain" as const, display: "block" };
-  const sideLogoImageStyle = hasExtraWideLogo
-    ? {
-        height: "140px",
-        width: "auto",
-        maxWidth: "100%",
-        borderRadius: "6px",
-        objectFit: "contain" as const,
-        background: "white",
-        padding: "0px",
-        display: "block",
-      }
-    : {
-        width: "56px",
-        height: "56px",
-        borderRadius: "8px",
-        objectFit: "contain" as const,
-        background: "white",
-        padding: "3px",
-      };
+  const centeredLogoWrapperStyle = {
+    display: "inline-block",
+    background: "transparent",
+    borderRadius: "8px",
+    padding: "4px",
+    boxShadow: "none",
+    lineHeight: 0,
+  };
+  const centeredLogoImageStyle = {
+    width: "280px",
+    height: "auto",
+    maxHeight: "120px",
+    objectFit: "contain" as const,
+    display: "block",
+    borderRadius: "6px",
+  };
+  const sideLogoImageStyle = {
+    width: "280px",
+    height: "auto",
+    maxHeight: "120px",
+    borderRadius: "6px",
+    objectFit: "contain" as const,
+    display: "block",
+  };
 
   // Calculate item-level tax
   const calcItemTotal = (item: InvoiceItem) => {
