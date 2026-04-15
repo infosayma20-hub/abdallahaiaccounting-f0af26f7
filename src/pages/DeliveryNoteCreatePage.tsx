@@ -44,7 +44,7 @@ interface Product {
 
 const DeliveryNoteCreatePage = () => {
   const { user } = useAuth();
-  const { companySettings } = useCompanySettings();
+  const { settings: companySettings } = useCompanySettings();
   const navigate = useNavigate();
   const { id: editingId } = useParams<{ id: string }>();
   const isEdit = !!editingId;
