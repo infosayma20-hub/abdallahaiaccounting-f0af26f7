@@ -332,6 +332,23 @@ const DeliveryNoteCreatePage = () => {
       />
       <p className="text-xs text-muted-foreground mt-1 mb-5">وثيقة تسليم بضاعة — تُحوّل لفاتورة لاحقاً حسب القانون</p>
 
+      {/* Show delivery number badge when available */}
+      {noteNumber && (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm">
+            <Package className="h-4 w-4" />
+            رقم الإرسالية: {noteNumber}
+          </span>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
+            noteStatus === "issued" 
+              ? "bg-green-100 text-green-700" 
+              : "bg-yellow-100 text-yellow-700"
+          }`}>
+            {noteStatus === "issued" ? "صادرة" : "مسودة"}
+          </span>
+        </div>
+      )}
+
       <Card>
         <CardContent className="pt-6 space-y-6">
           {/* Customer & Date */}
