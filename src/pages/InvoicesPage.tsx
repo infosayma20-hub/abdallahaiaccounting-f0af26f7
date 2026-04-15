@@ -820,9 +820,14 @@ const InvoicesPage = () => {
     
     await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
     
-    // When changing to draft, soft-delete the linked transaction (remove from balances)
+    // When changing to draft, create reverse entry (IFRS-compliant)
     if (dbStatus === 'draft' && currentInv?.linked_transaction_id) {
-      await supabase.from("transactions").update({ is_deleted: true } as any).eq("id", currentInv.linked_transaction_id);
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      await supabase.rpc('create_reverse_entry', {
+        original_transaction_id: currentInv.linked_transaction_id,
+        reason: 'تحويل الفاتورة لمسودة',
+        reversed_by: currentUser?.id
+      });
     }
     // When changing from draft to sent/paid, restore the linked transaction
     if (dbStatus !== 'draft' && currentInv?.status === 'draft' && currentInv?.linked_transaction_id) {
