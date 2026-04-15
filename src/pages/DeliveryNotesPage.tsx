@@ -300,19 +300,20 @@ const DeliveryNotesPage = () => {
     for (const item of (items as any[]) || []) {
       if (item.product_id && item.quantity > 0) {
         const product = products.find(p => p.id === item.product_id);
-        if (product) {
+        // Skip stock deduction for services
+        if (product && product.product_type !== "service") {
           await supabase.from("products").update({
             quantity: Math.max(0, (product.quantity || 0) - item.quantity),
           }).eq("id", item.product_id);
+          // Prepare audit trail entry
+          movementRows.push({
+            user_id: user!.id,
+            product_id: item.product_id,
+            movement_type: "صادر",
+            quantity: -Math.abs(item.quantity),
+            reference_note: `إرسالية ${note.delivery_number || id.slice(0, 8)}`,
+          });
         }
-        // Prepare audit trail entry
-        movementRows.push({
-          user_id: user!.id,
-          product_id: item.product_id,
-          movement_type: "صادر",
-          quantity: -Math.abs(item.quantity),
-          reference_note: `إرسالية ${note.delivery_number || id.slice(0, 8)}`,
-        });
       }
     }
 
