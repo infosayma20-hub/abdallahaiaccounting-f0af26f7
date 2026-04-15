@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import InvoicePrintView from "@/components/InvoicePrintView";
+import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
 
 interface DeliveryItem {
@@ -228,29 +228,20 @@ const DeliveryNoteCreatePage = () => {
   };
 
   const handlePrint = () => {
-    const invoiceData = {
-      type: "sales" as const,
-      invoiceNumber: noteNumber || "إرسالية جديدة",
+    const noteData = {
+      deliveryNumber: noteNumber || "إرسالية جديدة",
       date,
       contactName,
       items: items.filter(i => i.product_name.trim()).map(i => ({
         description: i.product_name,
         quantity: i.quantity,
-        unitPrice: i.unit_price,
-        discount: 0,
-        taxRate: 0,
-        subtotal: i.total,
+        unit: i.unit || "",
       })),
-      notes: [notes, driverName ? `السائق: ${driverName}` : "", vehicleNumber ? `المركبة: ${vehicleNumber}` : "", deliveryAddress ? `عنوان التسليم: ${deliveryAddress}` : ""].filter(Boolean).join(" | "),
+      notes,
+      driverName,
+      vehicleNumber,
+      deliveryAddress,
       status: noteStatus,
-      paymentMethod: "",
-      subtotal: formTotal,
-      totalDiscount: 0,
-      totalTax: 0,
-      total: formTotal,
-      paidAmount: 0,
-      remainingAmount: formTotal,
-      currency,
     };
 
     const win = window.open("", "_blank");
@@ -265,7 +256,7 @@ const DeliveryNoteCreatePage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={invoiceData} settings={companySettings} copyLabel="إرسالية مبيعات" />);
+        root.render(<DeliveryNotePrintView note={noteData} settings={companySettings} />);
         setTimeout(() => win.print(), 500);
       }
     }, 200);
