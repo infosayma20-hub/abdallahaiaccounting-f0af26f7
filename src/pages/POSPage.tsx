@@ -100,6 +100,13 @@ interface OrderTab {
   guestName: string;
   orderType: "dine_in" | "takeaway" | "delivery";
   deliveryAddress: string;
+  zoneCode: string;
+  areaName: string;
+  deliveryStatus: string;
+  captainName: string;
+  captainPhone: string;
+  captainVehicle: string;
+  savedOrderId: string | null;
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
@@ -147,6 +154,13 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
   deliveryAddress: "",
+  zoneCode: "",
+  areaName: "",
+  deliveryStatus: "none",
+  captainName: "",
+  captainPhone: "",
+  captainVehicle: "",
+  savedOrderId: null,
 });
 
 interface Product {
