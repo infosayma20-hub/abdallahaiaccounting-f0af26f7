@@ -142,9 +142,22 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleSkipAll = async () => {
     setSaving(true);
     try {
-      await supabase.functions.invoke("setup-accounts", {
-        body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
-      });
+      // Refresh session to ensure valid token (critical after email verification on mobile)
+      await supabase.auth.refreshSession();
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("setup-accounts", {
+          body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
+        });
+        if (!fnError && !fnData?.error) break;
+        if (attempt < 2) {
+          await supabase.auth.refreshSession();
+          await new Promise(r => setTimeout(r, 1500));
+        } else {
+          throw new Error(fnError?.message || fnData?.error || "فشل في إعداد شجرة الحسابات");
+        }
+      }
+
       await supabase.from("profiles").update({ setup_completed: true, business_type: "أخرى" }).eq("user_id", userId);
       await supabase.from("company_settings" as any).upsert({
         user_id: userId,
@@ -154,7 +167,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       } as any, { onConflict: "user_id" });
       onComplete();
     } catch {
-      toast({ title: "خطأ", variant: "destructive" });
+      toast({ title: "خطأ", description: "فشل في إعداد الحساب، يرجى المحاولة مرة أخرى", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -163,6 +176,9 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleFinish = async () => {
     setSaving(true);
     try {
+      // Refresh session to ensure valid token (critical after email verification on mobile)
+      await supabase.auth.refreshSession();
+
       if (isGoogleUser && data.password && data.password === data.confirmPassword && data.password.length >= 3) {
         await supabase.auth.updateUser({ password: data.password });
         localStorage.setItem(`pwd_setup_dismissed_${userId}`, "true");
@@ -170,16 +186,48 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
       const hasInv = needsInventory(data.businessType);
 
-      await supabase.functions.invoke("setup-accounts", {
-        body: {
-          userId,
-          businessType: data.businessType || "أخرى",
-          hasInventory: hasInv,
-          hasReceivables: true,
-          hasEmployees: data.hasEmployees ?? false,
-        },
-      });
+      const setupBody = {
+        userId,
+        businessType: data.businessType || "أخرى",
+        hasInventory: hasInv,
+        hasReceivables: true,
+        hasEmployees: data.hasEmployees ?? false,
+      };
 
+      // Attempt setup with retry logic (mobile browsers may have stale tokens)
+      let setupSuccess = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("setup-accounts", {
+          body: setupBody,
+        });
+
+        if (fnError) {
+          console.error(`Setup attempt ${attempt + 1} failed:`, fnError);
+          if (attempt < 2) {
+            await supabase.auth.refreshSession();
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+          throw new Error("فشل في الاتصال بخدمة إعداد الحسابات");
+        }
+
+        if (fnData?.error) {
+          console.error(`Setup returned error on attempt ${attempt + 1}:`, fnData.error);
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+          throw new Error(fnData.error);
+        }
+
+        setupSuccess = true;
+        break;
+      }
+
+      if (!setupSuccess) throw new Error("فشل في إعداد شجرة الحسابات بعد عدة محاولات");
+
+      // Verify accounts exist (with a small delay for consistency)
+      await new Promise(r => setTimeout(r, 500));
       const { count } = await supabase
         .from("accounts")
         .select("id", { count: "exact", head: true })
