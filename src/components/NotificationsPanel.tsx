@@ -279,9 +279,14 @@ export function useNotifications() {
 
       // ── 11. Backup reminder (every 30 days) ──
       const lastBackup = localStorage.getItem(`amwali_last_backup_${user.id}`);
-      const daysSinceBackup = lastBackup
-        ? Math.floor((now.getTime() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24))
-        : 999;
+      let daysSinceBackup = 0;
+      if (lastBackup) {
+        daysSinceBackup = Math.floor((now.getTime() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24));
+      } else {
+        // No backup yet — calculate from account creation date
+        const accountCreated = user.created_at ? new Date(user.created_at) : now;
+        daysSinceBackup = Math.floor((now.getTime() - accountCreated.getTime()) / (1000 * 60 * 60 * 24));
+      }
 
       if (daysSinceBackup >= 30) {
         notifs.push({
