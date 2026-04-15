@@ -146,6 +146,7 @@ const defaultSettings: CompanySettings = {
   address: "",
   city: "",
   phone: "",
+  phone2: "",
   email: "",
   website: "",
   tax_number: "",
