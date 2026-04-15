@@ -83,9 +83,9 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
     ? {
         display: "inline-block",
         background: "white",
-        borderRadius: "4px",
-        padding: "1px 2px",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.14)",
+        borderRadius: "6px",
+        padding: "0px",
+        boxShadow: "none",
         lineHeight: 0,
       }
     : {
@@ -96,15 +96,17 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
       };
   const centeredLogoImageStyle = hasExtraWideLogo
-    ? { height: "82px", objectFit: "contain" as const, display: "block" }
+    ? { width: "280px", height: "auto", maxHeight: "64px", objectFit: "contain" as const, display: "block", borderRadius: "6px" }
     : { height: "52px", objectFit: "contain" as const, display: "block" };
   const sideLogoImageStyle = hasExtraWideLogo
     ? {
-        height: "68px",
-        borderRadius: "4px",
+        width: "220px",
+        height: "auto",
+        maxHeight: "58px",
+        borderRadius: "6px",
         objectFit: "contain" as const,
         background: "white",
-        padding: "1px 2px",
+        padding: "0px",
         display: "block",
       }
     : {
@@ -231,7 +233,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
           {/* Center: logo */}
-          <div style={{ flex: hasExtraWideLogo ? "1.35 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 12px" : undefined }}>
+          <div style={{ flex: hasExtraWideLogo ? "2 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 8px" : undefined }}>
             {settings.logo_url ? (
               <div style={centeredLogoWrapperStyle}>
                 <img
