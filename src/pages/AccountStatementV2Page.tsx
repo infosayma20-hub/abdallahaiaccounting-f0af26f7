@@ -676,7 +676,7 @@ const AccountStatementV2Page = () => {
             {displayCurrency !== "ILS" && !hasMixedCurrencies && (
               <div className="rounded-lg mb-3 flex items-center gap-2" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "8px 16px" }}>
                 <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#2563EB" }} />
-                <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف اليوم.</span>
+                <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف يوم القيد (أو سعر اليوم إن لم يُحفظ سعر تاريخي).</span>
               </div>
             )}
 
