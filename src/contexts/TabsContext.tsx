@@ -190,7 +190,17 @@ const STORAGE_KEY = "amwali-open-tabs";
 function loadTabs(): AppTab[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed.filter((tab): tab is AppTab => {
+        if (!tab || typeof tab !== "object") return false;
+        if (typeof tab.id !== "string" || typeof tab.path !== "string") return false;
+        if (tab.path === "/") return false;
+        return true;
+      });
+    }
   } catch {}
   return [];
 }
@@ -200,7 +210,7 @@ function saveTabs(tabs: AppTab[]) {
 }
 
 // Pages that should NOT open as tabs
-const EXCLUDED_PATHS = ["/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing"];
+const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing"];
 
 export function TabsProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<AppTab[]>(loadTabs);
@@ -244,6 +254,11 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [location.pathname]);
 
   const openTab = useCallback((path: string, title?: string) => {
+    if (EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)))) {
+      navigate(path);
+      return;
+    }
+
     const existing = tabs.find(t => t.path === path);
     if (existing) {
       setActiveTabId(existing.id);
