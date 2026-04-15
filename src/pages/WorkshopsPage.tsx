@@ -1020,7 +1020,7 @@ export default function WorkshopsPage() {
                     @media print { body { padding: 12px; } }
                   </style></head><body>
                   <h1>🪵 ${selectedWorkshop.name}</h1>
-                  <p class="sub">الزبون: ${selectedWorkshop.customer_name || "—"} | التاريخ: ${format(new Date(), "yyyy-MM-dd")}</p>
+                  <p class="sub">الزبون: ${selectedWorkshop.customer_name || "—"} | التاريخ: ${format(new Date(), "dd/MM/yyyy")}</p>
                   <div class="kpis">
                     <div class="kpi"><div class="kpi-label">الميزانية</div><div class="kpi-value">${selectedWorkshop.total_budget?.toLocaleString()} ₪</div></div>
                     <div class="kpi"><div class="kpi-label">المصروف</div><div class="kpi-value text-red">${costSummary.total.toLocaleString()} ₪</div></div>

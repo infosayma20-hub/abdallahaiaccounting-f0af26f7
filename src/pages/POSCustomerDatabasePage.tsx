@@ -219,8 +219,8 @@ export default function POSCustomerDatabasePage() {
       "الزيارات": c.total_visits || 0,
       "المشتريات": c.total_spent || 0,
       "الخصومات": c.total_discounts || 0,
-      "آخر زيارة": c.last_visit ? format(new Date(c.last_visit), "yyyy-MM-dd") : "",
-      "تاريخ التسجيل": c.created_at ? format(new Date(c.created_at), "yyyy-MM-dd") : "",
+      "آخر زيارة": c.last_visit ? format(new Date(c.last_visit), "dd/MM/yyyy") : "",
+      "تاريخ التسجيل": c.created_at ? format(new Date(c.created_at), "dd/MM/yyyy") : "",
     })));
     XLSX.utils.book_append_sheet(wb, ws, "زبائن POS");
     XLSX.writeFile(wb, `pos-customers-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
