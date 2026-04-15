@@ -236,7 +236,9 @@ const NoorSupportWidget = () => {
                 className={`flex ${msg.role === "user" ? "justify-start" : "justify-end"} items-end gap-1.5`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] shrink-0">🤖</div>
+                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
+                    <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                  </div>
                 )}
                 <div
                   className={`max-w-[80%] rounded-xl px-3 py-2 text-[11px] leading-relaxed ${
@@ -261,7 +263,9 @@ const NoorSupportWidget = () => {
 
             {loading && (
               <div className="flex justify-end items-end gap-1.5">
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px]">🤖</div>
+                <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
+                  <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                </div>
                 <div className="bg-muted rounded-xl rounded-br-sm px-3 py-2.5">
                   <div className="flex gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -349,7 +353,7 @@ const NoorSupportWidget = () => {
                 disabled={loading || (!input.trim() && !imageFile)}
                 className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0"
               >
-                <Send className="h-3.5 w-3.5 rotate-180" />
+                <Send className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
