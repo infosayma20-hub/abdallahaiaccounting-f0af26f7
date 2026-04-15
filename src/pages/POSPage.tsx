@@ -1017,7 +1017,8 @@ const POSPage = () => {
           const callCenterHidden = hiddenApps.includes("call_center") || hiddenApps.includes("callcenter");
           
           const boxList = [...(boxes || [])];
-          if (!callCenterHidden) {
+          const isMalakyAccount = user?.email === "malakybroast@gmail.com";
+          if (!callCenterHidden && isMalakyAccount) {
             boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
           }
           setCashBoxes(boxList);
