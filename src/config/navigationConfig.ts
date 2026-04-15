@@ -133,6 +133,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "الفواتير", path: "/invoices?type=sales" },
               { label: "الطلبيات", path: "/orders" },
+              { label: "إرساليات المبيعات", path: "/delivery-notes" },
               { label: "سندات القبض", path: "/finance/receipts" },
             ],
           },

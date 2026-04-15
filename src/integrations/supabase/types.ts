@@ -3052,6 +3052,150 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_note_items: {
+        Row: {
+          delivery_note_id: string
+          id: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          quantity: number
+          sort_order: number | null
+          total: number | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          delivery_note_id: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          sort_order?: number | null
+          total?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          delivery_note_id?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          sort_order?: number | null
+          total?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_note_items_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_note_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_notes: {
+        Row: {
+          contact_id: string | null
+          contact_name: string | null
+          converted_at: string | null
+          created_at: string
+          currency: string | null
+          delivery_address: string | null
+          delivery_date: string
+          delivery_number: string | null
+          discount: number | null
+          driver_name: string | null
+          exchange_rate: number | null
+          id: string
+          invoice_number: string | null
+          linked_invoice_id: string | null
+          notes: string | null
+          status: string
+          subtotal: number | null
+          total_amount: number | null
+          updated_at: string
+          user_id: string
+          vat_amount: number | null
+          vehicle_number: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name?: string | null
+          converted_at?: string | null
+          created_at?: string
+          currency?: string | null
+          delivery_address?: string | null
+          delivery_date?: string
+          delivery_number?: string | null
+          discount?: number | null
+          driver_name?: string | null
+          exchange_rate?: number | null
+          id?: string
+          invoice_number?: string | null
+          linked_invoice_id?: string | null
+          notes?: string | null
+          status?: string
+          subtotal?: number | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id: string
+          vat_amount?: number | null
+          vehicle_number?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string | null
+          converted_at?: string | null
+          created_at?: string
+          currency?: string | null
+          delivery_address?: string | null
+          delivery_date?: string
+          delivery_number?: string | null
+          discount?: number | null
+          driver_name?: string | null
+          exchange_rate?: number | null
+          id?: string
+          invoice_number?: string | null
+          linked_invoice_id?: string | null
+          notes?: string | null
+          status?: string
+          subtotal?: number | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number | null
+          vehicle_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_linked_invoice_id_fkey"
+            columns: ["linked_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_edit_history: {
         Row: {
           changes: Json | null

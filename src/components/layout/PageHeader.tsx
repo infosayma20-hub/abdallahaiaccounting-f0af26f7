@@ -14,6 +14,7 @@ const breadcrumbRoutes: Record<string, string> = {
   "التقارير": "/reports",
   "شجرة الحسابات": "/accounts",
   "الفواتير": "/invoices",
+  "إرساليات المبيعات": "/delivery-notes",
   "القيود": "/journal-entries",
   "القيود المحاسبية": "/journal-entries",
   "الحركات المحاسبية": "/transactions",

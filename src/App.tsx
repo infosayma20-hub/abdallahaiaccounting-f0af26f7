@@ -50,6 +50,7 @@ const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
 const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsManagementPage"));
 const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentativesPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
+const DeliveryNotesPage = lazy(() => import("./pages/DeliveryNotesPage"));
 const ChequesPage = lazy(() => import("./pages/ChequesPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -305,6 +306,7 @@ const App = () => (
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/orders/:id" element={<OrderDetailPage />} />
+                      <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
                       <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdvancesPage /></RoleGuard>} />
