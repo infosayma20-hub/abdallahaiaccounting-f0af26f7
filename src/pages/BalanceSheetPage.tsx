@@ -152,8 +152,8 @@ const BalanceSheetPage = () => {
     return prevBalances;
   }, [showComparison, prevBalances, current]);
 
-  const periodLabel = new Date(asOfDate).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-  const prevPeriodLabel = new Date(prevAsOfDate).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const periodLabel = new Date(asOfDate).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const prevPeriodLabel = new Date(prevAsOfDate).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
   const isBalanced = Math.abs(current.totalAssets - (current.totalLiabilities + current.totalEquity)) < 1;
 
   const toggleGroup = (key: string) => {

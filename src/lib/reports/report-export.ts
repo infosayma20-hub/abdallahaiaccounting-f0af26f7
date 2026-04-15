@@ -18,7 +18,7 @@ export function exportToExcel(
   const headerRows = [
     [reportTitle],
     [`الفترة: ${dateFrom} إلى ${dateTo}`],
-    [`تاريخ التصدير: ${format(new Date(), "yyyy-MM-dd HH:mm")}`],
+    [`تاريخ التصدير: ${format(new Date(), "dd/MM/yyyy HH:mm")}`],
     [],
     colLabels,
   ];

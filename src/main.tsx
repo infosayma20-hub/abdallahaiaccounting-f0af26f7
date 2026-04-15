@@ -23,7 +23,7 @@ Date.prototype.toLocaleString = function (locale?: string | string[], options?: 
 const origDateToLocaleDateString = Date.prototype.toLocaleDateString;
 Date.prototype.toLocaleDateString = function (locale?: string | string[], options?: Intl.DateTimeFormatOptions) {
   if (!locale || (typeof locale === 'string' && locale.startsWith('ar'))) {
-    return origDateToLocaleDateString.call(this, 'en-US', options);
+    return origDateToLocaleDateString.call(this, 'en-GB', options);
   }
   return origDateToLocaleDateString.call(this, locale, options);
 };
