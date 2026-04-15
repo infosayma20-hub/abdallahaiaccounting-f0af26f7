@@ -4287,18 +4287,35 @@ const POSPage = () => {
 
           {/* Footer */}
           <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            {/* Delivery address */}
-            {activeOrder.orderType === "delivery" && (
-              <div className="px-3 pt-2">
-                <Input
-                  value={activeOrder.deliveryAddress}
-                  onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
-                  placeholder="📍 عنوان التوصيل..."
-                  className="h-7 text-[11px]"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
-                />
-              </div>
-            )}
+            {/* Delivery Panel */}
+            <POSDeliveryPanel
+              orderId={activeOrder.savedOrderId}
+              isDelivery={activeOrder.orderType === "delivery"}
+              customerAddress={activeOrder.deliveryAddress}
+              zoneCode={activeOrder.zoneCode}
+              areaName={activeOrder.areaName}
+              deliveryStatus={activeOrder.deliveryStatus}
+              captainName={activeOrder.captainName}
+              captainPhone={activeOrder.captainPhone}
+              captainVehicle={activeOrder.captainVehicle}
+              onDeliveryFieldsChange={(fields) => {
+                updateActiveOrder(o => ({
+                  ...o,
+                  deliveryAddress: fields.customerAddress ?? o.deliveryAddress,
+                  zoneCode: fields.zoneCode ?? o.zoneCode,
+                  areaName: fields.areaName ?? o.areaName,
+                }));
+              }}
+              onDeliveryStatusChange={(status, captain) => {
+                updateActiveOrder(o => ({
+                  ...o,
+                  deliveryStatus: status,
+                  captainName: captain?.name ?? o.captainName,
+                  captainPhone: captain?.phone ?? o.captainPhone,
+                  captainVehicle: captain?.vehicle ?? o.captainVehicle,
+                }));
+              }}
+            />
 
             {/* Table picker dropdown */}
             {showTablePicker && (
