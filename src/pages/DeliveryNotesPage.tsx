@@ -192,7 +192,7 @@ const DeliveryNotesPage = () => {
       deliveryNumber: note.delivery_number,
       date: note.delivery_date,
       contactName: note.contact_name || "",
-      contactPhone: note.contact_phone,
+      contactPhone: (note as any).contact_phone,
       contactAddress: note.delivery_address,
       items: ((items as any[]) || []).map(i => ({
         description: i.product_name,
