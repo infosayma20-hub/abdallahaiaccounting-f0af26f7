@@ -171,9 +171,10 @@ const DeliveryNoteCreatePage = () => {
         await supabase.from("delivery_notes").update(noteData as any).eq("id", editingId);
         await supabase.from("delivery_note_items").delete().eq("delivery_note_id", editingId);
       } else {
-        const { data, error } = await supabase.from("delivery_notes").insert(noteData as any).select("id").single();
+        const { data, error } = await supabase.from("delivery_notes").insert(noteData as any).select("id, delivery_number").single();
         if (error) throw error;
         noteId = (data as any).id;
+        setNoteNumber((data as any).delivery_number || "");
       }
 
       const itemsToInsert = items
