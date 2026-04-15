@@ -109,10 +109,10 @@ const DeliveryNotesPage = () => {
 
   const fetchLookups = async () => {
     if (!user) return;
-    const { data: c } = await supabase.from("contacts").select("id, contact_name").eq("user_id", user.id).eq("is_archived", false).order("contact_name");
-    const { data: p } = await supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id).eq("is_active", true).order("name");
-    setContacts((c as any[]) || []);
-    setProducts((p as any[]) || []);
+    const { data: c } = await supabase.from("contacts").select("id, contact_name").eq("user_id", user.id).eq("is_archived", false as any).order("contact_name") as any;
+    const { data: p } = await supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id).eq("is_active", true as any).order("name") as any;
+    setContacts(c || []);
+    setProducts(p || []);
   };
 
   useEffect(() => { fetchNotes(); fetchLookups(); }, [user]);
