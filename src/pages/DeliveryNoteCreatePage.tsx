@@ -53,6 +53,7 @@ const DeliveryNoteCreatePage = () => {
   const [loadingNote, setLoadingNote] = useState(false);
   const [noteNumber, setNoteNumber] = useState("");
   const [noteStatus, setNoteStatus] = useState("draft");
+  const [previewNumber, setPreviewNumber] = useState("");
 
   // Form state
   const [contactId, setContactId] = useState("");
@@ -109,6 +110,31 @@ const DeliveryNoteCreatePage = () => {
 
   useEffect(() => { fetchLookups(); }, [fetchLookups]);
   useEffect(() => { if (isEdit) loadNote(); }, [isEdit, loadNote]);
+
+  // Generate preview number for new notes
+  useEffect(() => {
+    if (isEdit || noteNumber) return;
+    if (!user) return;
+    const fetchNextNumber = async () => {
+      const currentYear = new Date().getFullYear().toString();
+      const { data } = await supabase
+        .from("delivery_notes")
+        .select("delivery_number")
+        .eq("user_id", user.id)
+        .like("delivery_number", `DN-${currentYear}-%`)
+        .order("delivery_number", { ascending: false })
+        .limit(1);
+      let nextSeq = 1;
+      if (data && data.length > 0) {
+        const lastNum = (data[0] as any).delivery_number;
+        const parts = lastNum.split("-");
+        const last = parseInt(parts[2] || "0", 10);
+        if (!isNaN(last)) nextSeq = last + 1;
+      }
+      setPreviewNumber(`DN-${currentYear}-${String(nextSeq).padStart(4, "0")}`);
+    };
+    fetchNextNumber();
+  }, [user, isEdit, noteNumber]);
 
   const updateItem = (index: number, field: keyof DeliveryItem, value: any) => {
     setItems(prev => {
@@ -332,19 +358,21 @@ const DeliveryNoteCreatePage = () => {
       />
       <p className="text-xs text-muted-foreground mt-1 mb-5">وثيقة تسليم بضاعة — تُحوّل لفاتورة لاحقاً حسب القانون</p>
 
-      {/* Show delivery number badge when available */}
-      {noteNumber && (
+      {/* Show delivery number badge */}
+      {(noteNumber || previewNumber) && (
         <div className="flex items-center gap-2 mb-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm">
             <Package className="h-4 w-4" />
-            رقم الإرسالية: {noteNumber}
+            رقم الإرسالية: {noteNumber || previewNumber}
           </span>
           <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
-            noteStatus === "issued" 
-              ? "bg-green-100 text-green-700" 
-              : "bg-yellow-100 text-yellow-700"
+            noteStatus === "issued"
+              ? "bg-green-100 text-green-700"
+              : noteNumber
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-muted text-muted-foreground"
           }`}>
-            {noteStatus === "issued" ? "صادرة" : "مسودة"}
+            {noteStatus === "issued" ? "صادرة" : noteNumber ? "مسودة" : "لم تُحفظ بعد"}
           </span>
         </div>
       )}
