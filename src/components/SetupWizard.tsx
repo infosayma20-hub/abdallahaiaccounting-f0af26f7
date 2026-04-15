@@ -142,9 +142,22 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleSkipAll = async () => {
     setSaving(true);
     try {
-      await supabase.functions.invoke("setup-accounts", {
-        body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
-      });
+      // Refresh session to ensure valid token (critical after email verification on mobile)
+      await supabase.auth.refreshSession();
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("setup-accounts", {
+          body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
+        });
+        if (!fnError && !fnData?.error) break;
+        if (attempt < 2) {
+          await supabase.auth.refreshSession();
+          await new Promise(r => setTimeout(r, 1500));
+        } else {
+          throw new Error(fnError?.message || fnData?.error || "فشل في إعداد شجرة الحسابات");
+        }
+      }
+
       await supabase.from("profiles").update({ setup_completed: true, business_type: "أخرى" }).eq("user_id", userId);
       await supabase.from("company_settings" as any).upsert({
         user_id: userId,
@@ -154,7 +167,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       } as any, { onConflict: "user_id" });
       onComplete();
     } catch {
-      toast({ title: "خطأ", variant: "destructive" });
+      toast({ title: "خطأ", description: "فشل في إعداد الحساب، يرجى المحاولة مرة أخرى", variant: "destructive" });
     } finally {
       setSaving(false);
     }
