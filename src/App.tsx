@@ -51,6 +51,7 @@ const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsMana
 const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentativesPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 const DeliveryNotesPage = lazy(() => import("./pages/DeliveryNotesPage"));
+const DeliveryNoteCreatePage = lazy(() => import("./pages/DeliveryNoteCreatePage"));
 const ChequesPage = lazy(() => import("./pages/ChequesPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -307,6 +308,8 @@ const App = () => (
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/orders/:id" element={<OrderDetailPage />} />
                       <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
+                      <Route path="/delivery-notes/new" element={<DeliveryNoteCreatePage />} />
+                      <Route path="/delivery-notes/:id" element={<DeliveryNoteCreatePage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
                       <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdvancesPage /></RoleGuard>} />
