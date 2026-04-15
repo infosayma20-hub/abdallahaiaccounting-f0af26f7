@@ -8526,6 +8526,7 @@ export type Database = {
           quantity: number
           sales_account_code: string | null
           sell_price: number
+          service_direction: string | null
           sku: string | null
           sort_order: number | null
           source: string | null
@@ -8561,6 +8562,7 @@ export type Database = {
           quantity?: number
           sales_account_code?: string | null
           sell_price?: number
+          service_direction?: string | null
           sku?: string | null
           sort_order?: number | null
           source?: string | null
@@ -8596,6 +8598,7 @@ export type Database = {
           quantity?: number
           sales_account_code?: string | null
           sell_price?: number
+          service_direction?: string | null
           sku?: string | null
           sort_order?: number | null
           source?: string | null
