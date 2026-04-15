@@ -177,41 +177,34 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           style={{
             background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
             color: "white",
-            padding: "8px 28px 6px",
+            padding: "10px 28px",
             position: "relative",
             zIndex: 1,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          {/* Row 1: compact info */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "9px" }}>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700 }}>
-                {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
-              </div>
-              <div style={{ fontSize: "8px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
-                {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
-              {settings.email && <div style={{ opacity: 0.75 }}>✉️ {settings.email}</div>}
-              {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
-            </div>
+          {/* Right: company info */}
+          <div style={{ textAlign: "right", fontSize: "9px", flex: "0 0 auto" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
+            {settings.email && <div style={{ opacity: 0.75 }}>✉️ {settings.email}</div>}
+            {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
-          {/* Row 2: BIG centered wide logo */}
-          <div style={{ textAlign: "center", marginTop: "8px", marginBottom: "6px" }}>
+          {/* Center: logo */}
+          <div style={{ flex: "1 1 auto", textAlign: "center" }}>
             {settings.logo_url ? (
               <div style={{
                 display: "inline-block",
                 background: "white",
-                borderRadius: "14px",
-                padding: "16px 32px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+                borderRadius: "10px",
+                padding: "6px 14px",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
               }}>
                 <img
                   src={settings.logo_url}
                   alt="Logo"
-                  style={{ width: "360px", maxHeight: "120px", objectFit: "contain", display: "block" }}
+                  style={{ width: "300px", maxHeight: "70px", objectFit: "contain", display: "block" }}
                 />
               </div>
             ) : (
@@ -219,6 +212,15 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                 {(settings.company_name || "Q").charAt(0)}
               </div>
             )}
+          </div>
+          {/* Left: invoice title */}
+          <div style={{ textAlign: "left", flex: "0 0 auto" }}>
+            <div style={{ fontSize: "14px", fontWeight: 700 }}>
+              {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+            </div>
+            <div style={{ fontSize: "8px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
+              {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+            </div>
           </div>
         </div>
       ) : (
