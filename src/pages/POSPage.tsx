@@ -3120,7 +3120,8 @@ const POSPage = () => {
     if (isAdmin) {
       navigate("/apps", { replace: true });
     } else {
-      setShowLogoutConfirm(true);
+      await supabase.auth.signOut();
+      navigate("/auth", { replace: true });
     }
   };
 
@@ -3142,8 +3143,12 @@ const POSPage = () => {
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
+    if (isAdmin) {
+      navigate("/apps", { replace: true });
+    } else {
+      await supabase.auth.signOut();
+      navigate("/auth", { replace: true });
+    }
   };
 
   // Keyboard shortcuts
