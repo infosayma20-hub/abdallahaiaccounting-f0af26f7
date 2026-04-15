@@ -36,6 +36,8 @@ interface Product {
   purchase_account_code: string | null;
   description: string | null;
   terms: string | null;
+  product_type?: string;
+  service_direction?: string | null;
 }
 
 interface AccountOption {
@@ -130,6 +132,8 @@ const InventoryPage = () => {
     is_sold: true, is_purchased: true, is_pos_product: false,
     sales_account_code: "4100", purchase_account_code: "5110",
     description: "", terms: "",
+    product_type: "product" as string,
+    service_direction: "" as string,
   });
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -189,7 +193,7 @@ const InventoryPage = () => {
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "" });
     setEditMode(false);
     setSelectedProduct(null);
     stopBarcodeScanner();
