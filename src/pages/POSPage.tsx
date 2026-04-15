@@ -2210,6 +2210,13 @@ const POSPage = () => {
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
         deliveryAddress: (order as any).delivery_address || "",
+        zoneCode: (order as any).zone_code || "",
+        areaName: (order as any).area_name || "",
+        deliveryStatus: (order as any).delivery_status || "none",
+        captainName: (order as any).assigned_captain_name || "",
+        captainPhone: (order as any).assigned_captain_phone || "",
+        captainVehicle: (order as any).assigned_captain_vehicle || "",
+        savedOrderId: order.id,
       } : o));
       setActiveOrderIndex(existingTabIdx);
     } else {
@@ -2231,6 +2238,13 @@ const POSPage = () => {
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
         deliveryAddress: (order as any).delivery_address || "",
+        zoneCode: (order as any).zone_code || "",
+        areaName: (order as any).area_name || "",
+        deliveryStatus: (order as any).delivery_status || "none",
+        captainName: (order as any).assigned_captain_name || "",
+        captainPhone: (order as any).assigned_captain_phone || "",
+        captainVehicle: (order as any).assigned_captain_vehicle || "",
+        savedOrderId: order.id,
       };
       setOrders(prev => [...prev, newOrder]);
       setActiveOrderIndex(orders.length);
