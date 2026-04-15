@@ -58,7 +58,7 @@ interface Contact {
 interface Product {
   id: string;
   name: string;
-  price: number;
+  sell_price: number;
   unit?: string;
   quantity?: number;
 }
