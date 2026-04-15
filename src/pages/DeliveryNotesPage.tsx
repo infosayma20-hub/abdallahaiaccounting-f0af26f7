@@ -289,11 +289,13 @@ const DeliveryNotesPage = () => {
   };
 
   const handleIssue = async (id: string) => {
-    // Issue a draft delivery note — deduct stock
+    // Issue a draft delivery note — deduct stock + record stock_movements
     const note = notes.find(n => n.id === id);
     if (!note || note.status !== "draft") return;
 
     const { data: items } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", id);
+    const movementRows: any[] = [];
+
     for (const item of (items as any[]) || []) {
       if (item.product_id && item.quantity > 0) {
         const product = products.find(p => p.id === item.product_id);
@@ -302,7 +304,21 @@ const DeliveryNotesPage = () => {
             quantity: Math.max(0, (product.quantity || 0) - item.quantity),
           }).eq("id", item.product_id);
         }
+        // Prepare audit trail entry
+        movementRows.push({
+          user_id: user!.id,
+          product_id: item.product_id,
+          movement_type: "صادر",
+          quantity: -Math.abs(item.quantity),
+          reference_note: `إرسالية ${note.delivery_number || id.slice(0, 8)}`,
+        });
       }
+    }
+
+    // Insert stock movements for audit trail
+    if (movementRows.length > 0) {
+      const { error: mvErr } = await supabase.from("stock_movements").insert(movementRows);
+      if (mvErr) console.error("stock_movements insert error:", mvErr);
     }
 
     await supabase.from("delivery_notes").update({ status: "issued" } as any).eq("id", id);
