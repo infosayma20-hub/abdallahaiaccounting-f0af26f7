@@ -67,8 +67,6 @@ const statusLabels: Record<string, string> = {
   paid: "مدفوعة",
 };
 
-const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
-
 const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: InvoicePrintViewProps) => {
   const isSales = invoice.type === "sales";
   const today = new Date();
