@@ -111,9 +111,9 @@ const DeliveryNotesPage = () => {
     if (!user) return;
     const [{ data: c }, { data: p }] = await Promise.all([
       supabase.from("contacts").select("id, contact_name").eq("user_id", user.id).eq("is_archived", false).order("contact_name"),
-      supabase.from("products").select("id, name, price, unit, quantity").eq("user_id", user.id).eq("is_active", true).order("name"),
+      supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id).eq("is_active", true).order("name"),
     ]);
-    setContacts(c || []);
+    setContacts((c as any[]) || []);
     setProducts(p || []);
   };
 
