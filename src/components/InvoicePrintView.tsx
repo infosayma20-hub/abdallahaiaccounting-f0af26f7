@@ -197,14 +197,14 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               <div style={{
                 display: "inline-block",
                 background: "white",
-                borderRadius: "10px",
-                padding: "6px 14px",
+                borderRadius: "8px",
+                padding: "4px 10px",
                 boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
               }}>
                 <img
                   src={settings.logo_url}
                   alt="Logo"
-                  style={{ width: "300px", maxHeight: "70px", objectFit: "contain", display: "block" }}
+                  style={{ width: "380px", maxHeight: "56px", objectFit: "contain", display: "block" }}
                 />
               </div>
             ) : (
