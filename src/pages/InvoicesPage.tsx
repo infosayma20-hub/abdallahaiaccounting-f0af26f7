@@ -797,6 +797,24 @@ const InvoicesPage = () => {
     const updateStatus = async (id: string, status: Invoice["status"]) => {
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
     
+    // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
+    if (dbStatus === 'draft' && user) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .in("role", ["admin", "accountant_senior", "super_admin"]);
+      
+      if (!roles || roles.length === 0) {
+        toast({
+          title: "غير مسموح ❌",
+          description: "تحويل الفاتورة لمسودة يتطلب صلاحية مدير أو محاسب أول",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Get current invoice to check linked_transaction_id
     const { data: currentInv } = await supabase.from("invoices").select("linked_transaction_id, status").eq("id", id).maybeSingle();
     
