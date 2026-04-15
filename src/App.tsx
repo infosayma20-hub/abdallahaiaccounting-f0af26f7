@@ -155,6 +155,7 @@ const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
 const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
 const StoreTrackerOrderDetail = lazy(() => import("./pages/store-tracker/StoreTrackerOrderDetail"));
+const NoorSupportPage = lazy(() => import("./pages/NoorSupportPage"));
 
 const queryClient = new QueryClient();
 
@@ -403,6 +404,7 @@ const App = () => (
                       <Route path="/support/tickets" element={<SupportTicketsPage />} />
                       <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
+                      <Route path="/support/chat" element={<NoorSupportPage />} />
                       <Route path="/pos-users" element={<ModuleGuard><POSUserManagementPage /></ModuleGuard>} />
                       <Route path="/pos-customers" element={<ModuleGuard><POSCustomerDatabasePage /></ModuleGuard>} />
                       <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
