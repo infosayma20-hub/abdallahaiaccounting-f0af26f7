@@ -365,7 +365,7 @@ const DeliveryNoteCreatePage = () => {
                     <TableHead className="text-right w-10">#</TableHead>
                     <TableHead className="text-right min-w-[200px]">المنتج / الصنف</TableHead>
                     <TableHead className="text-right w-24">الكمية</TableHead>
-                    <TableHead className="text-right w-20">الوحدة</TableHead>
+                    <TableHead className="text-right w-28">الوحدة</TableHead>
                     <TableHead className="text-right w-28">السعر</TableHead>
                     <TableHead className="text-right w-28">الإجمالي</TableHead>
                     <TableHead className="w-10"></TableHead>
