@@ -137,6 +137,8 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/pos/kitchen": { title: "شاشة المطبخ", icon: "cart" },
   "/store-tracker": { title: "متتبع المتجر", icon: "cart" },
   "/super-admin/dashboard": { title: "لوحة الإدارة", icon: "settings" },
+  "/delivery-notes": { title: "إرساليات المبيعات", icon: "package" },
+  "/delivery-notes/new": { title: "إرسالية جديدة", icon: "package" },
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
