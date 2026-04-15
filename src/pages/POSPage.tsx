@@ -2033,6 +2033,7 @@ const POSPage = () => {
           .single();
 
         if (error) throw error;
+        updateActiveOrder(o => ({ ...o, savedOrderId: order.id }));
 
         const lines = cart.map((item) => ({
           user_id: dataOwnerId,
