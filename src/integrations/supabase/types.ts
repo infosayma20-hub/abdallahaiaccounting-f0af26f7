@@ -7037,6 +7037,10 @@ export type Database = {
       }
       pos_orders: {
         Row: {
+          area_name: string | null
+          assigned_captain_name: string | null
+          assigned_captain_phone: string | null
+          assigned_captain_vehicle: string | null
           cancel_reason: string | null
           cancelled_approved_by: string | null
           cancelled_at: string | null
@@ -7044,10 +7048,14 @@ export type Database = {
           company_id: string
           created_at: string
           currency: string
+          customer_address: string | null
           customer_discount_pct: number | null
           customer_id: string | null
           customer_name: string | null
+          delivery_accepted_at: string | null
           delivery_address: string | null
+          delivery_requested_at: string | null
+          delivery_status: string | null
           digital_receipt_sent: boolean | null
           discount_amount: number
           discount_type: string | null
@@ -7056,6 +7064,7 @@ export type Database = {
           guest_name: string | null
           id: string
           ils_equivalent: number | null
+          is_delivery: boolean | null
           is_return: boolean
           linked_transaction_id: string | null
           local_id: string | null
@@ -7093,8 +7102,13 @@ export type Database = {
           updated_at: string
           user_id: string
           was_offline: boolean | null
+          zone_code: string | null
         }
         Insert: {
+          area_name?: string | null
+          assigned_captain_name?: string | null
+          assigned_captain_phone?: string | null
+          assigned_captain_vehicle?: string | null
           cancel_reason?: string | null
           cancelled_approved_by?: string | null
           cancelled_at?: string | null
@@ -7102,10 +7116,14 @@ export type Database = {
           company_id: string
           created_at?: string
           currency?: string
+          customer_address?: string | null
           customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          delivery_accepted_at?: string | null
           delivery_address?: string | null
+          delivery_requested_at?: string | null
+          delivery_status?: string | null
           digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
@@ -7114,6 +7132,7 @@ export type Database = {
           guest_name?: string | null
           id?: string
           ils_equivalent?: number | null
+          is_delivery?: boolean | null
           is_return?: boolean
           linked_transaction_id?: string | null
           local_id?: string | null
@@ -7151,8 +7170,13 @@ export type Database = {
           updated_at?: string
           user_id: string
           was_offline?: boolean | null
+          zone_code?: string | null
         }
         Update: {
+          area_name?: string | null
+          assigned_captain_name?: string | null
+          assigned_captain_phone?: string | null
+          assigned_captain_vehicle?: string | null
           cancel_reason?: string | null
           cancelled_approved_by?: string | null
           cancelled_at?: string | null
@@ -7160,10 +7184,14 @@ export type Database = {
           company_id?: string
           created_at?: string
           currency?: string
+          customer_address?: string | null
           customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          delivery_accepted_at?: string | null
           delivery_address?: string | null
+          delivery_requested_at?: string | null
+          delivery_status?: string | null
           digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
@@ -7172,6 +7200,7 @@ export type Database = {
           guest_name?: string | null
           id?: string
           ils_equivalent?: number | null
+          is_delivery?: boolean | null
           is_return?: boolean
           linked_transaction_id?: string | null
           local_id?: string | null
@@ -7209,6 +7238,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           was_offline?: boolean | null
+          zone_code?: string | null
         }
         Relationships: [
           {
