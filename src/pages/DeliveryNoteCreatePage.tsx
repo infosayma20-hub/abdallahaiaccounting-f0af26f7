@@ -428,11 +428,9 @@ const DeliveryNoteCreatePage = () => {
           {/* Actions */}
           <div className="flex gap-3 justify-between items-center pt-2 flex-wrap">
             <div className="flex gap-2">
-              {(isEdit || noteNumber) && (
-                <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                  <Printer className="h-4 w-4" /> طباعة
-                </Button>
-              )}
+              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+                <Printer className="h-4 w-4" /> طباعة
+              </Button>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => navigate("/delivery-notes")}>إلغاء</Button>
