@@ -184,115 +184,58 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         </>
       )}
 
-      {/* ━━━ HEADER ━━━ */}
-      {settings.invoice_header_layout === "logo_center" ? (
-        <div
-          style={{
-            background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
-            color: "white",
-            padding: hasExtraWideLogo ? "8px 20px" : "10px 28px",
-            position: "relative",
-            zIndex: 1,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          {/* Right: company info */}
-          <div style={{ textAlign: "right", fontSize: "9px", flex: "0 0 auto" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
-            {settings.address && <div style={{ opacity: 0.85 }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
-            {settings.phone && <div style={{ opacity: 0.85 }}>📞 {settings.phone}</div>}
-            {settings.phone2 && <div style={{ opacity: 0.85 }}>📞 {settings.phone2}</div>}
-            {settings.email && <div style={{ opacity: 0.75 }}>✉️ {settings.email}</div>}
-            {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
-          </div>
-          {/* Center: logo */}
-          <div style={{ flex: hasExtraWideLogo ? "2 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 8px" : undefined }}>
-            {settings.logo_url ? (
-              <div style={centeredLogoWrapperStyle}>
-                <img
-                  src={settings.logo_url}
-                  alt="Logo"
-                  style={centeredLogoImageStyle}
-                />
-              </div>
-            ) : (
-              <div style={{ fontSize: "28px", fontWeight: 800, color: "#4A9EE8" }}>
-                {(settings.company_name || "Q").charAt(0)}
-              </div>
-            )}
-          </div>
-          {/* Left: invoice title */}
-          <div style={{ textAlign: "left", flex: "0 0 auto" }}>
-            <div style={{ fontSize: "14px", fontWeight: 700 }}>
-              {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
-            </div>
-            <div style={{ fontSize: "8px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
-              {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
-            </div>
-          </div>
+      {/* ━━━ HEADER (clean white) ━━━ */}
+      <div
+        style={{
+          background: "white",
+          color: "#1a1a2e",
+          padding: "16px 28px 12px",
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Right: company info */}
+        <div style={{ textAlign: "right", fontSize: "9px", color: "#4B5563", flex: "0 0 auto", maxWidth: "240px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#1a1a2e", marginBottom: "2px" }}>{settings.company_name || "اسم الشركة"}</div>
+          {settings.address && <div>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
+          {!settings.address && settings.city && <div>📍 {settings.city}</div>}
+          {settings.phone && <div>📞 {settings.phone}{settings.phone2 ? ` / ${settings.phone2}` : ""}</div>}
+          {!settings.phone && settings.phone2 && <div>📞 {settings.phone2}</div>}
+          {settings.email && <div>✉️ {settings.email}</div>}
+          {taxEnabled && settings.tax_number && <div>🔢 الرقم الضريبي: {settings.tax_number}</div>}
         </div>
-      ) : (
-        <div
-          style={{
-            background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
-            color: "white",
-            padding: hasExtraWideLogo ? "12px 24px 10px" : "16px 28px 14px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: hasExtraWideLogo ? "center" : "flex-start",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          {/* Company Info - Right */}
-          <div style={{ display: "flex", alignItems: hasExtraWideLogo ? "center" : "flex-start", gap: hasExtraWideLogo ? "10px" : "14px", flex: 1 }}>
-            {settings.logo_url ? (
-              <img
-                src={settings.logo_url}
-                alt="Logo"
-                style={sideLogoImageStyle}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "8px",
-                  background: "rgba(255,255,255,0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "22px",
-                  fontWeight: 800,
-                  color: "#4A9EE8",
-                }}
-              >
-                {(settings.company_name || "Q").charAt(0)}
-              </div>
-            )}
-            <div>
-              <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
-              {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
-              {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
-              {settings.phone2 && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone2}</div>}
-              {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
-              {taxEnabled && settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
-            </div>
-          </div>
 
-          {/* Invoice Title - Left */}
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontSize: "20px", fontWeight: 700 }}>
-              {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+        {/* Center: logo */}
+        <div style={{ flex: "1 1 auto", textAlign: "center", padding: "0 12px" }}>
+          {settings.logo_url ? (
+            <img
+              src={settings.logo_url}
+              alt="Logo"
+              style={hasExtraWideLogo
+                ? { width: "320px", height: "auto", objectFit: "contain" as const, display: "inline-block" }
+                : { height: "64px", objectFit: "contain" as const, display: "inline-block" }
+              }
+            />
+          ) : (
+            <div style={{ fontSize: "32px", fontWeight: 800, color: "#1B3A5C" }}>
+              {(settings.company_name || "Q").charAt(0)}
             </div>
-            <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
-              {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
-            </div>
+          )}
+        </div>
+
+        {/* Left: invoice title */}
+        <div style={{ textAlign: "left", flex: "0 0 auto" }}>
+          <div style={{ fontSize: "16px", fontWeight: 700, color: "#1B3A5C" }}>
+            {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+          </div>
+          <div style={{ fontSize: "9px", color: "#6B7280", fontFamily: "'Segoe UI', sans-serif" }}>
+            {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
           </div>
         </div>
-      )}
+      </div>
 
       {/* ━━━ COPY LABEL (centered badge) ━━━ */}
       {copyLabel && (
@@ -315,8 +258,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         </div>
       )}
 
-      {/* ━━━ GOLD ACCENT ━━━ */}
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #4A9EE8, #7BB8F0, #4A9EE8)" }} />
+      {/* ━━━ THIN SEPARATOR ━━━ */}
+      <div style={{ height: "1px", background: "#D1D5DB", margin: "0 28px" }} />
 
       {/* ━━━ LEGAL & REGISTRATION STRIP ━━━ */}
       <div
