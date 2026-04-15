@@ -213,8 +213,8 @@ const NoorSupportWidget = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-card shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/30">
-                <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
+                <Headset className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <h2 className="text-xs font-bold text-foreground">نور — دعم أموالي</h2>
@@ -250,8 +250,8 @@ const NoorSupportWidget = () => {
                 className={`flex ${msg.role === "user" ? "justify-start" : "justify-end"} items-end gap-1.5`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
-                    <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                  <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <Headset className="h-3.5 w-3.5 text-primary" />
                   </div>
                 )}
                 <div
@@ -277,8 +277,8 @@ const NoorSupportWidget = () => {
 
             {loading && (
               <div className="flex justify-end items-end gap-1.5">
-                <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
-                  <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <Headset className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <div className="bg-muted rounded-xl rounded-br-sm px-3 py-2.5">
                   <div className="flex gap-1">
