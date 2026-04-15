@@ -99,7 +99,7 @@ const QuotationPreview = ({ open, onOpenChange, data }: QuotationPreviewProps) =
             <div style={S.header}>
               <div>
                 {logoBase64 ? (
-                  <img src={logoBase64} alt="logo" style={{ width: 280, height: "auto", maxHeight: 120, objectFit: "contain", borderRadius: 8 }} />
+                  <img src={logoBase64} alt="logo" style={{ width: 60, height: 60, objectFit: "contain", borderRadius: 8 }} />
                 ) : (
                   <div style={S.logo}>{companyInitials}</div>
                 )}
