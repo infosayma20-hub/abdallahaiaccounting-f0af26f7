@@ -110,7 +110,7 @@ const DeliveryNotesPage = () => {
   const fetchLookups = async () => {
     if (!user) return;
     const cRes = await (supabase.from("contacts").select("id, contact_name").eq("user_id", user.id) as any).eq("is_archived", false).order("contact_name");
-    const pRes = await (supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id) as any).eq("is_active", true).order("name");
+    const pRes = await supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id).order("name");
     setContacts(cRes.data || []);
     setProducts(pRes.data || []);
   };
