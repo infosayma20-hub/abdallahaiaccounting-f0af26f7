@@ -190,7 +190,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           style={{
             background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
             color: "white",
-            padding: "8px 20px",
+            padding: hasExtraWideLogo ? "8px 20px" : "10px 28px",
             position: "relative",
             zIndex: 1,
             display: "flex",
@@ -205,7 +205,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
           {/* Center: logo */}
-          <div style={{ flex: "2 1 auto", textAlign: "center", padding: "0 8px" }}>
+          <div style={{ flex: hasExtraWideLogo ? "2 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 8px" : undefined }}>
             {settings.logo_url ? (
               <div style={centeredLogoWrapperStyle}>
                 <img
@@ -235,16 +235,16 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           style={{
             background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
             color: "white",
-            padding: "12px 24px 10px",
+            padding: hasExtraWideLogo ? "12px 24px 10px" : "16px 28px 14px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: hasExtraWideLogo ? "center" : "flex-start",
             position: "relative",
             zIndex: 1,
           }}
         >
           {/* Company Info - Right */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: hasExtraWideLogo ? "center" : "flex-start", gap: hasExtraWideLogo ? "10px" : "14px", flex: 1 }}>
             {settings.logo_url ? (
               <img
                 src={settings.logo_url}
