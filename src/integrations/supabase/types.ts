@@ -10743,6 +10743,7 @@ export type Database = {
           notes: string | null
           payment_method: string | null
           reference: string | null
+          reversed_by_id: string | null
           transaction_date: string
           transaction_type: string
           updated_at: string
@@ -10770,6 +10771,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           reference?: string | null
+          reversed_by_id?: string | null
           transaction_date?: string
           transaction_type?: string
           updated_at?: string
@@ -10797,6 +10799,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           reference?: string | null
+          reversed_by_id?: string | null
           transaction_date?: string
           transaction_type?: string
           updated_at?: string
@@ -10809,6 +10812,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
           {
