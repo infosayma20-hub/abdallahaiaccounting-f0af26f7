@@ -234,7 +234,7 @@ const InvoicesPage = () => {
           subtotal: Number(item.total_amount) || 0,
         })),
         notes: inv.notes || '',
-        status: inv.status === 'draft' ? 'draft' : inv.payment_status === 'paid' ? 'paid' : 'sent',
+        status: inv.status === 'cancelled' ? 'cancelled' : inv.status === 'draft' ? 'draft' : inv.payment_status === 'paid' ? 'paid' : inv.status || 'sent',
         paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
         subtotal: Number(inv.subtotal) || 0,
         totalDiscount: Number(inv.discount_amount) || 0,
