@@ -67,8 +67,6 @@ const statusLabels: Record<string, string> = {
   paid: "مدفوعة",
 };
 
-const LARGE_WIDE_LOGO_OWNER_ID = "6e3d46e2-4b58-4e80-a71e-05661aa8adaf";
-
 const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: InvoicePrintViewProps) => {
   const isSales = invoice.type === "sales";
   const today = new Date();
@@ -78,45 +76,31 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const fmtAmount = (n: number) => fmtAmountWithSymbol(n, currSymbol);
 
   const taxEnabled = settings.vat_enabled ?? true;
-  const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
-  const centeredLogoWrapperStyle = hasExtraWideLogo
-    ? {
-        display: "inline-block",
-        background: "white",
-        borderRadius: "6px",
-        padding: "0px",
-        boxShadow: "none",
-        lineHeight: 0,
-      }
-    : {
-        display: "inline-block",
-        background: "white",
-        borderRadius: "6px",
-        padding: "2px 4px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-      };
-  const centeredLogoImageStyle = hasExtraWideLogo
-    ? { height: "140px", width: "auto", objectFit: "contain" as const, display: "block", borderRadius: "6px" }
-    : { height: "52px", objectFit: "contain" as const, display: "block" };
-  const sideLogoImageStyle = hasExtraWideLogo
-    ? {
-        height: "140px",
-        width: "auto",
-        maxWidth: "100%",
-        borderRadius: "6px",
-        objectFit: "contain" as const,
-        background: "white",
-        padding: "0px",
-        display: "block",
-      }
-    : {
-        width: "56px",
-        height: "56px",
-        borderRadius: "8px",
-        objectFit: "contain" as const,
-        background: "white",
-        padding: "3px",
-      };
+  
+  const centeredLogoWrapperStyle = {
+    display: "inline-block",
+    background: "transparent",
+    borderRadius: "8px",
+    padding: "4px",
+    boxShadow: "none",
+    lineHeight: 0,
+  };
+  const centeredLogoImageStyle = {
+    width: "280px",
+    height: "auto",
+    maxHeight: "120px",
+    objectFit: "contain" as const,
+    display: "block",
+    borderRadius: "6px",
+  };
+  const sideLogoImageStyle = {
+    width: "280px",
+    height: "auto",
+    maxHeight: "120px",
+    borderRadius: "6px",
+    objectFit: "contain" as const,
+    display: "block",
+  };
 
   // Calculate item-level tax
   const calcItemTotal = (item: InvoiceItem) => {
@@ -218,7 +202,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           style={{
             background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
             color: "white",
-            padding: hasExtraWideLogo ? "8px 20px" : "10px 28px",
+            padding: "8px 20px",
             position: "relative",
             zIndex: 1,
             display: "flex",
@@ -233,7 +217,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
           {/* Center: logo */}
-          <div style={{ flex: hasExtraWideLogo ? "2 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 8px" : undefined }}>
+          <div style={{ flex: "2 1 auto", textAlign: "center", padding: "0 8px" }}>
             {settings.logo_url ? (
               <div style={centeredLogoWrapperStyle}>
                 <img
@@ -263,16 +247,16 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           style={{
             background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
             color: "white",
-            padding: hasExtraWideLogo ? "12px 24px 10px" : "16px 28px 14px",
+            padding: "12px 24px 10px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: hasExtraWideLogo ? "center" : "flex-start",
+            alignItems: "center",
             position: "relative",
             zIndex: 1,
           }}
         >
           {/* Company Info - Right */}
-          <div style={{ display: "flex", alignItems: hasExtraWideLogo ? "center" : "flex-start", gap: hasExtraWideLogo ? "10px" : "14px", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
             {settings.logo_url ? (
               <img
                 src={settings.logo_url}
