@@ -289,7 +289,7 @@ export function useCompanySettings() {
       const [settingsRes, profileRes, companyRes] = await Promise.all([
         supabase.from("company_settings" as any).select("*").eq("user_id", effectiveUserId).maybeSingle(),
         supabase.from("profiles" as any).select("display_name, company_name, company_id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("companies" as any).select("name, logo_url, email, phone, phone2, address").eq("owner_id", effectiveUserId).maybeSingle(),
+        supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", effectiveUserId).maybeSingle(),
       ]);
 
       if (settingsRes.error) throw settingsRes.error;
@@ -329,7 +329,7 @@ export function useCompanySettings() {
 
   // Known DB columns — payload must only include these
   const DB_COLUMNS = new Set([
-    "company_name","logo_url","address","city","phone","email","website","tax_number",
+    "company_name","logo_url","address","city","phone","phone2","email","website","tax_number",
     "commercial_register","base_currency","extra_currencies","exchange_rate_source",
     "calendar_type","fiscal_year_start","default_revenue_account","default_expense_account",
     "default_cash_account","default_bank_account","default_receivable_account","default_payable_account",
