@@ -199,7 +199,7 @@ const NoorSupportWidget = () => {
             }}
             title="نور — الدعم الفني"
           >
-            <Headset className="h-6 w-6 drop-shadow-sm" />
+            <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-8 h-8 rounded-full object-cover" />
           </button>
         </div>
       )}
