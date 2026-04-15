@@ -213,8 +213,8 @@ const NoorSupportWidget = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-card shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/30">
-                <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
+                <Headset className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <h2 className="text-xs font-bold text-foreground">نور — دعم أموالي</h2>
