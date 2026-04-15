@@ -233,7 +233,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
           {/* Center: logo */}
-          <div style={{ flex: hasExtraWideLogo ? "1.35 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 12px" : undefined }}>
+          <div style={{ flex: hasExtraWideLogo ? "2 1 auto" : "1 1 auto", textAlign: "center", padding: hasExtraWideLogo ? "0 8px" : undefined }}>
             {settings.logo_url ? (
               <div style={centeredLogoWrapperStyle}>
                 <img
