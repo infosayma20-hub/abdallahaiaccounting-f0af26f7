@@ -177,35 +177,44 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           style={{
             background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
             color: "white",
-            padding: "18px 28px 16px",
+            padding: "12px 28px 10px",
             position: "relative",
             zIndex: 1,
           }}
         >
           {/* Row 1: Invoice title left, company details right */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: "20px", fontWeight: 700 }}>
+              <div style={{ fontSize: "14px", fontWeight: 700 }}>
                 {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
               </div>
-              <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
+              <div style={{ fontSize: "9px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
                 {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
-              {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
-              {taxEnabled && settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
+              <div style={{ fontSize: "13px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
+              {settings.email && <div style={{ fontSize: "9px", opacity: 0.75 }}>✉️ {settings.email}</div>}
+              {taxEnabled && settings.tax_number && <div style={{ fontSize: "9px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
             </div>
           </div>
-          {/* Row 2: Centered large logo */}
-          <div style={{ textAlign: "center", marginTop: "12px" }}>
+          {/* Row 2: Centered large wide logo with white frame */}
+          <div style={{ textAlign: "center", marginTop: "10px", marginBottom: "4px" }}>
             {settings.logo_url ? (
-              <img
-                src={settings.logo_url}
-                alt="Logo"
-                style={{ maxWidth: "200px", maxHeight: "100px", objectFit: "contain", background: "white", borderRadius: "10px", padding: "6px", display: "inline-block" }}
-              />
+              <div style={{
+                display: "inline-block",
+                background: "white",
+                borderRadius: "12px",
+                padding: "12px 24px",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+                border: "2px solid rgba(255,255,255,0.9)",
+              }}>
+                <img
+                  src={settings.logo_url}
+                  alt="Logo"
+                  style={{ maxWidth: "280px", maxHeight: "80px", objectFit: "contain", display: "block" }}
+                />
+              </div>
             ) : (
               <div style={{ fontSize: "28px", fontWeight: 800, color: "#4A9EE8" }}>
                 {(settings.company_name || "Q").charAt(0)}
