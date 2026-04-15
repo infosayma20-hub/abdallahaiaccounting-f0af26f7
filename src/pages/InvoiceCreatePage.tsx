@@ -1899,7 +1899,7 @@ const InvoiceCreatePage = () => {
       </Collapsible>
 
       {/* ─── Sticky Bottom Actions ─── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-50">
+      <div className="fixed bottom-0 left-0 right-[var(--sidebar-width)] bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
         <div className="max-w-5xl mx-auto flex gap-2">
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
             <Save className="h-4 w-4" /> حفظ كمسودة
