@@ -3110,7 +3110,7 @@ const POSPage = () => {
     setShowShiftSummary(true);
   };
 
-  const handleShiftSummaryClosed = () => {
+  const handleShiftSummaryClosed = async () => {
     setShowShiftSummary(false);
     setSession(null);
     setOrders([createNewOrder(1)]);
