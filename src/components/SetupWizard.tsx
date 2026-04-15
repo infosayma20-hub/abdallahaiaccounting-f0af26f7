@@ -194,34 +194,52 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         hasEmployees: data.hasEmployees ?? false,
       };
 
-      // Attempt setup with retry logic (mobile browsers may have stale tokens)
+      // Attempt setup with retry logic and timeout (Android WebView may drop long connections)
+      const SETUP_TIMEOUT = 20000; // 20 seconds
       let setupSuccess = false;
       for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke("setup-accounts", {
-          body: setupBody,
-        });
+        try {
+          const invokePromise = supabase.functions.invoke("setup-accounts", {
+            body: setupBody,
+          });
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), SETUP_TIMEOUT)
+          );
+          const { data: fnData, error: fnError } = await Promise.race([invokePromise, timeoutPromise]);
 
-        if (fnError) {
-          console.error(`Setup attempt ${attempt + 1} failed:`, fnError);
-          if (attempt < 2) {
-            await supabase.auth.refreshSession();
-            await new Promise(r => setTimeout(r, 1500));
-            continue;
+          if (fnError) {
+            console.error(`Setup attempt ${attempt + 1} failed:`, fnError);
+            if (attempt < 2) {
+              await supabase.auth.refreshSession();
+              await new Promise(r => setTimeout(r, 1500));
+              continue;
+            }
+            throw new Error("فشل في الاتصال بخدمة إعداد الحسابات");
           }
-          throw new Error("فشل في الاتصال بخدمة إعداد الحسابات");
-        }
 
-        if (fnData?.error) {
-          console.error(`Setup returned error on attempt ${attempt + 1}:`, fnData.error);
-          if (attempt < 2) {
-            await new Promise(r => setTimeout(r, 1500));
-            continue;
+          if (fnData?.error) {
+            console.error(`Setup returned error on attempt ${attempt + 1}:`, fnData.error);
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 1500));
+              continue;
+            }
+            throw new Error(fnData.error);
           }
-          throw new Error(fnData.error);
-        }
 
-        setupSuccess = true;
-        break;
+          setupSuccess = true;
+          break;
+        } catch (e: any) {
+          if (e?.message === "timeout") {
+            console.error(`Setup attempt ${attempt + 1} timed out`);
+            if (attempt < 2) {
+              await supabase.auth.refreshSession();
+              await new Promise(r => setTimeout(r, 1000));
+              continue;
+            }
+            throw new Error("انتهت مهلة إعداد الحسابات، يرجى المحاولة مرة أخرى");
+          }
+          throw e;
+        }
       }
 
       if (!setupSuccess) throw new Error("فشل في إعداد شجرة الحسابات بعد عدة محاولات");
