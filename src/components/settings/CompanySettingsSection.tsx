@@ -51,6 +51,10 @@ const CompanySettingsSection = ({ settings, onChange }: Props) => {
             <Input value={settings.phone} onChange={e => onChange({ phone: e.target.value })} placeholder="+970 XX XXX XXXX" dir="ltr" />
           </div>
           <div className="space-y-2">
+            <Label>رقم الهاتف / الجوال الثاني</Label>
+            <Input value={settings.phone2 || ""} onChange={e => onChange({ phone2: e.target.value })} placeholder="+970 XX XXX XXXX" dir="ltr" />
+          </div>
+          <div className="space-y-2">
             <Label>البريد الإلكتروني الرسمي</Label>
             <Input value={settings.email} onChange={e => onChange({ email: e.target.value })} placeholder="info@company.com" dir="ltr" type="email" />
           </div>
