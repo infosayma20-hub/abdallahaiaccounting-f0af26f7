@@ -36,6 +36,8 @@ interface Product {
   purchase_account_code: string | null;
   description: string | null;
   terms: string | null;
+  product_type?: string;
+  service_direction?: string | null;
 }
 
 interface AccountOption {
@@ -130,6 +132,8 @@ const InventoryPage = () => {
     is_sold: true, is_purchased: true, is_pos_product: false,
     sales_account_code: "4100", purchase_account_code: "5110",
     description: "", terms: "",
+    product_type: "product" as string,
+    service_direction: "" as string,
   });
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -189,7 +193,7 @@ const InventoryPage = () => {
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "" });
     setEditMode(false);
     setSelectedProduct(null);
     stopBarcodeScanner();
@@ -257,6 +261,8 @@ const InventoryPage = () => {
       purchase_account_code: product.purchase_account_code || "5110",
       description: product.description || "",
       terms: product.terms || "",
+      product_type: (product as any).product_type || "product",
+      service_direction: (product as any).service_direction || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
@@ -287,6 +293,8 @@ const InventoryPage = () => {
       purchase_account_code: form.is_purchased ? (form.purchase_account_code || null) : null,
       description: form.description.trim() || null,
       terms: form.terms.trim() || null,
+      product_type: form.product_type,
+      service_direction: form.product_type === "service" ? (form.service_direction || null) : null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
@@ -873,6 +881,32 @@ const InventoryPage = () => {
                   <Input type="number" placeholder="%" value={form.custom_tax_rate} onChange={e => setForm(p => ({ ...p, custom_tax_rate: e.target.value }))} className="rounded-xl w-24" dir="ltr" min="0" max="100" step="0.5" />
                 )}
               </div>
+            </div>
+
+            {/* Product Type */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">نوع الصنف</label>
+                <Select value={form.product_type} onValueChange={v => setForm(p => ({ ...p, product_type: v, service_direction: v === "product" ? "" : p.service_direction }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">📦 منتج (له مخزون)</SelectItem>
+                    <SelectItem value="service">🔧 خدمة (بدون مخزون)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.product_type === "service" && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">اتجاه الخدمة</label>
+                  <Select value={form.service_direction} onValueChange={v => setForm(p => ({ ...p, service_direction: v }))}>
+                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختياري" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="provided">خدمة مقدمة (نبيعها)</SelectItem>
+                      <SelectItem value="received">خدمة متلقاة (نشتريها)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Checkboxes */}
