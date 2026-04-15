@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { fmtDateDisplay } from "@/lib/utils";
 import * as XLSX from "xlsx";
-import InvoicePrintView from "@/components/InvoicePrintView";
+import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
 
 const F = "Tajawal, sans-serif";
@@ -188,29 +188,22 @@ const DeliveryNotesPage = () => {
 
   const handlePrint = async (note: DeliveryNote) => {
     const { data: items } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", note.id).order("sort_order");
-    const invoiceData = {
-      type: "sales" as const,
-      invoiceNumber: note.delivery_number,
+    const noteData = {
+      deliveryNumber: note.delivery_number,
       date: note.delivery_date,
       contactName: note.contact_name || "",
+      contactPhone: note.contact_phone,
+      contactAddress: note.delivery_address,
       items: ((items as any[]) || []).map(i => ({
         description: i.product_name,
         quantity: i.quantity,
-        unitPrice: i.unit_price,
-        discount: 0,
-        taxRate: 0,
-        subtotal: i.total,
+        unit: i.unit || "",
       })),
-      notes: [note.notes, note.driver_name ? `السائق: ${note.driver_name}` : "", note.vehicle_number ? `المركبة: ${note.vehicle_number}` : "", note.delivery_address ? `عنوان التسليم: ${note.delivery_address}` : ""].filter(Boolean).join(" | "),
+      notes: note.notes,
+      driverName: note.driver_name,
+      vehicleNumber: note.vehicle_number,
+      deliveryAddress: note.delivery_address,
       status: note.status,
-      paymentMethod: "",
-      subtotal: note.total_amount,
-      totalDiscount: 0,
-      totalTax: 0,
-      total: note.total_amount,
-      paidAmount: 0,
-      remainingAmount: note.total_amount,
-      currency: note.currency,
     };
     const win = window.open("", "_blank");
     if (!win) return;
@@ -224,7 +217,7 @@ const DeliveryNotesPage = () => {
       const container = win.document.getElementById("print-root");
       if (container) {
         const root = createRoot(container);
-        root.render(<InvoicePrintView invoice={invoiceData} settings={companySettings} copyLabel="إرسالية مبيعات" />);
+        root.render(<DeliveryNotePrintView note={noteData} settings={companySettings} />);
         setTimeout(() => win.print(), 500);
       }
     }, 200);

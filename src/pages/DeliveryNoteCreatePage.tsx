@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import InvoicePrintView from "@/components/InvoicePrintView";
+import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
 
 interface DeliveryItem {
