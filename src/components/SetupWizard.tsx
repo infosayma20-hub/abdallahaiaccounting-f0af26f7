@@ -145,16 +145,30 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       // Refresh session to ensure valid token (critical after email verification on mobile)
       await supabase.auth.refreshSession();
 
+      const SETUP_TIMEOUT = 20000;
       for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke("setup-accounts", {
-          body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
-        });
-        if (!fnError && !fnData?.error) break;
-        if (attempt < 2) {
-          await supabase.auth.refreshSession();
-          await new Promise(r => setTimeout(r, 1500));
-        } else {
-          throw new Error(fnError?.message || fnData?.error || "فشل في إعداد شجرة الحسابات");
+        try {
+          const invokePromise = supabase.functions.invoke("setup-accounts", {
+            body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
+          });
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), SETUP_TIMEOUT)
+          );
+          const { data: fnData, error: fnError } = await Promise.race([invokePromise, timeoutPromise]);
+          if (!fnError && !fnData?.error) break;
+          if (attempt < 2) {
+            await supabase.auth.refreshSession();
+            await new Promise(r => setTimeout(r, 1500));
+          } else {
+            throw new Error(fnError?.message || fnData?.error || "فشل في إعداد شجرة الحسابات");
+          }
+        } catch (e: any) {
+          if (e?.message === "timeout" && attempt < 2) {
+            await supabase.auth.refreshSession();
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          throw e;
         }
       }
 
