@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Paperclip, X, Phone, Minimize2 } from "lucide-react";
+import { Send, Paperclip, X, Phone, Minimize2, Headset } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
@@ -174,20 +174,34 @@ const NoorSupportWidget = () => {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating 3D button */}
       {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 left-4 z-[60] w-12 h-12 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 overflow-hidden border-2 border-primary/30"
-          style={{ boxShadow: "0 4px 20px hsl(var(--primary) / 0.35)" }}
-          title="نور — الدعم الفني"
-        >
-          <img
-            src="/logos/amwali-mark-white-bg.png"
-            alt="نور — دعم أموالي"
-            className="w-full h-full object-cover"
-          />
-        </button>
+        <div className="fixed bottom-6 left-4 z-[60] group" style={{ perspective: "600px" }}>
+          {/* Pulse rings */}
+          <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" style={{ animationDuration: "2.5s" }} />
+          <span className="absolute inset-[-4px] rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "3.5s", animationDelay: "0.5s" }} />
+          <button
+            onClick={() => setOpen(true)}
+            className="relative w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-500 group-hover:scale-110 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
+              boxShadow: "0 6px 24px hsl(var(--primary) / 0.4), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)",
+              transform: "rotateY(0deg) rotateX(0deg)",
+              transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "rotateY(-12deg) rotateX(8deg) scale(1.1)";
+              e.currentTarget.style.boxShadow = "8px 8px 30px hsl(var(--primary) / 0.5), 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)";
+              e.currentTarget.style.boxShadow = "0 6px 24px hsl(var(--primary) / 0.4), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)";
+            }}
+            title="نور — الدعم الفني"
+          >
+            <Headset className="h-6 w-6 drop-shadow-sm" />
+          </button>
+        </div>
       )}
 
       {/* Chat popup */}
