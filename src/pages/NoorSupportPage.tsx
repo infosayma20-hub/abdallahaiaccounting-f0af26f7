@@ -206,7 +206,6 @@ export default function NoorSupportPage() {
         </div>
         <button
           onClick={openWhatsApp}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
         >
           <Phone className="h-3.5 w-3.5" />
