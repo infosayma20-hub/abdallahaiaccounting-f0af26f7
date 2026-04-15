@@ -883,6 +883,32 @@ const InventoryPage = () => {
               </div>
             </div>
 
+            {/* Product Type */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">نوع الصنف</label>
+                <Select value={form.product_type} onValueChange={v => setForm(p => ({ ...p, product_type: v, service_direction: v === "product" ? "" : p.service_direction }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">📦 منتج (له مخزون)</SelectItem>
+                    <SelectItem value="service">🔧 خدمة (بدون مخزون)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.product_type === "service" && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">اتجاه الخدمة</label>
+                  <Select value={form.service_direction} onValueChange={v => setForm(p => ({ ...p, service_direction: v }))}>
+                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختياري" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="provided">خدمة مقدمة (نبيعها)</SelectItem>
+                      <SelectItem value="received">خدمة متلقاة (نشتريها)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
             {/* Checkboxes */}
             <div className="flex flex-wrap gap-4 py-2 border-y border-border/50">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
