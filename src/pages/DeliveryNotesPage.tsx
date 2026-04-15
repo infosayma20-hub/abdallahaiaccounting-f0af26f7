@@ -308,7 +308,7 @@ const DeliveryNotesPage = () => {
         movementRows.push({
           user_id: user!.id,
           product_id: item.product_id,
-          movement_type: "delivery_out",
+          movement_type: "صادر",
           quantity: -Math.abs(item.quantity),
           reference_note: `إرسالية ${note.delivery_number || id.slice(0, 8)}`,
         });
