@@ -12488,6 +12488,10 @@ export type Database = {
         }
         Returns: Json
       }
+      recreate_invoice_transaction: {
+        Args: { p_invoice_id: string }
+        Returns: string
+      }
       reject_procurement_request: {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json

@@ -829,9 +829,9 @@ const InvoicesPage = () => {
         reversed_by: currentUser?.id
       });
     }
-    // When changing from draft to sent/paid, restore the linked transaction
-    if (dbStatus !== 'draft' && currentInv?.status === 'draft' && currentInv?.linked_transaction_id) {
-      await supabase.from("transactions").update({ is_deleted: false } as any).eq("id", currentInv.linked_transaction_id);
+    // When changing from draft to sent/paid, create a new transaction (IFRS-compliant)
+    if (dbStatus !== 'draft' && currentInv?.status === 'draft') {
+      await supabase.rpc('recreate_invoice_transaction', { p_invoice_id: id });
     }
     
     const updated = invoices.map(inv => inv.id === id ? { ...inv, status } : inv);
