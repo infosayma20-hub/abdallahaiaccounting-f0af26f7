@@ -261,6 +261,8 @@ const InventoryPage = () => {
       purchase_account_code: product.purchase_account_code || "5110",
       description: product.description || "",
       terms: product.terms || "",
+      product_type: (product as any).product_type || "product",
+      service_direction: (product as any).service_direction || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
@@ -291,6 +293,8 @@ const InventoryPage = () => {
       purchase_account_code: form.is_purchased ? (form.purchase_account_code || null) : null,
       description: form.description.trim() || null,
       terms: form.terms.trim() || null,
+      product_type: form.product_type,
+      service_direction: form.product_type === "service" ? (form.service_direction || null) : null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
