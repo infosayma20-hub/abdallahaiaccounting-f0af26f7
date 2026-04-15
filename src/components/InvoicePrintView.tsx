@@ -81,13 +81,13 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
 
   const centeredLogoWrapperStyle = hasExtraWideLogo
-    ? { display: "inline-block", background: "transparent", borderRadius: "8px", padding: "4px", boxShadow: "none", lineHeight: 0 }
+    ? { display: "inline-block", background: "white", borderRadius: "10px", padding: "6px 12px", boxShadow: "none", lineHeight: 0 }
     : { display: "inline-block", background: "white", borderRadius: "6px", padding: "2px 4px", boxShadow: "0 2px 12px rgba(0,0,0,0.15)" };
   const centeredLogoImageStyle = hasExtraWideLogo
-    ? { width: "280px", height: "auto", maxHeight: "120px", objectFit: "contain" as const, display: "block", borderRadius: "6px" }
+    ? { width: "320px", height: "auto", objectFit: "contain" as const, display: "block" }
     : { height: "52px", objectFit: "contain" as const, display: "block" };
   const sideLogoImageStyle = hasExtraWideLogo
-    ? { width: "280px", height: "auto", maxHeight: "120px", borderRadius: "6px", objectFit: "contain" as const, display: "block" }
+    ? { width: "320px", height: "auto", objectFit: "contain" as const, display: "block" }
     : { width: "56px", height: "56px", borderRadius: "8px", objectFit: "contain" as const, background: "white", padding: "3px" };
 
   // Calculate item-level tax
