@@ -33,6 +33,7 @@ export default function DateRangeFilter({
         <span className="text-xs text-muted-foreground flex-shrink-0">من</span>
         <input
           type="date"
+          lang="en-GB"
           value={dateFrom}
           onChange={(e) => onDateFromChange(e.target.value)}
           className={cn(
@@ -45,6 +46,7 @@ export default function DateRangeFilter({
         <span className="text-xs text-muted-foreground flex-shrink-0">إلى</span>
         <input
           type="date"
+          lang="en-GB"
           value={dateTo}
           onChange={(e) => onDateToChange(e.target.value)}
           className={cn(

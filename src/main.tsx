@@ -41,4 +41,18 @@ if (isPreviewHost || isInIframe) {
   });
 }
 
+// Force dd/mm/yyyy display on all native date inputs
+const observer = new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    for (const node of m.addedNodes) {
+      if (node instanceof HTMLElement) {
+        const inputs = node.matches?.('input[type="date"]') ? [node] : Array.from(node.querySelectorAll?.('input[type="date"]') || []);
+        inputs.forEach((inp: Element) => inp.setAttribute('lang', 'en-GB'));
+      }
+    }
+  }
+});
+observer.observe(document.body, { childList: true, subtree: true });
+document.querySelectorAll('input[type="date"]').forEach(inp => inp.setAttribute('lang', 'en-GB'));
+
 createRoot(document.getElementById("root")!).render(<App />);
