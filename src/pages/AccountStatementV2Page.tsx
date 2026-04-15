@@ -286,25 +286,24 @@ const AccountStatementV2Page = () => {
     const dispRate = currentExchangeRate[displayCurrency] || 1;
 
     // Get display amount based on currency mode
-    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean } => {
+    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean; conversionRate?: number; usedHistoricRate?: boolean } => {
       if (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) {
         return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
       }
       if (!isForeignDisplay) {
-        // ILS mode: always use amount (ILS)
         return { amount: tx.amount || 0, isConverted: false, isMismatch: false };
       }
       // Foreign display mode
       const txCurrCode = currencyNameToCode[normalizeCurrency(tx.currency)] || "ILS";
       if (txCurrCode === displayCurrency && tx.foreign_amount && tx.foreign_amount > 0) {
-        // Same currency — use foreign_amount directly
         return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
       }
       if (txCurrCode === "ILS" && dispRate > 0) {
-        // ILS transaction — convert to foreign using current rate
-        return { amount: (tx.amount || 0) / dispRate, isConverted: true, isMismatch: false };
+        // Fix 1: Use tx's own exchange_rate if available, fallback to today's rate
+        const rateToUse = (tx.exchange_rate && tx.exchange_rate > 0) ? tx.exchange_rate : dispRate;
+        const usedHistoric = !!(tx.exchange_rate && tx.exchange_rate > 0);
+        return { amount: (tx.amount || 0) / rateToUse, isConverted: true, isMismatch: false, conversionRate: rateToUse, usedHistoricRate: usedHistoric };
       }
-      // Different foreign currency — show as ILS amount (mismatch)
       return { amount: tx.amount || 0, isConverted: false, isMismatch: true };
     };
 
