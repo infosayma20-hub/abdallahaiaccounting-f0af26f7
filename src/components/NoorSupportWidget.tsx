@@ -250,8 +250,8 @@ const NoorSupportWidget = () => {
                 className={`flex ${msg.role === "user" ? "justify-start" : "justify-end"} items-end gap-1.5`}
               >
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
-                    <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                  <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <Headset className="h-3.5 w-3.5 text-primary" />
                   </div>
                 )}
                 <div
@@ -277,8 +277,8 @@ const NoorSupportWidget = () => {
 
             {loading && (
               <div className="flex justify-end items-end gap-1.5">
-                <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-primary/30">
-                  <img src="/logos/amwali-mark-white-bg.png" alt="نور" className="w-full h-full object-cover" />
+                <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <Headset className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <div className="bg-muted rounded-xl rounded-br-sm px-3 py-2.5">
                   <div className="flex gap-1">
