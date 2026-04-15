@@ -114,7 +114,7 @@ const DeliveryNotesPage = () => {
       supabase.from("products").select("id, name, sell_price, unit, quantity").eq("user_id", user.id).eq("is_active", true).order("name"),
     ]);
     setContacts((c as any[]) || []);
-    setProducts(p || []);
+    setProducts((p as any[]) || []);
   };
 
   useEffect(() => { fetchNotes(); fetchLookups(); }, [user]);
@@ -200,9 +200,9 @@ const DeliveryNotesPage = () => {
         ...updated[index],
         product_id: product.id,
         product_name: product.name,
-        unit_price: product.price,
+        unit_price: product.sell_price,
         unit: product.unit || "قطعة",
-        total: updated[index].quantity * product.price,
+        total: updated[index].quantity * product.sell_price,
       };
       return updated;
     });
@@ -341,15 +341,16 @@ const DeliveryNotesPage = () => {
       if (items?.length) {
         const invoiceItems = (items as any[]).map(item => ({
           invoice_id: inv.id,
-          product_id: item.product_id,
+          product_id: item.product_id || null,
+          product_name: item.product_name,
           description: item.product_name,
           quantity: item.quantity,
           unit_price: item.unit_price,
           discount: 0,
           tax_rate: 0,
-          subtotal: item.total,
+          total_amount: item.total,
         }));
-        await supabase.from("invoice_items").insert(invoiceItems);
+        await supabase.from("invoice_items").insert(invoiceItems as any);
       }
 
       // Update delivery note
