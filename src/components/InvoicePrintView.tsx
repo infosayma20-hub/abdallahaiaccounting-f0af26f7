@@ -76,7 +76,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const fmtAmount = (n: number) => fmtAmountWithSymbol(n, currSymbol);
 
   const taxEnabled = settings.vat_enabled ?? true;
-  const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
+  
   const centeredLogoWrapperStyle = {
     display: "inline-block",
     background: "transparent",
