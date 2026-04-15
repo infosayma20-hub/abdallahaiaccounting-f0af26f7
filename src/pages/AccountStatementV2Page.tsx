@@ -30,7 +30,7 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contacts";
 
@@ -286,25 +286,24 @@ const AccountStatementV2Page = () => {
     const dispRate = currentExchangeRate[displayCurrency] || 1;
 
     // Get display amount based on currency mode
-    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean } => {
+    const getDisplayAmt = (tx: Transaction): { amount: number; isConverted: boolean; isMismatch: boolean; conversionRate?: number; usedHistoricRate?: boolean } => {
       if (isForeignCash && tx.foreign_amount != null && tx.foreign_amount > 0) {
         return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
       }
       if (!isForeignDisplay) {
-        // ILS mode: always use amount (ILS)
         return { amount: tx.amount || 0, isConverted: false, isMismatch: false };
       }
       // Foreign display mode
       const txCurrCode = currencyNameToCode[normalizeCurrency(tx.currency)] || "ILS";
       if (txCurrCode === displayCurrency && tx.foreign_amount && tx.foreign_amount > 0) {
-        // Same currency — use foreign_amount directly
         return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
       }
       if (txCurrCode === "ILS" && dispRate > 0) {
-        // ILS transaction — convert to foreign using current rate
-        return { amount: (tx.amount || 0) / dispRate, isConverted: true, isMismatch: false };
+        // Fix 1: Use tx's own exchange_rate if available, fallback to today's rate
+        const rateToUse = (tx.exchange_rate && tx.exchange_rate > 0) ? tx.exchange_rate : dispRate;
+        const usedHistoric = !!(tx.exchange_rate && tx.exchange_rate > 0);
+        return { amount: (tx.amount || 0) / rateToUse, isConverted: true, isMismatch: false, conversionRate: rateToUse, usedHistoricRate: usedHistoric };
       }
-      // Different foreign currency — show as ILS amount (mismatch)
       return { amount: tx.amount || 0, isConverted: false, isMismatch: true };
     };
 
@@ -330,14 +329,14 @@ const AccountStatementV2Page = () => {
     let running = openBal, sD = 0, sC = 0;
     const result: StatementRow[] = periodTx.map(tx => {
       const { isDebit } = resolveDebitCredit(tx);
-      const { amount: amt, isConverted, isMismatch } = getDisplayAmt(tx);
+      const { amount: amt, isConverted, isMismatch, conversionRate, usedHistoricRate } = getDisplayAmt(tx);
       const debit = isDebit ? amt : 0;
       const credit = !isDebit ? amt : 0;
       running += debit - credit; sD += debit; sC += credit;
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch };
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
@@ -677,7 +676,7 @@ const AccountStatementV2Page = () => {
             {displayCurrency !== "ILS" && !hasMixedCurrencies && (
               <div className="rounded-lg mb-3 flex items-center gap-2" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "8px 16px" }}>
                 <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#2563EB" }} />
-                <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف اليوم.</span>
+                <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف يوم القيد (أو سعر اليوم إن لم يُحفظ سعر تاريخي).</span>
               </div>
             )}
 
@@ -685,9 +684,15 @@ const AccountStatementV2Page = () => {
             <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
               <div className="flex items-center gap-8 flex-wrap text-[13px]">
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{fmtAmount(totalDebit, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{fmtAmount(totalCredit, statementCurrency)}</span></div>
-                <div className="mr-auto"><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></div>
+                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
+                <div className="mr-auto">
+                  {hasMixedCurrencies ? (
+                    <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
+                  ) : (
+                    <><span style={{ color: "#6B7280" }}>الرصيد: </span><span style={{ color: balColor(closingBalance), fontWeight: 700, fontSize: 15 }}>{fmtAmount(closingBalance, statementCurrency)}</span><span className="text-[11px] mr-1" style={{ color: "#6B7280" }}>{closingBalance > 0 ? "(مدين)" : closingBalance < 0 ? "(دائن)" : ""}</span></>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -807,13 +812,13 @@ const AccountStatementV2Page = () => {
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
-                          {row.debit > 0 && row.isConverted && <span title="محوّل بسعر صرف اليوم (قد يختلف عن سعر التسجيل)" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
+                          {row.debit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
                           {row.debit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
                         </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                           {row.credit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
-                          {row.credit > 0 && row.isConverted && <span title="محوّل بسعر صرف اليوم (قد يختلف عن سعر التسجيل)" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
+                          {row.credit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
                           {row.credit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
                         </td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
@@ -834,12 +839,12 @@ const AccountStatementV2Page = () => {
                     <tr style={{ background: "#F3F4F6", borderTop: "2px solid #E5E7EB" }}>
                       <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>
                       <td style={{ padding: "10px 12px", fontSize: 11 }}>—</td>
-                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>رصيد الختام</td>
+                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>
                       <td style={{ padding: "10px 12px" }} />
                       <td style={{ padding: "10px 12px" }} />
-                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{fmtAmount(totalDebit, statementCurrency)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{fmtAmount(totalCredit, statementCurrency)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(closingBalance, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>
+                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>
                     </tr>
                   )}
                 </tbody>
@@ -956,9 +961,9 @@ const AccountStatementV2Page = () => {
             )}
 
             <div className="text-center" style={{ fontSize: 10, color: "#9CA3AF", padding: "12px 0" }}>
-              إجمالي الحركات: {filteredRows.length} قيد | مدين: {fmtAmount(totalDebit, statementCurrency)} | دائن: {fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: {fmtAmount(closingBalance, statementCurrency)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"}) | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
+              إجمالي الحركات: {filteredRows.length} قيد{hasMixedCurrencies ? " | ⚠️ عملات مختلطة — الأرصدة غير دقيقة" : ` | مدين: ${fmtAmount(totalDebit, statementCurrency)} | دائن: ${fmtAmount(totalCredit, statementCurrency)} | الرصيد الختامي: ${fmtAmount(closingBalance, statementCurrency)} (${closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدّد"})`} | تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}
               {displayCurrency !== "ILS" && currentExchangeRate[displayCurrency] && (
-                <span> | * الحركات المعلّمة بـ ⚡ محوّلة بسعر صرف {currentExchangeRate[displayCurrency]} ₪ لكل {getCurrencySymbol(codeToCurrencyName[displayCurrency])}</span>
+                <span> | * الحركات المعلّمة بـ ⚡ محوّلة بسعر صرف يوم القيد أو {currentExchangeRate[displayCurrency]} ₪ لكل {getCurrencySymbol(codeToCurrencyName[displayCurrency])}</span>
               )}
             </div>
           </>
