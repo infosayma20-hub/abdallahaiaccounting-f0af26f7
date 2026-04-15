@@ -5,7 +5,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { smartNavigate } from "@/lib/smartNavigate";
 
 const actions = [
-  { icon: Receipt, label: "قيد جديد", path: "/", color: "bg-primary text-primary-foreground" },
+  { icon: Receipt, label: "قيد جديد", path: "/finance/journal/new", color: "bg-primary text-primary-foreground" },
   { icon: FileText, label: "فاتورة", path: "/invoices", color: "bg-warning text-warning-foreground" },
   { icon: Users, label: "زبون", path: "/contacts", color: "bg-accent text-accent-foreground" },
   { icon: TrendingDown, label: "مصروف", path: "/transactions", color: "bg-destructive text-destructive-foreground" },

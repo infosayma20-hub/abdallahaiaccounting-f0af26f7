@@ -11,7 +11,7 @@ const navItems = [
   { icon: Users, label: "الزبائن", path: "/contacts" },
   { icon: FileText, label: "الحسابات", path: "/accounts" },
   { icon: Menu, label: "القائمة", path: "/menu" },
-  { icon: Home, label: "الرئيسية", path: "/" },
+  { icon: Home, label: "الرئيسية", path: "/apps" },
 ];
 
 const AppLayout = ({ children }: AppLayoutProps) => {
