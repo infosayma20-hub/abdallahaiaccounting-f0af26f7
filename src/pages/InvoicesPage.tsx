@@ -974,6 +974,9 @@ const InvoicesPage = () => {
           <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
             <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
           </Button>
+          <Button size="sm" className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}>
+            <Plus className="h-4 w-4" /> إنشاء فاتورة
+          </Button>
         </div>
       </div>
 
@@ -1284,15 +1287,6 @@ const InvoicesPage = () => {
         </div>
       )}
 
-      {/* Create FAB */}
-      {invoices.length > 0 && (
-        <Button
-          className="fixed bottom-20 left-4 rounded-2xl gap-2 shadow-lg shadow-primary/30 z-40"
-          onClick={() => navigate(`/invoices/new?type=${filterType === "purchase" ? "purchase" : "sales"}`)}
-        >
-          <Plus className="h-4 w-4" /> إنشاء فاتورة {filterType === "purchase" ? "مشتريات" : ""}
-        </Button>
-      )}
 
       {/* Preview/Print Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
