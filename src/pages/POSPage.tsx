@@ -42,6 +42,7 @@ import { sendToBridge } from "@/lib/print-bridge-client";
 import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
+import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
 import {
@@ -100,6 +101,13 @@ interface OrderTab {
   guestName: string;
   orderType: "dine_in" | "takeaway" | "delivery";
   deliveryAddress: string;
+  zoneCode: string;
+  areaName: string;
+  deliveryStatus: string;
+  captainName: string;
+  captainPhone: string;
+  captainVehicle: string;
+  savedOrderId: string | null;
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
   callCenterSourceApp?: string | null;
@@ -147,6 +155,13 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   guestName: guestName || "",
   orderType: tableId ? "dine_in" : "takeaway",
   deliveryAddress: "",
+  zoneCode: "",
+  areaName: "",
+  deliveryStatus: "none",
+  captainName: "",
+  captainPhone: "",
+  captainVehicle: "",
+  savedOrderId: null,
 });
 
 interface Product {
@@ -1980,8 +1995,12 @@ const POSPage = () => {
           customer_id: activeOrder.customerId || null,
           guest_count: activeOrder.guestCount,
           guest_name: activeOrder.guestName || null,
-          order_type: activeOrder.orderType,
-          delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+           order_type: activeOrder.orderType,
+           delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+           is_delivery: activeOrder.orderType === "delivery",
+           customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+           zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+           area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
           pos_customer_id: activeOrder.posCustomerId || null,
         } as any).eq("id", existingOrder.id);
       } else {
@@ -2004,12 +2023,17 @@ const POSPage = () => {
             guest_name: activeOrder.guestName || null,
             order_type: activeOrder.orderType,
             delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            is_delivery: activeOrder.orderType === "delivery",
+            customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+            area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
           } as any)
           .select()
           .single();
 
         if (error) throw error;
+        updateActiveOrder(o => ({ ...o, savedOrderId: order.id }));
 
         const lines = cart.map((item) => ({
           user_id: dataOwnerId,
@@ -2196,6 +2220,13 @@ const POSPage = () => {
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
         deliveryAddress: (order as any).delivery_address || "",
+        zoneCode: (order as any).zone_code || "",
+        areaName: (order as any).area_name || "",
+        deliveryStatus: (order as any).delivery_status || "none",
+        captainName: (order as any).assigned_captain_name || "",
+        captainPhone: (order as any).assigned_captain_phone || "",
+        captainVehicle: (order as any).assigned_captain_vehicle || "",
+        savedOrderId: order.id,
       } : o));
       setActiveOrderIndex(existingTabIdx);
     } else {
@@ -2217,6 +2248,13 @@ const POSPage = () => {
         guestName: (order as any).guest_name || "",
         orderType: (order as any).order_type || "dine_in",
         deliveryAddress: (order as any).delivery_address || "",
+        zoneCode: (order as any).zone_code || "",
+        areaName: (order as any).area_name || "",
+        deliveryStatus: (order as any).delivery_status || "none",
+        captainName: (order as any).assigned_captain_name || "",
+        captainPhone: (order as any).assigned_captain_phone || "",
+        captainVehicle: (order as any).assigned_captain_vehicle || "",
+        savedOrderId: order.id,
       };
       setOrders(prev => [...prev, newOrder]);
       setActiveOrderIndex(orders.length);
@@ -2313,6 +2351,10 @@ const POSPage = () => {
             total: effectiveTotal,
             order_type: activeOrder.orderType,
             delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            is_delivery: activeOrder.orderType === "delivery",
+            customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+            area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
             pos_customer_id: activeOrder.posCustomerId || null,
             order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
@@ -2340,6 +2382,10 @@ const POSPage = () => {
                 guest_name: activeOrder.guestName || null,
                 order_type: activeOrder.orderType,
                 delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+                is_delivery: activeOrder.orderType === "delivery",
+                customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+                zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+                area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
                 pos_customer_id: activeOrder.posCustomerId || null,
                 order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
                 ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
@@ -2366,6 +2412,10 @@ const POSPage = () => {
               state: "draft",
               order_type: activeOrder.orderType,
               delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+              is_delivery: activeOrder.orderType === "delivery",
+              customer_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+              zone_code: activeOrder.orderType === "delivery" ? activeOrder.zoneCode || null : null,
+              area_name: activeOrder.orderType === "delivery" ? activeOrder.areaName || null : null,
               pos_customer_id: activeOrder.posCustomerId || null,
               order_note: orderNote || (effectivePaymentMethod === "employee_account" && employeeNote.trim() ? `حساب موظف: ${selectedEmployee?.full_name} | ${employeeNote.trim()}` : null),
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
@@ -4258,18 +4308,35 @@ const POSPage = () => {
 
           {/* Footer */}
           <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            {/* Delivery address */}
-            {activeOrder.orderType === "delivery" && (
-              <div className="px-3 pt-2">
-                <Input
-                  value={activeOrder.deliveryAddress}
-                  onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
-                  placeholder="📍 عنوان التوصيل..."
-                  className="h-7 text-[11px]"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
-                />
-              </div>
-            )}
+            {/* Delivery Panel */}
+            <POSDeliveryPanel
+              orderId={activeOrder.savedOrderId}
+              isDelivery={activeOrder.orderType === "delivery"}
+              customerAddress={activeOrder.deliveryAddress}
+              zoneCode={activeOrder.zoneCode}
+              areaName={activeOrder.areaName}
+              deliveryStatus={activeOrder.deliveryStatus}
+              captainName={activeOrder.captainName}
+              captainPhone={activeOrder.captainPhone}
+              captainVehicle={activeOrder.captainVehicle}
+              onDeliveryFieldsChange={(fields) => {
+                updateActiveOrder(o => ({
+                  ...o,
+                  deliveryAddress: fields.customerAddress ?? o.deliveryAddress,
+                  zoneCode: fields.zoneCode ?? o.zoneCode,
+                  areaName: fields.areaName ?? o.areaName,
+                }));
+              }}
+              onDeliveryStatusChange={(status, captain) => {
+                updateActiveOrder(o => ({
+                  ...o,
+                  deliveryStatus: status,
+                  captainName: captain?.name ?? o.captainName,
+                  captainPhone: captain?.phone ?? o.captainPhone,
+                  captainVehicle: captain?.vehicle ?? o.captainVehicle,
+                }));
+              }}
+            />
 
             {/* Table picker dropdown */}
             {showTablePicker && (
