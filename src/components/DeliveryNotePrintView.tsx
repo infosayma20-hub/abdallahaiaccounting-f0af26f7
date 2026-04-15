@@ -104,6 +104,7 @@ const DeliveryNotePrintView = ({ note, settings, copyLabel = "إرسالية م�
               <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
               {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
               {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
+              {settings.phone2 && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone2}</div>}
               {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
             </div>
           </div>

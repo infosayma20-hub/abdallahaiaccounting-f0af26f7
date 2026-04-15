@@ -1981,6 +1981,7 @@ export type Database = {
           payment_prefix: string | null
           period_lock_mode: string | null
           phone: string | null
+          phone2: string | null
           pos_allow_order_transfer: boolean | null
           pos_auto_print: boolean | null
           pos_auto_update_stock: boolean | null
@@ -2120,6 +2121,7 @@ export type Database = {
           payment_prefix?: string | null
           period_lock_mode?: string | null
           phone?: string | null
+          phone2?: string | null
           pos_allow_order_transfer?: boolean | null
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
@@ -2259,6 +2261,7 @@ export type Database = {
           payment_prefix?: string | null
           period_lock_mode?: string | null
           phone?: string | null
+          phone2?: string | null
           pos_allow_order_transfer?: boolean | null
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null

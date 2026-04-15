@@ -12,6 +12,7 @@ export interface CompanySettings {
   address: string;
   city: string;
   phone: string;
+  phone2: string;
   email: string;
   website: string;
   tax_number: string;
@@ -145,6 +146,7 @@ const defaultSettings: CompanySettings = {
   address: "",
   city: "",
   phone: "",
+  phone2: "",
   email: "",
   website: "",
   tax_number: "",

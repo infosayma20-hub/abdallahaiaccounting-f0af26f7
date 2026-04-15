@@ -31,6 +31,7 @@ export function ProcurementPrintView({ order, items, type }: PrintOrderProps) {
         <div className="text-left">
           <p className="font-bold">{settings.company_name || "الشركة"}</p>
           {settings.phone && <p className="text-xs">{settings.phone}</p>}
+          {settings.phone2 && <p className="text-xs">{settings.phone2}</p>}
         </div>
       </div>
 

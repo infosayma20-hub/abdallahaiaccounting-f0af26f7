@@ -203,6 +203,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
             <div style={{ fontSize: "11px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
             {settings.address && <div style={{ opacity: 0.85 }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
             {settings.phone && <div style={{ opacity: 0.85 }}>📞 {settings.phone}</div>}
+            {settings.phone2 && <div style={{ opacity: 0.85 }}>📞 {settings.phone2}</div>}
             {settings.email && <div style={{ opacity: 0.75 }}>✉️ {settings.email}</div>}
             {taxEnabled && settings.tax_number && <div style={{ opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
           </div>
@@ -275,6 +276,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
               {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
               {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
+              {settings.phone2 && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone2}</div>}
               {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
               {taxEnabled && settings.tax_number && <div style={{ fontSize: "10px", opacity: 0.85 }}>🔢 الرقم الضريبي: {settings.tax_number}</div>}
             </div>

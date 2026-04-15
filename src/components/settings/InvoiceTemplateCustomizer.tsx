@@ -236,6 +236,7 @@ const InvoicePreview = ({ settings, color, layout }: { settings: CompanySettings
               <p className="text-white font-bold text-xs">{companyName}</p>
               {settings.address && <p className="text-white/70 text-[8px]">{settings.address}</p>}
               {settings.phone && <p className="text-white/70 text-[8px]">☎ {settings.phone}</p>}
+              {settings.phone2 && <p className="text-white/70 text-[8px]">☎ {settings.phone2}</p>}
             </div>
           </div>
         </div>
