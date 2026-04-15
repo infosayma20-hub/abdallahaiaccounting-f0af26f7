@@ -228,7 +228,60 @@ const DeliveryNoteCreatePage = () => {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    // If not saved yet, save first to get the delivery number
+    if (!editingId && !noteNumber) {
+      if (!user) return;
+      if (!contactName.trim()) { toast.error("يرجى إدخال اسم العميل أولاً"); return; }
+      if (items.every(i => !i.product_name.trim())) { toast.error("يرجى إضافة بند واحد على الأقل"); return; }
+      setSaving(true);
+      try {
+        const saveData = {
+          user_id: user.id,
+          contact_id: contactId || null,
+          contact_name: contactName,
+          delivery_date: date,
+          currency,
+          subtotal: formTotal,
+          total_amount: formTotal,
+          notes: notes || null,
+          driver_name: driverName || null,
+          vehicle_number: vehicleNumber || null,
+          delivery_address: deliveryAddress || null,
+          status: "draft",
+        };
+        const { data, error } = await supabase.from("delivery_notes").insert(saveData as any).select("id, delivery_number").single();
+        if (error) throw error;
+        setNoteNumber((data as any).delivery_number || "");
+        setNoteStatus("draft");
+        // Save items
+        const itemsToSave = items.filter(i => i.product_name.trim()).map((item, idx) => ({
+          delivery_note_id: (data as any).id,
+          product_id: item.product_id || null,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          total: item.total,
+          notes: item.notes || null,
+          sort_order: idx,
+        }));
+        if (itemsToSave.length > 0) {
+          await supabase.from("delivery_note_items").insert(itemsToSave as any);
+        }
+        toast.success("تم حفظ الإرسالية كمسودة");
+        // Update URL to edit mode
+        navigate(`/delivery-notes/edit/${(data as any).id}`, { replace: true });
+      } catch (err: any) {
+        toast.error(err.message || "خطأ في الحفظ");
+        return;
+      } finally {
+        setSaving(false);
+      }
+      // Wait a tick for state to update
+      await new Promise(r => setTimeout(r, 100));
+    }
+
     const noteData = {
       deliveryNumber: noteNumber || "إرسالية جديدة",
       date,
