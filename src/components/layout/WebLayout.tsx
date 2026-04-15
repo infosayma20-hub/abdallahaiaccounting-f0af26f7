@@ -2,6 +2,7 @@ import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
 import AppFooter from "./AppFooter";
+import NoorSupportWidget from "../NoorSupportWidget";
 import TabBar from "./TabBar";
 
 import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
@@ -63,6 +64,9 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
       {/* Session timeout manager */}
       <SessionManager />
+
+      {/* Noor Support Widget */}
+      <NoorSupportWidget />
     </div>
     </TabsProvider>
   );
