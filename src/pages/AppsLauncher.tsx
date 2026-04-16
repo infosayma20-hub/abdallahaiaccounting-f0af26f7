@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Lock, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import UpgradePromptModal from "@/components/subscription/UpgradePromptModal";
 import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
@@ -27,16 +29,18 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
 
 /* ── App Card — Qoyod-style with prominent icon & hover animation ── */
 const AppCard = ({
-  app, index, isExpanded, onToggle, onNavigate, disabled, isLocked,
+  app, index, isExpanded, onToggle, onNavigate, disabled, isLocked, isPremiumLocked, onPremiumClick,
 }: {
   app: NavItem; index: number; isExpanded: boolean;
   onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean; isLocked?: boolean;
+  isPremiumLocked?: boolean; onPremiumClick?: () => void;
 }) => {
   const isDisabledOrLocked = disabled || isLocked;
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
   const handleClick = () => {
     if (isDisabledOrLocked) return;
+    if (isPremiumLocked) { onPremiumClick?.(); return; }
     if (hasChildren) { onToggle(); return; }
     onNavigate(app.path);
   };
