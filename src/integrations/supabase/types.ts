@@ -13057,6 +13057,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      ensure_warranty_accounts: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
