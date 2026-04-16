@@ -366,8 +366,11 @@ const InvoiceCreatePage = () => {
         }));
       }
 
-      // Generate next invoice number based on current type + offset
-      const prefix = form.type === "sales" ? "INV" : "PO";
+      // Generate next invoice number based on current type + offset + custom prefix from settings
+      const settingsRow = (settingsRes as any)?.data || {};
+      const salesPrefix = (settingsRow.invoice_prefix || "INV").trim() || "INV";
+      const purchasePrefix = (settingsRow.purchase_order_prefix || "PO").trim() || "PO";
+      const prefix = form.type === "sales" ? salesPrefix : purchasePrefix;
       const totalCount = invCountRes.count || 0;
       const invoiceOffset = (companyRes.data as any)?.invoice_number_offset || 0;
       const year = new Date().getFullYear();
