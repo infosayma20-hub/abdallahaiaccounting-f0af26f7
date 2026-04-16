@@ -941,6 +941,21 @@ const TransactionsPage = () => {
                           <div className="flex items-center gap-1.5 min-w-0" title={tx.description || ""}>
                             <ChevronRightIcon className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
                             <span className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
+                            {(() => {
+                              const lk = classifyTransaction(tx);
+                              return (
+                                <span
+                                  className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                                    lk.isLinked
+                                      ? "bg-primary/10 text-primary border border-primary/20"
+                                      : "bg-muted text-muted-foreground border border-border"
+                                  }`}
+                                  title={lk.isLinked ? "قيد مرتبط بمستند — للتعديل اذهب للمستند الأصلي" : "قيد يدوي قابل للتعديل والحذف"}
+                                >
+                                  {lk.label}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="px-3 py-3">
@@ -953,21 +968,44 @@ const TransactionsPage = () => {
                           <span className="font-mono font-semibold text-sm text-emerald-500">₪{tx.amount?.toFixed(2)}</span>
                         </td>
                         <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEdit(tx)}>
-                                <Pencil className="h-4 w-4 ml-2" /> تعديل
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
-                                <Trash2 className="h-4 w-4 ml-2" /> حذف
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {(() => {
+                            const lk = classifyTransaction(tx);
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {lk.isLinked ? (
+                                    <>
+                                      {lk.navigatePath && (
+                                        <DropdownMenuItem onClick={() => navigate(lk.navigatePath!)}>
+                                          <ExternalLink className="h-4 w-4 ml-2" /> الذهاب للمستند الأصلي
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => openEdit(tx)}>
+                                        <Search className="h-4 w-4 ml-2" /> عرض التفاصيل
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem disabled className="text-muted-foreground/60 cursor-not-allowed">
+                                        <Lock className="h-4 w-4 ml-2" /> محمي — قيد مرتبط
+                                      </DropdownMenuItem>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DropdownMenuItem onClick={() => openEdit(tx)}>
+                                        <Pencil className="h-4 w-4 ml-2" /> تعديل
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-destructive" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
+                                        <Trash2 className="h-4 w-4 ml-2" /> حذف
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
                         </td>
                       </tr>
 
