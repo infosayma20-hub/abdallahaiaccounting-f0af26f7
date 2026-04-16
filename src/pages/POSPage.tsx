@@ -5820,6 +5820,13 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Camera Barcode Scanner ── */}
+      <POSBarcodeScanner
+        open={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onScan={handleBarcodeScan}
+      />
     </div>
   );
 };
