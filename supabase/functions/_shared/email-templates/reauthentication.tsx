@@ -36,8 +36,8 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
           <Text style={codeStyle}>{token}</Text>
 
           <Text style={footerNote}>
-            ⏱️ هذا الرمز صالح لفترة قصيرة فقط.<br />
-            🔒 إذا لم تطلب هذا الرمز، تجاهل هذا الإيميل.
+            هذا الرمز صالح لفترة قصيرة فقط.<br />
+            إذا لم تطلب هذا الرمز، تجاهل هذا الإيميل.
           </Text>
         </Section>
 

@@ -52,7 +52,7 @@ export const EmailChangeEmail = ({
           </Section>
 
           <Text style={footerNote}>
-            ⚠️ إذا لم تطلب هذا التغيير، يرجى تأمين حسابك فوراً.
+            تنبيه أمان: إذا لم تطلب هذا التغيير، يرجى تأمين حسابك فوراً.
           </Text>
         </Section>
 

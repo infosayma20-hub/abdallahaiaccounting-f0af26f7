@@ -50,7 +50,7 @@ export const SignupEmail = ({
           </Section>
 
           <Text style={footerNote}>
-            🔒 إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.
+            إذا لم تنشئ هذا الحساب، يمكنك تجاهل هذا الإيميل بأمان.
           </Text>
         </Section>
 
