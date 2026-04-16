@@ -178,25 +178,25 @@ const NoorSupportWidget = () => {
       {!open && (
         <div className="fixed bottom-6 left-4 z-[60] group" style={{ perspective: "600px" }}>
           {/* Pulse rings */}
-          <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" style={{ animationDuration: "2.5s" }} />
-          <span className="absolute inset-[-4px] rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "3.5s", animationDelay: "0.5s" }} />
+          <span className="absolute inset-0 rounded-full animate-ping" style={{ animationDuration: "2.5s", background: "rgba(30,58,95,0.25)" }} />
+          <span className="absolute inset-[-4px] rounded-full animate-ping" style={{ animationDuration: "3.5s", animationDelay: "0.5s", background: "rgba(30,58,95,0.15)" }} />
           <button
             onClick={() => setOpen(true)}
             className="relative w-14 h-14 rounded-full flex items-center justify-center text-white transition-all duration-500 group-hover:scale-110 active:scale-95"
             style={{
-              background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
-              boxShadow: "0 6px 24px hsl(var(--primary) / 0.4), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)",
+              background: "linear-gradient(135deg, #0D1B2E, #1E3A5F)",
+              boxShadow: "0 6px 24px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15)",
               transform: "rotateY(0deg) rotateX(0deg)",
               transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "rotateY(-12deg) rotateX(8deg) scale(1.1)";
-              e.currentTarget.style.boxShadow = "8px 8px 30px hsl(var(--primary) / 0.5), 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)";
+              e.currentTarget.style.boxShadow = "8px 8px 30px rgba(13,27,46,0.6), 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)";
-              e.currentTarget.style.boxShadow = "0 6px 24px hsl(var(--primary) / 0.4), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)";
-            }}
+              e.currentTarget.style.boxShadow = "0 6px 24px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15)";
+            }
             title="نور — الدعم الفني"
           >
             <Headset className="h-6 w-6 drop-shadow-sm" />
