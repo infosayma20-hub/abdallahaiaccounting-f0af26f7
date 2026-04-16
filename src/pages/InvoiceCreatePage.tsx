@@ -1998,6 +1998,18 @@ const InvoiceCreatePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Warranty Cards Dialog */}
+      {isEditMode && editInvoiceId && (
+        <CreateWarrantyCardsDialog
+          open={showWarrantyDialog}
+          onOpenChange={setShowWarrantyDialog}
+          invoiceId={editInvoiceId}
+          contactId={selectedContact?.id || null}
+          contactName={selectedContact?.contact_name || form.contactName || null}
+          invoiceDate={form.date}
+        />
+      )}
     </div>
   );
 };
