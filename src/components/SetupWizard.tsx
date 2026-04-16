@@ -64,7 +64,7 @@ const CURRENCIES = [
 const needsInventory = (bt: BusinessType | null) =>
   bt ? ["تجارة", "مطعم", "متجر إلكتروني"].includes(bt) : false;
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 const pageVariants = {
   enter: { opacity: 0, y: 30 },
@@ -326,59 +326,10 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       };
       await supabase.from("company_settings" as any).upsert(settingsPayload as any, { onConflict: "user_id" });
 
-      if (data.cashBalance > 0) {
-        await supabase.from("cash_boxes").upsert({
-          user_id: userId,
-          name: "الخزينة الرئيسية",
-          type: "main",
-          opening_balance: data.cashBalance,
-          opening_balance_date: new Date().toISOString().split("T")[0],
-          currency: data.currency === "other" ? data.customCurrency : (data.currency === "ILS" ? "شيكل" : data.currency),
-        }, { onConflict: "user_id,name" as any });
-      }
-
-      if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
-        const bankCurrLabel = data.bankCurrency === "ILS" ? "شيكل" : data.bankCurrency === "USD" ? "دولار" : data.bankCurrency === "JOD" ? "دينار" : data.bankCurrency;
-        const accountName = data.bankAccountName || `${data.bankName} - ${data.bankAccountType}`;
-        await supabase.from("bank_accounts").insert({
-          user_id: userId,
-          name: accountName,
-          bank_name: data.bankName,
-          account_type: data.bankAccountType,
-          opening_balance: data.bankBalance,
-          opening_balance_date: new Date().toISOString().split("T")[0],
-          currency: bankCurrLabel,
-        });
-        const { data: existingAccounts } = await supabase
-          .from("accounts")
-          .select("account_code")
-          .eq("user_id", userId)
-          .like("account_code", "112%")
-          .order("account_code", { ascending: false })
-          .limit(1);
-        const lastCode = existingAccounts?.[0]?.account_code || "1120";
-        const nextCode = String(parseInt(lastCode) + 1);
-        await supabase.from("accounts").insert({
-          user_id: userId,
-          account_code: nextCode,
-          account_name: accountName,
-          account_type: "asset",
-          parent_code: "1120",
-          is_system: false,
-        });
-      }
-
       await refreshCompany();
 
       const items: string[] = [];
       items.push(`شجرة حسابات لـ ${data.businessType || "نشاطك"}`);
-      if (data.cashBalance > 0) items.push(`الصندوق الرئيسي — رصيد ₪${data.cashBalance.toLocaleString()}`);
-      if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
-        items.push(`حساب بنكي: ${data.bankAccountName || data.bankName} (${data.bankAccountType})`);
-      }
-      if (data.leaveForAccountant) {
-        items.push("⏳ الحساب البنكي — معلّق للمراجعة من المحاسب");
-      }
       items.push(`تسلسل الفواتير: ${data.invoicePrefix}-2026-0001`);
       const mods: string[] = ["المحاسبة"];
       if (hasInv) mods.push("المخزون");
@@ -397,7 +348,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   };
 
   const goNext = () => {
-    if (step === 5) {
+    if (step === 4) {
       handleFinish();
     } else {
       setStep(s => s + 1);
@@ -414,7 +365,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   return (
     <div className="fixed inset-0 z-[70] bg-background flex flex-col overflow-hidden" dir="rtl">
       {/* Progress Bar */}
-      {step >= 0 && step <= 5 && (
+      {step >= 0 && step <= 4 && (
         <div className="px-6 pt-5 pb-2">
           <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
             <motion.div
@@ -1103,7 +1054,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       </div>
 
       {/* Footer */}
-      {step >= 0 && step <= 5 && (
+      {step >= 0 && step <= 4 && (
         <div className="px-6 pb-8 pt-4 space-y-3">
           <button
             onClick={goNext}
@@ -1115,7 +1066,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 <Loader2 className="h-5 w-5 animate-spin" />
                 جاري إعداد نظامك...
               </>
-            ) : step === 5 ? (
+            ) : step === 4 ? (
               "🚀 جهّز نظامي"
             ) : (
               <>
