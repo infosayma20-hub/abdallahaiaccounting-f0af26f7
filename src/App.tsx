@@ -129,7 +129,7 @@ const WeeklyProcurementReportPage = lazy(() => import("./pages/procurement/Weekl
 const ProcurementSettingsPage = lazy(() => import("./pages/procurement/ProcurementSettingsPage"));
 const ImportWizardPage = lazy(() => import("./pages/ImportWizardPage"));
 const ImportDetailPage = lazy(() => import("./pages/ImportDetailPage"));
-const BillingPage = lazy(() => import("./pages/BillingPage"));
+
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const SetupPage = lazy(() => import("./pages/SetupPage"));
@@ -289,7 +289,7 @@ const App = () => (
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/billing" element={<BillingPage />} />
+                      <Route path="/billing" element={<Navigate to="/pricing" replace />} />
                       <Route path="/subscription" element={<Navigate to="/pricing" replace />} />
                       <Route path="/journal-entries" element={<Navigate to="/transactions" replace />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />

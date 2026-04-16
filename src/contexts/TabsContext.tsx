@@ -73,7 +73,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/pos": { title: "نقطة البيع", icon: "cart" },
   "/settings": { title: "الإعدادات", icon: "settings" },
   "/profile": { title: "الملف الشخصي", icon: "settings" },
-  "/billing": { title: "الاشتراك", icon: "dollar" },
+  
   "/sales-reps": { title: "مندوبين المبيعات", icon: "users" },
   "/fixed-assets": { title: "الأصول الثابتة", icon: "briefcase" },
   "/warranty": { title: "إدارة الكفالات", icon: "shield" },
@@ -244,7 +244,7 @@ function saveTabs(tabs: AppTab[], userId?: string) {
 }
 
 // Pages that should NOT open as tabs
-const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing"];
+const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing", "/billing", "/subscription"];
 
 function isExcludedPath(path: string) {
   return EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)));
@@ -265,7 +265,10 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       prevUserIdRef.current = userId;
       if (userId) {
         const userTabs = loadTabs(userId);
-        setTabs(userTabs);
+        // Filter out excluded/legacy paths (e.g. /billing, /subscription, /pricing)
+        const cleaned = userTabs.filter(t => !isExcludedPath(t.path));
+        if (cleaned.length !== userTabs.length) saveTabs(cleaned, userId);
+        setTabs(cleaned);
       } else {
         setTabs([]);
       }
