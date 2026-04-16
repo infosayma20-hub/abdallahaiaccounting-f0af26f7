@@ -3,6 +3,7 @@ import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
 import TrialExpiredOverlay from "./TrialExpiredOverlay";
 import TrialLastDayModal from "./TrialLastDayModal";
+import TrialWelcomeModal from "./TrialWelcomeModal";
 import ReadOnlyBanner from "./ReadOnlyBanner";
 import FloatingSubscribeButton from "./FloatingSubscribeButton";
 
