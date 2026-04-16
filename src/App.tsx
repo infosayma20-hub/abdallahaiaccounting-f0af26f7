@@ -214,6 +214,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <CrossTabSyncProvider />
+        <VersionChecker />
         <BrowserRouter>
           <AuthProvider>
             <ReadOnlyProvider>
