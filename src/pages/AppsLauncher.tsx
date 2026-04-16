@@ -298,6 +298,8 @@ const AppsLauncher = () => {
               onNavigate={navigate}
               disabled={isAppDisabled(app)}
               isLocked={hiddenApps.includes(app.id)}
+              isPremiumLocked={isAppPremiumLocked(app)}
+              onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: getRequiredTier(app.id) })}
             />
           ))}
         </div>
@@ -310,6 +312,12 @@ const AppsLauncher = () => {
         )}
       </div>
 
+      <UpgradePromptModal
+        open={upgradeModal.open}
+        onOpenChange={(v) => setUpgradeModal(prev => ({ ...prev, open: v }))}
+        moduleName={upgradeModal.module}
+        requiredTier={upgradeModal.tier}
+      />
 
       {!onboardingLoading && (
         <>
