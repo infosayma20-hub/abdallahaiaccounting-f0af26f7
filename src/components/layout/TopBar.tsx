@@ -338,7 +338,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
-    <header className="sticky top-0 z-40" style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+    <header className="sticky top-0 z-50" style={{ height: 52, background: "#0D1B2E", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
       <div className="h-full flex items-center gap-4 px-4 sm:px-6">
         <Tooltip>
           <TooltipTrigger asChild>
