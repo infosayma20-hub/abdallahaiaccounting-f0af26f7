@@ -386,7 +386,7 @@ export const NotificationsPanel = ({
         dir="rtl"
         style={{
           position: "fixed",
-          left: "auto",
+          left: "120px",
           top: "56px",
           width: "400px",
           maxWidth: "calc(100vw - 2rem)",
