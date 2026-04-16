@@ -98,6 +98,7 @@ const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage")
 const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
+const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
 const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
 const DigitalReceiptPage = lazy(() => import("./pages/DigitalReceiptPage"));
@@ -237,6 +238,7 @@ const App = () => (
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+              <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
