@@ -1110,42 +1110,111 @@ const TransactionsPage = () => {
       {/* ━━━ Edit Dialog ━━━ */}
       <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle className="text-foreground">تعديل القيد</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input value={editFields.description} onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))} placeholder="الوصف" dir="rtl" />
-            <div className="flex gap-2">
-              <Input type="number" value={editFields.amount} onChange={e => setEditFields(p => ({ ...p, amount: e.target.value }))} placeholder="المبلغ" className="flex-1" />
-              <Select value={editFields.currency} onValueChange={v => setEditFields(p => ({ ...p, currency: v }))} dir="rtl">
-                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="شيكل">شيكل</SelectItem>
-                  <SelectItem value="دينار">دينار</SelectItem>
-                  <SelectItem value="دولار">دولار</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Input type="date" value={editFields.transaction_date} onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
-            <AccountSearchSelect
-              accounts={accounts}
-              value={editFields.debit_account_code}
-              onChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))}
-              placeholder="الحساب المدين"
-            />
-            <AccountSearchSelect
-              accounts={accounts}
-              value={editFields.credit_account_code}
-              onChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))}
-              placeholder="الحساب الدائن"
-            />
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} disabled={saving} className="flex-1">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
-              </Button>
-              <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {editingTx && classifyTransaction(editingTx).isLinked ? "تفاصيل القيد (للقراءة)" : "تعديل القيد"}
+            </DialogTitle>
+          </DialogHeader>
+          {editingTx && (() => {
+            const linkage = classifyTransaction(editingTx);
+            const readonly = linkage.isLinked;
+            return (
+              <div className="space-y-3">
+                {readonly && (
+                  <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 p-3">
+                    <Lock className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-foreground leading-relaxed flex-1">
+                      <span className="font-semibold">قيد محمي ({linkage.label}).</span>{" "}
+                      للتعديل أو الإلغاء، اذهب للمستند الأصلي — سيقوم النظام بإنشاء قيد عكسي تلقائياً.
+                    </div>
+                  </div>
+                )}
+                <Input
+                  value={editFields.description}
+                  onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))}
+                  placeholder="الوصف" dir="rtl"
+                  disabled={readonly}
+                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number" value={editFields.amount}
+                    onChange={e => setEditFields(p => ({ ...p, amount: e.target.value }))}
+                    placeholder="المبلغ" className="flex-1"
+                    disabled={readonly}
+                  />
+                  <Select value={editFields.currency} onValueChange={v => setEditFields(p => ({ ...p, currency: v }))} dir="rtl" disabled={readonly}>
+                    <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="شيكل">شيكل</SelectItem>
+                      <SelectItem value="دينار">دينار</SelectItem>
+                      <SelectItem value="دولار">دولار</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  type="date" value={editFields.transaction_date}
+                  onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))}
+                  disabled={readonly}
+                />
+                {readonly ? (
+                  <>
+                    <div className="rounded-xl border border-border p-2 bg-muted/30">
+                      <div className="text-[10px] text-muted-foreground mb-1">الحساب المدين</div>
+                      <div className="text-sm text-foreground">
+                        <span className="font-mono text-xs text-muted-foreground ml-2">{editFields.debit_account_code}</span>
+                        {getAccountName(editFields.debit_account_code)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-border p-2 bg-muted/30">
+                      <div className="text-[10px] text-muted-foreground mb-1">الحساب الدائن</div>
+                      <div className="text-sm text-foreground">
+                        <span className="font-mono text-xs text-muted-foreground ml-2">{editFields.credit_account_code}</span>
+                        {getAccountName(editFields.credit_account_code)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AccountSearchSelect
+                      accounts={accounts}
+                      value={editFields.debit_account_code}
+                      onChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))}
+                      placeholder="الحساب المدين"
+                    />
+                    <AccountSearchSelect
+                      accounts={accounts}
+                      value={editFields.credit_account_code}
+                      onChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))}
+                      placeholder="الحساب الدائن"
+                    />
+                  </>
+                )}
+                <div className="flex gap-2 pt-2">
+                  {readonly ? (
+                    <>
+                      {linkage.navigatePath && (
+                        <Button onClick={() => { navigate(linkage.navigatePath!); setEditingTx(null); }} className="flex-1 gap-2">
+                          <ExternalLink className="h-4 w-4" /> الذهاب للمستند الأصلي
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => setEditingTx(null)} className={linkage.navigatePath ? "" : "flex-1"}>
+                        إغلاق
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button onClick={handleSave} disabled={saving} className="flex-1">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+                      </Button>
+                      <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
