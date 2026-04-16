@@ -1,7 +1,7 @@
 import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
-  Puzzle, ArrowLeftRight, ClipboardList, Plane, LayoutGrid, Sparkles, Receipt,
+  Puzzle, ArrowLeftRight, ClipboardList, Plane, LayoutGrid, Sparkles, Receipt, Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -231,6 +231,29 @@ export const navigationSections: NavSection[] = [
         id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "assets", icon: Landmark,
         color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true,
         keywords: ["أصول", "استهلاك", "ثابتة"],
+      },
+      {
+        id: "warranty", label: "إدارة الكفالات", description: "سياسات، بطاقات، مطالبات، وتعويضات الشركة الأم", module: "warranty", icon: Shield,
+        color: "text-emerald-600", bgColor: "bg-emerald-500/10", path: "/warranty",
+        keywords: ["كفالة", "كفالات", "ضمان", "warranty", "صيانة", "مطالبة"],
+        groups: [
+          {
+            groupLabel: "العمليات",
+            children: [
+              { label: "الصفحة الرئيسية", path: "/warranty" },
+              { label: "بطاقات الكفالة", path: "/warranty/cards" },
+              { label: "مطالبات الكفالة", path: "/warranty/claims" },
+              { label: "مطالبات الشركة الأم", path: "/warranty/supplier-claims" },
+            ],
+          },
+          {
+            groupLabel: "الإعدادات والتقارير",
+            children: [
+              { label: "سياسات الكفالة", path: "/warranty/policies" },
+              { label: "التقارير", path: "/warranty/reports" },
+            ],
+          },
+        ],
       },
       {
         id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "contractor", icon: Building2,
