@@ -48,7 +48,7 @@ export const InviteEmail = ({
           </Section>
 
           <Text style={footerNote}>
-            🔒 إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا الإيميل بأمان.
+            إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا الإيميل بأمان.
           </Text>
         </Section>
 

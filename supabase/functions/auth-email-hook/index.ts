@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'أموالي — تأكيد بريدك الإلكتروني',
+  invite: 'أموالي — دعوة للانضمام',
+  magiclink: 'أموالي — رابط الدخول السريع',
+  recovery: 'أموالي — إعادة تعيين كلمة المرور',
+  email_change: 'أموالي — تأكيد البريد الجديد',
+  reauthentication: 'أموالي — رمز التحقق',
 }
 
 // Template mapping
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "abdallahaiaccounting"
+const SITE_NAME = "أموالي"
 const SENDER_DOMAIN = "notify.amwali.app"
 const ROOT_DOMAIN = "amwali.app"
 const FROM_DOMAIN = "amwali.app" // Domain shown in From address (may be root or sender subdomain)
