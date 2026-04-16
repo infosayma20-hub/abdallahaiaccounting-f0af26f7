@@ -3,6 +3,7 @@ import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
 import TrialExpiredOverlay from "./TrialExpiredOverlay";
 import TrialLastDayModal from "./TrialLastDayModal";
+import TrialWelcomeModal from "./TrialWelcomeModal";
 import ReadOnlyBanner from "./ReadOnlyBanner";
 import FloatingSubscribeButton from "./FloatingSubscribeButton";
 
@@ -21,6 +22,7 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
   if (isPaidActive || isFreePage) {
     return (
       <>
+        <TrialWelcomeModal />
         <TrialLastDayModal />
         {children}
       </>
@@ -50,9 +52,10 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Active trial → show last day modal if applicable
+  // Active trial → show welcome (day 1) and last-day (day 1 left) modals
   return (
     <>
+      <TrialWelcomeModal />
       <TrialLastDayModal />
       {children}
     </>

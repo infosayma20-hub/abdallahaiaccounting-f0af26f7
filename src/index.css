@@ -1019,27 +1019,37 @@ html {
   }
 }
 
-/* ─── READ-ONLY MODE (Trial Expired) ─── */
-.trial-readonly-mode button:not([data-readonly-exempt]),
-.trial-readonly-mode [role="button"]:not([data-readonly-exempt]) {
-  /* Allow navigation buttons but block action buttons */
-}
-
-.trial-readonly-mode input,
-.trial-readonly-mode textarea,
-.trial-readonly-mode select {
+/* ─── READ-ONLY MODE (Trial Expired) ───
+ * Disables all form inputs and action buttons globally.
+ * Navigation, links, and view-only buttons remain functional via [data-readonly-exempt].
+ */
+.trial-readonly-mode input:not([data-readonly-exempt]),
+.trial-readonly-mode textarea:not([data-readonly-exempt]),
+.trial-readonly-mode select:not([data-readonly-exempt]) {
   pointer-events: none !important;
-  opacity: 0.6;
-  background: #F4F6F8 !important;
+  opacity: 0.55 !important;
+  background: hsl(var(--muted)) !important;
   cursor: not-allowed !important;
+  user-select: none !important;
 }
 
 .trial-readonly-mode [data-action-btn],
-.trial-readonly-mode button[class*="إضافة"],
-.trial-readonly-mode button[class*="حفظ"] {
-  opacity: 0.4 !important;
+.trial-readonly-mode button[type="submit"]:not([data-readonly-exempt]),
+.trial-readonly-mode [data-action="create"],
+.trial-readonly-mode [data-action="save"],
+.trial-readonly-mode [data-action="edit"],
+.trial-readonly-mode [data-action="delete"] {
+  opacity: 0.35 !important;
   pointer-events: none !important;
   cursor: not-allowed !important;
+  filter: grayscale(70%);
+}
+
+/* Visual hint badge on disabled action buttons */
+.trial-readonly-mode [data-action-btn]::after,
+.trial-readonly-mode button[type="submit"]:not([data-readonly-exempt])::after {
+  content: " 🔒";
+  font-size: 11px;
 }
 
 /* ─── FINIX Loading Screen Animations ─── */
