@@ -240,8 +240,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Clear auth_user_id from employees table so it shows "create account" again
-      await admin.from("employees").update({ auth_user_id: null }).eq("auth_user_id", targetUserId);
+      // Clear auth_user_id references from related tables (FKs without CASCADE block deletion)
+      await Promise.all([
+        admin.from("employees").update({ auth_user_id: null }).eq("auth_user_id", targetUserId),
+        admin.from("pos_sessions").update({ cashier_auth_user_id: null }).eq("cashier_auth_user_id", targetUserId),
+      ]);
 
       const { error } = await admin.auth.admin.deleteUser(targetUserId);
       if (error) {
