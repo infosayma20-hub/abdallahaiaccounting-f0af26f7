@@ -103,7 +103,8 @@ export default function WarrantyClaimsPage() {
       issue_description: form.issue_description,
       claim_type: form.claim_type,
       status: "open",
-    });
+      claim_number: "",
+    } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("تم تسجيل المطالبة");
     setOpen(false);
@@ -138,7 +139,8 @@ export default function WarrantyClaimsPage() {
             our_cost: resolveForm.cost - coverage,
             status: "pending",
             notes: `من المطالبة ${claim.claim_number}`,
-          })
+            claim_number: "",
+          } as any)
           .select("id")
           .single();
         if (!supErr && sup) supplierClaimId = sup.id;
