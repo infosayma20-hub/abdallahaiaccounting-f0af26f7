@@ -269,6 +269,45 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          email_sent: boolean
+          email_sent_at: string | null
+          event_type: string
+          id: string
+          is_read: boolean
+          metadata: Json | null
+          user_email: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_sent?: boolean
+          email_sent_at?: string | null
+          event_type: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json | null
+          user_email: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_sent?: boolean
+          email_sent_at?: string | null
+          event_type?: string
+          id?: string
+          is_read?: boolean
+          metadata?: Json | null
+          user_email?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           created_at: string
