@@ -9,8 +9,10 @@ import TransactionsPrintView from "@/components/TransactionsPrintView";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle
+  Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle,
+  ExternalLink, Info, Lock
 } from "lucide-react";
+import { classifyTransaction } from "@/lib/transactionLinkage";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,6 +232,15 @@ const TransactionsPage = () => {
   const [loadingTrash, setLoadingTrash] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
+  // Integrity banner
+  const [showIntegrityBanner, setShowIntegrityBanner] = useState(() => {
+    return localStorage.getItem("amwali_integrity_banner_dismissed") !== "1";
+  });
+  const dismissIntegrityBanner = () => {
+    setShowIntegrityBanner(false);
+    localStorage.setItem("amwali_integrity_banner_dismissed", "1");
+  };
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
@@ -432,12 +443,22 @@ const TransactionsPage = () => {
 
   const handleDelete = async () => {
     if (!editingTx) return;
+    // ━━ حماية النزاهة المحاسبية ━━
+    const linkage = classifyTransaction(editingTx);
+    if (linkage.isLinked) {
+      toast({
+        title: "لا يمكن الحذف من دفتر اليومية",
+        description: "هذا القيد مرتبط بمستند. اذهب للمستند الأصلي لإلغائه — سيقوم النظام بإنشاء قيد عكسي تلقائياً.",
+        variant: "destructive",
+      });
+      setShowDeleteConfirm(false);
+      return;
+    }
     setDeleting(true);
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).eq('id', editingTx.id);
       if (error) throw error;
-      // DB trigger cascades to linked vouchers/invoices automatically
-      toast({ title: "تم نقل المعاملة والمستندات المرتبطة إلى سلة المحذوفات" });
+      toast({ title: "تم نقل القيد اليدوي إلى سلة المحذوفات" });
       setEditingTx(null); setShowDeleteConfirm(false); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -447,10 +468,32 @@ const TransactionsPage = () => {
   const handleBulkDelete = async () => {
     setBulkDeleting(true);
     try {
-      const ids = Array.from(selectedIds);
-      const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', ids);
+      // ━━ حماية النزاهة المحاسبية: تصفية القيود اليدوية فقط ━━
+      const allIds = Array.from(selectedIds);
+      const manualIds = allIds.filter(id => {
+        const tx = transactions.find(t => t.id === id);
+        if (!tx) return false;
+        return !classifyTransaction(tx).isLinked;
+      });
+      const blockedCount = allIds.length - manualIds.length;
+
+      if (manualIds.length === 0) {
+        toast({
+          title: "لا يمكن الحذف من دفتر اليومية",
+          description: "كل القيود المحددة مرتبطة بمستندات (فواتير/سندات). الرجاء الذهاب للمستند الأصلي لإلغائه.",
+          variant: "destructive",
+        });
+        setShowBulkDeleteConfirm(false);
+        setBulkDeleting(false);
+        return;
+      }
+
+      const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', manualIds);
       if (error) throw error;
-      toast({ title: `تم نقل ${ids.length} معاملة والمستندات المرتبطة إلى سلة المحذوفات` });
+      toast({
+        title: `تم نقل ${manualIds.length} قيد يدوي إلى سلة المحذوفات`,
+        description: blockedCount > 0 ? `تم تجاهل ${blockedCount} قيد مرتبط بمستندات (يجب إلغاؤها من المستند الأصلي).` : undefined,
+      });
       setShowBulkDeleteConfirm(false); setSelectedIds(new Set()); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -655,6 +698,29 @@ const TransactionsPage = () => {
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title="تقرير الحركات المحاسبية" breadcrumb={["المحاسبة", "الحركات المحاسبية"]} />
+
+      {/* ━━ شريط تنبيه نزاهة دفتر اليومية ━━ */}
+      {showIntegrityBanner && (
+        <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="rounded-full bg-primary/10 p-2 flex-shrink-0">
+            <Info className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1 text-xs text-foreground leading-relaxed">
+            <span className="font-semibold">📌 حماية النزاهة المحاسبية:</span>
+            {" "}القيود المرتبطة بمستندات (فواتير / سندات / شيكات) لا يمكن حذفها أو تعديلها من هنا.
+            اذهب للمستند الأصلي لإلغائه — سيقوم النظام بإنشاء قيد عكسي تلقائياً وفق معايير{" "}
+            <span className="font-semibold">IFRS</span>. القيود اليدوية فقط قابلة للحذف من دفتر اليومية.
+          </div>
+          <button
+            onClick={dismissIntegrityBanner}
+            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors flex-shrink-0"
+            aria-label="إغلاق"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
@@ -875,6 +941,21 @@ const TransactionsPage = () => {
                           <div className="flex items-center gap-1.5 min-w-0" title={tx.description || ""}>
                             <ChevronRightIcon className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
                             <span className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
+                            {(() => {
+                              const lk = classifyTransaction(tx);
+                              return (
+                                <span
+                                  className={`flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                                    lk.isLinked
+                                      ? "bg-primary/10 text-primary border border-primary/20"
+                                      : "bg-muted text-muted-foreground border border-border"
+                                  }`}
+                                  title={lk.isLinked ? "قيد مرتبط بمستند — للتعديل اذهب للمستند الأصلي" : "قيد يدوي قابل للتعديل والحذف"}
+                                >
+                                  {lk.label}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="px-3 py-3">
@@ -887,21 +968,44 @@ const TransactionsPage = () => {
                           <span className="font-mono font-semibold text-sm text-emerald-500">₪{tx.amount?.toFixed(2)}</span>
                         </td>
                         <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEdit(tx)}>
-                                <Pencil className="h-4 w-4 ml-2" /> تعديل
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
-                                <Trash2 className="h-4 w-4 ml-2" /> حذف
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {(() => {
+                            const lk = classifyTransaction(tx);
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {lk.isLinked ? (
+                                    <>
+                                      {lk.navigatePath && (
+                                        <DropdownMenuItem onClick={() => navigate(lk.navigatePath!)}>
+                                          <ExternalLink className="h-4 w-4 ml-2" /> الذهاب للمستند الأصلي
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onClick={() => openEdit(tx)}>
+                                        <Search className="h-4 w-4 ml-2" /> عرض التفاصيل
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem disabled className="text-muted-foreground/60 cursor-not-allowed">
+                                        <Lock className="h-4 w-4 ml-2" /> محمي — قيد مرتبط
+                                      </DropdownMenuItem>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DropdownMenuItem onClick={() => openEdit(tx)}>
+                                        <Pencil className="h-4 w-4 ml-2" /> تعديل
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-destructive" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
+                                        <Trash2 className="h-4 w-4 ml-2" /> حذف
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
                         </td>
                       </tr>
 
@@ -1006,42 +1110,111 @@ const TransactionsPage = () => {
       {/* ━━━ Edit Dialog ━━━ */}
       <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle className="text-foreground">تعديل القيد</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input value={editFields.description} onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))} placeholder="الوصف" dir="rtl" />
-            <div className="flex gap-2">
-              <Input type="number" value={editFields.amount} onChange={e => setEditFields(p => ({ ...p, amount: e.target.value }))} placeholder="المبلغ" className="flex-1" />
-              <Select value={editFields.currency} onValueChange={v => setEditFields(p => ({ ...p, currency: v }))} dir="rtl">
-                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="شيكل">شيكل</SelectItem>
-                  <SelectItem value="دينار">دينار</SelectItem>
-                  <SelectItem value="دولار">دولار</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Input type="date" value={editFields.transaction_date} onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
-            <AccountSearchSelect
-              accounts={accounts}
-              value={editFields.debit_account_code}
-              onChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))}
-              placeholder="الحساب المدين"
-            />
-            <AccountSearchSelect
-              accounts={accounts}
-              value={editFields.credit_account_code}
-              onChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))}
-              placeholder="الحساب الدائن"
-            />
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} disabled={saving} className="flex-1">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
-              </Button>
-              <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {editingTx && classifyTransaction(editingTx).isLinked ? "تفاصيل القيد (للقراءة)" : "تعديل القيد"}
+            </DialogTitle>
+          </DialogHeader>
+          {editingTx && (() => {
+            const linkage = classifyTransaction(editingTx);
+            const readonly = linkage.isLinked;
+            return (
+              <div className="space-y-3">
+                {readonly && (
+                  <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 p-3">
+                    <Lock className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-foreground leading-relaxed flex-1">
+                      <span className="font-semibold">قيد محمي ({linkage.label}).</span>{" "}
+                      للتعديل أو الإلغاء، اذهب للمستند الأصلي — سيقوم النظام بإنشاء قيد عكسي تلقائياً.
+                    </div>
+                  </div>
+                )}
+                <Input
+                  value={editFields.description}
+                  onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))}
+                  placeholder="الوصف" dir="rtl"
+                  disabled={readonly}
+                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number" value={editFields.amount}
+                    onChange={e => setEditFields(p => ({ ...p, amount: e.target.value }))}
+                    placeholder="المبلغ" className="flex-1"
+                    disabled={readonly}
+                  />
+                  <Select value={editFields.currency} onValueChange={v => setEditFields(p => ({ ...p, currency: v }))} dir="rtl" disabled={readonly}>
+                    <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      <SelectItem value="شيكل">شيكل</SelectItem>
+                      <SelectItem value="دينار">دينار</SelectItem>
+                      <SelectItem value="دولار">دولار</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  type="date" value={editFields.transaction_date}
+                  onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))}
+                  disabled={readonly}
+                />
+                {readonly ? (
+                  <>
+                    <div className="rounded-xl border border-border p-2 bg-muted/30">
+                      <div className="text-[10px] text-muted-foreground mb-1">الحساب المدين</div>
+                      <div className="text-sm text-foreground">
+                        <span className="font-mono text-xs text-muted-foreground ml-2">{editFields.debit_account_code}</span>
+                        {getAccountName(editFields.debit_account_code)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-border p-2 bg-muted/30">
+                      <div className="text-[10px] text-muted-foreground mb-1">الحساب الدائن</div>
+                      <div className="text-sm text-foreground">
+                        <span className="font-mono text-xs text-muted-foreground ml-2">{editFields.credit_account_code}</span>
+                        {getAccountName(editFields.credit_account_code)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AccountSearchSelect
+                      accounts={accounts}
+                      value={editFields.debit_account_code}
+                      onChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))}
+                      placeholder="الحساب المدين"
+                    />
+                    <AccountSearchSelect
+                      accounts={accounts}
+                      value={editFields.credit_account_code}
+                      onChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))}
+                      placeholder="الحساب الدائن"
+                    />
+                  </>
+                )}
+                <div className="flex gap-2 pt-2">
+                  {readonly ? (
+                    <>
+                      {linkage.navigatePath && (
+                        <Button onClick={() => { navigate(linkage.navigatePath!); setEditingTx(null); }} className="flex-1 gap-2">
+                          <ExternalLink className="h-4 w-4" /> الذهاب للمستند الأصلي
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => setEditingTx(null)} className={linkage.navigatePath ? "" : "flex-1"}>
+                        إغلاق
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button onClick={handleSave} disabled={saving} className="flex-1">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+                      </Button>
+                      <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
