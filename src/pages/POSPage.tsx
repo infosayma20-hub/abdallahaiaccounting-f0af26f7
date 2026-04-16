@@ -45,6 +45,7 @@ import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
+import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import {
   DndContext,
   closestCenter,
@@ -323,6 +324,8 @@ const POSPage = () => {
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
@@ -1588,13 +1591,13 @@ const POSPage = () => {
         p.pos_category_id === cat?.id || p.category === selectedCategory
       );
     }
-    if (searchQuery) {
+    if (debouncedSearch) {
       filtered = filtered.filter(
-        (p) => multiWordMatchAny(searchQuery, p.name, p.sku, p.barcode)
+        (p) => multiWordMatchAny(debouncedSearch, p.name, p.sku, p.barcode)
       );
     }
     // When "الكل" is selected, sort products grouped by category order
-    if (selectedCategory === "الكل" && !searchQuery) {
+    if (selectedCategory === "الكل" && !debouncedSearch) {
       const catOrderMap = new Map<string, number>();
       visiblePosCategories.forEach((c, i) => catOrderMap.set(c.id, i));
       filtered.sort((a, b) => {
@@ -1606,7 +1609,7 @@ const POSPage = () => {
       });
     }
     return filtered;
-  }, [products, selectedCategory, searchQuery, posCategories]);
+  }, [products, selectedCategory, debouncedSearch, posCategories]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
@@ -1745,6 +1748,40 @@ const POSPage = () => {
       ];
     });
   }, [cart]);
+
+  // ── Debounce search 300ms ──
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // ── Barcode scan handler (USB scanner Enter / Camera / Manual) ──
+  const handleBarcodeScan = useCallback((rawCode: string) => {
+    const code = (rawCode || "").trim();
+    if (!code) return;
+    // طابق بالباركود ثم SKU بالضبط (case-insensitive)
+    const lc = code.toLowerCase();
+    const matched = products.find(
+      (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
+    );
+    if (!matched) {
+      toast.error(`المنتج غير موجود (${code})`, { duration: 3000 });
+      return;
+    }
+    if (!matched.is_pos_available) {
+      toast.error(`المنتج "${matched.name}" غير متاح في نقطة البيع`, { duration: 3000 });
+      return;
+    }
+    if (matched.quantity <= 0) {
+      toast.warning(`⚠️ المخزون صفر — ${matched.name}`, { duration: 4000 });
+      // نسمح بالإضافة (قد يكون البيع بالسالب مسموحاً) — لكن نحذّر
+    }
+    addToCart(matched);
+    setSearchQuery("");
+    setDebouncedSearch("");
+    toast.success(`✅ ${matched.name}`, { duration: 1500 });
+  }, [products, addToCart]);
+
 
   const removeFromCart = useCallback((index: number) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
@@ -3485,23 +3522,58 @@ const POSPage = () => {
           )}
         </div>
 
-        {/* ── Center: Search Bar ── */}
-        <div className="relative flex-1 min-w-0 max-w-[260px]">
-          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
-          <input
-            ref={searchRef}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث..."
-            className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "white",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-          />
+        {/* ── Center: Search Bar + Camera Scan ── */}
+        <div className="relative flex-1 min-w-0 max-w-[300px] flex items-center gap-1">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
+            <input
+              ref={searchRef}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const q = searchQuery.trim();
+                  if (!q) return;
+                  // ابحث أولاً عن مطابقة دقيقة (سكانر USB يرسل الكود + Enter)
+                  const lc = q.toLowerCase();
+                  const exact = products.find(
+                    (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
+                  );
+                  if (exact) {
+                    handleBarcodeScan(q);
+                    return;
+                  }
+                  // بدون مطابقة دقيقة → جرّب أول نتيجة بحث ظاهرة
+                  if (filteredProducts.length === 1) {
+                    addToCart(filteredProducts[0]);
+                    setSearchQuery("");
+                    setDebouncedSearch("");
+                  } else if (filteredProducts.length === 0) {
+                    toast.error(`لا توجد نتائج لـ "${q}"`, { duration: 2500 });
+                  }
+                }
+              }}
+              placeholder="بحث أو مسح باركود..."
+              className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "white",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowBarcodeScanner(true)}
+            className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center hover:bg-white/[0.12] transition-all"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+            title="مسح باركود بالكاميرا"
+          >
+            <Barcode className="h-4 w-4" style={{ color: "rgba(255,255,255,0.85)" }} />
+          </button>
         </div>
 
         {/* ── Center-Left: Icon Buttons ── */}
@@ -5748,6 +5820,13 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Camera Barcode Scanner ── */}
+      <POSBarcodeScanner
+        open={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onScan={handleBarcodeScan}
+      />
     </div>
   );
 };
