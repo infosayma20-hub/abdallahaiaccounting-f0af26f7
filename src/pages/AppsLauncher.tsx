@@ -84,6 +84,8 @@ const AppCard = ({
         >
           {isLocked ? (
             <Lock className="h-5 w-5" style={{ color: "#cbd5e1" }} />
+          ) : isPremiumLocked ? (
+            <app.icon className={`h-5 w-5 ${app.color || "text-primary"} opacity-50 transition-transform duration-300 group-hover:scale-105`} />
           ) : (
             <app.icon className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
@@ -91,15 +93,20 @@ const AppCard = ({
 
         <div className="space-y-1">
           <div className="flex items-center justify-center gap-1.5">
-            <p style={{ fontSize: 15, fontWeight: 600, color: isDisabledOrLocked ? "#94a3b8" : "#0D1B2E" }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: isDisabledOrLocked ? "#94a3b8" : isPremiumLocked ? "#475569" : "#0D1B2E" }}>
               {app.label}
             </p>
-            {!isDisabledOrLocked && app.isNew && (
+            {!isDisabledOrLocked && !isPremiumLocked && app.isNew && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
             )}
+            {isPremiumLocked && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: "#fef3c7", color: "#92400e" }}>
+                <Crown className="w-2.5 h-2.5" /> Premium
+              </span>
+            )}
           </div>
-          <p style={{ fontSize: 12, color: isLocked ? "#94a3b8" : "#64748b", lineHeight: 1.5, maxWidth: 180, margin: "0 auto" }} className="line-clamp-2">
-            {isLocked ? "🔒 غير متاح" : disabled ? "غير مفعّل" : app.description}
+          <p style={{ fontSize: 12, color: isLocked || isPremiumLocked ? "#94a3b8" : "#64748b", lineHeight: 1.5, maxWidth: 180, margin: "0 auto" }} className="line-clamp-2">
+            {isLocked ? "🔒 غير متاح" : isPremiumLocked ? "🔓 ترقية للاستخدام" : disabled ? "غير مفعّل" : app.description}
           </p>
         </div>
 
