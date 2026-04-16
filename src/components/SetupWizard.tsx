@@ -290,6 +290,10 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         }
       }
 
+      // Normalize inventory method to match Settings page values (weighted_avg/fifo/lifo)
+      const normalizedInventoryMethod =
+        data.inventoryMethod === "weighted_average" ? "weighted_avg" : data.inventoryMethod;
+
       const settingsPayload: Record<string, any> = {
         user_id: userId,
         company_name: data.companyName || null,
@@ -298,7 +302,9 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         base_currency: data.currency === "other" ? data.customCurrency : data.currency,
         vat_enabled: data.vatEnabled ?? false,
         vat_rate: data.vatEnabled ? data.vatRate : 0,
-        inventory_method: data.inventoryMethod,
+        // Save in both fields for backward compatibility & Settings page sync
+        inventory_method: normalizedInventoryMethod,
+        inventory_costing_method: normalizedInventoryMethod,
         has_employees: data.hasEmployees ?? false,
         employee_count_range: data.hasEmployees ? data.employeeRange : null,
         has_pos: data.hasPOS ?? false,
