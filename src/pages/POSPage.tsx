@@ -45,6 +45,7 @@ import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
+import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import {
   DndContext,
   closestCenter,
@@ -323,6 +324,8 @@ const POSPage = () => {
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
