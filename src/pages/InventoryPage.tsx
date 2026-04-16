@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat, Camera, ScanLine } from "lucide-react";
+import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat, Camera, ScanLine, Barcode } from "lucide-react";
+import BarcodePrintDialog from "@/components/inventory/BarcodePrintDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,6 +138,7 @@ const InventoryPage = () => {
   });
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [barcodePrintProduct, setBarcodePrintProduct] = useState<Product | null>(null);
   const barcodeVideoRef = useRef<HTMLVideoElement>(null);
   const barcodeStreamRef = useRef<MediaStream | null>(null);
 
@@ -665,6 +667,9 @@ const InventoryPage = () => {
                           </button>
                           <button onClick={() => navigate(`/stock-movements?product=${p.id}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="تفاصيل الحركات">
                             <History className="h-3.5 w-3.5 text-accent-foreground" />
+                          </button>
+                          <button onClick={() => setBarcodePrintProduct(p)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="طباعة باركود">
+                            <Barcode className="h-3.5 w-3.5 text-primary" />
                           </button>
                           <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
