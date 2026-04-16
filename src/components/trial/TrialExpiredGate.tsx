@@ -22,6 +22,7 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
   if (isPaidActive || isFreePage) {
     return (
       <>
+        <TrialWelcomeModal />
         <TrialLastDayModal />
         {children}
       </>
