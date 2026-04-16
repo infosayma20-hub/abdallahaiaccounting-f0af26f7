@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
   define: {
     __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
