@@ -377,7 +377,7 @@ export const NotificationsPanel = ({
     <>
       {/* Backdrop */}
       <div
-        style={{ position: "fixed", inset: 0, zIndex: 90 }}
+        style={{ position: "fixed", inset: 0, zIndex: 200 }}
         onClick={onClose}
       />
 
@@ -385,9 +385,9 @@ export const NotificationsPanel = ({
       <div
         dir="rtl"
         style={{
-          position: "absolute",
-          left: 0,
-          top: "calc(100% + 8px)",
+          position: "fixed",
+          left: "auto",
+          top: "56px",
           width: "400px",
           maxWidth: "calc(100vw - 2rem)",
           maxHeight: "560px",
@@ -396,7 +396,7 @@ export const NotificationsPanel = ({
           display: "flex",
           flexDirection: "column",
           fontFamily: "Cairo, sans-serif",
-          zIndex: 91,
+          zIndex: 201,
           background: "#FFFFFF",
           border: "1px solid #E5E7EB",
           boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08)",
