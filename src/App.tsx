@@ -68,6 +68,12 @@ const AppsLauncher = lazy(() => import("./pages/AppsLauncher"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
+const WarrantyHomePage = lazy(() => import("./pages/warranty/WarrantyHomePage"));
+const WarrantyPoliciesPage = lazy(() => import("./pages/warranty/WarrantyPoliciesPage"));
+const WarrantyCardsPage = lazy(() => import("./pages/warranty/WarrantyCardsPage"));
+const WarrantyClaimsPage = lazy(() => import("./pages/warranty/WarrantyClaimsPage"));
+const WarrantySupplierClaimsPage = lazy(() => import("./pages/warranty/WarrantySupplierClaimsPage"));
+const WarrantyReportsPage = lazy(() => import("./pages/warranty/WarrantyReportsPage"));
 const GeneralLedgerPage = lazy(() => import("./pages/GeneralLedgerPage"));
 const AccountStatementPage = lazy(() => import("./pages/AccountStatementV2Page"));
 const HRPayrollReport = lazy(() => import("./pages/reports/HRPayrollReport"));
@@ -326,6 +332,12 @@ const App = () => (
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
+                      <Route path="/warranty" element={<WarrantyHomePage />} />
+                      <Route path="/warranty/policies" element={<WarrantyPoliciesPage />} />
+                      <Route path="/warranty/cards" element={<WarrantyCardsPage />} />
+                      <Route path="/warranty/claims" element={<WarrantyClaimsPage />} />
+                      <Route path="/warranty/supplier-claims" element={<WarrantySupplierClaimsPage />} />
+                      <Route path="/warranty/reports" element={<WarrantyReportsPage />} />
                       <Route path="/general-ledger" element={<GeneralLedgerPage />} />
                       <Route path="/account-statement" element={<AccountStatementPage />} />
                       <Route path="/reports/hr-payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPayrollReport /></RoleGuard>} />

@@ -29,6 +29,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
+import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
+import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
 
 // ─── Types ───
@@ -204,6 +206,7 @@ const InvoiceCreatePage = () => {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showWarrantyDialog, setShowWarrantyDialog] = useState(false);
   const [showQuickAddRep, setShowQuickAddRep] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
@@ -1238,7 +1241,20 @@ const InvoiceCreatePage = () => {
         showNavigation={isEditMode}
       />
 
-      {/* ─── SECTION 1: Invoice Data ─── */}
+      {/* Warranty Cards Action — only in edit mode for sales invoices */}
+      {isEditMode && form.type === "sales" && editInvoiceId && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10"
+            onClick={() => setShowWarrantyDialog(true)}
+          >
+            <Shield className="h-4 w-4" />
+            إنشاء بطاقات كفالة
+          </Button>
+        </div>
+      )}
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardHeader className="pb-3 pt-4 px-5">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -1982,6 +1998,18 @@ const InvoiceCreatePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Warranty Cards Dialog */}
+      {isEditMode && editInvoiceId && (
+        <CreateWarrantyCardsDialog
+          open={showWarrantyDialog}
+          onOpenChange={setShowWarrantyDialog}
+          invoiceId={editInvoiceId}
+          contactId={selectedContact?.id || null}
+          contactName={selectedContact?.contact_name || form.contactName || null}
+          invoiceDate={form.date}
+        />
+      )}
     </div>
   );
 };
