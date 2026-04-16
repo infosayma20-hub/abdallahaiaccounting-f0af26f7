@@ -12070,6 +12070,326 @@ export type Database = {
           },
         ]
       }
+      warranty_cards: {
+        Row: {
+          card_number: string
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          duration_months: number
+          end_date: string
+          id: string
+          invoice_id: string | null
+          invoice_item_id: string | null
+          notes: string | null
+          policy_id: string | null
+          product_id: string
+          quantity: number
+          serial_number: string | null
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_number: string
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          duration_months?: number
+          end_date: string
+          id?: string
+          invoice_id?: string | null
+          invoice_item_id?: string | null
+          notes?: string | null
+          policy_id?: string | null
+          product_id: string
+          quantity?: number
+          serial_number?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_number?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          duration_months?: number
+          end_date?: string
+          id?: string
+          invoice_id?: string | null
+          invoice_item_id?: string | null
+          notes?: string | null
+          policy_id?: string | null
+          product_id?: string
+          quantity?: number
+          serial_number?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_cards_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_cards_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_cards_invoice_item_id_fkey"
+            columns: ["invoice_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_cards_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_cards_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warranty_claims: {
+        Row: {
+          attachments: Json | null
+          claim_date: string
+          claim_number: string
+          claim_type: string
+          cost: number
+          created_at: string
+          id: string
+          issue_description: string
+          replacement_invoice_id: string | null
+          resolution: string | null
+          resolution_date: string | null
+          resolution_notes: string | null
+          status: string
+          supplier_claim_id: string | null
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+          warranty_card_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          claim_date?: string
+          claim_number: string
+          claim_type?: string
+          cost?: number
+          created_at?: string
+          id?: string
+          issue_description: string
+          replacement_invoice_id?: string | null
+          resolution?: string | null
+          resolution_date?: string | null
+          resolution_notes?: string | null
+          status?: string
+          supplier_claim_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+          warranty_card_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          claim_date?: string
+          claim_number?: string
+          claim_type?: string
+          cost?: number
+          created_at?: string
+          id?: string
+          issue_description?: string
+          replacement_invoice_id?: string | null
+          resolution?: string | null
+          resolution_date?: string | null
+          resolution_notes?: string | null
+          status?: string
+          supplier_claim_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+          warranty_card_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_claims_replacement_invoice_id_fkey"
+            columns: ["replacement_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_claims_supplier_claim_id_fkey"
+            columns: ["supplier_claim_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_supplier_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_claims_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_claims_warranty_card_id_fkey"
+            columns: ["warranty_card_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warranty_policies: {
+        Row: {
+          created_at: string
+          duration_months: number
+          has_serial: boolean
+          id: string
+          is_active: boolean
+          product_id: string
+          supplier_covers: number
+          supplier_id: string | null
+          terms: string | null
+          updated_at: string
+          user_id: string
+          warranty_type: string
+        }
+        Insert: {
+          created_at?: string
+          duration_months?: number
+          has_serial?: boolean
+          id?: string
+          is_active?: boolean
+          product_id: string
+          supplier_covers?: number
+          supplier_id?: string | null
+          terms?: string | null
+          updated_at?: string
+          user_id: string
+          warranty_type?: string
+        }
+        Update: {
+          created_at?: string
+          duration_months?: number
+          has_serial?: boolean
+          id?: string
+          is_active?: boolean
+          product_id?: string
+          supplier_covers?: number
+          supplier_id?: string | null
+          terms?: string | null
+          updated_at?: string
+          user_id?: string
+          warranty_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_policies_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_policies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warranty_supplier_claims: {
+        Row: {
+          claim_date: string
+          claim_number: string
+          created_at: string
+          id: string
+          notes: string | null
+          our_cost: number
+          resolution_date: string | null
+          status: string
+          supplier_coverage_amount: number
+          supplier_id: string
+          supplier_name: string | null
+          total_cost: number
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claim_date?: string
+          claim_number: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          our_cost?: number
+          resolution_date?: string | null
+          status?: string
+          supplier_coverage_amount?: number
+          supplier_id: string
+          supplier_name?: string | null
+          total_cost?: number
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claim_date?: string
+          claim_number?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          our_cost?: number
+          resolution_date?: string | null
+          status?: string
+          supplier_coverage_amount?: number
+          supplier_id?: string
+          supplier_name?: string | null
+          total_cost?: number
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_supplier_claims_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_supplier_claims_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webauthn_challenges: {
         Row: {
           challenge: string
