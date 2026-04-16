@@ -265,7 +265,10 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       prevUserIdRef.current = userId;
       if (userId) {
         const userTabs = loadTabs(userId);
-        setTabs(userTabs);
+        // Filter out excluded/legacy paths (e.g. /billing, /subscription, /pricing)
+        const cleaned = userTabs.filter(t => !isExcludedPath(t.path));
+        if (cleaned.length !== userTabs.length) saveTabs(cleaned, userId);
+        setTabs(cleaned);
       } else {
         setTabs([]);
       }
