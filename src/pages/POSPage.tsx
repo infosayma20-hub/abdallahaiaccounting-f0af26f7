@@ -3522,23 +3522,58 @@ const POSPage = () => {
           )}
         </div>
 
-        {/* ── Center: Search Bar ── */}
-        <div className="relative flex-1 min-w-0 max-w-[260px]">
-          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
-          <input
-            ref={searchRef}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث..."
-            className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "white",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-          />
+        {/* ── Center: Search Bar + Camera Scan ── */}
+        <div className="relative flex-1 min-w-0 max-w-[300px] flex items-center gap-1">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "rgba(255,255,255,0.4)" }} />
+            <input
+              ref={searchRef}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const q = searchQuery.trim();
+                  if (!q) return;
+                  // ابحث أولاً عن مطابقة دقيقة (سكانر USB يرسل الكود + Enter)
+                  const lc = q.toLowerCase();
+                  const exact = products.find(
+                    (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
+                  );
+                  if (exact) {
+                    handleBarcodeScan(q);
+                    return;
+                  }
+                  // بدون مطابقة دقيقة → جرّب أول نتيجة بحث ظاهرة
+                  if (filteredProducts.length === 1) {
+                    addToCart(filteredProducts[0]);
+                    setSearchQuery("");
+                    setDebouncedSearch("");
+                  } else if (filteredProducts.length === 0) {
+                    toast.error(`لا توجد نتائج لـ "${q}"`, { duration: 2500 });
+                  }
+                }
+              }}
+              placeholder="بحث أو مسح باركود..."
+              className="w-full h-9 rounded-lg px-3 pr-9 text-[13px] focus:outline-none transition-all"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "white",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowBarcodeScanner(true)}
+            className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center hover:bg-white/[0.12] transition-all"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+            title="مسح باركود بالكاميرا"
+          >
+            <Barcode className="h-4 w-4" style={{ color: "rgba(255,255,255,0.85)" }} />
+          </button>
         </div>
 
         {/* ── Center-Left: Icon Buttons ── */}
