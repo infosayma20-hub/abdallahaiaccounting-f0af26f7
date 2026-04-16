@@ -156,7 +156,7 @@ const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useCompanySettings();
-  const { subscription } = useSubscription();
+  const { subscription, loading: subLoading } = useSubscription();
   const { isTrial, isSuperAdmin } = useSubscriptionGuard();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
@@ -188,12 +188,19 @@ const AppsLauncher = () => {
     return false;
   };
 
+  // Always-free core modules (never locked even before subscription loads)
+  const FREE_CORE_MODULES = ["dashboard", "settings", "profile", "billing", "subscription", "help"];
+
   // App is "premium-locked" = NOT in plan's enabled_modules (only for paid users)
   const enabledModules = subscription?.enabledModules || [];
   const isAppPremiumLocked = (app: NavItem) => {
     if (isSuperAdmin) return false;
-    if (isTrial) return false; // Trial = full access
-    if (enabledModules.length === 0) return false; // no plan loaded yet
+    if (FREE_CORE_MODULES.includes(app.id)) return false;
+    // While subscription is still loading, lock everything to prevent click-through bypass
+    if (subLoading) return true;
+    if (isTrial) return false; // Trial = full access (only after we know it IS a trial)
+    if (!subscription) return true; // No subscription found → lock all
+    if (enabledModules.length === 0) return true; // Plan has no modules → lock
     return !enabledModules.includes(app.id);
   };
 

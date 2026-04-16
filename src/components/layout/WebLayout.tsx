@@ -51,8 +51,8 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         {/* Tab bar */}
         <TabBar />
 
-        {/* Single subscription/trial banner — never both */}
-        {isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />}
+        {/* Single subscription/trial banner — hidden when trial expired (gate shows ReadOnlyBanner instead) */}
+        {!isTrialExpired && (isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />)}
 
         {/* Content — no heavy page transitions */}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
