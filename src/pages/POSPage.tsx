@@ -1749,6 +1749,40 @@ const POSPage = () => {
     });
   }, [cart]);
 
+  // ── Debounce search 300ms ──
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // ── Barcode scan handler (USB scanner Enter / Camera / Manual) ──
+  const handleBarcodeScan = useCallback((rawCode: string) => {
+    const code = (rawCode || "").trim();
+    if (!code) return;
+    // طابق بالباركود ثم SKU بالضبط (case-insensitive)
+    const lc = code.toLowerCase();
+    const matched = products.find(
+      (p) => (p.barcode || "").toLowerCase() === lc || (p.sku || "").toLowerCase() === lc
+    );
+    if (!matched) {
+      toast.error(`المنتج غير موجود (${code})`, { duration: 3000 });
+      return;
+    }
+    if (!matched.is_pos_available) {
+      toast.error(`المنتج "${matched.name}" غير متاح في نقطة البيع`, { duration: 3000 });
+      return;
+    }
+    if (matched.quantity <= 0) {
+      toast.warning(`⚠️ المخزون صفر — ${matched.name}`, { duration: 4000 });
+      // نسمح بالإضافة (قد يكون البيع بالسالب مسموحاً) — لكن نحذّر
+    }
+    addToCart(matched);
+    setSearchQuery("");
+    setDebouncedSearch("");
+    toast.success(`✅ ${matched.name}`, { duration: 1500 });
+  }, [products, addToCart]);
+
+
   const removeFromCart = useCallback((index: number) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
     if (selectedCartIndex === index) setSelectedCartIndex(null);
