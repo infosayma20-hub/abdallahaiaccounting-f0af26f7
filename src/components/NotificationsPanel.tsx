@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -373,11 +374,11 @@ export const NotificationsPanel = ({
 
   const categoryLabel: Record<string, string> = { urgent: "عاجل", warning: "تنبيه", info: "معلومة" };
 
-  return (
+  const panel = (
     <>
       {/* Backdrop */}
       <div
-        style={{ position: "fixed", inset: 0, zIndex: 200 }}
+        style={{ position: "fixed", inset: 0, zIndex: 1000 }}
         onClick={onClose}
       />
 
@@ -387,7 +388,7 @@ export const NotificationsPanel = ({
         style={{
           position: "fixed",
           left: "120px",
-          top: "56px",
+          top: "52px",
           width: "400px",
           maxWidth: "calc(100vw - 2rem)",
           maxHeight: "560px",
@@ -396,7 +397,7 @@ export const NotificationsPanel = ({
           display: "flex",
           flexDirection: "column",
           fontFamily: "Cairo, sans-serif",
-          zIndex: 201,
+          zIndex: 1001,
           background: "#FFFFFF",
           border: "1px solid #E5E7EB",
           boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08)",
@@ -625,4 +626,6 @@ export const NotificationsPanel = ({
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </>
   );
+
+  return typeof document !== "undefined" ? createPortal(panel, document.body) : null;
 };
