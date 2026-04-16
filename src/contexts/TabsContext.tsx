@@ -269,7 +269,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       });
       setActiveTabId(newTab.id);
     }
-  }, [location.pathname]);
+  }, [location.pathname, userId]);
 
   const openTab = useCallback((path: string, title?: string) => {
     if (EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)))) {
@@ -297,7 +297,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     });
     setActiveTabId(newTab.id);
     navigate(path);
-  }, [tabs, navigate]);
+  }, [tabs, navigate, userId]);
 
   const closeTab = useCallback((id: string) => {
     setTabs(prev => {
@@ -317,7 +317,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
-  }, [activeTabId, navigate]);
+  }, [activeTabId, navigate, userId]);
 
   const switchTab = useCallback((id: string) => {
     const tab = tabs.find(t => t.id === id);
@@ -333,14 +333,14 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       saveTabs(next, userId);
       return next;
     });
-  }, []);
+  }, [userId]);
 
   const closeAllTabs = useCallback(() => {
     setTabs([]);
     saveTabs([], userId);
     setActiveTabId(null);
     navigate("/apps");
-  }, [navigate]);
+  }, [navigate, userId]);
 
   return (
     <TabsContext.Provider value={{ tabs, activeTabId, openTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
