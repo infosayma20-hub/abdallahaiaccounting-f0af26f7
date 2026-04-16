@@ -64,7 +64,7 @@ const CURRENCIES = [
 const needsInventory = (bt: BusinessType | null) =>
   bt ? ["تجارة", "مطعم", "متجر إلكتروني"].includes(bt) : false;
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 const pageVariants = {
   enter: { opacity: 0, y: 30 },
@@ -326,59 +326,10 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       };
       await supabase.from("company_settings" as any).upsert(settingsPayload as any, { onConflict: "user_id" });
 
-      if (data.cashBalance > 0) {
-        await supabase.from("cash_boxes").upsert({
-          user_id: userId,
-          name: "الخزينة الرئيسية",
-          type: "main",
-          opening_balance: data.cashBalance,
-          opening_balance_date: new Date().toISOString().split("T")[0],
-          currency: data.currency === "other" ? data.customCurrency : (data.currency === "ILS" ? "شيكل" : data.currency),
-        }, { onConflict: "user_id,name" as any });
-      }
-
-      if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
-        const bankCurrLabel = data.bankCurrency === "ILS" ? "شيكل" : data.bankCurrency === "USD" ? "دولار" : data.bankCurrency === "JOD" ? "دينار" : data.bankCurrency;
-        const accountName = data.bankAccountName || `${data.bankName} - ${data.bankAccountType}`;
-        await supabase.from("bank_accounts").insert({
-          user_id: userId,
-          name: accountName,
-          bank_name: data.bankName,
-          account_type: data.bankAccountType,
-          opening_balance: data.bankBalance,
-          opening_balance_date: new Date().toISOString().split("T")[0],
-          currency: bankCurrLabel,
-        });
-        const { data: existingAccounts } = await supabase
-          .from("accounts")
-          .select("account_code")
-          .eq("user_id", userId)
-          .like("account_code", "112%")
-          .order("account_code", { ascending: false })
-          .limit(1);
-        const lastCode = existingAccounts?.[0]?.account_code || "1120";
-        const nextCode = String(parseInt(lastCode) + 1);
-        await supabase.from("accounts").insert({
-          user_id: userId,
-          account_code: nextCode,
-          account_name: accountName,
-          account_type: "asset",
-          parent_code: "1120",
-          is_system: false,
-        });
-      }
-
       await refreshCompany();
 
       const items: string[] = [];
       items.push(`شجرة حسابات لـ ${data.businessType || "نشاطك"}`);
-      if (data.cashBalance > 0) items.push(`الصندوق الرئيسي — رصيد ₪${data.cashBalance.toLocaleString()}`);
-      if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
-        items.push(`حساب بنكي: ${data.bankAccountName || data.bankName} (${data.bankAccountType})`);
-      }
-      if (data.leaveForAccountant) {
-        items.push("⏳ الحساب البنكي — معلّق للمراجعة من المحاسب");
-      }
       items.push(`تسلسل الفواتير: ${data.invoicePrefix}-2026-0001`);
       const mods: string[] = ["المحاسبة"];
       if (hasInv) mods.push("المخزون");
@@ -397,7 +348,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   };
 
   const goNext = () => {
-    if (step === 5) {
+    if (step === 4) {
       handleFinish();
     } else {
       setStep(s => s + 1);
@@ -414,7 +365,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   return (
     <div className="fixed inset-0 z-[70] bg-background flex flex-col overflow-hidden" dir="rtl">
       {/* Progress Bar */}
-      {step >= 0 && step <= 5 && (
+      {step >= 0 && step <= 4 && (
         <div className="px-6 pt-5 pb-2">
           <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
             <motion.div
@@ -868,164 +819,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
             </motion.div>
           )}
 
-          {/* ─── Step 6: Opening Balances ─── */}
-          {step === 5 && (
-            <motion.div key="s6" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
-              <div className="text-center mb-8">
-                <div className="text-5xl mb-4">💰</div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك رصيد نقدي حالي؟</h2>
-                <p className="text-sm text-muted-foreground">سنضبط رصيد الصندوق الابتدائي</p>
-              </div>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">💰 رصيد الصندوق الحالي</label>
-                  <div className="relative">
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₪</span>
-                    <input
-                      type="number"
-                      value={data.cashBalance || ""}
-                      onChange={e => update({ cashBalance: parseFloat(e.target.value) || 0 })}
-                      placeholder="0"
-                      className="w-full h-12 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      dir="ltr"
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">المبلغ النقدي الموجود عندك الآن</p>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-foreground">🏦 هل لديك رصيد في البنك؟</label>
-                  <div className="flex gap-3">
-                    <ToggleCard
-                      selected={data.hasBankAccount === false}
-                      onClick={() => update({ hasBankAccount: false, leaveForAccountant: false })}
-                      emoji="✕"
-                      label="لا"
-                      small
-                    />
-                    <ToggleCard
-                      selected={data.hasBankAccount === true}
-                      onClick={() => update({ hasBankAccount: true })}
-                      emoji="🏦"
-                      label="نعم"
-                      small
-                    />
-                  </div>
-                  {data.hasBankAccount && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4 pt-2">
-                      {/* Bank Name */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-foreground">اسم البنك</label>
-                        <input
-                          type="text"
-                          value={data.bankName}
-                          onChange={e => update({ bankName: e.target.value })}
-                          placeholder="مثال: البنك العربي"
-                          className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                      </div>
-
-                      {/* Account Name */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-foreground">اسم الحساب البنكي</label>
-                        <input
-                          type="text"
-                          value={data.bankAccountName}
-                          onChange={e => update({ bankAccountName: e.target.value })}
-                          placeholder="مثال: البنك العربي - جاري شيكل"
-                          className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                        <p className="text-[10px] text-muted-foreground">سيظهر بهذا الاسم في شجرة الحسابات</p>
-                      </div>
-
-                      {/* Currency */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-foreground">💱 عملة الحساب</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { code: "ILS", label: "₪ شيكل" },
-                            { code: "USD", label: "$ دولار" },
-                            { code: "JOD", label: "د.أ دينار" },
-                          ].map(c => (
-                            <button
-                              key={c.code}
-                              onClick={() => update({ bankCurrency: c.code })}
-                              className={`py-2 rounded-xl border-2 text-xs font-bold transition-all ${
-                                data.bankCurrency === c.code
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-                              }`}
-                            >
-                              {c.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Account Type */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-foreground">📋 نوع الحساب</label>
-                        <div className="grid grid-cols-4 gap-2">
-                          {["جاري", "توفير", "قرض", "وديعة"].map(t => (
-                            <button
-                              key={t}
-                              onClick={() => update({ bankAccountType: t })}
-                              className={`py-2 rounded-xl border-2 text-xs font-bold transition-all ${
-                                data.bankAccountType === t
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
-                              }`}
-                            >
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Balance */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-foreground">💰 الرصيد الحالي</label>
-                        <div className="relative">
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                            {data.bankCurrency === "ILS" ? "₪" : data.bankCurrency === "USD" ? "$" : "د.أ"}
-                          </span>
-                          <input
-                            type="number"
-                            value={data.bankBalance || ""}
-                            onChange={e => update({ bankBalance: parseFloat(e.target.value) || 0 })}
-                            placeholder="0"
-                            className="w-full h-10 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                            dir="ltr"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Leave for accountant */}
-                      <button
-                        onClick={() => update({ leaveForAccountant: !data.leaveForAccountant })}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-right ${
-                          data.leaveForAccountant
-                            ? "border-accent bg-accent/10"
-                            : "border-border bg-card hover:border-accent/30"
-                        }`}
-                      >
-                        <span className="text-lg">{data.leaveForAccountant ? "✅" : "⏸️"}</span>
-                        <div className="flex-1">
-                          <p className="text-xs font-bold text-foreground">اتركها للمحاسب</p>
-                          <p className="text-[10px] text-muted-foreground">لا تفتح الحساب الآن — سيراجعها المحاسب لاحقاً</p>
-                        </div>
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-muted-foreground text-center">
-                  يمكنك إضافة المزيد من الصناديق والبنوك لاحقاً من قسم المالية
-                </p>
-              </div>
-            </motion.div>
-          )}
-
           {/* ─── Completion Screen ─── */}
           {step === 7 && (
             <motion.div key="done" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md text-center space-y-6">
@@ -1103,7 +896,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       </div>
 
       {/* Footer */}
-      {step >= 0 && step <= 5 && (
+      {step >= 0 && step <= 4 && (
         <div className="px-6 pb-8 pt-4 space-y-3">
           <button
             onClick={goNext}
@@ -1115,7 +908,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 <Loader2 className="h-5 w-5 animate-spin" />
                 جاري إعداد نظامك...
               </>
-            ) : step === 5 ? (
+            ) : step === 4 ? (
               "🚀 جهّز نظامي"
             ) : (
               <>
