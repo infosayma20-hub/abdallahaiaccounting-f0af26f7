@@ -170,12 +170,35 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   layers: Layers,
 };
 
+// أنماط ديناميكية: مسارات تحتوي على :id (UUID/رقم) — تستخرج العنوان من البادئة
+const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = [
+  { regex: /^\/finance\/receipt\/[^/]+\/edit$/, title: "تعديل سند قبض", icon: "landmark" },
+  { regex: /^\/finance\/payment\/[^/]+\/edit$/, title: "تعديل سند صرف", icon: "banknote" },
+  { regex: /^\/finance\/journal\/[^/]+\/edit$/, title: "تعديل قيد", icon: "clipboard" },
+  { regex: /^\/invoices\/[^/]+\/edit$/, title: "تعديل فاتورة", icon: "file" },
+  { regex: /^\/invoices\/[^/]+$/, title: "تفاصيل فاتورة", icon: "file" },
+  { regex: /^\/contacts\/[^/]+$/, title: "تفاصيل جهة اتصال", icon: "users" },
+  { regex: /^\/employees\/[^/]+$/, title: "ملف موظف", icon: "usercheck" },
+  { regex: /^\/contracts\/[^/]+$/, title: "تفاصيل عقد", icon: "file" },
+  { regex: /^\/travel\/bookings\/[^/]+$/, title: "تفاصيل حجز", icon: "globe" },
+  { regex: /^\/delivery-notes\/[^/]+$/, title: "تفاصيل إرسالية", icon: "package" },
+  { regex: /^\/procurement\/orders\/[^/]+$/, title: "تفاصيل أمر شراء", icon: "cart" },
+  { regex: /^\/procurement\/invoices\/[^/]+$/, title: "تفاصيل فاتورة مشتريات", icon: "file" },
+  { regex: /^\/purchases\/import\/[^/]+$/, title: "تفاصيل شحنة", icon: "package" },
+  { regex: /^\/accounts\/[^/]+$/, title: "تفاصيل حساب", icon: "wallet" },
+  { regex: /^\/fixed-assets\/[^/]+$/, title: "تفاصيل أصل", icon: "briefcase" },
+];
+
 function getRouteMeta(path: string): { title: string; icon: string } {
   // Exact match
   if (ROUTE_META[path]) return ROUTE_META[path];
   // Strip query/hash
   const clean = path.split("?")[0].split("#")[0];
   if (ROUTE_META[clean]) return ROUTE_META[clean];
+  // Dynamic pattern match (مسارات تحتوي على id)
+  for (const p of DYNAMIC_PATTERNS) {
+    if (p.regex.test(clean)) return { title: p.title, icon: p.icon };
+  }
   // Try parent path
   const parts = clean.split("/").filter(Boolean);
   while (parts.length > 1) {
