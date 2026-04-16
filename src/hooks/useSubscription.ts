@@ -17,6 +17,10 @@ export interface SubscriptionData {
   totalDays: number;
   isExpired: boolean;
   isTrial: boolean;
+  tier: string;
+  enabledModules: string[];
+  maxUsers: number;
+  maxInvoicesPerMonth: number;
 }
 
 export function useSubscription() {
@@ -69,6 +73,10 @@ export function useSubscription() {
         totalDays: Math.max(totalDays, 1),
         isExpired: daysLeft <= 0,
         isTrial,
+        tier: plan.tier || 'basic',
+        enabledModules: (plan.enabled_modules as string[]) || [],
+        maxUsers: plan.max_users ?? 1,
+        maxInvoicesPerMonth: plan.max_invoices_per_month ?? -1,
       });
     } catch (err) {
       console.error("Error fetching subscription:", err);
