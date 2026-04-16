@@ -78,6 +78,12 @@ export function classifyTransaction(tx: {
   const t = (tx.transaction_type || "").toLowerCase();
   const ref = tx.reference || "";
 
+  // قيود المحاسب الذكي (Haseeb) — تبدأ بـ AI- ولا يوجد لها مستند فعلي
+  // تُعامل كقيود يدوية قابلة للتعديل/الحذف من دفتر اليومية
+  if (ref.startsWith("AI-")) {
+    return { isLinked: false, docType: null, label: "🤖 محاسب ذكي", navigatePath: null };
+  }
+
   // قيد افتتاحي
   if (tx.is_opening_balance || t === "opening_balance") {
     return {
