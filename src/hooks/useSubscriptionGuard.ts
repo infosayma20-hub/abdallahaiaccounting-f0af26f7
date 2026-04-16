@@ -6,19 +6,39 @@ import { supabase } from "@/integrations/supabase/client";
 export function useSubscriptionGuard() {
   const { subscription, loading, refresh } = useSubscription();
   const { user } = useAuth();
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setIsSuperAdmin(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsSuperAdmin(null);
+
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "super_admin")
       .maybeSingle()
-      .then(({ data }) => setIsSuperAdmin(!!data));
+      .then(({ data }) => {
+        if (isMounted) setIsSuperAdmin(!!data);
+      })
+      .catch(() => {
+        if (isMounted) setIsSuperAdmin(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [user?.id]);
+
   const hasAutoExpired = useRef(false);
+  const resolvedIsSuperAdmin = isSuperAdmin === true;
+  const roleLoading = !!user?.id && isSuperAdmin === null;
+  const guardLoading = loading || roleLoading;
 
   const daysLeft = subscription?.daysLeft ?? 999;
   const isTrial = subscription?.isTrial ?? false;
@@ -29,7 +49,7 @@ export function useSubscriptionGuard() {
 
   // Auto-update status to 'expired' when trial ends
   useEffect(() => {
-    if (!subscription?.id || hasAutoExpired.current) return;
+    if (guardLoading || resolvedIsSuperAdmin || !subscription?.id || hasAutoExpired.current) return;
     if (isTrialExpired && subscription.status !== "expired") {
       hasAutoExpired.current = true;
       supabase
@@ -38,7 +58,7 @@ export function useSubscriptionGuard() {
         .eq("id", subscription.id)
         .then(() => refresh());
     }
-  }, [isTrialExpired, subscription?.id, subscription?.status, refresh]);
+  }, [guardLoading, resolvedIsSuperAdmin, isTrialExpired, subscription?.id, subscription?.status, refresh]);
 
   // Fetch user data counts for conversion modals
   const fetchUserDataCounts = useCallback(async (userId: string) => {
@@ -56,13 +76,13 @@ export function useSubscriptionGuard() {
 
   return {
     subscription,
-    loading,
+    loading: guardLoading,
     daysLeft,
     isTrial,
-    isTrialExpired: isSuperAdmin ? false : (isTrialExpired || isStatusExpired),
-    isExpired: isSuperAdmin ? false : (isExpired || isStatusExpired),
-    isPaidActive: isSuperAdmin ? true : isPaidActive,
-    isSuperAdmin,
+    isTrialExpired: resolvedIsSuperAdmin ? false : (isTrialExpired || isStatusExpired),
+    isExpired: resolvedIsSuperAdmin ? false : (isExpired || isStatusExpired),
+    isPaidActive: resolvedIsSuperAdmin ? true : isPaidActive,
+    isSuperAdmin: resolvedIsSuperAdmin,
     refresh,
     fetchUserDataCounts,
   };
