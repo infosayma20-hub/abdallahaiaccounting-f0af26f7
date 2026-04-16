@@ -698,6 +698,29 @@ const TransactionsPage = () => {
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title="تقرير الحركات المحاسبية" breadcrumb={["المحاسبة", "الحركات المحاسبية"]} />
+
+      {/* ━━ شريط تنبيه نزاهة دفتر اليومية ━━ */}
+      {showIntegrityBanner && (
+        <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="rounded-full bg-primary/10 p-2 flex-shrink-0">
+            <Info className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1 text-xs text-foreground leading-relaxed">
+            <span className="font-semibold">📌 حماية النزاهة المحاسبية:</span>
+            {" "}القيود المرتبطة بمستندات (فواتير / سندات / شيكات) لا يمكن حذفها أو تعديلها من هنا.
+            اذهب للمستند الأصلي لإلغائه — سيقوم النظام بإنشاء قيد عكسي تلقائياً وفق معايير{" "}
+            <span className="font-semibold">IFRS</span>. القيود اليدوية فقط قابلة للحذف من دفتر اليومية.
+          </div>
+          <button
+            onClick={dismissIntegrityBanner}
+            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors flex-shrink-0"
+            aria-label="إغلاق"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
