@@ -114,7 +114,7 @@ export function classifyTransaction(tx: {
       isLinked: true,
       docType: "voucher_receipt",
       label: "🔗 من سند قبض",
-      navigatePath: "/finance/receipts",
+      navigatePath: ref ? `/finance/receipts?search=${encodeURIComponent(ref)}&status=all` : "/finance/receipts",
     };
   }
 
@@ -124,7 +124,7 @@ export function classifyTransaction(tx: {
       isLinked: true,
       docType: "voucher_payment",
       label: "🔗 من سند صرف",
-      navigatePath: "/finance/payments",
+      navigatePath: ref ? `/finance/payments?search=${encodeURIComponent(ref)}&status=all` : "/finance/payments",
     };
   }
 
