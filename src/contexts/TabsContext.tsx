@@ -217,6 +217,10 @@ function saveTabs(tabs: AppTab[], userId?: string) {
 // Pages that should NOT open as tabs
 const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing"];
 
+function isExcludedPath(path: string) {
+  return EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)));
+}
+
 export function TabsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -243,7 +247,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   // Sync active tab with current route
   useEffect(() => {
     const currentPath = location.pathname;
-    if (EXCLUDED_PATHS.some(p => currentPath.startsWith(p))) return;
+    if (isExcludedPath(currentPath)) return;
 
     const existing = tabs.find(t => t.path === currentPath);
     if (existing) {
@@ -276,7 +280,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, userId]);
 
   const openTab = useCallback((path: string, title?: string) => {
-    if (EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)))) {
+    if (isExcludedPath(path)) {
       navigate(path);
       return;
     }
