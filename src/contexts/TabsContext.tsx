@@ -248,7 +248,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       if (existing.title !== meta.title) {
         setTabs(prev => {
           const next = prev.map(t => t.id === existing.id ? { ...t, title: meta.title, icon: meta.icon } : t);
-          saveTabs(next);
+          saveTabs(next, userId);
           return next;
         });
       }
@@ -264,7 +264,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       };
       setTabs(prev => {
         const next = [...prev, newTab];
-        saveTabs(next);
+        saveTabs(next, userId);
         return next;
       });
       setActiveTabId(newTab.id);
@@ -292,7 +292,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     };
     setTabs(prev => {
       const next = [...prev, newTab];
-      saveTabs(next);
+      saveTabs(next, userId);
       return next;
     });
     setActiveTabId(newTab.id);
@@ -304,7 +304,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       const idx = prev.findIndex(t => t.id === id);
       if (idx === -1) return prev;
       const next = prev.filter(t => t.id !== id);
-      saveTabs(next);
+      saveTabs(next, userId);
 
       // If closing the active tab, switch to an adjacent one
       if (activeTabId === id && next.length > 0) {
@@ -330,14 +330,14 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const closeOtherTabs = useCallback((id: string) => {
     setTabs(prev => {
       const next = prev.filter(t => t.id === id);
-      saveTabs(next);
+      saveTabs(next, userId);
       return next;
     });
   }, []);
 
   const closeAllTabs = useCallback(() => {
     setTabs([]);
-    saveTabs([]);
+    saveTabs([], userId);
     setActiveTabId(null);
     navigate("/apps");
   }, [navigate]);
