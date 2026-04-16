@@ -220,18 +220,22 @@ const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password"
 export function TabsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
-  const prevUserIdRef = useRef<string | undefined>(userId);
-  const [tabs, setTabs] = useState<AppTab[]>(() => loadTabs(userId));
+  const prevUserIdRef = useRef<string | undefined>(undefined);
+  const [tabs, setTabs] = useState<AppTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Reset tabs when user changes
+  // Load/reset tabs when user changes (including initial load)
   useEffect(() => {
     if (prevUserIdRef.current !== userId) {
       prevUserIdRef.current = userId;
-      const userTabs = loadTabs(userId);
-      setTabs(userTabs);
+      if (userId) {
+        const userTabs = loadTabs(userId);
+        setTabs(userTabs);
+      } else {
+        setTabs([]);
+      }
       setActiveTabId(null);
     }
   }, [userId]);
