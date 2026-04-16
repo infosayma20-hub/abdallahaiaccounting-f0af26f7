@@ -232,6 +232,15 @@ const TransactionsPage = () => {
   const [loadingTrash, setLoadingTrash] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
+  // Integrity banner
+  const [showIntegrityBanner, setShowIntegrityBanner] = useState(() => {
+    return localStorage.getItem("amwali_integrity_banner_dismissed") !== "1";
+  });
+  const dismissIntegrityBanner = () => {
+    setShowIntegrityBanner(false);
+    localStorage.setItem("amwali_integrity_banner_dismissed", "1");
+  };
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
