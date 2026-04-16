@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FileText, Users, Wallet, CreditCard, Package,
@@ -185,11 +186,15 @@ function getRouteMeta(path: string): { title: string; icon: string } {
   return { title: clean.replace(/\//g, " ").trim() || "صفحة", icon: "file" };
 }
 
-const STORAGE_KEY = "amwali-open-tabs";
+const STORAGE_KEY_PREFIX = "amwali-open-tabs";
 
-function loadTabs(): AppTab[] {
+function getStorageKey(userId?: string) {
+  return userId ? `${STORAGE_KEY_PREFIX}_${userId}` : STORAGE_KEY_PREFIX;
+}
+
+function loadTabs(userId?: string): AppTab[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey(userId));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
@@ -205,18 +210,31 @@ function loadTabs(): AppTab[] {
   return [];
 }
 
-function saveTabs(tabs: AppTab[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs)); } catch {}
+function saveTabs(tabs: AppTab[], userId?: string) {
+  try { localStorage.setItem(getStorageKey(userId), JSON.stringify(tabs)); } catch {}
 }
 
 // Pages that should NOT open as tabs
 const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing"];
 
 export function TabsProvider({ children }: { children: ReactNode }) {
-  const [tabs, setTabs] = useState<AppTab[]>(loadTabs);
+  const { user } = useAuth();
+  const userId = user?.id;
+  const prevUserIdRef = useRef<string | undefined>(userId);
+  const [tabs, setTabs] = useState<AppTab[]>(() => loadTabs(userId));
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Reset tabs when user changes
+  useEffect(() => {
+    if (prevUserIdRef.current !== userId) {
+      prevUserIdRef.current = userId;
+      const userTabs = loadTabs(userId);
+      setTabs(userTabs);
+      setActiveTabId(null);
+    }
+  }, [userId]);
 
   // Sync active tab with current route
   useEffect(() => {
@@ -230,7 +248,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       if (existing.title !== meta.title) {
         setTabs(prev => {
           const next = prev.map(t => t.id === existing.id ? { ...t, title: meta.title, icon: meta.icon } : t);
-          saveTabs(next);
+          saveTabs(next, userId);
           return next;
         });
       }
@@ -246,12 +264,12 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       };
       setTabs(prev => {
         const next = [...prev, newTab];
-        saveTabs(next);
+        saveTabs(next, userId);
         return next;
       });
       setActiveTabId(newTab.id);
     }
-  }, [location.pathname]);
+  }, [location.pathname, userId]);
 
   const openTab = useCallback((path: string, title?: string) => {
     if (EXCLUDED_PATHS.some(p => path === p || (p !== "/" && path.startsWith(p)))) {
@@ -274,19 +292,19 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     };
     setTabs(prev => {
       const next = [...prev, newTab];
-      saveTabs(next);
+      saveTabs(next, userId);
       return next;
     });
     setActiveTabId(newTab.id);
     navigate(path);
-  }, [tabs, navigate]);
+  }, [tabs, navigate, userId]);
 
   const closeTab = useCallback((id: string) => {
     setTabs(prev => {
       const idx = prev.findIndex(t => t.id === id);
       if (idx === -1) return prev;
       const next = prev.filter(t => t.id !== id);
-      saveTabs(next);
+      saveTabs(next, userId);
 
       // If closing the active tab, switch to an adjacent one
       if (activeTabId === id && next.length > 0) {
@@ -299,7 +317,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
-  }, [activeTabId, navigate]);
+  }, [activeTabId, navigate, userId]);
 
   const switchTab = useCallback((id: string) => {
     const tab = tabs.find(t => t.id === id);
@@ -312,17 +330,17 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   const closeOtherTabs = useCallback((id: string) => {
     setTabs(prev => {
       const next = prev.filter(t => t.id === id);
-      saveTabs(next);
+      saveTabs(next, userId);
       return next;
     });
-  }, []);
+  }, [userId]);
 
   const closeAllTabs = useCallback(() => {
     setTabs([]);
-    saveTabs([]);
+    saveTabs([], userId);
     setActiveTabId(null);
     navigate("/apps");
-  }, [navigate]);
+  }, [navigate, userId]);
 
   return (
     <TabsContext.Provider value={{ tabs, activeTabId, openTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>
