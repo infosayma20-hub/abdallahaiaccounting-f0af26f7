@@ -277,6 +277,8 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         work_field: data.businessType || undefined,
       }).eq("user_id", userId);
 
+      // Save start number as offset (so 1st new invoice = invoiceStartNumber)
+      const offset = Math.max(0, (data.invoiceStartNumber || 1) - 1);
       if (data.companyName) {
         const { data: existingCompany } = await supabase
           .from("companies")
@@ -284,9 +286,16 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           .eq("owner_id", userId)
           .maybeSingle();
         if (existingCompany) {
-          await supabase.from("companies").update({ name: data.companyName }).eq("id", existingCompany.id);
+          await supabase.from("companies").update({ name: data.companyName, invoice_number_offset: offset }).eq("id", existingCompany.id);
         } else {
-          await supabase.from("companies").insert({ owner_id: userId, name: data.companyName });
+          await supabase.from("companies").insert({ owner_id: userId, name: data.companyName, invoice_number_offset: offset });
+        }
+      } else {
+        // Still save offset even if no company name change
+        const { data: existingCompany } = await supabase
+          .from("companies").select("id").eq("owner_id", userId).maybeSingle();
+        if (existingCompany) {
+          await supabase.from("companies").update({ invoice_number_offset: offset }).eq("id", existingCompany.id);
         }
       }
 
