@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 
 /**
- * Maps route path prefixes to app IDs used in hidden_apps.
- * When a route starts with any of these prefixes and its app ID is in hidden_apps,
- * the module is considered locked.
+ * Maps route path prefixes to app IDs used in hidden_apps + enabled_modules.
  */
 const ROUTE_TO_APP_ID: Record<string, string> = {
   "/pos": "pos",
@@ -13,26 +13,66 @@ const ROUTE_TO_APP_ID: Record<string, string> = {
   "/hr": "hr",
   "/inventory": "inventory",
   "/fixed-assets": "fixed-assets",
-  "/projects": "projects",
+  "/projects": "contracting",
   "/workshops": "workshops",
-  "/call-center": "callcenter",
+  "/call-center": "call-center",
   "/warranty": "warranty",
+  "/tourism": "tourism",
+  "/ecommerce": "ecommerce",
+  "/tasks": "tasks",
+  "/ai-accountant": "ai-accountant",
+};
+
+const APP_NAMES_AR: Record<string, string> = {
+  pos: "نقطة البيع",
+  hr: "الموارد البشرية",
+  inventory: "المخزون",
+  "fixed-assets": "الأصول الثابتة",
+  contracting: "المقاولات",
+  workshops: "الورشات",
+  "call-center": "مركز الاتصال",
+  warranty: "إدارة الكفالات",
+  tourism: "السياحة والسفر",
+  ecommerce: "التجارة الإلكترونية",
+  tasks: "المهام",
+  "ai-accountant": "المحاسب الذكي",
 };
 
 export function useLockedModules() {
   const { settings } = useCompanySettings();
+  const { subscription } = useSubscription();
+  const { isSuperAdmin, isTrial } = useSubscriptionGuard();
 
-  const hiddenApps: string[] = useMemo(() => {
-    return (settings as any)?.hidden_apps || [];
-  }, [settings]);
+  const hiddenApps: string[] = useMemo(
+    () => (settings as any)?.hidden_apps || [],
+    [settings]
+  );
 
+  const enabledModules: string[] = useMemo(
+    () => subscription?.enabledModules || [],
+    [subscription]
+  );
+
+  /**
+   * App is locked if:
+   * - Super admin hid it explicitly (hidden_apps), OR
+   * - User has a paid plan AND the module is NOT in plan's enabled_modules
+   * - During Trial: ALL apps unlocked (unless hidden by super admin)
+   * - Super admin role: nothing is locked
+   */
   const isModuleLocked = (appId: string): boolean => {
-    return hiddenApps.includes(appId);
+    if (isSuperAdmin) return false;
+    if (hiddenApps.includes(appId)) return true;
+    // Trial users get full access
+    if (isTrial) return false;
+    // Paid users restricted by plan
+    if (enabledModules.length === 0) return false; // no plan data → don't block
+    return !enabledModules.includes(appId);
   };
 
   const isRouteLocked = (path: string): boolean => {
     for (const [prefix, appId] of Object.entries(ROUTE_TO_APP_ID)) {
-      if (path.startsWith(prefix) && hiddenApps.includes(appId)) {
+      if (path.startsWith(prefix) && isModuleLocked(appId)) {
         return true;
       }
     }
@@ -40,23 +80,13 @@ export function useLockedModules() {
   };
 
   const getLockedModuleName = (path: string): string => {
-    const names: Record<string, string> = {
-      pos: "نقطة البيع",
-      hr: "الموارد البشرية",
-      inventory: "المخزون",
-      "fixed-assets": "الأصول الثابتة",
-      projects: "المشاريع",
-      workshops: "الورشات",
-      callcenter: "مركز الاتصال",
-      warranty: "إدارة الكفالات",
-    };
     for (const [prefix, appId] of Object.entries(ROUTE_TO_APP_ID)) {
       if (path.startsWith(prefix)) {
-        return names[appId] || "هذا الموديل";
+        return APP_NAMES_AR[appId] || "هذا الموديل";
       }
     }
     return "هذا الموديل";
   };
 
-  return { hiddenApps, isModuleLocked, isRouteLocked, getLockedModuleName };
+  return { hiddenApps, enabledModules, isModuleLocked, isRouteLocked, getLockedModuleName };
 }

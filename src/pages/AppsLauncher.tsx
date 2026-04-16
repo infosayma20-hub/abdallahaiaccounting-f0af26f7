@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Lock, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import UpgradePromptModal from "@/components/subscription/UpgradePromptModal";
 import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
@@ -27,16 +29,18 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
 
 /* ── App Card — Qoyod-style with prominent icon & hover animation ── */
 const AppCard = ({
-  app, index, isExpanded, onToggle, onNavigate, disabled, isLocked,
+  app, index, isExpanded, onToggle, onNavigate, disabled, isLocked, isPremiumLocked, onPremiumClick,
 }: {
   app: NavItem; index: number; isExpanded: boolean;
   onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean; isLocked?: boolean;
+  isPremiumLocked?: boolean; onPremiumClick?: () => void;
 }) => {
   const isDisabledOrLocked = disabled || isLocked;
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
   const handleClick = () => {
     if (isDisabledOrLocked) return;
+    if (isPremiumLocked) { onPremiumClick?.(); return; }
     if (hasChildren) { onToggle(); return; }
     onNavigate(app.path);
   };
@@ -80,6 +84,8 @@ const AppCard = ({
         >
           {isLocked ? (
             <Lock className="h-5 w-5" style={{ color: "#cbd5e1" }} />
+          ) : isPremiumLocked ? (
+            <app.icon className={`h-5 w-5 ${app.color || "text-primary"} opacity-50 transition-transform duration-300 group-hover:scale-105`} />
           ) : (
             <app.icon className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
@@ -87,15 +93,20 @@ const AppCard = ({
 
         <div className="space-y-1">
           <div className="flex items-center justify-center gap-1.5">
-            <p style={{ fontSize: 15, fontWeight: 600, color: isDisabledOrLocked ? "#94a3b8" : "#0D1B2E" }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: isDisabledOrLocked ? "#94a3b8" : isPremiumLocked ? "#475569" : "#0D1B2E" }}>
               {app.label}
             </p>
-            {!isDisabledOrLocked && app.isNew && (
+            {!isDisabledOrLocked && !isPremiumLocked && app.isNew && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
             )}
+            {isPremiumLocked && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: "#fef3c7", color: "#92400e" }}>
+                <Crown className="w-2.5 h-2.5" /> Premium
+              </span>
+            )}
           </div>
-          <p style={{ fontSize: 12, color: isLocked ? "#94a3b8" : "#64748b", lineHeight: 1.5, maxWidth: 180, margin: "0 auto" }} className="line-clamp-2">
-            {isLocked ? "🔒 غير متاح" : disabled ? "غير مفعّل" : app.description}
+          <p style={{ fontSize: 12, color: isLocked || isPremiumLocked ? "#94a3b8" : "#64748b", lineHeight: 1.5, maxWidth: 180, margin: "0 auto" }} className="line-clamp-2">
+            {isLocked ? "🔒 غير متاح" : isPremiumLocked ? "🔓 ترقية للاستخدام" : disabled ? "غير مفعّل" : app.description}
           </p>
         </div>
 
@@ -146,11 +157,13 @@ const AppsLauncher = () => {
   const { user } = useAuth();
   const { settings } = useCompanySettings();
   const { subscription } = useSubscription();
+  const { isTrial, isSuperAdmin } = useSubscriptionGuard();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
   // Fetch user roles for filtering
   useEffect(() => {
@@ -173,6 +186,24 @@ const AppsLauncher = () => {
   const isAppDisabled = (app: NavItem) => {
     if (hiddenApps.includes(app.id)) return true;
     return false;
+  };
+
+  // App is "premium-locked" = NOT in plan's enabled_modules (only for paid users)
+  const enabledModules = subscription?.enabledModules || [];
+  const isAppPremiumLocked = (app: NavItem) => {
+    if (isSuperAdmin) return false;
+    if (isTrial) return false; // Trial = full access
+    if (enabledModules.length === 0) return false; // no plan loaded yet
+    return !enabledModules.includes(app.id);
+  };
+
+  // Determine which tier is needed to unlock a module
+  const getRequiredTier = (appId: string): string => {
+    const proModules = ["pos", "hr", "tasks", "ai-accountant"];
+    const enterpriseModules = ["workshops", "contracting", "warranty", "tourism", "ecommerce", "call-center", "stores"];
+    if (enterpriseModules.includes(appId)) return "enterprise";
+    if (proModules.includes(appId)) return "pro";
+    return "pro";
   };
 
   // Check if user has a restricted role (not admin/super_admin)
@@ -267,6 +298,8 @@ const AppsLauncher = () => {
               onNavigate={navigate}
               disabled={isAppDisabled(app)}
               isLocked={hiddenApps.includes(app.id)}
+              isPremiumLocked={isAppPremiumLocked(app)}
+              onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: getRequiredTier(app.id) })}
             />
           ))}
         </div>
@@ -279,6 +312,12 @@ const AppsLauncher = () => {
         )}
       </div>
 
+      <UpgradePromptModal
+        open={upgradeModal.open}
+        onOpenChange={(v) => setUpgradeModal(prev => ({ ...prev, open: v }))}
+        moduleName={upgradeModal.module}
+        requiredTier={upgradeModal.tier}
+      />
 
       {!onboardingLoading && (
         <>
