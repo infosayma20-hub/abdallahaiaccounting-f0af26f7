@@ -434,12 +434,22 @@ const TransactionsPage = () => {
 
   const handleDelete = async () => {
     if (!editingTx) return;
+    // ━━ حماية النزاهة المحاسبية ━━
+    const linkage = classifyTransaction(editingTx);
+    if (linkage.isLinked) {
+      toast({
+        title: "لا يمكن الحذف من دفتر اليومية",
+        description: "هذا القيد مرتبط بمستند. اذهب للمستند الأصلي لإلغائه — سيقوم النظام بإنشاء قيد عكسي تلقائياً.",
+        variant: "destructive",
+      });
+      setShowDeleteConfirm(false);
+      return;
+    }
     setDeleting(true);
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).eq('id', editingTx.id);
       if (error) throw error;
-      // DB trigger cascades to linked vouchers/invoices automatically
-      toast({ title: "تم نقل المعاملة والمستندات المرتبطة إلى سلة المحذوفات" });
+      toast({ title: "تم نقل القيد اليدوي إلى سلة المحذوفات" });
       setEditingTx(null); setShowDeleteConfirm(false); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
