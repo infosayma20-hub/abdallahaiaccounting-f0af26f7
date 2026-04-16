@@ -157,11 +157,13 @@ const AppsLauncher = () => {
   const { user } = useAuth();
   const { settings } = useCompanySettings();
   const { subscription } = useSubscription();
+  const { isTrial, isSuperAdmin } = useSubscriptionGuard();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
   // Fetch user roles for filtering
   useEffect(() => {
@@ -184,6 +186,24 @@ const AppsLauncher = () => {
   const isAppDisabled = (app: NavItem) => {
     if (hiddenApps.includes(app.id)) return true;
     return false;
+  };
+
+  // App is "premium-locked" = NOT in plan's enabled_modules (only for paid users)
+  const enabledModules = subscription?.enabledModules || [];
+  const isAppPremiumLocked = (app: NavItem) => {
+    if (isSuperAdmin) return false;
+    if (isTrial) return false; // Trial = full access
+    if (enabledModules.length === 0) return false; // no plan loaded yet
+    return !enabledModules.includes(app.id);
+  };
+
+  // Determine which tier is needed to unlock a module
+  const getRequiredTier = (appId: string): string => {
+    const proModules = ["pos", "hr", "tasks", "ai-accountant"];
+    const enterpriseModules = ["workshops", "contracting", "warranty", "tourism", "ecommerce", "call-center", "stores"];
+    if (enterpriseModules.includes(appId)) return "enterprise";
+    if (proModules.includes(appId)) return "pro";
+    return "pro";
   };
 
   // Check if user has a restricted role (not admin/super_admin)
