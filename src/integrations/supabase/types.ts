@@ -6529,19 +6529,23 @@ export type Database = {
           created_at: string
           currency: string | null
           display_order: number
+          enabled_modules: string[] | null
           features: Json
           id: string
           is_active: boolean
           is_featured: boolean | null
+          is_recommended: boolean | null
           limits: Json | null
           max_branches: number | null
           max_companies: number
+          max_invoices_per_month: number | null
           max_users: number
           monthly_price: number
           name: string
           name_ar: string
           plan_key: string
           sort_order: number | null
+          tier: string | null
           updated_at: string
         }
         Insert: {
@@ -6551,19 +6555,23 @@ export type Database = {
           created_at?: string
           currency?: string | null
           display_order?: number
+          enabled_modules?: string[] | null
           features?: Json
           id?: string
           is_active?: boolean
           is_featured?: boolean | null
+          is_recommended?: boolean | null
           limits?: Json | null
           max_branches?: number | null
           max_companies?: number
+          max_invoices_per_month?: number | null
           max_users?: number
           monthly_price?: number
           name: string
           name_ar: string
           plan_key: string
           sort_order?: number | null
+          tier?: string | null
           updated_at?: string
         }
         Update: {
@@ -6573,19 +6581,23 @@ export type Database = {
           created_at?: string
           currency?: string | null
           display_order?: number
+          enabled_modules?: string[] | null
           features?: Json
           id?: string
           is_active?: boolean
           is_featured?: boolean | null
+          is_recommended?: boolean | null
           limits?: Json | null
           max_branches?: number | null
           max_companies?: number
+          max_invoices_per_month?: number | null
           max_users?: number
           monthly_price?: number
           name?: string
           name_ar?: string
           plan_key?: string
           sort_order?: number | null
+          tier?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -10146,6 +10158,7 @@ export type Database = {
           custom_currency: string | null
           id: string
           last_notified_at: string | null
+          notified_days: number[] | null
           plan_id: string
           plan_key: string | null
           status: string
@@ -10167,6 +10180,7 @@ export type Database = {
           custom_currency?: string | null
           id?: string
           last_notified_at?: string | null
+          notified_days?: number[] | null
           plan_id: string
           plan_key?: string | null
           status?: string
@@ -10188,6 +10202,7 @@ export type Database = {
           custom_currency?: string | null
           id?: string
           last_notified_at?: string | null
+          notified_days?: number[] | null
           plan_id?: string
           plan_key?: string | null
           status?: string
@@ -13061,6 +13076,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      expire_trials: { Args: never; Returns: Json }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
@@ -13072,6 +13088,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_module_enabled: {
+        Args: { _module: string; _user_id: string }
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
