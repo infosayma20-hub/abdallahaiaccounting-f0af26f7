@@ -332,6 +332,12 @@ const App = () => (
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
+                      <Route path="/warranty" element={<WarrantyHomePage />} />
+                      <Route path="/warranty/policies" element={<WarrantyPoliciesPage />} />
+                      <Route path="/warranty/cards" element={<WarrantyCardsPage />} />
+                      <Route path="/warranty/claims" element={<WarrantyClaimsPage />} />
+                      <Route path="/warranty/supplier-claims" element={<WarrantySupplierClaimsPage />} />
+                      <Route path="/warranty/reports" element={<WarrantyReportsPage />} />
                       <Route path="/general-ledger" element={<GeneralLedgerPage />} />
                       <Route path="/account-statement" element={<AccountStatementPage />} />
                       <Route path="/reports/hr-payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPayrollReport /></RoleGuard>} />
