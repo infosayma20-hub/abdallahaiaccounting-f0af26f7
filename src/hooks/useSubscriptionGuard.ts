@@ -25,8 +25,7 @@ export function useSubscriptionGuard() {
       .maybeSingle()
       .then(({ data }) => {
         if (isMounted) setIsSuperAdmin(!!data);
-      })
-      .catch(() => {
+      }, () => {
         if (isMounted) setIsSuperAdmin(false);
       });
 
