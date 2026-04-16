@@ -1,6 +1,8 @@
 import { Suspense, lazy } from "react";
 import { useCrossTabSync } from "@/hooks/useCrossTabSync";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
+const VersionChecker = () => { useVersionCheck(); return null; };
 import { useSearchParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -212,6 +214,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <CrossTabSyncProvider />
+        <VersionChecker />
         <BrowserRouter>
           <AuthProvider>
             <ReadOnlyProvider>
