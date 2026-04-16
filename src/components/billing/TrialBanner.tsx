@@ -126,20 +126,47 @@ const TrialBanner = () => {
     );
   }
 
-  // Urgent: < 7 days
-  if (isTrial && daysLeft < 7 && daysLeft > 0) {
+  // Critical: ≤ 4 days (day 10 of trial onwards)
+  if (isTrial && daysLeft <= 4 && daysLeft > 0) {
+    const isUrgent = daysLeft <= 2;
     return (
-      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-amber-500 flex-shrink-0" style={{ background: "#FEF9C3", fontFamily: "Tajawal" }} dir="rtl">
-        <span className="text-amber-800 font-medium">⏰ تنتهي تجربتك المجانية خلال {daysLeft} أيام! اشترك الآن للاستمرار بدون انقطاع</span>
-        <button onClick={() => navigate("/pricing")} className="bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-amber-600">اشترك الآن</button>
+      <div
+        className={`z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 flex-shrink-0 ${isUrgent ? "animate-pulse" : ""}`}
+        style={{
+          background: isUrgent ? "#FEE2E2" : "#FFEDD5",
+          borderColor: isUrgent ? "#DC2626" : "#F97316",
+          fontFamily: "Tajawal",
+        }}
+        dir="rtl"
+      >
+        <span className={isUrgent ? "text-red-800 font-bold" : "text-orange-800 font-bold"}>
+          {isUrgent ? "🚨" : "⏰"} متبقي {daysLeft} {daysLeft === 1 ? "يوم" : "أيام"} على انتهاء تجربتك المجانية! اشترك الآن لحفظ بياناتك
+        </span>
+        <button
+          onClick={() => navigate("/pricing")}
+          className="text-white px-4 py-1 rounded-full text-xs font-bold hover:brightness-110 transition"
+          style={{ background: isUrgent ? "#DC2626" : "#F97316" }}
+        >
+          اشترك الآن ←
+        </button>
       </div>
     );
   }
 
-  // Normal trial banner (>= 7 days)
+  // Mid-trial: 5-7 days left
+  if (isTrial && daysLeft <= 7 && daysLeft > 4) {
+    return (
+      <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm border-b-2 border-amber-500 flex-shrink-0" style={{ background: "#FEF9C3", fontFamily: "Tajawal" }} dir="rtl">
+        <span className="text-amber-800 font-medium">⏳ متبقي {daysLeft} أيام على انتهاء التجربة — اختر باقتك واستفد من الخصم السنوي</span>
+        <button onClick={() => navigate("/pricing")} className="bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold hover:bg-amber-600">اختر خطتك</button>
+      </div>
+    );
+  }
+
+  // Normal trial banner (>= 8 days)
   return (
     <div className="z-40 flex items-center justify-between px-6 py-2.5 text-sm text-white flex-shrink-0" style={{ background: "linear-gradient(135deg, #0D1B2A, #1E3A5F)", fontFamily: "Tajawal" }} dir="rtl">
-      <span>🎁 أنت في الفترة التجريبية المجانية — متبقي {daysLeft} يوماً</span>
+      <span>🎁 أنت في الفترة التجريبية المجانية — متبقي {daysLeft} يوماً (كل التطبيقات مفتوحة)</span>
       <div className="flex items-center gap-3">
         <button onClick={() => navigate("/pricing")} className="px-4 py-1 rounded-full text-xs font-bold hover:brightness-110 transition-all" style={{ background: "#E8A020", color: "#0D1B2A" }}>
           اختر خطتك الآن
