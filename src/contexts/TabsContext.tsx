@@ -186,11 +186,15 @@ function getRouteMeta(path: string): { title: string; icon: string } {
   return { title: clean.replace(/\//g, " ").trim() || "صفحة", icon: "file" };
 }
 
-const STORAGE_KEY = "amwali-open-tabs";
+const STORAGE_KEY_PREFIX = "amwali-open-tabs";
 
-function loadTabs(): AppTab[] {
+function getStorageKey(userId?: string) {
+  return userId ? `${STORAGE_KEY_PREFIX}_${userId}` : STORAGE_KEY_PREFIX;
+}
+
+function loadTabs(userId?: string): AppTab[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey(userId));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
@@ -206,8 +210,8 @@ function loadTabs(): AppTab[] {
   return [];
 }
 
-function saveTabs(tabs: AppTab[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs)); } catch {}
+function saveTabs(tabs: AppTab[], userId?: string) {
+  try { localStorage.setItem(getStorageKey(userId), JSON.stringify(tabs)); } catch {}
 }
 
 // Pages that should NOT open as tabs
