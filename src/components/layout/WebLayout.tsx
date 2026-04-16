@@ -11,7 +11,6 @@ import TrialExpiredGate from "../trial/TrialExpiredGate";
 import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
 import SessionManager from "../SessionManager";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { TabsProvider } from "@/contexts/TabsContext";
 
 interface WebLayoutProps {
@@ -22,12 +21,9 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { subscription } = useSubscription();
-  const { isTrialExpired } = useSubscriptionGuard();
 
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
-  // Hide Noor support widget when trial has expired (no support after expiry)
-  const showNoorWidget = !isTrialExpired;
 
   return (
     <TabsProvider>
@@ -51,8 +47,8 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         {/* Tab bar */}
         <TabBar />
 
-        {/* Single subscription/trial banner — hidden when trial expired (gate shows ReadOnlyBanner instead) */}
-        {!isTrialExpired && (isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />)}
+        {/* Single subscription/trial banner — never both */}
+        {isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />}
 
         {/* Content — no heavy page transitions */}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
@@ -69,8 +65,8 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Session timeout manager */}
       <SessionManager />
 
-      {/* Noor Support Widget — hidden for expired trials */}
-      {showNoorWidget && <NoorSupportWidget />}
+      {/* Noor Support Widget */}
+      <NoorSupportWidget />
     </div>
     </TabsProvider>
   );

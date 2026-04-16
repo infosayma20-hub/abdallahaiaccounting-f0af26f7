@@ -232,7 +232,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/pricing" element={<Navigate to="/billing" replace />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/share" element={<ShareQRPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
@@ -290,7 +290,7 @@ const App = () => (
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/billing" element={<BillingPage />} />
-                      <Route path="/subscription" element={<Navigate to="/billing" replace />} />
+                      <Route path="/subscription" element={<Navigate to="/pricing" replace />} />
                       <Route path="/journal-entries" element={<Navigate to="/transactions" replace />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
                       <Route path="/receipts" element={<Navigate to="/finance/receipts" replace />} />
