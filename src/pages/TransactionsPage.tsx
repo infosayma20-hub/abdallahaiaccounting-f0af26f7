@@ -9,8 +9,10 @@ import TransactionsPrintView from "@/components/TransactionsPrintView";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
-  Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle
+  Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle,
+  ExternalLink, Info, Lock
 } from "lucide-react";
+import { classifyTransaction } from "@/lib/transactionLinkage";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
