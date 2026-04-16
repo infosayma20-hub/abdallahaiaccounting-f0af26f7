@@ -1591,13 +1591,13 @@ const POSPage = () => {
         p.pos_category_id === cat?.id || p.category === selectedCategory
       );
     }
-    if (searchQuery) {
+    if (debouncedSearch) {
       filtered = filtered.filter(
-        (p) => multiWordMatchAny(searchQuery, p.name, p.sku, p.barcode)
+        (p) => multiWordMatchAny(debouncedSearch, p.name, p.sku, p.barcode)
       );
     }
     // When "الكل" is selected, sort products grouped by category order
-    if (selectedCategory === "الكل" && !searchQuery) {
+    if (selectedCategory === "الكل" && !debouncedSearch) {
       const catOrderMap = new Map<string, number>();
       visiblePosCategories.forEach((c, i) => catOrderMap.set(c.id, i));
       filtered.sort((a, b) => {
@@ -1609,7 +1609,7 @@ const POSPage = () => {
       });
     }
     return filtered;
-  }, [products, selectedCategory, searchQuery, posCategories]);
+  }, [products, selectedCategory, debouncedSearch, posCategories]);
 
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
