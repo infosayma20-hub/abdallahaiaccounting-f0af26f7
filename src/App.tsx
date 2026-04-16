@@ -290,7 +290,7 @@ const App = () => (
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/billing" element={<BillingPage />} />
-                      <Route path="/subscription" element={<Navigate to="/pricing" replace />} />
+                      <Route path="/subscription" element={<Navigate to="/billing" replace />} />
                       <Route path="/journal-entries" element={<Navigate to="/transactions" replace />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
                       <Route path="/receipts" element={<Navigate to="/finance/receipts" replace />} />
