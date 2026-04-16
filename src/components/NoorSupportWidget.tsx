@@ -196,7 +196,7 @@ const NoorSupportWidget = () => {
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "rotateY(0deg) rotateX(0deg) scale(1)";
               e.currentTarget.style.boxShadow = "0 6px 24px rgba(13,27,46,0.5), 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15)";
-            }
+            }}
             title="نور — الدعم الفني"
           >
             <Headset className="h-6 w-6 drop-shadow-sm" />
