@@ -449,10 +449,32 @@ const TransactionsPage = () => {
   const handleBulkDelete = async () => {
     setBulkDeleting(true);
     try {
-      const ids = Array.from(selectedIds);
-      const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', ids);
+      // ━━ حماية النزاهة المحاسبية: تصفية القيود اليدوية فقط ━━
+      const allIds = Array.from(selectedIds);
+      const manualIds = allIds.filter(id => {
+        const tx = transactions.find(t => t.id === id);
+        if (!tx) return false;
+        return !classifyTransaction(tx).isLinked;
+      });
+      const blockedCount = allIds.length - manualIds.length;
+
+      if (manualIds.length === 0) {
+        toast({
+          title: "لا يمكن الحذف من دفتر اليومية",
+          description: "كل القيود المحددة مرتبطة بمستندات (فواتير/سندات). الرجاء الذهاب للمستند الأصلي لإلغائه.",
+          variant: "destructive",
+        });
+        setShowBulkDeleteConfirm(false);
+        setBulkDeleting(false);
+        return;
+      }
+
+      const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', manualIds);
       if (error) throw error;
-      toast({ title: `تم نقل ${ids.length} معاملة والمستندات المرتبطة إلى سلة المحذوفات` });
+      toast({
+        title: `تم نقل ${manualIds.length} قيد يدوي إلى سلة المحذوفات`,
+        description: blockedCount > 0 ? `تم تجاهل ${blockedCount} قيد مرتبط بمستندات (يجب إلغاؤها من المستند الأصلي).` : undefined,
+      });
       setShowBulkDeleteConfirm(false); setSelectedIds(new Set()); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
