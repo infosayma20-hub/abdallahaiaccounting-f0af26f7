@@ -11,6 +11,7 @@ import {
   Sun, Moon, LayoutDashboard, UserPlus,
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
+import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -2187,6 +2188,7 @@ export default function SuperAdminDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3">
+            <SignupNotificationsBell />
             <button onClick={toggleTheme}
               className="p-1.5 sm:p-2 rounded-lg transition-colors"
               style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }}
