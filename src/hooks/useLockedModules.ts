@@ -16,6 +16,7 @@ const ROUTE_TO_APP_ID: Record<string, string> = {
   "/projects": "projects",
   "/workshops": "workshops",
   "/call-center": "callcenter",
+  "/warranty": "warranty",
 };
 
 export function useLockedModules() {
@@ -47,6 +48,7 @@ export function useLockedModules() {
       projects: "المشاريع",
       workshops: "الورشات",
       callcenter: "مركز الاتصال",
+      warranty: "إدارة الكفالات",
     };
     for (const [prefix, appId] of Object.entries(ROUTE_TO_APP_ID)) {
       if (path.startsWith(prefix)) {
