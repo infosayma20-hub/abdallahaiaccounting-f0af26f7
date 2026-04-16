@@ -849,6 +849,7 @@ const MANAGEABLE_APPS = [
   { id: "purchases", label: "المشتريات", icon: "🛒" },
   { id: "sales", label: "المبيعات", icon: "🧾" },
   { id: "reports", label: "التقارير", icon: "📊" },
+  { id: "warranty", label: "إدارة الكفالات", icon: "🛡️" },
   { id: "settings", label: "الإعدادات", icon: "⚙️" },
 ];
 
