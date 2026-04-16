@@ -305,7 +305,7 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes, invCountRes, taxSettingsRes, companyRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes, invCountRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
@@ -313,6 +313,7 @@ const InvoiceCreatePage = () => {
         supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("tax_settings").select("registration_type").eq("user_id", user.id).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
+        (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", user.id).maybeSingle() as any),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       
