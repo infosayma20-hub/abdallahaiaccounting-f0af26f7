@@ -30,15 +30,20 @@ export interface LinkageInfo {
 const SALE_TYPES = new Set([
   "sale", "sale_cash", "sale_credit", "sale_bank", "sale_cheque",
   "pos_sale", "pos_cogs", "pos_transfer", "sale_return",
+  "فاتورة مبيعات", "مبيعات", "بيع",
 ]);
 
 const PURCHASE_TYPES = new Set([
   "purchase", "purchase_invoice", "purchase_cash", "purchase_credit",
   "purchase_bank", "purchase_cheque", "purchase_return", "pos_purchase",
+  "فاتورة مشتريات", "مشتريات", "شراء",
 ]);
 
-const RECEIPT_TYPES = new Set(["receipt"]);
-const PAYMENT_TYPES = new Set(["payment", "expense", "pos_expense", "pos_meal", "journal"]);
+const RECEIPT_TYPES = new Set(["receipt", "سند قبض", "قبض", "workshop_receipt"]);
+const PAYMENT_TYPES = new Set([
+  "payment", "expense", "pos_expense", "pos_meal", "journal",
+  "سند صرف", "صرف", "مصروف", "workshop_cost", "workshop_payment",
+]);
 
 const CHEQUE_TYPES = new Set([
   "cheque_register", "cheque_deposit", "cheque_collection",
