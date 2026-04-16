@@ -39,11 +39,10 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Trial expired and in read-only mode → show banner + disabled UI
+  // Trial expired and in read-only mode → disabled UI (red banner shown via TrialBanner)
   if (isTrialExpired && isReadOnly) {
     return (
       <>
-        <ReadOnlyBanner />
         <div className="trial-readonly-mode">
           {children}
         </div>
