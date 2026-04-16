@@ -218,10 +218,23 @@ function saveTabs(tabs: AppTab[], userId?: string) {
 const EXCLUDED_PATHS = ["/", "/auth", "/onboarding", "/setup", "/reset-password", "/terms", "/privacy", "/pricing"];
 
 export function TabsProvider({ children }: { children: ReactNode }) {
-  const [tabs, setTabs] = useState<AppTab[]>(loadTabs);
+  const { user } = useAuth();
+  const userId = user?.id;
+  const prevUserIdRef = useRef<string | undefined>(userId);
+  const [tabs, setTabs] = useState<AppTab[]>(() => loadTabs(userId));
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Reset tabs when user changes
+  useEffect(() => {
+    if (prevUserIdRef.current !== userId) {
+      prevUserIdRef.current = userId;
+      const userTabs = loadTabs(userId);
+      setTabs(userTabs);
+      setActiveTabId(null);
+    }
+  }, [userId]);
 
   // Sync active tab with current route
   useEffect(() => {
