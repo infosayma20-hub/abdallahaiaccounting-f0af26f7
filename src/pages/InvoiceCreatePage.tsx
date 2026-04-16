@@ -29,6 +29,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
+import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
+import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
 
 // ─── Types ───
