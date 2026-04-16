@@ -813,18 +813,24 @@ ${contactContext}
         receiptVoucherId = recData.id;
         invoiceNumber = recData.receipt_number;
         console.log('Auto-created receipt voucher:', recData.receipt_number);
+        // ربط القيد بالسند: استبدل reference (AI-xxx) برقم السند الحقيقي
+        // ليتعرّف عليه دفتر اليومية كقيد مرتبط بسند قبض
+        await supabaseAdmin.from('transactions')
+          .update({ reference: recData.receipt_number })
+          .eq('id', txData.id);
       } else {
         console.error('Failed to create receipt voucher:', recErr);
       }
     }
 
     // ═══ Payment Voucher (سند صرف) ═══
+    // ملاحظة: جدول vouchers يقبل type = 'payment' / 'receipt' / 'journal' (إنجليزي)
     if (isPayment && amount > 0 && !isPurchase) {
-      const refNum = `PV-${Date.now()}`;
       const { data: pvData, error: pvErr } = await supabaseAdmin.from('vouchers').insert({
         user_id: userId,
-        type: 'صرف',
-        ref_number: refNum,
+        type: 'payment',
+        // ref_number يُولَّد تلقائياً عبر trigger generate_voucher_ref_number
+        ref_number: '', // placeholder سيُستبدل بالـ trigger
         date: transactionDate,
         amount: amount,
         currency: currency,
@@ -833,13 +839,17 @@ ${contactContext}
         contact_id: contactId,
         linked_transaction_id: txData.id,
         status: 'posted',
-        notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي',
+        notes: 'تم إنشاؤه تلقائياً بواسطة المحاسب الذكي (حسيب)',
       }).select('id, ref_number').single();
 
       if (!pvErr && pvData) {
         voucherId = pvData.id;
         invoiceNumber = pvData.ref_number;
         console.log('Auto-created payment voucher:', pvData.ref_number);
+        // ربط القيد بالسند: استبدل reference (AI-xxx) برقم السند الحقيقي
+        await supabaseAdmin.from('transactions')
+          .update({ reference: pvData.ref_number })
+          .eq('id', txData.id);
       } else {
         console.error('Failed to create payment voucher:', pvErr);
       }
