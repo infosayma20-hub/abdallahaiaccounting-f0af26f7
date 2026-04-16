@@ -51,9 +51,10 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Active trial → show last day modal if applicable
+  // Active trial → show welcome (day 1) and last-day (day 1 left) modals
   return (
     <>
+      <TrialWelcomeModal />
       <TrialLastDayModal />
       {children}
     </>
