@@ -1052,6 +1052,13 @@ const InventoryPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Print Dialog */}
+      <BarcodePrintDialog
+        open={!!barcodePrintProduct}
+        onOpenChange={(o) => !o && setBarcodePrintProduct(null)}
+        product={barcodePrintProduct}
+      />
     </div>
   );
 };
