@@ -71,22 +71,37 @@ export default function PosInvoiceDetailPage() {
     }
     setCancelling(true);
     try {
-      // 1) Reverse the linked accounting entry (if any)
-      if (order.linked_transaction_id) {
+      // 1) ابحث عن جميع القيود المرتبطة بهذه الفاتورة (POS قد تنتج عدة قيود: مبيعات + COGS + إلخ)
+      const { data: linkedTxns, error: txnErr } = await supabase
+        .from("transactions")
+        .select("id, transaction_type, amount, description, reversed_by_id, is_deleted")
+        .eq("reference", order.order_number)
+        .eq("is_deleted", false);
+
+      if (txnErr) throw txnErr;
+
+      const toReverse = (linkedTxns || []).filter(
+        (t: any) => !t.reversed_by_id && !String(t.transaction_type || "").startsWith("reverse_")
+      );
+
+      // 2) أنشئ قيداً عكسياً لكل قيد أصلي
+      let reversedCount = 0;
+      for (const txn of toReverse) {
         const { error: revErr } = await supabase.rpc("create_reverse_entry", {
-          original_transaction_id: order.linked_transaction_id,
+          original_transaction_id: txn.id,
           reason: `إلغاء فاتورة POS ${order.order_number}: ${cancelReason}`,
-          reversed_by: user?.email || "غير محدد",
+          reversed_by: user?.id as any,
         });
         if (revErr) {
           console.error("reverse entry error:", revErr);
-          toast.error(`خطأ في إنشاء القيد العكسي: ${revErr.message}`);
+          toast.error(`خطأ في القيد العكسي (${txn.transaction_type}): ${revErr.message}`);
           setCancelling(false);
           return;
         }
+        reversedCount++;
       }
 
-      // 2) Mark order as cancelled
+      // 3) علّم الفاتورة كملغاة
       const { error: updErr } = await supabase
         .from("pos_orders")
         .update({
@@ -99,7 +114,11 @@ export default function PosInvoiceDetailPage() {
 
       if (updErr) throw updErr;
 
-      toast.success("تم إلغاء الفاتورة وإنشاء قيد عكسي بنجاح");
+      toast.success(
+        reversedCount > 0
+          ? `تم إلغاء الفاتورة وإنشاء ${reversedCount} قيد عكسي بنجاح`
+          : "تم إلغاء الفاتورة (لا توجد قيود محاسبية للعكس)"
+      );
       await loadOrder();
     } catch (e: any) {
       console.error(e);
