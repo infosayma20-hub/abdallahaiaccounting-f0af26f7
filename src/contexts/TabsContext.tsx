@@ -63,6 +63,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/reports": { title: "التقارير", icon: "pie" },
   "/smart-report": { title: "تقرير ذكي", icon: "pie" },
   "/cheques": { title: "الشيكات", icon: "credit" },
+  "/hr": { title: "مركز قيادة HR", icon: "users" },
   "/employees": { title: "الموظفين", icon: "usercheck" },
   "/payroll": { title: "الرواتب", icon: "dollar" },
   "/hr-attendance": { title: "الحضور", icon: "usercheck" },
