@@ -112,20 +112,12 @@ export function useEmployee360(employeeId: string | undefined) {
       const companyId = employee?.company_id ?? null;
       const authUserId = employee?.auth_user_id ?? null;
 
-      // ---- Parallel fetches (typed-safe: avoid mixing builder with Promise.resolve) ----
+      // ---- Parallel fetches: split into 3 batches to keep TS inference shallow ----
       const [
         attendanceDaysRes,
         attendanceEventsRes,
         payrollRunsRes,
         payrollInputsRes,
-        allowancesRes,
-        leaveReqRes,
-        leaveHistRes,
-        loansRes,
-        deductionsRes,
-        formsRes,
-        finMovesRes,
-        transactionsRes,
       ] = await Promise.all([
         supabase
           .from("attendance_days")
@@ -154,6 +146,14 @@ export function useEmployee360(employeeId: string | undefined) {
           .order("year", { ascending: false })
           .order("month", { ascending: false })
           .limit(6),
+      ]);
+
+      const [
+        allowancesRes,
+        leaveReqRes,
+        leaveHistRes,
+        loansRes,
+      ] = await Promise.all([
         supabase
           .from("employee_allowances")
           .select("*")
@@ -178,6 +178,14 @@ export function useEmployee360(employeeId: string | undefined) {
           )
           .eq("employee_id", employeeId)
           .order("created_at", { ascending: false }),
+      ]);
+
+      const [
+        deductionsRes,
+        formsRes,
+        finMovesRes,
+        transactionsRes,
+      ] = await Promise.all([
         supabase
           .from("employee_deductions")
           .select("*")
