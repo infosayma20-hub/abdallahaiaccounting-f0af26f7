@@ -18,6 +18,9 @@ interface ReportData {
   nonDeductiblePurchasesNet: number; nonDeductibleTax: number;
   zeroPurchasesNet: number;
   exemptPurchasesNet: number;
+  // قيم الإشعارات (مرتجعات): تخزن كأرقام موجبة لعرضها بإشارة سالبة
+  creditNotesNet: number; creditNotesTax: number;       // إشعارات دائنة (تخفض المخرجات)
+  debitNotesNet: number; debitNotesTax: number;         // إشعارات مدينة (تخفض المدخلات)
 }
 
 export default function TaxPeriodicReport({ ownerId }: Props) {
