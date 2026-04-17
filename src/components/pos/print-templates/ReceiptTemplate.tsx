@@ -54,6 +54,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   taxNumber,
   terminalName,
   logoUrl,
+  footerMode = 'compact',
 }, ref) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB');
