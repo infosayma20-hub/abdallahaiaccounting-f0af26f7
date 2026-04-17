@@ -130,12 +130,14 @@ const ALL_STATIONS = [
 ];
 
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
+  const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
     branchName: order.branchName,
     cashierName: order.cashier,
-    orderType: order.orderType,
+    orderType: normalizedType,
+    orderTypeLabel: orderTypeLabel(normalizedType),
     tableNumber: order.tableNumber,
     items: items.map(item => ({
       name: item.name,
