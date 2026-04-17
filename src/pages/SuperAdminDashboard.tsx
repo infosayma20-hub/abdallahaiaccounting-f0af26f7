@@ -2524,7 +2524,19 @@ export default function SuperAdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="subscriptions">
+          <TabsContent value="user_security" className="space-y-4">
+            <UserSecurityAuditTab
+              cardBg="var(--sa-card-bg)"
+              cardBorder="var(--sa-card-border)"
+              divider="var(--sa-divider)"
+              textPrimary="var(--sa-text-primary)"
+              textSecondary="var(--sa-text-secondary)"
+              textMuted="var(--sa-text-muted)"
+              textFaint="var(--sa-text-faint)"
+              cardHover="var(--sa-card-hover)"
+            />
+          </TabsContent>
+
             <SubscriptionsManager />
           </TabsContent>
 
