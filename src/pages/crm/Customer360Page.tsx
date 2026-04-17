@@ -34,7 +34,6 @@ const fmt = (n: number) => new Intl.NumberFormat("ar", { maximumFractionDigits: 
 interface ContactExtra {
   phone: string | null;
   email: string | null;
-  whatsapp: string | null;
 }
 
 interface PaymentRow {
@@ -63,23 +62,23 @@ export default function Customer360Page() {
   useEffect(() => {
     if (!user || !id) return;
 
-    supabase
+    (supabase
       .from("contacts")
-      .select("phone, email, whatsapp")
+      .select("phone, email")
       .eq("id", id)
       .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setExtra((data as ContactExtra) ?? null));
+      .maybeSingle() as any)
+      .then(({ data }: any) => setExtra((data as ContactExtra) ?? null));
 
-    supabase
+    (supabase
       .from("invoices")
       .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, status, invoice_type")
       .eq("user_id", user.id)
       .eq("contact_id", id)
       .neq("status", "cancelled")
       .order("invoice_date", { ascending: false })
-      .limit(200)
-      .then(({ data }) => setInvoices((data as InvoiceRow[]) || []));
+      .limit(200) as any)
+      .then(({ data }: any) => setInvoices((data as InvoiceRow[]) || []));
 
     supabase
       .from("transactions")
@@ -171,7 +170,7 @@ export default function Customer360Page() {
         riskBadge={riskBadge}
         phone={extra?.phone}
         email={extra?.email}
-        whatsapp={extra?.whatsapp}
+        whatsapp={extra?.phone}
         onNewOpportunity={() => setOppDialogOpen(true)}
         onNewActivity={() => setActDialogOpen(true)}
       />
