@@ -343,28 +343,18 @@ export const navigationSections: NavSection[] = [
     sectionTitle: "الموارد البشرية",
     items: [
       {
-        id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", module: "hr", icon: Users,
-        color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
+        id: "hr", label: "الموارد البشرية", description: "لوحة قيادة، موظفون، إعدادات", module: "hr", icon: Users,
+        color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/hr",
         enableSetting: "has_employees",
-        keywords: ["موظف", "حضور", "رواتب", "موارد"],
+        keywords: ["موظف", "حضور", "رواتب", "موارد", "hr"],
         groups: [
           {
-            groupLabel: "الحضور والموظفون",
+            groupLabel: "إدارة الموارد البشرية",
             children: [
-              { label: "الموظفون", path: "/employees" },
-              { label: "لوحة الحضور HR", path: "/hr-attendance" },
+              { label: "🏠 لوحة قيادة HR", path: "/hr" },
+              { label: "👥 الموظفون", path: "/hr/people" },
               { label: "بصمتي", path: "/my-attendance" },
-              { label: "نماذج الموظفين", path: "/employee-forms-management" },
-            ],
-          },
-          {
-            groupLabel: "الرواتب والإجازات",
-            children: [
-              { label: "الرواتب", path: "/payroll" },
-              { label: "الإجازات", path: "/leaves" },
-              { label: "الخصومات", path: "/hr-deductions" },
-              { label: "القروض الحسنة", path: "/loans" },
-              { label: "إعدادات الرواتب", path: "/payroll-settings" },
+              { label: "⚙️ إعدادات HR", path: "/hr/settings" },
             ],
           },
         ],

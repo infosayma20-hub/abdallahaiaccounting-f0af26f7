@@ -478,7 +478,7 @@ const EmployeesPage = () => {
         className={`border-b border-border/50 transition-colors cursor-pointer ${
           idx % 2 === 0 ? "bg-background" : "bg-muted/20"
         } hover:bg-primary/5`}
-        onClick={() => openEmployeeDrawer(emp)}
+        onClick={() => navigate(`/hr/employee/${emp.id}`)}
       >
         <td className="px-3 py-3">
           <div className="flex items-center gap-2">
@@ -503,6 +503,9 @@ const EmployeesPage = () => {
         </td>
         <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
           <div className="flex items-center gap-1">
+            <button onClick={() => navigate(`/hr/employee/${emp.id}`)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="ملف 360">
+              <Users className="h-3.5 w-3.5 text-primary" />
+            </button>
             <button onClick={() => { setForm(emp); setEditingId(emp.id); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
               <Pencil className="h-3.5 w-3.5 text-primary" />
             </button>
