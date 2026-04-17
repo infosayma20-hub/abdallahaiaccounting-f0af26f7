@@ -72,7 +72,6 @@ const DEPRECIATION_TYPES = new Set([
 
 const TRANSFER_TYPES = new Set([
   "cash_transfer", "bank_transfer", "exchange_diff", "bank_fee",
-  "pos_currency_exchange",
 ]);
 
 const MANUAL_TYPES = new Set(["manual", "manual_entry", "journal_entry"]);
@@ -98,6 +97,16 @@ export function classifyTransaction(tx: {
       docType: "opening_balance",
       label: "🏦 رصيد افتتاحي",
       navigatePath: "/accounts",
+    };
+  }
+
+  // معاملة نقطة البيع — مصدرها جلسة POS، التوجيه لتقرير سجل فواتير POS
+  if (POS_TYPES.has(t)) {
+    return {
+      isLinked: true,
+      docType: "pos_session",
+      label: "🛒 من نقطة البيع",
+      navigatePath: ref ? `/reports/pos-invoice-register?search=${encodeURIComponent(ref)}` : "/pos-reports",
     };
   }
 
