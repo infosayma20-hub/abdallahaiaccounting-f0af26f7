@@ -38,7 +38,7 @@ export default function TaskAdminPage() {
 
   const fetchAll = async () => {
     const [u, t] = await Promise.all([
-      supabase.from("task_users").select("*").order("created_at"),
+      supabase.from("task_users").select("id, user_id, full_name, username, role, avatar_color, is_active, last_login_at, created_at").order("created_at"),
       supabase.from("tasks").select("*, assignee:task_users!tasks_assigned_to_fkey(full_name)").order("created_at", { ascending: false }),
     ]);
     if (u.data) setTaskUsers(u.data);
