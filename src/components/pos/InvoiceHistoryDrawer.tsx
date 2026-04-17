@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
+import ReturnDialog from "./ReturnDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import { printReceiptImage } from "@/lib/image-print-service";
@@ -164,6 +165,12 @@ export default function InvoiceHistoryDrawer({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingOrder, setCancellingOrder] = useState<InvoiceOrder | null>(null);
+
+  // Return flow
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [returningOrder, setReturningOrder] = useState<InvoiceOrder | null>(null);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 3.6, JOD: 5.0, ILS: 1 });
+  const [orderCurrency, setOrderCurrency] = useState<string>("ILS");
 
   // Transfer flow
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -445,12 +452,55 @@ export default function InvoiceHistoryDrawer({
       ]);
       setOrderLines((linesRes.data || []) as InvoiceLine[]);
       setOrderPayments((paymentsRes.data || []) as InvoicePayment[]);
+      setOrderCurrency((paymentsRes.data?.[0] as any)?.currency || "ILS");
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingDetail(false);
     }
   };
+
+  // Open return dialog
+  const initiateReturn = (order: InvoiceOrder) => {
+    if (order.state !== "paid") {
+      toast.error("لا يمكن ارتجاع فاتورة غير مكتملة");
+      return;
+    }
+    if (order.is_return) {
+      toast.error("لا يمكن ارتجاع فاتورة مرتجع");
+      return;
+    }
+    if (!sessionId) {
+      toast.error("لا توجد وردية مفتوحة");
+      return;
+    }
+    setReturningOrder(order);
+    setShowReturnDialog(true);
+  };
+
+  // Load exchange rates from latest pos_payments to feed return dialog
+  useEffect(() => {
+    if (!open || !dataOwnerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("pos_payments")
+        .select("currency, exchange_rate")
+        .eq("user_id", dataOwnerId)
+        .neq("currency", "ILS")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      const rates: Record<string, number> = { ILS: 1 };
+      (data || []).forEach((p: any) => {
+        if (p.currency && p.exchange_rate && !rates[p.currency]) {
+          rates[p.currency] = Number(p.exchange_rate);
+        }
+      });
+      // Fallbacks
+      if (!rates.USD) rates.USD = 3.6;
+      if (!rates.JOD) rates.JOD = 5.0;
+      setExchangeRates(rates);
+    })();
+  }, [open, dataOwnerId]);
 
   // ── Recall: require manager based on permission ──
   const initiateRecall = (order: InvoiceOrder) => {
