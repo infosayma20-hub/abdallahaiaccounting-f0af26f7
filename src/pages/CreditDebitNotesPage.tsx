@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
-import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2, Receipt } from "lucide-react";
+import { Plus, FileText, Search, Loader2, Eye, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,16 +99,18 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
     <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
       <PageHeader
         title={titleAr}
-        description={isCredit
-          ? "إشعارات دائنة للعملاء — تخفيض أو إلغاء جزئي/كلي لفواتير المبيعات"
-          : "إشعارات مدينة للموردين — إرجاع بضاعة أو تخفيض على فواتير المشتريات"}
-        icon={Receipt}
-        actions={
-          <Button onClick={() => navigate(newPath)} className="gap-2">
-            <Plus className="h-4 w-4" /> إنشاء {isCredit ? "إشعار دائن" : "إشعار مدين"}
-          </Button>
-        }
+        breadcrumb={["الرئيسية", isCredit ? "المبيعات" : "المشتريات", titleAr]}
       />
+      <div className="flex justify-between items-start gap-3">
+        <p className="text-sm text-muted-foreground">
+          {isCredit
+            ? "إشعارات دائنة للعملاء — تخفيض أو إلغاء جزئي/كلي لفواتير المبيعات"
+            : "إشعارات مدينة للموردين — إرجاع بضاعة أو تخفيض على فواتير المشتريات"}
+        </p>
+        <Button onClick={() => navigate(newPath)} className="gap-2">
+          <Plus className="h-4 w-4" /> إنشاء {isCredit ? "إشعار دائن" : "إشعار مدين"}
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card><CardContent className="p-4">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, Save, Send, Plus, Trash2, Search, Receipt, AlertTriangle, ArrowRight } from "lucide-react";
+import { Loader2, Save, Send, Plus, Trash2, Search, AlertTriangle, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -411,14 +411,16 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
     <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
       <PageHeader
         title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
-        description={isCredit ? "تخفيض / إلغاء جزئي على فاتورة مبيعات" : "تخفيض / إرجاع على فاتورة مشتريات"}
-        icon={Receipt}
-        actions={
-          <Button variant="outline" onClick={() => navigate(listPath)} className="gap-2">
-            <ArrowRight className="h-4 w-4" /> رجوع للقائمة
-          </Button>
-        }
+        breadcrumb={["الرئيسية", isCredit ? "المبيعات" : "المشتريات", titleAr]}
       />
+      <div className="flex justify-between items-start gap-3">
+        <p className="text-sm text-muted-foreground">
+          {isCredit ? "تخفيض / إلغاء جزئي على فاتورة مبيعات" : "تخفيض / إرجاع على فاتورة مشتريات"}
+        </p>
+        <Button variant="outline" onClick={() => navigate(listPath)} className="gap-2">
+          <ArrowRight className="h-4 w-4" /> رجوع للقائمة
+        </Button>
+      </div>
 
       {readonly && (
         <Card className={`border-${accent}-200 bg-${accent}-50/40 dark:bg-${accent}-950/20`}>
