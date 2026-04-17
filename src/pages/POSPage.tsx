@@ -670,7 +670,7 @@ const POSPage = () => {
        if (event.customer_address) {
          updateActiveOrder(o => ({
            ...o,
-           orderType: 'توصيل' as any,
+           orderType: 'delivery',
            deliveryAddress: event.customer_address || '',
          }));
        }
