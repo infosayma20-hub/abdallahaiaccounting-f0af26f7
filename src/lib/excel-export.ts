@@ -7,27 +7,16 @@ import * as XLSX from "xlsx";
  */
 
 export interface BrandedExportOptions {
-  /** عنوان التقرير، يظهر في الصف الأول. مثال: "كشف حساب — أبو محمود" */
   title: string;
-  /** اسم ورقة العمل داخل الملف (≤ 31 محرف). افتراضي: "تقرير" */
   sheetName?: string;
-  /** اسم الملف بدون امتداد. سيُضاف .xlsx تلقائياً. */
   fileName: string;
-  /** رؤوس الأعمدة (الصف الأول من الجدول). */
   columns: string[];
-  /** بيانات الصفوف (مصفوفة من المصفوفات). */
   rows: (string | number | null | undefined)[][];
-  /** صف الإجمالي الاختياري — يُضاف في النهاية بعد سطر فاصل. */
   totalsRow?: (string | number | null | undefined)[];
-  /** عرض الأعمدة (wch). إن لم يُمرَّر يحسبها تلقائياً. */
   colWidths?: number[];
-  /** عملة التقرير الرئيسية. مثال: "شيكل ₪" — تظهر في الرأس المعلوماتي. */
   currency?: string;
-  /** الفترة الزمنية. مثال: "01/01/2026 → 30/04/2026" */
   period?: string;
-  /** سطور إضافية في الرأس (مثل اسم الفرع، اسم الموظف، رقم الحساب). */
   extraInfo?: string[];
-  /** اسم الشركة (يظهر في أعلى الرأس إن مُرر). */
   companyName?: string;
 }
 
@@ -41,42 +30,17 @@ const fmtToday = (): string => {
   return `${dd}/${mm}/${yy} ${hh}:${min}`;
 };
 
-/**
- * صدّر بيانات إلى ملف Excel مع رأس معلوماتي موحّد.
- * Usage:
- *   exportToExcelBranded({
- *     title: "تقرير الفواتير",
- *     fileName: "الفواتير-2026-04",
- *     currency: "شيكل ₪",
- *     period: "01/01/2026 → 30/04/2026",
- *     columns: ["#", "التاريخ", "البيان", "المبلغ"],
- *     rows: [...],
- *     totalsRow: ["", "", "الإجمالي", 12500],
- *   });
- */
 export function exportToExcelBranded(opts: BrandedExportOptions): void {
   const {
-    title,
-    sheetName = "تقرير",
-    fileName,
-    columns,
-    rows,
-    totalsRow,
-    colWidths,
-    currency,
-    period,
-    extraInfo = [],
-    companyName,
+    title, sheetName = "تقرير", fileName, columns, rows, totalsRow,
+    colWidths, currency, period, extraInfo = [], companyName,
   } = opts;
-
   const colCount = columns.length;
   const padRow = (arr: any[]): any[] => {
     const r = [...arr];
     while (r.length < colCount) r.push("");
     return r;
   };
-
-  // ─── Build header info rows ───
   const infoLines: string[] = [];
   if (companyName) infoLines.push(companyName);
   infoLines.push(title);
@@ -87,48 +51,24 @@ export function exportToExcelBranded(opts: BrandedExportOptions): void {
 
   const headerRows = infoLines.map((line) => padRow([line]));
   const blankRow = padRow([]);
-
-  // ─── Assemble sheet ───
-  const aoa: any[][] = [
-    ...headerRows,
-    blankRow,
-    columns,
-    ...rows.map((r) => padRow(r)),
-  ];
-  if (totalsRow) {
-    aoa.push(blankRow);
-    aoa.push(padRow(totalsRow));
-  }
+  const aoa: any[][] = [...headerRows, blankRow, columns, ...rows.map((r) => padRow(r))];
+  if (totalsRow) { aoa.push(blankRow); aoa.push(padRow(totalsRow)); }
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  // ─── Column widths ───
   if (colWidths && colWidths.length === colCount) {
     ws["!cols"] = colWidths.map((w) => ({ wch: w }));
   } else {
-    // Auto-width: based on max content length per column (capped at 50)
     const widths = columns.map((c, i) => {
       let max = String(c).length;
       for (const r of rows) {
         const v = r[i];
-        if (v != null) {
-          const len = String(v).length;
-          if (len > max) max = len;
-        }
+        if (v != null) { const len = String(v).length; if (len > max) max = len; }
       }
       return Math.min(Math.max(max + 2, 10), 50);
     });
     ws["!cols"] = widths.map((w) => ({ wch: w }));
   }
-
-  // ─── Merge header info rows across full width ───
-  ws["!merges"] = headerRows.map((_, idx) => ({
-    s: { r: idx, c: 0 },
-    e: { r: idx, c: colCount - 1 },
-  }));
-
-  // ─── RTL direction ───
-  if (!ws["!sheetView"]) ws["!sheetView"] = {};
+  ws["!merges"] = headerRows.map((_, idx) => ({ s: { r: idx, c: 0 }, e: { r: idx, c: colCount - 1 } }));
   (ws as any)["!sheetView"] = [{ rightToLeft: true }];
 
   const wb = XLSX.utils.book_new();
@@ -137,7 +77,6 @@ export function exportToExcelBranded(opts: BrandedExportOptions): void {
   XLSX.writeFile(wb, finalName);
 }
 
-/** Helper: تنسيق فترة من تاريخين بصيغة yyyy-MM-dd إلى نص مقروء. */
 export function formatPeriodLabel(from?: string, to?: string): string {
   const fmt = (d?: string) => {
     if (!d) return "—";
@@ -147,7 +86,6 @@ export function formatPeriodLabel(from?: string, to?: string): string {
   return `${fmt(from)}  →  ${fmt(to)}`;
 }
 
-/** Helper: استخراج اسم العملة + الرمز من كود ISO أو اسم. */
 export function currencyDisplay(code?: string): string {
   if (!code) return "شيكل ₪";
   const map: Record<string, string> = {
@@ -159,3 +97,143 @@ export function currencyDisplay(code?: string): string {
   };
   return map[code] || code;
 }
+
+// ════════════════════════════════════════════════════════════════════
+// AUTO-BRANDING INTERCEPTOR
+// ════════════════════════════════════════════════════════════════════
+// يلتقط أي workbook يُنشأ عبر XLSX.utils.book_new() ويضيف رأس
+// معلوماتي قياسي قبل كتابته إلى الملف، بحيث يستفيد كل تصدير في
+// النظام تلقائياً دون تعديل كل ملف على حدة.
+
+interface BrandingMeta {
+  title?: string;
+  currency?: string;
+  period?: string;
+  extraInfo?: string[];
+  companyName?: string;
+}
+
+let activeBranding: BrandingMeta | null = null;
+
+/**
+ * استدعِها قبل XLSX.writeFile لتضع رأس معلوماتي قياسي على كل
+ * أوراق الـ workbook التي ستُكتب لاحقاً.
+ *
+ * Example:
+ *   setNextExportBranding({ title: "كشف حساب", currency: "شيكل ₪", period: "01/01/2026 → 30/04/2026" });
+ *   XLSX.writeFile(wb, "report.xlsx");
+ */
+export function setNextExportBranding(meta: BrandingMeta): void {
+  activeBranding = meta;
+}
+
+/** يمسح بيانات العلامة التجارية المعلّقة (اختياري — يحدث تلقائياً بعد writeFile). */
+export function clearExportBranding(): void {
+  activeBranding = null;
+}
+
+function buildBrandingAoA(meta: BrandingMeta): string[][] {
+  const lines: string[] = [];
+  if (meta.companyName) lines.push(meta.companyName);
+  if (meta.title) lines.push(meta.title);
+  if (meta.currency) lines.push(`العملة: ${meta.currency}`);
+  if (meta.period) lines.push(`الفترة: ${meta.period}`);
+  (meta.extraInfo || []).forEach((l) => { if (l) lines.push(l); });
+  lines.push(`تاريخ التصدير: ${fmtToday()}`);
+  return lines.map((l) => [l]);
+}
+
+function getSheetColumnCount(ws: XLSX.WorkSheet): number {
+  const ref = ws["!ref"];
+  if (!ref) return 1;
+  const range = XLSX.utils.decode_range(ref);
+  return Math.max(1, range.e.c - range.s.c + 1);
+}
+
+function injectBrandingIntoSheet(ws: XLSX.WorkSheet, meta: BrandingMeta): void {
+  const brandRows = buildBrandingAoA(meta);
+  const colCount = getSheetColumnCount(ws);
+  const totalRowsToInsert = brandRows.length + 1; // +1 for blank separator
+
+  // Shift existing cells DOWN by totalRowsToInsert rows
+  const ref = ws["!ref"];
+  if (ref) {
+    const range = XLSX.utils.decode_range(ref);
+    const cells: { addr: string; cell: XLSX.CellObject }[] = [];
+    for (const key of Object.keys(ws)) {
+      if (key.startsWith("!")) continue;
+      cells.push({ addr: key, cell: ws[key] as XLSX.CellObject });
+      delete ws[key];
+    }
+    // Rewrite shifted
+    for (const { addr, cell } of cells) {
+      const decoded = XLSX.utils.decode_cell(addr);
+      const newAddr = XLSX.utils.encode_cell({
+        c: decoded.c,
+        r: decoded.r + totalRowsToInsert,
+      });
+      ws[newAddr] = cell;
+    }
+    // Update range
+    range.e.r += totalRowsToInsert;
+    ws["!ref"] = XLSX.utils.encode_range(range);
+
+    // Shift existing merges
+    if (ws["!merges"]) {
+      ws["!merges"] = ws["!merges"].map((m) => ({
+        s: { r: m.s.r + totalRowsToInsert, c: m.s.c },
+        e: { r: m.e.r + totalRowsToInsert, c: m.e.c },
+      }));
+    }
+  }
+
+  // Write branding rows at the top
+  brandRows.forEach((row, rIdx) => {
+    const addr = XLSX.utils.encode_cell({ r: rIdx, c: 0 });
+    ws[addr] = { v: row[0], t: "s" } as XLSX.CellObject;
+  });
+
+  // Add merges for branding rows (span full width)
+  const brandMerges = brandRows.map((_, idx) => ({
+    s: { r: idx, c: 0 },
+    e: { r: idx, c: colCount - 1 },
+  }));
+  ws["!merges"] = [...brandMerges, ...(ws["!merges"] || [])];
+
+  // Ensure RTL
+  (ws as any)["!sheetView"] = [{ rightToLeft: true }];
+
+  // Update !ref if it didn't exist
+  if (!ws["!ref"]) {
+    ws["!ref"] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: brandRows.length, c: colCount - 1 },
+    });
+  }
+}
+
+/**
+ * Monkey-patch XLSX.writeFile to inject branding header before writing.
+ * This runs once on module load, so every XLSX.writeFile() call across
+ * the app benefits — provided setNextExportBranding() was called first.
+ */
+const _originalWriteFile = XLSX.writeFile;
+(XLSX as any).writeFile = function patchedWriteFile(
+  wb: XLSX.WorkBook,
+  filename: string,
+  opts?: XLSX.WritingOptions
+) {
+  try {
+    if (activeBranding && wb && wb.SheetNames) {
+      for (const name of wb.SheetNames) {
+        const ws = wb.Sheets[name];
+        if (ws) injectBrandingIntoSheet(ws, activeBranding);
+      }
+    }
+  } catch (e) {
+    console.warn("[excel-export] branding injection failed:", e);
+  } finally {
+    activeBranding = null;
+  }
+  return _originalWriteFile.call(XLSX, wb, filename, opts);
+};
