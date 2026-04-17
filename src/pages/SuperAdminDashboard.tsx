@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
+import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -2219,6 +2220,7 @@ export default function SuperAdminDashboard() {
                 { value: "database", icon: Database, label: "قاعدة البيانات" },
                 { value: "live", icon: Wifi, label: "مراقبة حية" },
                 { value: "audit", icon: FileText, label: "سجل التدقيق" },
+                { value: "user_security", icon: Shield, label: "السجل الأمني" },
                 { value: "settings", icon: Settings, label: "إعدادات المنصة" },
                 { value: "tools", icon: Zap, label: "أدوات" },
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
@@ -2520,6 +2522,19 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="user_security" className="space-y-4">
+            <UserSecurityAuditTab
+              cardBg="var(--sa-card-bg)"
+              cardBorder="var(--sa-card-border)"
+              divider="var(--sa-divider)"
+              textPrimary="var(--sa-text-primary)"
+              textSecondary="var(--sa-text-secondary)"
+              textMuted="var(--sa-text-muted)"
+              textFaint="var(--sa-text-faint)"
+              cardHover="var(--sa-card-hover)"
+            />
           </TabsContent>
 
           <TabsContent value="subscriptions">
