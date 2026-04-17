@@ -2566,7 +2566,8 @@ const POSPage = () => {
           method: effectivePaymentMethod,
           amount: cartTotals.total,
           tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
-          change: actualChangeILS,
+          // Store change in the unit of change_currency (ILS amount when ILS, foreign amount when USD/JOD)
+          change: actualChangeCurrency === "ILS" ? actualChangeILS : actualChangeForeign,
           change_currency: actualChangeCurrency,
           change_foreign_amount: actualChangeForeign,
           currency: paymentCurrency,
@@ -3039,14 +3040,13 @@ const POSPage = () => {
 
           const chgCur = (p as any).change_currency || "ILS";
           const chgAmount = Number(p.change_amount || 0);
+          // change_amount is stored in the unit of change_currency (no rate conversion needed)
           if (chgCur === "ILS") {
             foreignChangeILS += chgAmount;
           } else if (chgCur === "USD") {
-            const chgRate = exchangeRates?.["USD"] || rate;
-            foreignChangeUSD += chgAmount / chgRate;
+            foreignChangeUSD += chgAmount;
           } else if (chgCur === "JOD") {
-            const chgRate = exchangeRates?.["JOD"] || rate;
-            foreignChangeJOD += chgAmount / chgRate;
+            foreignChangeJOD += chgAmount;
           }
         }
       });
