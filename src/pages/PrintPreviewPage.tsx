@@ -306,6 +306,11 @@ export default function PrintPreviewPage() {
           </div>
         )}
       </div>
+
+      {/* Diagnostics panel */}
+      <div className="max-w-3xl mx-auto px-4 mt-6">
+        <PrintDiagnosticsPanel />
+      </div>
     </div>
   );
 }
