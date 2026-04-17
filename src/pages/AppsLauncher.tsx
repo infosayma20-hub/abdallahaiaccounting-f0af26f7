@@ -156,14 +156,17 @@ const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useCompanySettings();
-  const { subscription } = useSubscription();
-  const { isTrial, isSuperAdmin } = useSubscriptionGuard();
+  const { subscription, loading: subLoading } = useSubscription();
+  const { isTrial, isSuperAdmin, loading: guardLoading } = useSubscriptionGuard();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
+
+  // Subscription is fully resolved only when both subscription + guard finished loading
+  const subscriptionResolved = !subLoading && !guardLoading;
 
   // Fetch user roles for filtering
   useEffect(() => {
@@ -191,6 +194,8 @@ const AppsLauncher = () => {
   // App is "premium-locked" = NOT in plan's enabled_modules (only for paid users)
   const enabledModules = subscription?.enabledModules || [];
   const isAppPremiumLocked = (app: NavItem) => {
+    // ⛔ لا تُطبّق أي قفل حتى ينتهي تحميل بيانات الاشتراك (يمنع الوميض)
+    if (!subscriptionResolved) return false;
     if (isSuperAdmin) return false;
     if (isTrial) return false; // Trial = full access
     if (enabledModules.length === 0) return false; // no plan loaded yet
