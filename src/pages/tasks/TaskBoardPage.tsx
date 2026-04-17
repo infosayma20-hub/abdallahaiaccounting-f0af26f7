@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTaskAuth } from "@/hooks/useTaskAuth";
-import LoadingScreen from "@/components/LoadingScreen";
+import PageLoader from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -132,7 +132,7 @@ export default function TaskBoardPage() {
     dueToday: tasks.filter(t => t.due_date === today && t.status !== "done" && t.status !== "cancelled").length,
   };
 
-  if (authLoading || taskAuthLoading) return <LoadingScreen />;
+  if (authLoading || taskAuthLoading) return <PageLoader message="جاري تحميل المهام..." />;
   if (!taskUser) {
     if (autoLoginFailed) {
       return (
@@ -141,14 +141,14 @@ export default function TaskBoardPage() {
             <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <h2 className="text-lg font-bold mb-2">تعذّر فتح موديول المهام</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              لم نتمكن من تسجيل دخولك تلقائياً. حاول إعادة تحميل الصفحة، أو سجّل دخول كمستخدم مهام.
+              لم نتمكن من تهيئة حسابك في نظام المهام. حاول إعادة تحميل الصفحة.
             </p>
             <Button onClick={() => window.location.reload()}>إعادة المحاولة</Button>
           </div>
         </div>
       );
     }
-    return <LoadingScreen />;
+    return <PageLoader message="جاري تهيئة حسابك..." />;
   }
 
   return (
