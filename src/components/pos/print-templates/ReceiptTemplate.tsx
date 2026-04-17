@@ -2,6 +2,8 @@
  * Receipt Template — Customer invoice for 80mm thermal printer.
  * Width: 320px for 80mm thermal. Uses Noto Sans Arabic for connected Arabic.
  * Compact design — minimal spacing, no decorative elements.
+ *
+ * Font sizes increased by ~40% per management request for better readability.
  */
 import { forwardRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -33,9 +35,9 @@ const box = {
   wordBreak: 'break-word' as const,
 };
 
-const hr = { border: 'none', borderTop: '1px solid #999', margin: '3px 0', ...box } as React.CSSProperties;
-const hrBold = { border: 'none', borderTop: '2px solid #000', margin: '3px 0', ...box } as React.CSSProperties;
-const hrDash = { border: 'none', borderTop: '1px dashed #666', margin: '3px 0', ...box } as React.CSSProperties;
+const hr = { border: 'none', borderTop: '1px solid #999', margin: '4px 0', ...box } as React.CSSProperties;
+const hrBold = { border: 'none', borderTop: '2px solid #000', margin: '4px 0', ...box } as React.CSSProperties;
+const hrDash = { border: 'none', borderTop: '1px dashed #666', margin: '4px 0', ...box } as React.CSSProperties;
 
 const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   order,
@@ -78,8 +80,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         `طلب: ${qNum}`,
         `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
         `التاريخ: ${dateStr} ${timeStr}`,
-        taxNumber ? `الرقم الضريبي: ${taxNumber}` : '',
-      ].filter(Boolean).join('\n');
+      ].join('\n');
 
   return (
     <div ref={ref} dir="rtl" lang="ar" style={{
@@ -89,13 +90,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       overflow: 'visible',
       boxSizing: 'border-box',
       direction: 'rtl',
-      padding: '6px 12px',
+      padding: '8px 12px',
       backgroundColor: '#ffffff',
       color: '#000000',
       fontFamily: FONT,
-      fontSize: '12px',
-      fontWeight: 400,
-      lineHeight: '1.35',
+      fontSize: '17px',
+      fontWeight: 500,
+      lineHeight: '1.4',
     }}>
 
       {/* ═══ 1. LOGO ═══ */}
@@ -112,9 +113,9 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       {/* ═══ 2. HEADER INFO ═══ */}
       <div style={{ textAlign: 'center', ...box }}>
         {terminalName && (
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#000' }}>{terminalName}</div>
+          <div style={{ fontSize: '17px', fontWeight: 700, color: '#000' }}>{terminalName}</div>
         )}
-        <div style={{ fontSize: '11px', fontWeight: 400, color: '#333' }}>
+        <div style={{ fontSize: '16px', fontWeight: 500, color: '#333' }}>
           {dateStr} • {timeStr}
         </div>
       </div>
@@ -125,29 +126,29 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '1px 0', fontSize: '14px', fontWeight: 700, textAlign: 'right' }}>رقم الطلب</td>
-            <td style={{ padding: '1px 0', fontSize: '14px', fontWeight: 700, textAlign: 'left' }}>{qNum}</td>
+            <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>رقم الطلب</td>
+            <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'left' }}>{qNum}</td>
           </tr>
           {order.cashier && (
             <tr>
-              <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'right' }}>الكاشير</td>
-              <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'left' }}>{order.cashier}</td>
+              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الكاشير</td>
+              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'left' }}>{order.cashier}</td>
             </tr>
           )}
           <tr>
-            <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'right' }}>نوع الطلب</td>
-            <td style={{ padding: '1px 0', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>{orderTypeLabel}</td>
+            <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>نوع الطلب</td>
+            <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{orderTypeLabel}</td>
           </tr>
           {order.tableNumber && (
             <tr>
-              <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'right' }}>الطاولة</td>
-              <td style={{ padding: '1px 0', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>{order.tableNumber}</td>
+              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الطاولة</td>
+              <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{order.tableNumber}</td>
             </tr>
           )}
           {order.branchName && (
             <tr>
-              <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'right' }}>الفرع</td>
-              <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'left' }}>{order.branchName}</td>
+              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الفرع</td>
+              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'left' }}>{order.branchName}</td>
             </tr>
           )}
         </tbody>
@@ -159,10 +160,10 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
-            <th style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'right', width: '45%' }}>الصنف</th>
-            <th style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'center', width: '10%' }}>الكمية</th>
-            <th style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'center', width: '22%' }}>السعر</th>
-            <th style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'left', width: '23%' }}>المجموع</th>
+            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'right', width: '45%' }}>الصنف</th>
+            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'center', width: '10%' }}>الكمية</th>
+            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'center', width: '22%' }}>السعر</th>
+            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left', width: '23%' }}>المجموع</th>
           </tr>
         </thead>
         <tbody>
@@ -171,12 +172,12 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             const lineTotal = (qty * (item.price || 0)).toFixed(2);
             return (
               <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-                <td style={{ padding: '3px 2px', fontSize: '12px', textAlign: 'right', verticalAlign: 'top' }}>
+                <td style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'right', verticalAlign: 'top' }}>
                   {item.name}
                   {item.modifiers && item.modifiers.length > 0 && (
                     <div>
                       {item.modifiers.map((mod, mi) => (
-                        <div key={mi} style={{ fontSize: '10px', color: '#444', marginTop: '1px' }}>
+                        <div key={mi} style={{ fontSize: '14px', color: '#444', marginTop: '1px' }}>
                           + {mod.option_name}
                           {mod.extra_price && mod.extra_price > 0 && ` (+₪${mod.extra_price.toFixed(2)})`}
                         </div>
@@ -184,27 +185,27 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: '10px', color: '#333', marginTop: '1px' }}>
+                    <div style={{ fontSize: '14px', color: '#333', marginTop: '1px' }}>
                       📝 {item.note}
                     </div>
                   )}
                 </td>
-                <td style={{ padding: '3px 2px', fontSize: '12px', textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
-                <td style={{ padding: '3px 2px', fontSize: '12px', textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
-                <td style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
+                <td style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
+                <td style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
+                <td style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
               </tr>
             );
           })}
           {order.subtotal != null && (
             <tr style={{ borderTop: '1px solid #999' }}>
-              <td colSpan={3} style={{ padding: '3px 2px', fontSize: '12px', textAlign: 'right' }}>المجموع الفرعي</td>
-              <td style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>₪{Number(order.subtotal).toFixed(2)}</td>
+              <td colSpan={3} style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'right' }}>المجموع الفرعي</td>
+              <td style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>₪{Number(order.subtotal).toFixed(2)}</td>
             </tr>
           )}
           {order.discount != null && Number(order.discount) > 0 && (
             <tr>
-              <td colSpan={3} style={{ padding: '3px 2px', fontSize: '12px', textAlign: 'right' }}>الخصم</td>
-              <td style={{ padding: '3px 2px', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>-₪{Number(order.discount).toFixed(2)}</td>
+              <td colSpan={3} style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'right' }}>الخصم</td>
+              <td style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>-₪{Number(order.discount).toFixed(2)}</td>
             </tr>
           )}
         </tbody>
@@ -215,8 +216,8 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'right' }}>الإجمالي</td>
-            <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'left' }}>₪{Number(order.total || 0).toFixed(2)}</td>
+            <td style={{ padding: '3px 0', fontSize: '26px', fontWeight: 900, textAlign: 'right' }}>الإجمالي</td>
+            <td style={{ padding: '3px 0', fontSize: '26px', fontWeight: 900, textAlign: 'left' }}>₪{Number(order.total || 0).toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -227,19 +228,19 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'right' }}>طريقة الدفع</td>
-            <td style={{ padding: '1px 0', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>{payLabel}</td>
+            <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>طريقة الدفع</td>
+            <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{payLabel}</td>
           </tr>
           {isCash && order.tenderedAmount != null && Number(order.tenderedAmount) > 0 && (
             <>
               <tr>
-                <td style={{ padding: '1px 0', fontSize: '12px', textAlign: 'right' }}>المبلغ المستلم</td>
-                <td style={{ padding: '1px 0', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>{tenderedCurrSym}{Number(order.tenderedAmount).toFixed(2)}</td>
+                <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>المبلغ المستلم</td>
+                <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{tenderedCurrSym}{Number(order.tenderedAmount).toFixed(2)}</td>
               </tr>
               {order.change != null && Number(order.change) > 0 && (
                 <tr>
-                  <td style={{ padding: '1px 0', fontSize: '12px', fontWeight: 700, textAlign: 'right' }}>الباقي</td>
-                  <td style={{ padding: '1px 0', fontSize: '12px', fontWeight: 700, textAlign: 'left' }}>{changeSym}{Number(order.change).toFixed(2)}</td>
+                  <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'right' }}>الباقي</td>
+                  <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{changeSym}{Number(order.change).toFixed(2)}</td>
                 </tr>
               )}
             </>
@@ -251,9 +252,9 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       {order.orderNote && (
         <div style={{
           borderTop: '1px dashed #999',
-          padding: '3px 0',
+          padding: '4px 0',
           margin: '2px 0',
-          fontSize: '11px',
+          fontSize: '16px',
           ...box,
         }}>
           <span style={{ fontWeight: 700 }}>ملاحظة:</span> {order.orderNote}
@@ -263,14 +264,14 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <hr style={hrDash} />
 
       {/* ═══ 7. QR CODE ═══ */}
-      <div style={{ textAlign: 'center', margin: '3px 0', ...box }}>
+      <div style={{ textAlign: 'center', margin: '4px 0', ...box }}>
         <QRCodeSVG
           value={qrContent}
           size={90}
           level="M"
           style={{ margin: '0 auto', display: 'block' }}
         />
-        <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>
+        <div style={{ fontSize: '14px', color: '#555', marginTop: '2px' }}>
           امسح للتحقق من الإيصال
         </div>
       </div>
@@ -279,11 +280,11 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
 
       {/* ═══ 8. FOOTER ═══ */}
       <div style={{ textAlign: 'center', ...box }}>
-        <div style={{ fontSize: '13px', fontWeight: 700 }}>❤️ شكراً لتعاملكم معنا</div>
-        <div style={{ fontSize: '10px', color: '#333' }}>Thank you for your visit</div>
+        <div style={{ fontSize: '18px', fontWeight: 700 }}>❤️ شكراً لتعاملكم معنا</div>
+        <div style={{ fontSize: '14px', color: '#333' }}>Thank you for your visit</div>
       </div>
 
-      <div style={{ height: '4px' }} />
+      <div style={{ height: '6px' }} />
     </div>
   );
 });
