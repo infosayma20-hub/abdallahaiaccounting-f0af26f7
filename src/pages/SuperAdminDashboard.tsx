@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import SamiLeadsPanel from "@/components/superadmin/SamiLeadsPanel";
 import { SignupNotificationsBell } from "@/components/super-admin/SignupNotificationsBell";
+import UserSecurityAuditTab from "@/components/super-admin/UserSecurityAuditTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
