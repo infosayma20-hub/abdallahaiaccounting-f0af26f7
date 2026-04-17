@@ -121,10 +121,13 @@ export async function loadPOSPeriodComparison(uid: string, dateFrom: string, dat
 }
 
 export async function loadPOSInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, discount_amount, tax_amount, subtotal, state, customer_name, session_id, payment_currency, currency").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+  const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, discount_amount, tax_amount, subtotal, state, customer_name, session_id, payment_currency, currency, linked_transaction_id, cancel_reason").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
   const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
   const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
   setData((orders || []).map(o => ({
+    id: o.id,
+    session_id: o.session_id,
+    linked_transaction_id: o.linked_transaction_id,
     order_number: o.order_number || "—",
     date: o.created_at.split("T")[0],
     time: o.created_at.split("T")[1]?.substring(0, 5) || "",
@@ -136,6 +139,7 @@ export async function loadPOSInvoiceRegister(uid: string, dateFrom: string, date
     total: o.total,
     currency: o.payment_currency || o.currency || "ILS",
     state: o.state,
+    cancel_reason: o.cancel_reason,
   })));
 }
 
