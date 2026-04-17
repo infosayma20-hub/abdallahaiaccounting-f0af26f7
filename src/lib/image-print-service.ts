@@ -69,6 +69,7 @@ function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHe
   return {
     type: receiptType,
     printMode: getPrintMode(),
+    footerMode: getFooterMode(),
     debug: opts.debug ?? false,
     itemsCount: opts.itemsCount,
     estimatedHeight: opts.estimatedHeight,
@@ -79,8 +80,10 @@ function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHe
 
 /** Estimate receipt height in px from items count (rough heuristic) */
 function estimateReceiptHeight(itemsCount: number): number {
-  // header ~280 + footer ~220 + ~70 per item @ font 17px
-  return 500 + itemsCount * 70;
+  // header ~280 + footer varies by mode + ~70 per item @ font 17px
+  const mode = getFooterMode();
+  const footerPx = mode === 'full' ? 220 : mode === 'compact' ? 60 : 0;
+  return 280 + footerPx + itemsCount * 70;
 }
 
 /** Kitchen job — a filtered set of items for one station printer */
