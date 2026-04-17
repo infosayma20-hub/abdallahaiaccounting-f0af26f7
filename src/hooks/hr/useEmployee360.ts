@@ -112,13 +112,12 @@ export function useEmployee360(employeeId: string | undefined) {
       const companyId = employee?.company_id ?? null;
       const authUserId = employee?.auth_user_id ?? null;
 
-      // ---- Parallel fetches ----
+      // ---- Parallel fetches (typed-safe: avoid mixing builder with Promise.resolve) ----
       const [
         attendanceDaysRes,
         attendanceEventsRes,
         payrollRunsRes,
         payrollInputsRes,
-        payrollSettingsRes,
         allowancesRes,
         leaveReqRes,
         leaveHistRes,
@@ -127,7 +126,6 @@ export function useEmployee360(employeeId: string | undefined) {
         formsRes,
         finMovesRes,
         transactionsRes,
-        activityRes,
       ] = await Promise.all([
         supabase
           .from("attendance_days")
@@ -156,13 +154,6 @@ export function useEmployee360(employeeId: string | undefined) {
           .order("year", { ascending: false })
           .order("month", { ascending: false })
           .limit(6),
-        companyId
-          ? supabase
-              .from("payroll_settings")
-              .select("*")
-              .eq("company_id", companyId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null } as any),
         supabase
           .from("employee_allowances")
           .select("*")
@@ -205,7 +196,6 @@ export function useEmployee360(employeeId: string | undefined) {
           .eq("employee_id", employeeId)
           .order("movement_date", { ascending: false })
           .limit(100),
-        // transactions linked via beneficiary employee_id (party_type='employee')
         supabase
           .from("transactions")
           .select(
@@ -215,16 +205,26 @@ export function useEmployee360(employeeId: string | undefined) {
           .eq("party_id", employeeId)
           .order("transaction_date", { ascending: false })
           .limit(50),
-        authUserId
-          ? supabase
-              .from("activity_log")
-              .select("*")
-              .eq("entity_type", "employee")
-              .eq("entity_id", employeeId)
-              .order("created_at", { ascending: false })
-              .limit(50)
-          : Promise.resolve({ data: [], error: null } as any),
       ]);
+
+      // ---- Conditional fetches (kept out of Promise.all to preserve typing) ----
+      const payrollSettingsRes = companyId
+        ? await supabase
+            .from("payroll_settings")
+            .select("*")
+            .eq("company_id", companyId)
+            .maybeSingle()
+        : { data: null as any, error: null };
+
+      const activityRes = authUserId
+        ? await supabase
+            .from("activity_log")
+            .select("*")
+            .eq("entity_type", "employee")
+            .eq("entity_id", employeeId)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : { data: [] as any[], error: null };
 
       const attendanceDays = attendanceDaysRes.data || [];
       const attendanceEvents = attendanceEventsRes.data || [];
