@@ -383,7 +383,8 @@ export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promi
       paymentMethodBreakdown: data.paymentMethodBreakdown,
     };
 
-    const result = await bridgeFetch('/print-shift', { session });
+    const meta = buildMeta('shift_summary');
+    const result = await bridgeFetch('/print-shift', { session, meta }, { receiptType: 'shift_summary' });
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printShiftSummaryImage]', err);
