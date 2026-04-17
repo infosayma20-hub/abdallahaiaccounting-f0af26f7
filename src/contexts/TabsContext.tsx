@@ -223,6 +223,7 @@ const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = 
   { regex: /^\/crm\/lead\/[^/]+$/, title: "تفاصيل العميل المحتمل", icon: "users" },
   { regex: /^\/credit-notes\/[^/]+$/, title: "تفاصيل إشعار دائن", icon: "file" },
   { regex: /^\/debit-notes\/[^/]+$/, title: "تفاصيل إشعار مدين", icon: "file" },
+  { regex: /^\/hr\/employee\/[^/]+$/, title: "ملف الموظف 360", icon: "users" },
 ];
 
 function getRouteMeta(path: string): { title: string; icon: string } {
