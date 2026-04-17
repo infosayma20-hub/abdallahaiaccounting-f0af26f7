@@ -256,7 +256,7 @@ export default function PrintPreviewPage() {
             🚫 off
           </Button>
           {footerMode !== 'full' && (
-            <span className="text-[10px] text-amber-600 dark:text-amber-400 ms-2">
+            <span className="text-[10px] text-warning ms-2">
               ⚠️ مؤقت — يُعاد لـ full بعد patch البردج
             </span>
           )}
