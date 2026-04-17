@@ -318,22 +318,38 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         ];
       case "pos-invoice-register":
         return [
-          { key: "order_number", label: "رقم الفاتورة", type: "text" },
-          { key: "date", label: "التاريخ", type: "date" },
-          { key: "time", label: "الوقت", type: "text" },
-          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
-          { key: "customer", label: "العميل", type: "text" },
-          { key: "subtotal", label: "المبلغ", type: "currency" },
-          { key: "discount", label: "الخصم", type: "currency" },
-          { key: "tax", label: "الضريبة", type: "currency" },
-          { key: "total", label: "الصافي", type: "currency" },
-          { key: "currency", label: "العملة", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.currency).filter(Boolean))] },
-          { key: "state", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["paid", "cancelled", "draft"],
+          { key: "order_number", label: "رقم الفاتورة", type: "text", filterable: true, filterType: "text",
+            format: (v: string, row: any) => row.id ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) window.open(`/pos/invoice/${row.id}`, "_blank"); else navigate(`/pos/invoice/${row.id}`); }}
+                className="text-primary hover:underline font-mono text-xs font-semibold"
+                title="فتح تفاصيل الفاتورة (Ctrl+Click للفتح في تبويب جديد)"
+              >{v}</button>
+            ) : <span className="font-mono text-xs">{v}</span>
+          },
+          { key: "date", label: "التاريخ", type: "date", filterable: true, format: (v: string) => <span className="font-mono text-xs">{fmtDateDisplay(v)}</span> },
+          { key: "time", label: "الوقت", type: "text", filterable: true },
+          { key: "cashier", label: "الكاشير", type: "text", filterable: true, filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "customer", label: "العميل", type: "text", filterable: true, filterType: "text" },
+          { key: "subtotal", label: "المبلغ", type: "currency", filterable: true },
+          { key: "discount", label: "الخصم", type: "currency", filterable: true },
+          { key: "tax", label: "الضريبة", type: "currency", filterable: true },
+          { key: "total", label: "الصافي", type: "currency", filterable: true },
+          { key: "currency", label: "العملة", type: "text", filterable: true, filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.currency).filter(Boolean))] },
+          { key: "state", label: "الحالة", type: "badge", filterable: true, filterType: "select", filterOptions: ["paid", "cancelled", "draft"],
             format: (v: string) => {
-              const colors: Record<string, string> = { paid: "bg-green-50 text-green-600", cancelled: "bg-red-50 text-red-600", draft: "bg-yellow-50 text-yellow-600" };
+              const colors: Record<string, string> = { paid: "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400", cancelled: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400", draft: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30 dark:text-yellow-400" };
               const labels: Record<string, string> = { paid: "مكتمل", cancelled: "ملغي", draft: "معلق" };
               return <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${colors[v] || ""}`}>{labels[v] || v}</span>;
             }
+          },
+          { key: "actions", label: "إجراءات", type: "text", sortable: false, filterable: false,
+            format: (_: any, row: any) => row.id ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) window.open(`/pos/invoice/${row.id}`, "_blank"); else navigate(`/pos/invoice/${row.id}`); }}
+                className="text-[10px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 font-semibold transition-colors"
+              >فتح / إلغاء</button>
+            ) : null
           },
         ];
       case "pos-pending-orders":
