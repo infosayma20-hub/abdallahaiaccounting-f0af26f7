@@ -42,6 +42,7 @@ import { sendToBridge } from "@/lib/print-bridge-client";
 import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
+import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
@@ -3425,6 +3426,7 @@ const POSPage = () => {
           ) : (
             <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
+          <BridgeStatusIndicator />
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
           ) : (
