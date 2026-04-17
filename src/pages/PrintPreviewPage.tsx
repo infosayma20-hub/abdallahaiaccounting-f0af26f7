@@ -224,6 +224,45 @@ export default function PrintPreviewPage() {
         </div>
       </div>
 
+      {/* Footer mode toggle — temporary mitigation until bridge patch lands */}
+      <div className="mb-3 flex justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border text-sm flex-wrap justify-center">
+          <span className="text-muted-foreground">تذييل الفاتورة:</span>
+          <Button
+            size="sm"
+            variant={footerMode === 'full' ? 'default' : 'outline'}
+            onClick={() => toggleFooterMode('full')}
+            className="h-7 px-3 text-xs"
+            title="QR + شعار + سطور إضافية (قد يسبب خرابيش حالياً)"
+          >
+            🧾 full
+          </Button>
+          <Button
+            size="sm"
+            variant={footerMode === 'compact' ? 'default' : 'outline'}
+            onClick={() => toggleFooterMode('compact')}
+            className="h-7 px-3 text-xs"
+            title="بدون QR، سطر شكر مختصر (الافتراضي الآمن)"
+          >
+            ⚡ compact
+          </Button>
+          <Button
+            size="sm"
+            variant={footerMode === 'off' ? 'default' : 'outline'}
+            onClick={() => toggleFooterMode('off')}
+            className="h-7 px-3 text-xs"
+            title="بدون أي تذييل — قص فوراً بعد الدفع"
+          >
+            🚫 off
+          </Button>
+          {footerMode !== 'full' && (
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 ms-2">
+              ⚠️ مؤقت — يُعاد لـ full بعد patch البردج
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Diagnostic test buttons */}
       <div className="mb-3 flex justify-center gap-2 flex-wrap px-4">
         <Button onClick={() => runTest('text')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
