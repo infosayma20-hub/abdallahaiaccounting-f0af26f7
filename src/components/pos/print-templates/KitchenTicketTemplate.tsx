@@ -17,9 +17,18 @@ const FONT = "'Tahoma', 'Arial', sans-serif";
 const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items, stationName }, ref) => {
   const qNum = order.queueNumber || order.orderNumber || '---';
 
-  const orderTypeLabel = order.orderType === 'takeaway' ? 'تيك اواي'
-    : order.orderType === 'delivery' ? 'توصيل'
-    : 'محلي';
+  // Normalize orderType — handles both English keys and legacy Arabic values
+  const rawType = (order.orderType || '').toString().trim().toLowerCase();
+  const isDelivery = rawType === 'delivery' || rawType === 'توصيل' || rawType === 'دليفري';
+  const isTakeaway = rawType === 'takeaway' || rawType === 'تيك اواي' || rawType === 'تيك أواي' || rawType === 'استلام' || rawType === 'سفري';
+  // If table number exists or type is dine_in/محلي → it's dine-in
+  const isDineIn = !isDelivery && !isTakeaway && (
+    rawType === 'dine_in' || rawType === 'dine-in' || rawType === 'محلي' || rawType === 'صالة' || !!order.tableNumber
+  );
+
+  const orderTypeLabel = isDelivery ? 'توصيل'
+    : isDineIn ? 'محلي'
+    : 'تيك اواي';
 
   return (
     <div

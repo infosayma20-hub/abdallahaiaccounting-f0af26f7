@@ -47,9 +47,36 @@ async function bridgeFetch(path: string, body: any, timeout = 15000): Promise<an
 // Map PrintOrder → Bridge v6 receipt JSON
 // ──────────────────────────────────────────
 
+/**
+ * Normalize orderType to one of: dine_in | takeaway | delivery
+ * Handles legacy Arabic values and tableNumber inference.
+ */
+function normalizeOrderType(rawType: string | undefined, tableNumber: string | undefined): 'dine_in' | 'takeaway' | 'delivery' {
+  const t = (rawType || '').toString().trim().toLowerCase();
+  // Direct matches
+  if (t === 'delivery' || t === 'توصيل' || t === 'دليفري') return 'delivery';
+  if (t === 'takeaway' || t === 'تيك اواي' || t === 'تيك أواي' || t === 'استلام' || t === 'سفري') return 'takeaway';
+  if (t === 'dine_in' || t === 'dine-in' || t === 'محلي' || t === 'صالة' || t === 'في المحل') return 'dine_in';
+  // Inference: if table number exists and type unclear → dine_in
+  if (tableNumber && tableNumber.trim()) return 'dine_in';
+  // Default fallback
+  return 'takeaway';
+}
+
+/**
+ * Map normalized type → Arabic label for printing.
+ * Bridge will fallback to this label if it doesn't recognize the raw value.
+ */
+function orderTypeLabel(normalized: 'dine_in' | 'takeaway' | 'delivery'): string {
+  if (normalized === 'delivery') return 'توصيل';
+  if (normalized === 'takeaway') return 'تيك اواي';
+  return 'محلي';
+}
+
 function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string;
 }) {
+  const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
@@ -58,7 +85,8 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     companyPhone: companyInfo?.phone,
     taxNumber: companyInfo?.taxNumber,
     cashierName: order.cashier,
-    orderType: order.orderType,
+    orderType: normalizedType,
+    orderTypeLabel: orderTypeLabel(normalizedType),
     tableNumber: order.tableNumber,
     items: order.items.map(item => ({
       name: item.name,
@@ -102,12 +130,14 @@ const ALL_STATIONS = [
 ];
 
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
+  const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
     branchName: order.branchName,
     cashierName: order.cashier,
-    orderType: order.orderType,
+    orderType: normalizedType,
+    orderTypeLabel: orderTypeLabel(normalizedType),
     tableNumber: order.tableNumber,
     items: items.map(item => ({
       name: item.name,
