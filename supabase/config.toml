@@ -55,3 +55,5 @@ project_id = "omwuyscprzexgmxgittp"
     verify_jwt = false
   [functions.zkteco-webhook]
     verify_jwt = false
+  [functions.log-security-event]
+    verify_jwt = false
