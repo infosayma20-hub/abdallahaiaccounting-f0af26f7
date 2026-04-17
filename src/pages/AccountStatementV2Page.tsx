@@ -195,15 +195,20 @@ const AccountStatementV2Page = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // ─── Fetch exchange rates for foreign display mode ───
+  // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
-    if (displayCurrency === "ILS" || !user) return;
-    const fetchRate = async () => {
-      const { data: rate } = await supabase.rpc("get_exchange_rate", { p_currency_code: displayCurrency, p_rate_type: "mid" });
-      if (rate) setCurrentExchangeRate(prev => ({ ...prev, [displayCurrency]: Number(rate) }));
+    if (!user) return;
+    const fetchRates = async () => {
+      const codes = ["USD", "JOD", "EUR"];
+      const results = await Promise.all(
+        codes.map(c => supabase.rpc("get_exchange_rate", { p_currency_code: c, p_rate_type: "mid" }))
+      );
+      const next: Record<string, number> = {};
+      codes.forEach((c, i) => { if (results[i].data) next[c] = Number(results[i].data); });
+      setCurrentExchangeRate(prev => ({ ...prev, ...next }));
     };
-    fetchRate();
-  }, [displayCurrency, user]);
+    fetchRates();
+  }, [user]);
 
   // ─── Derived State ───
   const selectedAccount = useMemo(() => accounts.find(a => a.id === selectedEntityId), [accounts, selectedEntityId]);
@@ -295,14 +300,26 @@ const AccountStatementV2Page = () => {
       }
       // Foreign display mode
       const txCurrCode = currencyNameToCode[normalizeCurrency(tx.currency)] || "ILS";
+      // Same currency: use original foreign amount, no conversion
       if (txCurrCode === displayCurrency && tx.foreign_amount && tx.foreign_amount > 0) {
         return { amount: tx.foreign_amount, isConverted: false, isMismatch: false };
       }
+      // ILS source → display foreign: ILS / displayRate
       if (txCurrCode === "ILS" && dispRate > 0) {
-        // Fix 1: Use tx's own exchange_rate if available, fallback to today's rate
         const rateToUse = (tx.exchange_rate && tx.exchange_rate > 0) ? tx.exchange_rate : dispRate;
         const usedHistoric = !!(tx.exchange_rate && tx.exchange_rate > 0);
         return { amount: (tx.amount || 0) / rateToUse, isConverted: true, isMismatch: false, conversionRate: rateToUse, usedHistoricRate: usedHistoric };
+      }
+      // Cross-currency: foreign source (e.g. USD) → other foreign display (e.g. JOD)
+      // Convert via ILS: foreign_amount × tx.exchange_rate (= ILS) / dispRate (= display foreign)
+      if (txCurrCode !== "ILS" && txCurrCode !== displayCurrency && dispRate > 0) {
+        const txRate = (tx.exchange_rate && tx.exchange_rate > 0) ? tx.exchange_rate : (currentExchangeRate[txCurrCode] || 0);
+        if (txRate > 0) {
+          const ilsValue = (tx.foreign_amount && tx.foreign_amount > 0)
+            ? tx.foreign_amount * txRate
+            : (tx.amount || 0); // amount column already stores ILS equivalent
+          return { amount: ilsValue / dispRate, isConverted: true, isMismatch: false, conversionRate: dispRate, usedHistoricRate: false };
+        }
       }
       return { amount: tx.amount || 0, isConverted: false, isMismatch: true };
     };
