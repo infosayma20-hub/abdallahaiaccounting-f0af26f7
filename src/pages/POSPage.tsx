@@ -42,6 +42,7 @@ import { sendToBridge } from "@/lib/print-bridge-client";
 import { printReceiptImage, printKitchenTicketsImage, printAllImage, printStationTicketImage, STATION_TO_PRINTER, type KitchenJob } from "@/lib/image-print-service";
 import { usePrintBridge, type PrintOrder as BridgePrintOrder } from "@/hooks/usePrintBridge";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
+import BridgeStatusIndicator from "@/components/pos/BridgeStatusIndicator";
 import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
