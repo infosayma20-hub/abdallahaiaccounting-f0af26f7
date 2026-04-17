@@ -5276,7 +5276,7 @@ const POSPage = () => {
               onClick={handleCloseShift} 
               variant="destructive" 
               className="w-full h-12 text-base font-bold gap-2"
-              disabled={!closingCash}
+              disabled={!closingCash && !closingCashUSD && !closingCashJOD}
             >
               <LogOut className="h-5 w-5" />
               تسليم العهدة وإغلاق الوردية
