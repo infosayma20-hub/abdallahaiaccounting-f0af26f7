@@ -298,12 +298,12 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     if (isExcludedPath(currentPath)) return;
 
     const meta = getRouteMeta(currentPath);
-    let resolvedId: string | null = null;
 
     setTabs(prev => {
       const existing = prev.find(t => t.path === currentPath);
       if (existing) {
-        resolvedId = existing.id;
+        // Always sync activeTabId to match current route (fixes stale active state)
+        setActiveTabId(existing.id);
         if (existing.title !== meta.title || existing.icon !== meta.icon) {
           const next = prev.map(t => t.id === existing.id ? { ...t, title: meta.title, icon: meta.icon } : t);
           saveTabs(next, userId);
@@ -317,13 +317,11 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         title: meta.title,
         icon: meta.icon,
       };
-      resolvedId = newTab.id;
+      setActiveTabId(newTab.id);
       const next = [...prev, newTab];
       saveTabs(next, userId);
       return next;
     });
-
-    if (resolvedId) setActiveTabId(resolvedId);
   }, [location.pathname, userId]);
 
   const openTab = useCallback((path: string, title?: string) => {
