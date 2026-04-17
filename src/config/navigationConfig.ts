@@ -1,7 +1,7 @@
 import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
-  Puzzle, ArrowLeftRight, ClipboardList, Plane, LayoutGrid, Sparkles, Receipt, Shield,
+  Puzzle, ArrowLeftRight, ClipboardList, Plane, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -123,6 +123,23 @@ export const navigationSections: NavSection[] = [
   {
     sectionTitle: "المبيعات والمشتريات",
     items: [
+      {
+        id: "crm", label: "إدارة علاقات العملاء", description: "من عميل محتمل إلى صفقة مغلقة وفاتورة محصّلة", module: "crm", icon: UserPlus,
+        color: "text-indigo-600", bgColor: "bg-indigo-500/10", path: "/crm", isNew: true,
+        keywords: ["crm", "علاقات", "عملاء", "leads", "pipeline", "محتمل", "فرص", "متابعات"],
+        groups: [
+          {
+            groupLabel: "العمليات",
+            children: [
+              { label: "لوحة CRM", path: "/crm" },
+              { label: "العملاء المحتملون", path: "/crm/leads" },
+              { label: "قمع المبيعات", path: "/crm/pipeline" },
+              { label: "المتابعات والأنشطة", path: "/crm/activities" },
+              { label: "ملف العميل 360", path: "/crm/customers" },
+            ],
+          },
+        ],
+      },
       {
         id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وزبائن", module: "sales", icon: ShoppingCart,
         color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
