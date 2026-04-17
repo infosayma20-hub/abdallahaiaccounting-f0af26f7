@@ -296,18 +296,26 @@ export default function PosInvoiceDetailPage() {
                 <tr>
                   <th className="text-right px-3 py-2 text-xs font-semibold">الطريقة</th>
                   <th className="text-right px-3 py-2 text-xs font-semibold">العملة</th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold">المبلغ</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold">المبلغ المدفوع</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold">سعر الصرف</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold">المعادل (₪)</th>
                   <th className="text-right px-3 py-2 text-xs font-semibold">الوقت</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.map((p) => {
                   const m = p.payment_method === "cash" ? "نقدي" : p.payment_method === "card" ? "بطاقة" : p.payment_method === "credit" ? "آجل" : p.payment_method;
+                  const cur = p.currency || "ILS";
+                  const rate = Number(p.exchange_rate || 1);
+                  const amountILS = Number(p.amount || 0); // مخزّن دائماً بالشيكل
+                  const amountForeign = cur !== "ILS" && rate > 0 ? amountILS / rate : amountILS;
                   return (
                     <tr key={p.id} className="border-b border-border/30">
                       <td className="px-3 py-2 text-sm">{m}</td>
-                      <td className="px-3 py-2 text-sm">{p.currency || "ILS"}</td>
-                      <td className="px-3 py-2 text-sm font-mono font-bold">{fmtNum(p.amount)}</td>
+                      <td className="px-3 py-2 text-sm font-semibold">{cur}</td>
+                      <td className="px-3 py-2 text-sm font-mono font-bold">{fmtNum(amountForeign)} {cur !== "ILS" && <span className="text-xs text-muted-foreground">{cur}</span>}</td>
+                      <td className="px-3 py-2 text-sm font-mono text-muted-foreground">{cur !== "ILS" ? fmtNum(rate) : "—"}</td>
+                      <td className="px-3 py-2 text-sm font-mono">₪{fmtNum(amountILS)}</td>
                       <td className="px-3 py-2 text-xs text-muted-foreground font-mono">{fmtDateTimeDisplay(p.created_at)}</td>
                     </tr>
                   );
