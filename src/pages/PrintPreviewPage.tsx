@@ -100,6 +100,26 @@ export default function PrintPreviewPage() {
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [downloadingServer, setDownloadingServer] = useState(false);
+  const [printMode, setPrintModeState] = useState<PrintMode>(getPrintMode());
+  const [testing, setTesting] = useState<null | 'text' | 'logo' | 'receipt'>(null);
+
+  const togglePrintMode = (m: PrintMode) => {
+    setPrintMode(m);
+    setPrintModeState(m);
+  };
+
+  const runTest = async (kind: 'text' | 'logo' | 'receipt') => {
+    setTesting(kind);
+    try {
+      const fn = kind === 'text' ? testPrintText : kind === 'logo' ? testPrintLogo : testPrintReceipt;
+      const r = await fn();
+      if (!r.success) alert(`❌ فشل اختبار ${kind}: ${r.error || 'خطأ غير معروف'}`);
+    } catch (err: any) {
+      alert(`❌ تعذر الاتصال بالبردج: ${err.message}`);
+    } finally {
+      setTesting(null);
+    }
+  };
 
   const handleDownloadLocal = async () => {
     if (!previewRef.current) return;

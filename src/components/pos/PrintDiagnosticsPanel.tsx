@@ -57,7 +57,7 @@ export default function PrintDiagnosticsPanel() {
                 {isOpen && (
                   <div className="mt-2 mr-2 ps-2 border-r-2 border-muted text-xs space-y-1">
                     {e.estimatedHeight != null && <div>📏 الارتفاع المُقدَّر: <span className="font-mono">{e.estimatedHeight}px</span></div>}
-                    {e.errorMessage && <div className="text-red-600 dark:text-red-400">⚠️ {e.errorMessage}</div>}
+                    {e.errorMessage && <div className="text-destructive">⚠️ {e.errorMessage}</div>}
                     {e.responsePayload && (
                       <pre className="bg-muted p-2 rounded overflow-x-auto text-[10px] leading-tight">
                         {JSON.stringify(e.responsePayload, null, 2)}
