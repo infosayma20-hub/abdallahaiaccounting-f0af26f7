@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./lib/excel-export"; // Activates Excel branding interceptor globally
 
 // Force Western Arabic numerals (123) globally instead of Eastern (١٢٣)
 const origNumberToLocaleString = Number.prototype.toLocaleString;
