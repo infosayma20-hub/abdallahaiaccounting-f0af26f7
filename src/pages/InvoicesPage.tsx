@@ -972,7 +972,12 @@ const InvoicesPage = () => {
     ws["!cols"] = [{ wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 25 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
-    setNextExportBranding({ title: "الفواتير" });
+    setNextExportBranding({
+      title: "تقرير الفواتير",
+      currency: "متعدد العملات (الإجمالي بعملة كل فاتورة)",
+      period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
+      extraInfo: [`عدد الفواتير: ${sorted.length.toLocaleString()}`],
+    });
     XLSX.writeFile(wb, `الفواتير_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast({ title: "تم تصدير التقرير ✅" });
   };
