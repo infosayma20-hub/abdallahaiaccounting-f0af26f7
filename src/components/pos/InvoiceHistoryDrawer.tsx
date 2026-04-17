@@ -1048,6 +1048,16 @@ export default function InvoiceHistoryDrawer({
                       <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
+                    {selectedOrder.state === "paid" && !selectedOrder.is_return && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+                        onClick={() => initiateReturn(selectedOrder)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> ارتجاع
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
