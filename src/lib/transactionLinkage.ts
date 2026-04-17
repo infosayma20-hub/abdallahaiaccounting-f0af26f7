@@ -18,6 +18,7 @@ export type LinkedDocType =
   | "depreciation"
   | "transfer"
   | "opening_balance"
+  | "pos_session"
   | null;
 
 export interface LinkageInfo {
