@@ -74,30 +74,60 @@ export default function PosInvoiceDetailPage() {
       // 1) ابحث عن جميع القيود المرتبطة بهذه الفاتورة (POS قد تنتج عدة قيود: مبيعات + COGS + إلخ)
       const { data: linkedTxns, error: txnErr } = await supabase
         .from("transactions")
-        .select("id, transaction_type, amount, description, reversed_by_id, is_deleted")
+        .select("id, transaction_type, amount, currency, foreign_amount, exchange_rate, debit_account_code, credit_account_code, account_id_debit, account_id_credit, description, reference, contact_id, payment_method, expense_category, workshop_id, cost_center_name, reversed_by_id, is_deleted")
         .eq("reference", order.order_number)
         .eq("is_deleted", false);
 
       if (txnErr) throw txnErr;
 
       const toReverse = (linkedTxns || []).filter(
-        (t: any) => !t.reversed_by_id && !String(t.transaction_type || "").startsWith("reverse_")
+        (t: any) => !t.reversed_by_id && !String(t.transaction_type || "").startsWith("reverse")
       );
 
-      // 2) أنشئ قيداً عكسياً لكل قيد أصلي
+      // 2) أنشئ قيداً عكسياً يدوياً لكل قيد أصلي (مع إبقاء الأصلي ظاهراً وفق IFRS)
       let reversedCount = 0;
       for (const txn of toReverse) {
-        const { error: revErr } = await supabase.rpc("create_reverse_entry", {
-          original_transaction_id: txn.id,
-          reason: `إلغاء فاتورة POS ${order.order_number}: ${cancelReason}`,
-          reversed_by: user?.id as any,
-        });
-        if (revErr) {
-          console.error("reverse entry error:", revErr);
-          toast.error(`خطأ في القيد العكسي (${txn.transaction_type}): ${revErr.message}`);
+        // عكس الحسابات: مدين يصبح دائن والعكس
+        const reverseRow = {
+          user_id: user?.id,
+          transaction_date: new Date().toISOString().split("T")[0],
+          description: `عكس قيد: ${txn.description || ""} — إلغاء: ${cancelReason}`,
+          debit_account_code: txn.credit_account_code,
+          credit_account_code: txn.debit_account_code,
+          account_id_debit: txn.account_id_credit,
+          account_id_credit: txn.account_id_debit,
+          amount: txn.amount,
+          currency: txn.currency,
+          foreign_amount: txn.foreign_amount,
+          exchange_rate: txn.exchange_rate,
+          transaction_type: `reverse_${txn.transaction_type}`,
+          reference: `REV-${order.order_number}`,
+          contact_id: txn.contact_id,
+          payment_method: txn.payment_method,
+          expense_category: txn.expense_category,
+          workshop_id: txn.workshop_id,
+          cost_center_name: txn.cost_center_name,
+        };
+
+        const { data: inserted, error: insErr } = await supabase
+          .from("transactions")
+          .insert(reverseRow as any)
+          .select("id")
+          .single();
+
+        if (insErr) {
+          console.error("reverse insert error:", insErr);
+          toast.error(`خطأ في القيد العكسي (${txn.transaction_type}): ${insErr.message}`);
           setCancelling(false);
           return;
         }
+
+        // اربط القيد الأصلي بالقيد العكسي (للتوثيق فقط — بدون حذف)
+        await supabase
+          .from("transactions")
+          .update({ reversed_by_id: inserted!.id } as any)
+          .eq("id", txn.id);
+
         reversedCount++;
       }
 
