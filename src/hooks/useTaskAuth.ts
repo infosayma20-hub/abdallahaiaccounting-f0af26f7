@@ -44,60 +44,71 @@ export function useTaskAuth() {
 
   // Auto-login for the owner (main auth user) — no password needed
   const loginAsOwner = useCallback(async (authUserId: string, displayName: string): Promise<{ success: boolean }> => {
-    // Check if owner already has a task_user record
-    const { data: existing } = await supabase
-      .from("task_users")
-      .select("*")
-      .eq("user_id", authUserId)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    let ownerTaskUser: TaskUser;
-
-    if (existing) {
-      ownerTaskUser = {
-        id: existing.id,
-        full_name: existing.full_name,
-        username: existing.username,
-        role: existing.role,
-        avatar_color: existing.avatar_color,
-      };
-    } else {
-      // Auto-create an admin task_user for the owner
-      const { data: created, error } = await supabase
+    try {
+      // Check if owner already has any task_user record (admin or otherwise)
+      const { data: existing } = await supabase
         .from("task_users")
-        .insert({
-          user_id: authUserId,
-          full_name: displayName || "المالك",
-          username: "owner",
-          password_hash: "OWNER_AUTH", // not used for owner login
-          role: "admin",
-          avatar_color: "#1B3A5C",
-        })
-        .select()
-        .single();
+        .select("*")
+        .eq("user_id", authUserId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-      if (error || !created) return { success: false };
+      let ownerTaskUser: TaskUser;
 
-      ownerTaskUser = {
-        id: created.id,
-        full_name: created.full_name,
-        username: created.username,
-        role: created.role,
-        avatar_color: created.avatar_color,
+      if (existing) {
+        ownerTaskUser = {
+          id: existing.id,
+          full_name: existing.full_name,
+          username: existing.username,
+          role: existing.role,
+          avatar_color: existing.avatar_color,
+        };
+      } else {
+        // Auto-create an admin task_user for the owner
+        // Use a unique username to avoid conflicts (per-user owner record)
+        const uniqueUsername = `owner_${authUserId.slice(0, 8)}`;
+        const { data: created, error } = await supabase
+          .from("task_users")
+          .insert({
+            user_id: authUserId,
+            full_name: displayName || "المالك",
+            username: uniqueUsername,
+            password_hash: "OWNER_AUTH", // not used for owner login
+            role: "admin",
+            avatar_color: "#1B3A5C",
+          })
+          .select()
+          .maybeSingle();
+
+        if (error || !created) {
+          console.error("[useTaskAuth] Failed to create owner task_user:", error);
+          return { success: false };
+        }
+
+        ownerTaskUser = {
+          id: created.id,
+          full_name: created.full_name,
+          username: created.username,
+          role: created.role,
+          avatar_color: created.avatar_color,
+        };
+      }
+
+      const session: TaskSession = {
+        user: ownerTaskUser,
+        owner_id: authUserId,
+        expires_at: Date.now() + SESSION_DURATION,
+        is_owner: true,
       };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      setTaskUser(ownerTaskUser);
+      setIsOwnerSession(true);
+      return { success: true };
+    } catch (e) {
+      console.error("[useTaskAuth] loginAsOwner exception:", e);
+      return { success: false };
     }
-
-    const session: TaskSession = {
-      user: ownerTaskUser,
-      owner_id: authUserId,
-      expires_at: Date.now() + SESSION_DURATION,
-      is_owner: true,
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    setTaskUser(ownerTaskUser);
-    setIsOwnerSession(true);
-    return { success: true };
   }, []);
 
   // Login for employees (separate credentials)
