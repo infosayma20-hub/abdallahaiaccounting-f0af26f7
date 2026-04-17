@@ -4,9 +4,21 @@ import KitchenTicketTemplate from "@/components/pos/print-templates/KitchenTicke
 import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, Image } from "lucide-react";
+import { Download, Printer, Image, TestTube2, FileImage, Receipt } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage, printShiftSummaryImage, getReceiptPreviewPng } from "@/lib/image-print-service";
+import {
+  captureElementAsPng,
+  printReceiptImage,
+  printShiftSummaryImage,
+  getReceiptPreviewPng,
+  testPrintText,
+  testPrintLogo,
+  testPrintReceipt,
+  getPrintMode,
+  setPrintMode,
+} from "@/lib/image-print-service";
+import PrintDiagnosticsPanel from "@/components/pos/PrintDiagnosticsPanel";
+import type { PrintMode } from "@/lib/print-diagnostics";
 
 const SAMPLE_ORDER: PrintOrder = {
   id: 'sample-preview-order',
