@@ -2566,7 +2566,8 @@ const POSPage = () => {
           method: effectivePaymentMethod,
           amount: cartTotals.total,
           tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
-          change: actualChangeILS,
+          // Store change in the unit of change_currency (ILS amount when ILS, foreign amount when USD/JOD)
+          change: actualChangeCurrency === "ILS" ? actualChangeILS : actualChangeForeign,
           change_currency: actualChangeCurrency,
           change_foreign_amount: actualChangeForeign,
           currency: paymentCurrency,
