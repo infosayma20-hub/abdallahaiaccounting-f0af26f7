@@ -13,12 +13,13 @@ const TrialWelcomeModal = () => {
 
   useEffect(() => {
     if (!user?.id || !isTrial || isPaidActive) return;
-    if (daysLeft < 13) return; // Only first day (14 or 13 left)
     const key = `${LS_KEY}_${user.id}`;
     if (localStorage.getItem(key)) return;
+    // Mark as shown immediately to prevent re-show across tabs/sessions
+    localStorage.setItem(key, "1");
     const t = setTimeout(() => setOpen(true), 1500);
     return () => clearTimeout(t);
-  }, [user?.id, isTrial, daysLeft, isPaidActive]);
+  }, [user?.id, isTrial, isPaidActive]);
 
   const close = () => {
     setOpen(false);
