@@ -161,6 +161,10 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/super-admin/dashboard": { title: "لوحة الإدارة", icon: "settings" },
   "/delivery-notes": { title: "إرساليات المبيعات", icon: "package" },
   "/delivery-notes/new": { title: "إرسالية جديدة", icon: "package" },
+  "/credit-notes": { title: "الإشعارات الدائنة", icon: "file" },
+  "/credit-notes/new": { title: "إشعار دائن جديد", icon: "file" },
+  "/debit-notes": { title: "الإشعارات المدينة", icon: "file" },
+  "/debit-notes/new": { title: "إشعار مدين جديد", icon: "file" },
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
