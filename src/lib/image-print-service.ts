@@ -174,6 +174,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string;
 }) {
   const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
+  const footerMode = getFooterMode();
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
@@ -207,6 +208,10 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     subtotal: order.subtotal,
     orderNote: order.orderNote,
     terminalName: companyInfo?.terminalName,
+    // ── FOOTER MODE (bridge must respect this to avoid raster overflow) ──
+    footerMode,
+    showQr: footerMode === 'full',
+    showThanks: footerMode !== 'off',
   };
 }
 
