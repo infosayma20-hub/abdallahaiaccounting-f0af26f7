@@ -68,18 +68,50 @@ export interface KitchenJob {
 }
 
 // ──────────────────────────────────────────
-// Bridge fetch helper
+// Bridge fetch helper (with diagnostics logging)
 // ──────────────────────────────────────────
 
-async function bridgeFetch(path: string, body: any, timeout = 15000): Promise<any> {
-  const res = await fetch(`${BRIDGE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    mode: 'cors',
-    signal: AbortSignal.timeout(timeout),
+async function bridgeFetch(
+  path: string,
+  body: any,
+  diag: { receiptType: string; itemsCount?: number; estimatedHeight?: number },
+  timeout = 15000,
+): Promise<any> {
+  const payloadStr = JSON.stringify(body);
+  const logId = logPrintStart({
+    endpoint: path,
+    receiptType: diag.receiptType,
+    printMode: getPrintMode(),
+    itemsCount: diag.itemsCount,
+    estimatedHeight: diag.estimatedHeight,
+    payloadBytes: payloadStr.length,
   });
-  return res.json();
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${BRIDGE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payloadStr,
+      mode: 'cors',
+      signal: AbortSignal.timeout(timeout),
+    });
+    const json = await res.json();
+    const durationMs = Math.round(performance.now() - t0);
+    logPrintFinish(logId, json.success ? 'sent' : 'failed', {
+      durationMs,
+      responsePayload: json,
+      errorMessage: json.success ? undefined : json.error,
+    });
+    return json;
+  } catch (err: any) {
+    const durationMs = Math.round(performance.now() - t0);
+    const isUnreachable = err.name === 'TimeoutError' || err.message?.includes('Failed to fetch');
+    logPrintFinish(logId, isUnreachable ? 'bridge_unreachable' : 'failed', {
+      durationMs,
+      errorMessage: err.message,
+    });
+    throw err;
+  }
 }
 
 // ──────────────────────────────────────────
