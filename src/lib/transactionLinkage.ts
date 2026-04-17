@@ -30,7 +30,7 @@ export interface LinkageInfo {
 
 const SALE_TYPES = new Set([
   "sale", "sale_cash", "sale_credit", "sale_bank", "sale_cheque",
-  "pos_sale", "pos_cogs", "pos_transfer", "sale_return",
+  "sale_return",
   "فاتورة مبيعات", "مبيعات", "بيع",
 ]);
 
@@ -42,8 +42,14 @@ const PURCHASE_TYPES = new Set([
 
 const RECEIPT_TYPES = new Set(["receipt", "سند قبض", "قبض", "workshop_receipt"]);
 const PAYMENT_TYPES = new Set([
-  "payment", "expense", "pos_expense", "pos_meal", "journal",
+  "payment", "expense", "journal",
   "سند صرف", "صرف", "مصروف", "workshop_cost", "workshop_payment",
+]);
+
+// معاملات نقطة البيع — مصدرها جلسة POS وليس فاتورة/سند تقليدي
+const POS_TYPES = new Set([
+  "pos_sale", "pos_cogs", "pos_transfer", "pos_expense", "pos_meal",
+  "pos_currency_exchange",
 ]);
 
 const CHEQUE_TYPES = new Set([
