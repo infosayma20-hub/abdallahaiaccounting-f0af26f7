@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { PRIORITY_META, STAGE_META, STAGES_ORDER, type CrmOpportunity } from "./types";
+import { useCustomer360 } from "./hooks/useCustomer360";
+import { evaluateCreditDecision } from "./lib/policyEngine";
+import CustomerPolicyBadge from "./components/CustomerPolicyBadge";
+import CreditWarningBanner from "./components/CreditWarningBanner";
 
 interface Props {
   open: boolean;
@@ -14,7 +18,7 @@ interface Props {
   defaultStage?: string;
 }
 
-interface ContactOption { id: string; name: string; }
+interface ContactOption { id: string; contact_name: string; contact_class: string | null; }
 
 export default function OpportunityFormDialog({ open, onClose, onSaved, opportunity, defaultStage }: Props) {
   const { user } = useAuth();
@@ -34,15 +38,21 @@ export default function OpportunityFormDialog({ open, onClose, onSaved, opportun
     lost_reason: opportunity?.lost_reason || "",
   }));
 
+  // Live read of selected contact's policy + financials
+  const { contact, policy, financials } = useCustomer360(form.contact_id || null);
+
+  const proposedAmount = Number(form.expected_value) || 0;
+  const decision = evaluateCreditDecision(contact, policy, financials, proposedAmount);
+
   useEffect(() => {
     if (!open || !user) return;
     supabase.from("contacts")
-      .select("id, name")
+      .select("id, contact_name, contact_class")
       .eq("user_id", user.id)
       .eq("is_archived", false)
-      .order("name")
+      .order("contact_name")
       .limit(500)
-      .then(({ data }) => setContacts((data as any) || []));
+      .then(({ data }) => setContacts((data as ContactOption[]) || []));
   }, [open, user]);
 
   const set = <K extends keyof typeof form>(k: K, v: any) => setForm(p => ({ ...p, [k]: v }));
@@ -50,6 +60,15 @@ export default function OpportunityFormDialog({ open, onClose, onSaved, opportun
   const save = async () => {
     if (!user) return;
     if (!form.title.trim()) { toast.error("عنوان الفرصة مطلوب"); return; }
+
+    // Hard block per policy if Class D + no override
+    if (form.contact_id && !decision.canSellOnCredit && form.stage !== "lost") {
+      const ok = window.confirm(
+        "تنبيه السياسة: هذا العميل ممنوع من البيع الآجل (فئة D). هل أنت متأكد من إنشاء الفرصة؟"
+      );
+      if (!ok) return;
+    }
+
     setSaving(true);
     const payload: any = {
       ...form,
@@ -93,15 +112,19 @@ export default function OpportunityFormDialog({ open, onClose, onSaved, opportun
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className={lbl}>العميل (موجود)</label>
+              <label className={lbl}>العميل (من قاعدة العملاء الرئيسية)</label>
               <select className={fld} value={form.contact_id} onChange={(e) => {
                 const cid = e.target.value;
                 set("contact_id", cid);
                 const c = contacts.find(x => x.id === cid);
-                if (c) set("customer_name", c.name);
+                if (c) set("customer_name", c.contact_name);
               }}>
                 <option value="">— اختر عميل أو اكتب اسم جديد —</option>
-                {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {contacts.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.contact_name}{c.contact_class ? ` [${c.contact_class}]` : ""}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -109,6 +132,33 @@ export default function OpportunityFormDialog({ open, onClose, onSaved, opportun
               <input className={fld} value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} />
             </div>
           </div>
+
+          {/* Live policy snapshot */}
+          {form.contact_id && contact && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <CustomerPolicyBadge contact={contact} policy={policy} size="md" />
+                  {policy && (
+                    <span className="text-[11px] text-slate-600">
+                      مدة سداد: <b>{policy.payment_terms_days ?? decision.recommendedTermsDays}</b> يوم
+                      {policy.discount_pct ? ` · خصم: ${policy.discount_pct}٪` : ""}
+                    </span>
+                  )}
+                </div>
+                {decision.effectiveLimit > 0 && (
+                  <span className="text-[10px] text-slate-500">
+                    سقف: <b>{decision.effectiveLimit.toFixed(0)} ₪</b> · متاح: <b>{decision.available.toFixed(0)} ₪</b>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Credit warning banner */}
+          {form.contact_id && (decision.warnings.length > 0 || proposedAmount > 0) && (
+            <CreditWarningBanner decision={decision} proposedAmount={proposedAmount} />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
