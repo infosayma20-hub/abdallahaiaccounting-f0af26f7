@@ -177,6 +177,7 @@ const CrmLeadsPage = lazy(() => import("./pages/crm/CrmLeadsPage"));
 const CrmPipelinePage = lazy(() => import("./pages/crm/CrmPipelinePage"));
 const CrmActivitiesPage = lazy(() => import("./pages/crm/CrmActivitiesPage"));
 const CustomerCenterPage = lazy(() => import("./pages/crm/CustomerCenterPage"));
+const Customer360Page = lazy(() => import("./pages/crm/Customer360Page"));
 
 
 const queryClient = new QueryClient();
@@ -297,6 +298,7 @@ const App = () => (
                         <Route path="pipeline" element={<CrmPipelinePage />} />
                         <Route path="activities" element={<CrmActivitiesPage />} />
                         <Route path="customers" element={<CustomerCenterPage />} />
+                        <Route path="customer/:id" element={<Customer360Page />} />
                       </Route>
                       <Route path="/contacts/policies" element={<ContactPoliciesPage />} />
                       <Route path="/contacts/:id" element={<ContactDetailPage />} />
