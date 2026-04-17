@@ -413,33 +413,83 @@ export async function checkBridgeHealth(): Promise<boolean> {
 // DIAGNOSTIC TEST ENDPOINTS
 // ──────────────────────────────────────────
 
-/** Test 1: print plain text only ("Hello 123") to isolate driver/printer */
+/** Test 1: minimal text-only receipt — uses real /print-receipt endpoint */
 export async function testPrintText(): Promise<PrintImageResult> {
   try {
-    const meta = buildMeta('test_text', { debug: true });
-    const result = await bridgeFetch('/test-text', { meta }, { receiptType: 'test_text' });
+    const order = {
+      orderNumber: 9001,
+      queueNumber: 9001,
+      companyName: "اختبار النص",
+      cashierName: "اختبار",
+      orderType: "takeaway" as const,
+      orderTypeLabel: "استلام",
+      items: [{ name: "Hello 123 - اختبار", quantity: 1, unitPrice: 1 }],
+      total: 1,
+      subtotal: 1,
+      tax: 0,
+      paymentMethod: "نقد",
+      createdAt: new Date().toISOString(),
+      currency: "ILS",
+    };
+    const meta = buildMeta('test_text', { itemsCount: 1, debug: true });
+    const result = await bridgeFetch('/print-receipt', { order, meta }, { receiptType: 'test_text', itemsCount: 1 });
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
 }
 
-/** Test 2: print a small logo only — isolates raster pipeline */
+/** Test 2: kitchen ticket — isolates the kitchen printer pipeline */
 export async function testPrintLogo(): Promise<PrintImageResult> {
   try {
-    const meta = buildMeta('test_logo', { debug: true });
-    const result = await bridgeFetch('/test-logo', { meta }, { receiptType: 'test_logo' });
+    const order = {
+      orderNumber: 9002,
+      queueNumber: 9002,
+      cashierName: "اختبار",
+      orderType: "takeaway" as const,
+      orderTypeLabel: "استلام",
+      items: [{ name: "اختبار طابعة المطبخ", quantity: 1, unitPrice: 0 }],
+      total: 0,
+      createdAt: new Date().toISOString(),
+    };
+    const meta = buildMeta('test_kitchen', { itemsCount: 1, debug: true });
+    const result = await bridgeFetch(
+      '/print-kitchen',
+      { order, printerKey: 'kitchen', stationLabel: 'المطبخ', meta },
+      { receiptType: 'test_kitchen', itemsCount: 1 },
+    );
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
 }
 
-/** Test 3: print a full sample receipt — isolates long raster handling */
+/** Test 3: full sample receipt with multiple items via real /print-receipt */
 export async function testPrintReceipt(): Promise<PrintImageResult> {
   try {
+    const order = {
+      orderNumber: 9003,
+      queueNumber: 9003,
+      companyName: "مطعم الملكي - اختبار",
+      cashierName: "اختبار",
+      orderType: "delivery" as const,
+      orderTypeLabel: "توصيل",
+      items: [
+        { name: "اجنحة 30 قطعة مشوي", quantity: 1, unitPrice: 75 },
+        { name: "بيتزا شاورما", quantity: 2, unitPrice: 22 },
+        { name: "بيبسي 1 لتر", quantity: 1, unitPrice: 8 },
+      ],
+      subtotal: 127,
+      total: 127,
+      tax: 0,
+      paymentMethod: "نقد",
+      cashReceived: 130,
+      change: 3,
+      createdAt: new Date().toISOString(),
+      currency: "ILS",
+    };
     const meta = buildMeta('test_receipt', { itemsCount: 3, estimatedHeight: estimateReceiptHeight(3), debug: true });
-    const result = await bridgeFetch('/test-receipt', { meta }, { receiptType: 'test_receipt', itemsCount: 3, estimatedHeight: meta.estimatedHeight });
+    const result = await bridgeFetch('/print-receipt', { order, meta }, { receiptType: 'test_receipt', itemsCount: 3, estimatedHeight: meta.estimatedHeight });
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
