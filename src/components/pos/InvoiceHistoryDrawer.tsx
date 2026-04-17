@@ -867,6 +867,16 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
                         )}
+                        {canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
+                          <button
+                            onClick={e => { e.stopPropagation(); initiateReturn(order); }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
+                            style={{ background: "#FEE2E220", color: "#DC2626" }}
+                            title="ارتجاع جزئي أو كلي"
+                          >
+                            <RotateCcw className="h-3 w-3" /> ارتجاع
+                          </button>
+                        )}
                         {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateCancel(order); }}
@@ -1228,6 +1238,22 @@ export default function InvoiceHistoryDrawer({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ══════ RETURN DIALOG ══════ */}
+      {returningOrder && sessionId && (
+        <ReturnDialog
+          open={showReturnDialog}
+          onClose={() => { setShowReturnDialog(false); setReturningOrder(null); }}
+          originalOrderId={returningOrder.id}
+          originalOrderNumber={returningOrder.order_number}
+          originalTotal={returningOrder.total}
+          originalCurrency={orderCurrency}
+          sessionId={sessionId}
+          dataOwnerId={dataOwnerId}
+          exchangeRates={exchangeRates}
+          onSuccess={() => { fetchOrders(); setSelectedOrder(null); }}
+        />
+      )}
     </>
   );
 }
