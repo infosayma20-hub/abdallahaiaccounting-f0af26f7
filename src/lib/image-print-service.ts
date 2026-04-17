@@ -591,6 +591,7 @@ export async function getReceiptPreviewPng(
       companyAddress: companyInfo?.address,
       taxNumber: companyInfo?.taxNumber,
       terminalName: companyInfo?.terminalName,
+      footerMode: getFooterMode(),
     }));
 
     setTimeout(async () => {
