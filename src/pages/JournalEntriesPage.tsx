@@ -342,7 +342,12 @@ const JournalEntriesPage = () => {
     ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "القيود المحاسبية");
-    setNextExportBranding({ title: "القيود المحاسبية" });
+    setNextExportBranding({
+      title: "تقرير القيود المحاسبية",
+      currency: "حسب عمود العملة لكل قيد",
+      period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : undefined,
+      extraInfo: [`عدد القيود: ${data.length.toLocaleString()}`],
+    });
     XLSX.writeFile(wb, `قيود_يومية_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 

@@ -207,7 +207,11 @@ const GeneralLedgerPage = () => {
     ws["!cols"] = [{ wch: 12 }, { wch: 35 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, selectedAccount || "دفتر الأستاذ");
-    setNextExportBranding({ title: "تقرير" });
+    setNextExportBranding({
+      title: `دفتر الأستاذ — ${selectedAccount || "كل الحسابات"}`,
+      currency: "شيكل ₪",
+      period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : "كل الفترات",
+    });
     XLSX.writeFile(wb, `دفتر_الأستاذ_${selectedAccount}_${Date.now()}.xlsx`);
   };
 

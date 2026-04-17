@@ -477,7 +477,11 @@ const ProfitLoss = () => {
     ws["!cols"] = [{ wch: 35 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "قائمة الدخل");
-    setNextExportBranding({ title: "قائمة الدخل" });
+    setNextExportBranding({
+      title: "قائمة الدخل (الأرباح والخسائر)",
+      currency: "شيكل ₪",
+      period: `${dateFrom || "—"} → ${dateTo || "—"}`,
+    });
     XLSX.writeFile(wb, `قائمة_الدخل_${dateFrom}_${dateTo}.xlsx`);
   };
 
