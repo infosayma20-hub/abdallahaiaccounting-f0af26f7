@@ -238,8 +238,16 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
                     <td className="px-4 py-2.5 text-center">—</td>
                     <td className="px-4 py-2.5 text-left tabular-nums">₪0.00</td>
                   </tr>
+                  {(data.debitNotesNet > 0 || data.debitNotesTax > 0) && (
+                    <tr className="border-b border-border bg-amber-50/40">
+                      <td className="px-4 py-2.5 text-right text-amber-700">(-) إشعارات مدينة (مرتجعات مشتريات)</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-amber-700">- {fmt(data.debitNotesNet)}</td>
+                      <td className="px-4 py-2.5 text-center">16%</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums font-medium text-amber-700">- {fmt(data.debitNotesTax)}</td>
+                    </tr>
+                  )}
                   <tr style={{ background: "#F1F5F9" }} className="font-bold">
-                    <td className="px-4 py-2.5 text-right">إجمالي ضريبة المدخلات القابلة للخصم</td>
+                    <td className="px-4 py-2.5 text-right">صافي ضريبة المدخلات القابلة للخصم</td>
                     <td className="px-4 py-2.5 text-left"></td>
                     <td className="px-4 py-2.5 text-center"></td>
                     <td className="px-4 py-2.5 text-left tabular-nums text-emerald-600">{fmt(totalInputTax)}</td>
