@@ -2220,6 +2220,7 @@ export default function SuperAdminDashboard() {
                 { value: "database", icon: Database, label: "قاعدة البيانات" },
                 { value: "live", icon: Wifi, label: "مراقبة حية" },
                 { value: "audit", icon: FileText, label: "سجل التدقيق" },
+                { value: "user_security", icon: Shield, label: "السجل الأمني" },
                 { value: "settings", icon: Settings, label: "إعدادات المنصة" },
                 { value: "tools", icon: Zap, label: "أدوات" },
                 { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
