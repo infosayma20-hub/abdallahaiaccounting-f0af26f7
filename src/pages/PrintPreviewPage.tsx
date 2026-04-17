@@ -16,6 +16,9 @@ import {
   testPrintReceipt,
   getPrintMode,
   setPrintMode,
+  getFooterMode,
+  setFooterMode,
+  type FooterMode,
 } from "@/lib/image-print-service";
 import PrintDiagnosticsPanel from "@/components/pos/PrintDiagnosticsPanel";
 import type { PrintMode } from "@/lib/print-diagnostics";
