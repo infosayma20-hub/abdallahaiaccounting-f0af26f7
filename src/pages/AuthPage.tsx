@@ -82,7 +82,21 @@ const AuthPage = () => {
         setMode("login");
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          // سجّل محاولة الدخول الفاشلة
+          try {
+            await supabase.functions.invoke("log-security-event", {
+              body: {
+                user_id: "00000000-0000-0000-0000-000000000000",
+                user_email: email,
+                event_type: "login_failed",
+                auth_method: "password",
+                metadata: { reason: error.message },
+              },
+            });
+          } catch {}
+          throw error;
+        }
         localStorage.removeItem("trial_banner_dismissed");
         if (data.user) {
           const dest = await resolveRedirect(data.user.id);
