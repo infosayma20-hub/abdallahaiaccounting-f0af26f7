@@ -62,9 +62,12 @@ export function useLockedModules() {
    */
   const isModuleLocked = (appId: string): boolean => {
     if (isSuperAdmin) return false;
-    if (hiddenApps.includes(appId)) return true;
-    // Trial users get full access
+    // ⛔ Trial users see EVERYTHING — no locks at all, even if hidden_apps set
     if (isTrial) return false;
+    // ⛔ While subscription data is still loading → don't lock anything (prevents flicker)
+    if (!subscription) return false;
+    // Super admin hidden apps (only enforced for paid users, not trial)
+    if (hiddenApps.includes(appId)) return true;
     // Paid users restricted by plan
     if (enabledModules.length === 0) return false; // no plan data → don't block
     return !enabledModules.includes(appId);
