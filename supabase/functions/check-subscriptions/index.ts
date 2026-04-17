@@ -5,17 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// 5 نقاط تواصل خلال فترة التجربة (14 يوم)
-// اليوم 1 = ترحيب، 7 = منتصف، 10 = تحذير، 13 = ما قبل النهاية، 14 = انتهاء
-const TRIAL_TOUCH_POINTS = [1, 7, 10, 13, 14];
-
-const TRIAL_MESSAGES: Record<number, { title: string; body: string }> = {
-  1:  { title: "🎉 مرحباً! تجربتك المجانية بدأت", body: "عندك 14 يوم لتجرب كل ميزات أموالي المتقدمة. ابدأ الآن!" },
-  7:  { title: "⏳ مضى أسبوع — 7 أيام متبقية", body: "نص الرحلة! اكتشف باقي الميزات قبل انتهاء التجربة" },
-  10: { title: "⚠️ 4 أيام متبقية فقط!", body: "اشترك الآن لتحافظ على بياناتك واستمراريتك" },
-  13: { title: "🔔 غداً آخر يوم في تجربتك", body: "آخر فرصة للاشتراك بدون انقطاع" },
-  14: { title: "⛔ انتهت تجربتك — اشترك للاستمرار", body: "بياناتك محفوظة. اختر باقتك لاستعادة الوصول الكامل" },
+// إشعارات التجربة مبنية على الأيام المتبقية (وليس المنقضية)
+// لتعمل بشكل صحيح مع الاتفاقيات المخصصة (تجربة 30 يوم، 5 شهور..)
+// 0 = ترحيب يوم البداية، 7/4/1 = تذكيرات قرب الانتهاء، -1 = انتهت
+const TRIAL_MESSAGES: Record<number, { title: string; body: string; key: string }> = {
+  0:  { key: "trial_welcome",  title: "🎉 مرحباً! تجربتك بدأت", body: "ابدأ الآن واكتشف كل ميزات أموالي المتقدمة" },
+  7:  { key: "trial_left_7",   title: "⏳ 7 أيام متبقية في تجربتك", body: "اكتشف باقي الميزات قبل انتهاء التجربة" },
+  4:  { key: "trial_left_4",   title: "⚠️ 4 أيام متبقية فقط!", body: "اشترك الآن لتحافظ على بياناتك واستمراريتك" },
+  1:  { key: "trial_left_1",   title: "🔔 غداً آخر يوم في تجربتك", body: "آخر فرصة للاشتراك بدون انقطاع" },
+  [-1]: { key: "trial_expired", title: "⛔ انتهت تجربتك — اشترك للاستمرار", body: "بياناتك محفوظة. اختر باقتك لاستعادة الوصول الكامل" },
 };
+
+const TRIAL_TOUCH_POINTS = [0, 7, 4, 1, -1];
 
 // تذكيرات للاشتراكات المدفوعة (قبل تجديد الفوترة)
 const PAID_REMINDER_DAYS = [7, 3, 1];
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
     let stats = { trial_notifications: 0, paid_reminders: 0, expired: 0 };
 
     // ============================================
-    // 1) معالجة اشتراكات Trial — 5 نقاط تواصل
+    // 1) معالجة اشتراكات Trial — مبنية على الأيام المتبقية
     // ============================================
     const { data: trialSubs } = await supabase
       .from("subscriptions")
@@ -52,20 +53,28 @@ Deno.serve(async (req) => {
         const notifiedDays: number[] = (sub.notified_days as number[]) || [];
 
         for (const dayMark of TRIAL_TOUCH_POINTS) {
-          if (daysUsed >= dayMark && !notifiedDays.includes(dayMark)) {
+          let shouldFire = false;
+          if (dayMark === 0) {
+            shouldFire = daysUsed === 0;
+          } else if (dayMark === -1) {
+            shouldFire = daysLeft <= 0;
+          } else {
+            // التذكيرات تظهر فقط حين تتساوى الأيام المتبقية مع نقطة التذكير
+            shouldFire = daysLeft === dayMark;
+          }
+
+          if (shouldFire && !notifiedDays.includes(dayMark)) {
             const msg = TRIAL_MESSAGES[dayMark];
 
-            // إشعار داخلي
             await supabase.from("notification_log").insert({
               user_id: sub.user_id,
-              type: `trial_day_${dayMark}`,
+              type: msg.key,
               channel: "in_app",
               title: msg.title,
               body: msg.body,
               path: "/pricing",
             });
 
-            // تحديث notified_days لتجنب التكرار
             await supabase
               .from("subscriptions")
               .update({ notified_days: [...notifiedDays, dayMark] } as any)
@@ -134,7 +143,6 @@ Deno.serve(async (req) => {
     const { data: expireResult } = await supabase.rpc("expire_trials");
     stats.expired = (expireResult as any)?.expired_count || 0;
 
-    // الاشتراكات المدفوعة المنتهية
     const { data: expiredPaid } = await supabase
       .from("subscriptions")
       .select("id, user_id")
