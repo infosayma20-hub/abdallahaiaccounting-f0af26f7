@@ -169,16 +169,20 @@ export default function CustomerCenterPage() {
               <div className="mt-2 text-[10px] text-slate-400">السبب: {riskBadge.reason}</div>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={() => navigate(`/crm/customer/${selectedId}`)}
+                className="h-8 px-3 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 flex items-center gap-1">
+                فتح Customer 360° الكامل <ArrowLeft className="h-3 w-3" />
+              </button>
               <button onClick={() => navigate(`/contacts/${selectedId}`)}
-                className="h-8 px-3 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold hover:bg-slate-200 flex items-center gap-1">
-                ملف العميل في قاعدة البيانات الرئيسية <ArrowLeft className="h-3 w-3" />
+                className="h-8 px-3 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold hover:bg-slate-200">
+                ملف العميل في قاعدة البيانات
               </button>
               <button onClick={() => navigate(`/account-statement?contact_id=${selectedId}`)}
                 className="h-8 px-3 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold hover:bg-blue-100">
                 كشف حساب
               </button>
               <button onClick={() => navigate("/invoices/new")}
-                className="h-8 px-3 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700">
+                className="h-8 px-3 rounded-md bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700">
                 + فاتورة جديدة
               </button>
             </div>
