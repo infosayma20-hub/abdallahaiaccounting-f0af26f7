@@ -464,13 +464,46 @@ const AccountStatementV2Page = () => {
   // ─── EXPORT ───
   const handleExport = () => {
     if (!filteredRows.length || !selectedEntityName) return;
-    const header = [["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين", "دائن", "الرصيد"]];
-    const data = filteredRows.map(r => [fmtDate(r.date), r.reference || "—", r.description, r.dueDate ? fmtDate(r.dueDate) : "—", getTypeBadge(r.transaction_type), r.debit || "", r.credit || "", r.balance]);
-    const ws = XLSX.utils.aoa_to_sheet([...header, ...data]);
-    ws["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 36 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+    const currencyName = codeToCurrencyName[displayCurrency] ? displayCurrency : (statementCurrency || "شيكل");
+    const currencyDisplayName = displayCurrency !== "ILS"
+      ? (DISPLAY_CURRENCIES.find(c => c.value === displayCurrency)?.label.replace("عرض ب", "").replace(" (افتراضي)", "") || statementCurrency)
+      : statementCurrency;
+    const currencySymbol = getCurrencySymbol(statementCurrency);
+    const periodLabel = `${dateFrom ? fmtDate(dateFrom) : "—"}  →  ${dateTo ? fmtDate(dateTo) : "—"}`;
+
+    const infoRows = [
+      [`كشف حساب: ${selectedEntityName}${selectedEntityCode ? ` (${selectedEntityCode})` : ""}`],
+      [`العملة: ${currencyDisplayName} (${currencySymbol})`],
+      [`الفترة: ${periodLabel}`],
+      [`تاريخ التصدير: ${fmtDate(format(new Date(), "yyyy-MM-dd"))}`],
+      [],
+    ];
+
+    const header = [[
+      "التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع",
+      `مدين (${currencySymbol})`, `دائن (${currencySymbol})`, `الرصيد (${currencySymbol})`,
+    ]];
+    const data = filteredRows.map(r => [
+      fmtDate(r.date), r.reference || "—", r.description,
+      r.dueDate ? fmtDate(r.dueDate) : "—", getTypeBadge(r.transaction_type),
+      r.debit || "", r.credit || "", r.balance,
+    ]);
+    const totalsRow = [
+      "", "", "الإجمالي", "", "",
+      totalDebit, totalCredit, closingBalance,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet([...infoRows, ...header, ...data, [], totalsRow]);
+    ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 18 }];
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },
+      { s: { r: 3, c: 0 }, e: { r: 3, c: 7 } },
+    ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
-    XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}.xlsx`);
+    XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${currencyDisplayName}.xlsx`);
   };
 
   const selectEntity = (id: string) => setSelectedEntityId(id);
