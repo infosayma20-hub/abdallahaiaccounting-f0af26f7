@@ -316,27 +316,30 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const existing = tabs.find(t => t.path === path);
-    if (existing) {
-      setActiveTabId(existing.id);
-      navigate(path);
-      return;
-    }
     const meta = getRouteMeta(path);
-    const newTab: AppTab = {
-      id: crypto.randomUUID(),
-      path,
-      title: title || meta.title,
-      icon: meta.icon,
-    };
+    let resolvedId: string | null = null;
+
     setTabs(prev => {
+      const existing = prev.find(t => t.path === path);
+      if (existing) {
+        resolvedId = existing.id;
+        return prev;
+      }
+      const newTab: AppTab = {
+        id: crypto.randomUUID(),
+        path,
+        title: title || meta.title,
+        icon: meta.icon,
+      };
+      resolvedId = newTab.id;
       const next = [...prev, newTab];
       saveTabs(next, userId);
       return next;
     });
-    setActiveTabId(newTab.id);
+
+    if (resolvedId) setActiveTabId(resolvedId);
     navigate(path);
-  }, [tabs, navigate, userId]);
+  }, [navigate, userId]);
 
   const closeTab = useCallback((id: string) => {
     setTabs(prev => {
