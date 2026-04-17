@@ -316,6 +316,7 @@ export default function PrintPreviewPage() {
               taxNumber={SAMPLE_COMPANY_INFO.taxNumber}
               terminalName={SAMPLE_COMPANY_INFO.terminalName}
               logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
+              footerMode={footerMode}
             />
           </div>
         )}
