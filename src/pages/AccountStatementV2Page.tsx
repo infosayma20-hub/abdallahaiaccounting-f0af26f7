@@ -195,15 +195,20 @@ const AccountStatementV2Page = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // ─── Fetch exchange rates for foreign display mode ───
+  // ─── Fetch exchange rates for ALL foreign currencies (needed for cross-currency conversion) ───
   useEffect(() => {
-    if (displayCurrency === "ILS" || !user) return;
-    const fetchRate = async () => {
-      const { data: rate } = await supabase.rpc("get_exchange_rate", { p_currency_code: displayCurrency, p_rate_type: "mid" });
-      if (rate) setCurrentExchangeRate(prev => ({ ...prev, [displayCurrency]: Number(rate) }));
+    if (!user) return;
+    const fetchRates = async () => {
+      const codes = ["USD", "JOD", "EUR"];
+      const results = await Promise.all(
+        codes.map(c => supabase.rpc("get_exchange_rate", { p_currency_code: c, p_rate_type: "mid" }))
+      );
+      const next: Record<string, number> = {};
+      codes.forEach((c, i) => { if (results[i].data) next[c] = Number(results[i].data); });
+      setCurrentExchangeRate(prev => ({ ...prev, ...next }));
     };
-    fetchRate();
-  }, [displayCurrency, user]);
+    fetchRates();
+  }, [user]);
 
   // ─── Derived State ───
   const selectedAccount = useMemo(() => accounts.find(a => a.id === selectedEntityId), [accounts, selectedEntityId]);
