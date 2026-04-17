@@ -98,13 +98,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       overflow: 'visible',
       boxSizing: 'border-box',
       direction: 'rtl',
-      padding: '8px 12px',
+      padding: '6px 12px',
       backgroundColor: '#ffffff',
       color: '#000000',
       fontFamily: FONT,
-      fontSize: '17px',
+      fontSize: '15px',
       fontWeight: 500,
-      lineHeight: '1.4',
+      lineHeight: 1.2,
     }}>
 
       {/* ═══ 1. LOGO ═══ */}
