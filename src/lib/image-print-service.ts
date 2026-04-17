@@ -297,18 +297,21 @@ export async function printAllImage(
   try {
     const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
     const kitchenOrder = toBridgeKitchenOrder(order, order.items);
+    const itemsCount = order.items?.length || 0;
+    const receiptMeta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
+    const kitchenMeta = (key: string) => buildMeta(`kitchen_${key}`, { itemsCount });
 
     const results = await Promise.all([
-      bridgeFetch('/print-receipt', { order: receiptOrder })
+      bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
         .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'kitchen', stationLabel: 'المطبخ' })
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'kitchen', stationLabel: 'المطبخ', meta: kitchenMeta('kitchen') }, { receiptType: 'kitchen_kitchen', itemsCount })
         .then((r: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'grill', stationLabel: 'السخان' })
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'grill', stationLabel: 'السخان', meta: kitchenMeta('grill') }, { receiptType: 'kitchen_grill', itemsCount })
         .then((r: any) => ({ printerKey: 'grill', name: 'السخان', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'grill', name: 'السخان', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'pizza', stationLabel: 'البيتزا' })
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'pizza', stationLabel: 'البيتزا', meta: kitchenMeta('pizza') }, { receiptType: 'kitchen_pizza', itemsCount })
         .then((r: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: false, error: err.message })),
     ]);
@@ -335,11 +338,13 @@ export async function printStationTicketImage(
 
   try {
     const kitchenOrder = toBridgeKitchenOrder(order, items);
-    const result = await bridgeFetch('/print-kitchen', {
-      order: kitchenOrder,
-      printerKey: station.key,
-      stationLabel: station.label,
-    });
+    const itemsCount = items?.length || 0;
+    const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
+    const result = await bridgeFetch(
+      '/print-kitchen',
+      { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
+      { receiptType: `kitchen_${station.key}`, itemsCount },
+    );
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
