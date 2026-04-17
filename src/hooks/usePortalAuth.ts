@@ -57,6 +57,12 @@ export function usePortalAuth() {
             allowed_branch_ids: data.allowed_branch_ids,
             user_id: data.user_id,
           });
+          // Touch last_login (fire-and-forget)
+          supabase
+            .from('malaki_portal_users')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', data.id)
+            .then(() => {});
         }
       } catch {
         setPortalUser(null);
