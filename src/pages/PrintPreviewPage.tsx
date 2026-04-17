@@ -4,9 +4,21 @@ import KitchenTicketTemplate from "@/components/pos/print-templates/KitchenTicke
 import ShiftSummaryTemplate from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, Image } from "lucide-react";
+import { Download, Printer, Image, TestTube2, FileImage, Receipt } from "lucide-react";
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-import { captureElementAsPng, printReceiptImage, printShiftSummaryImage, getReceiptPreviewPng } from "@/lib/image-print-service";
+import {
+  captureElementAsPng,
+  printReceiptImage,
+  printShiftSummaryImage,
+  getReceiptPreviewPng,
+  testPrintText,
+  testPrintLogo,
+  testPrintReceipt,
+  getPrintMode,
+  setPrintMode,
+} from "@/lib/image-print-service";
+import PrintDiagnosticsPanel from "@/components/pos/PrintDiagnosticsPanel";
+import type { PrintMode } from "@/lib/print-diagnostics";
 
 const SAMPLE_ORDER: PrintOrder = {
   id: 'sample-preview-order',
@@ -88,6 +100,26 @@ export default function PrintPreviewPage() {
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [downloadingServer, setDownloadingServer] = useState(false);
+  const [printMode, setPrintModeState] = useState<PrintMode>(getPrintMode());
+  const [testing, setTesting] = useState<null | 'text' | 'logo' | 'receipt'>(null);
+
+  const togglePrintMode = (m: PrintMode) => {
+    setPrintMode(m);
+    setPrintModeState(m);
+  };
+
+  const runTest = async (kind: 'text' | 'logo' | 'receipt') => {
+    setTesting(kind);
+    try {
+      const fn = kind === 'text' ? testPrintText : kind === 'logo' ? testPrintLogo : testPrintReceipt;
+      const r = await fn();
+      if (!r.success) alert(`❌ فشل اختبار ${kind}: ${r.error || 'خطأ غير معروف'}`);
+    } catch (err: any) {
+      alert(`❌ تعذر الاتصال بالبردج: ${err.message}`);
+    } finally {
+      setTesting(null);
+    }
+  };
 
   const handleDownloadLocal = async () => {
     if (!previewRef.current) return;
@@ -158,6 +190,45 @@ export default function PrintPreviewPage() {
             {tab.label}
           </Button>
         ))}
+      </div>
+
+      {/* Print mode toggle */}
+      <div className="mb-3 flex justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border text-sm">
+          <span className="text-muted-foreground">وضع الطباعة:</span>
+          <Button
+            size="sm"
+            variant={printMode === 'raster' ? 'default' : 'outline'}
+            onClick={() => togglePrintMode('raster')}
+            className="h-7 px-3 text-xs"
+          >
+            🖼️ raster
+          </Button>
+          <Button
+            size="sm"
+            variant={printMode === 'text' ? 'default' : 'outline'}
+            onClick={() => togglePrintMode('text')}
+            className="h-7 px-3 text-xs"
+          >
+            📝 text
+          </Button>
+        </div>
+      </div>
+
+      {/* Diagnostic test buttons */}
+      <div className="mb-3 flex justify-center gap-2 flex-wrap px-4">
+        <Button onClick={() => runTest('text')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
+          <TestTube2 className="h-4 w-4" />
+          {testing === 'text' ? '...' : 'اختبار: نص فقط'}
+        </Button>
+        <Button onClick={() => runTest('logo')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
+          <FileImage className="h-4 w-4" />
+          {testing === 'logo' ? '...' : 'اختبار: شعار فقط'}
+        </Button>
+        <Button onClick={() => runTest('receipt')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
+          <Receipt className="h-4 w-4" />
+          {testing === 'receipt' ? '...' : 'اختبار: فاتورة كاملة'}
+        </Button>
       </div>
 
       {/* Action buttons */}
@@ -234,6 +305,11 @@ export default function PrintPreviewPage() {
             <ShiftSummaryTemplate ref={previewRef} data={SAMPLE_SHIFT} />
           </div>
         )}
+      </div>
+
+      {/* Diagnostics panel */}
+      <div className="max-w-3xl mx-auto px-4 mt-6">
+        <PrintDiagnosticsPanel />
       </div>
     </div>
   );

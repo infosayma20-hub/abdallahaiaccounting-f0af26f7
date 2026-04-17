@@ -12,13 +12,52 @@
 
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
+import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
 
 const BRIDGE_URL = "http://192.168.1.65:3001";
+
+// ──────────────────────────────────────────
+// Print Mode (raster | text) — persisted in localStorage
+// ──────────────────────────────────────────
+
+const PRINT_MODE_KEY = 'pos-print-mode';
+
+export function getPrintMode(): PrintMode {
+  try {
+    const v = localStorage.getItem(PRINT_MODE_KEY);
+    return v === 'text' ? 'text' : 'raster';
+  } catch {
+    return 'raster';
+  }
+}
+
+export function setPrintMode(mode: PrintMode): void {
+  try { localStorage.setItem(PRINT_MODE_KEY, mode); } catch {/* ignore */}
+}
 
 interface PrintImageResult {
   success: boolean;
   error?: string;
   results?: { printerKey: string; name?: string; success: boolean; error?: string }[];
+}
+
+/** Build diagnostic meta payload sent with every print request */
+function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHeight?: number; debug?: boolean } = {}) {
+  return {
+    type: receiptType,
+    printMode: getPrintMode(),
+    debug: opts.debug ?? false,
+    itemsCount: opts.itemsCount,
+    estimatedHeight: opts.estimatedHeight,
+    timestamp: new Date().toISOString(),
+    client: 'pos-web',
+  };
+}
+
+/** Estimate receipt height in px from items count (rough heuristic) */
+function estimateReceiptHeight(itemsCount: number): number {
+  // header ~280 + footer ~220 + ~70 per item @ font 17px
+  return 500 + itemsCount * 70;
 }
 
 /** Kitchen job — a filtered set of items for one station printer */
@@ -29,18 +68,50 @@ export interface KitchenJob {
 }
 
 // ──────────────────────────────────────────
-// Bridge fetch helper
+// Bridge fetch helper (with diagnostics logging)
 // ──────────────────────────────────────────
 
-async function bridgeFetch(path: string, body: any, timeout = 15000): Promise<any> {
-  const res = await fetch(`${BRIDGE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    mode: 'cors',
-    signal: AbortSignal.timeout(timeout),
+async function bridgeFetch(
+  path: string,
+  body: any,
+  diag: { receiptType: string; itemsCount?: number; estimatedHeight?: number },
+  timeout = 15000,
+): Promise<any> {
+  const payloadStr = JSON.stringify(body);
+  const logId = logPrintStart({
+    endpoint: path,
+    receiptType: diag.receiptType,
+    printMode: getPrintMode(),
+    itemsCount: diag.itemsCount,
+    estimatedHeight: diag.estimatedHeight,
+    payloadBytes: payloadStr.length,
   });
-  return res.json();
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${BRIDGE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payloadStr,
+      mode: 'cors',
+      signal: AbortSignal.timeout(timeout),
+    });
+    const json = await res.json();
+    const durationMs = Math.round(performance.now() - t0);
+    logPrintFinish(logId, json.success ? 'sent' : 'failed', {
+      durationMs,
+      responsePayload: json,
+      errorMessage: json.success ? undefined : json.error,
+    });
+    return json;
+  } catch (err: any) {
+    const durationMs = Math.round(performance.now() - t0);
+    const isUnreachable = err.name === 'TimeoutError' || err.message?.includes('Failed to fetch');
+    logPrintFinish(logId, isUnreachable ? 'bridge_unreachable' : 'failed', {
+      durationMs,
+      errorMessage: err.message,
+    });
+    throw err;
+  }
 }
 
 // ──────────────────────────────────────────
@@ -167,7 +238,13 @@ export async function printReceiptImage(
 ): Promise<PrintImageResult> {
   try {
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
-    const result = await bridgeFetch('/print-receipt', { order: bridgeOrder });
+    const itemsCount = order.items?.length || 0;
+    const meta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
+    const result = await bridgeFetch(
+      '/print-receipt',
+      { order: bridgeOrder, meta },
+      { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: meta.estimatedHeight },
+    );
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
@@ -184,11 +261,13 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
     const promises = ALL_STATIONS.map(async (station) => {
       try {
         const kitchenOrder = toBridgeKitchenOrder(order, order.items);
-        const result = await bridgeFetch('/print-kitchen', {
-          order: kitchenOrder,
-          printerKey: station.key,
-          stationLabel: station.label,
-        });
+        const itemsCount = order.items?.length || 0;
+        const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
+        const result = await bridgeFetch(
+          '/print-kitchen',
+          { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
+          { receiptType: `kitchen_${station.key}`, itemsCount },
+        );
         return { printerKey: station.key, name: station.label, success: result.success, error: result.error };
       } catch (err: any) {
         return { printerKey: station.key, name: station.label, success: false, error: err.message };
@@ -218,18 +297,21 @@ export async function printAllImage(
   try {
     const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
     const kitchenOrder = toBridgeKitchenOrder(order, order.items);
+    const itemsCount = order.items?.length || 0;
+    const receiptMeta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
+    const kitchenMeta = (key: string) => buildMeta(`kitchen_${key}`, { itemsCount });
 
     const results = await Promise.all([
-      bridgeFetch('/print-receipt', { order: receiptOrder })
+      bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
         .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'kitchen', stationLabel: 'المطبخ' })
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'kitchen', stationLabel: 'المطبخ', meta: kitchenMeta('kitchen') }, { receiptType: 'kitchen_kitchen', itemsCount })
         .then((r: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'grill', stationLabel: 'السخان' })
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'grill', stationLabel: 'السخان', meta: kitchenMeta('grill') }, { receiptType: 'kitchen_grill', itemsCount })
         .then((r: any) => ({ printerKey: 'grill', name: 'السخان', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'grill', name: 'السخان', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'pizza', stationLabel: 'البيتزا' })
+      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'pizza', stationLabel: 'البيتزا', meta: kitchenMeta('pizza') }, { receiptType: 'kitchen_pizza', itemsCount })
         .then((r: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: false, error: err.message })),
     ]);
@@ -256,11 +338,13 @@ export async function printStationTicketImage(
 
   try {
     const kitchenOrder = toBridgeKitchenOrder(order, items);
-    const result = await bridgeFetch('/print-kitchen', {
-      order: kitchenOrder,
-      printerKey: station.key,
-      stationLabel: station.label,
-    });
+    const itemsCount = items?.length || 0;
+    const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
+    const result = await bridgeFetch(
+      '/print-kitchen',
+      { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
+      { receiptType: `kitchen_${station.key}`, itemsCount },
+    );
     return { success: result.success, error: result.error };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -299,7 +383,8 @@ export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promi
       paymentMethodBreakdown: data.paymentMethodBreakdown,
     };
 
-    const result = await bridgeFetch('/print-shift', { session });
+    const meta = buildMeta('shift_summary');
+    const result = await bridgeFetch('/print-shift', { session, meta }, { receiptType: 'shift_summary' });
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printShiftSummaryImage]', err);
@@ -321,6 +406,43 @@ export async function checkBridgeHealth(): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+// ──────────────────────────────────────────
+// DIAGNOSTIC TEST ENDPOINTS
+// ──────────────────────────────────────────
+
+/** Test 1: print plain text only ("Hello 123") to isolate driver/printer */
+export async function testPrintText(): Promise<PrintImageResult> {
+  try {
+    const meta = buildMeta('test_text', { debug: true });
+    const result = await bridgeFetch('/test-text', { meta }, { receiptType: 'test_text' });
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Test 2: print a small logo only — isolates raster pipeline */
+export async function testPrintLogo(): Promise<PrintImageResult> {
+  try {
+    const meta = buildMeta('test_logo', { debug: true });
+    const result = await bridgeFetch('/test-logo', { meta }, { receiptType: 'test_logo' });
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Test 3: print a full sample receipt — isolates long raster handling */
+export async function testPrintReceipt(): Promise<PrintImageResult> {
+  try {
+    const meta = buildMeta('test_receipt', { itemsCount: 3, estimatedHeight: estimateReceiptHeight(3), debug: true });
+    const result = await bridgeFetch('/test-receipt', { meta }, { receiptType: 'test_receipt', itemsCount: 3, estimatedHeight: meta.estimatedHeight });
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
 
