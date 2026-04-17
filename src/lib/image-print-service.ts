@@ -410,6 +410,43 @@ export async function checkBridgeHealth(): Promise<boolean> {
 }
 
 // ──────────────────────────────────────────
+// DIAGNOSTIC TEST ENDPOINTS
+// ──────────────────────────────────────────
+
+/** Test 1: print plain text only ("Hello 123") to isolate driver/printer */
+export async function testPrintText(): Promise<PrintImageResult> {
+  try {
+    const meta = buildMeta('test_text', { debug: true });
+    const result = await bridgeFetch('/test-text', { meta }, { receiptType: 'test_text' });
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Test 2: print a small logo only — isolates raster pipeline */
+export async function testPrintLogo(): Promise<PrintImageResult> {
+  try {
+    const meta = buildMeta('test_logo', { debug: true });
+    const result = await bridgeFetch('/test-logo', { meta }, { receiptType: 'test_logo' });
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Test 3: print a full sample receipt — isolates long raster handling */
+export async function testPrintReceipt(): Promise<PrintImageResult> {
+  try {
+    const meta = buildMeta('test_receipt', { itemsCount: 3, estimatedHeight: estimateReceiptHeight(3), debug: true });
+    const result = await bridgeFetch('/test-receipt', { meta }, { receiptType: 'test_receipt', itemsCount: 3, estimatedHeight: meta.estimatedHeight });
+    return { success: result.success, error: result.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ──────────────────────────────────────────
 // LEGACY: captureElementAsPng (kept for PrintPreviewPage download)
 // ──────────────────────────────────────────
 
