@@ -18,6 +18,9 @@ interface ReportData {
   nonDeductiblePurchasesNet: number; nonDeductibleTax: number;
   zeroPurchasesNet: number;
   exemptPurchasesNet: number;
+  // قيم الإشعارات (مرتجعات): تخزن كأرقام موجبة لعرضها بإشارة سالبة
+  creditNotesNet: number; creditNotesTax: number;       // إشعارات دائنة (تخفض المخرجات)
+  debitNotesNet: number; debitNotesTax: number;         // إشعارات مدينة (تخفض المدخلات)
 }
 
 export default function TaxPeriodicReport({ ownerId }: Props) {
@@ -47,25 +50,40 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
     const output = rows.filter(r => r.tax_type === "output");
     const input = rows.filter(r => r.tax_type === "input");
 
+    // فصل الإشعارات (مرتجعات) — تأتي بقيم سالبة من credit_note/debit_note
+    const isCreditNote = (r: any) => r.reference_type === "credit_note" || Number(r.tax_amount) < 0 && r.tax_type === "output";
+    const isDebitNote = (r: any) => r.reference_type === "debit_note" || Number(r.tax_amount) < 0 && r.tax_type === "input";
+
+    const creditNotes = output.filter(isCreditNote);
+    const debitNotes = input.filter(isDebitNote);
+    const regularOutput = output.filter(r => !isCreditNote(r));
+    const regularInput = input.filter(r => !isDebitNote(r));
+
     setData({
-      standardSalesNet: output.filter(r => r.tax_category === "standard").reduce((s, r) => s + Number(r.net_amount), 0),
-      standardTax: output.filter(r => r.tax_category === "standard").reduce((s, r) => s + Number(r.tax_amount), 0),
-      zeroSalesNet: output.filter(r => r.tax_category === "zero").reduce((s, r) => s + Number(r.net_amount), 0),
-      exemptSalesNet: output.filter(r => r.tax_category === "exempt").reduce((s, r) => s + Number(r.net_amount), 0),
-      deductiblePurchasesNet: input.filter(r => r.is_deductible && r.tax_category === "standard").reduce((s, r) => s + Number(r.net_amount), 0),
-      deductibleInputTax: input.filter(r => r.is_deductible && r.tax_category === "standard").reduce((s, r) => s + Number(r.tax_amount), 0),
-      nonDeductiblePurchasesNet: input.filter(r => !r.is_deductible).reduce((s, r) => s + Number(r.net_amount), 0),
-      nonDeductibleTax: input.filter(r => !r.is_deductible).reduce((s, r) => s + Number(r.tax_amount), 0),
-      zeroPurchasesNet: input.filter(r => r.tax_category === "zero").reduce((s, r) => s + Number(r.net_amount), 0),
-      exemptPurchasesNet: input.filter(r => r.tax_category === "exempt").reduce((s, r) => s + Number(r.net_amount), 0),
+      standardSalesNet: regularOutput.filter(r => r.tax_category === "standard").reduce((s, r) => s + Number(r.net_amount), 0),
+      standardTax: regularOutput.filter(r => r.tax_category === "standard").reduce((s, r) => s + Number(r.tax_amount), 0),
+      zeroSalesNet: regularOutput.filter(r => r.tax_category === "zero").reduce((s, r) => s + Number(r.net_amount), 0),
+      exemptSalesNet: regularOutput.filter(r => r.tax_category === "exempt").reduce((s, r) => s + Number(r.net_amount), 0),
+      deductiblePurchasesNet: regularInput.filter(r => r.is_deductible && r.tax_category === "standard").reduce((s, r) => s + Number(r.net_amount), 0),
+      deductibleInputTax: regularInput.filter(r => r.is_deductible && r.tax_category === "standard").reduce((s, r) => s + Number(r.tax_amount), 0),
+      nonDeductiblePurchasesNet: regularInput.filter(r => !r.is_deductible).reduce((s, r) => s + Number(r.net_amount), 0),
+      nonDeductibleTax: regularInput.filter(r => !r.is_deductible).reduce((s, r) => s + Number(r.tax_amount), 0),
+      zeroPurchasesNet: regularInput.filter(r => r.tax_category === "zero").reduce((s, r) => s + Number(r.net_amount), 0),
+      exemptPurchasesNet: regularInput.filter(r => r.tax_category === "exempt").reduce((s, r) => s + Number(r.net_amount), 0),
+      // مرتجعات — نُخزن قيماً موجبة للعرض (ستُعرض بإشارة سالبة في الجدول)
+      creditNotesNet: Math.abs(creditNotes.reduce((s, r) => s + Number(r.net_amount), 0)),
+      creditNotesTax: Math.abs(creditNotes.reduce((s, r) => s + Number(r.tax_amount), 0)),
+      debitNotesNet: Math.abs(debitNotes.reduce((s, r) => s + Number(r.net_amount), 0)),
+      debitNotesTax: Math.abs(debitNotes.reduce((s, r) => s + Number(r.tax_amount), 0)),
     });
     setLoading(false);
   };
 
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const totalOutputTax = data ? data.standardTax : 0;
-  const totalInputTax = data ? data.deductibleInputTax : 0;
+  // إجمالي الضريبة المستحقة بعد طرح المرتجعات
+  const totalOutputTax = data ? data.standardTax - data.creditNotesTax : 0;
+  const totalInputTax = data ? data.deductibleInputTax - data.debitNotesTax : 0;
   const netTax = totalOutputTax - totalInputTax;
 
   const handlePrint = () => {
@@ -160,9 +178,17 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
                     <td className="px-4 py-2.5 text-center">—</td>
                     <td className="px-4 py-2.5 text-left tabular-nums">₪0.00</td>
                   </tr>
+                  {(data.creditNotesNet > 0 || data.creditNotesTax > 0) && (
+                    <tr className="border-b border-border bg-amber-50/40">
+                      <td className="px-4 py-2.5 text-right text-amber-700">(-) إشعارات دائنة (مرتجعات مبيعات)</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-amber-700">- {fmt(data.creditNotesNet)}</td>
+                      <td className="px-4 py-2.5 text-center">16%</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums font-medium text-amber-700">- {fmt(data.creditNotesTax)}</td>
+                    </tr>
+                  )}
                   <tr style={{ background: "#F1F5F9" }} className="font-bold">
-                    <td className="px-4 py-2.5 text-right">إجمالي ضريبة المبيعات</td>
-                    <td className="px-4 py-2.5 text-left tabular-nums">{fmt(data.standardSalesNet + data.zeroSalesNet + data.exemptSalesNet)}</td>
+                    <td className="px-4 py-2.5 text-right">صافي ضريبة المبيعات المستحقة</td>
+                    <td className="px-4 py-2.5 text-left tabular-nums">{fmt(data.standardSalesNet + data.zeroSalesNet + data.exemptSalesNet - data.creditNotesNet)}</td>
                     <td className="px-4 py-2.5 text-center"></td>
                     <td className="px-4 py-2.5 text-left tabular-nums text-red-600">{fmt(totalOutputTax)}</td>
                   </tr>
@@ -212,8 +238,16 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
                     <td className="px-4 py-2.5 text-center">—</td>
                     <td className="px-4 py-2.5 text-left tabular-nums">₪0.00</td>
                   </tr>
+                  {(data.debitNotesNet > 0 || data.debitNotesTax > 0) && (
+                    <tr className="border-b border-border bg-amber-50/40">
+                      <td className="px-4 py-2.5 text-right text-amber-700">(-) إشعارات مدينة (مرتجعات مشتريات)</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-amber-700">- {fmt(data.debitNotesNet)}</td>
+                      <td className="px-4 py-2.5 text-center">16%</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums font-medium text-amber-700">- {fmt(data.debitNotesTax)}</td>
+                    </tr>
+                  )}
                   <tr style={{ background: "#F1F5F9" }} className="font-bold">
-                    <td className="px-4 py-2.5 text-right">إجمالي ضريبة المدخلات القابلة للخصم</td>
+                    <td className="px-4 py-2.5 text-right">صافي ضريبة المدخلات القابلة للخصم</td>
                     <td className="px-4 py-2.5 text-left"></td>
                     <td className="px-4 py-2.5 text-center"></td>
                     <td className="px-4 py-2.5 text-left tabular-nums text-emerald-600">{fmt(totalInputTax)}</td>
