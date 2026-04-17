@@ -28,7 +28,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
 
   const orderTypeLabel = isDelivery ? 'توصيل'
     : isDineIn ? 'محلي'
-    : 'تيك اواي';
+    : 'استلام';
 
   return (
     <div

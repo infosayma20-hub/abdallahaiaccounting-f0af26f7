@@ -52,7 +52,7 @@ function normalizeOrderType(rawType, tableNumber) {
 function getOrderTypeArabicLabel(normalized) {
   if (normalized === 'delivery') return 'توصيل';
   if (normalized === 'dine_in') return 'محلي';
-  return 'تيك اواي';
+  return 'استلام';
 }
 ```
 
@@ -93,7 +93,7 @@ node print-bridge.js
 
 من نقطة البيع، أصدر 3 طلبيات اختبار:
 1. **طاولة**: يجب أن تطبع التذكرة → "**محلي**"
-2. **بدون طاولة (مع زبون)**: يجب أن تطبع → "**تيك اواي**"
+2. **بدون طاولة (مع زبون)**: يجب أن تطبع → "**استلام**"
 3. **مع عنوان توصيل**: يجب أن تطبع → "**توصيل**"
 
 ---
