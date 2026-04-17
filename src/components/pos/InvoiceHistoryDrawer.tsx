@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
+import ReturnDialog from "./ReturnDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { sendToBridge } from "@/lib/print-bridge-client";
 import { printReceiptImage } from "@/lib/image-print-service";
@@ -164,6 +165,12 @@ export default function InvoiceHistoryDrawer({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingOrder, setCancellingOrder] = useState<InvoiceOrder | null>(null);
+
+  // Return flow
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [returningOrder, setReturningOrder] = useState<InvoiceOrder | null>(null);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 3.6, JOD: 5.0, ILS: 1 });
+  const [orderCurrency, setOrderCurrency] = useState<string>("ILS");
 
   // Transfer flow
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -445,12 +452,55 @@ export default function InvoiceHistoryDrawer({
       ]);
       setOrderLines((linesRes.data || []) as InvoiceLine[]);
       setOrderPayments((paymentsRes.data || []) as InvoicePayment[]);
+      setOrderCurrency((paymentsRes.data?.[0] as any)?.currency || "ILS");
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingDetail(false);
     }
   };
+
+  // Open return dialog
+  const initiateReturn = (order: InvoiceOrder) => {
+    if (order.state !== "paid") {
+      toast.error("لا يمكن ارتجاع فاتورة غير مكتملة");
+      return;
+    }
+    if (order.is_return) {
+      toast.error("لا يمكن ارتجاع فاتورة مرتجع");
+      return;
+    }
+    if (!sessionId) {
+      toast.error("لا توجد وردية مفتوحة");
+      return;
+    }
+    setReturningOrder(order);
+    setShowReturnDialog(true);
+  };
+
+  // Load exchange rates from latest pos_payments to feed return dialog
+  useEffect(() => {
+    if (!open || !dataOwnerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("pos_payments")
+        .select("currency, exchange_rate")
+        .eq("user_id", dataOwnerId)
+        .neq("currency", "ILS")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      const rates: Record<string, number> = { ILS: 1 };
+      (data || []).forEach((p: any) => {
+        if (p.currency && p.exchange_rate && !rates[p.currency]) {
+          rates[p.currency] = Number(p.exchange_rate);
+        }
+      });
+      // Fallbacks
+      if (!rates.USD) rates.USD = 3.6;
+      if (!rates.JOD) rates.JOD = 5.0;
+      setExchangeRates(rates);
+    })();
+  }, [open, dataOwnerId]);
 
   // ── Recall: require manager based on permission ──
   const initiateRecall = (order: InvoiceOrder) => {
@@ -817,6 +867,16 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
                         )}
+                        {canCancelInvoices && order.state === "paid" && !order.is_return && !isTransferredOut(order) && (
+                          <button
+                            onClick={e => { e.stopPropagation(); initiateReturn(order); }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
+                            style={{ background: "#FEE2E220", color: "#DC2626" }}
+                            title="ارتجاع جزئي أو كلي"
+                          >
+                            <RotateCcw className="h-3 w-3" /> ارتجاع
+                          </button>
+                        )}
                         {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateCancel(order); }}
@@ -988,6 +1048,16 @@ export default function InvoiceHistoryDrawer({
                       <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
+                    {selectedOrder.state === "paid" && !selectedOrder.is_return && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+                        onClick={() => initiateReturn(selectedOrder)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> ارتجاع
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1178,6 +1248,22 @@ export default function InvoiceHistoryDrawer({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ══════ RETURN DIALOG ══════ */}
+      {returningOrder && sessionId && (
+        <ReturnDialog
+          open={showReturnDialog}
+          onClose={() => { setShowReturnDialog(false); setReturningOrder(null); }}
+          originalOrderId={returningOrder.id}
+          originalOrderNumber={returningOrder.order_number}
+          originalTotal={returningOrder.total}
+          originalCurrency={orderCurrency}
+          sessionId={sessionId}
+          dataOwnerId={dataOwnerId}
+          exchangeRates={exchangeRates}
+          onSuccess={() => { fetchOrders(); setSelectedOrder(null); }}
+        />
+      )}
     </>
   );
 }

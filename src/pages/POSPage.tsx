@@ -2963,17 +2963,45 @@ const POSPage = () => {
       .filter((p: any) => p.payment_type === "نقدي" || p.payment_type === "cash" || !p.payment_type)
       .reduce((sum: number, p: any) => sum + (Number(p.total_amount) || 0), 0);
 
-    // Fetch sales breakdown by payment currency (paid orders only, excluding returns)
+    // Fetch sales breakdown by payment currency (paid orders only, including returns for tracking)
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("id, payment_currency, payment_currency_amount, total, is_return")
+      .select("id, payment_currency, payment_currency_amount, total, is_return, return_currency, return_exchange_rate, return_currency_amount")
       .eq("session_id", session.id)
       .eq("state", "paid");
 
     // Separate sales and returns
     const salesOrders = (ordersData || []).filter((o: any) => !o.is_return);
     const returnOrders = (ordersData || []).filter((o: any) => o.is_return);
-    const totalReturnsCash = returnOrders.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+
+    // ✅ Multi-currency returns: split by return_currency, only cash refunds reduce drawer
+    const returnIds = returnOrders.map((o: any) => o.id);
+    let returnsByCurrency: Record<string, number> = { ILS: 0, USD: 0, JOD: 0 };
+    if (returnIds.length > 0) {
+      const { data: returnPayments } = await supabase
+        .from("pos_payments")
+        .select("order_id, payment_method, currency, amount")
+        .in("order_id", returnIds);
+
+      const orderPayMap: Record<string, { method: string; currency: string }> = {};
+      (returnPayments || []).forEach((p: any) => {
+        orderPayMap[p.order_id] = {
+          method: p.payment_method || "cash",
+          currency: p.currency || "ILS",
+        };
+      });
+
+      returnOrders.forEach((o: any) => {
+        const pay = orderPayMap[o.id];
+        if (!pay || pay.method !== "cash") return; // card/credit refunds don't touch the drawer
+        const cur = o.return_currency || pay.currency || "ILS";
+        const amount = cur === "ILS"
+          ? Number(o.total) || 0
+          : Number(o.return_currency_amount) || 0;
+        if (!returnsByCurrency[cur]) returnsByCurrency[cur] = 0;
+        returnsByCurrency[cur] += amount;
+      });
+    }
 
     const currencyBreakdown: Record<string, { sales: number; count: number }> = {};
     salesOrders.forEach((o: any) => {
@@ -3024,16 +3052,21 @@ const POSPage = () => {
       });
     }
 
-    // Complete expected cash formula:
-    // المتوقع = الافتتاحي + مبيعات نقدية - باقي عملات أجنبية - مصاريف - مشتريات نقدية - مرتجعات نقدية
+    // ✅ Complete expected cash formula PER CURRENCY:
+    // ILS: opening + ILS_cash_sales - foreign_change_ILS - expenses - purchases_cash - ILS_returns
+    // USD: USD_tendered - USD_change - USD_returns
+    // JOD: JOD_tendered - JOD_change - JOD_returns
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
     const effectiveILSCashSales = salesOrderIds.length === 0 && (session.total_sales || 0) > 0
       ? (session.total_sales || 0)
       : ilsCashSales;
-    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsCash;
-    // Foreign expected = actual foreign tendered minus foreign change given back
-    const expectedUSD = foreignTenderedUSD - foreignChangeUSD;
-    const expectedJOD = foreignTenderedJOD - foreignChangeJOD;
+    const totalReturnsILS = returnsByCurrency.ILS || 0;
+    const totalReturnsUSD = returnsByCurrency.USD || 0;
+    const totalReturnsJOD = returnsByCurrency.JOD || 0;
+
+    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsILS;
+    const expectedUSD = foreignTenderedUSD - foreignChangeUSD - totalReturnsUSD;
+    const expectedJOD = foreignTenderedJOD - foreignChangeJOD - totalReturnsJOD;
 
     // Per-currency variance
     const varianceILS = cash - expectedILS;

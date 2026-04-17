@@ -7213,6 +7213,7 @@ export type Database = {
           order_note: string | null
           order_number: string | null
           order_type: string | null
+          original_order_id: string | null
           paid_at: string | null
           payment_currency: string | null
           payment_currency_amount: number | null
@@ -7225,6 +7226,9 @@ export type Database = {
           recalled_approved_by: string | null
           recalled_at: string | null
           recalled_by: string | null
+          return_currency: string | null
+          return_currency_amount: number | null
+          return_exchange_rate: number | null
           return_of_order_id: string | null
           return_reason: string | null
           session_id: string
@@ -7281,6 +7285,7 @@ export type Database = {
           order_note?: string | null
           order_number?: string | null
           order_type?: string | null
+          original_order_id?: string | null
           paid_at?: string | null
           payment_currency?: string | null
           payment_currency_amount?: number | null
@@ -7293,6 +7298,9 @@ export type Database = {
           recalled_approved_by?: string | null
           recalled_at?: string | null
           recalled_by?: string | null
+          return_currency?: string | null
+          return_currency_amount?: number | null
+          return_exchange_rate?: number | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id: string
@@ -7349,6 +7357,7 @@ export type Database = {
           order_note?: string | null
           order_number?: string | null
           order_type?: string | null
+          original_order_id?: string | null
           paid_at?: string | null
           payment_currency?: string | null
           payment_currency_amount?: number | null
@@ -7361,6 +7370,9 @@ export type Database = {
           recalled_approved_by?: string | null
           recalled_at?: string | null
           recalled_by?: string | null
+          return_currency?: string | null
+          return_currency_amount?: number | null
+          return_exchange_rate?: number | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id?: string
@@ -7394,6 +7406,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_original_order_id_fkey"
+            columns: ["original_order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
             referencedColumns: ["id"]
           },
           {
@@ -13181,6 +13200,19 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      process_pos_return: {
+        Args: {
+          p_items: Json
+          p_original_order_id: string
+          p_payment_method?: string
+          p_reason?: string
+          p_return_currency?: string
+          p_return_exchange_rate?: number
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
