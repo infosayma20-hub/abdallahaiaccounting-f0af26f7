@@ -162,15 +162,23 @@ const CashBoxesPage = () => {
             </span>
           </div>
 
-          {/* Foreign balances */}
-          {hasForeign && Object.entries(foreignBals).filter(([, v]) => Math.abs(v) > 0.01).map(([cur, val]) => (
-            <div key={cur} className="flex items-baseline justify-between">
-              <span className="text-[10px] text-muted-foreground">رصيد {cur}</span>
-              <span className={`text-xs font-bold font-mono ${val < 0 ? "text-red-600" : "text-blue-600"}`}>
-                {fxSymbols[cur] || cur}{fmt(val)}
-              </span>
+          {/* Foreign balances — same money, shown in original currency (NOT additional) */}
+          {hasForeign && (
+            <div className="rounded-md bg-blue-50/60 border border-blue-100 px-2 py-1.5 space-y-1">
+              <div className="text-[9px] text-blue-700/80 leading-tight flex items-center gap-1">
+                <span>ℹ️</span>
+                <span>نفس المبلغ أعلاه — معروض بالعملة الأصلية للحركات</span>
+              </div>
+              {Object.entries(foreignBals).filter(([, v]) => Math.abs(v) > 0.01).map(([cur, val]) => (
+                <div key={cur} className="flex items-baseline justify-between">
+                  <span className="text-[10px] text-muted-foreground">≈ بالـ {cur}</span>
+                  <span className={`text-xs font-bold font-mono ${val < 0 ? "text-red-600" : "text-blue-600"}`}>
+                    {fxSymbols[cur] || cur}{fmt(val)}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
 
           {/* Branch name */}
           {(box.branch_location || box.branch) && (
