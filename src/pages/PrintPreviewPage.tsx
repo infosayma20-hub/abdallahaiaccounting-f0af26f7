@@ -192,6 +192,45 @@ export default function PrintPreviewPage() {
         ))}
       </div>
 
+      {/* Print mode toggle */}
+      <div className="mb-3 flex justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border text-sm">
+          <span className="text-muted-foreground">وضع الطباعة:</span>
+          <Button
+            size="sm"
+            variant={printMode === 'raster' ? 'default' : 'outline'}
+            onClick={() => togglePrintMode('raster')}
+            className="h-7 px-3 text-xs"
+          >
+            🖼️ raster
+          </Button>
+          <Button
+            size="sm"
+            variant={printMode === 'text' ? 'default' : 'outline'}
+            onClick={() => togglePrintMode('text')}
+            className="h-7 px-3 text-xs"
+          >
+            📝 text
+          </Button>
+        </div>
+      </div>
+
+      {/* Diagnostic test buttons */}
+      <div className="mb-3 flex justify-center gap-2 flex-wrap px-4">
+        <Button onClick={() => runTest('text')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
+          <TestTube2 className="h-4 w-4" />
+          {testing === 'text' ? '...' : 'اختبار: نص فقط'}
+        </Button>
+        <Button onClick={() => runTest('logo')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
+          <FileImage className="h-4 w-4" />
+          {testing === 'logo' ? '...' : 'اختبار: شعار فقط'}
+        </Button>
+        <Button onClick={() => runTest('receipt')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
+          <Receipt className="h-4 w-4" />
+          {testing === 'receipt' ? '...' : 'اختبار: فاتورة كاملة'}
+        </Button>
+      </div>
+
       {/* Action buttons */}
       <div className="mb-4 flex flex-col items-center gap-2">
         <div className="flex gap-2">
