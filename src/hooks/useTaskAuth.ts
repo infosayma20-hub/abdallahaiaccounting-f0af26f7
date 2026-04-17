@@ -18,6 +18,15 @@ interface TaskSession {
 
 const SESSION_KEY = "task_session";
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
+const TASK_USER_SAFE_SELECT = "id, user_id, full_name, username, role, avatar_color, is_active, last_login_at, created_at";
+
+const mapTaskUser = (record: any): TaskUser => ({
+  id: record.id,
+  full_name: record.full_name,
+  username: record.username,
+  role: record.role ?? "staff",
+  avatar_color: record.avatar_color ?? "#1B3A5C",
+});
 
 export function useTaskAuth() {
   const [taskUser, setTaskUser] = useState<TaskUser | null>(null);
@@ -42,74 +51,84 @@ export function useTaskAuth() {
     setLoading(false);
   }, []);
 
+  const persistSession = useCallback((nextTaskUser: TaskUser, ownerId: string, isOwner: boolean) => {
+    const session: TaskSession = {
+      user: nextTaskUser,
+      owner_id: ownerId,
+      expires_at: Date.now() + SESSION_DURATION,
+      is_owner: isOwner,
+    };
+
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    setTaskUser(nextTaskUser);
+    setIsOwnerSession(isOwner);
+  }, []);
+
   // Auto-login for the owner (main auth user) — no password needed
   const loginAsOwner = useCallback(async (authUserId: string, displayName: string): Promise<{ success: boolean }> => {
     try {
-      // Check if owner already has any task_user record (admin or otherwise)
-      const { data: existing } = await supabase
+      const ownerUsername = `owner_${authUserId.slice(0, 8)}`;
+
+      const { data: existingOwner, error: existingOwnerError } = await supabase
         .from("task_users")
-        .select("*")
+        .select(TASK_USER_SAFE_SELECT)
         .eq("user_id", authUserId)
-        .order("created_at", { ascending: true })
-        .limit(1)
+        .eq("username", ownerUsername)
         .maybeSingle();
 
-      let ownerTaskUser: TaskUser;
-
-      if (existing) {
-        ownerTaskUser = {
-          id: existing.id,
-          full_name: existing.full_name,
-          username: existing.username,
-          role: existing.role,
-          avatar_color: existing.avatar_color,
-        };
-      } else {
-        // Auto-create an admin task_user for the owner
-        // Use a unique username to avoid conflicts (per-user owner record)
-        const uniqueUsername = `owner_${authUserId.slice(0, 8)}`;
-        const { data: created, error } = await supabase
-          .from("task_users")
-          .insert({
-            user_id: authUserId,
-            full_name: displayName || "المالك",
-            username: uniqueUsername,
-            password_hash: "OWNER_AUTH", // not used for owner login
-            role: "admin",
-            avatar_color: "#1B3A5C",
-          })
-          .select()
-          .maybeSingle();
-
-        if (error || !created) {
-          console.error("[useTaskAuth] Failed to create owner task_user:", error);
-          return { success: false };
-        }
-
-        ownerTaskUser = {
-          id: created.id,
-          full_name: created.full_name,
-          username: created.username,
-          role: created.role,
-          avatar_color: created.avatar_color,
-        };
+      if (existingOwnerError) {
+        console.error("[useTaskAuth] Failed to load owner task_user:", existingOwnerError);
+        return { success: false };
       }
 
-      const session: TaskSession = {
-        user: ownerTaskUser,
-        owner_id: authUserId,
-        expires_at: Date.now() + SESSION_DURATION,
-        is_owner: true,
-      };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      setTaskUser(ownerTaskUser);
-      setIsOwnerSession(true);
+      if (existingOwner) {
+        persistSession(mapTaskUser(existingOwner), authUserId, true);
+        return { success: true };
+      }
+
+      const { data: createdOwner, error: createdOwnerError } = await supabase
+        .from("task_users")
+        .insert({
+          user_id: authUserId,
+          full_name: displayName || "المالك",
+          username: ownerUsername,
+          password_hash: "OWNER_AUTH",
+          role: "admin",
+          avatar_color: "#1B3A5C",
+          is_active: true,
+        })
+        .select(TASK_USER_SAFE_SELECT)
+        .single();
+
+      if (createdOwnerError) {
+        if (createdOwnerError.code === "23505") {
+          const { data: fallbackOwner, error: fallbackOwnerError } = await supabase
+            .from("task_users")
+            .select(TASK_USER_SAFE_SELECT)
+            .eq("user_id", authUserId)
+            .eq("username", ownerUsername)
+            .maybeSingle();
+
+          if (fallbackOwnerError || !fallbackOwner) {
+            console.error("[useTaskAuth] Failed to recover existing owner task_user:", fallbackOwnerError ?? createdOwnerError);
+            return { success: false };
+          }
+
+          persistSession(mapTaskUser(fallbackOwner), authUserId, true);
+          return { success: true };
+        }
+
+        console.error("[useTaskAuth] Failed to create owner task_user:", createdOwnerError);
+        return { success: false };
+      }
+
+      persistSession(mapTaskUser(createdOwner), authUserId, true);
       return { success: true };
     } catch (e) {
       console.error("[useTaskAuth] loginAsOwner exception:", e);
       return { success: false };
     }
-  }, []);
+  }, [persistSession]);
 
   // Login for employees (separate credentials)
   const login = useCallback(async (username: string, password: string, ownerId: string): Promise<{ success: boolean; error?: string }> => {
@@ -125,15 +144,7 @@ export function useTaskAuth() {
       const data = await res.json();
       if (!data.success) return { success: false, error: data.error };
 
-      const session: TaskSession = {
-        user: data.user,
-        owner_id: ownerId,
-        expires_at: Date.now() + SESSION_DURATION,
-        is_owner: false,
-      };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      setTaskUser(data.user);
-      setIsOwnerSession(false);
+      persistSession(data.user, ownerId, false);
       return { success: true };
     } catch {
       return { success: false, error: "خطأ في الاتصال" };

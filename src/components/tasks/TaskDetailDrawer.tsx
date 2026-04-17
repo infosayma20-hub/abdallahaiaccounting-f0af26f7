@@ -47,7 +47,7 @@ export default function TaskDetailDrawer({ task, open, onClose, currentUserId, i
     if (!open) return;
     Promise.all([
       supabase.from("task_history").select("*, task_user:task_users!task_history_task_user_id_fkey(full_name)").eq("task_id", task.id).order("created_at", { ascending: false }),
-      supabase.from("task_users").select("*").eq("is_active", true),
+      supabase.from("task_users").select("id, full_name, username, role, avatar_color, is_active").eq("is_active", true),
     ]).then(([h, u]) => {
       if (h.data) setHistory(h.data);
       if (u.data) setTaskUsers(u.data);

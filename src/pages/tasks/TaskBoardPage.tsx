@@ -44,7 +44,7 @@ export default function TaskBoardPage() {
     }
     const [tasksRes, usersRes] = await Promise.all([
       supabase.from("tasks").select("*, creator:task_users!tasks_created_by_fkey(id, full_name, avatar_color), assignee:task_users!tasks_assigned_to_fkey(id, full_name, avatar_color), completer:task_users!tasks_completed_by_fkey(id, full_name, avatar_color)").order("created_at", { ascending: false }),
-      supabase.from("task_users").select("*").eq("is_active", true),
+      supabase.from("task_users").select("id, full_name, username, role, avatar_color, is_active, last_login_at, created_at, user_id").eq("is_active", true),
     ]);
     if (tasksRes.data) setTasks(tasksRes.data);
     if (usersRes.data) setTaskUsers(usersRes.data);
