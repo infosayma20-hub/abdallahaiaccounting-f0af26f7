@@ -104,11 +104,17 @@ export default function PrintPreviewPage() {
   const [printing, setPrinting] = useState(false);
   const [downloadingServer, setDownloadingServer] = useState(false);
   const [printMode, setPrintModeState] = useState<PrintMode>(getPrintMode());
+  const [footerMode, setFooterModeState] = useState<FooterMode>(getFooterMode());
   const [testing, setTesting] = useState<null | 'text' | 'logo' | 'receipt'>(null);
 
   const togglePrintMode = (m: PrintMode) => {
     setPrintMode(m);
     setPrintModeState(m);
+  };
+
+  const toggleFooterMode = (m: FooterMode) => {
+    setFooterMode(m);
+    setFooterModeState(m);
   };
 
   const runTest = async (kind: 'text' | 'logo' | 'receipt') => {
