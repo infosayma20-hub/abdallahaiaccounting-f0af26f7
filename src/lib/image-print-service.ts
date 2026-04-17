@@ -12,13 +12,52 @@
 
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
+import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
 
 const BRIDGE_URL = "http://192.168.1.65:3001";
+
+// ──────────────────────────────────────────
+// Print Mode (raster | text) — persisted in localStorage
+// ──────────────────────────────────────────
+
+const PRINT_MODE_KEY = 'pos-print-mode';
+
+export function getPrintMode(): PrintMode {
+  try {
+    const v = localStorage.getItem(PRINT_MODE_KEY);
+    return v === 'text' ? 'text' : 'raster';
+  } catch {
+    return 'raster';
+  }
+}
+
+export function setPrintMode(mode: PrintMode): void {
+  try { localStorage.setItem(PRINT_MODE_KEY, mode); } catch {/* ignore */}
+}
 
 interface PrintImageResult {
   success: boolean;
   error?: string;
   results?: { printerKey: string; name?: string; success: boolean; error?: string }[];
+}
+
+/** Build diagnostic meta payload sent with every print request */
+function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHeight?: number; debug?: boolean } = {}) {
+  return {
+    type: receiptType,
+    printMode: getPrintMode(),
+    debug: opts.debug ?? false,
+    itemsCount: opts.itemsCount,
+    estimatedHeight: opts.estimatedHeight,
+    timestamp: new Date().toISOString(),
+    client: 'pos-web',
+  };
+}
+
+/** Estimate receipt height in px from items count (rough heuristic) */
+function estimateReceiptHeight(itemsCount: number): number {
+  // header ~280 + footer ~220 + ~70 per item @ font 17px
+  return 500 + itemsCount * 70;
 }
 
 /** Kitchen job — a filtered set of items for one station printer */
