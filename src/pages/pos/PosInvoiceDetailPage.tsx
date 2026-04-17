@@ -76,6 +76,7 @@ export default function PosInvoiceDetailPage() {
         const { error: revErr } = await supabase.rpc("create_reverse_entry", {
           original_transaction_id: order.linked_transaction_id,
           reason: `إلغاء فاتورة POS ${order.order_number}: ${cancelReason}`,
+          reversed_by: user?.email || "غير محدد",
         });
         if (revErr) {
           console.error("reverse entry error:", revErr);
