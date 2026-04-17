@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Product {
   id: string;
   name: string;
@@ -110,6 +111,7 @@ const InventoryValuationPage = () => {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "جرد المخزون");
+    setNextExportBranding({ title: "جرد المخزون" });
     XLSX.writeFile(wb, `جرد_المخزون_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast({ title: "تم تصدير تقرير الجرد ✅" });
   };

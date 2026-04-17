@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Contact {
   id: string;
   contact_name: string;
@@ -207,6 +208,7 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف حساب");
+    setNextExportBranding({ title: "كشف حساب" });
     XLSX.writeFile(wb, `كشف_${selectedName}.xlsx`);
     toast({ title: "تم التصدير ✅" });
   };

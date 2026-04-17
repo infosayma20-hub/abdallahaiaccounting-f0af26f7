@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const HRAttendanceReport = () => {
   const navigate = useNavigate();
   const [dateFrom, setDateFrom] = useState(() => {
@@ -70,6 +71,7 @@ const HRAttendanceReport = () => {
     ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 16 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الحضور");
+    setNextExportBranding({ title: "الحضور" });
     XLSX.writeFile(wb, `تقرير_الحضور_${dateFrom}_${dateTo}.xlsx`);
   };
 

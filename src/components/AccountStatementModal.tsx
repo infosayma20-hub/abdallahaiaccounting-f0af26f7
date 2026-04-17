@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Account {
   account_code: string;
   account_name: string;
@@ -145,6 +146,7 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف حساب");
+    setNextExportBranding({ title: "كشف حساب" });
     XLSX.writeFile(wb, `كشف_${selectedAccount?.account_code}_${selectedAccount?.account_name}.xlsx`);
     toast({ title: "تم التصدير ✅" });
   };

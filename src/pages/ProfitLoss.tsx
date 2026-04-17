@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
+import { setNextExportBranding } from "@/lib/excel-export";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
   SupabaseTransaction, SupabaseAccount, isOpeningBalance, getChildAccounts,
@@ -476,6 +477,7 @@ const ProfitLoss = () => {
     ws["!cols"] = [{ wch: 35 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "قائمة الدخل");
+    setNextExportBranding({ title: "قائمة الدخل" });
     XLSX.writeFile(wb, `قائمة_الدخل_${dateFrom}_${dateTo}.xlsx`);
   };
 

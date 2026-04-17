@@ -29,6 +29,7 @@ import RecordReceiptModal from "@/components/orders/RecordReceiptModal";
 import ProductionCostSection from "@/components/orders/ProductionCostSection";
 import { syncContactFromOrder, syncProductsFromOrderItems, retroactiveSyncOrders } from "@/lib/order-contact-sync";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 /* ─── Status configs ─── */
 const STATUS_CONFIGS: Record<string, { bg: string; color: string; border: string; dot: string }> = {
   "جديد":        { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE", dot: "#3B82F6" },
@@ -425,6 +426,7 @@ const OrdersPage = () => {
       ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "الطلبيات");
+      setNextExportBranding({ title: "الطلبيات" });
       XLSX.writeFile(wb, `الطلبيات-${new Date().toISOString().split("T")[0]}.xlsx`);
     });
   };

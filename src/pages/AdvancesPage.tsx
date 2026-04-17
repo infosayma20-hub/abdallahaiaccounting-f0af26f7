@@ -14,6 +14,7 @@ import { formatCurrency } from "@/lib/hr-utils";
 import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 export default function AdvancesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ export default function AdvancesPage() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "السلف");
+    setNextExportBranding({ title: "السلف" });
     XLSX.writeFile(wb, "سلف_وقروض.xlsx");
   };
 

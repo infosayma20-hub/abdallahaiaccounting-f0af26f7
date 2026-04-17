@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Transaction {
   id: string;
   fields: {
@@ -109,6 +110,7 @@ const ExportPage = () => {
       }));
       ws["!cols"] = colWidths;
       const fileName = `معاملات_${dateFrom || "بداية"}_${dateTo || "نهاية"}.xlsx`;
+      setNextExportBranding({ title: "المعاملات" });
       XLSX.writeFile(wb, fileName);
       toast({ title: "تم تصدير الملف بنجاح ✅" });
     } catch (err: any) {

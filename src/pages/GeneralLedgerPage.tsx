@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface LedgerRow {
   date: string;
   description: string;
@@ -206,6 +207,7 @@ const GeneralLedgerPage = () => {
     ws["!cols"] = [{ wch: 12 }, { wch: 35 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, selectedAccount || "دفتر الأستاذ");
+    setNextExportBranding({ title: "تقرير" });
     XLSX.writeFile(wb, `دفتر_الأستاذ_${selectedAccount}_${Date.now()}.xlsx`);
   };
 

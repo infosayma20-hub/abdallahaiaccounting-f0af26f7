@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Account {
   account_code: string;
   account_name: string;
@@ -44,5 +45,6 @@ export const exportAccountsToExcel = (accounts: Account[], tenantName?: string) 
   XLSX.utils.book_append_sheet(wb, wsInstructions, "تعليمات");
 
   const fileName = `شجرة-الحسابات-${tenantName || "AMWALI"}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  setNextExportBranding({ title: "شجرة الحسابات" });
   XLSX.writeFile(wb, fileName);
 };
