@@ -180,6 +180,13 @@ export default function UserSecurityAuditTab({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: textPrimary }}>
           <Shield className="h-5 w-5 text-emerald-400" /> السجل الأمني للمستخدمين
+          <span className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            </span>
+            LIVE
+          </span>
         </h2>
         <Button variant="ghost" size="sm" onClick={load} disabled={loading} style={{ color: textMuted }}>
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
