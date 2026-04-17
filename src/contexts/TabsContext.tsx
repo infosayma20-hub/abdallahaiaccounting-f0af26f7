@@ -165,6 +165,11 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/credit-notes/new": { title: "إشعار دائن جديد", icon: "file" },
   "/debit-notes": { title: "الإشعارات المدينة", icon: "file" },
   "/debit-notes/new": { title: "إشعار مدين جديد", icon: "file" },
+  "/crm": { title: "إدارة علاقات العملاء", icon: "users" },
+  "/crm/leads": { title: "العملاء المحتملون", icon: "users" },
+  "/crm/pipeline": { title: "قمع المبيعات", icon: "trending" },
+  "/crm/activities": { title: "متابعات العملاء", icon: "clipboard" },
+  "/crm/customers": { title: "ملف العميل 360", icon: "users" },
 };
 
 export const ICON_MAP: Record<string, React.ElementType> = {
@@ -213,6 +218,11 @@ const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = 
   { regex: /^\/accounts\/[^/]+$/, title: "تفاصيل حساب", icon: "wallet" },
   { regex: /^\/fixed-assets\/[^/]+$/, title: "تفاصيل أصل", icon: "briefcase" },
   { regex: /^\/pos\/invoice\/[^/]+$/, title: "تفاصيل فاتورة POS", icon: "cart" },
+  { regex: /^\/crm\/customer\/[^/]+$/, title: "ملف العميل 360", icon: "users" },
+  { regex: /^\/crm\/opportunity\/[^/]+$/, title: "تفاصيل الفرصة", icon: "trending" },
+  { regex: /^\/crm\/lead\/[^/]+$/, title: "تفاصيل العميل المحتمل", icon: "users" },
+  { regex: /^\/credit-notes\/[^/]+$/, title: "تفاصيل إشعار دائن", icon: "file" },
+  { regex: /^\/debit-notes\/[^/]+$/, title: "تفاصيل إشعار مدين", icon: "file" },
 ];
 
 function getRouteMeta(path: string): { title: string; icon: string } {
