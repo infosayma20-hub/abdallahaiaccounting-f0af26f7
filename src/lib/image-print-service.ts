@@ -238,7 +238,13 @@ export async function printReceiptImage(
 ): Promise<PrintImageResult> {
   try {
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
-    const result = await bridgeFetch('/print-receipt', { order: bridgeOrder });
+    const itemsCount = order.items?.length || 0;
+    const meta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
+    const result = await bridgeFetch(
+      '/print-receipt',
+      { order: bridgeOrder, meta },
+      { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: meta.estimatedHeight },
+    );
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
@@ -255,11 +261,13 @@ export async function printKitchenTicketsImage(order: PrintOrder): Promise<Print
     const promises = ALL_STATIONS.map(async (station) => {
       try {
         const kitchenOrder = toBridgeKitchenOrder(order, order.items);
-        const result = await bridgeFetch('/print-kitchen', {
-          order: kitchenOrder,
-          printerKey: station.key,
-          stationLabel: station.label,
-        });
+        const itemsCount = order.items?.length || 0;
+        const meta = buildMeta(`kitchen_${station.key}`, { itemsCount });
+        const result = await bridgeFetch(
+          '/print-kitchen',
+          { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta },
+          { receiptType: `kitchen_${station.key}`, itemsCount },
+        );
         return { printerKey: station.key, name: station.label, success: result.success, error: result.error };
       } catch (err: any) {
         return { printerKey: station.key, name: station.label, success: false, error: err.message };
