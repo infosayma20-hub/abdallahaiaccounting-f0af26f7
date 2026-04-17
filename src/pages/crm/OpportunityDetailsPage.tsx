@@ -299,9 +299,7 @@ export default function OpportunityDetailsPage() {
                 {financials && (
                   <CustomerFinancialSummary
                     financials={financials}
-                    decision={decision}
-                    risk={risk}
-                    compact
+                    effectiveLimit={decision.effectiveLimit}
                   />
                 )}
               </div>
@@ -342,15 +340,19 @@ export default function OpportunityDetailsPage() {
         />
       )}
 
-      {activityOpen && (
+      {activityOpen && opp.contact_id && (
         <QuickActivityDialog
           open={activityOpen}
           onClose={() => setActivityOpen(false)}
           onSaved={load}
-          opportunityId={opp.id}
-          contactId={opp.contact_id || undefined}
+          contactId={opp.contact_id}
         />
       )}
+      {activityOpen && !opp.contact_id && (() => {
+        toast.info("اربط الفرصة بعميل أولاً لإضافة متابعة");
+        setActivityOpen(false);
+        return null;
+      })()}
     </div>
   );
 }
