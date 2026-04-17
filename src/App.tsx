@@ -83,6 +83,7 @@ const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport
 const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
 const HRStaffCostReport = lazy(() => import("./pages/reports/HRStaffCostReport"));
 const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage"));
+const PosInvoiceDetailPage = lazy(() => import("./pages/pos/PosInvoiceDetailPage"));
 const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDashboardPage"));
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
 const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
@@ -395,6 +396,7 @@ const App = () => (
                       <Route path="/reports/pos-sales-by-category" element={<GenericReportPage reportKey="pos-sales-by-category" />} />
                       <Route path="/reports/pos-period-comparison" element={<GenericReportPage reportKey="pos-period-comparison" />} />
                       <Route path="/reports/pos-invoice-register" element={<GenericReportPage reportKey="pos-invoice-register" />} />
+                      <Route path="/pos/invoice/:id" element={<PosInvoiceDetailPage />} />
                       <Route path="/reports/pos-pending-orders" element={<GenericReportPage reportKey="pos-pending-orders" />} />
                       <Route path="/reports/pos-invoice-timing" element={<GenericReportPage reportKey="pos-invoice-timing" />} />
                       <Route path="/reports/pos-shift-open-close" element={<GenericReportPage reportKey="pos-shift-open-close" />} />
