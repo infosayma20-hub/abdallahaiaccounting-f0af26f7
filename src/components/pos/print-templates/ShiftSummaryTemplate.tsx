@@ -192,7 +192,7 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         borderRadius: '6px',
         margin: '6px 0',
         fontWeight: 900,
-        fontSize: '28px',
+        fontSize: '30px',
         lineHeight: 1.2,
         background: '#eee',
         color: '#000',
@@ -223,7 +223,7 @@ function Row({ label, value, bold, large }: { label: string; value: string; bold
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       padding: '2px 0',
-      fontSize: large ? '22px' : '18px',
+      fontSize: large ? '24px' : '20px',
       lineHeight: 1.2,
       color: '#000',
       fontWeight: bold ? 900 : 700,
@@ -237,10 +237,10 @@ function Row({ label, value, bold, large }: { label: string; value: string; bold
 function SectionTitle({ text }: { text: string }) {
   return (
     <div style={{
-      fontSize: '20px', fontWeight: 900, color: '#000',
-      textAlign: 'center', margin: '6px 0 4px',
+      fontSize: '24px', fontWeight: 900, color: '#000',
+      textAlign: 'center', margin: '8px 0 4px',
       lineHeight: 1.2,
-      borderBottom: '2px solid #000', paddingBottom: '3px',
+      borderBottom: '2px solid #000', paddingBottom: '4px',
     }}>
       {text}
     </div>
