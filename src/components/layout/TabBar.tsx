@@ -77,16 +77,15 @@ const TabBar = () => {
               className={cn(
                 "group relative flex items-center gap-1.5 px-3 h-[34px] rounded-t-lg text-xs whitespace-nowrap transition-all duration-150 max-w-[180px] min-w-[80px] flex-shrink-0",
                 isActive
-                  ? "bg-primary/15 text-primary border border-primary/40 border-b-0 shadow-sm font-bold relative z-10"
+                  ? "bg-background text-foreground border-t-2 border-t-primary border-x border-x-border/60 border-b-0 shadow-sm font-semibold relative z-10 -mb-px"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground font-medium border border-transparent"
               )}
-              style={isActive ? { borderBottomColor: "hsl(var(--primary) / 0.15)" } : undefined}
             >
               <IconComp
                 className={cn("h-3.5 w-3.5 flex-shrink-0", isActive ? "text-primary opacity-100" : "opacity-70")}
                 strokeWidth={isActive ? 2.2 : 1.8}
               />
-              <span className={cn("truncate flex-1 text-right", isActive && "font-bold")}>{tab.title}</span>
+              <span className={cn("truncate flex-1 text-right", isActive && "font-semibold text-foreground")}>{tab.title}</span>
               <span
                 onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
                 className={cn(
