@@ -242,7 +242,7 @@ export default function PrintPreviewPage() {
 /** Inline version of KitchenTicketTemplate for preview (no position:absolute) */
 function KitchenTicketInline({ order, items, stationName }: { order: PrintOrder; items: PrintOrder["items"]; stationName: string }) {
   const qNum = order.queueNumber || order.orderNumber || '---';
-  const orderTypeLabel = order.orderType === 'takeaway' ? 'تيك اواي'
+  const orderTypeLabel = order.orderType === 'takeaway' ? 'استلام'
     : order.orderType === 'delivery' ? 'توصيل' : 'محلي';
 
   return (

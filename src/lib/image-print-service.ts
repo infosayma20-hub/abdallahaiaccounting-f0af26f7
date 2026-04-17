@@ -69,7 +69,7 @@ function normalizeOrderType(rawType: string | undefined, tableNumber: string | u
  */
 function orderTypeLabel(normalized: 'dine_in' | 'takeaway' | 'delivery'): string {
   if (normalized === 'delivery') return 'توصيل';
-  if (normalized === 'takeaway') return 'تيك اواي';
+  if (normalized === 'takeaway') return 'استلام';
   return 'محلي';
 }
 
