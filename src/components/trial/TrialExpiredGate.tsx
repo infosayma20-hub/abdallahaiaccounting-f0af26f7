@@ -4,22 +4,19 @@ import { useReadOnly } from "@/contexts/ReadOnlyContext";
 import TrialExpiredOverlay from "./TrialExpiredOverlay";
 import TrialLastDayModal from "./TrialLastDayModal";
 import TrialWelcomeModal from "./TrialWelcomeModal";
-import ReadOnlyBanner from "./ReadOnlyBanner";
 import FloatingSubscribeButton from "./FloatingSubscribeButton";
 
 const FREE_ROUTES = ["/pricing", "/billing", "/subscription", "/auth", "/settings", "/profile", "/terms", "/privacy"];
 
 const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
-  const { isTrialExpired, isPaidActive, loading } = useSubscriptionGuard();
+  const { isTrialExpired, isPaidActive, isTrial, isSuperAdmin, loading, subscription } = useSubscriptionGuard();
   const { isReadOnly } = useReadOnly();
   const location = useLocation();
 
   const isFreePage = FREE_ROUTES.some((r) => location.pathname.startsWith(r));
 
-  if (loading) return <>{children}</>;
-
-  // Paid users pass through
-  if (isPaidActive || isFreePage) {
+  // ⛔ STRICT: Loading or super admin or active trial → no overlay, no flicker, ever.
+  if (loading || isSuperAdmin || isTrial) {
     return (
       <>
         <TrialWelcomeModal />
@@ -29,7 +26,12 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Trial expired and NOT in read-only mode → show overlay
+  // Paid / free routes / no subscription → pass through
+  if (isPaidActive || isFreePage || !subscription) {
+    return <>{children}</>;
+  }
+
+  // Trial expired and NOT in read-only → show overlay
   if (isTrialExpired && !isReadOnly) {
     return (
       <>
@@ -39,26 +41,17 @@ const TrialExpiredGate = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Trial expired and in read-only mode → disabled UI (red banner shown via TrialBanner)
+  // Trial expired in read-only mode
   if (isTrialExpired && isReadOnly) {
     return (
       <>
-        <div className="trial-readonly-mode">
-          {children}
-        </div>
+        <div className="trial-readonly-mode">{children}</div>
         <FloatingSubscribeButton />
       </>
     );
   }
 
-  // Active trial → show welcome (day 1) and last-day (day 1 left) modals
-  return (
-    <>
-      <TrialWelcomeModal />
-      <TrialLastDayModal />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 };
 
 export default TrialExpiredGate;
