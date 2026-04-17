@@ -178,9 +178,17 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
                     <td className="px-4 py-2.5 text-center">—</td>
                     <td className="px-4 py-2.5 text-left tabular-nums">₪0.00</td>
                   </tr>
+                  {(data.creditNotesNet > 0 || data.creditNotesTax > 0) && (
+                    <tr className="border-b border-border bg-amber-50/40">
+                      <td className="px-4 py-2.5 text-right text-amber-700">(-) إشعارات دائنة (مرتجعات مبيعات)</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums text-amber-700">- {fmt(data.creditNotesNet)}</td>
+                      <td className="px-4 py-2.5 text-center">16%</td>
+                      <td className="px-4 py-2.5 text-left tabular-nums font-medium text-amber-700">- {fmt(data.creditNotesTax)}</td>
+                    </tr>
+                  )}
                   <tr style={{ background: "#F1F5F9" }} className="font-bold">
-                    <td className="px-4 py-2.5 text-right">إجمالي ضريبة المبيعات</td>
-                    <td className="px-4 py-2.5 text-left tabular-nums">{fmt(data.standardSalesNet + data.zeroSalesNet + data.exemptSalesNet)}</td>
+                    <td className="px-4 py-2.5 text-right">صافي ضريبة المبيعات المستحقة</td>
+                    <td className="px-4 py-2.5 text-left tabular-nums">{fmt(data.standardSalesNet + data.zeroSalesNet + data.exemptSalesNet - data.creditNotesNet)}</td>
                     <td className="px-4 py-2.5 text-center"></td>
                     <td className="px-4 py-2.5 text-left tabular-nums text-red-600">{fmt(totalOutputTax)}</td>
                   </tr>
