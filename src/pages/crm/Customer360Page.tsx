@@ -62,33 +62,32 @@ export default function Customer360Page() {
   useEffect(() => {
     if (!user || !id) return;
 
-    (supabase
-      .from("contacts")
+    const sb = supabase as any;
+
+    sb.from("contacts")
       .select("phone, email")
       .eq("id", id)
       .eq("user_id", user.id)
-      .maybeSingle() as any)
+      .maybeSingle()
       .then(({ data }: any) => setExtra((data as ContactExtra) ?? null));
 
-    (supabase
-      .from("invoices")
+    sb.from("invoices")
       .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, status, invoice_type")
       .eq("user_id", user.id)
       .eq("contact_id", id)
       .neq("status", "cancelled")
       .order("invoice_date", { ascending: false })
-      .limit(200) as any)
+      .limit(200)
       .then(({ data }: any) => setInvoices((data as InvoiceRow[]) || []));
 
-    (supabase
-      .from("transactions")
+    sb.from("transactions")
       .select("id, voucher_date, amount, voucher_number, voucher_type")
       .eq("user_id", user.id)
       .eq("contact_id", id)
       .eq("voucher_type", "receipt")
       .order("voucher_date", { ascending: false })
-      .limit(100) as any)
-      .then(({ data }: any) => setPayments(((data as any[]) || []).map((r) => ({
+      .limit(100)
+      .then(({ data }: any) => setPayments(((data as any[]) || []).map((r: any) => ({
         id: r.id,
         voucher_date: r.voucher_date,
         amount: Number(r.amount || 0),
