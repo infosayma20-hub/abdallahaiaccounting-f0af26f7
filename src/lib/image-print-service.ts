@@ -35,6 +35,29 @@ export function setPrintMode(mode: PrintMode): void {
   try { localStorage.setItem(PRINT_MODE_KEY, mode); } catch {/* ignore */}
 }
 
+// ──────────────────────────────────────────
+// Footer Mode (full | compact | off) — temporary mitigation for raster corruption
+// "compact" hides QR + extra footer text, keeping only essential receipt body.
+// "off" removes ALL post-payment content. Default: 'compact' until bridge patch is applied.
+// ──────────────────────────────────────────
+
+export type FooterMode = 'full' | 'compact' | 'off';
+const FOOTER_MODE_KEY = 'pos-receipt-footer-mode';
+
+export function getFooterMode(): FooterMode {
+  try {
+    const v = localStorage.getItem(FOOTER_MODE_KEY);
+    if (v === 'full' || v === 'off') return v;
+    return 'compact'; // default — safe until bridge patch lands
+  } catch {
+    return 'compact';
+  }
+}
+
+export function setFooterMode(mode: FooterMode): void {
+  try { localStorage.setItem(FOOTER_MODE_KEY, mode); } catch {/* ignore */}
+}
+
 interface PrintImageResult {
   success: boolean;
   error?: string;
