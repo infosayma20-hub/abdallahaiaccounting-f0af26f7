@@ -23,6 +23,7 @@ import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOf
 import { ar } from "date-fns/locale";
 import { cn, multiWordMatchAny } from "@/lib/utils";
 import AdvancedEntitySearch from "@/components/account-statement/AdvancedEntitySearch";
+import { setNextExportBranding } from "@/lib/excel-export";
 
 // ─── TYPES ───
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
