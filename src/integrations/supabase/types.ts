@@ -2797,6 +2797,378 @@ export type Database = {
           },
         ]
       }
+      crm_activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["crm_activity_type"] | null
+          assigned_to: string | null
+          completed_at: string | null
+          completion_notes: string | null
+          contact_id: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          duration_minutes: number | null
+          id: string
+          lead_id: string | null
+          opportunity_id: string | null
+          outcome: string | null
+          priority: Database["public"]["Enums"]["crm_priority"] | null
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["crm_activity_status"] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type?:
+            | Database["public"]["Enums"]["crm_activity_type"]
+            | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          outcome?: string | null
+          priority?: Database["public"]["Enums"]["crm_priority"] | null
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["crm_activity_status"] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?:
+            | Database["public"]["Enums"]["crm_activity_type"]
+            | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          outcome?: string | null
+          priority?: Database["public"]["Enums"]["crm_priority"] | null
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["crm_activity_status"] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          assigned_to: string | null
+          campaign: string | null
+          city: string | null
+          company_name: string | null
+          contact_id: string | null
+          contact_name: string | null
+          converted_at: string | null
+          converted_opportunity_id: string | null
+          created_at: string | null
+          currency: string | null
+          email: string | null
+          estimated_value: number | null
+          id: string
+          industry: string | null
+          interested_products: string | null
+          last_activity_date: string | null
+          lost_reason: string | null
+          mobile: string | null
+          next_activity_date: string | null
+          notes: string | null
+          phone: string | null
+          priority: Database["public"]["Enums"]["crm_priority"] | null
+          probability: number | null
+          region: string | null
+          sales_team: string | null
+          source: string | null
+          source_details: string | null
+          status: Database["public"]["Enums"]["crm_lead_status"] | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          campaign?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          converted_at?: string | null
+          converted_opportunity_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          estimated_value?: number | null
+          id?: string
+          industry?: string | null
+          interested_products?: string | null
+          last_activity_date?: string | null
+          lost_reason?: string | null
+          mobile?: string | null
+          next_activity_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: Database["public"]["Enums"]["crm_priority"] | null
+          probability?: number | null
+          region?: string | null
+          sales_team?: string | null
+          source?: string | null
+          source_details?: string | null
+          status?: Database["public"]["Enums"]["crm_lead_status"] | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          campaign?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          converted_at?: string | null
+          converted_opportunity_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          estimated_value?: number | null
+          id?: string
+          industry?: string | null
+          interested_products?: string | null
+          last_activity_date?: string | null
+          lost_reason?: string | null
+          mobile?: string | null
+          next_activity_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: Database["public"]["Enums"]["crm_priority"] | null
+          probability?: number | null
+          region?: string | null
+          sales_team?: string | null
+          source?: string | null
+          source_details?: string | null
+          status?: Database["public"]["Enums"]["crm_lead_status"] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_opportunities: {
+        Row: {
+          actual_close_date: string | null
+          assigned_to: string | null
+          contact_id: string | null
+          converted_at: string | null
+          converted_invoice_id: string | null
+          created_at: string | null
+          currency: string | null
+          customer_name: string | null
+          description: string | null
+          expected_close_date: string | null
+          expected_value: number | null
+          id: string
+          last_activity_date: string | null
+          lead_id: string | null
+          lost_at: string | null
+          lost_reason: string | null
+          next_activity_date: string | null
+          notes: string | null
+          priority: Database["public"]["Enums"]["crm_priority"] | null
+          probability: number | null
+          sales_team: string | null
+          stage: Database["public"]["Enums"]["crm_opportunity_stage"] | null
+          stage_changed_at: string | null
+          stage_order: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          weighted_value: number | null
+          won_at: string | null
+        }
+        Insert: {
+          actual_close_date?: string | null
+          assigned_to?: string | null
+          contact_id?: string | null
+          converted_at?: string | null
+          converted_invoice_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          description?: string | null
+          expected_close_date?: string | null
+          expected_value?: number | null
+          id?: string
+          last_activity_date?: string | null
+          lead_id?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          next_activity_date?: string | null
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["crm_priority"] | null
+          probability?: number | null
+          sales_team?: string | null
+          stage?: Database["public"]["Enums"]["crm_opportunity_stage"] | null
+          stage_changed_at?: string | null
+          stage_order?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          weighted_value?: number | null
+          won_at?: string | null
+        }
+        Update: {
+          actual_close_date?: string | null
+          assigned_to?: string | null
+          contact_id?: string | null
+          converted_at?: string | null
+          converted_invoice_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          description?: string | null
+          expected_close_date?: string | null
+          expected_value?: number | null
+          id?: string
+          last_activity_date?: string | null
+          lead_id?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          next_activity_date?: string | null
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["crm_priority"] | null
+          probability?: number | null
+          sales_team?: string | null
+          stage?: Database["public"]["Enums"]["crm_opportunity_stage"] | null
+          stage_changed_at?: string | null
+          stage_order?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          weighted_value?: number | null
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_opportunity_stage_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          duration_in_previous_stage_seconds: number | null
+          from_stage:
+            | Database["public"]["Enums"]["crm_opportunity_stage"]
+            | null
+          id: string
+          notes: string | null
+          opportunity_id: string
+          to_stage: Database["public"]["Enums"]["crm_opportunity_stage"]
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          duration_in_previous_stage_seconds?: number | null
+          from_stage?:
+            | Database["public"]["Enums"]["crm_opportunity_stage"]
+            | null
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          to_stage: Database["public"]["Enums"]["crm_opportunity_stage"]
+          user_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          duration_in_previous_stage_seconds?: number | null
+          from_stage?:
+            | Database["public"]["Enums"]["crm_opportunity_stage"]
+            | null
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          to_stage?: Database["public"]["Enums"]["crm_opportunity_stage"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       currencies: {
         Row: {
           code: string
@@ -13335,6 +13707,34 @@ export type Database = {
         | "مظهر"
         | "مصروف"
       cheque_type: "وارد" | "صادر"
+      crm_activity_status: "pending" | "completed" | "cancelled" | "overdue"
+      crm_activity_type:
+        | "call"
+        | "whatsapp"
+        | "meeting"
+        | "visit"
+        | "email"
+        | "quote_sent"
+        | "collection_reminder"
+        | "internal_review"
+        | "note"
+      crm_lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "unqualified"
+        | "converted"
+        | "lost"
+      crm_opportunity_stage:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "proposal"
+        | "negotiation"
+        | "won"
+        | "lost"
+        | "on_hold"
+      crm_priority: "low" | "medium" | "high" | "urgent"
       product_category:
         | "بضاعة عامة"
         | "مواد خام"
@@ -13494,6 +13894,37 @@ export const Constants = {
         "مصروف",
       ],
       cheque_type: ["وارد", "صادر"],
+      crm_activity_status: ["pending", "completed", "cancelled", "overdue"],
+      crm_activity_type: [
+        "call",
+        "whatsapp",
+        "meeting",
+        "visit",
+        "email",
+        "quote_sent",
+        "collection_reminder",
+        "internal_review",
+        "note",
+      ],
+      crm_lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "unqualified",
+        "converted",
+        "lost",
+      ],
+      crm_opportunity_stage: [
+        "new",
+        "contacted",
+        "qualified",
+        "proposal",
+        "negotiation",
+        "won",
+        "lost",
+        "on_hold",
+      ],
+      crm_priority: ["low", "medium", "high", "urgent"],
       product_category: [
         "بضاعة عامة",
         "مواد خام",
