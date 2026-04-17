@@ -183,16 +183,17 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
         </>
       )}
 
-      <div style={{ borderTop: '3px solid #000', margin: '12px 0' }} />
+      <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
 
-      {/* ═══ TOTAL VARIANCE ═══ */}
+      {/* ═══ TOTAL VARIANCE — extra prominent ═══ */}
       <div style={{
         textAlign: 'center',
-        padding: '14px',
+        padding: '12px',
         borderRadius: '6px',
-        margin: '8px 0',
+        margin: '6px 0',
         fontWeight: 900,
-        fontSize: '24px',
+        fontSize: '28px',
+        lineHeight: 1.2,
         background: '#eee',
         color: '#000',
         border: '3px solid #000',
@@ -221,8 +222,9 @@ function Row({ label, value, bold, large }: { label: string; value: string; bold
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '4px 0',
-      fontSize: large ? '18px' : '15px',
+      padding: '2px 0',
+      fontSize: large ? '22px' : '18px',
+      lineHeight: 1.2,
       color: '#000',
       fontWeight: bold ? 900 : 700,
     }}>
@@ -235,9 +237,10 @@ function Row({ label, value, bold, large }: { label: string; value: string; bold
 function SectionTitle({ text }: { text: string }) {
   return (
     <div style={{
-      fontSize: '16px', fontWeight: 900, color: '#000',
-      textAlign: 'center', margin: '8px 0 6px',
-      borderBottom: '1px solid #333', paddingBottom: '4px',
+      fontSize: '20px', fontWeight: 900, color: '#000',
+      textAlign: 'center', margin: '6px 0 4px',
+      lineHeight: 1.2,
+      borderBottom: '2px solid #000', paddingBottom: '3px',
     }}>
       {text}
     </div>

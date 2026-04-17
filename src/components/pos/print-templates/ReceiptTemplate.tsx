@@ -98,13 +98,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       overflow: 'visible',
       boxSizing: 'border-box',
       direction: 'rtl',
-      padding: '8px 12px',
+      padding: '6px 12px',
       backgroundColor: '#ffffff',
       color: '#000000',
       fontFamily: FONT,
-      fontSize: '17px',
+      fontSize: '15px',
       fontWeight: 500,
-      lineHeight: '1.4',
+      lineHeight: 1.2,
     }}>
 
       {/* ═══ 1. LOGO ═══ */}
@@ -134,29 +134,29 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>رقم الطلب</td>
-            <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'left' }}>{qNum}</td>
+            <td style={{ padding: '1px 0', fontSize: '24px', fontWeight: 900, textAlign: 'right' }}>رقم الطلب</td>
+            <td style={{ padding: '1px 0', fontSize: '24px', fontWeight: 900, textAlign: 'left' }}>{qNum}</td>
           </tr>
           {order.cashier && (
             <tr>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الكاشير</td>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'left' }}>{order.cashier}</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>الكاشير</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'left' }}>{order.cashier}</td>
             </tr>
           )}
           <tr>
-            <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>نوع الطلب</td>
-            <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{orderTypeLabel}</td>
+            <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>نوع الطلب</td>
+            <td style={{ padding: '1px 0', fontSize: '15px', fontWeight: 700, textAlign: 'left' }}>{orderTypeLabel}</td>
           </tr>
           {order.tableNumber && (
             <tr>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الطاولة</td>
-              <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{order.tableNumber}</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>الطاولة</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', fontWeight: 700, textAlign: 'left' }}>{order.tableNumber}</td>
             </tr>
           )}
           {order.branchName && (
             <tr>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الفرع</td>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'left' }}>{order.branchName}</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>الفرع</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'left' }}>{order.branchName}</td>
             </tr>
           )}
         </tbody>
@@ -164,14 +164,14 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
 
       <hr style={hrBold} />
 
-      {/* ═══ 4. ITEMS TABLE ═══ */}
+      {/* ═══ 4. ITEMS TABLE — item names enlarged for readability ═══ */}
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
-            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'right', width: '45%' }}>الصنف</th>
-            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'center', width: '10%' }}>الكمية</th>
-            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'center', width: '22%' }}>السعر</th>
-            <th style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left', width: '23%' }}>المجموع</th>
+            <th style={{ padding: '2px 2px', fontSize: '14px', fontWeight: 700, textAlign: 'right', width: '45%' }}>الصنف</th>
+            <th style={{ padding: '2px 2px', fontSize: '14px', fontWeight: 700, textAlign: 'center', width: '10%' }}>الكمية</th>
+            <th style={{ padding: '2px 2px', fontSize: '14px', fontWeight: 700, textAlign: 'center', width: '22%' }}>السعر</th>
+            <th style={{ padding: '2px 2px', fontSize: '14px', fontWeight: 700, textAlign: 'left', width: '23%' }}>المجموع</th>
           </tr>
         </thead>
         <tbody>
@@ -180,12 +180,12 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             const lineTotal = (qty * (item.price || 0)).toFixed(2);
             return (
               <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-                <td style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'right', verticalAlign: 'top' }}>
+                <td style={{ padding: '3px 2px', fontSize: '20px', fontWeight: 800, textAlign: 'right', verticalAlign: 'top', lineHeight: 1.2 }}>
                   {item.name}
                   {item.modifiers && item.modifiers.length > 0 && (
                     <div>
                       {item.modifiers.map((mod, mi) => (
-                        <div key={mi} style={{ fontSize: '14px', color: '#444', marginTop: '1px' }}>
+                        <div key={mi} style={{ fontSize: '13px', color: '#444', marginTop: '1px', fontWeight: 500 }}>
                           + {mod.option_name}
                           {mod.extra_price && mod.extra_price > 0 && ` (+₪${mod.extra_price.toFixed(2)})`}
                         </div>
@@ -193,39 +193,39 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: '14px', color: '#333', marginTop: '1px' }}>
+                    <div style={{ fontSize: '13px', color: '#333', marginTop: '1px', fontWeight: 500 }}>
                       📝 {item.note}
                     </div>
                   )}
                 </td>
-                <td style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
-                <td style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
-                <td style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
+                <td style={{ padding: '3px 2px', fontSize: '18px', fontWeight: 800, textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
+                <td style={{ padding: '3px 2px', fontSize: '14px', textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
+                <td style={{ padding: '3px 2px', fontSize: '15px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
               </tr>
             );
           })}
           {order.subtotal != null && (
             <tr style={{ borderTop: '1px solid #999' }}>
-              <td colSpan={3} style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'right' }}>المجموع الفرعي</td>
-              <td style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>₪{Number(order.subtotal).toFixed(2)}</td>
+              <td colSpan={3} style={{ padding: '2px 2px', fontSize: '15px', textAlign: 'right' }}>المجموع الفرعي</td>
+              <td style={{ padding: '2px 2px', fontSize: '15px', fontWeight: 700, textAlign: 'left' }}>₪{Number(order.subtotal).toFixed(2)}</td>
             </tr>
           )}
           {order.discount != null && Number(order.discount) > 0 && (
             <tr>
-              <td colSpan={3} style={{ padding: '4px 2px', fontSize: '17px', textAlign: 'right' }}>الخصم</td>
-              <td style={{ padding: '4px 2px', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>-₪{Number(order.discount).toFixed(2)}</td>
+              <td colSpan={3} style={{ padding: '2px 2px', fontSize: '15px', textAlign: 'right' }}>الخصم</td>
+              <td style={{ padding: '2px 2px', fontSize: '15px', fontWeight: 700, textAlign: 'left' }}>-₪{Number(order.discount).toFixed(2)}</td>
             </tr>
           )}
         </tbody>
       </table>
 
-      {/* ═══ 5. TOTAL ═══ */}
+      {/* ═══ 5. TOTAL — extra prominent (32px bold) ═══ */}
       <hr style={hrBold} />
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '3px 0', fontSize: '26px', fontWeight: 900, textAlign: 'right' }}>الإجمالي</td>
-            <td style={{ padding: '3px 0', fontSize: '26px', fontWeight: 900, textAlign: 'left' }}>₪{Number(order.total || 0).toFixed(2)}</td>
+            <td style={{ padding: '4px 0', fontSize: '32px', fontWeight: 900, textAlign: 'right', lineHeight: 1.1 }}>الإجمالي</td>
+            <td style={{ padding: '4px 0', fontSize: '32px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1 }}>₪{Number(order.total || 0).toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
