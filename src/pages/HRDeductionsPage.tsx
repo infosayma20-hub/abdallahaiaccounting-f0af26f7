@@ -16,6 +16,7 @@ import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 
 const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
@@ -451,6 +452,7 @@ export default function HRDeductionsPage() {
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الخصومات");
+    setNextExportBranding({ title: "الخصومات" });
     XLSX.writeFile(wb, "hr-deductions.xlsx");
   };
 

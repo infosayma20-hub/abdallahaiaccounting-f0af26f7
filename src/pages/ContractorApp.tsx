@@ -23,6 +23,7 @@ import * as XLSX from "xlsx";
 import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
 import { generateContractorContractPDF, ContractorContractData, ContractorCompanyData } from "@/utils/generateContractorContractPDF";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Project {
   id: string;
   name: string;
@@ -237,6 +238,7 @@ export default function ContractorApp() {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الحركات");
+    setNextExportBranding({ title: "الحركات" });
     XLSX.writeFile(wb, "contractor-report.xlsx");
   };
 

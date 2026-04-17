@@ -14,6 +14,7 @@ import * as XLSX from "xlsx";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 // Format balance with label instead of parentheses
 function fmtBalance(n: number, currency: string): string {
   if (n === 0) return `0 ${currency}`;
@@ -231,6 +232,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف حساب");
+    setNextExportBranding({ title: "كشف حساب" });
     XLSX.writeFile(wb, `كشف_حساب_${contactName}.xlsx`);
     toast({ title: "تم تصدير الملف بنجاح ✅" });
   };

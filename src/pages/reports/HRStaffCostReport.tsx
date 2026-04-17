@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { PieChart as RechartsPie, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 const HRStaffCostReport = () => {
@@ -58,6 +59,7 @@ const HRStaffCostReport = () => {
     ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 18 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "تكلفة الموظفين");
+    setNextExportBranding({ title: "تكلفة الموظفين" });
     XLSX.writeFile(wb, "تقرير_تكلفة_الموظفين.xlsx");
   };
 

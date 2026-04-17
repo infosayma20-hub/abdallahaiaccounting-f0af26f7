@@ -37,6 +37,7 @@ import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "اليوم" },
   { key: "yesterday", label: "أمس" },
@@ -104,6 +105,7 @@ const POSReportsPage = () => {
       })));
       XLSX.utils.book_append_sheet(wb, ws5, "الورديات");
     }
+    setNextExportBranding({ title: "المبيعات اليومية" });
     XLSX.writeFile(wb, `تقارير-POS-${format(data.dateFrom, "yyyy-MM-dd")}.xlsx`);
   };
 

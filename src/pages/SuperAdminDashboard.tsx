@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 // ─── Theme CSS ───
 const LIGHT_THEME_STYLES = `
   [data-sa-theme] * {
@@ -300,6 +301,7 @@ function DatabaseBrowser() {
     const ws = XLSX.utils.json_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, selectedTable);
+    setNextExportBranding({ title: "تقرير" });
     XLSX.writeFile(wb, `${selectedTable}_export.xlsx`);
     toast.success("تم التصدير بنجاح");
   };

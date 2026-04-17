@@ -16,6 +16,7 @@ import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const LeavesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -159,6 +160,7 @@ const LeavesPage = () => {
     ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 16 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الإجازات");
+    setNextExportBranding({ title: "الإجازات" });
     XLSX.writeFile(wb, "رصيد_الإجازات.xlsx");
   };
 

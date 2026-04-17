@@ -19,6 +19,7 @@ import * as XLSX from "xlsx";
 import LoanAttachments from "@/components/hr/LoanAttachments";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const fmtCurrency = (v: number) => `${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪`;
 
 interface Employee {
@@ -93,6 +94,7 @@ export default function LoansPage() {
     ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "القروض");
+    setNextExportBranding({ title: "القروض" });
     XLSX.writeFile(wb, "قروض_الموظفين.xlsx");
   };
 

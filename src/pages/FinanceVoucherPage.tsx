@@ -20,6 +20,7 @@ import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { toast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 type VoucherType = "receipt" | "payment";
 
 interface Props {
@@ -336,6 +337,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       ws["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31));
+      setNextExportBranding({ title: "تقرير" });
       XLSX.writeFile(wb, `${title}-${new Date().toISOString().split("T")[0]}.xlsx`);
     });
   };

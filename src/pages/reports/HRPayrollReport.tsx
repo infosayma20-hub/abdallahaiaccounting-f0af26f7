@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const months = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
@@ -63,6 +64,7 @@ const HRPayrollReport = () => {
     ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 18 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الرواتب");
+    setNextExportBranding({ title: "الرواتب" });
     XLSX.writeFile(wb, `رواتب_${months[selectedMonth - 1]}_${selectedYear}.xlsx`);
   };
 

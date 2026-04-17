@@ -22,6 +22,7 @@ import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 type Branch = {
   id: string;
   name: string;
@@ -264,6 +265,7 @@ body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align
         { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       ];
       XLSX.utils.book_append_sheet(wb, ws, "سجل الحضور");
+      setNextExportBranding({ title: "سجل الحضور" });
       XLSX.writeFile(wb, `سجل_الحضور_${selectedDate}.xlsx`);
     });
   };

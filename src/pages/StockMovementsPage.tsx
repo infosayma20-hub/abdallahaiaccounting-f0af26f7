@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Product {
   id: string;
   name: string;
@@ -128,6 +129,7 @@ const StockMovementsPage = () => {
     ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "حركات المخزون");
+    setNextExportBranding({ title: "حركات المخزون" });
     XLSX.writeFile(wb, `حركات_المخزون_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast({ title: "تم تصدير التقرير ✅" });
   };

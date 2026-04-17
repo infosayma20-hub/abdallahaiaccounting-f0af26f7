@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/hr-utils";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -175,6 +176,7 @@ export default function DeductionsExportDialog({ open, onClose, userId, employee
       }
 
       const fileName = `مسحوبات_الموظفين_${fromMonth}-${fromYear}_${toMonth}-${toYear}.xlsx`;
+      setNextExportBranding({ title: "ملخص المسحوبات" });
       XLSX.writeFile(wb, fileName);
       toast.success("تم تصدير التقرير بنجاح");
       onClose();

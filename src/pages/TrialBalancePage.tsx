@@ -22,6 +22,7 @@ import {
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface TrialBalanceRow {
   accountId: string;
   accountName: string;
@@ -463,6 +464,11 @@ const TrialBalancePage = () => {
     ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "ميزان المراجعة");
+    setNextExportBranding({
+      title: "ميزان المراجعة",
+      currency: "شيكل ₪",
+      period: dateFrom || dateTo ? `${dateFrom || "—"} → ${dateTo || "—"}` : "كل الفترات",
+    });
     XLSX.writeFile(wb, `ميزان_المراجعة_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 

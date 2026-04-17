@@ -18,6 +18,7 @@ import { ar } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface POSCustomerRow {
   id: string;
   name: string | null;
@@ -223,6 +224,7 @@ export default function POSCustomerDatabasePage() {
       "تاريخ التسجيل": c.created_at ? format(new Date(c.created_at), "dd/MM/yyyy") : "",
     })));
     XLSX.utils.book_append_sheet(wb, ws, "زبائن POS");
+    setNextExportBranding({ title: "زبائن POS" });
     XLSX.writeFile(wb, `pos-customers-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
     toast.success("تم تصدير البيانات");
   };

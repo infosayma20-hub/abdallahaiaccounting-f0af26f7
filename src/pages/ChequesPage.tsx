@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
@@ -587,6 +588,11 @@ const ChequesPage = () => {
     ws['!cols'] = Object.keys(rows[0]).map(() => ({ wch: 18 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'الشيكات');
+    setNextExportBranding({
+      title: "تقرير الشيكات",
+      currency: "متعدد العملات",
+      extraInfo: [`عدد الشيكات: ${rows.length.toLocaleString()}`],
+    });
     XLSX.writeFile(wb, `شيكات-${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success("تم تصدير الشيكات بنجاح");
   };

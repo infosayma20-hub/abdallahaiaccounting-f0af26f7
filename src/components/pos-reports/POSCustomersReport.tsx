@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Customer {
   id: string;
   name: string | null;
@@ -62,6 +63,7 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "الزبائن");
+    setNextExportBranding({ title: "الزبائن" });
     XLSX.writeFile(wb, `زبائن-POS-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 

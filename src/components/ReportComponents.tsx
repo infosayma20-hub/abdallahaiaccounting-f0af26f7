@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Report Header
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -314,6 +315,7 @@ export const exportToExcel = (data: Record<string, any>[], summary: Record<strin
   const ws2 = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(wb, ws2, "بيانات");
 
+  setNextExportBranding({ title: "ملخص" });
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 

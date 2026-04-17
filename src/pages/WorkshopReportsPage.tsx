@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const COST_TYPES: Record<string, { label: string; icon: string; color: string }> = {
   wood:      { label: "خشب", icon: "🪵", color: "#d97706" },
   paint:     { label: "دهان", icon: "🎨", color: "#3b82f6" },
@@ -362,6 +363,7 @@ export default function WorkshopReportsPage() {
     const ws3 = XLSX.utils.json_to_sheet(rRows);
     XLSX.utils.book_append_sheet(wb, ws3, "المقبوضات");
 
+    setNextExportBranding({ title: "تقرير الورشات" });
     XLSX.writeFile(wb, `تقرير-الورشات-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
     toast.success("تم تصدير التقرير بنجاح");
   };

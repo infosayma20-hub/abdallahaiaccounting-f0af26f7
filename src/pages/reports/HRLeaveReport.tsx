@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const HRLeaveReport = () => {
   const navigate = useNavigate();
 
@@ -77,6 +78,7 @@ const HRLeaveReport = () => {
     ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 16 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الإجازات");
+    setNextExportBranding({ title: "الإجازات" });
     XLSX.writeFile(wb, "تقرير_رصيد_الإجازات.xlsx");
   };
 

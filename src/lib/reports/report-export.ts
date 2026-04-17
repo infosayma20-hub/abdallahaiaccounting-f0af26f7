@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import type { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 export function exportToExcel(
   data: any[],
   columns: ColumnDef[] | null,
@@ -48,6 +49,7 @@ export function exportToExcel(
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, reportTitle.substring(0, 31));
+  setNextExportBranding({ title: "تقرير" });
   XLSX.writeFile(wb, `${reportTitle}-${dateFrom}.xlsx`);
   toast.success("تم تصدير التقرير بنجاح");
 }

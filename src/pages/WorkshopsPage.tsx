@@ -33,6 +33,7 @@ import WorkshopCostModal, { COST_CATEGORIES, PHASES, CATEGORY_GL_MAP, PAYMENT_CR
 import WorkshopCostReport from "@/components/workshops/WorkshopCostReport";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 /* ── Types ── */
 type Workshop = {
   id: string; name: string; customer_name: string | null; customer_phone: string | null;
@@ -1972,6 +1973,7 @@ export default function WorkshopsPage() {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "الورشات");
+      setNextExportBranding({ title: "الورشات" });
       XLSX.writeFile(wb, "workshops-report.xlsx");
     };
 

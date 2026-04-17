@@ -16,6 +16,7 @@ import * as XLSX from "xlsx";
 import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 const F = "Tajawal, sans-serif";
 
 interface DeliveryNote {
@@ -236,6 +237,7 @@ const DeliveryNotesPage = () => {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "إرساليات");
+    setNextExportBranding({ title: "إرساليات" });
     XLSX.writeFile(wb, "delivery-notes.xlsx");
   };
 

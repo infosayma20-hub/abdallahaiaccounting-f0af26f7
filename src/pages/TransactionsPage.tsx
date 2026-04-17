@@ -30,6 +30,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
 import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 
+import { setNextExportBranding } from "@/lib/excel-export";
 interface Transaction {
   id: string;
   description: string;
@@ -569,6 +570,7 @@ const TransactionsPage = () => {
     ], { origin: `A${totalRowIdx + 1}` });
 
     XLSX.utils.book_append_sheet(wb, ws, "دفتر اليومية");
+    setNextExportBranding({ title: "دفتر اليومية" });
     XLSX.writeFile(wb, `دفتر_اليومية_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
