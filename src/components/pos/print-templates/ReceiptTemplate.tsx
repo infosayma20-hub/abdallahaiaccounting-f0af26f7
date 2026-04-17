@@ -185,7 +185,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                   {item.modifiers && item.modifiers.length > 0 && (
                     <div>
                       {item.modifiers.map((mod, mi) => (
-                        <div key={mi} style={{ fontSize: '13px', color: '#444', marginTop: '1px', fontWeight: 500 }}>
+                        <div key={mi} style={{ fontSize: '14px', color: '#444', marginTop: '1px', fontWeight: 500 }}>
                           + {mod.option_name}
                           {mod.extra_price && mod.extra_price > 0 && ` (+₪${mod.extra_price.toFixed(2)})`}
                         </div>
@@ -193,14 +193,14 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: '13px', color: '#333', marginTop: '1px', fontWeight: 500 }}>
+                    <div style={{ fontSize: '14px', color: '#333', marginTop: '1px', fontWeight: 500 }}>
                       📝 {item.note}
                     </div>
                   )}
                 </td>
                 <td style={{ padding: '3px 2px', fontSize: '18px', fontWeight: 800, textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
-                <td style={{ padding: '3px 2px', fontSize: '14px', textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
-                <td style={{ padding: '3px 2px', fontSize: '15px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
+                <td style={{ padding: '3px 2px', fontSize: '18px', textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
+                <td style={{ padding: '3px 2px', fontSize: '18px', fontWeight: 700, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
               </tr>
             );
           })}
@@ -219,13 +219,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         </tbody>
       </table>
 
-      {/* ═══ 5. TOTAL — extra prominent (32px bold) ═══ */}
+      {/* ═══ 5. TOTAL — most prominent (30px bold, boxed) ═══ */}
       <hr style={hrBold} />
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '4px 0', fontSize: '32px', fontWeight: 900, textAlign: 'right', lineHeight: 1.1 }}>الإجمالي</td>
-            <td style={{ padding: '4px 0', fontSize: '32px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1 }}>₪{Number(order.total || 0).toFixed(2)}</td>
+            <td style={{ padding: '6px 4px', fontSize: '30px', fontWeight: 900, textAlign: 'right', lineHeight: 1.1, border: '2px solid #000' }}>الإجمالي</td>
+            <td style={{ padding: '6px 4px', fontSize: '30px', fontWeight: 900, textAlign: 'left', lineHeight: 1.1, border: '2px solid #000' }}>₪{Number(order.total || 0).toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -236,19 +236,19 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>طريقة الدفع</td>
-            <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{payLabel}</td>
+            <td style={{ padding: '2px 0', fontSize: '18px', textAlign: 'right' }}>طريقة الدفع</td>
+            <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'left' }}>{payLabel}</td>
           </tr>
           {isCash && order.tenderedAmount != null && Number(order.tenderedAmount) > 0 && (
             <>
               <tr>
-                <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>المبلغ المستلم</td>
-                <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{tenderedCurrSym}{Number(order.tenderedAmount).toFixed(2)}</td>
+                <td style={{ padding: '2px 0', fontSize: '18px', textAlign: 'right' }}>المبلغ المستلم</td>
+                <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'left' }}>{tenderedCurrSym}{Number(order.tenderedAmount).toFixed(2)}</td>
               </tr>
               {order.change != null && Number(order.change) > 0 && (
                 <tr>
-                  <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'right' }}>الباقي</td>
-                  <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{changeSym}{Number(order.change).toFixed(2)}</td>
+                  <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'right' }}>الباقي</td>
+                  <td style={{ padding: '2px 0', fontSize: '18px', fontWeight: 700, textAlign: 'left' }}>{changeSym}{Number(order.change).toFixed(2)}</td>
                 </tr>
               )}
             </>

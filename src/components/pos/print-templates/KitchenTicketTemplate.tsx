@@ -73,10 +73,10 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         </div>
       )}
 
-      {/* Order Number — BIG (40px as requested, balanced for compact layout) */}
+      {/* Order Number — BIG (46px, kitchen-first visibility) */}
       <div style={{
         textAlign: 'center',
-        fontSize: '52px',
+        fontSize: '46px',
         fontWeight: 900,
         margin: '4px 0',
         lineHeight: 1.0,
@@ -84,15 +84,19 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         # {qNum}
       </div>
 
-      {/* TIME — prominent, bold, dark — RIGHT under order # */}
+      {/* TIME — most prominent kitchen element (28px, pure black, high contrast) */}
       <div style={{
         textAlign: 'center',
-        fontSize: '26px',
+        fontSize: '28px',
         fontWeight: 900,
         color: '#000',
+        background: '#000',
+        WebkitTextFillColor: '#fff',
+        padding: '4px 8px',
         margin: '4px 0 6px',
         lineHeight: 1.1,
-        letterSpacing: '0.5px',
+        letterSpacing: '1px',
+        borderRadius: '4px',
       }}>
         🕐 {timeStr} • {dateStr}
       </div>
@@ -125,7 +129,7 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         return (
           <div key={i} style={{ padding: '4px 0', borderBottom: '2px dashed #666', lineHeight: 1.2 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '34px', fontWeight: 900, minWidth: '50px', lineHeight: 1.1 }}>{qty}</span>
+              <span style={{ fontSize: '22px', fontWeight: 900, minWidth: '46px', lineHeight: 1.1 }}>{qty}×</span>
               <span style={{ fontSize: '26px', fontWeight: 900, textAlign: 'right', flex: 1, lineHeight: 1.2 }}>{item.name}</span>
             </div>
             {item.modifiers?.map((m, j) => (
