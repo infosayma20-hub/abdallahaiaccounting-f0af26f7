@@ -11968,6 +11968,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_security_audit: {
+        Row: {
+          auth_method: string | null
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          is_new_device: boolean | null
+          is_suspicious: boolean | null
+          metadata: Json | null
+          os: string | null
+          risk_score: number | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          auth_method?: string | null
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          is_new_device?: boolean | null
+          is_suspicious?: boolean | null
+          metadata?: Json | null
+          os?: string | null
+          risk_score?: number | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          auth_method?: string | null
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          is_new_device?: boolean | null
+          is_suspicious?: boolean | null
+          metadata?: Json | null
+          os?: string | null
+          risk_score?: number | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       voucher_lines: {
         Row: {
           account_code: string
