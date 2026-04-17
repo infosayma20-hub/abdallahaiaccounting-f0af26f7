@@ -19,6 +19,13 @@ interface Props {
   logoUrl?: string;
   showReturnPolicy?: boolean;
   returnPolicyDays?: number;
+  /**
+   * Footer mode — temporary mitigation for raster buffer-overflow on the printer.
+   * - 'full'    : QR + thanks + extra spacing (legacy behavior)
+   * - 'compact' : skip QR, keep tiny single-line thanks (default — safe)
+   * - 'off'     : no footer at all (cuts immediately after payment block)
+   */
+  footerMode?: 'full' | 'compact' | 'off';
 }
 
 const currencySymbols: Record<string, string> = {
