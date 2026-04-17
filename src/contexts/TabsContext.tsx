@@ -276,39 +276,38 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
-  // Sync active tab with current route
+  // Sync active tab with current route — atomic to prevent duplicates
   useEffect(() => {
     const currentPath = location.pathname;
     if (isExcludedPath(currentPath)) return;
 
-    const existing = tabs.find(t => t.path === currentPath);
-    if (existing) {
-      // Refresh title from latest ROUTE_META (fixes stale cached names)
-      const meta = getRouteMeta(currentPath);
-      if (existing.title !== meta.title) {
-        setTabs(prev => {
+    const meta = getRouteMeta(currentPath);
+    let resolvedId: string | null = null;
+
+    setTabs(prev => {
+      const existing = prev.find(t => t.path === currentPath);
+      if (existing) {
+        resolvedId = existing.id;
+        if (existing.title !== meta.title || existing.icon !== meta.icon) {
           const next = prev.map(t => t.id === existing.id ? { ...t, title: meta.title, icon: meta.icon } : t);
           saveTabs(next, userId);
           return next;
-        });
+        }
+        return prev;
       }
-      setActiveTabId(existing.id);
-    } else {
-      // Auto-open a tab for the current route
-      const meta = getRouteMeta(currentPath);
       const newTab: AppTab = {
         id: crypto.randomUUID(),
         path: currentPath,
         title: meta.title,
         icon: meta.icon,
       };
-      setTabs(prev => {
-        const next = [...prev, newTab];
-        saveTabs(next, userId);
-        return next;
-      });
-      setActiveTabId(newTab.id);
-    }
+      resolvedId = newTab.id;
+      const next = [...prev, newTab];
+      saveTabs(next, userId);
+      return next;
+    });
+
+    if (resolvedId) setActiveTabId(resolvedId);
   }, [location.pathname, userId]);
 
   const openTab = useCallback((path: string, title?: string) => {
@@ -317,27 +316,30 @@ export function TabsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const existing = tabs.find(t => t.path === path);
-    if (existing) {
-      setActiveTabId(existing.id);
-      navigate(path);
-      return;
-    }
     const meta = getRouteMeta(path);
-    const newTab: AppTab = {
-      id: crypto.randomUUID(),
-      path,
-      title: title || meta.title,
-      icon: meta.icon,
-    };
+    let resolvedId: string | null = null;
+
     setTabs(prev => {
+      const existing = prev.find(t => t.path === path);
+      if (existing) {
+        resolvedId = existing.id;
+        return prev;
+      }
+      const newTab: AppTab = {
+        id: crypto.randomUUID(),
+        path,
+        title: title || meta.title,
+        icon: meta.icon,
+      };
+      resolvedId = newTab.id;
       const next = [...prev, newTab];
       saveTabs(next, userId);
       return next;
     });
-    setActiveTabId(newTab.id);
+
+    if (resolvedId) setActiveTabId(resolvedId);
     navigate(path);
-  }, [tabs, navigate, userId]);
+  }, [navigate, userId]);
 
   const closeTab = useCallback((id: string) => {
     setTabs(prev => {
