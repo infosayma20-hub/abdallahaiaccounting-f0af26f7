@@ -80,15 +80,15 @@ export default function Customer360Page() {
       .limit(200) as any)
       .then(({ data }: any) => setInvoices((data as InvoiceRow[]) || []));
 
-    supabase
+    (supabase
       .from("transactions")
       .select("id, voucher_date, amount, voucher_number, voucher_type")
       .eq("user_id", user.id)
       .eq("contact_id", id)
       .eq("voucher_type", "receipt")
       .order("voucher_date", { ascending: false })
-      .limit(100)
-      .then(({ data }) => setPayments(((data as any[]) || []).map((r) => ({
+      .limit(100) as any)
+      .then(({ data }: any) => setPayments(((data as any[]) || []).map((r) => ({
         id: r.id,
         voucher_date: r.voucher_date,
         amount: Number(r.amount || 0),
