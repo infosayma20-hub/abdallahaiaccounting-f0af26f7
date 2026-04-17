@@ -134,29 +134,29 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           <tr>
-            <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'right' }}>رقم الطلب</td>
-            <td style={{ padding: '2px 0', fontSize: '20px', fontWeight: 700, textAlign: 'left' }}>{qNum}</td>
+            <td style={{ padding: '1px 0', fontSize: '24px', fontWeight: 900, textAlign: 'right' }}>رقم الطلب</td>
+            <td style={{ padding: '1px 0', fontSize: '24px', fontWeight: 900, textAlign: 'left' }}>{qNum}</td>
           </tr>
           {order.cashier && (
             <tr>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الكاشير</td>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'left' }}>{order.cashier}</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>الكاشير</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'left' }}>{order.cashier}</td>
             </tr>
           )}
           <tr>
-            <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>نوع الطلب</td>
-            <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{orderTypeLabel}</td>
+            <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>نوع الطلب</td>
+            <td style={{ padding: '1px 0', fontSize: '15px', fontWeight: 700, textAlign: 'left' }}>{orderTypeLabel}</td>
           </tr>
           {order.tableNumber && (
             <tr>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الطاولة</td>
-              <td style={{ padding: '2px 0', fontSize: '17px', fontWeight: 700, textAlign: 'left' }}>{order.tableNumber}</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>الطاولة</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', fontWeight: 700, textAlign: 'left' }}>{order.tableNumber}</td>
             </tr>
           )}
           {order.branchName && (
             <tr>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'right' }}>الفرع</td>
-              <td style={{ padding: '2px 0', fontSize: '17px', textAlign: 'left' }}>{order.branchName}</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'right' }}>الفرع</td>
+              <td style={{ padding: '1px 0', fontSize: '15px', textAlign: 'left' }}>{order.branchName}</td>
             </tr>
           )}
         </tbody>
