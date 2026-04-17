@@ -128,6 +128,33 @@ export default function UserSecurityAuditTab({
     load();
   }, [load]);
 
+  // Realtime: live updates for new security events
+  useEffect(() => {
+    const channel = supabase
+      .channel("user_security_audit_live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "user_security_audit" },
+        (payload) => {
+          const newEvent = payload.new as AuditEvent;
+          setEvents((prev) => {
+            // Respect current filter
+            if (filterType !== "all" && newEvent.event_type !== filterType) return prev;
+            if (filterRisk === "suspicious" && !newEvent.is_suspicious) return prev;
+            if (filterRisk === "new_device" && !newEvent.is_new_device) return prev;
+            return [newEvent, ...prev].slice(0, 500);
+          });
+          if (newEvent.is_suspicious) {
+            toast.warning(`🚨 نشاط مشبوه: ${newEvent.user_email || newEvent.user_id.slice(0, 8)}`);
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [filterType, filterRisk]);
+
   const filtered = events.filter((e) => {
     if (!search) return true;
     const q = search.toLowerCase();
