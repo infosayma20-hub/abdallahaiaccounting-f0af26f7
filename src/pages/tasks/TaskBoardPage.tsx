@@ -132,7 +132,24 @@ export default function TaskBoardPage() {
     dueToday: tasks.filter(t => t.due_date === today && t.status !== "done" && t.status !== "cancelled").length,
   };
 
-  if (authLoading || taskAuthLoading || !taskUser) return <LoadingScreen />;
+  if (authLoading || taskAuthLoading) return <LoadingScreen />;
+  if (!taskUser) {
+    if (autoLoginFailed) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center" dir="rtl">
+          <div className="text-center max-w-md p-6 bg-card rounded-lg border border-border">
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-bold mb-2">تعذّر فتح موديول المهام</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              لم نتمكن من تسجيل دخولك تلقائياً. حاول إعادة تحميل الصفحة، أو سجّل دخول كمستخدم مهام.
+            </p>
+            <Button onClick={() => window.location.reload()}>إعادة المحاولة</Button>
+          </div>
+        </div>
+      );
+    }
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-[80vh]" dir="rtl">
