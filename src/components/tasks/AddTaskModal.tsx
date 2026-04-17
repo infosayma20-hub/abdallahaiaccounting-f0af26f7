@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useTaskAuth } from "@/hooks/useTaskAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
+import { ensureTaskActor } from "@/lib/tasks/taskActor";
 
 const PRIORITIES = [
   { value: "urgent_important", label: "مهم ومستعجل", color: "#E24B4A" },
@@ -31,7 +31,6 @@ interface Props {
 
 export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTask }: Props) {
   const { user } = useAuth();
-  const { taskUser } = useTaskAuth();
   const [title, setTitle] = useState(editTask?.title || "");
   const [description, setDescription] = useState(editTask?.description || "");
   const [priority, setPriority] = useState(editTask?.priority || "normal");
@@ -43,8 +42,10 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!title.trim() || !user || !taskUser) return;
+    if (!title.trim() || !user) return;
     setSaving(true);
+
+    const taskActor = await ensureTaskActor(user).catch(() => null);
 
     const payload: any = {
       title: title.trim(),
@@ -59,17 +60,18 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
 
     if (editTask) {
       await supabase.from("tasks").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editTask.id);
-      await supabase.from("task_history").insert({ task_id: editTask.id, task_user_id: taskUser.id, action: "edited" });
+      await supabase.from("task_history").insert({ task_id: editTask.id, task_user_id: taskActor?.id ?? null, action: "edited" });
       toast({ title: "تم تحديث المهمة" });
     } else {
       payload.user_id = user.id;
-      payload.created_by = taskUser.id;
+      payload.created_by = taskActor?.id ?? null;
+      payload.assigned_by_name = taskActor?.full_name ?? null;
       if (assignTo && assignTo !== "none") {
         payload.status = "in_progress";
       }
       const { data } = await supabase.from("tasks").insert(payload).select("id").single();
       if (data) {
-        await supabase.from("task_history").insert({ task_id: data.id, task_user_id: taskUser.id, action: "created" });
+        await supabase.from("task_history").insert({ task_id: data.id, task_user_id: taskActor?.id ?? null, action: "created" });
       }
       toast({ title: "تم إضافة المهمة بنجاح ✅" });
     }

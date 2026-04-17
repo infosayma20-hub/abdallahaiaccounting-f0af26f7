@@ -2,17 +2,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useTaskAuth } from "@/hooks/useTaskAuth";
 import PageLoader from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, LogOut, Settings, Monitor, Clock, AlertTriangle, CheckCircle2, User } from "lucide-react";
+import { Plus, Monitor, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import TaskCard from "@/components/tasks/TaskCard";
 import AddTaskModal from "@/components/tasks/AddTaskModal";
 import TaskDetailDrawer from "@/components/tasks/TaskDetailDrawer";
 import CompleteTaskModal from "@/components/tasks/CompleteTaskModal";
+import { ensureTaskActor, getTaskActorDisplayName } from "@/lib/tasks/taskActor";
 
 const PRIORITY_COLS = [
   { key: "urgent_important", label: "مهم ومستعجل", color: "#E24B4A" },
@@ -23,7 +23,6 @@ const PRIORITY_COLS = [
 
 export default function TaskBoardPage() {
   const { user, loading: authLoading } = useAuth();
-  const { taskUser, logout, isAdmin, loading: taskAuthLoading, loginAsOwner } = useTaskAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [taskUsers, setTaskUsers] = useState<any[]>([]);
@@ -34,51 +33,48 @@ export default function TaskBoardPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [completeTask, setCompleteTask] = useState<any>(null);
-  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
-  const [autoLoginFailed, setAutoLoginFailed] = useState(false);
+  const [currentTaskActor, setCurrentTaskActor] = useState<any>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showLoader = false) => {
     if (!user) {
       setLoading(false);
       return;
     }
+
+    if (showLoader) {
+      setLoading(true);
+    }
+
     const [tasksRes, usersRes] = await Promise.all([
       supabase.from("tasks").select("*, creator:task_users!tasks_created_by_fkey(id, full_name, avatar_color), assignee:task_users!tasks_assigned_to_fkey(id, full_name, avatar_color), completer:task_users!tasks_completed_by_fkey(id, full_name, avatar_color)").order("created_at", { ascending: false }),
       supabase.from("task_users").select("id, full_name, username, role, avatar_color, is_active, last_login_at, created_at, user_id").eq("is_active", true),
     ]);
+
     if (tasksRes.data) setTasks(tasksRes.data);
     if (usersRes.data) setTaskUsers(usersRes.data);
     setLoading(false);
   }, [user]);
 
-  // Auto-login owner if not already logged into tasks
   useEffect(() => {
-    if (authLoading || taskAuthLoading || autoLoginAttempted) return;
-    if (taskUser) { fetchData(); return; }
     if (!user) {
       setLoading(false);
       return;
     }
-    setAutoLoginAttempted(true);
-    const displayName = user.user_metadata?.full_name || user.email || "المالك";
-    loginAsOwner(user.id, displayName)
-      .then((res) => {
-        if (!res.success) {
-          setAutoLoginFailed(true);
-          setLoading(false);
-        } else {
-          fetchData();
-        }
-      })
-      .catch(() => {
-        setAutoLoginFailed(true);
-        setLoading(false);
-      });
-  }, [user, authLoading, taskUser, taskAuthLoading, autoLoginAttempted, loginAsOwner, fetchData]);
+    void fetchData(true);
+  }, [user, fetchData]);
 
   useEffect(() => {
-    if (taskUser && !taskAuthLoading) fetchData();
-  }, [taskUser, taskAuthLoading, fetchData]);
+    if (!user || currentTaskActor) return;
+
+    ensureTaskActor(user)
+      .then((actor) => {
+        if (!actor) return;
+
+        setCurrentTaskActor(actor);
+        setTaskUsers((prev) => (prev.some((taskUser) => taskUser.id === actor.id) ? prev : [actor, ...prev]));
+      })
+      .catch(() => undefined);
+  }, [user, currentTaskActor]);
 
   // Realtime subscription for instant updates
   useEffect(() => {
@@ -92,26 +88,51 @@ export default function TaskBoardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchData]);
 
+  const resolveTaskActor = useCallback(async () => {
+    if (!user) return null;
+    if (currentTaskActor) return currentTaskActor;
+
+    const actor = await ensureTaskActor(user);
+
+    if (actor) {
+      setCurrentTaskActor(actor);
+      setTaskUsers((prev) => (prev.some((taskUser) => taskUser.id === actor.id) ? prev : [actor, ...prev]));
+    }
+
+    return actor;
+  }, [user, currentTaskActor]);
+
   const handleAssign = async (taskId: string) => {
-    if (!taskUser) return;
-    await supabase.from("tasks").update({ assigned_to: taskUser.id, assigned_at: new Date().toISOString(), status: "in_progress" }).eq("id", taskId);
-    await supabase.from("task_history").insert({ task_id: taskId, task_user_id: taskUser.id, action: "assigned", new_value: taskUser.full_name });
+    const taskActor = await resolveTaskActor();
+    if (!taskActor) {
+      toast({ title: "تعذّر حفظ التكليف", description: "حاول مرة أخرى بعد لحظات", variant: "destructive" });
+      return;
+    }
+
+    await supabase.from("tasks").update({ assigned_to: taskActor.id, assigned_at: new Date().toISOString(), status: "in_progress", assigned_by_name: taskActor.full_name }).eq("id", taskId);
+    await supabase.from("task_history").insert({ task_id: taskId, task_user_id: taskActor.id, action: "assigned", new_value: taskActor.full_name });
     toast({ title: "تم التكفل بالمهمة" });
     fetchData();
   };
 
   const handleComplete = async (taskId: string, note: string) => {
-    if (!taskUser) return;
-    await supabase.from("tasks").update({ status: "done", completed_by: taskUser.id, completed_at: new Date().toISOString(), completion_note: note || null }).eq("id", taskId);
-    await supabase.from("task_history").insert({ task_id: taskId, task_user_id: taskUser.id, action: "completed", note });
+    const taskActor = await resolveTaskActor();
+    if (!taskActor) {
+      toast({ title: "تعذّر إنهاء المهمة", description: "حاول مرة أخرى بعد لحظات", variant: "destructive" });
+      return;
+    }
+
+    await supabase.from("tasks").update({ status: "done", completed_by: taskActor.id, completed_at: new Date().toISOString(), completion_note: note || null }).eq("id", taskId);
+    await supabase.from("task_history").insert({ task_id: taskId, task_user_id: taskActor.id, action: "completed", note });
     toast({ title: "تم إنهاء المهمة بنجاح ✅" });
     setCompleteTask(null);
     fetchData();
   };
 
   const handleCancel = async (taskId: string) => {
+    const taskActor = await resolveTaskActor();
     await supabase.from("tasks").update({ status: "cancelled" }).eq("id", taskId);
-    await supabase.from("task_history").insert({ task_id: taskId, task_user_id: taskUser?.id, action: "status_changed", new_value: "cancelled" });
+    await supabase.from("task_history").insert({ task_id: taskId, task_user_id: taskActor?.id ?? null, action: "status_changed", new_value: "cancelled" });
     toast({ title: "تم إلغاء المهمة" });
     setSelectedTask(null);
     fetchData();
@@ -132,52 +153,30 @@ export default function TaskBoardPage() {
     dueToday: tasks.filter(t => t.due_date === today && t.status !== "done" && t.status !== "cancelled").length,
   };
 
-  if (authLoading || taskAuthLoading) return <PageLoader message="جاري تحميل المهام..." />;
-  if (!taskUser) {
-    if (autoLoginFailed) {
-      return (
-        <div className="min-h-[60vh] flex items-center justify-center" dir="rtl">
-          <div className="text-center max-w-md p-6 bg-card rounded-lg border border-border">
-            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-bold mb-2">تعذّر فتح موديول المهام</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              لم نتمكن من تهيئة حسابك في نظام المهام. حاول إعادة تحميل الصفحة.
-            </p>
-            <Button onClick={() => window.location.reload()}>إعادة المحاولة</Button>
-          </div>
-        </div>
-      );
-    }
-    return <PageLoader message="جاري تهيئة حسابك..." />;
-  }
+  if (authLoading || loading) return <PageLoader message="جاري تحميل المهام..." />;
+  if (!user) return null;
+
+  const displayName = getTaskActorDisplayName(user);
 
   return (
     <div className="min-h-[80vh]" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: taskUser.avatar_color }}>
-            {taskUser.full_name.charAt(0)}
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: currentTaskActor?.avatar_color || "#1B3A5C" }}>
+            {displayName.charAt(0)}
           </div>
           <div>
-            <p className="font-semibold text-sm">{taskUser.full_name}</p>
-            <p className="text-xs text-muted-foreground">{taskUser.role === "admin" ? "مدير" : taskUser.role === "viewer" ? "مشاهد" : "موظف"}</p>
+            <p className="font-semibold text-sm">{displayName}</p>
+            <p className="text-xs text-muted-foreground">مهام الشركة المشتركة</p>
           </div>
         </div>
         <h1 className="text-xl font-bold hidden md:block" style={{ color: "#1B3A5C" }}>إدارة المهام</h1>
         <div className="flex items-center gap-2">
-          {taskUser.role !== "viewer" && (
-            <Button onClick={() => setShowAddModal(true)} style={{ background: "#1B3A5C" }} className="text-white">
-              <Plus className="w-4 h-4 ml-1" /> مهمة جديدة
-            </Button>
-          )}
-          {isAdmin && (
-            <>
-              <Button variant="outline" size="icon" onClick={() => navigate("/tasks/admin")} title="إدارة"><Settings className="w-4 h-4" /></Button>
-              <Button variant="outline" size="icon" onClick={() => navigate("/tasks/display")} title="شاشة العرض"><Monitor className="w-4 h-4" /></Button>
-            </>
-          )}
-          <Button variant="ghost" size="icon" onClick={() => { logout(); navigate("/tasks"); }}><LogOut className="w-4 h-4" /></Button>
+          <Button onClick={() => setShowAddModal(true)} style={{ background: "#1B3A5C" }} className="text-white">
+            <Plus className="w-4 h-4 ml-1" /> مهمة جديدة
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigate("/tasks/display")} title="شاشة العرض"><Monitor className="w-4 h-4" /></Button>
         </div>
       </div>
 
@@ -230,7 +229,7 @@ export default function TaskBoardPage() {
               key={task.id}
               task={task}
               priorityColor={p.color}
-              currentUserId={taskUser.id}
+              currentUserId={currentTaskActor?.id || ""}
               onAssign={() => handleAssign(task.id)}
               onClick={() => setSelectedTask(task)}
               onComplete={() => setCompleteTask(task)}
@@ -240,7 +239,7 @@ export default function TaskBoardPage() {
       </div>
 
       {showAddModal && <AddTaskModal open={showAddModal} onClose={() => setShowAddModal(false)} taskUsers={taskUsers} onSaved={fetchData} />}
-      {selectedTask && <TaskDetailDrawer task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} currentUserId={taskUser.id} isAdmin={isAdmin} onAssign={handleAssign} onComplete={(t) => setCompleteTask(t)} onCancel={handleCancel} onRefresh={fetchData} />}
+      {selectedTask && <TaskDetailDrawer task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} currentUserId={currentTaskActor?.id || ""} isAdmin={false} onAssign={handleAssign} onComplete={(t) => setCompleteTask(t)} onCancel={handleCancel} onRefresh={fetchData} />}
       {completeTask && <CompleteTaskModal open={!!completeTask} onClose={() => setCompleteTask(null)} onConfirm={(note) => handleComplete(completeTask.id, note)} />}
     </div>
   );
