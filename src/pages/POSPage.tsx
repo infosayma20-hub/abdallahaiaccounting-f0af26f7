@@ -3425,6 +3425,7 @@ const POSPage = () => {
           ) : (
             <WifiOff className="h-[18px] w-[18px] text-red-400 shrink-0" />
           )}
+          <BridgeStatusIndicator />
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="h-8 w-8 rounded-full object-cover shrink-0" style={{ border: '1.5px solid rgba(255,255,255,0.15)' }} />
           ) : (
