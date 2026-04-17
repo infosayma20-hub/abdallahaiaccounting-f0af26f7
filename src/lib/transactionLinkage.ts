@@ -18,6 +18,7 @@ export type LinkedDocType =
   | "depreciation"
   | "transfer"
   | "opening_balance"
+  | "pos_session"
   | null;
 
 export interface LinkageInfo {
@@ -29,7 +30,7 @@ export interface LinkageInfo {
 
 const SALE_TYPES = new Set([
   "sale", "sale_cash", "sale_credit", "sale_bank", "sale_cheque",
-  "pos_sale", "pos_cogs", "pos_transfer", "sale_return",
+  "sale_return",
   "فاتورة مبيعات", "مبيعات", "بيع",
 ]);
 
@@ -41,8 +42,14 @@ const PURCHASE_TYPES = new Set([
 
 const RECEIPT_TYPES = new Set(["receipt", "سند قبض", "قبض", "workshop_receipt"]);
 const PAYMENT_TYPES = new Set([
-  "payment", "expense", "pos_expense", "pos_meal", "journal",
+  "payment", "expense", "journal",
   "سند صرف", "صرف", "مصروف", "workshop_cost", "workshop_payment",
+]);
+
+// معاملات نقطة البيع — مصدرها جلسة POS وليس فاتورة/سند تقليدي
+const POS_TYPES = new Set([
+  "pos_sale", "pos_cogs", "pos_transfer", "pos_expense", "pos_meal",
+  "pos_currency_exchange",
 ]);
 
 const CHEQUE_TYPES = new Set([
@@ -65,7 +72,6 @@ const DEPRECIATION_TYPES = new Set([
 
 const TRANSFER_TYPES = new Set([
   "cash_transfer", "bank_transfer", "exchange_diff", "bank_fee",
-  "pos_currency_exchange",
 ]);
 
 const MANUAL_TYPES = new Set(["manual", "manual_entry", "journal_entry"]);
@@ -91,6 +97,16 @@ export function classifyTransaction(tx: {
       docType: "opening_balance",
       label: "🏦 رصيد افتتاحي",
       navigatePath: "/accounts",
+    };
+  }
+
+  // معاملة نقطة البيع — مصدرها جلسة POS، التوجيه لتقرير سجل فواتير POS
+  if (POS_TYPES.has(t)) {
+    return {
+      isLinked: true,
+      docType: "pos_session",
+      label: "🛒 من نقطة البيع",
+      navigatePath: ref ? `/reports/pos-invoice-register?search=${encodeURIComponent(ref)}` : "/pos-reports",
     };
   }
 
