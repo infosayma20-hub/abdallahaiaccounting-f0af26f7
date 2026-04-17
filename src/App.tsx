@@ -170,6 +170,14 @@ const PublicStatementPage = lazy(() => import("./pages/PublicStatementPage"));
 const StoreTrackerDashboard = lazy(() => import("./pages/store-tracker/StoreTrackerDashboard"));
 const StoreTrackerOrderDetail = lazy(() => import("./pages/store-tracker/StoreTrackerOrderDetail"));
 
+// CRM Module
+const CrmLayout = lazy(() => import("./pages/crm/CrmLayout"));
+const CrmDashboard = lazy(() => import("./pages/crm/CrmDashboard"));
+const CrmLeadsPage = lazy(() => import("./pages/crm/CrmLeadsPage"));
+const CrmPipelinePage = lazy(() => import("./pages/crm/CrmPipelinePage"));
+const CrmActivitiesPage = lazy(() => import("./pages/crm/CrmActivitiesPage"));
+const CustomerCenterPage = lazy(() => import("./pages/crm/CustomerCenterPage"));
+
 
 const queryClient = new QueryClient();
 
@@ -281,6 +289,15 @@ const App = () => (
                       <Route path="/accounts/new" element={<AccountFormPage mode="create" />} />
                       <Route path="/accounts/:accountId/edit" element={<AccountFormPage mode="edit" />} />
                       <Route path="/contacts" element={<ContactsPage />} />
+
+                      {/* CRM Module — Phase 1 */}
+                      <Route path="/crm" element={<CrmLayout />}>
+                        <Route index element={<CrmDashboard />} />
+                        <Route path="leads" element={<CrmLeadsPage />} />
+                        <Route path="pipeline" element={<CrmPipelinePage />} />
+                        <Route path="activities" element={<CrmActivitiesPage />} />
+                        <Route path="customers" element={<CustomerCenterPage />} />
+                      </Route>
                       <Route path="/contacts/policies" element={<ContactPoliciesPage />} />
                       <Route path="/contacts/:id" element={<ContactDetailPage />} />
                       <Route path="/export" element={<ExportPage />} />
