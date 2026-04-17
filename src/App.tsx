@@ -43,6 +43,8 @@ const PricingPage = lazy(() => import("./pages/PricingPage"));
 const ShareQRPage = lazy(() => import("./pages/ShareQRPage"));
 const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage"));
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
+const CreditDebitNotesPage = lazy(() => import("./pages/CreditDebitNotesPage"));
+const CreditDebitNoteCreatePage = lazy(() => import("./pages/CreditDebitNoteCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage"));
 const InventoryValuationPage = lazy(() => import("./pages/InventoryValuationPage"));
@@ -285,6 +287,10 @@ const App = () => (
                       <Route path="/invoices" element={<InvoicesPage />} />
                       <Route path="/invoices/recurring" element={<RecurringInvoicesPage />} />
                       <Route path="/invoices/new" element={<InvoiceCreatePageWrapper />} />
+                      <Route path="/credit-notes" element={<CreditDebitNotesPage noteType="credit" />} />
+                      <Route path="/credit-notes/new" element={<CreditDebitNoteCreatePage noteType="credit" />} />
+                      <Route path="/debit-notes" element={<CreditDebitNotesPage noteType="debit" />} />
+                      <Route path="/debit-notes/new" element={<CreditDebitNoteCreatePage noteType="debit" />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/cheques" element={<ChequesPage />} />

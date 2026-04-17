@@ -134,6 +134,7 @@ export const navigationSections: NavSection[] = [
               { label: "الفواتير", path: "/invoices?type=sales" },
               { label: "الطلبيات", path: "/orders" },
               { label: "إرساليات المبيعات", path: "/delivery-notes" },
+              { label: "إشعارات دائنة", path: "/credit-notes" },
               { label: "سندات القبض", path: "/finance/receipts" },
             ],
           },
@@ -156,6 +157,7 @@ export const navigationSections: NavSection[] = [
               { label: "طلب مشتريات", path: "/procurement/orders/new" },
               { label: "الطلبيات", path: "/procurement/orders" },
               { label: "فواتير المشتريات", path: "/invoices?type=purchase" },
+              { label: "إشعارات مدينة", path: "/debit-notes" },
             ],
           },
           {
