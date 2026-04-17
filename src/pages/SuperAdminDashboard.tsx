@@ -2537,6 +2537,7 @@ export default function SuperAdminDashboard() {
             />
           </TabsContent>
 
+          <TabsContent value="subscriptions">
             <SubscriptionsManager />
           </TabsContent>
 
