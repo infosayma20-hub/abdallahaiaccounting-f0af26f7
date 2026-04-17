@@ -204,7 +204,7 @@ export function useEmployee360(employeeId: string | undefined) {
           .eq("employee_id", employeeId)
           .order("movement_date", { ascending: false })
           .limit(100),
-        supabase
+        (supabase as any)
           .from("transactions")
           .select(
             "id, transaction_number, transaction_date, transaction_type, total_amount, currency, description, status, party_type, party_id"
