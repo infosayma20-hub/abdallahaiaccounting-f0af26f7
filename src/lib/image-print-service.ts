@@ -35,6 +35,29 @@ export function setPrintMode(mode: PrintMode): void {
   try { localStorage.setItem(PRINT_MODE_KEY, mode); } catch {/* ignore */}
 }
 
+// ──────────────────────────────────────────
+// Footer Mode (full | compact | off) — temporary mitigation for raster corruption
+// "compact" hides QR + extra footer text, keeping only essential receipt body.
+// "off" removes ALL post-payment content. Default: 'compact' until bridge patch is applied.
+// ──────────────────────────────────────────
+
+export type FooterMode = 'full' | 'compact' | 'off';
+const FOOTER_MODE_KEY = 'pos-receipt-footer-mode';
+
+export function getFooterMode(): FooterMode {
+  try {
+    const v = localStorage.getItem(FOOTER_MODE_KEY);
+    if (v === 'full' || v === 'off') return v;
+    return 'compact'; // default — safe until bridge patch lands
+  } catch {
+    return 'compact';
+  }
+}
+
+export function setFooterMode(mode: FooterMode): void {
+  try { localStorage.setItem(FOOTER_MODE_KEY, mode); } catch {/* ignore */}
+}
+
 interface PrintImageResult {
   success: boolean;
   error?: string;
@@ -46,6 +69,7 @@ function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHe
   return {
     type: receiptType,
     printMode: getPrintMode(),
+    footerMode: getFooterMode(),
     debug: opts.debug ?? false,
     itemsCount: opts.itemsCount,
     estimatedHeight: opts.estimatedHeight,
@@ -56,8 +80,10 @@ function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHe
 
 /** Estimate receipt height in px from items count (rough heuristic) */
 function estimateReceiptHeight(itemsCount: number): number {
-  // header ~280 + footer ~220 + ~70 per item @ font 17px
-  return 500 + itemsCount * 70;
+  // header ~280 + footer varies by mode + ~70 per item @ font 17px
+  const mode = getFooterMode();
+  const footerPx = mode === 'full' ? 220 : mode === 'compact' ? 60 : 0;
+  return 280 + footerPx + itemsCount * 70;
 }
 
 /** Kitchen job — a filtered set of items for one station printer */
@@ -148,6 +174,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
   name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string;
 }) {
   const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
+  const footerMode = getFooterMode();
   return {
     orderNumber: order.orderNumber,
     queueNumber: order.queueNumber,
@@ -181,6 +208,10 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
     subtotal: order.subtotal,
     orderNote: order.orderNote,
     terminalName: companyInfo?.terminalName,
+    // ── FOOTER MODE (bridge must respect this to avoid raster overflow) ──
+    footerMode,
+    showQr: footerMode === 'full',
+    showThanks: footerMode !== 'off',
   };
 }
 
@@ -560,6 +591,7 @@ export async function getReceiptPreviewPng(
       companyAddress: companyInfo?.address,
       taxNumber: companyInfo?.taxNumber,
       terminalName: companyInfo?.terminalName,
+      footerMode: getFooterMode(),
     }));
 
     setTimeout(async () => {

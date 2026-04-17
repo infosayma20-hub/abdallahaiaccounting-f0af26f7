@@ -19,6 +19,13 @@ interface Props {
   logoUrl?: string;
   showReturnPolicy?: boolean;
   returnPolicyDays?: number;
+  /**
+   * Footer mode — temporary mitigation for raster buffer-overflow on the printer.
+   * - 'full'    : QR + thanks + extra spacing (legacy behavior)
+   * - 'compact' : skip QR, keep tiny single-line thanks (default — safe)
+   * - 'off'     : no footer at all (cuts immediately after payment block)
+   */
+  footerMode?: 'full' | 'compact' | 'off';
 }
 
 const currencySymbols: Record<string, string> = {
@@ -47,6 +54,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   taxNumber,
   terminalName,
   logoUrl,
+  footerMode = 'compact',
 }, ref) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB');
@@ -261,30 +269,40 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
         </div>
       )}
 
-      <hr style={hrDash} />
+      {/* ═══ 7. QR CODE — only in 'full' mode (heavy raster, may overflow printer buffer) ═══ */}
+      {footerMode === 'full' && (
+        <>
+          <hr style={hrDash} />
+          <div style={{ textAlign: 'center', margin: '4px 0', ...box }}>
+            <QRCodeSVG
+              value={qrContent}
+              size={90}
+              level="M"
+              style={{ margin: '0 auto', display: 'block' }}
+            />
+            <div style={{ fontSize: '14px', color: '#555', marginTop: '2px' }}>
+              امسح للتحقق من الإيصال
+            </div>
+          </div>
+        </>
+      )}
 
-      {/* ═══ 7. QR CODE ═══ */}
-      <div style={{ textAlign: 'center', margin: '4px 0', ...box }}>
-        <QRCodeSVG
-          value={qrContent}
-          size={90}
-          level="M"
-          style={{ margin: '0 auto', display: 'block' }}
-        />
-        <div style={{ fontSize: '14px', color: '#555', marginTop: '2px' }}>
-          امسح للتحقق من الإيصال
-        </div>
-      </div>
+      {/* ═══ 8. FOOTER — hidden entirely when 'off' ═══ */}
+      {footerMode !== 'off' && (
+        <>
+          <hr style={hr} />
+          <div style={{ textAlign: 'center', ...box }}>
+            <div style={{ fontSize: footerMode === 'compact' ? '15px' : '18px', fontWeight: 700 }}>
+              ❤️ شكراً لتعاملكم معنا
+            </div>
+            {footerMode === 'full' && (
+              <div style={{ fontSize: '14px', color: '#333' }}>Thank you for your visit</div>
+            )}
+          </div>
+        </>
+      )}
 
-      <hr style={hr} />
-
-      {/* ═══ 8. FOOTER ═══ */}
-      <div style={{ textAlign: 'center', ...box }}>
-        <div style={{ fontSize: '18px', fontWeight: 700 }}>❤️ شكراً لتعاملكم معنا</div>
-        <div style={{ fontSize: '14px', color: '#333' }}>Thank you for your visit</div>
-      </div>
-
-      <div style={{ height: '6px' }} />
+      <div style={{ height: footerMode === 'off' ? '2px' : '6px' }} />
     </div>
   );
 });

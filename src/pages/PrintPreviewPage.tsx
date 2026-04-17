@@ -16,6 +16,9 @@ import {
   testPrintReceipt,
   getPrintMode,
   setPrintMode,
+  getFooterMode,
+  setFooterMode,
+  type FooterMode,
 } from "@/lib/image-print-service";
 import PrintDiagnosticsPanel from "@/components/pos/PrintDiagnosticsPanel";
 import type { PrintMode } from "@/lib/print-diagnostics";
@@ -101,11 +104,17 @@ export default function PrintPreviewPage() {
   const [printing, setPrinting] = useState(false);
   const [downloadingServer, setDownloadingServer] = useState(false);
   const [printMode, setPrintModeState] = useState<PrintMode>(getPrintMode());
+  const [footerMode, setFooterModeState] = useState<FooterMode>(getFooterMode());
   const [testing, setTesting] = useState<null | 'text' | 'logo' | 'receipt'>(null);
 
   const togglePrintMode = (m: PrintMode) => {
     setPrintMode(m);
     setPrintModeState(m);
+  };
+
+  const toggleFooterMode = (m: FooterMode) => {
+    setFooterMode(m);
+    setFooterModeState(m);
   };
 
   const runTest = async (kind: 'text' | 'logo' | 'receipt') => {
@@ -215,6 +224,45 @@ export default function PrintPreviewPage() {
         </div>
       </div>
 
+      {/* Footer mode toggle — temporary mitigation until bridge patch lands */}
+      <div className="mb-3 flex justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border text-sm flex-wrap justify-center">
+          <span className="text-muted-foreground">تذييل الفاتورة:</span>
+          <Button
+            size="sm"
+            variant={footerMode === 'full' ? 'default' : 'outline'}
+            onClick={() => toggleFooterMode('full')}
+            className="h-7 px-3 text-xs"
+            title="QR + شعار + سطور إضافية (قد يسبب خرابيش حالياً)"
+          >
+            🧾 full
+          </Button>
+          <Button
+            size="sm"
+            variant={footerMode === 'compact' ? 'default' : 'outline'}
+            onClick={() => toggleFooterMode('compact')}
+            className="h-7 px-3 text-xs"
+            title="بدون QR، سطر شكر مختصر (الافتراضي الآمن)"
+          >
+            ⚡ compact
+          </Button>
+          <Button
+            size="sm"
+            variant={footerMode === 'off' ? 'default' : 'outline'}
+            onClick={() => toggleFooterMode('off')}
+            className="h-7 px-3 text-xs"
+            title="بدون أي تذييل — قص فوراً بعد الدفع"
+          >
+            🚫 off
+          </Button>
+          {footerMode !== 'full' && (
+            <span className="text-[10px] text-warning ms-2">
+              ⚠️ مؤقت — يُعاد لـ full بعد patch البردج
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Diagnostic test buttons */}
       <div className="mb-3 flex justify-center gap-2 flex-wrap px-4">
         <Button onClick={() => runTest('text')} size="sm" variant="secondary" className="gap-2" disabled={!!testing}>
@@ -268,6 +316,7 @@ export default function PrintPreviewPage() {
               taxNumber={SAMPLE_COMPANY_INFO.taxNumber}
               terminalName={SAMPLE_COMPANY_INFO.terminalName}
               logoUrl={SAMPLE_COMPANY_INFO.logoUrl}
+              footerMode={footerMode}
             />
           </div>
         )}

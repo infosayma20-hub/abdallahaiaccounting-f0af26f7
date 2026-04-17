@@ -413,3 +413,79 @@ if (meta.debug) {
 ```
 
 ثم ارسل لي ملف `print-debug.bin` للتحليل.
+
+---
+
+## 9) ⚡ الحل المؤقت من جانب POS — `footerMode`
+
+> **هدف**: تقليل ارتفاع الـ raster فوراً (قبل تطبيق patch البردج) عبر إخفاء الـ QR والتذييل من الواجهة.
+
+### 9.1 ما يرسله POS الآن
+
+كل طلب `/print-receipt` يحتوي على:
+
+```json
+{
+  "order": {
+    "...": "...",
+    "footerMode": "compact",   // 'full' | 'compact' | 'off'
+    "showQr": false,
+    "showThanks": true
+  },
+  "meta": {
+    "type": "cashier_receipt",
+    "footerMode": "compact",
+    "estimatedHeight": 770,
+    "...": "..."
+  }
+}
+```
+
+### 9.2 ما يجب أن يفعله البردج
+
+في دالة `renderReceiptPng(order)` على البردج:
+
+```javascript
+function renderReceiptPng(order) {
+  const mode = order.footerMode || 'full';
+
+  // ...بناء الترويسة + الأصناف + الإجماليات + الدفع كالمعتاد...
+
+  // ── QR ──
+  if (mode === 'full') {
+    drawQrCode(svg, qrPayload, { x: centerX, y: cursorY, size: 90 });
+    cursorY += 110;
+  }
+
+  // ── Footer ──
+  if (mode !== 'off') {
+    const fontSize = mode === 'compact' ? 15 : 18;
+    drawText(svg, '❤️ شكراً لتعاملكم معنا', { x: centerX, y: cursorY, size: fontSize, align: 'center' });
+    cursorY += fontSize + 4;
+    if (mode === 'full') {
+      drawText(svg, 'Thank you for your visit', { x: centerX, y: cursorY, size: 14, align: 'center', color: '#333' });
+      cursorY += 18;
+    }
+  }
+
+  // قص فوري إذا كان off
+  cursorY += (mode === 'off' ? 2 : 6);
+  return rasterize(svg, cursorY);
+}
+```
+
+### 9.3 الترتيب العملي
+
+| الخطوة | المسؤول | الحالة |
+|--------|---------|--------|
+| 1. تفعيل `compact` افتراضياً في POS | Lovable | ✅ تم |
+| 2. إرسال `footerMode` في كل طلب طباعة | Lovable | ✅ تم |
+| 3. تطبيق منطق `mode` في `renderReceiptPng` على البردج | الفني | ⏳ مطلوب |
+| 4. تطبيق patch الـ bands + pacing من القسم 3 | الفني | ⏳ مطلوب |
+| 5. إعادة تفعيل `full` من إعدادات POS | المستخدم | بعد (3+4) |
+
+### 9.4 ملاحظات
+
+- **الافتراضي الآمن**: `compact` (يقلل ارتفاع الفاتورة بـ ~150px)
+- **الحل الجذري** يبقى تطبيق patch القسم 3 (تقطيع bands + pacing + ESC@). الـ `footerMode` مجرد مهدّئ يقلل احتمال الـ buffer overflow لكن لا يلغيه.
+- بعد تطبيق patch البردج كاملاً، يستطيع المستخدم العودة لـ `full` من شاشة `/print-preview`.
