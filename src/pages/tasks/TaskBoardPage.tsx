@@ -35,9 +35,13 @@ export default function TaskBoardPage() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [completeTask, setCompleteTask] = useState<any>(null);
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const [autoLoginFailed, setAutoLoginFailed] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     const [tasksRes, usersRes] = await Promise.all([
       supabase.from("tasks").select("*, creator:task_users!tasks_created_by_fkey(id, full_name, avatar_color), assignee:task_users!tasks_assigned_to_fkey(id, full_name, avatar_color), completer:task_users!tasks_completed_by_fkey(id, full_name, avatar_color)").order("created_at", { ascending: false }),
       supabase.from("task_users").select("*").eq("is_active", true),
@@ -51,10 +55,25 @@ export default function TaskBoardPage() {
   useEffect(() => {
     if (authLoading || taskAuthLoading || autoLoginAttempted) return;
     if (taskUser) { fetchData(); return; }
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setAutoLoginAttempted(true);
     const displayName = user.user_metadata?.full_name || user.email || "المالك";
-    loginAsOwner(user.id, displayName).then(() => fetchData());
+    loginAsOwner(user.id, displayName)
+      .then((res) => {
+        if (!res.success) {
+          setAutoLoginFailed(true);
+          setLoading(false);
+        } else {
+          fetchData();
+        }
+      })
+      .catch(() => {
+        setAutoLoginFailed(true);
+        setLoading(false);
+      });
   }, [user, authLoading, taskUser, taskAuthLoading, autoLoginAttempted, loginAsOwner, fetchData]);
 
   useEffect(() => {
@@ -113,7 +132,24 @@ export default function TaskBoardPage() {
     dueToday: tasks.filter(t => t.due_date === today && t.status !== "done" && t.status !== "cancelled").length,
   };
 
-  if (authLoading || taskAuthLoading || !taskUser) return <LoadingScreen />;
+  if (authLoading || taskAuthLoading) return <LoadingScreen />;
+  if (!taskUser) {
+    if (autoLoginFailed) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center" dir="rtl">
+          <div className="text-center max-w-md p-6 bg-card rounded-lg border border-border">
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-bold mb-2">تعذّر فتح موديول المهام</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              لم نتمكن من تسجيل دخولك تلقائياً. حاول إعادة تحميل الصفحة، أو سجّل دخول كمستخدم مهام.
+            </p>
+            <Button onClick={() => window.location.reload()}>إعادة المحاولة</Button>
+          </div>
+        </div>
+      );
+    }
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-[80vh]" dir="rtl">
