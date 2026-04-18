@@ -210,20 +210,49 @@ export default function VanReportsPage() {
         });
       }
 
-      // Collections (best-effort: receipts in period; not warehouse-tagged in transactions)
-      const { data: rcps } = await supabase
-        .from("transactions")
-        .select("id, amount, contact_id")
-        .eq("user_id", user.id)
-        .eq("transaction_type", "سند قبض")
-        .gte("transaction_date", from)
-        .lte("transaction_date", to);
-      // Distribute proportionally to sales share per rep
-      const totalSalesAll = Array.from(perfMap.values()).reduce((s, p) => s + p.total_sales, 0);
-      const totalRcps = (rcps || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-      perfMap.forEach((p) => {
-        p.total_collections = totalSalesAll > 0 ? (p.total_sales / totalSalesAll) * totalRcps : 0;
+      // Collections: receipts linked to contacts whose invoices are in each rep's warehouse
+      const customerByRep = new Map<string, Set<string>>();
+      (invs || []).forEach((i: any) => {
+        const rep = repByWh.get(i.warehouse_id);
+        if (!rep) return;
+        if (!customerByRep.has(rep.id)) customerByRep.set(rep.id, new Set());
+        // Need contact_id - refetch with contact_id
       });
+      // Refetch invoices with contact_id for collection mapping
+      const { data: invsWithContact } = await supabase
+        .from("invoices")
+        .select("contact_id, warehouse_id")
+        .eq("user_id", user.id)
+        .in("warehouse_id", warehouseIds)
+        .gte("invoice_date", from)
+        .lte("invoice_date", to)
+        .neq("status", "cancelled");
+      (invsWithContact || []).forEach((i: any) => {
+        const rep = repByWh.get(i.warehouse_id);
+        if (!rep || !i.contact_id) return;
+        if (!customerByRep.has(rep.id)) customerByRep.set(rep.id, new Set());
+        customerByRep.get(rep.id)!.add(i.contact_id);
+      });
+      const allContactIds = Array.from(
+        new Set(Array.from(customerByRep.values()).flatMap((s) => Array.from(s)))
+      );
+      if (allContactIds.length > 0) {
+        const { data: rcps } = await supabase
+          .from("transactions")
+          .select("amount, contact_id")
+          .eq("user_id", user.id)
+          .in("transaction_type", ["receipt", "سند قبض"])
+          .gte("transaction_date", from)
+          .lte("transaction_date", to)
+          .in("contact_id", allContactIds);
+        (rcps || []).forEach((r: any) => {
+          customerByRep.forEach((set, repId) => {
+            if (set.has(r.contact_id)) {
+              perfMap.get(repId)!.total_collections += Number(r.amount || 0);
+            }
+          });
+        });
+      }
     }
 
     // Compute profit margins
