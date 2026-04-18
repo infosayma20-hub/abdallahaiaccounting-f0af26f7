@@ -508,3 +508,32 @@ function ClickableGroupRows({ data, onClick }: { data: any[]; onClick: (row: any
   }, [data, onClick]);
   return null;
 }
+
+function ViewModeBtn({ active, onClick, icon, label, disabled }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-all ${
+        active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function ChartTypeBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-all ${
+        active ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
