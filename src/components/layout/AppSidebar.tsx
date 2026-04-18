@@ -40,6 +40,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const { settings } = useCompanySettings();
   const { subscription } = useSubscription();
   const [openItem, setOpenItem] = useState<string | null>(null);
+  const navRef = React.useRef<HTMLElement>(null);
+  const itemRefs = React.useRef<Map<string, HTMLDivElement>>(new Map());
 
   const isTrial = subscription?.isTrial ?? true;
 
@@ -107,7 +109,18 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               onToggle();
               setOpenItem(item.label);
             } else {
+              // Preserve scroll position + keep clicked item visible after toggle
+              const navEl = navRef.current;
+              const itemEl = itemRefs.current.get(item.label);
+              const prevScroll = navEl?.scrollTop ?? 0;
+              const itemTopBefore = itemEl?.offsetTop ?? 0;
               setOpenItem(prev => prev === item.label ? null : item.label);
+              requestAnimationFrame(() => {
+                if (!navEl || !itemEl) return;
+                const itemTopAfter = itemEl.offsetTop;
+                const delta = itemTopAfter - itemTopBefore;
+                navEl.scrollTop = prevScroll + delta;
+              });
             }
           } else if (item.path) {
             handleNavigate(item.path);
@@ -183,7 +196,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     );
 
     return (
-      <div key={item.id}>
+      <div
+        key={item.id}
+        ref={(el) => {
+          if (el) itemRefs.current.set(item.label, el);
+          else itemRefs.current.delete(item.label);
+        }}
+      >
         <div className="flex items-center">
           <div className="flex-1 min-w-0">
             {collapsed ? (
@@ -351,7 +370,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </div>
 
       {/* ═══ Navigation ═══ */}
-      <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
+      <nav ref={navRef} className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
         {/* Enabled items per section */}
         {navigationSections.map((section, sectionIdx) => {
           const enabledItems = section.items.filter(item => !isItemDisabled(item));
