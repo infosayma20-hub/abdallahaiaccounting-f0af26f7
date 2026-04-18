@@ -51,6 +51,8 @@ export default function ReportBuilderPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const chartRef = useRef<HTMLDivElement | null>(null);
 
+  const source = useMemo(() => getDataSource(sourceKey)!, [sourceKey]);
+
   // Load saved report or draft
   useEffect(() => {
     if (loadId && user) {
