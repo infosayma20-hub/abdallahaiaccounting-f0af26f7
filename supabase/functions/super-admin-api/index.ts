@@ -369,6 +369,19 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ── Snapshot BEFORE for diff/audit ──
+      const { data: beforeRow } = await admin
+        .from("subscriptions")
+        .select("plan_id, status, billing_cycle, current_period_start, current_period_end, trial_ends_at, custom_amount, custom_currency, agreement_type, user_id")
+        .eq("id", subscription_id)
+        .single();
+
+      if (!beforeRow) {
+        return new Response(JSON.stringify({ error: "الاشتراك غير موجود" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const updateData: any = {};
       if (plan_id) updateData.plan_id = plan_id;
       if (status) updateData.status = status;
@@ -376,28 +389,44 @@ Deno.serve(async (req) => {
       if (custom_amount !== undefined) updateData.custom_amount = custom_amount || null;
       if (custom_currency !== undefined) updateData.custom_currency = custom_currency;
       if (agreement_type !== undefined) updateData.agreement_type = agreement_type;
-      if (period_start) updateData.current_period_start = new Date(period_start + "T00:00:00Z").toISOString();
 
-      // If a custom period_end is provided, use it
+      // ── Dates: respect what the admin entered, otherwise compute from cycle ──
+      if (period_start) {
+        updateData.current_period_start = new Date(period_start + "T00:00:00Z").toISOString();
+      }
       if (period_end) {
         updateData.current_period_end = new Date(period_end + "T23:59:59Z").toISOString();
-        if (status === "active" || status === "trial") {
-          updateData.current_period_start = updateData.current_period_start || new Date().toISOString();
-          updateData.trial_ends_at = updateData.current_period_end;
-        }
-      } else if (status === "active") {
-        // Default: set period from now
-        updateData.current_period_start = new Date().toISOString();
-        const end = new Date();
+      }
+
+      // If status becomes active without explicit dates, default to a fresh period from today
+      if (status === "active" && !period_start && !period_end) {
+        const now = new Date();
+        updateData.current_period_start = now.toISOString();
+        const end = new Date(now);
         end.setMonth(end.getMonth() + (billing_cycle === "annual" ? 12 : 1));
         updateData.current_period_end = end.toISOString();
+      }
+
+      // ── Trial handling: explicit and unambiguous ──
+      if (status === "trial") {
+        // Trial: trial_ends_at MUST mirror period_end
+        updateData.trial_ends_at = updateData.current_period_end ?? beforeRow.current_period_end;
+      } else if (status && status !== "trial") {
+        // Active / expired / cancelled / suspended: clear trial flag to avoid UI confusion
+        updateData.trial_ends_at = null;
       }
 
       if (status === "cancelled") {
         updateData.cancelled_at = new Date().toISOString();
       }
 
-      const { error } = await admin.from("subscriptions").update(updateData).eq("id", subscription_id);
+      const { data: afterRow, error } = await admin
+        .from("subscriptions")
+        .update(updateData)
+        .eq("id", subscription_id)
+        .select("plan_id, status, billing_cycle, current_period_start, current_period_end, trial_ends_at, custom_amount, custom_currency, agreement_type, user_id")
+        .single();
+
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -405,11 +434,9 @@ Deno.serve(async (req) => {
       }
 
       // ── Cascade to team members ──
-      // Find the owner user_id of this subscription
-      const { data: subRow } = await admin.from("subscriptions").select("user_id").eq("id", subscription_id).single();
-      if (subRow?.user_id) {
-        const ownerId = subRow.user_id;
-        // Find all team members (profiles.invited_by = ownerId)
+      let cascadedCount = 0;
+      const ownerId = beforeRow.user_id;
+      if (ownerId) {
         const { data: teamProfiles } = await admin
           .from("profiles")
           .select("user_id")
@@ -417,27 +444,46 @@ Deno.serve(async (req) => {
 
         if (teamProfiles && teamProfiles.length > 0) {
           const teamUserIds = teamProfiles.map((p: any) => p.user_id);
-          // Build cascade data: sync plan, status, dates
           const cascadeData: any = {};
-          if (updateData.plan_id) cascadeData.plan_id = updateData.plan_id;
-          if (updateData.status) cascadeData.status = updateData.status;
-          if (updateData.current_period_start) cascadeData.current_period_start = updateData.current_period_start;
-          if (updateData.current_period_end) cascadeData.current_period_end = updateData.current_period_end;
-          if (updateData.trial_ends_at) cascadeData.trial_ends_at = updateData.trial_ends_at;
-          if (updateData.cancelled_at) cascadeData.cancelled_at = updateData.cancelled_at;
-          if (updateData.billing_cycle) cascadeData.billing_cycle = updateData.billing_cycle;
+          if (updateData.plan_id !== undefined) cascadeData.plan_id = updateData.plan_id;
+          if (updateData.status !== undefined) cascadeData.status = updateData.status;
+          if (updateData.current_period_start !== undefined) cascadeData.current_period_start = updateData.current_period_start;
+          if (updateData.current_period_end !== undefined) cascadeData.current_period_end = updateData.current_period_end;
+          if (updateData.trial_ends_at !== undefined) cascadeData.trial_ends_at = updateData.trial_ends_at;
+          if (updateData.cancelled_at !== undefined) cascadeData.cancelled_at = updateData.cancelled_at;
+          if (updateData.billing_cycle !== undefined) cascadeData.billing_cycle = updateData.billing_cycle;
 
           if (Object.keys(cascadeData).length > 0) {
-            await admin
+            const { count } = await admin
               .from("subscriptions")
-              .update(cascadeData)
-              .in("user_id", teamUserIds);
+              .update(cascadeData, { count: "exact" })
+              .in("user_id", teamUserIds)
+              .select("id", { count: "exact", head: true });
+            cascadedCount = count ?? teamUserIds.length;
           }
         }
       }
 
-      await logAction("update_subscription", "subscription", subscription_id, updateData);
-      return new Response(JSON.stringify({ success: true }), {
+      // ── Build human-readable diff ──
+      const diff: Record<string, { from: any; to: any }> = {};
+      const trackFields = ["plan_id", "status", "billing_cycle", "current_period_start", "current_period_end", "trial_ends_at", "custom_amount", "custom_currency", "agreement_type"];
+      for (const f of trackFields) {
+        const b = (beforeRow as any)[f];
+        const a = (afterRow as any)[f];
+        if (String(b ?? "") !== String(a ?? "")) {
+          diff[f] = { from: b, to: a };
+        }
+      }
+
+      await logAction("update_subscription", "subscription", subscription_id, { diff, cascaded_count: cascadedCount });
+
+      return new Response(JSON.stringify({
+        success: true,
+        before: beforeRow,
+        after: afterRow,
+        diff,
+        cascaded_count: cascadedCount,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
