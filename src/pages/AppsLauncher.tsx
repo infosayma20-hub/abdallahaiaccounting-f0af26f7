@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft, Lock, Crown } from "lucide-react";
+import { Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -12,11 +12,11 @@ import UpgradePromptModal from "@/components/subscription/UpgradePromptModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
-import { motion } from "framer-motion";
-
-
-import { getAppSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
+import { getAppSections, type NavItem } from "@/config/navigationConfig";
 import { multiWordMatchAny } from "@/lib/utils";
+import { APPS_VISUAL_META, getAppMeta, type AppSection as SectionKey } from "@/pages/Apps/data/appsRegistry";
+import AppCardV2 from "@/pages/Apps/components/AppCardV2";
+import AppSectionBlock from "@/pages/Apps/components/AppSection";
 
 const appSections = getAppSections();
 
