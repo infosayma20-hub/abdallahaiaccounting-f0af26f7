@@ -4,7 +4,7 @@ import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { ColumnDef } from "@/components/reports/SortableReportTable";
-import { reshapeArabic } from "@/lib/arabic-reshaper";
+import { ar as reshapeArabicText } from "@/utils/arabic-pdf-utils";
 
 interface ExportPdfParams {
   title: string;
@@ -27,13 +27,13 @@ const fmt = (v: any, type: string) => {
   return String(v);
 };
 
-// Try to reshape Arabic; fall back gracefully if helper unavailable
+// Reshape Arabic for jsPDF (handles mixed LTR/RTL)
 function ar(text: string): string {
   try {
-    const r = reshapeArabic(text);
-    return r || text;
+    const r = reshapeArabicText(String(text ?? ""));
+    return r || String(text ?? "");
   } catch {
-    return text;
+    return String(text ?? "");
   }
 }
 
