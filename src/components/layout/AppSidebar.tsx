@@ -196,7 +196,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     );
 
     return (
-      <div key={item.id}>
+      <div
+        key={item.id}
+        ref={(el) => {
+          if (el) itemRefs.current.set(item.label, el);
+          else itemRefs.current.delete(item.label);
+        }}
+      >
         <div className="flex items-center">
           <div className="flex-1 min-w-0">
             {collapsed ? (
