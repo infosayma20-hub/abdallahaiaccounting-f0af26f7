@@ -125,7 +125,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "crm", label: "إدارة علاقات العملاء", description: "من عميل محتمل إلى صفقة مغلقة وفاتورة محصّلة", module: "crm", icon: UserPlus,
-        color: "text-indigo-600", bgColor: "bg-indigo-500/10", path: "/crm", isNew: true,
+        color: "text-indigo-600", bgColor: "bg-indigo-500/10", path: "/crm",
         keywords: ["crm", "علاقات", "عملاء", "leads", "pipeline", "محتمل", "فرص", "متابعات"],
         groups: [
           {
