@@ -12707,6 +12707,125 @@ export type Database = {
         }
         Relationships: []
       }
+      van_sales_days: {
+        Row: {
+          actual_cash_collected: number | null
+          cash_variance: number | null
+          closed_at: string | null
+          closed_by: string | null
+          closing_notes: string | null
+          created_at: string
+          day_date: string
+          day_number: string
+          expected_cash: number | null
+          id: string
+          load_transfer_id: string | null
+          opened_at: string
+          opened_by: string | null
+          opening_cash: number
+          opening_currency: string
+          opening_notes: string | null
+          sales_rep_id: string
+          status: string
+          stock_variance_items: number | null
+          stock_variance_value: number | null
+          total_collections: number | null
+          total_invoices: number | null
+          total_returns: number | null
+          total_sales: number | null
+          updated_at: string
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          actual_cash_collected?: number | null
+          cash_variance?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_notes?: string | null
+          created_at?: string
+          day_date?: string
+          day_number: string
+          expected_cash?: number | null
+          id?: string
+          load_transfer_id?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_cash?: number
+          opening_currency?: string
+          opening_notes?: string | null
+          sales_rep_id: string
+          status?: string
+          stock_variance_items?: number | null
+          stock_variance_value?: number | null
+          total_collections?: number | null
+          total_invoices?: number | null
+          total_returns?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          actual_cash_collected?: number | null
+          cash_variance?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_notes?: string | null
+          created_at?: string
+          day_date?: string
+          day_number?: string
+          expected_cash?: number | null
+          id?: string
+          load_transfer_id?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_cash?: number
+          opening_currency?: string
+          opening_notes?: string | null
+          sales_rep_id?: string
+          status?: string
+          stock_variance_items?: number | null
+          stock_variance_value?: number | null
+          total_collections?: number | null
+          total_invoices?: number | null
+          total_returns?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "van_sales_days_load_transfer_id_fkey"
+            columns: ["load_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_transfers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "van_sales_days_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "van_sales_days_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "van_sales_days_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voucher_lines: {
         Row: {
           account_code: string
@@ -13910,6 +14029,14 @@ export type Database = {
       }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       clear_must_change_password: { Args: never; Returns: boolean }
+      close_van_day: {
+        Args: {
+          p_actual_cash?: number
+          p_closing_notes?: string
+          p_day_id: string
+        }
+        Returns: Json
+      }
       complete_pos_order: {
         Args: { p_order_id: string; p_payments: Json; p_user_id: string }
         Returns: Json
@@ -14070,6 +14197,16 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      open_van_day: {
+        Args: {
+          p_load_transfer_id?: string
+          p_notes?: string
+          p_opening_cash?: number
+          p_opening_currency?: string
+          p_sales_rep_id: string
+        }
+        Returns: string
       }
       process_pos_return: {
         Args: {
