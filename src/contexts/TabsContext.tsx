@@ -78,6 +78,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/profile": { title: "الملف الشخصي", icon: "settings" },
   
   "/sales-reps": { title: "مندوبين المبيعات", icon: "users" },
+  "/warehouses": { title: "المستودعات", icon: "package" },
   "/fixed-assets": { title: "الأصول الثابتة", icon: "briefcase" },
   "/warranty": { title: "إدارة الكفالات", icon: "shield" },
   "/warranty/policies": { title: "سياسات الكفالة", icon: "shield" },
