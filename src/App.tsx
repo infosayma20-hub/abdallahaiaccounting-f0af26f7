@@ -56,6 +56,7 @@ const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentatives
 const WarehousesPage = lazy(() => import("./pages/WarehousesPage"));
 const StockTransfersPage = lazy(() => import("./pages/StockTransfersPage"));
 const VanDaysPage = lazy(() => import("./pages/VanDaysPage"));
+const VanModePage = lazy(() => import("./pages/VanModePage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 const DeliveryNotesPage = lazy(() => import("./pages/DeliveryNotesPage"));
 const DeliveryNoteCreatePage = lazy(() => import("./pages/DeliveryNoteCreatePage"));
@@ -356,6 +357,7 @@ const App = () => (
                       <Route path="/warehouses" element={<WarehousesPage />} />
                       <Route path="/stock-transfers" element={<StockTransfersPage />} />
                       <Route path="/van-days" element={<VanDaysPage />} />
+                      <Route path="/van" element={<VanModePage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/orders/:id" element={<OrderDetailPage />} />
                       <Route path="/delivery-notes" element={<DeliveryNotesPage />} />

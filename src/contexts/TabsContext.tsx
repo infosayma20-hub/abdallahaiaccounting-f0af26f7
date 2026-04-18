@@ -81,6 +81,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/warehouses": { title: "المستودعات", icon: "package" },
   "/stock-transfers": { title: "سندات تحويل المخزون", icon: "package" },
   "/van-days": { title: "دورة يوم البائع المتجول", icon: "truck" },
+  "/van": { title: "وضع البائع المتجول", icon: "truck" },
   "/fixed-assets": { title: "الأصول الثابتة", icon: "briefcase" },
   "/warranty": { title: "إدارة الكفالات", icon: "shield" },
   "/warranty/policies": { title: "سياسات الكفالة", icon: "shield" },

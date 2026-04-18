@@ -240,6 +240,7 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "المستودعات والبائعين",
             children: [
+              { label: "وضع البائع المتجول", path: "/van" },
               { label: "المستودعات", path: "/warehouses" },
               { label: "سندات تحويل المخزون", path: "/stock-transfers" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
