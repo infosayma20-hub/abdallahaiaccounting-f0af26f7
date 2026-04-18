@@ -1,8 +1,10 @@
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Clock } from "lucide-react";
+import { Lock, Clock, ChevronDown } from "lucide-react";
 import type { NavItem } from "@/config/navigationConfig";
 import type { AppVisualMeta } from "../data/appsRegistry";
 import FavoriteStar from "./FavoriteStar";
+import AppMenuPopover from "./AppMenuPopover";
 
 interface Props {
   app: NavItem;
@@ -19,20 +21,25 @@ interface Props {
 }
 
 /**
- * AppCardV2 — Restored classic AMWALI cards with subtle 3D effect
- * - White card, blue tint border (#dbeafe → #3b82f6 hover)
- * - Original app colors from navigationConfig (app.color / app.bgColor)
- * - 3D: layered shadows + translateY/scale + inner highlight
+ * AppCardV2 — Restored classic AMWALI cards with subtle 3D effect.
+ * - White card, blue tint border, layered 3D shadows.
+ * - Apps with `groups` open a popover menu (sub-sections) instead of navigating.
+ * - Apps without `groups` (or `isDirect`) navigate immediately.
  */
 export default function AppCardV2({
   app, meta, index, onNavigate, disabled, isPremiumLocked, pendingActivation, onPremiumClick,
   isFavorite, onToggleFavorite,
 }: Props) {
   const isInert = disabled;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const hasMenu = !!(app.groups && app.groups.length > 0 && !app.isDirect);
 
   const handleClick = () => {
     if (isInert) return;
     if (isPremiumLocked) { onPremiumClick?.(); return; }
+    if (hasMenu) { setMenuOpen((v) => !v); return; }
     onNavigate(app.path);
   };
 
