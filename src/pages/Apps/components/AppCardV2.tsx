@@ -150,6 +150,17 @@ export default function AppCardV2({
             >
               {app.label}
             </p>
+            {hasMenu && !isInert && !isPremiumLocked && (
+              <ChevronDown
+                size={13}
+                strokeWidth={2.4}
+                style={{
+                  color: "#94a3b8",
+                  transition: "transform 0.2s ease",
+                  transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            )}
             {!isInert && app.isNew && !pendingActivation && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">
                 جديد
@@ -207,5 +218,18 @@ export default function AppCardV2({
         </div>
       </button>
     </motion.div>
+
+    {hasMenu && (
+      <AppMenuPopover
+        anchorEl={cardRef.current}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={app.label}
+        groups={app.groups || []}
+        accentColor={meta.iconColor}
+        onNavigate={onNavigate}
+      />
+    )}
+    </>
   );
 }
