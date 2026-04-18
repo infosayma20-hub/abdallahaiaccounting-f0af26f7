@@ -213,6 +213,47 @@ export default function ReportBuilderPage() {
     toast({ title: "تم التصدير ✅" });
   };
 
+  // Available chart types based on current data shape
+  const isGrouped = groupBy !== "none" && data.length > 0 && "_group" in data[0];
+  const availableCharts = useMemo(
+    () => getAvailableCharts(tableColumns, isGrouped),
+    [tableColumns, isGrouped]
+  );
+
+  // Reset chart type if current is not available
+  useEffect(() => {
+    if (availableCharts.length > 0 && !availableCharts.includes(chartType)) {
+      setChartType(availableCharts[0]);
+    }
+    if (availableCharts.length === 0 && viewMode !== "table") {
+      setViewMode("table");
+    }
+  }, [availableCharts, chartType, viewMode]);
+
+  const handleExportPdf = async () => {
+    if (!data.length) return;
+    setExportingPdf(true);
+    try {
+      const chartEl = (viewMode === "chart" || viewMode === "both") ? chartRef.current : null;
+      await new Promise(r => setTimeout(r, 150));
+      await exportReportToPdf({
+        title: reportName || `تقرير ${source.label}`,
+        subtitle: reportDesc || undefined,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        kpis: kpis.map(k => ({ label: k.label, value: k.value })),
+        columns: tableColumns,
+        data,
+        chartElement: chartEl,
+      });
+      toast({ title: "تم تصدير PDF ✅" });
+    } catch (e: any) {
+      toast({ title: "خطأ في تصدير PDF", description: e.message, variant: "destructive" });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
