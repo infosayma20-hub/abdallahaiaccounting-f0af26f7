@@ -238,6 +238,13 @@ export const navigationSections: NavSection[] = [
             ],
           },
           {
+            groupLabel: "المستودعات والبائعين",
+            children: [
+              { label: "المستودعات", path: "/warehouses" },
+              { label: "مندوبين المبيعات", path: "/sales-reps" },
+            ],
+          },
+          {
             groupLabel: "الحركات والتقييم",
             children: [
               { label: "حركات المخزون", path: "/inventory-movements" },
