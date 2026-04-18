@@ -254,7 +254,7 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
-        id: "van-sales", label: "البائع المتجول", description: "دورة البيع الميداني، العمولات، وتقارير المندوبين", module: "inventory", icon: Plane,
+        id: "van-sales", label: "البائع المتجول", description: "دورة البيع الميداني، العمولات، وتقارير المندوبين", module: "inventory", icon: Truck,
         color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/van",
         keywords: ["بائع", "متجول", "ميداني", "مندوب", "van", "توزيع"],
         groups: [
