@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import SubscriptionEditDialog from "@/components/super-admin/SubscriptionEditDialog";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1062,30 +1063,24 @@ function SubscriptionsManager() {
 
    const openEdit = (sub: any) => {
      setEditSub(sub);
-     setEditPlanId(sub.plan_id);
-     setEditStatus(sub.status);
-     setEditBilling(sub.billing_cycle);
-     setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
-     setEditCustomAmount(sub.custom_amount ? String(sub.custom_amount) : "");
-     setEditCustomCurrency(sub.custom_currency || "ILS");
-     setEditAgreementType(sub.agreement_type || "monthly");
-     setEditPeriodStart(sub.current_period_start ? sub.current_period_start.split("T")[0] : new Date().toISOString().split("T")[0]);
    };
 
-   const saveEdit = async () => {
-     if (!editSub) return;
+   const saveEdit = async (payload: any) => {
      try {
-       await apiCall("update_subscription", undefined, {
-         subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
-         custom_amount: editCustomAmount ? Number(editCustomAmount) : null,
-         custom_currency: editCustomCurrency,
-         agreement_type: editAgreementType,
-         period_start: editPeriodStart || undefined,
-       });
-       toast.success("تم تحديث الاشتراك");
-       setEditSub(null);
+       const res = await apiCall("update_subscription", undefined, payload);
+       const cascaded = res?.cascaded_count ?? 0;
+       const diffCount = res?.diff ? Object.keys(res.diff).length : 0;
+       if (cascaded > 0) {
+         toast.success(`تم تحديث الاشتراك (${diffCount} تغيير) — وتم مزامنة ${cascaded} عضو من الفريق`);
+       } else {
+         toast.success(`تم تحديث الاشتراك (${diffCount} تغيير)`);
+       }
        loadData();
-     } catch (e: any) { toast.error(e.message); }
+       return res;
+     } catch (e: any) {
+       toast.error(e.message);
+       throw e;
+     }
    };
 
   const filtered = subs.filter((s) =>
