@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
+import { Lock, Clock } from "lucide-react";
 import type { NavItem } from "@/config/navigationConfig";
 import type { AppVisualMeta } from "../data/appsRegistry";
 import FavoriteStar from "./FavoriteStar";
@@ -9,8 +9,10 @@ interface Props {
   meta: AppVisualMeta;
   index: number;
   onNavigate: (path: string) => void;
-  disabled?: boolean;       // hidden by super admin
+  disabled?: boolean;       // hidden by super admin (legacy: hard-disable)
   isPremiumLocked?: boolean;
+  /** التطبيق معطّل من الإدارة → يظهر في Premium بانتظار التفعيل */
+  pendingActivation?: boolean;
   onPremiumClick?: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
@@ -23,7 +25,7 @@ interface Props {
  * - 3D: layered shadows + translateY/scale + inner highlight
  */
 export default function AppCardV2({
-  app, meta, index, onNavigate, disabled, isPremiumLocked, onPremiumClick,
+  app, meta, index, onNavigate, disabled, isPremiumLocked, pendingActivation, onPremiumClick,
   isFavorite, onToggleFavorite,
 }: Props) {
   const isInert = disabled;
