@@ -242,6 +242,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "المستودعات", path: "/warehouses" },
               { label: "سندات تحويل المخزون", path: "/stock-transfers" },
+              { label: "دورة يوم البائع المتجول", path: "/van-days" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
             ],
           },
