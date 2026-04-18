@@ -202,13 +202,11 @@ const AppsLauncher = () => {
     return !enabledModules.includes(app.id);
   };
 
-  // Determine which tier is needed to unlock a module
+  // Determine which tier is needed to unlock a module (3-plan system: Starter / Professional / Enterprise)
   const getRequiredTier = (appId: string): string => {
-    const proModules = ["pos", "hr", "tasks", "ai-accountant"];
-    const enterpriseModules = ["workshops", "contracting", "warranty", "tourism", "ecommerce", "call-center", "stores"];
+    const enterpriseModules = ["tourism", "ecommerce", "call-center", "stores"];
     if (enterpriseModules.includes(appId)) return "enterprise";
-    if (proModules.includes(appId)) return "pro";
-    return "pro";
+    return "pro"; // everything else unlocks at Professional
   };
 
   // Check if user has a restricted role (not admin/super_admin)
