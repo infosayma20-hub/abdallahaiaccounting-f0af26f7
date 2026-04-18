@@ -17,6 +17,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import { APPS_VISUAL_META, getAppMeta, type AppSection as SectionKey } from "@/pages/Apps/data/appsRegistry";
 import AppCardV2 from "@/pages/Apps/components/AppCardV2";
 import AppSectionBlock from "@/pages/Apps/components/AppSection";
+import AppsHero from "@/pages/Apps/components/AppsHero";
+import FloatingAIBar from "@/pages/Apps/components/FloatingAIBar";
 
 const appSections = getAppSections();
 
@@ -147,12 +149,9 @@ const AppsLauncher = () => {
   return (
     <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 24px 48px" }}>
-        {/* Title */}
-        <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 500, color: "#0D1B2E", margin: 0 }}>التطبيقات</h2>
-          <p style={{ fontSize: 14, color: "#6B7280", marginTop: 6, marginBottom: 0 }}>كل ما تحتاجه لإدارة أعمالك — في مكان واحد</p>
-        </div>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px 120px" }}>
+        {/* Hero */}
+        <AppsHero />
 
         {/* Search */}
         <div className="flex justify-center mb-8">
@@ -250,6 +249,9 @@ const AppsLauncher = () => {
           />
         </>
       )}
+
+      {/* Floating AI Accountant access bar */}
+      <FloatingAIBar />
     </div>
   );
 };
