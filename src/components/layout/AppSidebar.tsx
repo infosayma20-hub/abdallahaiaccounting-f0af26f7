@@ -370,7 +370,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </div>
 
       {/* ═══ Navigation ═══ */}
-      <nav className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
+      <nav ref={navRef} className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) rgba(255,255,255,0.05)", padding: 8 }}>
         {/* Enabled items per section */}
         {navigationSections.map((section, sectionIdx) => {
           const enabledItems = section.items.filter(item => !isItemDisabled(item));
