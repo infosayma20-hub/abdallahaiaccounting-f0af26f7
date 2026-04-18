@@ -9,6 +9,7 @@ import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import UpgradePromptModal from "@/components/subscription/UpgradePromptModal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
@@ -154,8 +155,8 @@ const AppCard = ({
 
 const AppsLauncher = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { settings } = useCompanySettings();
+  const { user, loading: authLoading } = useAuth();
+  const { settings, loading: settingsLoading } = useCompanySettings();
   const { subscription, loading: subLoading } = useSubscription();
   const { isTrial, isSuperAdmin, loading: guardLoading } = useSubscriptionGuard();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
@@ -163,22 +164,40 @@ const AppsLauncher = () => {
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
   // Subscription is fully resolved only when both subscription + guard finished loading
   const subscriptionResolved = !subLoading && !guardLoading;
 
-  // Fetch user roles for filtering
+  // Fetch user roles for filtering (with cleanup to avoid setState on unmounted)
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setRolesLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setRolesLoading(true);
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .then(({ data }) => {
+        if (cancelled) return;
         setUserRoles((data || []).map((r) => r.role));
+        setRolesLoading(false);
       });
-  }, [user]);
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Unified loading gate: render skeleton until ALL deps are ready in one pass
+  const isReady =
+    !authLoading &&
+    !settingsLoading &&
+    !subLoading &&
+    !guardLoading &&
+    !onboardingLoading &&
+    !rolesLoading;
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
@@ -274,29 +293,47 @@ const AppsLauncher = () => {
           </div>
         </div>
 
-        {/* Apps Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {allFilteredApps.map((app, idx) => (
-            <AppCard
-              key={app.id}
-              app={app}
-              index={idx}
-              isExpanded={expandedApp === app.id}
-              onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
-              onNavigate={navigate}
-              disabled={isAppDisabled(app)}
-              isLocked={hiddenApps.includes(app.id)}
-              isPremiumLocked={isAppPremiumLocked(app)}
-              onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
-            />
-          ))}
-        </div>
-
-        {totalResults === 0 && (
-          <div className="text-center py-16">
-            <Search className="h-8 w-8 mx-auto mb-3" style={{ color: "#94a3b8", opacity: 0.4 }} />
-            <p style={{ fontSize: 14, color: "#64748b" }}>لا توجد نتائج لـ "{search}"</p>
+        {/* Apps Grid — gated on unified loading state to prevent flicker */}
+        {!isReady ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-[14px] p-5 pb-4 flex flex-col items-center gap-3"
+                style={{ background: "#ffffff", border: "1.5px solid #dbeafe" }}
+              >
+                <Skeleton shimmer className="w-[52px] h-[52px] rounded-xl" />
+                <Skeleton shimmer className="h-4 w-24 rounded-md" />
+                <Skeleton shimmer className="h-3 w-32 rounded-md" />
+              </div>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {allFilteredApps.map((app, idx) => (
+                <AppCard
+                  key={app.id}
+                  app={app}
+                  index={idx}
+                  isExpanded={expandedApp === app.id}
+                  onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
+                  onNavigate={navigate}
+                  disabled={isAppDisabled(app)}
+                  isLocked={hiddenApps.includes(app.id)}
+                  isPremiumLocked={isAppPremiumLocked(app)}
+                  onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                />
+              ))}
+            </div>
+
+            {totalResults === 0 && (
+              <div className="text-center py-16">
+                <Search className="h-8 w-8 mx-auto mb-3" style={{ color: "#94a3b8", opacity: 0.4 }} />
+                <p style={{ fontSize: 14, color: "#64748b" }}>لا توجد نتائج لـ "{search}"</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
