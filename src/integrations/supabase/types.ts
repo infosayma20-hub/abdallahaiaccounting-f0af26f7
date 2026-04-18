@@ -10706,6 +10706,178 @@ export type Database = {
           },
         ]
       }
+      stock_transfer_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total: number
+          notes: string | null
+          product_id: string
+          product_name: string
+          quantity: number
+          transfer_id: string
+          unit: string | null
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total?: number
+          notes?: string | null
+          product_id: string
+          product_name: string
+          quantity: number
+          transfer_id: string
+          unit?: string | null
+          unit_cost?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total?: number
+          notes?: string | null
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          transfer_id?: string
+          unit?: string | null
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfer_items_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_transfers: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          from_warehouse_id: string | null
+          id: string
+          notes: string | null
+          sales_rep_id: string | null
+          status: string
+          to_warehouse_id: string | null
+          total_items: number
+          total_quantity: number
+          total_value: number
+          transfer_date: string
+          transfer_number: string
+          transfer_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_warehouse_id?: string | null
+          id?: string
+          notes?: string | null
+          sales_rep_id?: string | null
+          status?: string
+          to_warehouse_id?: string | null
+          total_items?: number
+          total_quantity?: number
+          total_value?: number
+          transfer_date?: string
+          transfer_number: string
+          transfer_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_warehouse_id?: string | null
+          id?: string
+          notes?: string | null
+          sales_rep_id?: string | null
+          status?: string
+          to_warehouse_id?: string | null
+          total_items?: number
+          total_quantity?: number
+          total_value?: number
+          transfer_date?: string
+          transfer_number?: string
+          transfer_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_transfers_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_to_warehouse_id_fkey"
+            columns: ["to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_to_warehouse_id_fkey"
+            columns: ["to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           agreement_type: string | null
@@ -13732,12 +13904,17 @@ export type Database = {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
       }
+      cancel_stock_transfer: {
+        Args: { p_reason?: string; p_transfer_id: string }
+        Returns: Json
+      }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       clear_must_change_password: { Args: never; Returns: boolean }
       complete_pos_order: {
         Args: { p_order_id: string; p_payments: Json; p_user_id: string }
         Returns: Json
       }
+      confirm_stock_transfer: { Args: { p_transfer_id: string }; Returns: Json }
       create_invoice_with_entry: {
         Args: {
           p_amount: number
