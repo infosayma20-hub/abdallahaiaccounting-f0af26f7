@@ -16,6 +16,9 @@ import {
   LayoutGrid,
   RotateCcw,
   Zap,
+  Activity,
+  Layers,
+  CircleDot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +35,7 @@ import ColumnPicker from "@/components/report-builder/ColumnPicker";
 import FilterPanel from "@/components/report-builder/FilterPanel";
 import DrillDownModal from "@/components/report-builder/DrillDownModal";
 import ReportChart, { ChartType, getAvailableCharts } from "@/components/report-builder/ReportChart";
+import ChartToolbar from "@/components/report-builder/ChartToolbar";
 import TableSkeleton from "@/components/report-builder/TableSkeleton";
 import ReportPagination from "@/components/report-builder/ReportPagination";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
@@ -547,13 +551,21 @@ export default function ReportBuilderPage() {
               </div>
 
               {(viewMode === "chart" || viewMode === "both") && availableCharts.length > 0 && (
-                <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                <div className="inline-flex rounded-lg border border-border bg-background p-0.5 flex-wrap">
                   {availableCharts.includes("bar") && (
                     <ChartTypeBtn
                       active={chartType === "bar"}
                       onClick={() => setChartType("bar")}
                       icon={<BarChart3 className="h-3.5 w-3.5" />}
                       label="أعمدة"
+                    />
+                  )}
+                  {availableCharts.includes("stacked") && (
+                    <ChartTypeBtn
+                      active={chartType === "stacked"}
+                      onClick={() => setChartType("stacked")}
+                      icon={<Layers className="h-3.5 w-3.5" />}
+                      label="مكدّس"
                     />
                   )}
                   {availableCharts.includes("line") && (
@@ -564,12 +576,28 @@ export default function ReportBuilderPage() {
                       label="خطي"
                     />
                   )}
+                  {availableCharts.includes("area") && (
+                    <ChartTypeBtn
+                      active={chartType === "area"}
+                      onClick={() => setChartType("area")}
+                      icon={<Activity className="h-3.5 w-3.5" />}
+                      label="مساحي"
+                    />
+                  )}
                   {availableCharts.includes("pie") && (
                     <ChartTypeBtn
                       active={chartType === "pie"}
                       onClick={() => setChartType("pie")}
                       icon={<PieIcon className="h-3.5 w-3.5" />}
                       label="دائري"
+                    />
+                  )}
+                  {availableCharts.includes("donut") && (
+                    <ChartTypeBtn
+                      active={chartType === "donut"}
+                      onClick={() => setChartType("donut")}
+                      icon={<CircleDot className="h-3.5 w-3.5" />}
+                      label="حلقي"
                     />
                   )}
                 </div>
@@ -594,7 +622,9 @@ export default function ReportBuilderPage() {
               {/* Chart */}
               {(viewMode === "chart" || viewMode === "both") && availableCharts.length > 0 && (
                 <div ref={chartRef} className="p-4 bg-background">
-                  <ReportChart data={data} columns={tableColumns} type={chartType} isGrouped={isGrouped} />
+                  <ChartToolbar title={reportName || `تقرير ${source.label}`}>
+                    <ReportChart data={data} columns={tableColumns} type={chartType} isGrouped={isGrouped} />
+                  </ChartToolbar>
                 </div>
               )}
 
