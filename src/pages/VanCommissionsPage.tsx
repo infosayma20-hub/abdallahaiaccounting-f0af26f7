@@ -152,29 +152,17 @@ export default function VanCommissionsPage() {
       const invIds = (warehouseInvoices || []).map((x) => x.id);
 
       if (invIds.length > 0) {
-        const { data: rcps, error: e2 } = await supabase
+        const q: any = supabase
           .from("transactions")
           .select("id, amount")
           .eq("user_id", user.id)
           .eq("transaction_type", "سند قبض")
           .gte("transaction_date", from)
-          .lte("transaction_date", to)
-          .in("reference_id", invIds);
-        if (e2) {
-          // reference_id may not be in schema; fall back to date-only
-          const { data: rcps2 } = await supabase
-            .from("transactions")
-            .select("id, amount")
-            .eq("user_id", user.id)
-            .eq("transaction_type", "سند قبض")
-            .gte("transaction_date", from)
-            .lte("transaction_date", to);
-          receiptsCount = rcps2?.length || 0;
-          collectionBase = (rcps2 || []).reduce((s, r) => s + Number(r.amount || 0), 0);
-        } else {
-          receiptsCount = rcps?.length || 0;
-          collectionBase = (rcps || []).reduce((s, r) => s + Number(r.amount || 0), 0);
-        }
+          .lte("transaction_date", to);
+        const { data: rcps } = await q;
+        const list = (rcps || []) as Array<{ id: string; amount: number }>;
+        receiptsCount = list.length;
+        collectionBase = list.reduce((s, r) => s + Number(r.amount || 0), 0);
       }
     }
 
