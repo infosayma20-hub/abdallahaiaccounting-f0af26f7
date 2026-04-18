@@ -196,6 +196,21 @@ export default function AppCardV2({
                 AI
               </span>
             )}
+            {!isInert && app.id === "crm" && !pendingActivation && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  background: "#4f46e5",
+                  color: "#ffffff",
+                  letterSpacing: 0.5,
+                }}
+              >
+                CRM
+              </span>
+            )}
           </div>
           <p
             className="line-clamp-2"
