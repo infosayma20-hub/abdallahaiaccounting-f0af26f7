@@ -99,31 +99,42 @@ const AppsLauncher = () => {
     return found || null;
   }, [userRoles]);
 
-  const allFilteredApps = useMemo(() => {
+  /* Filter apps by role + search; group results by section (Phase 1) */
+  const groupedApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
 
-    // Filter by role if restricted
+    // Role-based filter
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
       allApps = allApps.filter(app => allowed.includes(app.id));
     }
-    
+
+    // Search filter
     const q = search.trim();
     const filtered = q
       ? allApps.filter(app =>
           multiWordMatchAny(q, app.label, app.description, ...(app.keywords || []))
-          || getAllChildren(app).some(c => multiWordMatchAny(q, c.label))
         )
       : allApps;
-    // Sort: enabled first, hidden/locked apps last
-    return filtered.sort((a, b) => {
+
+    // Sort: enabled first, hidden last
+    const sorted = filtered.sort((a, b) => {
       const aDisabled = isAppDisabled(a) ? 1 : 0;
       const bDisabled = isAppDisabled(b) ? 1 : 0;
       return aDisabled - bDisabled;
     });
+
+    // Group by section meta
+    const groups: Record<SectionKey, NavItem[]> = { core: [], operations: [], premium: [] };
+    for (const app of sorted) {
+      const meta = getAppMeta(app.id);
+      if (!meta) continue;
+      groups[meta.section].push(app);
+    }
+    return { groups, total: sorted.length };
   }, [search, restrictedRole, hiddenApps]);
 
-  const totalResults = allFilteredApps.length;
+  const totalResults = groupedApps.total;
 
   const handleStartTour = () => { update({ welcome_modal_shown: true }); setTourActive(true); };
   const handleSkipWelcome = () => { update({ welcome_modal_shown: true, full_tour_skipped: true }); };
@@ -187,22 +198,30 @@ const AppsLauncher = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allFilteredApps.map((app, idx) => (
-                <AppCard
-                  key={app.id}
-                  app={app}
-                  index={idx}
-                  isExpanded={expandedApp === app.id}
-                  onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
-                  onNavigate={navigate}
-                  disabled={isAppDisabled(app)}
-                  isLocked={hiddenApps.includes(app.id)}
-                  isPremiumLocked={isAppPremiumLocked(app)}
-                  onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
-                />
-              ))}
-            </div>
+            {/* Three hierarchical sections per AMWALI brand spec */}
+            {(["core", "operations", "premium"] as SectionKey[]).map((sec) => {
+              const apps = groupedApps.groups[sec];
+              if (apps.length === 0) return null;
+              return (
+                <AppSectionBlock key={sec} section={sec} isPremium={sec === "premium"}>
+                  {apps.map((app, idx) => {
+                    const meta = getAppMeta(app.id)!;
+                    return (
+                      <AppCardV2
+                        key={app.id}
+                        app={app}
+                        meta={meta}
+                        index={idx}
+                        onNavigate={navigate}
+                        disabled={isAppDisabled(app)}
+                        isPremiumLocked={isAppPremiumLocked(app)}
+                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                      />
+                    );
+                  })}
+                </AppSectionBlock>
+              );
+            })}
 
             {totalResults === 0 && (
               <div className="text-center py-16">
