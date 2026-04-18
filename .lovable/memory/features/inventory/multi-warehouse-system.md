@@ -1,53 +1,36 @@
 ---
-name: Multi-Warehouse + Van Sales System
-description: Multi-warehouse + stock transfers + van day cycle + mobile van mode UI. Routes: /warehouses, /stock-transfers, /van-days, /van.
+name: Multi-Warehouse Van Sales System
+description: Phased system for traveling salesmen — separate warehouses, transfer vouchers, day cycle, mobile UI, and manual commissions
 type: feature
 ---
 
-# نظام المستودعات + التحويلات + دورة يوم البائع + وضع الموبايل
+# نظام البائع المتجول (Van Sales System)
 
-## Phase 1 — البنية التحتية للمستودعات
-- جدول `warehouses` (4 أنواع: main/branch/van/virtual)
-- أعمدة `warehouse_id` في stock_movements/pos_orders/invoices
-- `sales_representatives.default_warehouse_id`
-- view: `product_warehouse_stock`
-- RPC: `ensure_default_warehouse`
-- واجهة: `/warehouses`
+## المراحل المُنجزة
 
-## Phase 2 — سندات تحويل المخزون
-- `stock_transfers` + `stock_transfer_items` (TR-YYYY-####)
-- أنواع: load_van/return_van/transfer/adjustment
-- RPCs: `confirm_stock_transfer` / `cancel_stock_transfer` (مع حركات عكسية)
-- واجهة: `/stock-transfers`
+### المرحلة 1: مستودع لكل بائع
+- جدول `warehouses` بحقل `sales_rep_id` (مستودع متحرك per rep).
+- ربط `default_warehouse_id` في `sales_representatives`.
 
-## Phase 3 — دورة يوم البائع
-- جدول `van_sales_days` (VD-YYYY-####) مع UNIQUE WHERE status='open' لمنع يومين متزامنين
-- RPCs: `open_van_day`, `close_van_day` (مطابقة تلقائية: opening_cash + collections vs actual)
-- واجهة: `/van-days` (KPIs + بطاقات + إغلاق ومطابقة)
+### المرحلة 2: سندات تحويل المخزون
+- جدولا `stock_transfers` و `stock_transfer_items`.
+- RPCs: `confirm_stock_transfer`, `cancel_stock_transfer`.
+- صفحة `/stock-transfers` بـ 4 أنواع (تحميل، إرجاع، بين فروع، تسوية).
 
-## Phase 4 — وضع الموبايل المبسط `/van` (Van Mode UI)
-### الهدف
-واجهة Mobile-first مُحسَّنة للـ iPhone للبائع أثناء الحركة، بأقل عدد نقرات.
+### المرحلة 3: دورة يوم البائع
+- جدول `van_sales_days` (open/closed/cancelled).
+- RPCs: `open_van_day`, `close_van_day` (مطابقة نقدية تلقائية).
+- صفحة `/van-days`.
 
-### المكونات
-- **Header**: شعار المستودع + اسم البائع + Badge "الوقت المنقضي" منذ فتح اليوم
-- **حالة فارغة**: إذا لا يوجد يوم مفتوح → Call-to-action كبير لـ `/van-days`
-- **بطاقة اليوم**: رقم اليوم + المستودع + 4 إحصائيات حية (فواتير/مبيعات/تحصيلات/أصناف بالسيارة)
-- **4 أزرار كبيرة (gradient)**:
-  1. بيع سريع → `/pos`
-  2. تحصيل → `/finance/receipts/new`
-  3. جرد السيارة → `/stock-transfers?warehouse=...`
-  4. موقعي → يستخدم `navigator.geolocation` لتسجيل GPS مع toast تأكيد
-- **روابط ثانوية**: فواتير اليوم / إضافة عميل سريع / سجل أيام العمل
-- **زر إغلاق اليوم**: destructive كبير يوجّه لـ `/van-days` لإتمام المطابقة
+### المرحلة 4: واجهة /van Mobile-first
+- صفحة `/van` بطاقة يومية + 4 أزرار (بيع/تحصيل/جرد/GPS) + PWA-friendly.
 
-### قرارات تقنية
-- `min-h-[100dvh]` للـ iPhone notch/safe-area
-- `active:scale-95` للأزرار الكبيرة (haptic-like feel)
-- استعلامات Supabase مكسّرة (لا Promise.all) لتفادي TS2589 deep type
-- لا يستخدم Capacitor — يعمل كـ PWA على iPhone (Safari → Add to Home Screen)
+### المرحلة 5: العمولات اليدوية
+- صفحة `/van-commissions`.
+- تحسب من `invoices.warehouse_id == sales_rep.default_warehouse_id` (مبيعات) و `transactions.transaction_type='سند قبض'` خلال الفترة (تحصيلات).
+- تستخدم النسب الافتراضية من `sales_representatives.sales_commission_rate / collection_commission_rate` ويمكن تعديلها لكل احتساب.
+- تنشئ سجلين في `commissions` (مبيعات + تحصيل) عند التأكيد، مع زر تعليم كمدفوعة.
 
-## الخطوات التالية المقترحة
-- Phase 5: عمولات تلقائية (currently manual)
-- Phase 6: تتبع GPS مستمر للفاتورة (حفظ lat/lng في invoices.metadata)
-- Phase 7: واجهة "بيع سريع جداً" داخل /van بدلاً من فتح /pos الكامل
+## القرارات
+- **نموذج مخزون**: مستودع مستقل لكل بائع (الأدق محاسبياً).
+- **العمولات**: يدوية فقط (لا تريغرات تلقائية) — البائع يحتسب لكل فترة ويحفظ.
