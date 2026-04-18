@@ -53,6 +53,7 @@ const AppsHero = () => {
     if (!user?.id) return;
     let cancelled = false;
     (async () => {
+      // 1) Profile name
       const { data: prof } = await supabase
         .from("profiles")
         .select("display_name, company_name")
@@ -62,29 +63,56 @@ const AppsHero = () => {
       const n = (prof as any)?.display_name || (prof as any)?.company_name || user.email?.split("@")[0] || "";
       setName(n.split(" ")[0] || n);
 
-      const { start, end } = todayRange();
+      // Today range — based on business date (invoice_date / transaction_date), local TZ
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      // 2) Sales invoices today (LIVE only — exclude void/cancelled/draft & credit notes)
+      //    Amount converted to ILS using exchange_rate (defaults to 1 for ILS).
       const { data: invs } = await supabase
         .from("invoices")
-        .select("total, invoice_type, is_deleted")
+        .select("total_amount, invoice_type, status, currency, exchange_rate, is_credit_note")
         .eq("user_id", user.id)
-        .gte("created_at", start)
-        .lte("created_at", end);
-      const liveInvs = (invs || []).filter((i: any) => !i.is_deleted);
-      const sales = liveInvs
-        .filter((i: any) => i.invoice_type === "sale" || i.invoice_type === "sales")
-        .reduce((s: number, i: any) => s + Number(i.total || 0), 0);
+        .eq("invoice_date", todayStr);
 
+      const liveInvs = (invs || []).filter((i: any) => {
+        const status = String(i.status || "").toLowerCase();
+        if (["void", "voided", "cancelled", "canceled", "draft"].includes(status)) return false;
+        if (i.is_credit_note) return false;
+        return true;
+      });
+
+      const salesILS = liveInvs
+        .filter((i: any) => i.invoice_type === "sale")
+        .reduce((s: number, i: any) => {
+          const rate = Number(i.exchange_rate) > 0 ? Number(i.exchange_rate) : 1;
+          return s + Number(i.total_amount || 0) * rate;
+        }, 0);
+
+      const salesCount = liveInvs.filter((i: any) => i.invoice_type === "sale").length;
+
+      // 3) Receipts today — money-in vouchers (live only)
+      //    Includes formal receipts, POS cash sales, workshop receipts.
+      const RECEIPT_TYPES = ["receipt", "sale_cash", "workshop_receipt"];
       const { data: receipts } = await supabase
         .from("transactions")
-        .select("amount")
+        .select("amount, currency, exchange_rate, transaction_type, is_deleted")
         .eq("user_id", user.id)
-        .eq("transaction_type", "receipt")
-        .gte("created_at", start)
-        .lte("created_at", end);
-      const receiptsTotal = (receipts || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+        .in("transaction_type", RECEIPT_TYPES)
+        .eq("transaction_date", todayStr);
+
+      const receiptsTotal = (receipts || [])
+        .filter((t: any) => !t.is_deleted)
+        .reduce((s: number, t: any) => {
+          const rate = Number(t.exchange_rate) > 0 ? Number(t.exchange_rate) : 1;
+          return s + Number(t.amount || 0) * rate;
+        }, 0);
 
       if (cancelled) return;
-      setStats({ sales, receipts: receiptsTotal, invoices: liveInvs.length });
+      setStats({ sales: salesILS, receipts: receiptsTotal, invoices: salesCount });
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
