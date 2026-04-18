@@ -5457,6 +5457,30 @@ export type Database = {
           },
         ]
       }
+      invoice_sequences: {
+        Row: {
+          invoice_type: string
+          last_number: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          invoice_type: string
+          last_number?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          invoice_type?: string
+          last_number?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount_in_words: string | null
