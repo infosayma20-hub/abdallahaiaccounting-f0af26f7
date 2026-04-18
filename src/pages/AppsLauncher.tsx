@@ -120,7 +120,17 @@ const AppsLauncher = () => {
     return found || null;
   }, [userRoles]);
 
-  /* Filter apps by role + search; group results by section (Phase 1) */
+  /* All apps after role + visibility filter (used by palette + counts) */
+  const allVisibleApps = useMemo(() => {
+    let allApps = appSections.flatMap(s => s.items);
+    if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
+      const allowed = ROLE_ALLOWED_APPS[restrictedRole];
+      allApps = allApps.filter(app => allowed.includes(app.id));
+    }
+    return allApps.filter(app => !isAppDisabled(app));
+  }, [restrictedRole, hiddenApps]);
+
+  /* Filter apps by role + search + category; group by section */
   const groupedApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
 
@@ -132,11 +142,18 @@ const AppsLauncher = () => {
 
     // Search filter
     const q = search.trim();
-    const filtered = q
+    let filtered = q
       ? allApps.filter(app =>
           multiWordMatchAny(q, app.label, app.description, ...(app.keywords || []))
         )
       : allApps;
+
+    // Category filter
+    if (categoryFilter === "favorites") {
+      filtered = filtered.filter(app => favorites.includes(app.id));
+    } else if (categoryFilter !== "all") {
+      filtered = filtered.filter(app => getAppMeta(app.id)?.section === categoryFilter);
+    }
 
     // Sort: enabled first, hidden last
     const sorted = filtered.sort((a, b) => {
@@ -145,17 +162,45 @@ const AppsLauncher = () => {
       return aDisabled - bDisabled;
     });
 
-    // Group by section meta
+    // Build favorites group separately (only when showing all/favorites)
+    const showFavoritesGroup =
+      (categoryFilter === "all" || categoryFilter === "favorites") &&
+      favorites.length > 0 &&
+      !q;
+    const favoritesList = showFavoritesGroup
+      ? sorted.filter(a => favorites.includes(a.id))
+      : [];
+
+    // Group by section meta (excluding favorites if shown above to avoid duplicates)
     const groups: Record<SectionKey, NavItem[]> = { core: [], operations: [], premium: [] };
     for (const app of sorted) {
+      if (showFavoritesGroup && favorites.includes(app.id) && categoryFilter === "all") {
+        // still keep in section so user sees them in their natural place too
+      }
       const meta = getAppMeta(app.id);
       if (!meta) continue;
       groups[meta.section].push(app);
     }
-    return { groups, total: sorted.length };
-  }, [search, restrictedRole, hiddenApps]);
+    return { groups, total: sorted.length, favoritesList, showFavoritesGroup };
+  }, [search, restrictedRole, hiddenApps, categoryFilter, favorites]);
 
   const totalResults = groupedApps.total;
+
+  /* Pill counts (after role + search, before category filter) */
+  const pillCounts = useMemo(() => {
+    const q = search.trim();
+    const base = q
+      ? allVisibleApps.filter(a => multiWordMatchAny(q, a.label, a.description, ...(a.keywords || [])))
+      : allVisibleApps;
+    const counts: Record<CategoryFilter, number> = {
+      all: base.length,
+      favorites: base.filter(a => favorites.includes(a.id)).length,
+      core: base.filter(a => getAppMeta(a.id)?.section === "core").length,
+      operations: base.filter(a => getAppMeta(a.id)?.section === "operations").length,
+      premium: base.filter(a => getAppMeta(a.id)?.section === "premium").length,
+    };
+    return counts;
+  }, [allVisibleApps, search, favorites]);
 
   const handleStartTour = () => { update({ welcome_modal_shown: true }); setTourActive(true); };
   const handleSkipWelcome = () => { update({ welcome_modal_shown: true, full_tour_skipped: true }); };
