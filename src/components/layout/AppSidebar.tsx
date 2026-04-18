@@ -109,7 +109,18 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               onToggle();
               setOpenItem(item.label);
             } else {
+              // Preserve scroll position + keep clicked item visible after toggle
+              const navEl = navRef.current;
+              const itemEl = itemRefs.current.get(item.label);
+              const prevScroll = navEl?.scrollTop ?? 0;
+              const itemTopBefore = itemEl?.offsetTop ?? 0;
               setOpenItem(prev => prev === item.label ? null : item.label);
+              requestAnimationFrame(() => {
+                if (!navEl || !itemEl) return;
+                const itemTopAfter = itemEl.offsetTop;
+                const delta = itemTopAfter - itemTopBefore;
+                navEl.scrollTop = prevScroll + delta;
+              });
             }
           } else if (item.path) {
             handleNavigate(item.path);
