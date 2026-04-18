@@ -75,7 +75,7 @@ export default function AppMenuPopover({
       dir="rtl"
       className="animate-in fade-in zoom-in-95 duration-150"
       style={{
-        position: "absolute",
+        position: "fixed",
         top: pos.top,
         left: pos.left,
         width: pos.width,
