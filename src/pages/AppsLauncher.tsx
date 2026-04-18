@@ -191,23 +191,8 @@ const AppsLauncher = () => {
     return false;
   };
 
-  // App is "premium-locked" = NOT in plan's enabled_modules (only for paid users)
-  const enabledModules = subscription?.enabledModules || [];
-  const isAppPremiumLocked = (app: NavItem) => {
-    // ⛔ لا تُطبّق أي قفل حتى ينتهي تحميل بيانات الاشتراك (يمنع الوميض)
-    if (!subscriptionResolved) return false;
-    if (isSuperAdmin) return false;
-    if (isTrial) return false; // Trial = full access
-    if (enabledModules.length === 0) return false; // no plan loaded yet
-    return !enabledModules.includes(app.id);
-  };
-
-  // Determine which tier is needed to unlock a module (3-plan system: Starter / Professional / Enterprise)
-  const getRequiredTier = (appId: string): string => {
-    const enterpriseModules = ["tourism", "ecommerce", "call-center", "stores"];
-    if (enterpriseModules.includes(appId)) return "enterprise";
-    return "pro"; // everything else unlocks at Professional
-  };
+  // 🚫 Premium lock نظام مُلغى — التحكم يدوي فقط عبر hidden_apps
+  const isAppPremiumLocked = (_app: NavItem) => false;
 
   // Check if user has a restricted role (not admin/super_admin)
   const restrictedRole = useMemo(() => {
