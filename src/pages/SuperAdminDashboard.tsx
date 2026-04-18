@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import SubscriptionEditDialog from "@/components/super-admin/SubscriptionEditDialog";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1030,14 +1031,6 @@ function SubscriptionsManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
    const [editSub, setEditSub] = useState<any | null>(null);
-   const [editPlanId, setEditPlanId] = useState("");
-   const [editStatus, setEditStatus] = useState("");
-   const [editBilling, setEditBilling] = useState("");
-   const [editPeriodEnd, setEditPeriodEnd] = useState("");
-   const [editCustomAmount, setEditCustomAmount] = useState("");
-   const [editCustomCurrency, setEditCustomCurrency] = useState("ILS");
-   const [editAgreementType, setEditAgreementType] = useState("monthly");
-   const [editPeriodStart, setEditPeriodStart] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -1062,30 +1055,24 @@ function SubscriptionsManager() {
 
    const openEdit = (sub: any) => {
      setEditSub(sub);
-     setEditPlanId(sub.plan_id);
-     setEditStatus(sub.status);
-     setEditBilling(sub.billing_cycle);
-     setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
-     setEditCustomAmount(sub.custom_amount ? String(sub.custom_amount) : "");
-     setEditCustomCurrency(sub.custom_currency || "ILS");
-     setEditAgreementType(sub.agreement_type || "monthly");
-     setEditPeriodStart(sub.current_period_start ? sub.current_period_start.split("T")[0] : new Date().toISOString().split("T")[0]);
    };
 
-   const saveEdit = async () => {
-     if (!editSub) return;
+   const saveEdit = async (payload: any) => {
      try {
-       await apiCall("update_subscription", undefined, {
-         subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
-         custom_amount: editCustomAmount ? Number(editCustomAmount) : null,
-         custom_currency: editCustomCurrency,
-         agreement_type: editAgreementType,
-         period_start: editPeriodStart || undefined,
-       });
-       toast.success("تم تحديث الاشتراك");
-       setEditSub(null);
+       const res = await apiCall("update_subscription", undefined, payload);
+       const cascaded = res?.cascaded_count ?? 0;
+       const diffCount = res?.diff ? Object.keys(res.diff).length : 0;
+       if (cascaded > 0) {
+         toast.success(`تم تحديث الاشتراك (${diffCount} تغيير) — وتم مزامنة ${cascaded} عضو من الفريق`);
+       } else {
+         toast.success(`تم تحديث الاشتراك (${diffCount} تغيير)`);
+       }
        loadData();
-     } catch (e: any) { toast.error(e.message); }
+       return res;
+     } catch (e: any) {
+       toast.error(e.message);
+       throw e;
+     }
    };
 
   const filtered = subs.filter((s) =>
@@ -1184,82 +1171,13 @@ function SubscriptionsManager() {
         </div>
       </div>
 
-      {editSub && (
-        <Dialog open={!!editSub} onOpenChange={() => setEditSub(null)}>
-           <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-gray-900">تعديل اشتراك {editSub.display_name}</DialogTitle>
-            </DialogHeader>
-             <div className="space-y-4">
-               <div>
-                 <label className="text-xs block mb-1 text-gray-500">الباقة</label>
-                 <div className="flex flex-wrap gap-2">
-                   {plans.map(p => (
-                     <button key={p.id} type="button" onClick={() => setEditPlanId(p.id)}
-                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editPlanId === p.id ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
-                       {p.name} (₪{p.monthly_price})
-                     </button>
-                   ))}
-                 </div>
-               </div>
-               <div>
-                 <label className="text-xs block mb-1 text-gray-500">الحالة</label>
-                 <div className="flex flex-wrap gap-2">
-                   {[{ v: "trial", l: "تجريبي" }, { v: "active", l: "نشط" }, { v: "expired", l: "منتهي" }, { v: "cancelled", l: "ملغي" }, { v: "suspended", l: "موقوف" }].map(s => (
-                     <button key={s.v} type="button" onClick={() => setEditStatus(s.v)}
-                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editStatus === s.v ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
-                       {s.l}
-                     </button>
-                   ))}
-                 </div>
-               </div>
-               <div>
-                 <label className="text-xs block mb-1 text-gray-500">نوع الاتفاق</label>
-                 <div className="flex flex-wrap gap-2">
-                   {[{ v: "one_time", l: "مرة واحدة" }, { v: "monthly", l: "شهري" }, { v: "annual", l: "سنوي" }].map(t => (
-                     <button key={t.v} type="button" onClick={() => { setEditAgreementType(t.v); setEditBilling(t.v === "annual" ? "annual" : "monthly"); }}
-                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editAgreementType === t.v ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
-                       {t.l}
-                     </button>
-                   ))}
-                 </div>
-               </div>
-               <div>
-                 <label className="text-xs block mb-1 text-gray-500">المبلغ المتفق عليه</label>
-                 <Input type="number" value={editCustomAmount} onChange={e => setEditCustomAmount(e.target.value)} placeholder="أدخل المبلغ"
-                   className="bg-gray-50 border-gray-300 text-gray-900" />
-               </div>
-               <div>
-                 <label className="text-xs block mb-1 text-gray-500">العملة</label>
-                 <div className="flex flex-wrap gap-2">
-                   {[{ v: "ILS", l: "₪ شيكل" }, { v: "USD", l: "$ دولار" }, { v: "JOD", l: "د.أ دينار" }, { v: "EUR", l: "€ يورو" }].map(c => (
-                     <button key={c.v} type="button" onClick={() => setEditCustomCurrency(c.v)}
-                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editCustomCurrency === c.v ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
-                       {c.l}
-                     </button>
-                   ))}
-                 </div>
-               </div>
-               <div className="grid grid-cols-2 gap-3">
-                 <div>
-                   <label className="text-xs block mb-1 text-gray-500">تاريخ بداية الاشتراك</label>
-                   <input type="date" value={editPeriodStart} onChange={e => setEditPeriodStart(e.target.value)}
-                     className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900" />
-                 </div>
-                 <div>
-                   <label className="text-xs block mb-1 text-gray-500">تاريخ انتهاء الفترة</label>
-                   <input type="date" value={editPeriodEnd} onChange={e => setEditPeriodEnd(e.target.value)}
-                     className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900" />
-                 </div>
-               </div>
-             </div>
-             <DialogFooter>
-               <Button variant="ghost" onClick={() => setEditSub(null)} className="text-gray-500">إلغاء</Button>
-               <Button onClick={saveEdit} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ</Button>
-             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      <SubscriptionEditDialog
+        sub={editSub}
+        plans={plans as any}
+        open={!!editSub}
+        onClose={() => setEditSub(null)}
+        onSave={saveEdit}
+      />
     </div>
   );
 }
