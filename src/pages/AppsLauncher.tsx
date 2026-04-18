@@ -189,21 +189,23 @@ const AppsLauncher = () => {
 
   const totalResults = groupedApps.total;
 
-  /* Pill counts (after role + search, before category filter) */
+  /* Pill counts — sections recomputed AFTER hidden_apps remap (disabled → premium) */
   const pillCounts = useMemo(() => {
     const q = search.trim();
     const base = q
       ? allVisibleApps.filter(a => multiWordMatchAny(q, a.label, a.description, ...(a.keywords || [])))
       : allVisibleApps;
+    const effectiveSection = (a: NavItem) =>
+      isAppDisabled(a) ? "premium" : getAppMeta(a.id)?.section;
     const counts: Record<CategoryFilter, number> = {
       all: base.length,
       favorites: base.filter(a => favorites.includes(a.id)).length,
-      core: base.filter(a => getAppMeta(a.id)?.section === "core").length,
-      operations: base.filter(a => getAppMeta(a.id)?.section === "operations").length,
-      premium: base.filter(a => getAppMeta(a.id)?.section === "premium").length,
+      core: base.filter(a => effectiveSection(a) === "core").length,
+      operations: base.filter(a => effectiveSection(a) === "operations").length,
+      premium: base.filter(a => effectiveSection(a) === "premium").length,
     };
     return counts;
-  }, [allVisibleApps, search, favorites]);
+  }, [allVisibleApps, search, favorites, hiddenApps]);
 
   const handleStartTour = () => { update({ welcome_modal_shown: true }); setTourActive(true); };
   const handleSkipWelcome = () => { update({ welcome_modal_shown: true, full_tour_skipped: true }); };
