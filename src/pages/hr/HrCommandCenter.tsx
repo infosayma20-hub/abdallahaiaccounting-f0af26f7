@@ -88,6 +88,14 @@ export default function HrCommandCenter() {
     <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="text-right">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            مركز قيادة الموارد البشرية
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            رؤية تنفيذية شاملة للموظفين والتكاليف والمخاطر
+          </p>
+        </div>
         <div className="flex items-center gap-3">
           <Select value={deptFilter} onValueChange={setDeptFilter}>
             <SelectTrigger className="w-[160px] h-9">
@@ -115,14 +123,6 @@ export default function HrCommandCenter() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="text-right">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            مركز قيادة الموارد البشرية
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            رؤية تنفيذية شاملة للموظفين والتكاليف والمخاطر
-          </p>
         </div>
       </div>
 
