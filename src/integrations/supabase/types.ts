@@ -3656,6 +3656,30 @@ export type Database = {
         }
         Relationships: []
       }
+      document_sequences: {
+        Row: {
+          doc_type: string
+          last_number: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          doc_type: string
+          last_number?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          doc_type?: string
+          last_number?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -10668,6 +10692,54 @@ export type Database = {
           },
         ]
       }
+      stock_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_resolved: boolean | null
+          product_id: string
+          product_name: string | null
+          quantity_after: number | null
+          quantity_before: number | null
+          quantity_requested: number | null
+          resolved_at: string | null
+          source: string | null
+          source_reference: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_resolved?: boolean | null
+          product_id: string
+          product_name?: string | null
+          quantity_after?: number | null
+          quantity_before?: number | null
+          quantity_requested?: number | null
+          resolved_at?: string | null
+          source?: string | null
+          source_reference?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_resolved?: boolean | null
+          product_id?: string
+          product_name?: string | null
+          quantity_after?: number | null
+          quantity_before?: number | null
+          quantity_requested?: number | null
+          resolved_at?: string | null
+          source?: string | null
+          source_reference?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -14127,6 +14199,27 @@ export type Database = {
         }
         Returns: string
       }
+      create_sale_invoice_atomic: {
+        Args: {
+          p_contact_id: string
+          p_contact_name: string
+          p_currency: string
+          p_discount_amount: number
+          p_exchange_rate: number
+          p_idempotency_key: string
+          p_invoice_date: string
+          p_items: Json
+          p_notes: string
+          p_paid_amount: number
+          p_payment_method: string
+          p_source?: string
+          p_subtotal: number
+          p_tax_amount: number
+          p_total_amount: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_task_user: {
         Args: {
           p_avatar_color?: string
@@ -14135,6 +14228,16 @@ export type Database = {
           p_role?: string
           p_user_id: string
           p_username: string
+        }
+        Returns: Json
+      }
+      decrement_stock_safe: {
+        Args: {
+          p_product_id: string
+          p_qty: number
+          p_reference: string
+          p_source: string
+          p_user_id: string
         }
         Returns: Json
       }
@@ -14220,6 +14323,10 @@ export type Database = {
           payload: Json
           source_queue: string
         }
+        Returns: number
+      }
+      next_doc_number: {
+        Args: { p_doc_type: string; p_user_id: string; p_year: number }
         Returns: number
       }
       open_van_day: {

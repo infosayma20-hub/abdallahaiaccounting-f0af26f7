@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+interface InvoiceItemInput {
+  product_id?: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  description?: string | null;
+}
+
 interface InvoiceParams {
   contactId?: string;
   contactName: string;
@@ -10,6 +19,13 @@ interface InvoiceParams {
   description?: string;
   paymentMethod?: string;
   currency?: string;
+  items?: InvoiceItemInput[];
+  invoiceDate?: string;
+  paidAmount?: number;
+  discountAmount?: number;
+  taxAmount?: number;
+  exchangeRate?: number;
+  source?: string;
 }
 
 interface ReceiptPaymentParams {
@@ -41,30 +57,41 @@ export function useAtomicOperations() {
     if (!user) return { success: false, error: "غير مسجل الدخول" };
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('create_invoice_with_entry', {
+      // Use the new fully-atomic RPC: invoice + items + stock + journal in one transaction
+      const { data, error } = await supabase.rpc('create_sale_invoice_atomic', {
         p_user_id: user.id,
         p_contact_id: params.contactId || null,
         p_contact_name: params.contactName,
-        p_amount: params.amount,
-        p_description: params.description || null,
+        p_invoice_date: params.invoiceDate || new Date().toISOString().split('T')[0],
         p_payment_method: params.paymentMethod || 'آجل',
         p_currency: params.currency || 'شيكل',
-        p_items: [],
+        p_exchange_rate: params.exchangeRate || 1,
+        p_subtotal: params.amount,
+        p_discount_amount: params.discountAmount || 0,
+        p_tax_amount: params.taxAmount || 0,
+        p_total_amount: params.amount,
+        p_paid_amount: params.paidAmount ?? (params.paymentMethod === 'نقدي' || params.paymentMethod === 'cash' ? params.amount : 0),
+        p_notes: params.description || null,
+        p_items: (params.items || []) as any,
         p_idempotency_key: generateIdempotencyKey('INV'),
+        p_source: params.source || 'manual',
       });
 
       if (error) throw error;
-      const result = data as unknown as AtomicResult;
+      const result = data as unknown as AtomicResult & { stock_alerts_created?: number };
 
       if (result.success) {
         toast({
           title: result.duplicate ? "العملية موجودة مسبقاً ✅" : "تم إنشاء الفاتورة والقيد ✅",
-          description: `مبلغ ${params.amount} - ${params.contactName}`,
+          description: result.stock_alerts_created
+            ? `${params.contactName} - تنبيه: ${result.stock_alerts_created} منتج بمخزون سالب`
+            : `مبلغ ${params.amount} - ${params.contactName}`,
+          variant: result.stock_alerts_created ? "default" : "default",
         });
       }
       return result;
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ في إنشاء الفاتورة", description: err.message, variant: "destructive" });
       return { success: false, error: err.message };
     } finally {
       setLoading(false);
