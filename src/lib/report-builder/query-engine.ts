@@ -23,8 +23,8 @@ export interface RunReportParams {
 }
 
 export async function runReport({ source, userId, filters, groupBy, sortBy }: RunReportParams) {
-  let query = supabase
-    .from(source.table as any)
+  let query: any = (supabase as any)
+    .from(source.table)
     .select(source.selectQuery)
     .eq("user_id", userId);
 
