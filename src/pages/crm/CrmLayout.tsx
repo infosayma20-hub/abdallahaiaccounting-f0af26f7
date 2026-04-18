@@ -55,7 +55,9 @@ export default function CrmLayout() {
         </div>
       </div>
 
-      <Outlet />
+      <div className="pt-4">
+        <Outlet />
+      </div>
       <CrmQuickActionsFab />
     </div>
   );
