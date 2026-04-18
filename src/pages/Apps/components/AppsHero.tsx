@@ -152,7 +152,7 @@ const AppsHero = () => {
               lineHeight: 1.3,
             }}
           >
-            {greeting()}{name ? `، ${name}` : " 👋"}
+            {greeting()}{name ? `، ${name}` : ""} 👋
           </h1>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: "4px 0 0 0" }}>
             كل ما تحتاجه لإدارة أعمالك — في مكان واحد
