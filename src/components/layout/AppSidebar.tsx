@@ -40,6 +40,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const { settings } = useCompanySettings();
   const { subscription } = useSubscription();
   const [openItem, setOpenItem] = useState<string | null>(null);
+  const navRef = React.useRef<HTMLElement>(null);
+  const itemRefs = React.useRef<Map<string, HTMLDivElement>>(new Map());
 
   const isTrial = subscription?.isTrial ?? true;
 
