@@ -88,14 +88,12 @@ const AppsLauncher = () => {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  // Unified loading gate: render skeleton until ALL deps are ready in one pass
+  // ⚡ Fast-path: عرض البطاقات فور توفر الحد الأدنى (auth + roles + settings للـ hidden_apps).
+  // باقي الـ hooks (subscription/guard/onboarding) تُحمَّل في الخلفية دون حجب الشبكة.
   const isReady =
     !authLoading &&
-    !settingsLoading &&
-    !subLoading &&
-    !guardLoading &&
-    !onboardingLoading &&
-    !rolesLoading;
+    !rolesLoading &&
+    !settingsLoading;
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
