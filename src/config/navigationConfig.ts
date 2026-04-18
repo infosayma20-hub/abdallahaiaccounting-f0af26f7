@@ -226,10 +226,10 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
-        id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", module: "inventory", icon: Package,
+        id: "inventory", label: "المخزون", description: "منتجات، مستودعات، حركات، وتقييم", module: "inventory", icon: Package,
         color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
         enableSetting: "has_inventory",
-        keywords: ["مخزون", "منتج", "بضاعة"],
+        keywords: ["مخزون", "منتج", "بضاعة", "مستودع"],
         groups: [
           {
             groupLabel: "المنتجات",
@@ -238,15 +238,10 @@ export const navigationSections: NavSection[] = [
             ],
           },
           {
-            groupLabel: "المستودعات والبائعين",
+            groupLabel: "المستودعات",
             children: [
-              { label: "وضع البائع المتجول", path: "/van" },
               { label: "المستودعات", path: "/warehouses" },
               { label: "سندات تحويل المخزون", path: "/stock-transfers" },
-              { label: "دورة يوم البائع المتجول", path: "/van-days" },
-              { label: "عمولات البائعين المتجولين", path: "/van-commissions" },
-              { label: "تقارير البائعين المتجولين", path: "/van-reports" },
-              { label: "مندوبين المبيعات", path: "/sales-reps" },
             ],
           },
           {
@@ -254,6 +249,28 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "حركات المخزون", path: "/inventory-movements" },
               { label: "تقييم المخزون", path: "/inventory-valuation" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "van-sales", label: "البائع المتجول", description: "دورة البيع الميداني، العمولات، وتقارير المندوبين", module: "inventory", icon: Plane,
+        color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/van",
+        keywords: ["بائع", "متجول", "ميداني", "مندوب", "van", "توزيع"],
+        groups: [
+          {
+            groupLabel: "العمليات",
+            children: [
+              { label: "وضع البائع المتجول", path: "/van" },
+              { label: "دورة يوم البائع المتجول", path: "/van-days" },
+              { label: "مندوبين المبيعات", path: "/sales-reps" },
+            ],
+          },
+          {
+            groupLabel: "العمولات والتقارير",
+            children: [
+              { label: "عمولات البائعين المتجولين", path: "/van-commissions" },
+              { label: "تقارير البائعين المتجولين", path: "/van-reports" },
             ],
           },
         ],

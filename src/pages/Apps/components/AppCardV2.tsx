@@ -1,8 +1,10 @@
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Clock } from "lucide-react";
+import { Lock, Clock, ChevronDown } from "lucide-react";
 import type { NavItem } from "@/config/navigationConfig";
 import type { AppVisualMeta } from "../data/appsRegistry";
 import FavoriteStar from "./FavoriteStar";
+import AppMenuPopover from "./AppMenuPopover";
 
 interface Props {
   app: NavItem;
@@ -19,20 +21,25 @@ interface Props {
 }
 
 /**
- * AppCardV2 — Restored classic AMWALI cards with subtle 3D effect
- * - White card, blue tint border (#dbeafe → #3b82f6 hover)
- * - Original app colors from navigationConfig (app.color / app.bgColor)
- * - 3D: layered shadows + translateY/scale + inner highlight
+ * AppCardV2 — Restored classic AMWALI cards with subtle 3D effect.
+ * - White card, blue tint border, layered 3D shadows.
+ * - Apps with `groups` open a popover menu (sub-sections) instead of navigating.
+ * - Apps without `groups` (or `isDirect`) navigate immediately.
  */
 export default function AppCardV2({
   app, meta, index, onNavigate, disabled, isPremiumLocked, pendingActivation, onPremiumClick,
   isFavorite, onToggleFavorite,
 }: Props) {
   const isInert = disabled;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const hasMenu = !!(app.groups && app.groups.length > 0 && !app.isDirect);
 
   const handleClick = () => {
     if (isInert) return;
     if (isPremiumLocked) { onPremiumClick?.(); return; }
+    if (hasMenu) { setMenuOpen((v) => !v); return; }
     onNavigate(app.path);
   };
 
@@ -44,7 +51,9 @@ export default function AppCardV2({
     "0 2px 4px rgba(13, 27, 46, 0.05), 0 8px 16px rgba(13, 27, 46, 0.08), 0 20px 40px -12px rgba(59, 130, 246, 0.18), 0 0 0 3px #eff6ff";
 
   return (
+    <>
     <motion.div
+      ref={cardRef as any}
       id={`app-${app.id}`}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -141,6 +150,17 @@ export default function AppCardV2({
             >
               {app.label}
             </p>
+            {hasMenu && !isInert && !isPremiumLocked && (
+              <ChevronDown
+                size={13}
+                strokeWidth={2.4}
+                style={{
+                  color: "#94a3b8",
+                  transition: "transform 0.2s ease",
+                  transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            )}
             {!isInert && app.isNew && !pendingActivation && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">
                 جديد
@@ -198,5 +218,18 @@ export default function AppCardV2({
         </div>
       </button>
     </motion.div>
+
+    {hasMenu && (
+      <AppMenuPopover
+        anchorEl={cardRef.current}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={app.label}
+        groups={app.groups || []}
+        accentColor={meta.iconColor}
+        onNavigate={onNavigate}
+      />
+    )}
+    </>
   );
 }
