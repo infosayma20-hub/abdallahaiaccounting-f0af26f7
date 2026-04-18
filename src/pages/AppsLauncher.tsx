@@ -311,6 +311,7 @@ const AppsLauncher = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {groupedApps.favoritesList.map((app, idx) => {
                     const meta = getAppMeta(app.id)!;
+                    const pendingActivation = isAppDisabled(app);
                     return (
                       <AppCardV2
                         key={`fav-${app.id}`}
@@ -318,9 +319,10 @@ const AppsLauncher = () => {
                         meta={meta}
                         index={idx}
                         onNavigate={navigate}
-                        disabled={isAppDisabled(app)}
-                        isPremiumLocked={isAppPremiumLocked(app)}
-                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                        disabled={false}
+                        isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
+                        pendingActivation={pendingActivation}
+                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: pendingActivation ? "activation" : "pro" })}
                         isFavorite={true}
                         onToggleFavorite={() => toggleFavorite(app.id)}
                       />
@@ -338,6 +340,7 @@ const AppsLauncher = () => {
                 <AppSectionBlock key={sec} section={sec} isPremium={sec === "premium"}>
                   {apps.map((app, idx) => {
                     const meta = getAppMeta(app.id)!;
+                    const pendingActivation = isAppDisabled(app);
                     return (
                       <AppCardV2
                         key={app.id}
@@ -345,9 +348,10 @@ const AppsLauncher = () => {
                         meta={meta}
                         index={idx}
                         onNavigate={navigate}
-                        disabled={isAppDisabled(app)}
-                        isPremiumLocked={isAppPremiumLocked(app)}
-                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                        disabled={false}
+                        isPremiumLocked={pendingActivation || isAppPremiumLocked(app)}
+                        pendingActivation={pendingActivation}
+                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: pendingActivation ? "activation" : "pro" })}
                         isFavorite={isFavorite(app.id)}
                         onToggleFavorite={() => toggleFavorite(app.id)}
                       />
