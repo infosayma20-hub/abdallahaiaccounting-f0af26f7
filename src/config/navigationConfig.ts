@@ -1,7 +1,7 @@
 import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
-  Puzzle, ArrowLeftRight, ClipboardList, Plane, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
+  Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -254,7 +254,7 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
-        id: "van-sales", label: "البائع المتجول", description: "دورة البيع الميداني، العمولات، وتقارير المندوبين", module: "inventory", icon: Plane,
+        id: "van-sales", label: "البائع المتجول", description: "دورة البيع الميداني، العمولات، وتقارير المندوبين", module: "inventory", icon: Truck,
         color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/van",
         keywords: ["بائع", "متجول", "ميداني", "مندوب", "van", "توزيع"],
         groups: [
