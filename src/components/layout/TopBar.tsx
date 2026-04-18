@@ -205,10 +205,10 @@ const ProfileDropdown = ({
 );
 
 const QUICK_ITEMS = [
-  { label: "فاتورة جديدة", icon: FileText, shortcut: "F1", path: "/invoices/new" },
-  { label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new" },
-  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payment/new" },
-  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journal/new" },
+  { label: "فاتورة جديدة", icon: FileText, shortcut: "Alt+I", path: "/invoices/new" },
+  { label: "سند قبض", icon: Landmark, shortcut: "Alt+R", path: "/finance/receipt/new" },
+  { label: "سند صرف", icon: Wallet, shortcut: "Alt+E", path: "/finance/payment/new" },
+  { label: "سند قيد", icon: ClipboardList, shortcut: "Alt+J", path: "/finance/journal/new" },
   { label: "زبائن", icon: Users, shortcut: "Alt+C", path: "/contacts?type=customer" },
   { label: "موردين", icon: Store, shortcut: "Alt+M", path: "/contacts?type=supplier" },
   { label: "كشف حساب", icon: BarChart3, shortcut: "Alt+K", path: "/account-statement" },
