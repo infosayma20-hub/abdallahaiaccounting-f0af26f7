@@ -293,29 +293,47 @@ const AppsLauncher = () => {
           </div>
         </div>
 
-        {/* Apps Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {allFilteredApps.map((app, idx) => (
-            <AppCard
-              key={app.id}
-              app={app}
-              index={idx}
-              isExpanded={expandedApp === app.id}
-              onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
-              onNavigate={navigate}
-              disabled={isAppDisabled(app)}
-              isLocked={hiddenApps.includes(app.id)}
-              isPremiumLocked={isAppPremiumLocked(app)}
-              onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
-            />
-          ))}
-        </div>
-
-        {totalResults === 0 && (
-          <div className="text-center py-16">
-            <Search className="h-8 w-8 mx-auto mb-3" style={{ color: "#94a3b8", opacity: 0.4 }} />
-            <p style={{ fontSize: 14, color: "#64748b" }}>لا توجد نتائج لـ "{search}"</p>
+        {/* Apps Grid — gated on unified loading state to prevent flicker */}
+        {!isReady ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-[14px] p-5 pb-4 flex flex-col items-center gap-3"
+                style={{ background: "#ffffff", border: "1.5px solid #dbeafe" }}
+              >
+                <Skeleton shimmer className="w-[52px] h-[52px] rounded-xl" />
+                <Skeleton shimmer className="h-4 w-24 rounded-md" />
+                <Skeleton shimmer className="h-3 w-32 rounded-md" />
+              </div>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {allFilteredApps.map((app, idx) => (
+                <AppCard
+                  key={app.id}
+                  app={app}
+                  index={idx}
+                  isExpanded={expandedApp === app.id}
+                  onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
+                  onNavigate={navigate}
+                  disabled={isAppDisabled(app)}
+                  isLocked={hiddenApps.includes(app.id)}
+                  isPremiumLocked={isAppPremiumLocked(app)}
+                  onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                />
+              ))}
+            </div>
+
+            {totalResults === 0 && (
+              <div className="text-center py-16">
+                <Search className="h-8 w-8 mx-auto mb-3" style={{ color: "#94a3b8", opacity: 0.4 }} />
+                <p style={{ fontSize: 14, color: "#64748b" }}>لا توجد نتائج لـ "{search}"</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
