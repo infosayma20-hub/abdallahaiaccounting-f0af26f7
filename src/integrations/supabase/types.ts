@@ -12674,6 +12674,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_favorite_apps: {
+        Row: {
+          app_id: string
+          created_at: string
+          id: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           created_at: string

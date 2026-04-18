@@ -19,6 +19,10 @@ import AppCardV2 from "@/pages/Apps/components/AppCardV2";
 import AppSectionBlock from "@/pages/Apps/components/AppSection";
 import AppsHero from "@/pages/Apps/components/AppsHero";
 import FloatingAIBar from "@/pages/Apps/components/FloatingAIBar";
+import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
+import CommandPalette from "@/pages/Apps/components/CommandPalette";
+import { useFavoriteApps } from "@/hooks/useFavoriteApps";
+import { Star, Command } from "lucide-react";
 
 const appSections = getAppSections();
 
@@ -41,10 +45,25 @@ const AppsLauncher = () => {
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
   // expandedApp removed in Phase 1 — apps now navigate directly
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
+
+  // Global Ctrl+K / ⌘K to open command palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Subscription is fully resolved only when both subscription + guard finished loading
   const subscriptionResolved = !subLoading && !guardLoading;
@@ -101,7 +120,17 @@ const AppsLauncher = () => {
     return found || null;
   }, [userRoles]);
 
-  /* Filter apps by role + search; group results by section (Phase 1) */
+  /* All apps after role + visibility filter (used by palette + counts) */
+  const allVisibleApps = useMemo(() => {
+    let allApps = appSections.flatMap(s => s.items);
+    if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
+      const allowed = ROLE_ALLOWED_APPS[restrictedRole];
+      allApps = allApps.filter(app => allowed.includes(app.id));
+    }
+    return allApps.filter(app => !isAppDisabled(app));
+  }, [restrictedRole, hiddenApps]);
+
+  /* Filter apps by role + search + category; group by section */
   const groupedApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
 
@@ -113,11 +142,18 @@ const AppsLauncher = () => {
 
     // Search filter
     const q = search.trim();
-    const filtered = q
+    let filtered = q
       ? allApps.filter(app =>
           multiWordMatchAny(q, app.label, app.description, ...(app.keywords || []))
         )
       : allApps;
+
+    // Category filter
+    if (categoryFilter === "favorites") {
+      filtered = filtered.filter(app => favorites.includes(app.id));
+    } else if (categoryFilter !== "all") {
+      filtered = filtered.filter(app => getAppMeta(app.id)?.section === categoryFilter);
+    }
 
     // Sort: enabled first, hidden last
     const sorted = filtered.sort((a, b) => {
@@ -126,17 +162,45 @@ const AppsLauncher = () => {
       return aDisabled - bDisabled;
     });
 
-    // Group by section meta
+    // Build favorites group separately (only when showing all/favorites)
+    const showFavoritesGroup =
+      (categoryFilter === "all" || categoryFilter === "favorites") &&
+      favorites.length > 0 &&
+      !q;
+    const favoritesList = showFavoritesGroup
+      ? sorted.filter(a => favorites.includes(a.id))
+      : [];
+
+    // Group by section meta (excluding favorites if shown above to avoid duplicates)
     const groups: Record<SectionKey, NavItem[]> = { core: [], operations: [], premium: [] };
     for (const app of sorted) {
+      if (showFavoritesGroup && favorites.includes(app.id) && categoryFilter === "all") {
+        // still keep in section so user sees them in their natural place too
+      }
       const meta = getAppMeta(app.id);
       if (!meta) continue;
       groups[meta.section].push(app);
     }
-    return { groups, total: sorted.length };
-  }, [search, restrictedRole, hiddenApps]);
+    return { groups, total: sorted.length, favoritesList, showFavoritesGroup };
+  }, [search, restrictedRole, hiddenApps, categoryFilter, favorites]);
 
   const totalResults = groupedApps.total;
+
+  /* Pill counts (after role + search, before category filter) */
+  const pillCounts = useMemo(() => {
+    const q = search.trim();
+    const base = q
+      ? allVisibleApps.filter(a => multiWordMatchAny(q, a.label, a.description, ...(a.keywords || [])))
+      : allVisibleApps;
+    const counts: Record<CategoryFilter, number> = {
+      all: base.length,
+      favorites: base.filter(a => favorites.includes(a.id)).length,
+      core: base.filter(a => getAppMeta(a.id)?.section === "core").length,
+      operations: base.filter(a => getAppMeta(a.id)?.section === "operations").length,
+      premium: base.filter(a => getAppMeta(a.id)?.section === "premium").length,
+    };
+    return counts;
+  }, [allVisibleApps, search, favorites]);
 
   const handleStartTour = () => { update({ welcome_modal_shown: true }); setTourActive(true); };
   const handleSkipWelcome = () => { update({ welcome_modal_shown: true, full_tour_skipped: true }); };
@@ -153,9 +217,9 @@ const AppsLauncher = () => {
         {/* Hero */}
         <AppsHero />
 
-        {/* Search */}
-        <div className="flex justify-center mb-8">
-          <div className="relative" style={{ width: 420 }}>
+        {/* Search + Ctrl+K hint */}
+        <div className="flex justify-center mb-5">
+          <div className="relative" style={{ width: 460 }}>
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#94a3b8" }} />
             <input
               value={search}
@@ -165,7 +229,7 @@ const AppsLauncher = () => {
                 width: "100%",
                 height: 44,
                 paddingRight: 40,
-                paddingLeft: 16,
+                paddingLeft: 76,
                 borderRadius: 10,
                 background: "#ffffff",
                 border: "1.5px solid #dbeafe",
@@ -177,8 +241,35 @@ const AppsLauncher = () => {
               onFocus={(e) => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.boxShadow = "0 0 0 3px #eff6ff"; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = "#dbeafe"; e.currentTarget.style.boxShadow = "none"; }}
             />
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1 transition-colors"
+              title="فتح لوحة الأوامر"
+              style={{
+                height: 28,
+                padding: "0 8px",
+                borderRadius: 6,
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                color: "#64748b",
+                fontSize: 11,
+                fontWeight: 600,
+                fontFamily: "monospace",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#e2e8f0"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
+            >
+              <Command size={11} strokeWidth={2.4} />K
+            </button>
           </div>
         </div>
+
+        {/* Category pills */}
+        {isReady && (
+          <CategoryPills active={categoryFilter} onChange={setCategoryFilter} counts={pillCounts} />
+        )}
 
         {/* Apps Grid — gated on unified loading state to prevent flicker */}
         {!isReady ? (
@@ -197,8 +288,45 @@ const AppsLauncher = () => {
           </div>
         ) : (
           <>
-            {/* Three hierarchical sections per AMWALI brand spec */}
-            {(["core", "operations", "premium"] as SectionKey[]).map((sec) => {
+            {/* ⭐ Favorites group (only when "all" + has favorites + no search) */}
+            {groupedApps.showFavoritesGroup && categoryFilter === "all" && groupedApps.favoritesList.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <div
+                    className="flex items-center justify-center"
+                    style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(245,158,11,0.12)" }}
+                  >
+                    <Star size={15} style={{ color: "#f59e0b", fill: "#f59e0b" }} />
+                  </div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, color: "#0D1B2E", margin: 0 }}>
+                    المفضلة
+                  </h3>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>({groupedApps.favoritesList.length})</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedApps.favoritesList.map((app, idx) => {
+                    const meta = getAppMeta(app.id)!;
+                    return (
+                      <AppCardV2
+                        key={`fav-${app.id}`}
+                        app={app}
+                        meta={meta}
+                        index={idx}
+                        onNavigate={navigate}
+                        disabled={isAppDisabled(app)}
+                        isPremiumLocked={isAppPremiumLocked(app)}
+                        onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                        isFavorite={true}
+                        onToggleFavorite={() => toggleFavorite(app.id)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Hierarchical sections — hide when filtering by favorites (already shown) */}
+            {categoryFilter !== "favorites" && (["core", "operations", "premium"] as SectionKey[]).map((sec) => {
               const apps = groupedApps.groups[sec];
               if (apps.length === 0) return null;
               return (
@@ -215,6 +343,8 @@ const AppsLauncher = () => {
                         disabled={isAppDisabled(app)}
                         isPremiumLocked={isAppPremiumLocked(app)}
                         onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
+                        isFavorite={isFavorite(app.id)}
+                        onToggleFavorite={() => toggleFavorite(app.id)}
                       />
                     );
                   })}
@@ -222,7 +352,16 @@ const AppsLauncher = () => {
               );
             })}
 
-            {totalResults === 0 && (
+            {/* Favorites-only filter view (flat grid) */}
+            {categoryFilter === "favorites" && groupedApps.favoritesList.length === 0 && favorites.length === 0 && (
+              <div className="text-center py-16">
+                <Star size={32} className="mx-auto mb-3" style={{ color: "#cbd5e1" }} />
+                <p style={{ fontSize: 14, color: "#64748b", marginBottom: 4 }}>لا توجد تطبيقات مفضلة بعد</p>
+                <p style={{ fontSize: 12, color: "#94a3b8" }}>اضغط على ⭐ في زاوية أي تطبيق لإضافته للمفضلة</p>
+              </div>
+            )}
+
+            {totalResults === 0 && categoryFilter !== "favorites" && (
               <div className="text-center py-16">
                 <Search className="h-8 w-8 mx-auto mb-3" style={{ color: "#94a3b8", opacity: 0.4 }} />
                 <p style={{ fontSize: 14, color: "#64748b" }}>لا توجد نتائج لـ "{search}"</p>
@@ -231,6 +370,14 @@ const AppsLauncher = () => {
           </>
         )}
       </div>
+
+      {/* Command Palette (Ctrl+K) */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        apps={allVisibleApps}
+        favorites={favorites}
+      />
 
       <UpgradePromptModal
         open={upgradeModal.open}
