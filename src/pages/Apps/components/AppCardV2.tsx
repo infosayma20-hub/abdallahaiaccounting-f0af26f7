@@ -51,7 +51,9 @@ export default function AppCardV2({
     "0 2px 4px rgba(13, 27, 46, 0.05), 0 8px 16px rgba(13, 27, 46, 0.08), 0 20px 40px -12px rgba(59, 130, 246, 0.18), 0 0 0 3px #eff6ff";
 
   return (
+    <>
     <motion.div
+      ref={cardRef as any}
       id={`app-${app.id}`}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
