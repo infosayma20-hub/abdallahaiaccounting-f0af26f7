@@ -17,7 +17,7 @@ export default function CrmLayout() {
   return (
     <div dir="rtl">
       {/* Module nav bar */}
-      <div className="mb-4 -mx-5 lg:-mx-8 -mt-5 lg:-mt-8 px-5 lg:px-8 pt-4 pb-0 bg-white border-b border-slate-200 sticky top-0 z-20">
+      <div className="mb-4 -mx-5 lg:-mx-8 -mt-5 lg:-mt-8 px-5 lg:px-8 pt-4 pb-0 bg-white border-b border-slate-200 relative z-10">
         <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #1B3A5C, #2C5985)" }}>
