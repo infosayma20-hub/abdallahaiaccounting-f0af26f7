@@ -39,7 +39,7 @@ const AppsLauncher = () => {
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
-  const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  // expandedApp removed in Phase 1 — apps now navigate directly
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
