@@ -336,7 +336,7 @@ const POSPage = () => {
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [showSalesSummary, setShowSalesSummary] = useState(true);
   const [cardSize, setCardSize] = useState<"S" | "M" | "L">(() => {
-    return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "M";
+    return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "S";
   });
   const [posDarkMode, setPosDarkMode] = useState(() => localStorage.getItem("pos-theme") === "dark");
   const togglePosDark = useCallback(() => {
