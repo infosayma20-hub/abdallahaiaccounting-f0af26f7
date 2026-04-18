@@ -277,6 +277,9 @@ export default function ReportBuilderPage() {
           <Button size="sm" variant="outline" onClick={handleExport} disabled={!data.length} className="gap-1.5 rounded-xl">
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </Button>
+          <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={!data.length || exportingPdf} className="gap-1.5 rounded-xl">
+            {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />} PDF
+          </Button>
           <Button size="sm" onClick={() => setSaveOpen(true)} disabled={!hasRun} className="gap-1.5 rounded-xl">
             <BookmarkPlus className="h-4 w-4" /> حفظ التقرير
           </Button>
@@ -377,23 +380,74 @@ export default function ReportBuilderPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <SortableReportTable
-            columns={tableColumns}
-            data={data}
-            totalsRow={totalsRow}
-            loading={false}
-            reportTitle={reportName || `تقرير ${source.label}`}
-            storageKey={`builder-${sourceKey}-${groupBy}`}
-            rowClassName={(row) => row._drillRows ? "cursor-pointer hover:bg-primary/5" : ""}
-          />
-          {groupBy !== "none" && data.length > 0 && (
-            <div className="px-4 py-2 bg-muted/30 border-t border-border/40 text-[10px] text-muted-foreground text-center">
-              💡 اضغط على أي صف للوصول لتفاصيل البنود
+          {/* View mode + chart type toggle */}
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/40 bg-muted/20 flex-wrap">
+            <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+              <ViewModeBtn active={viewMode === "table"} onClick={() => setViewMode("table")} icon={<TableIcon className="h-3.5 w-3.5" />} label="جدول" />
+              <ViewModeBtn
+                active={viewMode === "chart"}
+                onClick={() => setViewMode("chart")}
+                icon={<BarChart3 className="h-3.5 w-3.5" />}
+                label="رسم بياني"
+                disabled={availableCharts.length === 0}
+              />
+              <ViewModeBtn
+                active={viewMode === "both"}
+                onClick={() => setViewMode("both")}
+                icon={<LayoutGrid className="h-3.5 w-3.5" />}
+                label="كلاهما"
+                disabled={availableCharts.length === 0}
+              />
+            </div>
+
+            {(viewMode === "chart" || viewMode === "both") && availableCharts.length > 0 && (
+              <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                {availableCharts.includes("bar") && (
+                  <ChartTypeBtn active={chartType === "bar"} onClick={() => setChartType("bar")} icon={<BarChart3 className="h-3.5 w-3.5" />} label="أعمدة" />
+                )}
+                {availableCharts.includes("line") && (
+                  <ChartTypeBtn active={chartType === "line"} onClick={() => setChartType("line")} icon={<LineIcon className="h-3.5 w-3.5" />} label="خطي" />
+                )}
+                {availableCharts.includes("pie") && (
+                  <ChartTypeBtn active={chartType === "pie"} onClick={() => setChartType("pie")} icon={<PieIcon className="h-3.5 w-3.5" />} label="دائري" />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Chart */}
+          {(viewMode === "chart" || viewMode === "both") && availableCharts.length > 0 && (
+            <div ref={chartRef} className="p-4 bg-background">
+              <ReportChart
+                data={data}
+                columns={tableColumns}
+                type={chartType}
+                isGrouped={isGrouped}
+              />
             </div>
           )}
-          {/* Click-handler overlay via custom row binding */}
-          {groupBy !== "none" && (
-            <ClickableGroupRows data={data} onClick={onRowClick} />
+
+          {/* Table */}
+          {(viewMode === "table" || viewMode === "both") && (
+            <>
+              <SortableReportTable
+                columns={tableColumns}
+                data={data}
+                totalsRow={totalsRow}
+                loading={false}
+                reportTitle={reportName || `تقرير ${source.label}`}
+                storageKey={`builder-${sourceKey}-${groupBy}`}
+                rowClassName={(row) => row._drillRows ? "cursor-pointer hover:bg-primary/5" : ""}
+              />
+              {groupBy !== "none" && data.length > 0 && (
+                <div className="px-4 py-2 bg-muted/30 border-t border-border/40 text-[10px] text-muted-foreground text-center">
+                  💡 اضغط على أي صف للوصول لتفاصيل البنود
+                </div>
+              )}
+              {groupBy !== "none" && (
+                <ClickableGroupRows data={data} onClick={onRowClick} />
+              )}
+            </>
           )}
         </Card>
       )}
