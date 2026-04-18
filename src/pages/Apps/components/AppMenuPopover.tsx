@@ -24,14 +24,25 @@ export default function AppMenuPopover({
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // Position popover under anchor
+  // Position popover under anchor (uses viewport coords + position:fixed)
   useEffect(() => {
     if (!open || !anchorEl) return;
-    const rect = anchorEl.getBoundingClientRect();
-    const width = Math.max(280, rect.width);
-    const left = rect.left + rect.width / 2 - width / 2;
-    const top = rect.bottom + 8;
-    setPos({ top: top + window.scrollY, left: Math.max(8, left + window.scrollX), width });
+
+    const update = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const width = Math.max(280, rect.width);
+      const left = rect.left + rect.width / 2 - width / 2;
+      const top = rect.bottom + 8;
+      setPos({ top, left: Math.max(8, left), width });
+    };
+
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
   }, [open, anchorEl]);
 
   // Close on outside click / Esc
