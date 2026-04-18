@@ -287,7 +287,7 @@ const AppsLauncher = () => {
               disabled={isAppDisabled(app)}
               isLocked={hiddenApps.includes(app.id)}
               isPremiumLocked={isAppPremiumLocked(app)}
-              onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: getRequiredTier(app.id) })}
+              onPremiumClick={() => setUpgradeModal({ open: true, module: app.label, tier: "pro" })}
             />
           ))}
         </div>
