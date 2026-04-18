@@ -45,10 +45,25 @@ const AppsLauncher = () => {
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
   // expandedApp removed in Phase 1 — apps now navigate directly
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
+
+  // Global Ctrl+K / ⌘K to open command palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Subscription is fully resolved only when both subscription + guard finished loading
   const subscriptionResolved = !subLoading && !guardLoading;
