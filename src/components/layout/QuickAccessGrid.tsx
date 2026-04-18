@@ -18,10 +18,10 @@ export interface QuickAccessItem {
 }
 
 const ALL_ITEMS: QuickAccessItem[] = [
-  { id: "invoice", label: "فاتورة جديدة", icon: FileText, shortcut: "F1", path: "/invoices/new", enabled: true },
-  { id: "receipt", label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new", enabled: true },
-  { id: "payment", label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payment/new", enabled: true },
-  { id: "journal", label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journal/new", enabled: true },
+  { id: "invoice", label: "فاتورة جديدة", icon: FileText, shortcut: "Alt+I", path: "/invoices/new", enabled: true },
+  { id: "receipt", label: "سند قبض", icon: Landmark, shortcut: "Alt+R", path: "/finance/receipt/new", enabled: true },
+  { id: "payment", label: "سند صرف", icon: Wallet, shortcut: "Alt+E", path: "/finance/payment/new", enabled: true },
+  { id: "journal", label: "سند قيد", icon: ClipboardList, shortcut: "Alt+J", path: "/finance/journal/new", enabled: true },
   { id: "customers", label: "زبائن", icon: Users, shortcut: "Alt+C", path: "/contacts?type=customer", enabled: true },
   { id: "suppliers", label: "موردين", icon: Store, shortcut: "Alt+M", path: "/contacts?type=supplier", enabled: true },
   { id: "account_stmt", label: "كشف حساب", icon: BarChart3, shortcut: "Alt+K", path: "/account-statement", enabled: true },
