@@ -83,6 +83,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/van-days": { title: "دورة يوم البائع المتجول", icon: "truck" },
   "/van": { title: "وضع البائع المتجول", icon: "truck" },
   "/van-commissions": { title: "عمولات البائعين المتجولين", icon: "calculator" },
+  "/van-reports": { title: "تقارير البائعين المتجولين", icon: "bar-chart-3" },
   "/fixed-assets": { title: "الأصول الثابتة", icon: "briefcase" },
   "/warranty": { title: "إدارة الكفالات", icon: "shield" },
   "/warranty/policies": { title: "سياسات الكفالة", icon: "shield" },

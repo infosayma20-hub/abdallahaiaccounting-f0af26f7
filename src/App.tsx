@@ -58,6 +58,7 @@ const StockTransfersPage = lazy(() => import("./pages/StockTransfersPage"));
 const VanDaysPage = lazy(() => import("./pages/VanDaysPage"));
 const VanModePage = lazy(() => import("./pages/VanModePage"));
 const VanCommissionsPage = lazy(() => import("./pages/VanCommissionsPage"));
+const VanReportsPage = lazy(() => import("./pages/VanReportsPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 const DeliveryNotesPage = lazy(() => import("./pages/DeliveryNotesPage"));
 const DeliveryNoteCreatePage = lazy(() => import("./pages/DeliveryNoteCreatePage"));
@@ -360,6 +361,7 @@ const App = () => (
                       <Route path="/van-days" element={<VanDaysPage />} />
                       <Route path="/van" element={<VanModePage />} />
                       <Route path="/van-commissions" element={<VanCommissionsPage />} />
+                      <Route path="/van-reports" element={<VanReportsPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/orders/:id" element={<OrderDetailPage />} />
                       <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
