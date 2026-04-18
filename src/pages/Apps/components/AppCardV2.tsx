@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock } from "lucide-react";
 import type { NavItem } from "@/config/navigationConfig";
 import type { AppVisualMeta } from "../data/appsRegistry";
 
@@ -14,11 +14,10 @@ interface Props {
 }
 
 /**
- * AppCardV2 — AMWALI brand-spec card (Phase 1)
- * - 44×44 colored icon container
- * - 13px name / 11px subtitle (Cairo)
- * - Hover: navy border + lift -2px
- * - Inline styles only, hex values per brand convention
+ * AppCardV2 — Restored classic AMWALI cards with subtle 3D effect
+ * - White card, blue tint border (#dbeafe → #3b82f6 hover)
+ * - Original app colors from navigationConfig (app.color / app.bgColor)
+ * - 3D: layered shadows + translateY/scale + inner highlight
  */
 export default function AppCardV2({
   app, meta, index, onNavigate, disabled, isPremiumLocked, onPremiumClick,
@@ -31,140 +30,143 @@ export default function AppCardV2({
     onNavigate(app.path);
   };
 
+  // Resting 3D shadow (soft layered)
+  const restShadow =
+    "0 1px 2px rgba(13, 27, 46, 0.04), 0 2px 6px rgba(13, 27, 46, 0.05), 0 8px 16px -8px rgba(13, 27, 46, 0.06)";
+  // Hover 3D shadow (lifted, more depth)
+  const hoverShadow =
+    "0 2px 4px rgba(13, 27, 46, 0.05), 0 8px 16px rgba(13, 27, 46, 0.08), 0 20px 40px -12px rgba(59, 130, 246, 0.18), 0 0 0 3px #eff6ff";
+
   return (
-    <motion.button
-      type="button"
-      role="button"
-      tabIndex={0}
-      onClick={handleClick}
-      initial={{ opacity: 0, y: 8 }}
+    <motion.div
+      id={`app-${app.id}`}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.02, duration: 0.25, ease: "easeOut" }}
-      disabled={isInert}
+      transition={{ delay: index * 0.03, duration: 0.35, ease: "easeOut" }}
       style={{
         position: "relative",
-        background: "#FFFFFF",
-        border: "0.5px solid #E5E7EB",
-        borderRadius: 12,
-        padding: "16px 12px",
-        textAlign: "center",
+        borderRadius: 16,
+        background: isPremiumLocked ? "#f8fafc" : "#ffffff",
+        border: isPremiumLocked ? "1.5px solid #e2e8f0" : "1.5px solid #dbeafe",
+        boxShadow: restShadow,
+        transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
+        opacity: isInert ? 0.45 : 1,
         cursor: isInert ? "not-allowed" : "pointer",
-        transition: "all 0.2s ease",
-        opacity: isInert ? 0.45 : isPremiumLocked ? 0.9 : 1,
+        overflow: "hidden",
         fontFamily: "Cairo, Tajawal, sans-serif",
       }}
       onMouseEnter={(e) => {
         if (isInert) return;
-        e.currentTarget.style.borderColor = "#0D1B2E";
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 4px 12px rgba(13, 27, 46, 0.08)";
+        e.currentTarget.style.borderColor = "#3b82f6";
+        e.currentTarget.style.boxShadow = hoverShadow;
+        e.currentTarget.style.transform = "translateY(-3px) scale(1.01)";
       }}
       onMouseLeave={(e) => {
         if (isInert) return;
-        e.currentTarget.style.borderColor = "#E5E7EB";
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.borderColor = isPremiumLocked ? "#e2e8f0" : "#dbeafe";
+        e.currentTarget.style.boxShadow = restShadow;
+        e.currentTarget.style.transform = "translateY(0) scale(1)";
       }}
-      onFocus={(e) => {
-        if (isInert) return;
-        e.currentTarget.style.outline = "2px solid #0D1B2E";
-        e.currentTarget.style.outlineOffset = "2px";
-      }}
-      onBlur={(e) => { e.currentTarget.style.outline = "none"; }}
     >
-      {/* AI Badge — only for AI Accountant */}
-      {meta.isAIFeature && !isInert && (
-        <span
-          aria-hidden="true"
+      {/* Subtle inner top highlight for 3D feel */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: 16,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 30%)",
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isInert}
+        className="w-full flex flex-col items-center gap-2 p-5 pb-4 text-center group relative z-10"
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: isInert ? "not-allowed" : "pointer",
+        }}
+      >
+        {/* Icon container — uses original app.color/bgColor classes */}
+        <div
+          className={`w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all duration-300 ${
+            isInert
+              ? "grayscale"
+              : `${app.bgColor || "bg-primary/8"} group-hover:scale-110`
+          }`}
           style={{
-            position: "absolute",
-            top: 8,
-            insetInlineStart: 8,
-            background: "linear-gradient(90deg, #7F77DD, #D4537E)",
-            color: "#FFFFFF",
-            fontSize: 9,
-            fontWeight: 500,
-            padding: "2px 6px",
-            borderRadius: 4,
-            letterSpacing: 0.3,
+            // Layered 3D for the icon tile itself
+            boxShadow: isInert
+              ? "none"
+              : "0 1px 2px rgba(0,0,0,0.06), 0 4px 10px -2px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.4)",
           }}
         >
-          AI
-        </span>
-      )}
+          {isPremiumLocked ? (
+            <Lock className="h-5 w-5" style={{ color: "#cbd5e1" }} />
+          ) : (
+            <app.icon
+              className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`}
+            />
+          )}
+        </div>
 
-      {/* Lock — premium */}
-      {isPremiumLocked && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 8,
-            insetInlineStart: 8,
-            width: 20,
-            height: 20,
-            borderRadius: 999,
-            background: "#FFFFFF",
-            border: "1px solid #E5E7EB",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Lock size={10} color="#9CA3AF" strokeWidth={2.5} />
-        </span>
-      )}
-
-      {/* Icon */}
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          margin: "0 auto 10px",
-          borderRadius: 10,
-          background: isInert ? "#E5E7EB" : meta.iconColor,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "transform 0.2s ease",
-        }}
-      >
-        {meta.isAIFeature ? (
-          <Sparkles size={22} color="#FFFFFF" strokeWidth={2} aria-hidden="true" />
-        ) : (
-          <app.icon size={22} color="#FFFFFF" strokeWidth={2} aria-hidden="true" />
-        )}
-      </div>
-
-      {/* Name */}
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: isInert ? "#9CA3AF" : "#0D1B2E",
-          marginBottom: 3,
-          lineHeight: 1.4,
-        }}
-      >
-        {app.label}
-      </div>
-
-      {/* Subtitle */}
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 400,
-          color: "#9CA3AF",
-          lineHeight: 1.5,
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          minHeight: 33,
-        }}
-      >
-        {isInert ? "غير متاح" : isPremiumLocked ? "ترقية للاستخدام" : app.description}
-      </div>
-    </motion.button>
+        {/* Name + description */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-center gap-1.5">
+            <p
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: isInert ? "#94a3b8" : "#0D1B2E",
+                margin: 0,
+              }}
+            >
+              {app.label}
+            </p>
+            {!isInert && app.isNew && (
+              <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">
+                جديد
+              </span>
+            )}
+            {!isInert && meta.isAIFeature && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 600,
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  background: "linear-gradient(90deg, #7F77DD, #D4537E)",
+                  color: "#ffffff",
+                  letterSpacing: 0.3,
+                }}
+              >
+                AI
+              </span>
+            )}
+          </div>
+          <p
+            className="line-clamp-2"
+            style={{
+              fontSize: 12,
+              color: isPremiumLocked ? "#94a3b8" : "#64748b",
+              lineHeight: 1.5,
+              maxWidth: 180,
+              margin: "0 auto",
+            }}
+          >
+            {isPremiumLocked
+              ? "🔒 ترقية للاستخدام"
+              : isInert
+              ? "غير مفعّل"
+              : app.description}
+          </p>
+        </div>
+      </button>
+    </motion.div>
   );
 }
