@@ -117,7 +117,9 @@ export default function AppCardV2({
               : "0 1px 2px rgba(0,0,0,0.06), 0 4px 10px -2px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.4)",
           }}
         >
-          {isPremiumLocked ? (
+          {pendingActivation ? (
+            <Clock className="h-5 w-5" style={{ color: "#7F77DD" }} strokeWidth={2.2} />
+          ) : isPremiumLocked ? (
             <Lock className="h-5 w-5" style={{ color: "#cbd5e1" }} />
           ) : (
             <app.icon
@@ -139,12 +141,27 @@ export default function AppCardV2({
             >
               {app.label}
             </p>
-            {!isInert && app.isNew && (
+            {!isInert && app.isNew && !pendingActivation && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">
                 جديد
               </span>
             )}
-            {!isInert && meta.isAIFeature && (
+            {pendingActivation && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  background: "rgba(127,119,221,0.12)",
+                  color: "#5b51c4",
+                  border: "1px solid rgba(127,119,221,0.25)",
+                }}
+              >
+                بانتظار التفعيل
+              </span>
+            )}
+            {!isInert && meta.isAIFeature && !pendingActivation && (
               <span
                 style={{
                   fontSize: 9,
@@ -164,13 +181,15 @@ export default function AppCardV2({
             className="line-clamp-2"
             style={{
               fontSize: 12,
-              color: isPremiumLocked ? "#94a3b8" : "#64748b",
+              color: pendingActivation ? "#7c75c4" : isPremiumLocked ? "#94a3b8" : "#64748b",
               lineHeight: 1.5,
-              maxWidth: 180,
+              maxWidth: 200,
               margin: "0 auto",
             }}
           >
-            {isPremiumLocked
+            {pendingActivation
+              ? "اطلب من الإدارة تفعيله"
+              : isPremiumLocked
               ? "🔒 ترقية للاستخدام"
               : isInert
               ? "غير مفعّل"
