@@ -120,25 +120,22 @@ const AppsLauncher = () => {
     return found || null;
   }, [userRoles]);
 
-  /* All apps after role + visibility filter (used by palette + counts) */
+  /* All apps after role filter (used by palette + counts).
+     ⚙️ ملاحظة: hidden_apps لم تعد تُخفي البطاقة — تُنقل لقسم Premium كـ "بانتظار التفعيل". */
   const allVisibleApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
       allApps = allApps.filter(app => allowed.includes(app.id));
     }
-    return allApps.filter(app => !isAppDisabled(app));
-  }, [restrictedRole, hiddenApps]);
+    return allApps;
+  }, [restrictedRole]);
 
-  /* Filter apps by role + search + category; group by section */
+  /* Filter apps by role + search + category; group by section.
+     التطبيقات المعطّلة (hidden_apps) تُعرض ضمن قسم Premium كبطاقات
+     "بانتظار التفعيل من الإدارة"، وتُحذف من قسمها الأصلي. */
   const groupedApps = useMemo(() => {
-    let allApps = appSections.flatMap(s => s.items);
-
-    // Role-based filter
-    if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
-      const allowed = ROLE_ALLOWED_APPS[restrictedRole];
-      allApps = allApps.filter(app => allowed.includes(app.id));
-    }
+    let allApps = [...allVisibleApps];
 
     // Search filter
     const q = search.trim();
@@ -148,19 +145,17 @@ const AppsLauncher = () => {
         )
       : allApps;
 
-    // Category filter
+    // Category filter — section is calculated AFTER hidden_apps remap
     if (categoryFilter === "favorites") {
       filtered = filtered.filter(app => favorites.includes(app.id));
     } else if (categoryFilter !== "all") {
-      filtered = filtered.filter(app => getAppMeta(app.id)?.section === categoryFilter);
+      filtered = filtered.filter(app => {
+        const meta = getAppMeta(app.id);
+        if (!meta) return false;
+        const effectiveSection = isAppDisabled(app) ? "premium" : meta.section;
+        return effectiveSection === categoryFilter;
+      });
     }
-
-    // Sort: enabled first, hidden last
-    const sorted = filtered.sort((a, b) => {
-      const aDisabled = isAppDisabled(a) ? 1 : 0;
-      const bDisabled = isAppDisabled(b) ? 1 : 0;
-      return aDisabled - bDisabled;
-    });
 
     // Build favorites group separately (only when showing all/favorites)
     const showFavoritesGroup =
@@ -168,21 +163,29 @@ const AppsLauncher = () => {
       favorites.length > 0 &&
       !q;
     const favoritesList = showFavoritesGroup
-      ? sorted.filter(a => favorites.includes(a.id))
+      ? filtered.filter(a => favorites.includes(a.id))
       : [];
 
-    // Group by section meta (excluding favorites if shown above to avoid duplicates)
+    // Group by section — disabled apps move to "premium"
     const groups: Record<SectionKey, NavItem[]> = { core: [], operations: [], premium: [] };
-    for (const app of sorted) {
-      if (showFavoritesGroup && favorites.includes(app.id) && categoryFilter === "all") {
-        // still keep in section so user sees them in their natural place too
-      }
+    for (const app of filtered) {
       const meta = getAppMeta(app.id);
       if (!meta) continue;
-      groups[meta.section].push(app);
+      const targetSection: SectionKey = isAppDisabled(app) ? "premium" : meta.section;
+      groups[targetSection].push(app);
     }
-    return { groups, total: sorted.length, favoritesList, showFavoritesGroup };
-  }, [search, restrictedRole, hiddenApps, categoryFilter, favorites]);
+
+    // Sort: active first, pending-activation last (within each section)
+    for (const sec of Object.keys(groups) as SectionKey[]) {
+      groups[sec].sort((a, b) => {
+        const aPending = isAppDisabled(a) ? 1 : 0;
+        const bPending = isAppDisabled(b) ? 1 : 0;
+        return aPending - bPending;
+      });
+    }
+
+    return { groups, total: filtered.length, favoritesList, showFavoritesGroup };
+  }, [search, allVisibleApps, hiddenApps, categoryFilter, favorites]);
 
   const totalResults = groupedApps.total;
 
