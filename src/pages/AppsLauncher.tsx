@@ -18,7 +18,7 @@ import { APPS_VISUAL_META, getAppMeta, type AppSection as SectionKey } from "@/p
 import AppCardV2 from "@/pages/Apps/components/AppCardV2";
 import AppSectionBlock from "@/pages/Apps/components/AppSection";
 import AppsHero from "@/pages/Apps/components/AppsHero";
-import FloatingAIBar from "@/pages/Apps/components/FloatingAIBar";
+
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
@@ -397,8 +397,6 @@ const AppsLauncher = () => {
         </>
       )}
 
-      {/* Floating AI Accountant access bar */}
-      <FloatingAIBar />
     </div>
   );
 };
