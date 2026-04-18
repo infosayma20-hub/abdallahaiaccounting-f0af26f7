@@ -244,6 +244,7 @@ export const navigationSections: NavSection[] = [
               { label: "المستودعات", path: "/warehouses" },
               { label: "سندات تحويل المخزون", path: "/stock-transfers" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
+              { label: "عمولات البائعين المتجولين", path: "/van-commissions" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
             ],
           },
