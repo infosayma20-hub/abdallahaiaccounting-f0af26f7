@@ -45,7 +45,7 @@ const VanModePage = () => {
   const loadDay = async () => {
     if (!user) return;
     setLoading(true);
-    const { data: dayData } = await supabase
+    const { data: dayData } = await (supabase as any)
       .from("van_sales_days")
       .select(`*, sales_rep:sales_representatives(full_name), warehouse:warehouses(name)`)
       .eq("user_id", user.id)
@@ -55,31 +55,36 @@ const VanModePage = () => {
       .maybeSingle();
 
     if (dayData) {
-      setOpenDay(dayData as any);
-      // Live stats from period
-      const [{ data: invs }, { data: txs }, { data: stockRows }] = await Promise.all([
-        supabase.from("invoices")
-          .select("total_amount")
-          .eq("user_id", user.id)
-          .eq("warehouse_id", (dayData as any).warehouse_id)
-          .gte("created_at", (dayData as any).opened_at)
-          .eq("is_deleted", false),
-        supabase.from("transactions")
-          .select("amount")
-          .eq("user_id", user.id)
-          .eq("transaction_type", "receipt")
-          .gte("created_at", (dayData as any).opened_at)
-          .eq("is_deleted", false),
-        supabase.from("product_warehouse_stock")
-          .select("product_id, quantity")
-          .eq("warehouse_id", (dayData as any).warehouse_id)
-          .gt("quantity", 0),
-      ]);
+      setOpenDay(dayData as OpenDay);
+      const openedAt = dayData.opened_at;
+      const warehouseId = dayData.warehouse_id;
+
+      const invsRes: any = await (supabase as any).from("invoices")
+        .select("total_amount")
+        .eq("user_id", user.id)
+        .eq("warehouse_id", warehouseId)
+        .gte("created_at", openedAt)
+        .eq("is_deleted", false);
+      const txsRes: any = await (supabase as any).from("transactions")
+        .select("amount")
+        .eq("user_id", user.id)
+        .eq("transaction_type", "receipt")
+        .gte("created_at", openedAt)
+        .eq("is_deleted", false);
+      const stockRes: any = await (supabase as any).from("product_warehouse_stock")
+        .select("product_id, quantity")
+        .eq("warehouse_id", warehouseId)
+        .gt("quantity", 0);
+
+      const invs: any[] = invsRes.data ?? [];
+      const txs: any[] = txsRes.data ?? [];
+      const stockRows: any[] = stockRes.data ?? [];
+
       setStats({
-        invoiceCount: invs?.length ?? 0,
-        totalSales: invs?.reduce((s, i: any) => s + Number(i.total_amount || 0), 0) ?? 0,
-        totalCollections: txs?.reduce((s, t: any) => s + Number(t.amount || 0), 0) ?? 0,
-        productCount: stockRows?.length ?? 0,
+        invoiceCount: invs.length,
+        totalSales: invs.reduce((s, i) => s + Number(i.total_amount || 0), 0),
+        totalCollections: txs.reduce((s, t) => s + Number(t.amount || 0), 0),
+        productCount: stockRows.length,
       });
     } else {
       setOpenDay(null);
