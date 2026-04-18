@@ -145,13 +145,13 @@ const AppsLauncher = () => {
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
   return (
-    <div style={{ minHeight: "100%", background: "#f1f5f9", margin: "-1.25rem", marginBottom: 0 }} className="lg:-m-8 lg:mb-0" dir="rtl">
-      
-      <div className="max-w-5xl mx-auto px-8 pb-8" style={{ paddingTop: 48 }}>
+    <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">
+
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 24px 48px" }}>
         {/* Title */}
-        <div className="text-center space-y-2 mb-6">
-          <h2 style={{ fontSize: 32, fontWeight: 700, color: "#0D1B2E", fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
-          <p style={{ fontSize: 15, color: "#64748b" }}>كل احتياج. تطبيق واحد.</p>
+        <div style={{ textAlign: "center", marginBottom: 18 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 500, color: "#0D1B2E", margin: 0 }}>التطبيقات</h2>
+          <p style={{ fontSize: 14, color: "#6B7280", marginTop: 6, marginBottom: 0 }}>كل ما تحتاجه لإدارة أعمالك — في مكان واحد</p>
         </div>
 
         {/* Search */}
