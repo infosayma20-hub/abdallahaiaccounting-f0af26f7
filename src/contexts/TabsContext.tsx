@@ -176,7 +176,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/debit-notes/new": { title: "إشعار مدين جديد", icon: "file" },
   "/crm": { title: "إدارة علاقات العملاء", icon: "users" },
   "/crm/leads": { title: "العملاء المحتملون", icon: "users" },
-  "/crm/pipeline": { title: "قمع المبيعات", icon: "trending" },
+  "/crm/pipeline": { title: "خط سير المبيعات", icon: "trending" },
   "/crm/activities": { title: "متابعات العملاء", icon: "clipboard" },
   "/crm/customers": { title: "ملف العميل 360", icon: "users" },
 };
