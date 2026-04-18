@@ -133,7 +133,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "لوحة CRM", path: "/crm" },
               { label: "العملاء المحتملون", path: "/crm/leads" },
-              { label: "قمع المبيعات", path: "/crm/pipeline" },
+              { label: "خط سير المبيعات", path: "/crm/pipeline" },
               { label: "المتابعات والأنشطة", path: "/crm/activities" },
               { label: "ملف العميل 360", path: "/crm/customers" },
             ],

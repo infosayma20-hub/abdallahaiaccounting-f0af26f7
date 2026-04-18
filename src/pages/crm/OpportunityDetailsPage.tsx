@@ -98,7 +98,7 @@ export default function OpportunityDetailsPage() {
       <div className="bg-white rounded-xl border border-dashed border-slate-300 py-20 text-center">
         <h3 className="text-sm font-bold text-slate-700 mb-2">لم يتم العثور على الفرصة</h3>
         <button onClick={() => navigate("/crm/pipeline")} className="text-xs text-blue-600 hover:underline">
-          العودة إلى قمع المبيعات ←
+          العودة إلى خط سير المبيعات ←
         </button>
       </div>
     );
@@ -112,7 +112,7 @@ export default function OpportunityDetailsPage() {
       {/* Breadcrumb + actions */}
       <div className="flex items-center justify-between">
         <button onClick={() => navigate("/crm/pipeline")} className="flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-900 transition">
-          <ArrowRight className="h-3.5 w-3.5" /> قمع المبيعات
+          <ArrowRight className="h-3.5 w-3.5" /> خط سير المبيعات
         </button>
         <div className="flex items-center gap-2">
           <button onClick={() => setActivityOpen(true)} className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5">

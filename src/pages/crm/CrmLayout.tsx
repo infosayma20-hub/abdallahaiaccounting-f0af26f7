@@ -6,7 +6,7 @@ import CrmGlobalSearch from "./components/CrmGlobalSearch";
 const tabs = [
   { path: "/crm",              label: "لوحة CRM",     icon: LayoutDashboard, exact: true },
   { path: "/crm/leads",        label: "العملاء المحتملون", icon: Users },
-  { path: "/crm/pipeline",     label: "قمع المبيعات",  icon: Kanban },
+  { path: "/crm/pipeline",     label: "خط سير المبيعات",  icon: Kanban },
   { path: "/crm/activities",   label: "المتابعات",     icon: ListChecks },
   { path: "/crm/customers",    label: "ملف العميل 360", icon: UserCircle2 },
 ];

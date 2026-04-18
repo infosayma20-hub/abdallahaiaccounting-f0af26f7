@@ -138,9 +138,9 @@ export default function CrmDashboard() {
         {/* Pipeline by stage */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-slate-900">قمع المبيعات حسب المرحلة</h2>
+            <h2 className="text-sm font-bold text-slate-900">خط سير المبيعات حسب المرحلة</h2>
             <button onClick={() => navigate("/crm/pipeline")} className="text-xs text-blue-600 hover:underline">
-              عرض القمع الكامل ←
+              عرض الخط الكامل ←
             </button>
           </div>
           <div className="space-y-2.5">
@@ -165,7 +165,7 @@ export default function CrmDashboard() {
             })}
             {stats.openOppsCount === 0 && (
               <p className="text-center text-xs text-slate-400 py-8">
-                لا توجد فرص بعد. ابدأ بإضافة فرصة جديدة من قمع المبيعات.
+                لا توجد فرص بعد. ابدأ بإضافة فرصة جديدة من خط سير المبيعات.
               </p>
             )}
           </div>
