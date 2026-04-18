@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Save, FileSpreadsheet, BookmarkPlus, Loader2, Sparkles, FolderOpen } from "lucide-react";
+import { ArrowRight, Save, FileSpreadsheet, BookmarkPlus, Loader2, Sparkles, FolderOpen, FileText, BarChart3, LineChart as LineIcon, PieChart as PieIcon, Table as TableIcon, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,14 @@ import { runReport, calculateKPIs, ReportFilters } from "@/lib/report-builder/qu
 import ColumnPicker from "@/components/report-builder/ColumnPicker";
 import FilterPanel from "@/components/report-builder/FilterPanel";
 import DrillDownModal from "@/components/report-builder/DrillDownModal";
+import ReportChart, { ChartType, getAvailableCharts } from "@/components/report-builder/ReportChart";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
+import { exportReportToPdf } from "@/lib/report-builder/pdf-export";
 
 const DRAFT_KEY = "report-builder-draft";
+type ViewMode = "table" | "chart" | "both";
 
 export default function ReportBuilderPage() {
   const navigate = useNavigate();
