@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+interface InvoiceItemInput {
+  product_id?: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  description?: string | null;
+}
+
 interface InvoiceParams {
   contactId?: string;
   contactName: string;
@@ -10,6 +19,13 @@ interface InvoiceParams {
   description?: string;
   paymentMethod?: string;
   currency?: string;
+  items?: InvoiceItemInput[];
+  invoiceDate?: string;
+  paidAmount?: number;
+  discountAmount?: number;
+  taxAmount?: number;
+  exchangeRate?: number;
+  source?: string;
 }
 
 interface ReceiptPaymentParams {
