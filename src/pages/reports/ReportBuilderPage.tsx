@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Save, FileSpreadsheet, BookmarkPlus, Loader2, Sparkles, FolderOpen } from "lucide-react";
+import { ArrowRight, Save, FileSpreadsheet, BookmarkPlus, Loader2, Sparkles, FolderOpen, FileText, BarChart3, LineChart as LineIcon, PieChart as PieIcon, Table as TableIcon, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,14 @@ import { runReport, calculateKPIs, ReportFilters } from "@/lib/report-builder/qu
 import ColumnPicker from "@/components/report-builder/ColumnPicker";
 import FilterPanel from "@/components/report-builder/FilterPanel";
 import DrillDownModal from "@/components/report-builder/DrillDownModal";
+import ReportChart, { ChartType, getAvailableCharts } from "@/components/report-builder/ReportChart";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
+import { exportReportToPdf } from "@/lib/report-builder/pdf-export";
 
 const DRAFT_KEY = "report-builder-draft";
+type ViewMode = "table" | "chart" | "both";
 
 export default function ReportBuilderPage() {
   const navigate = useNavigate();
@@ -43,6 +46,10 @@ export default function ReportBuilderPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [reportName, setReportName] = useState("");
   const [reportDesc, setReportDesc] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [chartType, setChartType] = useState<ChartType>("bar");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const chartRef = useRef<HTMLDivElement | null>(null);
 
   const source = useMemo(() => getDataSource(sourceKey)!, [sourceKey]);
 
@@ -206,6 +213,47 @@ export default function ReportBuilderPage() {
     toast({ title: "تم التصدير ✅" });
   };
 
+  // Available chart types based on current data shape
+  const isGrouped = groupBy !== "none" && data.length > 0 && "_group" in data[0];
+  const availableCharts = useMemo(
+    () => getAvailableCharts(tableColumns, isGrouped),
+    [tableColumns, isGrouped]
+  );
+
+  // Reset chart type if current is not available
+  useEffect(() => {
+    if (availableCharts.length > 0 && !availableCharts.includes(chartType)) {
+      setChartType(availableCharts[0]);
+    }
+    if (availableCharts.length === 0 && viewMode !== "table") {
+      setViewMode("table");
+    }
+  }, [availableCharts, chartType, viewMode]);
+
+  const handleExportPdf = async () => {
+    if (!data.length) return;
+    setExportingPdf(true);
+    try {
+      const chartEl = (viewMode === "chart" || viewMode === "both") ? chartRef.current : null;
+      await new Promise(r => setTimeout(r, 150));
+      await exportReportToPdf({
+        title: reportName || `تقرير ${source.label}`,
+        subtitle: reportDesc || undefined,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        kpis: kpis.map(k => ({ label: k.label, value: k.value })),
+        columns: tableColumns,
+        data,
+        chartElement: chartEl,
+      });
+      toast({ title: "تم تصدير PDF ✅" });
+    } catch (e: any) {
+      toast({ title: "خطأ في تصدير PDF", description: e.message, variant: "destructive" });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
@@ -228,6 +276,9 @@ export default function ReportBuilderPage() {
           </Button>
           <Button size="sm" variant="outline" onClick={handleExport} disabled={!data.length} className="gap-1.5 rounded-xl">
             <FileSpreadsheet className="h-4 w-4" /> Excel
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={!data.length || exportingPdf} className="gap-1.5 rounded-xl">
+            {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />} PDF
           </Button>
           <Button size="sm" onClick={() => setSaveOpen(true)} disabled={!hasRun} className="gap-1.5 rounded-xl">
             <BookmarkPlus className="h-4 w-4" /> حفظ التقرير
@@ -329,23 +380,74 @@ export default function ReportBuilderPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <SortableReportTable
-            columns={tableColumns}
-            data={data}
-            totalsRow={totalsRow}
-            loading={false}
-            reportTitle={reportName || `تقرير ${source.label}`}
-            storageKey={`builder-${sourceKey}-${groupBy}`}
-            rowClassName={(row) => row._drillRows ? "cursor-pointer hover:bg-primary/5" : ""}
-          />
-          {groupBy !== "none" && data.length > 0 && (
-            <div className="px-4 py-2 bg-muted/30 border-t border-border/40 text-[10px] text-muted-foreground text-center">
-              💡 اضغط على أي صف للوصول لتفاصيل البنود
+          {/* View mode + chart type toggle */}
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/40 bg-muted/20 flex-wrap">
+            <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+              <ViewModeBtn active={viewMode === "table"} onClick={() => setViewMode("table")} icon={<TableIcon className="h-3.5 w-3.5" />} label="جدول" />
+              <ViewModeBtn
+                active={viewMode === "chart"}
+                onClick={() => setViewMode("chart")}
+                icon={<BarChart3 className="h-3.5 w-3.5" />}
+                label="رسم بياني"
+                disabled={availableCharts.length === 0}
+              />
+              <ViewModeBtn
+                active={viewMode === "both"}
+                onClick={() => setViewMode("both")}
+                icon={<LayoutGrid className="h-3.5 w-3.5" />}
+                label="كلاهما"
+                disabled={availableCharts.length === 0}
+              />
+            </div>
+
+            {(viewMode === "chart" || viewMode === "both") && availableCharts.length > 0 && (
+              <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                {availableCharts.includes("bar") && (
+                  <ChartTypeBtn active={chartType === "bar"} onClick={() => setChartType("bar")} icon={<BarChart3 className="h-3.5 w-3.5" />} label="أعمدة" />
+                )}
+                {availableCharts.includes("line") && (
+                  <ChartTypeBtn active={chartType === "line"} onClick={() => setChartType("line")} icon={<LineIcon className="h-3.5 w-3.5" />} label="خطي" />
+                )}
+                {availableCharts.includes("pie") && (
+                  <ChartTypeBtn active={chartType === "pie"} onClick={() => setChartType("pie")} icon={<PieIcon className="h-3.5 w-3.5" />} label="دائري" />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Chart */}
+          {(viewMode === "chart" || viewMode === "both") && availableCharts.length > 0 && (
+            <div ref={chartRef} className="p-4 bg-background">
+              <ReportChart
+                data={data}
+                columns={tableColumns}
+                type={chartType}
+                isGrouped={isGrouped}
+              />
             </div>
           )}
-          {/* Click-handler overlay via custom row binding */}
-          {groupBy !== "none" && (
-            <ClickableGroupRows data={data} onClick={onRowClick} />
+
+          {/* Table */}
+          {(viewMode === "table" || viewMode === "both") && (
+            <>
+              <SortableReportTable
+                columns={tableColumns}
+                data={data}
+                totalsRow={totalsRow}
+                loading={false}
+                reportTitle={reportName || `تقرير ${source.label}`}
+                storageKey={`builder-${sourceKey}-${groupBy}`}
+                rowClassName={(row) => row._drillRows ? "cursor-pointer hover:bg-primary/5" : ""}
+              />
+              {groupBy !== "none" && data.length > 0 && (
+                <div className="px-4 py-2 bg-muted/30 border-t border-border/40 text-[10px] text-muted-foreground text-center">
+                  💡 اضغط على أي صف للوصول لتفاصيل البنود
+                </div>
+              )}
+              {groupBy !== "none" && (
+                <ClickableGroupRows data={data} onClick={onRowClick} />
+              )}
+            </>
           )}
         </Card>
       )}
@@ -405,4 +507,33 @@ function ClickableGroupRows({ data, onClick }: { data: any[]; onClick: (row: any
     return () => handlers.forEach(fn => fn());
   }, [data, onClick]);
   return null;
+}
+
+function ViewModeBtn({ active, onClick, icon, label, disabled }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-all ${
+        active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function ChartTypeBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-all ${
+        active ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
 }
