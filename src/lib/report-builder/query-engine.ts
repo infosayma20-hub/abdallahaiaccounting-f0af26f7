@@ -20,69 +20,111 @@ export interface RunReportParams {
   filters: ReportFilters;
   groupBy?: string; // none/day/week/month/year/<fieldKey>
   sortBy?: { key: string; dir: "asc" | "desc" }[];
+  page?: number; // 1-indexed
+  pageSize?: number;
+  selectedColumns?: string[]; // for narrow SELECT optimization
 }
 
-export async function runReport({ source, userId, filters, groupBy, sortBy }: RunReportParams) {
-  let query: any = (supabase as any)
-    .from(source.table)
-    .select(source.selectQuery)
-    .eq("user_id", userId);
+export interface RunReportResult {
+  rows: any[];
+  total: number;
+  page: number;
+  pageSize: number;
+  durationMs: number;
+}
 
-  // Date filter
-  if (filters.dateFrom) query = query.gte(source.dateColumn, filters.dateFrom);
-  if (filters.dateTo) query = query.lte(source.dateColumn, filters.dateTo);
+const ALWAYS_FIELDS_BY_SOURCE: Record<string, string[]> = {
+  sales: ["id", "invoice_date", "total_amount", "paid_amount", "contact_id"],
+  purchases: ["id", "purchase_date", "total_amount", "paid_amount", "contact_id"],
+  inventory: ["id"],
+};
 
-  // Contact filter
-  if (filters.contactId && source.contactFilter) {
-    query = query.eq(source.contactFilter.column, filters.contactId);
-  }
+function buildSelectClause(source: DataSourceDef, selectedColumns?: string[]) {
+  // Grouped reports need the date column + aggregatable fields, so we can't narrow too much.
+  // For non-grouped lists we narrow to selected + always.
+  if (!selectedColumns || selectedColumns.length === 0) return source.selectQuery;
+  const always = ALWAYS_FIELDS_BY_SOURCE[source.key] || ["id"];
+  const set = new Set<string>([...always, source.dateColumn, ...selectedColumns]);
+  // Keep optional filter columns if present
+  ["status", "payment_method", "branch_name", "category", "invoice_number", "customer_name", "supplier_name", "name", "sku"].forEach(
+    (c) => {
+      if (source.selectQuery.includes(c)) set.add(c);
+    }
+  );
+  return Array.from(set).join(", ");
+}
 
-  // Status
-  if (filters.status && source.statusValues?.includes(filters.status)) {
-    query = query.eq("status" as any, filters.status);
-  }
+export async function runReport({
+  source,
+  userId,
+  filters,
+  groupBy,
+  sortBy,
+  page = 1,
+  pageSize = 50,
+  selectedColumns,
+}: RunReportParams): Promise<RunReportResult> {
+  const t0 = performance.now();
+  const isGrouped = !!groupBy && groupBy !== "none";
 
-  if (filters.paymentMethod) {
-    query = query.eq("payment_method" as any, filters.paymentMethod);
-  }
-  if (filters.branchName) {
-    query = query.eq("branch_name" as any, filters.branchName);
-  }
-  if (filters.category) {
-    query = query.eq("category" as any, filters.category);
-  }
+  const selectClause = buildSelectClause(source, selectedColumns);
 
-  // Soft-delete safety
-  query = query.or("is_deleted.is.null,is_deleted.eq.false" as any);
+  // For grouped reports we need all matching rows (capped) to aggregate; for table mode we paginate server-side.
+  const buildBase = () => {
+    let q: any = (supabase as any).from(source.table).select(selectClause, { count: "exact" }).eq("user_id", userId);
+    if (filters.dateFrom) q = q.gte(source.dateColumn, filters.dateFrom);
+    if (filters.dateTo) q = q.lte(source.dateColumn, filters.dateTo);
+    if (filters.contactId && source.contactFilter) q = q.eq(source.contactFilter.column, filters.contactId);
+    if (filters.status && source.statusValues?.includes(filters.status)) q = q.eq("status" as any, filters.status);
+    if (filters.paymentMethod) q = q.eq("payment_method" as any, filters.paymentMethod);
+    if (filters.branchName) q = q.eq("branch_name" as any, filters.branchName);
+    if (filters.category) q = q.eq("category" as any, filters.category);
+    q = q.or("is_deleted.is.null,is_deleted.eq.false" as any);
+    return q;
+  };
+
+  let query = buildBase();
 
   // Sorting
   if (sortBy && sortBy.length > 0) {
-    sortBy.forEach(s => {
+    sortBy.forEach((s) => {
       query = query.order(s.key as any, { ascending: s.dir === "asc" });
     });
   } else {
     query = query.order(source.dateColumn as any, { ascending: false });
   }
 
-  query = query.limit(2000);
+  if (isGrouped) {
+    // Cap aggregation source to 5000 most-recent rows to protect performance.
+    query = query.limit(5000);
+  } else {
+    const from = Math.max(0, (page - 1) * pageSize);
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+  }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
 
   let rows = (data as any[]) || [];
 
-  // Text search (client-side)
+  // Text search (client-side over current page)
   if (filters.searchText) {
     const q = filters.searchText.toLowerCase();
-    rows = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+    rows = rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
   }
 
-  // Group By
-  if (groupBy && groupBy !== "none") {
+  if (isGrouped && groupBy) {
     rows = applyGroupBy(rows, groupBy, source);
   }
 
-  return rows;
+  return {
+    rows,
+    total: typeof count === "number" ? count : rows.length,
+    page,
+    pageSize,
+    durationMs: Math.round(performance.now() - t0),
+  };
 }
 
 function applyGroupBy(rows: any[], groupBy: string, source: DataSourceDef) {
@@ -91,7 +133,7 @@ function applyGroupBy(rows: any[], groupBy: string, source: DataSourceDef) {
   const dateBuckets = ["day", "week", "month", "year"];
   const isDateBucket = dateBuckets.includes(groupBy);
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     let bucketKey: string;
     let bucketLabel: string;
 
@@ -100,11 +142,25 @@ function applyGroupBy(rows: any[], groupBy: string, source: DataSourceDef) {
       if (!dateVal) return;
       const d = typeof dateVal === "string" ? parseISO(dateVal) : new Date(dateVal);
       switch (groupBy) {
-        case "day": bucketKey = format(d, "yyyy-MM-dd"); bucketLabel = format(d, "yyyy-MM-dd"); break;
-        case "week": bucketKey = format(startOfWeek(d), "yyyy-MM-dd"); bucketLabel = `أسبوع ${format(startOfWeek(d), "yyyy-MM-dd")}`; break;
-        case "month": bucketKey = format(startOfMonth(d), "yyyy-MM"); bucketLabel = format(d, "yyyy-MM"); break;
-        case "year": bucketKey = format(startOfYear(d), "yyyy"); bucketLabel = format(d, "yyyy"); break;
-        default: bucketKey = "—"; bucketLabel = "—";
+        case "day":
+          bucketKey = format(d, "yyyy-MM-dd");
+          bucketLabel = format(d, "yyyy-MM-dd");
+          break;
+        case "week":
+          bucketKey = format(startOfWeek(d), "yyyy-MM-dd");
+          bucketLabel = `أسبوع ${format(startOfWeek(d), "yyyy-MM-dd")}`;
+          break;
+        case "month":
+          bucketKey = format(startOfMonth(d), "yyyy-MM");
+          bucketLabel = format(d, "yyyy-MM");
+          break;
+        case "year":
+          bucketKey = format(startOfYear(d), "yyyy");
+          bucketLabel = format(d, "yyyy");
+          break;
+        default:
+          bucketKey = "—";
+          bucketLabel = "—";
       }
     } else {
       bucketKey = String(row[groupBy] ?? "—");
@@ -122,7 +178,7 @@ function applyGroupBy(rows: any[], groupBy: string, source: DataSourceDef) {
 
   return Object.values(buckets)
     .sort((a, b) => (a.key < b.key ? 1 : -1))
-    .map(b => ({
+    .map((b) => ({
       _group: b.label,
       _count: b.count,
       total_amount: b.total,
@@ -132,13 +188,17 @@ function applyGroupBy(rows: any[], groupBy: string, source: DataSourceDef) {
 }
 
 // Calculate KPIs
-export function calculateKPIs(rows: any[], source: DataSourceDef) {
+export function calculateKPIs(rows: any[], source: DataSourceDef, totalCount?: number) {
   if (!rows.length) return [];
   const isGrouped = "_group" in (rows[0] || {});
 
   const totalAmount = rows.reduce((s, r) => s + Number(r.total_amount || 0), 0);
   const totalPaid = rows.reduce((s, r) => s + Number(r.paid_amount || 0), 0);
-  const count = isGrouped ? rows.reduce((s, r) => s + (r._count || 0), 0) : rows.length;
+  const count = isGrouped
+    ? rows.reduce((s, r) => s + (r._count || 0), 0)
+    : typeof totalCount === "number"
+    ? totalCount
+    : rows.length;
 
   if (source.key === "inventory") {
     const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
@@ -154,6 +214,10 @@ export function calculateKPIs(rows: any[], source: DataSourceDef) {
     { label: source.key === "sales" ? "عدد الفواتير" : "عدد العمليات", value: count.toLocaleString(), color: "primary" },
     { label: "الإجمالي", value: `₪${totalAmount.toLocaleString()}`, color: "primary" },
     { label: "المدفوع", value: `₪${totalPaid.toLocaleString()}`, color: "muted" },
-    { label: "المتبقي", value: `₪${(totalAmount - totalPaid).toLocaleString()}`, color: totalAmount - totalPaid > 0 ? "destructive" : "muted" },
+    {
+      label: "المتبقي",
+      value: `₪${(totalAmount - totalPaid).toLocaleString()}`,
+      color: totalAmount - totalPaid > 0 ? "destructive" : "muted",
+    },
   ];
 }
