@@ -9,6 +9,7 @@ import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import UpgradePromptModal from "@/components/subscription/UpgradePromptModal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
@@ -154,8 +155,8 @@ const AppCard = ({
 
 const AppsLauncher = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { settings } = useCompanySettings();
+  const { user, loading: authLoading } = useAuth();
+  const { settings, loading: settingsLoading } = useCompanySettings();
   const { subscription, loading: subLoading } = useSubscription();
   const { isTrial, isSuperAdmin, loading: guardLoading } = useSubscriptionGuard();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
@@ -163,22 +164,40 @@ const AppsLauncher = () => {
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
   // Subscription is fully resolved only when both subscription + guard finished loading
   const subscriptionResolved = !subLoading && !guardLoading;
 
-  // Fetch user roles for filtering
+  // Fetch user roles for filtering (with cleanup to avoid setState on unmounted)
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setRolesLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setRolesLoading(true);
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .then(({ data }) => {
+        if (cancelled) return;
         setUserRoles((data || []).map((r) => r.role));
+        setRolesLoading(false);
       });
-  }, [user]);
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Unified loading gate: render skeleton until ALL deps are ready in one pass
+  const isReady =
+    !authLoading &&
+    !settingsLoading &&
+    !subLoading &&
+    !guardLoading &&
+    !onboardingLoading &&
+    !rolesLoading;
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
