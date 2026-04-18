@@ -142,24 +142,26 @@ export default function VanCommissionsPage() {
         salesBase = (invs || []).reduce((s, i) => s + Number(i.total_amount || 0), 0);
       }
 
-      // Collections: receipts (transactions of type 'سند قبض') tied to invoices in this warehouse during period
-      // Get invoice IDs in warehouse first
+      // Collections: receipts from customers who have invoices in this warehouse
       const { data: warehouseInvoices } = await supabase
         .from("invoices")
-        .select("id")
+        .select("contact_id")
         .eq("user_id", user.id)
-        .eq("warehouse_id", warehouseId);
-      const invIds = (warehouseInvoices || []).map((x) => x.id);
+        .eq("warehouse_id", warehouseId)
+        .neq("status", "cancelled");
+      const contactIds = Array.from(
+        new Set((warehouseInvoices || []).map((x: any) => x.contact_id).filter(Boolean))
+      );
 
-      if (invIds.length > 0) {
-        const q: any = supabase
+      if (contactIds.length > 0) {
+        const { data: rcps } = await supabase
           .from("transactions")
           .select("id, amount")
           .eq("user_id", user.id)
-          .eq("transaction_type", "سند قبض")
+          .in("transaction_type", ["receipt", "سند قبض"])
           .gte("transaction_date", from)
-          .lte("transaction_date", to);
-        const { data: rcps } = await q;
+          .lte("transaction_date", to)
+          .in("contact_id", contactIds);
         const list = (rcps || []) as Array<{ id: string; amount: number }>;
         receiptsCount = list.length;
         collectionBase = list.reduce((s, r) => s + Number(r.amount || 0), 0);
