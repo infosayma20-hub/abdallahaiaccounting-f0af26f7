@@ -3322,6 +3322,69 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_reports: {
+        Row: {
+          chart_type: string | null
+          color: string | null
+          columns: Json
+          created_at: string
+          data_source: string
+          description: string | null
+          filters: Json
+          group_by: string | null
+          icon: string | null
+          id: string
+          is_favorite: boolean
+          is_shared: boolean
+          last_used_at: string | null
+          name: string
+          sort_by: Json | null
+          updated_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          chart_type?: string | null
+          color?: string | null
+          columns?: Json
+          created_at?: string
+          data_source: string
+          description?: string | null
+          filters?: Json
+          group_by?: string | null
+          icon?: string | null
+          id?: string
+          is_favorite?: boolean
+          is_shared?: boolean
+          last_used_at?: string | null
+          name: string
+          sort_by?: Json | null
+          updated_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          chart_type?: string | null
+          color?: string | null
+          columns?: Json
+          created_at?: string
+          data_source?: string
+          description?: string | null
+          filters?: Json
+          group_by?: string | null
+          icon?: string | null
+          id?: string
+          is_favorite?: boolean
+          is_shared?: boolean
+          last_used_at?: string | null
+          name?: string
+          sort_by?: Json | null
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_workshop_types: {
         Row: {
           created_at: string

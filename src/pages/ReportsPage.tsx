@@ -309,20 +309,37 @@ const ReportsPage = () => {
         </div>
       )}
 
-      {/* Periodic Reports Banner */}
+      {/* Report Builder Banner (NEW - flagship feature) */}
       {!searchQuery.trim() && (
-        <div
-          onClick={() => navigate("/reports/periodic")}
-          className="rounded-xl border border-border/40 bg-white p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm hover:border-primary/30 transition-all group"
-        >
-          <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-            <CalendarRange className="h-6 w-6 text-accent" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div
+            onClick={() => navigate("/reports/builder")}
+            className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/50 transition-all group relative overflow-hidden"
+          >
+            <span className="absolute top-2 left-2 text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">جديد</span>
+            <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-foreground">منشئ التقارير المخصصة</h3>
+              <p className="text-[11px] text-muted-foreground">صمّم تقريرك بنفسك — أعمدة، فلاتر، تجميع، Drill-down</p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all rotate-180" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">التقارير الدورية</h3>
-            <p className="text-[11px] text-muted-foreground">قوالب جاهزة — شهري، ربعي، نصف سنوي، سنوي — تُولَّد تلقائياً مع رسوم بيانية</p>
+
+          <div
+            onClick={() => navigate("/reports/periodic")}
+            className="rounded-xl border border-border/40 bg-white p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm hover:border-accent/30 transition-all group"
+          >
+            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+              <CalendarRange className="h-6 w-6 text-accent" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-foreground">التقارير الدورية</h3>
+              <p className="text-[11px] text-muted-foreground">قوالب جاهزة — شهري، ربعي، نصف سنوي، سنوي</p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent group-hover:-translate-x-1 transition-all rotate-180" />
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent group-hover:-translate-x-1 transition-all rotate-180" />
         </div>
       )}
 

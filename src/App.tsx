@@ -92,6 +92,8 @@ const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage")
 const PosInvoiceDetailPage = lazy(() => import("./pages/pos/PosInvoiceDetailPage"));
 const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDashboardPage"));
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
+const ReportBuilderPage = lazy(() => import("./pages/reports/ReportBuilderPage"));
+const MyReportsPage = lazy(() => import("./pages/reports/MyReportsPage"));
 const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
 const TemplateDesignerPage = lazy(() => import("./pages/TemplateDesignerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -323,6 +325,8 @@ const App = () => (
                       <Route path="/debit-notes/new" element={<CreditDebitNoteCreatePage noteType="debit" />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
+                      <Route path="/reports/builder" element={<ReportBuilderPage />} />
+                      <Route path="/reports/my-reports" element={<MyReportsPage />} />
                       <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
