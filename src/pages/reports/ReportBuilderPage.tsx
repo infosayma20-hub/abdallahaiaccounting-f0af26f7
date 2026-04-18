@@ -46,8 +46,10 @@ export default function ReportBuilderPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [reportName, setReportName] = useState("");
   const [reportDesc, setReportDesc] = useState("");
-
-  const source = useMemo(() => getDataSource(sourceKey)!, [sourceKey]);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [chartType, setChartType] = useState<ChartType>("bar");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const chartRef = useRef<HTMLDivElement | null>(null);
 
   // Load saved report or draft
   useEffect(() => {
