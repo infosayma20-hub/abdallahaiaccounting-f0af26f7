@@ -92,11 +92,32 @@ export default function ReportBuilderPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const chartRef = useRef<HTMLDivElement | null>(null);
 
+  // Branding info for PDF footer/header
+  const [branding, setBranding] = useState<{ companyName?: string; companyLogo?: string; userName?: string }>({});
+
   // Debounce filters so rapid typing doesn't fire many queries
   const debouncedFilters = useDebouncedValue(filters, 350);
 
   const source = useMemo(() => getDataSource(sourceKey)!, [sourceKey]);
   const isGrouped = groupBy !== "none";
+
+  // Load branding once
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [profileRes, companyRes] = await Promise.all([
+        supabase.from("profiles" as any).select("display_name").eq("user_id", user.id).maybeSingle(),
+        supabase.from("companies" as any).select("name, logo_url").eq("owner_id", user.id).maybeSingle(),
+      ]);
+      const profile: any = profileRes.data;
+      const company: any = companyRes.data;
+      setBranding({
+        userName: profile?.display_name || user.email || undefined,
+        companyName: company?.name || undefined,
+        companyLogo: company?.logo_url || undefined,
+      });
+    })();
+  }, [user]);
 
   // Load saved report or per-source last view
   useEffect(() => {
