@@ -431,7 +431,7 @@ export default function ReportBuilderPage() {
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent dir="rtl" align="end" className="w-60">
+            <DropdownMenuContent align="end" className="w-60" style={{ direction: "rtl" }}>
               <DropdownMenuLabel className="text-[11px] text-muted-foreground">اختر قالب التصدير</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleExportPdf("executive")} className="gap-2 text-xs cursor-pointer">
@@ -442,7 +442,7 @@ export default function ReportBuilderPage() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExportPdf("financial")} className="gap-2 text-xs cursor-pointer">
-                <Coins className="h-3.5 w-3.5 text-amber-600" />
+                <Coins className="h-3.5 w-3.5 text-warning" />
                 <div className="flex-1">
                   <p className="font-medium">مالي</p>
                   <p className="text-[10px] text-muted-foreground">KPIs + جدول + إجماليات</p>
@@ -456,7 +456,7 @@ export default function ReportBuilderPage() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExportPdf("detailed")} className="gap-2 text-xs cursor-pointer">
-                <FileStack className="h-3.5 w-3.5 text-blue-600" />
+                <FileStack className="h-3.5 w-3.5 text-primary" />
                 <div className="flex-1">
                   <p className="font-medium">تفصيلي</p>
                   <p className="text-[10px] text-muted-foreground">كل شيء + قسم ملاحظات</p>
