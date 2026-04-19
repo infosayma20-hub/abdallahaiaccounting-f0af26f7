@@ -418,15 +418,52 @@ export default function ReportBuilderPage() {
           <Button size="sm" variant="outline" onClick={handleExport} disabled={!data.length} className="gap-1.5 rounded-xl">
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleExportPdf}
-            disabled={!data.length || exportingPdf}
-            className="gap-1.5 rounded-xl"
-          >
-            {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />} PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!data.length || exportingPdf}
+                className="gap-1.5 rounded-xl"
+              >
+                {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                PDF
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent dir="rtl" align="end" className="w-60">
+              <DropdownMenuLabel className="text-[11px] text-muted-foreground">اختر قالب التصدير</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExportPdf("executive")} className="gap-2 text-xs cursor-pointer">
+                <Briefcase className="h-3.5 w-3.5 text-primary" />
+                <div className="flex-1">
+                  <p className="font-medium">إداري</p>
+                  <p className="text-[10px] text-muted-foreground">KPIs + رسم + جدول</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("financial")} className="gap-2 text-xs cursor-pointer">
+                <Coins className="h-3.5 w-3.5 text-amber-600" />
+                <div className="flex-1">
+                  <p className="font-medium">مالي</p>
+                  <p className="text-[10px] text-muted-foreground">KPIs + جدول + إجماليات</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("compact")} className="gap-2 text-xs cursor-pointer">
+                <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="font-medium">مختصر</p>
+                  <p className="text-[10px] text-muted-foreground">جدول فقط — للطباعة السريعة</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("detailed")} className="gap-2 text-xs cursor-pointer">
+                <FileStack className="h-3.5 w-3.5 text-blue-600" />
+                <div className="flex-1">
+                  <p className="font-medium">تفصيلي</p>
+                  <p className="text-[10px] text-muted-foreground">كل شيء + قسم ملاحظات</p>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" onClick={() => setSaveOpen(true)} disabled={!hasRun} className="gap-1.5 rounded-xl">
             <BookmarkPlus className="h-4 w-4" /> حفظ التقرير
           </Button>
