@@ -25,6 +25,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -41,7 +49,8 @@ import ReportPagination from "@/components/report-builder/ReportPagination";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
-import { exportReportToPdf } from "@/lib/report-builder/pdf-export";
+import { exportReportToPdf, PdfTemplate } from "@/lib/report-builder/pdf-export";
+import { ChevronDown, Briefcase, Coins, Minimize2, FileStack } from "lucide-react";
 
 const DRAFT_KEY = "report-builder-draft";
 const VIEW_KEY_PREFIX = "report-builder-view-"; // per-source last view
