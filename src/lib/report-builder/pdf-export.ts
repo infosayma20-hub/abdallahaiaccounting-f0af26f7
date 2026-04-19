@@ -1,10 +1,14 @@
-// PDF export for Report Builder — Arabic-friendly executive layout
+// PDF Pro export for Report Builder — Arabic-first executive layout
+// Features: Amiri font, repeating headers, page numbering, footer, multi-template
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { ColumnDef } from "@/components/reports/SortableReportTable";
 import { ar as reshapeArabicText } from "@/utils/arabic-pdf-utils";
+import { AmiriRegular, AmiriBold } from "@/utils/amiri-font";
+
+export type PdfTemplate = "executive" | "financial" | "compact" | "detailed";
 
 interface ExportPdfParams {
   title: string;
@@ -15,12 +19,32 @@ interface ExportPdfParams {
   columns: ColumnDef[];
   data: any[];
   chartElement?: HTMLElement | null;
+  template?: PdfTemplate;
+  // Optional branding
+  companyName?: string;
+  companyLogo?: string;
+  userName?: string;
 }
+
+const NAVY: [number, number, number] = [13, 27, 46];
+const NAVY_LIGHT: [number, number, number] = [240, 244, 250];
+const BORDER: [number, number, number] = [225, 230, 238];
+const ALT: [number, number, number] = [250, 251, 253];
+const MUTED: [number, number, number] = [110, 120, 135];
+const MUTED_LIGHT: [number, number, number] = [245, 247, 250];
 
 const fmt = (v: any, type: string) => {
   if (v === null || v === undefined || v === "") return "—";
-  if (type === "currency") return `₪${Number(v).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  if (type === "number") return Number(v).toLocaleString("en");
+  if (type === "currency") {
+    const n = Number(v);
+    if (Number.isNaN(n)) return String(v);
+    return `₪${n.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  if (type === "number") {
+    const n = Number(v);
+    if (Number.isNaN(n)) return String(v);
+    return n.toLocaleString("en");
+  }
   if (type === "date") {
     try { return format(new Date(v), "yyyy-MM-dd"); } catch { return String(v); }
   }
@@ -37,61 +61,139 @@ function ar(text: string): string {
   }
 }
 
+// Register Amiri font (full Arabic support)
+function registerAmiri(doc: jsPDF) {
+  try {
+    doc.addFileToVFS("Amiri-Regular.ttf", AmiriRegular);
+    doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+    doc.addFileToVFS("Amiri-Bold.ttf", AmiriBold);
+    doc.addFont("Amiri-Bold.ttf", "Amiri", "bold");
+  } catch (e) {
+    console.warn("Failed to register Amiri font, falling back to helvetica", e);
+  }
+}
+
+// Template-specific config
+function templateConfig(template: PdfTemplate) {
+  switch (template) {
+    case "executive":
+      return { showKpis: true, showChart: true, showTotals: true, showNotes: false, accentLabel: "تقرير إداري" };
+    case "financial":
+      return { showKpis: true, showChart: false, showTotals: true, showNotes: false, accentLabel: "تقرير مالي" };
+    case "compact":
+      return { showKpis: false, showChart: false, showTotals: true, showNotes: false, accentLabel: "تقرير مختصر" };
+    case "detailed":
+      return { showKpis: true, showChart: true, showTotals: true, showNotes: true, accentLabel: "تقرير تفصيلي" };
+    default:
+      return { showKpis: true, showChart: true, showTotals: true, showNotes: false, accentLabel: "تقرير" };
+  }
+}
+
 export async function exportReportToPdf({
-  title, subtitle, dateFrom, dateTo, kpis, columns, data, chartElement,
+  title,
+  subtitle,
+  dateFrom,
+  dateTo,
+  kpis,
+  columns,
+  data,
+  chartElement,
+  template = "executive",
+  companyName,
+  companyLogo,
+  userName,
 }: ExportPdfParams) {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  registerAmiri(doc);
+  doc.setFont("Amiri", "normal");
+
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 32;
+  const cfg = templateConfig(template);
 
-  // Header band
-  doc.setFillColor(13, 27, 46); // navy #0D1B2E
-  doc.rect(0, 0, pageW, 56, "F");
+  // ─── Page 1 Header Band ───
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, pageW, 64, "F");
+
+  // Logo (top-right Arabic; appears top-left visually for RTL? we put on top-left as logo)
+  if (companyLogo) {
+    try {
+      doc.addImage(companyLogo, "PNG", margin, 12, 40, 40);
+    } catch {}
+  }
+
+  // Title (right-aligned)
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text(ar(title), pageW - margin, 30, { align: "right" });
+  doc.setFont("Amiri", "bold");
+  doc.setFontSize(18);
+  doc.text(ar(title), pageW - margin, 28, { align: "right" });
 
+  // Subtitle / company under title
+  doc.setFont("Amiri", "normal");
+  doc.setFontSize(10);
+  if (companyName) {
+    doc.text(ar(companyName), pageW - margin, 46, { align: "right" });
+  }
+
+  // Template label badge (top-left)
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(255, 255, 255);
+  doc.roundedRect(margin + (companyLogo ? 50 : 0), 20, 90, 20, 4, 4, "S");
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  const periodTxt = dateFrom && dateTo ? `${ar("الفترة")}: ${dateFrom} ${ar("إلى")} ${dateTo}` : "";
-  if (periodTxt) doc.text(periodTxt, pageW - margin, 46, { align: "right" });
-  doc.text(`${ar("تاريخ التصدير")}: ${format(new Date(), "yyyy-MM-dd HH:mm")}`, margin, 46, { align: "left" });
+  doc.text(ar(cfg.accentLabel), margin + (companyLogo ? 50 : 0) + 45, 33, { align: "center" });
 
-  let cursorY = 76;
+  let cursorY = 84;
 
-  // Subtitle
+  // ─── Period & meta strip ───
+  doc.setTextColor(...MUTED);
+  doc.setFontSize(9);
+  doc.setFont("Amiri", "normal");
+  if (dateFrom && dateTo) {
+    doc.text(`${ar("الفترة")}: ${dateFrom} ${ar("إلى")} ${dateTo}`, pageW - margin, cursorY, { align: "right" });
+  }
+  doc.text(`${ar("تاريخ التصدير")}: ${format(new Date(), "yyyy-MM-dd HH:mm")}`, margin, cursorY, { align: "left" });
+  cursorY += 16;
+
+  // Subtitle (description)
   if (subtitle) {
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(10);
     doc.text(ar(subtitle), pageW - margin, cursorY, { align: "right" });
-    cursorY += 18;
+    cursorY += 16;
   }
 
-  // KPIs row
-  if (kpis && kpis.length > 0) {
+  // ─── KPIs row ───
+  if (cfg.showKpis && kpis && kpis.length > 0) {
     const cardW = (pageW - margin * 2 - (kpis.length - 1) * 8) / kpis.length;
-    const cardH = 48;
+    const cardH = 52;
     kpis.forEach((k, i) => {
       const x = margin + i * (cardW + 8);
-      doc.setFillColor(245, 247, 250);
-      doc.setDrawColor(225, 230, 238);
+      // Card with subtle gradient feel
+      doc.setFillColor(...MUTED_LIGHT);
+      doc.setDrawColor(...BORDER);
       doc.roundedRect(x, cursorY, cardW, cardH, 6, 6, "FD");
-      doc.setTextColor(110, 120, 135);
+      // Accent bar (top)
+      doc.setFillColor(...NAVY);
+      doc.rect(x, cursorY, cardW, 3, "F");
+      // Label
+      doc.setTextColor(...MUTED);
       doc.setFontSize(8);
-      doc.text(ar(k.label), x + cardW - 8, cursorY + 14, { align: "right" });
-      doc.setTextColor(13, 27, 46);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.text(ar(k.value), x + cardW - 8, cursorY + 34, { align: "right" });
-      doc.setFont("helvetica", "normal");
+      doc.setFont("Amiri", "normal");
+      doc.text(ar(k.label), x + cardW - 10, cursorY + 18, { align: "right" });
+      // Value
+      doc.setTextColor(...NAVY);
+      doc.setFont("Amiri", "bold");
+      doc.setFontSize(14);
+      doc.text(ar(k.value), x + cardW - 10, cursorY + 38, { align: "right" });
+      doc.setFont("Amiri", "normal");
     });
-    cursorY += cardH + 14;
+    cursorY += cardH + 16;
   }
 
-  // Chart image
-  if (chartElement) {
+  // ─── Chart image ───
+  if (cfg.showChart && chartElement) {
     try {
       const canvas = await html2canvas(chartElement, {
         backgroundColor: "#ffffff",
@@ -105,70 +207,146 @@ export async function exportReportToPdf({
       const maxH = 220;
       const finalH = Math.min(imgH, maxH);
       const finalW = (canvas.width * finalH) / canvas.height;
-      doc.addImage(imgData, "PNG", (pageW - finalW) / 2, cursorY, finalW, finalH);
-      cursorY += finalH + 16;
+      // Light card background
+      doc.setFillColor(252, 253, 254);
+      doc.setDrawColor(...BORDER);
+      doc.roundedRect(margin, cursorY, pageW - margin * 2, finalH + 12, 6, 6, "FD");
+      doc.addImage(imgData, "PNG", (pageW - finalW) / 2, cursorY + 6, finalW, finalH);
+      cursorY += finalH + 24;
     } catch (e) {
       console.warn("Chart capture failed", e);
     }
   }
 
-  // Table
+  // ─── Table ───
   const head = [columns.map(c => ar(c.label))];
   const body = data.map(row => columns.map(c => ar(fmt(row[c.key], c.type))));
 
   // Totals row (sum numeric/currency cols)
-  const totals: any[] = columns.map((c, i) => {
-    if (i === 0) return ar("الإجمالي");
-    if (c.type === "currency" || c.type === "number") {
-      const sum = data.reduce((s, r) => s + (Number(r[c.key]) || 0), 0);
-      return ar(fmt(sum, c.type));
-    }
-    return "";
-  });
+  let foot: any[][] | undefined = undefined;
+  if (cfg.showTotals) {
+    const totals: any[] = columns.map((c, i) => {
+      if (i === 0) return ar("الإجمالي");
+      if (c.type === "currency" || c.type === "number") {
+        const sum = data.reduce((s, r) => s + (Number(r[c.key]) || 0), 0);
+        return ar(fmt(sum, c.type));
+      }
+      return "";
+    });
+    foot = [totals];
+  }
 
   autoTable(doc, {
     head,
     body,
-    foot: [totals],
+    foot,
     startY: cursorY,
-    margin: { left: margin, right: margin, bottom: 40 },
+    margin: { left: margin, right: margin, top: 20, bottom: 50 },
     theme: "grid",
+    showHead: "everyPage",   // ✅ repeating headers
+    showFoot: "lastPage",
+    pageBreak: "auto",       // ✅ smart page breaks
+    rowPageBreak: "avoid",   // ✅ don't split a row across pages
     styles: {
-      font: "helvetica",
+      font: "Amiri",
+      fontStyle: "normal",
       fontSize: 9,
       cellPadding: 6,
       halign: "right",
-      lineColor: [225, 230, 238],
+      lineColor: BORDER,
       lineWidth: 0.5,
+      textColor: [40, 50, 65],
+      overflow: "linebreak",
     },
     headStyles: {
-      fillColor: [13, 27, 46],
+      fillColor: NAVY,
       textColor: [255, 255, 255],
       fontStyle: "bold",
       halign: "right",
+      fontSize: 9.5,
+      cellPadding: 7,
     },
     footStyles: {
-      fillColor: [240, 244, 250],
-      textColor: [13, 27, 46],
+      fillColor: NAVY_LIGHT,
+      textColor: NAVY,
       fontStyle: "bold",
       halign: "right",
+      fontSize: 9.5,
     },
-    alternateRowStyles: { fillColor: [250, 251, 253] },
-    didDrawPage: (data) => {
-      // Footer with page number
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
-      doc.setFontSize(8);
-      doc.setTextColor(130, 140, 155);
-      doc.text(
-        `${ar("صفحة")} ${currentPage} / ${pageCount}`,
-        pageW / 2,
-        pageH - 16,
-        { align: "center" }
-      );
+    alternateRowStyles: { fillColor: ALT },
+    didDrawPage: () => {
+      drawFooter(doc, pageW, pageH, margin, { userName, companyName });
     },
   });
 
-  const fileName = `${title}_${format(new Date(), "yyyy-MM-dd")}.pdf`.replace(/\s+/g, "_");
+  // ─── Notes section (detailed only) ───
+  if (cfg.showNotes) {
+    const lastY = (doc as any).lastAutoTable?.finalY ?? cursorY;
+    const notesY = lastY + 24;
+    if (notesY < pageH - 80) {
+      doc.setFont("Amiri", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...NAVY);
+      doc.text(ar("ملاحظات"), pageW - margin, notesY, { align: "right" });
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.5);
+      // 4 ruled lines
+      for (let i = 1; i <= 4; i++) {
+        const y = notesY + 14 + i * 16;
+        doc.line(margin, y, pageW - margin, y);
+      }
+    }
+  }
+
+  const fileName = `${title}_${cfg.accentLabel}_${format(new Date(), "yyyy-MM-dd")}.pdf`.replace(/\s+/g, "_");
   doc.save(fileName);
+}
+
+// ─── Footer drawer (called on every page by didDrawPage) ───
+function drawFooter(
+  doc: jsPDF,
+  pageW: number,
+  pageH: number,
+  margin: number,
+  meta: { userName?: string; companyName?: string }
+) {
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
+
+  // Top border line
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.5);
+  doc.line(margin, pageH - 36, pageW - margin, pageH - 36);
+
+  // Right: company / brand
+  doc.setFont("Amiri", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
+  if (meta.companyName) {
+    doc.text(ar(meta.companyName), pageW - margin, pageH - 22, { align: "right" });
+  } else {
+    doc.text(ar("نظام أموالي للمحاسبة"), pageW - margin, pageH - 22, { align: "right" });
+  }
+
+  // Center: page x / y
+  doc.setTextColor(...NAVY);
+  doc.setFont("Amiri", "bold");
+  doc.text(
+    `${ar("صفحة")} ${currentPage} / ${pageCount}`,
+    pageW / 2,
+    pageH - 22,
+    { align: "center" }
+  );
+
+  // Left: user + timestamp
+  doc.setFont("Amiri", "normal");
+  doc.setTextColor(...MUTED);
+  const left = meta.userName
+    ? `${ar("المستخدم")}: ${meta.userName}`
+    : "";
+  if (left) {
+    doc.text(left, margin, pageH - 22, { align: "left" });
+  } else {
+    doc.text(format(new Date(), "yyyy-MM-dd HH:mm"), margin, pageH - 22, { align: "left" });
+  }
 }

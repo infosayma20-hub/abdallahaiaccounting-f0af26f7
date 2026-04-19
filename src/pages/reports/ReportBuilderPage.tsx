@@ -25,6 +25,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -41,7 +49,8 @@ import ReportPagination from "@/components/report-builder/ReportPagination";
 import SortableReportTable, { ColumnDef } from "@/components/reports/SortableReportTable";
 import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
-import { exportReportToPdf } from "@/lib/report-builder/pdf-export";
+import { exportReportToPdf, PdfTemplate } from "@/lib/report-builder/pdf-export";
+import { ChevronDown, Briefcase, Coins, Minimize2, FileStack } from "lucide-react";
 
 const DRAFT_KEY = "report-builder-draft";
 const VIEW_KEY_PREFIX = "report-builder-view-"; // per-source last view
@@ -83,11 +92,32 @@ export default function ReportBuilderPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const chartRef = useRef<HTMLDivElement | null>(null);
 
+  // Branding info for PDF footer/header
+  const [branding, setBranding] = useState<{ companyName?: string; companyLogo?: string; userName?: string }>({});
+
   // Debounce filters so rapid typing doesn't fire many queries
   const debouncedFilters = useDebouncedValue(filters, 350);
 
   const source = useMemo(() => getDataSource(sourceKey)!, [sourceKey]);
   const isGrouped = groupBy !== "none";
+
+  // Load branding once
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [profileRes, companyRes] = await Promise.all([
+        supabase.from("profiles" as any).select("display_name").eq("user_id", user.id).maybeSingle(),
+        supabase.from("companies" as any).select("name, logo_url").eq("owner_id", user.id).maybeSingle(),
+      ]);
+      const profile: any = profileRes.data;
+      const company: any = companyRes.data;
+      setBranding({
+        userName: profile?.display_name || user.email || undefined,
+        companyName: company?.name || undefined,
+        companyLogo: company?.logo_url || undefined,
+      });
+    })();
+  }, [user]);
 
   // Load saved report or per-source last view
   useEffect(() => {
@@ -331,11 +361,14 @@ export default function ReportBuilderPage() {
     }
   }, [availableCharts, chartType, viewMode]);
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (template: PdfTemplate = "executive") => {
     if (!data.length) return;
     setExportingPdf(true);
     try {
-      const chartEl = viewMode === "chart" || viewMode === "both" ? chartRef.current : null;
+      // For compact template we don't need the chart even if visible
+      const includeChart = template === "executive" || template === "detailed";
+      const chartEl =
+        includeChart && (viewMode === "chart" || viewMode === "both") ? chartRef.current : null;
       await new Promise((r) => setTimeout(r, 150));
       await exportReportToPdf({
         title: reportName || `تقرير ${source.label}`,
@@ -346,6 +379,10 @@ export default function ReportBuilderPage() {
         columns: tableColumns,
         data,
         chartElement: chartEl,
+        template,
+        companyName: branding.companyName,
+        companyLogo: branding.companyLogo,
+        userName: branding.userName,
       });
       toast({ title: "تم تصدير PDF ✅" });
     } catch (e: any) {
@@ -381,15 +418,52 @@ export default function ReportBuilderPage() {
           <Button size="sm" variant="outline" onClick={handleExport} disabled={!data.length} className="gap-1.5 rounded-xl">
             <FileSpreadsheet className="h-4 w-4" /> Excel
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleExportPdf}
-            disabled={!data.length || exportingPdf}
-            className="gap-1.5 rounded-xl"
-          >
-            {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />} PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!data.length || exportingPdf}
+                className="gap-1.5 rounded-xl"
+              >
+                {exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                PDF
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60" style={{ direction: "rtl" }}>
+              <DropdownMenuLabel className="text-[11px] text-muted-foreground">اختر قالب التصدير</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExportPdf("executive")} className="gap-2 text-xs cursor-pointer">
+                <Briefcase className="h-3.5 w-3.5 text-primary" />
+                <div className="flex-1">
+                  <p className="font-medium">إداري</p>
+                  <p className="text-[10px] text-muted-foreground">KPIs + رسم + جدول</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("financial")} className="gap-2 text-xs cursor-pointer">
+                <Coins className="h-3.5 w-3.5 text-warning" />
+                <div className="flex-1">
+                  <p className="font-medium">مالي</p>
+                  <p className="text-[10px] text-muted-foreground">KPIs + جدول + إجماليات</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("compact")} className="gap-2 text-xs cursor-pointer">
+                <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="font-medium">مختصر</p>
+                  <p className="text-[10px] text-muted-foreground">جدول فقط — للطباعة السريعة</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportPdf("detailed")} className="gap-2 text-xs cursor-pointer">
+                <FileStack className="h-3.5 w-3.5 text-primary" />
+                <div className="flex-1">
+                  <p className="font-medium">تفصيلي</p>
+                  <p className="text-[10px] text-muted-foreground">كل شيء + قسم ملاحظات</p>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" onClick={() => setSaveOpen(true)} disabled={!hasRun} className="gap-1.5 rounded-xl">
             <BookmarkPlus className="h-4 w-4" /> حفظ التقرير
           </Button>
