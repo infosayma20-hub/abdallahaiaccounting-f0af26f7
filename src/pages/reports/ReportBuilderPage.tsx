@@ -361,11 +361,14 @@ export default function ReportBuilderPage() {
     }
   }, [availableCharts, chartType, viewMode]);
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (template: PdfTemplate = "executive") => {
     if (!data.length) return;
     setExportingPdf(true);
     try {
-      const chartEl = viewMode === "chart" || viewMode === "both" ? chartRef.current : null;
+      // For compact template we don't need the chart even if visible
+      const includeChart = template === "executive" || template === "detailed";
+      const chartEl =
+        includeChart && (viewMode === "chart" || viewMode === "both") ? chartRef.current : null;
       await new Promise((r) => setTimeout(r, 150));
       await exportReportToPdf({
         title: reportName || `تقرير ${source.label}`,
@@ -376,6 +379,10 @@ export default function ReportBuilderPage() {
         columns: tableColumns,
         data,
         chartElement: chartEl,
+        template,
+        companyName: branding.companyName,
+        companyLogo: branding.companyLogo,
+        userName: branding.userName,
       });
       toast({ title: "تم تصدير PDF ✅" });
     } catch (e: any) {
