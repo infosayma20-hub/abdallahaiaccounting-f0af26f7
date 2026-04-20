@@ -86,6 +86,43 @@ const JournalNewPage = () => {
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
 
+  // ─── Auto-Draft (سند القيد) ───
+  const journalDraftSnapshot = useMemo(() => ({
+    formDate, formRefNumber, formSubtype, formDescription, formNotes,
+    formContactId, lines, attachments, lineSortOrder,
+  }), [formDate, formRefNumber, formSubtype, formDescription, formNotes, formContactId, lines, attachments, lineSortOrder]);
+
+  const applyJournalDraft = useCallback((d: any) => {
+    if (d.formDate) setFormDate(d.formDate);
+    if (d.formRefNumber) setFormRefNumber(d.formRefNumber);
+    if (d.formSubtype) setFormSubtype(d.formSubtype);
+    if (d.formDescription !== undefined) setFormDescription(d.formDescription);
+    if (d.formNotes !== undefined) setFormNotes(d.formNotes);
+    if (d.formContactId !== undefined) setFormContactId(d.formContactId);
+    if (Array.isArray(d.lines) && d.lines.length >= 2) setLines(d.lines);
+    if (Array.isArray(d.attachments)) setAttachments(d.attachments);
+    if (d.lineSortOrder) setLineSortOrder(d.lineSortOrder);
+    toast.success("تم استعادة المسودة");
+  }, []);
+
+  const isJournalDraftEmpty = useCallback((d: any) => {
+    const hasContent = d.formDescription || d.formNotes || d.formContactId ||
+      (d.lines || []).some((l: any) => l.account_code || Number(l.debit) > 0 || Number(l.credit) > 0);
+    return !hasContent;
+  }, []);
+
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    "journal_new",
+    journalDraftSnapshot,
+    applyJournalDraft,
+    {
+      enabled: !fromDuplicate,
+      version: 1,
+      isEmpty: isJournalDraftEmpty,
+      routePath: "/finance/journal/new",
+    }
+  );
+
   // ─── Load Duplicate Data ───
   useEffect(() => {
     if (!fromDuplicate) return;
@@ -323,6 +360,7 @@ const JournalNewPage = () => {
       toast.success(modeLabel);
       setSaved(true);
       setSavedRefNumber(voucher.ref_number || "");
+      clearDraft();
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
     } finally {
@@ -400,6 +438,17 @@ const JournalNewPage = () => {
     <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
+      {/* Auto-Draft Restore Banner */}
+      {hasDraft && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label="يوجد مسودة محفوظة لسند القيد"
+        />
+      )}
+
       <PageHeader title="سند قيد جديد" breadcrumb={["المحاسبة", "القيود", "سند قيد جديد"]} />
 
       {/* Navigation Toolbar */}
