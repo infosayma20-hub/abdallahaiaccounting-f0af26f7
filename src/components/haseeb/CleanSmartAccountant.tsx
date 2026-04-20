@@ -560,10 +560,8 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                           return { success: result.success, message: result.message };
                         }}
                         onConfirmAll={async (txs) => {
-                          for (const tx of txs) {
-                            await executeTransaction(tx, tx.description || '');
-                          }
-                          onTransactionSuccess();
+                          // كل بطاقة تم تأكيدها مسبقاً عبر onConfirm — فقط نُحدّث المؤشرات
+                          if (txs.length > 0) onTransactionSuccess();
                         }}
                         onSkip={() => {}}
                         onDone={() => {}}
