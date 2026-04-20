@@ -42,13 +42,17 @@ const ALWAYS_FIELDS_BY_SOURCE: Record<string, string[]> = {
 function buildSelectClause(source: DataSourceDef, selectedColumns?: string[]) {
   if (!selectedColumns || selectedColumns.length === 0) return source.selectQuery;
   const always = ALWAYS_FIELDS_BY_SOURCE[source.key] || ["id"];
-  const set = new Set<string>([...always, source.dateColumn, ...selectedColumns]);
-  if (source.fixedFilter) set.add(source.fixedFilter.column);
-  ["status", "payment_status", "payment_method", "category", "invoice_number", "contact_name", "name", "sku"].forEach(
-    (c) => {
-      if (source.selectQuery.includes(c)) set.add(c);
-    }
-  );
+  // Tokens actually present in the source's selectQuery (exact match, not substring).
+  const available = new Set(source.selectQuery.split(",").map((s) => s.trim()));
+  const set = new Set<string>();
+  const add = (c: string) => {
+    if (available.has(c)) set.add(c);
+  };
+  [...always, source.dateColumn, ...selectedColumns].forEach(add);
+  if (source.fixedFilter) add(source.fixedFilter.column);
+  ["status", "payment_status", "payment_method", "category", "invoice_number", "contact_name", "name", "sku"].forEach(add);
+  // Always include id as a safety net.
+  set.add("id");
   return Array.from(set).join(", ");
 }
 
