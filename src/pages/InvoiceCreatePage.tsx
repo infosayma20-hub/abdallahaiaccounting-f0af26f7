@@ -266,6 +266,27 @@ const InvoiceCreatePage = () => {
   const fmtCurrency = useCallback((n: number) =>
     `${currSymbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, [currSymbol]);
 
+  // ─── Auto-Draft: حفظ تلقائي يحمي من فقدان البيانات عند التنقل بين التبويبات ───
+  // معطّل في وضع التعديل (التعديل يحمل بياناته من قاعدة البيانات)،
+  // وعند الاستيراد من duplicate (له منطق منفصل).
+  const draftFormId = `invoice_${form.type === "purchase" ? "purchase" : "sales"}_new`;
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    draftFormId,
+    form,
+    (draft) => setForm(draft as typeof form),
+    {
+      enabled: !isEditMode && !fromDuplicate,
+      version: 2,
+      // اعتبر الفورم فارغاً إذا لا يوجد زبون ولا أي بند فيه وصف/منتج
+      isEmpty: (data: typeof form) =>
+        !data.contactName?.trim() &&
+        !data.contactId &&
+        !data.notes?.trim() &&
+        (!data.items?.length ||
+          data.items.every((it: any) => !it.description?.trim() && !it.productId)),
+    }
+  );
+
   useEffect(() => {
     if (!fromDuplicate) return;
     const draftKey = "draft_invoice_new";
