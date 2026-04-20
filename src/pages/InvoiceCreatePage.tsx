@@ -651,6 +651,8 @@ const InvoiceCreatePage = () => {
     } else {
       setContactDebtWarning(null);
     }
+    // Smart UX: jump to first invoice row product picker
+    focusFirstProductTrigger();
   };
 
   // After selecting a contact / product / row action — auto-jump to the next logical field.
