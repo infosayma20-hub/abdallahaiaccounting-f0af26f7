@@ -30,48 +30,47 @@ export default function SavedReportWidget({ config, title }: Props) {
   const [columns, setColumns] = useState<ColumnDef[]>([]);
   const [total, setTotal] = useState<number>(0);
 
-  useEffect(() => {
+  const fetchReport = useCallback(async () => {
     if (!user || !reportId) { setLoading(false); return; }
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const { data: rec } = await supabase.from("custom_reports").select("*").eq("id", reportId).maybeSingle();
-        if (!rec || !alive) return;
-        setReport(rec);
-        const source = getDataSource(rec.data_source);
-        if (!source) return;
-        const cols = (rec.columns as any) || [];
-        const result = await runReport({
-          source,
-          userId: user.id,
-          filters: (rec.filters as any) || {},
-          groupBy: rec.group_by || "none",
-          page: 1,
-          pageSize: mode === "kpi" ? 500 : 50,
-          selectedColumns: cols.map((c: any) => c.key),
-        });
-        if (!alive) return;
-        setData(result.rows || []);
-        // Build column defs for chart
-        const colDefs: ColumnDef[] = cols.map((c: any) => ({
-          key: c.key,
-          label: c.label || c.key,
-          type: c.type as any,
-        }));
-        setColumns(colDefs);
-        // Sum first numeric column
-        const moneyCol = cols.find((c: any) => c.type === "currency" || c.type === "number");
-        if (moneyCol && result.rows?.length) {
-          const sum = result.rows.reduce((s: number, r: any) => s + Number(r[moneyCol.key] || 0), 0);
-          setTotal(sum);
-        }
-      } finally {
-        if (alive) setLoading(false);
+    setLoading(true);
+    try {
+      const { data: rec } = await supabase.from("custom_reports").select("*").eq("id", reportId).maybeSingle();
+      if (!rec) return;
+      setReport(rec);
+      const source = getDataSource(rec.data_source);
+      if (!source) return;
+      const cols = (rec.columns as any) || [];
+      const result = await runReport({
+        source,
+        userId: user.id,
+        filters: (rec.filters as any) || {},
+        groupBy: rec.group_by || "none",
+        page: 1,
+        pageSize: mode === "kpi" ? 500 : 50,
+        selectedColumns: cols.map((c: any) => c.key),
+      });
+      setData(result.rows || []);
+      const colDefs: ColumnDef[] = cols.map((c: any) => ({
+        key: c.key, label: c.label || c.key, type: c.type as any,
+      }));
+      setColumns(colDefs);
+      const moneyCol = cols.find((c: any) => c.type === "currency" || c.type === "number");
+      if (moneyCol && result.rows?.length) {
+        setTotal(result.rows.reduce((s: number, r: any) => s + Number(r[moneyCol.key] || 0), 0));
+      } else {
+        setTotal(0);
       }
-    })();
-    return () => { alive = false; };
+    } finally {
+      setLoading(false);
+    }
   }, [user, reportId, mode]);
+
+  useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  // ── Realtime: refresh when source table changes ──
+  const sourceTables = report?.data_source ? [report.data_source as string] : [];
+  useRealtimeRefresh({ userId: user?.id, tables: sourceTables, onChange: fetchReport, enabled: !!report });
+
 
   if (!reportId) {
     return (
