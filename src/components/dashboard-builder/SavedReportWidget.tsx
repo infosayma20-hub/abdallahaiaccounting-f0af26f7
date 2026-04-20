@@ -2,7 +2,8 @@
  * SavedReportWidget — يشغّل تقرير محفوظ (custom_reports) ويعرض ملخصه (KPI شريط أو رسم بياني صغير).
  * Config: { reportId: string, mode: "kpi" | "chart" | "table" }
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
