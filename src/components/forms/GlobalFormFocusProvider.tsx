@@ -149,9 +149,34 @@ const GlobalFormFocusProvider = () => {
       const next = focusables[idx + 1];
       if (next) {
         e.preventDefault();
+        e.stopPropagation();
         try {
           next.focus();
           next.scrollIntoView({ block: "center", behavior: "smooth" });
+          // If the next element is a Select/Combobox trigger, do NOT auto-open it.
+          // Swallow the synthetic Enter that some Radix triggers interpret as "open".
+          const role = next.getAttribute("role");
+          const isTrigger =
+            role === "combobox" ||
+            next.tagName.toLowerCase() === "button" ||
+            next.hasAttribute("aria-haspopup");
+          if (isTrigger) {
+            const swallow = (ev: KeyboardEvent) => {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                ev.stopPropagation();
+              }
+              next.removeEventListener("keydown", swallow, true);
+              next.removeEventListener("keyup", swallow, true);
+            };
+            next.addEventListener("keydown", swallow, true);
+            next.addEventListener("keyup", swallow, true);
+            // Cleanup if no follow-up key fires
+            setTimeout(() => {
+              next.removeEventListener("keydown", swallow, true);
+              next.removeEventListener("keyup", swallow, true);
+            }, 200);
+          }
         } catch { /* noop */ }
       }
     };
