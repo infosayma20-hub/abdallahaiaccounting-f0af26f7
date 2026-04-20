@@ -1641,7 +1641,7 @@ const InvoiceCreatePage = () => {
 
                 {/* Quantity */}
                 <div className="flex items-center gap-1">
-                  <Input type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  <Input data-invoice-qty={item.id} type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
                 </div>
 
                 {/* Price */}
