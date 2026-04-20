@@ -690,6 +690,13 @@ html {
   position: relative;
 }
 
+/* Break out of <main>'s p-5/lg:p-8 padding so the top bar is flush
+   under the tab bar (no awkward white gap between tabs and CleanTopBar). */
+main:has(> .finix-clean-screen),
+main:has(> div > .finix-clean-screen) {
+  padding: 0 !important;
+}
+
 .finix-mobile-screen {
   display: flex;
   flex-direction: column;
