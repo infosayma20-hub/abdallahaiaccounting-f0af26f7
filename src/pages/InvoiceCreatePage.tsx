@@ -1425,9 +1425,43 @@ const InvoiceCreatePage = () => {
                   <Input
                     placeholder={`ابحث عن ${form.type === "sales" ? "زبون" : "مورد"}...`}
                     value={contactSearch}
-                    onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); }}
-                    onFocus={() => setShowContactDropdown(true)}
+                    onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); setContactActiveIdx(-1); }}
+                    onFocus={() => { setShowContactDropdown(true); setContactActiveIdx(-1); }}
                     onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
+                    onKeyDown={e => {
+                      if (!showContactDropdown && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+                        setShowContactDropdown(true);
+                        return;
+                      }
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setContactActiveIdx(i => Math.min(i + 1, filteredContacts.length - 1));
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setContactActiveIdx(i => Math.max(i - 1, -1));
+                      } else if (e.key === "Enter") {
+                        if (showContactDropdown && contactActiveIdx >= 0 && filteredContacts[contactActiveIdx]) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          selectContact(filteredContacts[contactActiveIdx]);
+                          setContactActiveIdx(-1);
+                          // انقل التركيز للحقل التالي (المندوب → ثم بنود الفاتورة)
+                          setTimeout(() => {
+                            const root = (e.currentTarget as HTMLElement).closest("form, .contents, [class*='max-w-5xl']") as HTMLElement | null;
+                            if (!root) return;
+                            const focusables = Array.from(root.querySelectorAll<HTMLElement>(
+                              'input:not([disabled]):not([type=hidden]), [role="combobox"]:not([disabled]), button[data-smart-focusable]:not([disabled])'
+                            )).filter(el => el.offsetParent !== null);
+                            const idx = focusables.indexOf(e.currentTarget as HTMLElement);
+                            const next = focusables[idx + 1];
+                            if (next) next.focus();
+                          }, 30);
+                        }
+                      } else if (e.key === "Escape") {
+                        setShowContactDropdown(false);
+                        setContactActiveIdx(-1);
+                      }
+                    }}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
                     data-smart-first="true"
                   />
