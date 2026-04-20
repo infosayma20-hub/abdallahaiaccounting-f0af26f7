@@ -31,7 +31,6 @@ export async function exportNodeAsPDF(node: HTMLElement, filename: string, title
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
-  // Header
   if (title) {
     pdf.setFontSize(14);
     pdf.text(title, pageWidth - 20, 25, { align: "right" });

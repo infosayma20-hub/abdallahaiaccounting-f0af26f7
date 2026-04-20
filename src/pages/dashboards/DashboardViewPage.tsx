@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowRight, Plus, Edit3, Save, Loader2, Radio, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardGrid from "@/components/dashboard-builder/DashboardGrid";
 import AddWidgetDialog from "@/components/dashboard-builder/AddWidgetDialog";
 import ShareDialog from "@/components/dashboard-builder/ShareDialog";
-import { useCustomDashboards, useDashboardWidgets, type DashboardWidget } from "@/hooks/useCustomDashboards";
+import DailyBriefBanner from "@/components/dashboard-builder/DailyBriefBanner";
+import { useDashboardWidgets, type DashboardWidget } from "@/hooks/useCustomDashboards";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { exportNodeAsPDF, exportNodeAsPNG } from "@/lib/exportDashboard";
@@ -15,7 +18,8 @@ export default function DashboardViewPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { widgets, loading, addWidget, updateWidget, updateLayout, deleteWidget } = useDashboardWidgets(id || null);
+  const { user } = useAuth();
+  const { widgets, loading, addWidget, updateWidget, updateLayout, deleteWidget, reload } = useDashboardWidgets(id || null);
 
   const [dashboard, setDashboard] = useState<any>(null);
   const [editMode, setEditMode] = useState(searchParams.get("edit") === "1");
@@ -24,7 +28,7 @@ export default function DashboardViewPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
-  const loadDashboard = () => {
+  const loadDashboard = useCallback(() => {
     if (!id) return;
     supabase.from("custom_dashboards").select("*").eq("id", id).maybeSingle().then(({ data, error }) => {
       if (error || !data) {
@@ -34,9 +38,12 @@ export default function DashboardViewPage() {
       }
       setDashboard(data);
     });
-  };
+  }, [id, navigate, toast]);
 
-  useEffect(() => { loadDashboard(); }, [id]);
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
+  // Realtime refresh on financial table changes
+  useRealtimeRefresh(user?.id, useCallback(() => { reload(); }, [reload]));
 
   const handleSaveWidget = async (input: any) => {
     if (editing) {
@@ -57,7 +64,7 @@ export default function DashboardViewPage() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <div className="px-4 pt-4 pb-3 border-b border-border/30 bg-card">
+      <div className="px-4 pt-4 pb-3 border-b border-border/30 bg-card sticky top-0 z-20">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <span className="text-2xl">{dashboard.icon || "📊"}</span>
@@ -97,9 +104,13 @@ export default function DashboardViewPage() {
       </div>
 
       <div className="p-4" ref={captureRef}>
+        {!editMode && <DailyBriefBanner storageKey={`brief-${dashboard.id}`} />}
+
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 rounded-2xl bg-muted/40 animate-pulse" />
+            ))}
           </div>
         ) : widgets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -107,7 +118,7 @@ export default function DashboardViewPage() {
               <Plus className="h-6 w-6 text-primary" />
             </div>
             <h3 className="font-bold text-foreground mb-1">لوحة فارغة</h3>
-            <p className="text-sm text-muted-foreground mb-4">ابدأ بإضافة أول عنصر</p>
+            <p className="text-sm text-muted-foreground mb-4">ابدأ بإضافة أول عنصر لتركيب لوحتك المخصصة</p>
             <Button onClick={() => { setEditMode(true); setAddOpen(true); }} className="gap-2">
               <Plus className="h-4 w-4" /> إضافة عنصر
             </Button>

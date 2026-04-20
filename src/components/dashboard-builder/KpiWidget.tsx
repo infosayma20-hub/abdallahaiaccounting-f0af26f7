@@ -2,10 +2,9 @@
  * KpiWidget — يعرض رقم/مؤشر مالي بسيط من جدول الإيرادات/المصروفات/إلخ.
  * Config: { metric: "sales_total" | "purchases_total" | "products_count" | "low_stock", period: "today" | "week" | "month" | "year", color?: string }
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { TrendingUp, TrendingDown, Package, AlertCircle, Loader2 } from "lucide-react";
 
 interface Props {

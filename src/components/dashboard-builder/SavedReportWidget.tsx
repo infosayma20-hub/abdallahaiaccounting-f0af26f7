@@ -2,8 +2,7 @@
  * SavedReportWidget — يشغّل تقرير محفوظ (custom_reports) ويعرض ملخصه (KPI شريط أو رسم بياني صغير).
  * Config: { reportId: string, mode: "kpi" | "chart" | "table" }
  */
-import { useEffect, useState, useCallback } from "react";
-import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,47 +29,48 @@ export default function SavedReportWidget({ config, title }: Props) {
   const [columns, setColumns] = useState<ColumnDef[]>([]);
   const [total, setTotal] = useState<number>(0);
 
-  const fetchReport = useCallback(async () => {
+  useEffect(() => {
     if (!user || !reportId) { setLoading(false); return; }
-    setLoading(true);
-    try {
-      const { data: rec } = await supabase.from("custom_reports").select("*").eq("id", reportId).maybeSingle();
-      if (!rec) return;
-      setReport(rec);
-      const source = getDataSource(rec.data_source);
-      if (!source) return;
-      const cols = (rec.columns as any) || [];
-      const result = await runReport({
-        source,
-        userId: user.id,
-        filters: (rec.filters as any) || {},
-        groupBy: rec.group_by || "none",
-        page: 1,
-        pageSize: mode === "kpi" ? 500 : 50,
-        selectedColumns: cols.map((c: any) => c.key),
-      });
-      setData(result.rows || []);
-      const colDefs: ColumnDef[] = cols.map((c: any) => ({
-        key: c.key, label: c.label || c.key, type: c.type as any,
-      }));
-      setColumns(colDefs);
-      const moneyCol = cols.find((c: any) => c.type === "currency" || c.type === "number");
-      if (moneyCol && result.rows?.length) {
-        setTotal(result.rows.reduce((s: number, r: any) => s + Number(r[moneyCol.key] || 0), 0));
-      } else {
-        setTotal(0);
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const { data: rec } = await supabase.from("custom_reports").select("*").eq("id", reportId).maybeSingle();
+        if (!rec || !alive) return;
+        setReport(rec);
+        const source = getDataSource(rec.data_source);
+        if (!source) return;
+        const cols = (rec.columns as any) || [];
+        const result = await runReport({
+          source,
+          userId: user.id,
+          filters: (rec.filters as any) || {},
+          groupBy: rec.group_by || "none",
+          page: 1,
+          pageSize: mode === "kpi" ? 500 : 50,
+          selectedColumns: cols.map((c: any) => c.key),
+        });
+        if (!alive) return;
+        setData(result.rows || []);
+        // Build column defs for chart
+        const colDefs: ColumnDef[] = cols.map((c: any) => ({
+          key: c.key,
+          label: c.label || c.key,
+          type: c.type as any,
+        }));
+        setColumns(colDefs);
+        // Sum first numeric column
+        const moneyCol = cols.find((c: any) => c.type === "currency" || c.type === "number");
+        if (moneyCol && result.rows?.length) {
+          const sum = result.rows.reduce((s: number, r: any) => s + Number(r[moneyCol.key] || 0), 0);
+          setTotal(sum);
+        }
+      } finally {
+        if (alive) setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
+    })();
+    return () => { alive = false; };
   }, [user, reportId, mode]);
-
-  useEffect(() => { fetchReport(); }, [fetchReport]);
-
-  // ── Realtime: refresh when source table changes ──
-  const sourceTables = report?.data_source ? [report.data_source as string] : [];
-  useRealtimeRefresh({ userId: user?.id, tables: sourceTables, onChange: fetchReport, enabled: !!report });
-
 
   if (!reportId) {
     return (

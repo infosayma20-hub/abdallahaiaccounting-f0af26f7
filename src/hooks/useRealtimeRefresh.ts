@@ -1,42 +1,23 @@
-import { useEffect, useRef } from "react";
+/**
+ * useRealtimeRefresh — يستمع لتغيرات الجداول المالية ويستدعي callback لتحديث widgets.
+ */
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * useRealtimeRefresh — يشترك في تغييرات Postgres على جدول/جداول معينة لمستخدم محدد،
- * ويستدعي callback (مع debounce بسيط) لإعادة جلب بيانات الـ widget لحظياً.
- */
-export function useRealtimeRefresh(opts: {
-  userId?: string | null;
-  tables: string[];
-  onChange: () => void;
-  debounceMs?: number;
-  enabled?: boolean;
-}) {
-  const { userId, tables, onChange, debounceMs = 800, enabled = true } = opts;
-  const cbRef = useRef(onChange);
-  cbRef.current = onChange;
+const TABLES = ["invoices", "transactions", "products"];
 
+export function useRealtimeRefresh(userId: string | undefined, onChange: () => void) {
   useEffect(() => {
-    if (!enabled || !userId || tables.length === 0) return;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const trigger = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => cbRef.current(), debounceMs);
-    };
-
-    const channel = supabase.channel(`rt-refresh-${tables.join("-")}-${userId}-${Math.random().toString(36).slice(2, 7)}`);
-    tables.forEach(table => {
+    if (!userId) return;
+    const channel = supabase.channel(`dashboard-refresh-${userId}`);
+    TABLES.forEach(table => {
       channel.on(
-        "postgres_changes" as any,
+        "postgres_changes",
         { event: "*", schema: "public", table, filter: `user_id=eq.${userId}` },
-        trigger
+        () => onChange()
       );
     });
     channel.subscribe();
-
-    return () => {
-      if (timer) clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
-  }, [userId, tables.join(","), debounceMs, enabled]);
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, onChange]);
 }

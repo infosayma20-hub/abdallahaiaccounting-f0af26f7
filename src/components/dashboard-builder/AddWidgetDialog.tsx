@@ -51,7 +51,7 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
     if (t === "kpi") setConfig({ metric: "sales_total", period: "month" });
     else if (t === "report") setConfig({ reportId: "", mode: "kpi" });
     else if (t === "text") setConfig({ text: "ملاحظة", align: "right", size: "md" });
-    else if (t === "insights") setConfig({ period: "month", autoGenerate: true });
+    else if (t === "insights") setConfig({ period: "month" });
   };
 
   const save = () => {
@@ -76,7 +76,7 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
                 {[
                   { v: "kpi" as WidgetType, label: "مؤشر KPI", icon: TrendingUp },
                   { v: "report" as WidgetType, label: "تقرير محفوظ", icon: FileBarChart },
-                  { v: "insights" as WidgetType, label: "تحليلات ذكية", icon: Sparkles },
+                  { v: "insights" as WidgetType, label: "رؤى ذكية AI", icon: Sparkles },
                   { v: "text" as WidgetType, label: "نص/ملاحظة", icon: Type },
                 ].map(o => (
                   <button
@@ -195,7 +195,7 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
                   <SelectItem value="year">هذه السنة</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground mt-2">يستخدم Lovable AI لتحليل بياناتك المالية وعرض ملاحظات ذكية.</p>
+              <p className="text-[10px] text-muted-foreground mt-2">يستخدم الذكاء الاصطناعي لتحليل بياناتك المالية وعرض ملاحظات تشغيلية.</p>
             </div>
           )}
         </div>

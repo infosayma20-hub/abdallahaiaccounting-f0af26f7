@@ -43,7 +43,6 @@ export default function ShareDialog({ open, onOpenChange, dashboard, onUpdated, 
 
   const regenerate = async () => {
     setBusy(true);
-    // Toggle off then on to regenerate via trigger
     await supabase.from("custom_dashboards").update({ is_shared: false }).eq("id", dashboard.id);
     const { error } = await supabase.from("custom_dashboards").update({ is_shared: true }).eq("id", dashboard.id);
     setBusy(false);
@@ -82,7 +81,6 @@ export default function ShareDialog({ open, onOpenChange, dashboard, onUpdated, 
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Public share toggle */}
           <div className="rounded-xl border border-border p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -107,25 +105,14 @@ export default function ShareDialog({ open, onOpenChange, dashboard, onUpdated, 
             )}
           </div>
 
-          {/* Export */}
           <div className="rounded-xl border border-border p-3">
             <div className="text-sm font-semibold text-foreground mb-2">تصدير</div>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleExport("pdf")}
-                disabled={exporting !== null}
-                className="gap-2 h-10"
-              >
+              <Button variant="outline" onClick={() => handleExport("pdf")} disabled={exporting !== null} className="gap-2 h-10">
                 {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 PDF
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport("png")}
-                disabled={exporting !== null}
-                className="gap-2 h-10"
-              >
+              <Button variant="outline" onClick={() => handleExport("png")} disabled={exporting !== null} className="gap-2 h-10">
                 {exporting === "png" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageDown className="h-4 w-4" />}
                 PNG
               </Button>
