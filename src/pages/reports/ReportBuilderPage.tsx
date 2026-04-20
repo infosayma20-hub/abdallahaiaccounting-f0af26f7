@@ -485,8 +485,20 @@ export default function ReportBuilderPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {loadedReportId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setVersionsOpen(true)}
+              className="gap-1.5 rounded-xl"
+              title="سجل النسخ"
+            >
+              <History className="h-4 w-4" /> النسخ
+            </Button>
+          )}
           <Button size="sm" onClick={() => setSaveOpen(true)} disabled={!hasRun} className="gap-1.5 rounded-xl">
-            <BookmarkPlus className="h-4 w-4" /> حفظ التقرير
+            <BookmarkPlus className="h-4 w-4" />
+            {loadedReportId ? "حفظ التغييرات" : "حفظ التقرير"}
           </Button>
         </div>
       </div>
