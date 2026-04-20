@@ -32,6 +32,7 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
 import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import SmartFormScope from "@/components/forms/SmartFormScope";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
