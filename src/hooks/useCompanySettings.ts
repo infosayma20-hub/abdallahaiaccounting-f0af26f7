@@ -188,7 +188,7 @@ const defaultSettings: CompanySettings = {
   allow_discount: true,
   max_discount_percent: 20,
   e_invoice_enabled: false,
-  invoice_header_layout: "logo_right",
+  invoice_header_layout: "logo_center",
   invoice_primary_color: "#1B3A5C",
   invoice_show_signature: true,
   invoice_show_tax_summary: false,
