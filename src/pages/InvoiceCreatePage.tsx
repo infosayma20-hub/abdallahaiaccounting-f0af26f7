@@ -206,6 +206,7 @@ const InvoiceCreatePage = () => {
   // Contact search
   const [contactSearch, setContactSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [contactActiveIdx, setContactActiveIdx] = useState<number>(-1);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
