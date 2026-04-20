@@ -58,15 +58,15 @@ export default function KpiWidget({ config, title }: Props) {
         const sb: any = supabase;
         let v = 0;
         if (metric.key === "sales_total") {
-          let q = sb.from("invoices").select("total_amount").eq("user_id", user.id);
+          let q = sb.from("invoices").select("total_amount").eq("user_id", user.id).eq("invoice_type", "sale");
           if (from) q = q.gte("invoice_date", from);
           if (to) q = q.lte("invoice_date", to);
           const { data } = await q;
           v = (data || []).reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
         } else if (metric.key === "purchases_total") {
-          let q = sb.from("purchases").select("total_amount").eq("user_id", user.id);
-          if (from) q = q.gte("purchase_date", from);
-          if (to) q = q.lte("purchase_date", to);
+          let q = sb.from("invoices").select("total_amount").eq("user_id", user.id).eq("invoice_type", "purchase");
+          if (from) q = q.gte("invoice_date", from);
+          if (to) q = q.lte("invoice_date", to);
           const { data } = await q;
           v = (data || []).reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
         } else if (metric.key === "products_count") {

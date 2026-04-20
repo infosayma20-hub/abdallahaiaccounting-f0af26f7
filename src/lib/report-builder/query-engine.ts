@@ -34,19 +34,17 @@ export interface RunReportResult {
 }
 
 const ALWAYS_FIELDS_BY_SOURCE: Record<string, string[]> = {
-  sales: ["id", "invoice_date", "total_amount", "paid_amount", "contact_id"],
-  purchases: ["id", "purchase_date", "total_amount", "paid_amount", "contact_id"],
+  sales: ["id", "invoice_date", "total_amount", "paid_amount", "contact_id", "invoice_type"],
+  purchases: ["id", "invoice_date", "total_amount", "paid_amount", "contact_id", "invoice_type"],
   inventory: ["id"],
 };
 
 function buildSelectClause(source: DataSourceDef, selectedColumns?: string[]) {
-  // Grouped reports need the date column + aggregatable fields, so we can't narrow too much.
-  // For non-grouped lists we narrow to selected + always.
   if (!selectedColumns || selectedColumns.length === 0) return source.selectQuery;
   const always = ALWAYS_FIELDS_BY_SOURCE[source.key] || ["id"];
   const set = new Set<string>([...always, source.dateColumn, ...selectedColumns]);
-  // Keep optional filter columns if present
-  ["status", "payment_method", "branch_name", "category", "invoice_number", "customer_name", "supplier_name", "name", "sku"].forEach(
+  if (source.fixedFilter) set.add(source.fixedFilter.column);
+  ["status", "payment_status", "payment_method", "category", "invoice_number", "contact_name", "name", "sku"].forEach(
     (c) => {
       if (source.selectQuery.includes(c)) set.add(c);
     }
@@ -69,17 +67,19 @@ export async function runReport({
 
   const selectClause = buildSelectClause(source, selectedColumns);
 
-  // For grouped reports we need all matching rows (capped) to aggregate; for table mode we paginate server-side.
   const buildBase = () => {
     let q: any = (supabase as any).from(source.table).select(selectClause, { count: "exact" }).eq("user_id", userId);
+    // Source-level fixed filter (e.g. invoice_type='sale'/'purchase')
+    if (source.fixedFilter) q = q.eq(source.fixedFilter.column, source.fixedFilter.value);
     if (filters.dateFrom) q = q.gte(source.dateColumn, filters.dateFrom);
     if (filters.dateTo) q = q.lte(source.dateColumn, filters.dateTo);
     if (filters.contactId && source.contactFilter) q = q.eq(source.contactFilter.column, filters.contactId);
-    if (filters.status && source.statusValues?.includes(filters.status)) q = q.eq("status" as any, filters.status);
-    if (filters.paymentMethod) q = q.eq("payment_method" as any, filters.paymentMethod);
-    if (filters.branchName) q = q.eq("branch_name" as any, filters.branchName);
-    if (filters.category) q = q.eq("category" as any, filters.category);
-    q = q.or("is_deleted.is.null,is_deleted.eq.false" as any);
+    if (filters.status && source.statusValues?.includes(filters.status)) {
+      const statusCol = source.table === "invoices" ? "payment_status" : "status";
+      q = q.eq(statusCol as any, filters.status);
+    }
+    if (filters.paymentMethod && source.table === "invoices") q = q.eq("payment_method" as any, filters.paymentMethod);
+    if (filters.category && source.table === "products") q = q.eq("category" as any, filters.category);
     return q;
   };
 
