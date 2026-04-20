@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
-import { hasActiveDraft, unregisterActiveDraft } from "@/lib/draftRegistry";
+import { discardActiveDraft, hasActiveDraft } from "@/lib/draftRegistry";
 import {
   LayoutDashboard, FileText, Users, Wallet, CreditCard, Package,
   BarChart3, Settings, Receipt, BookOpen, Landmark, Banknote,
@@ -391,11 +391,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
           `يوجد بيانات غير محفوظة في "${closingTab.title}".\nهل تريد إغلاق التبويب وفقدان التغييرات؟`
         );
         if (!ok) return prev;
-        unregisterActiveDraft(closingTab.path);
-        // مسح المسودة من localStorage أيضاً
-        try {
-          // formId غير معروف هنا — useFormDraft سيُنظفه عند mount التالي إن لزم
-        } catch {}
+        discardActiveDraft(closingTab.path);
       }
       const next = prev.filter(t => t.id !== id);
       saveTabs(next, userId);
@@ -432,7 +428,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
           `يوجد بيانات غير محفوظة في:\n${titles}\n\nهل تريد إغلاقها وفقدان التغييرات؟`
         );
         if (!ok) return prev;
-        draftTabs.forEach(t => unregisterActiveDraft(t.path));
+        draftTabs.forEach(t => discardActiveDraft(t.path));
       }
       const next = prev.filter(t => t.id === id);
       saveTabs(next, userId);
@@ -448,7 +444,7 @@ export function TabsProvider({ children }: { children: ReactNode }) {
         `يوجد بيانات غير محفوظة في:\n${titles}\n\nهل تريد إغلاق كل التبويبات وفقدان التغييرات؟`
       );
       if (!ok) return;
-      draftTabs.forEach(t => unregisterActiveDraft(t.path));
+      draftTabs.forEach(t => discardActiveDraft(t.path));
     }
     setTabs([]);
     saveTabs([], userId);

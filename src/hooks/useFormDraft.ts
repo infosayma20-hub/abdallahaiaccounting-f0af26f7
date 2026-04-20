@@ -39,21 +39,25 @@ interface UseFormDraftOptions {
   isEmpty?: (data: any) => boolean;
   /** المسار الحالي — لربط المسودة بالتبويب (يُستخدم لـ confirm عند الإغلاق) */
   routePath?: string;
+  /** عزل المسودة حسب المستخدم/الشركة/التبويب/الوضع */
+  scope?: string;
+  /** لا تبدأ الحفظ أو عرض الاسترجاع قبل اكتمال التحميل الأساسي */
+  ready?: boolean;
 }
 
-function getKey(formId: string) {
-  return `${DRAFT_PREFIX}${formId}`;
+function getKey(formId: string, scope?: string) {
+  return `${DRAFT_PREFIX}${scope ? `${scope}_` : ""}${formId}`;
 }
 
-function loadDraft<T>(formId: string, version: number): DraftEnvelope<T> | null {
+function loadDraft<T>(formId: string, version: number, scope?: string): DraftEnvelope<T> | null {
   try {
-    const raw = localStorage.getItem(getKey(formId));
+    const storageKey = getKey(formId, scope);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DraftEnvelope<T>;
     if (!parsed || typeof parsed !== "object") return null;
     if (parsed.version !== version) {
-      // هيكل قديم — احذفه
-      localStorage.removeItem(getKey(formId));
+      localStorage.removeItem(storageKey);
       return null;
     }
     return parsed;
@@ -62,10 +66,10 @@ function loadDraft<T>(formId: string, version: number): DraftEnvelope<T> | null 
   }
 }
 
-function saveDraft<T>(formId: string, data: T, version: number) {
+function saveDraft<T>(formId: string, data: T, version: number, scope?: string) {
   try {
     const envelope: DraftEnvelope<T> = { data, savedAt: Date.now(), version };
-    localStorage.setItem(getKey(formId), JSON.stringify(envelope));
+    localStorage.setItem(getKey(formId, scope), JSON.stringify(envelope));
   } catch {
     // QuotaExceeded أو أي خطأ — تجاهل بصمت
   }
@@ -77,60 +81,66 @@ export function useFormDraft<T>(
   applyDraft: (draft: T) => void,
   options: UseFormDraftOptions = {}
 ) {
-  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty, routePath } = options;
+  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty, routePath, scope, ready = true } = options;
 
   const [hasDraft, setHasDraft] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const draftRef = useRef<T | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dismissedRef = useRef(false);
+  const storageKey = getKey(formId, scope);
 
   // عند التحميل الأولي: تحقق من وجود مسودة
   useEffect(() => {
-    if (!enabled) return;
-    const existing = loadDraft<T>(formId, version);
+    if (!enabled || !ready) return;
+    const existing = loadDraft<T>(formId, version, scope);
     if (existing) {
       draftRef.current = existing.data;
       setDraftSavedAt(existing.savedAt);
       setHasDraft(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formId, enabled, version]);
+  }, [formId, enabled, version, scope, ready]);
 
   // حفظ تلقائي عند تغيّر القيمة (مع debounce)
   useEffect(() => {
-    if (!enabled) return;
-    if (isEmpty && isEmpty(currentValue)) return;
+    if (!enabled || !ready) return;
+    const empty = isEmpty ? isEmpty(currentValue) : false;
+    if (empty) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // noop
+      }
+      draftRef.current = null;
+      setHasDraft(false);
+      setDraftSavedAt(null);
+      if (routePath) unregisterActiveDraft(routePath);
+      return;
+    }
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      saveDraft(formId, currentValue, version);
-      if (routePath) registerActiveDraft(routePath, formId);
+      saveDraft(formId, currentValue, version, scope);
+      draftRef.current = currentValue;
+      setDraftSavedAt(Date.now());
+      if (routePath) registerActiveDraft(routePath, formId, storageKey);
     }, debounceMs);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [formId, currentValue, enabled, debounceMs, version, isEmpty, routePath]);
+  }, [formId, currentValue, enabled, debounceMs, version, isEmpty, routePath, scope, ready, storageKey]);
 
   // حفظ فوري قبل إغلاق الصفحة
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !ready) return;
     const handler = () => {
       if (isEmpty && isEmpty(currentValue)) return;
-      saveDraft(formId, currentValue, version);
+      saveDraft(formId, currentValue, version, scope);
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [formId, currentValue, enabled, version, isEmpty]);
-
-  // إلغاء تسجيل المسودة عند unmount (التنقل لتبويب آخر لا يحذفها لأن الصفحة تعمل remount)
-  useEffect(() => {
-    return () => {
-      // لا نلغي التسجيل عند unmount لأن المستخدم قد يكون فقط بدّل تبويباً.
-      // الإلغاء يحدث فقط عبر clearDraft() الصريح (نجاح الحفظ أو تجاهل).
-    };
-  }, []);
+  }, [formId, currentValue, enabled, version, isEmpty, scope, ready]);
 
   const restoreDraft = useCallback(() => {
     if (draftRef.current) {
@@ -141,14 +151,13 @@ export function useFormDraft<T>(
 
   const clearDraft = useCallback(() => {
     try {
-      localStorage.removeItem(getKey(formId));
+      localStorage.removeItem(storageKey);
     } catch { /* noop */ }
     draftRef.current = null;
-    dismissedRef.current = true;
     setHasDraft(false);
     setDraftSavedAt(null);
     if (routePath) unregisterActiveDraft(routePath);
-  }, [formId, routePath]);
+  }, [routePath, storageKey]);
 
   return { hasDraft, restoreDraft, clearDraft, draftSavedAt };
 }

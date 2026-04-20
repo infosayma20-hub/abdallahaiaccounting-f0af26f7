@@ -84,6 +84,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       } catch {}
     }
+    try {
+      const prefix = `amwali_draft_${currentUser?.id || ""}`;
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(prefix)) localStorage.removeItem(key);
+      }
+    } catch {}
     await supabase.auth.signOut();
   };
 

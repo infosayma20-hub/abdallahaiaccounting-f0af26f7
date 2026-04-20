@@ -7,10 +7,10 @@
  * يُسجَّل تلقائياً من داخل useFormDraft عند بدء الكتابة،
  * ويُلغى تلقائياً عند clearDraft() أو unmount.
  */
-const activeDrafts = new Map<string, { formId: string; savedAt: number }>();
+const activeDrafts = new Map<string, { formId: string; storageKey: string; savedAt: number }>();
 
-export function registerActiveDraft(path: string, formId: string) {
-  activeDrafts.set(path, { formId, savedAt: Date.now() });
+export function registerActiveDraft(path: string, formId: string, storageKey: string) {
+  activeDrafts.set(path, { formId, storageKey, savedAt: Date.now() });
 }
 
 export function unregisterActiveDraft(path: string) {
@@ -23,6 +23,17 @@ export function hasActiveDraft(path: string): boolean {
 
 export function getActiveDraft(path: string) {
   return activeDrafts.get(path) || null;
+}
+
+export function discardActiveDraft(path: string) {
+  const draft = activeDrafts.get(path);
+  if (!draft) return;
+  try {
+    localStorage.removeItem(draft.storageKey);
+  } catch {
+    // noop
+  }
+  activeDrafts.delete(path);
 }
 
 /** يُستخدم من قبل TabBar/TabsContext للسؤال قبل الإغلاق */

@@ -205,6 +205,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
   const isCancelled = editVoucherStatus === "cancelled";
 
   // Attachments
@@ -287,6 +288,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       version: 1,
       isEmpty: isVoucherDraftEmpty,
       routePath: draftRoutePath,
+      scope: [user?.id || "anon", company?.id || "no-company", draftRoutePath, voucherType, "new"].join(":"),
+      ready: draftReady,
     }
   );
 
@@ -373,7 +376,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
           delete (window as any).__duplicateContactId;
         }
-      });
+      })
+      .then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
 
   // Load GL accounts (for "account" party type)

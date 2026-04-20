@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/hooks/useCompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ const JournalNewPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { company } = useCompany();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
@@ -62,6 +64,7 @@ const JournalNewPage = () => {
   const [saved, setSaved] = useState(false);
   const [savedRefNumber, setSavedRefNumber] = useState("");
   const [lineSortOrder, setLineSortOrder] = useState<"debit_first" | "original">("original");
+  const [draftReady, setDraftReady] = useState(false);
 
   // Attachments
   const [attachments, setAttachments] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: string }[]>([]);
@@ -120,6 +123,8 @@ const JournalNewPage = () => {
       version: 1,
       isEmpty: isJournalDraftEmpty,
       routePath: "/finance/journal/new",
+      scope: [user?.id || "anon", company?.id || "no-company", "/finance/journal/new", "new"].join(":"),
+      ready: draftReady,
     }
   );
 
@@ -161,7 +166,7 @@ const JournalNewPage = () => {
     ]).then(([aRes, cRes]) => {
       setAccounts(aRes.data || []);
       setContacts(cRes.data || []);
-    });
+    }).finally(() => setDraftReady(true));
   }, [user]);
 
   // Auto-generate ref number
