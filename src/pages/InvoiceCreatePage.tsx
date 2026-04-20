@@ -711,6 +711,8 @@ const InvoiceCreatePage = () => {
         return updated;
       }),
     }));
+    // Smart UX: jump to quantity field of this row after picking a product
+    focusRowQuantity(itemId);
   };
 
   const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }] }));
