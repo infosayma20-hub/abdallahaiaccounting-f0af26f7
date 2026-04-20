@@ -2555,6 +2555,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         excludeIds={endorsedCheques.map(c => c.id)}
       />
     </div>
+    </SmartFormScope>
   );
 };
 
