@@ -839,6 +839,34 @@ export default function ReportBuilderPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Version history */}
+      <VersionHistoryDialog
+        open={versionsOpen}
+        reportId={loadedReportId}
+        onClose={() => setVersionsOpen(false)}
+        onRestored={() => {
+          // reload current saved report's config
+          if (loadedReportId) {
+            (async () => {
+              const { data: rec } = await supabase
+                .from("custom_reports")
+                .select("*")
+                .eq("id", loadedReportId)
+                .maybeSingle();
+              if (rec) {
+                setSourceKey(rec.data_source);
+                setSelectedColumns((rec.columns as any) || []);
+                setFilters((rec.filters as any) || DEFAULT_FILTERS());
+                setGroupBy(rec.group_by || "none");
+                setReportName(rec.name);
+                setReportDesc(rec.description || "");
+                if (rec.chart_type) setChartType(rec.chart_type as any);
+              }
+            })();
+          }
+        }}
+      />
     </div>
   );
 }
