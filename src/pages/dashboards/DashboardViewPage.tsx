@@ -75,6 +75,9 @@ export default function DashboardViewPage() {
             <Button variant="ghost" onClick={() => navigate("/dashboards")} className="gap-2">
               <ArrowRight className="h-4 w-4" /> رجوع
             </Button>
+            <Button onClick={() => setShareOpen(true)} variant="outline" className="gap-2">
+              <Share2 className="h-4 w-4" /> مشاركة
+            </Button>
             {editMode ? (
               <>
                 <Button onClick={() => setAddOpen(true)} variant="outline" className="gap-2">
@@ -93,7 +96,7 @@ export default function DashboardViewPage() {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4" ref={captureRef}>
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
