@@ -1852,6 +1852,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     onFocus={() => setShowContactDropdown(true)}
                     placeholder={contactPlaceholder}
                     className="pr-9"
+                    autoFocus={!isEditMode && !selectedContact && !contactSearch}
                   />
                   {(selectedContact || contactSearch) && (
                     <button onClick={() => { setSelectedContact(null); setContactSearch(""); setShowContactDropdown(false); }}

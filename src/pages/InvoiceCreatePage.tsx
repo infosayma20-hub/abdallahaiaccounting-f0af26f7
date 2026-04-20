@@ -1317,6 +1317,7 @@ const InvoiceCreatePage = () => {
                     onFocus={() => setShowContactDropdown(true)}
                     onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
+                    autoFocus={!isEditMode && !form.contactId && !contactSearch}
                   />
                 </div>
                 <button
