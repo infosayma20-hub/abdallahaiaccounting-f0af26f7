@@ -19,6 +19,7 @@ import BackButton from "@/components/BackButton";
 import { multiWordMatchAny } from "@/lib/utils";
 import { broadcastChange } from "@/lib/crossTabSync";
 import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
+import SmartFormScope from "@/components/forms/SmartFormScope";
 
 interface Contact {
   id: string;
@@ -1727,7 +1728,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
   };
   return (
-    <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
+    <SmartFormScope
+      className="max-w-4xl mx-auto space-y-5"
+      firstFieldSelector="[data-smart-first]"
+      disableAutoFocus={isEditMode}
+    >
+    <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
@@ -1852,7 +1858,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     onFocus={() => setShowContactDropdown(true)}
                     placeholder={contactPlaceholder}
                     className="pr-9"
-                    autoFocus={!isEditMode && !selectedContact && !contactSearch}
+                    data-smart-first="true"
                   />
                   {(selectedContact || contactSearch) && (
                     <button onClick={() => { setSelectedContact(null); setContactSearch(""); setShowContactDropdown(false); }}
@@ -2549,6 +2555,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         excludeIds={endorsedCheques.map(c => c.id)}
       />
     </div>
+    </SmartFormScope>
   );
 };
 

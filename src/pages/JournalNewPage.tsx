@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import SmartFormScope from "@/components/forms/SmartFormScope";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -390,7 +391,11 @@ const JournalNewPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
+    <SmartFormScope
+      className="max-w-4xl mx-auto space-y-5"
+      firstFieldSelector="[data-smart-first]"
+    >
+    <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
       <PageHeader title="سند قيد جديد" breadcrumb={["المحاسبة", "القيود", "سند قيد جديد"]} />
@@ -572,6 +577,7 @@ const JournalNewPage = () => {
                         className="h-9 font-mono text-xs w-20"
                         placeholder="1110"
                         dir="ltr"
+                        data-smart-first={i === 0 ? "true" : undefined}
                       />
                     </td>
                     <td className="p-2.5">
@@ -944,6 +950,7 @@ const JournalNewPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </SmartFormScope>
   );
 };
 

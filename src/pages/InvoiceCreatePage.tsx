@@ -32,6 +32,7 @@ import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
 import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import SmartFormScope from "@/components/forms/SmartFormScope";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -1225,7 +1226,12 @@ const InvoiceCreatePage = () => {
   }
 
   return (
-    <div className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto" dir="rtl">
+    <SmartFormScope
+      className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto"
+      firstFieldSelector="[data-smart-first]"
+      disableAutoFocus={isEditMode}
+    >
+    <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
@@ -1317,7 +1323,7 @@ const InvoiceCreatePage = () => {
                     onFocus={() => setShowContactDropdown(true)}
                     onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
-                    autoFocus={!isEditMode && !form.contactId && !contactSearch}
+                    data-smart-first="true"
                   />
                 </div>
                 <button
@@ -2016,6 +2022,7 @@ const InvoiceCreatePage = () => {
         />
       )}
     </div>
+    </SmartFormScope>
   );
 };
 
