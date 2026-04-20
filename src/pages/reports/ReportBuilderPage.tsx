@@ -87,6 +87,9 @@ export default function ReportBuilderPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [reportName, setReportName] = useState("");
   const [reportDesc, setReportDesc] = useState("");
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [loadedReportId, setLoadedReportId] = useState<string | null>(null);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [chartType, setChartType] = useState<ChartType>("bar");
   const [exportingPdf, setExportingPdf] = useState(false);
