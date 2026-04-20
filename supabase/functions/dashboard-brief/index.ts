@@ -33,45 +33,68 @@ async function buildContext(supabase: any, userId: string, period: string): Prom
   const { from, to, label } = periodRange(period);
 
   const [salesRes, purchasesRes, expensesRes, productsRes] = await Promise.all([
-    supabase.from("invoices").select("id, total, items").eq("user_id", userId).eq("invoice_type", "sale").gte("invoice_date", from).lte("invoice_date", to).is("is_deleted", false),
-    supabase.from("invoices").select("total").eq("user_id", userId).eq("invoice_type", "purchase").gte("invoice_date", from).lte("invoice_date", to).is("is_deleted", false),
-    supabase.from("transactions").select("amount").eq("user_id", userId).eq("transaction_type", "payment").gte("transaction_date", from).lte("transaction_date", to),
-    supabase.from("products").select("id, name, stock_quantity, reorder_level").eq("user_id", userId),
+    supabase
+      .from("invoices")
+      .select("id, total_amount")
+      .eq("user_id", userId)
+      .eq("invoice_type", "sale")
+      .gte("invoice_date", from)
+      .lte("invoice_date", to),
+    supabase
+      .from("invoices")
+      .select("total_amount")
+      .eq("user_id", userId)
+      .eq("invoice_type", "purchase")
+      .gte("invoice_date", from)
+      .lte("invoice_date", to),
+    supabase
+      .from("transactions")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("transaction_type", "payment")
+      .gte("transaction_date", from)
+      .lte("transaction_date", to),
+    supabase.from("products").select("id, name, quantity, min_quantity").eq("user_id", userId),
   ]);
 
   const salesRows = salesRes.data || [];
-  const sales_total = salesRows.reduce((s: number, r: any) => s + Number(r.total || 0), 0);
-  const purchases_total = (purchasesRes.data || []).reduce((s: number, r: any) => s + Number(r.total || 0), 0);
+  const sales_total = salesRows.reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
+  const purchases_total = (purchasesRes.data || []).reduce((s: number, r: any) => s + Number(r.total_amount || 0), 0);
   const expenses_total = (expensesRes.data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
-  // Top products from invoice items
-  const productMap: Record<string, number> = {};
-  salesRows.forEach((inv: any) => {
-    (inv.items || []).forEach((it: any) => {
-      const name = it.product_name || it.name || "—";
+  // Top products: query invoice_items joined with this period's invoices
+  const invoiceIds = salesRows.map((r: any) => r.id);
+  let top_products: { name: string; qty: number }[] = [];
+  if (invoiceIds.length > 0) {
+    const { data: items } = await supabase
+      .from("invoice_items")
+      .select("product_name, quantity")
+      .in("invoice_id", invoiceIds);
+    const productMap: Record<string, number> = {};
+    (items || []).forEach((it: any) => {
+      const name = it.product_name || "—";
       productMap[name] = (productMap[name] || 0) + Number(it.quantity || 0);
     });
-  });
-  const top_products = Object.entries(productMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([name, qty]) => ({ name, qty }));
+    top_products = Object.entries(productMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, qty]) => ({ name, qty }));
+  }
 
   const products = productsRes.data || [];
   const low_stock_count = products.filter((p: any) =>
-    p.reorder_level && Number(p.stock_quantity || 0) <= Number(p.reorder_level)
+    p.min_quantity && Number(p.quantity || 0) <= Number(p.min_quantity)
   ).length;
 
-  // Receivables = open sales not fully paid (rough)
+  // Receivables = open sales not fully paid
   const { data: openInvoices } = await supabase
     .from("invoices")
-    .select("total, paid_amount")
+    .select("total_amount, paid_amount")
     .eq("user_id", userId)
     .eq("invoice_type", "sale")
-    .is("is_deleted", false)
     .neq("payment_status", "paid");
   const receivables_total = (openInvoices || []).reduce(
-    (s: number, r: any) => s + Math.max(0, Number(r.total || 0) - Number(r.paid_amount || 0)),
+    (s: number, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.paid_amount || 0)),
     0
   );
 
