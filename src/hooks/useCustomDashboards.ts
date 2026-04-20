@@ -17,7 +17,7 @@ export interface CustomDashboard {
   updated_at: string;
 }
 
-export type WidgetType = "kpi" | "chart" | "report" | "text";
+export type WidgetType = "kpi" | "chart" | "report" | "text" | "insights";
 
 export interface DashboardWidget {
   id: string;

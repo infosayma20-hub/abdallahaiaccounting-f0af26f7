@@ -10,6 +10,7 @@ import { X, Settings2 } from "lucide-react";
 import KpiWidget from "./KpiWidget";
 import SavedReportWidget from "./SavedReportWidget";
 import TextWidget from "./TextWidget";
+import InsightsWidget from "./InsightsWidget";
 import type { DashboardWidget } from "@/hooks/useCustomDashboards";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -27,6 +28,7 @@ function renderWidget(w: DashboardWidget) {
     case "kpi": return <KpiWidget config={w.config} title={w.title} />;
     case "report": return <SavedReportWidget config={w.config} title={w.title} />;
     case "text": return <TextWidget config={w.config} title={w.title} />;
+    case "insights": return <InsightsWidget config={w.config} title={w.title} />;
     default: return <div className="p-4 text-xs text-muted-foreground">عنصر غير مدعوم</div>;
   }
 }
