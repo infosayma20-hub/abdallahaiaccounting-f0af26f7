@@ -36,6 +36,7 @@ import { createRoot } from "react-dom/client";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import useModalDraft from "@/hooks/useModalDraft";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
