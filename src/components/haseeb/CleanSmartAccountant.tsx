@@ -9,6 +9,7 @@ import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
 import ChatHistorySidebar from "./ChatHistorySidebar";
 import MultiTransactionCards, { type ParsedTransaction } from "./MultiTransactionCards";
+import { buildTxText, isTxResultSuccess } from "./buildTxText";
 import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 import type { User } from "@supabase/supabase-js";
@@ -220,9 +221,15 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
 
     // Transaction / Invoice — send text to process-transaction
     if (tx.type && !['question', 'unknown', 'add_entity', 'inventory_report'].includes(tx.type)) {
-      const body: any = { text: originalText.trim(), userId: user?.id, email: user?.email };
+      // نبني نصاً موسعاً يحوي المبلغ والزبون وطريقة الدفع (وإلا قد يُرفض الطلب لعدم وجود مبلغ)
+      const expandedText = buildTxText(tx) || originalText.trim();
+      const body: any = { text: expandedText, userId: user?.id, email: user?.email };
       const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
       if (error) throw error;
+      const verdict = isTxResultSuccess(txResult);
+      if (!verdict.success) {
+        return { success: false, message: verdict.message, type: tx.type };
+      }
       if (txResult?.transaction?.id) setLastTransactionId(txResult.transaction.id);
       const invoiceInfo = txResult?.transaction?.invoice_number ? `\n📋 ${txResult.transaction.invoice_number}` : '';
       const cmdType = classifyCommand(originalText);
@@ -553,10 +560,8 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                           return { success: result.success, message: result.message };
                         }}
                         onConfirmAll={async (txs) => {
-                          for (const tx of txs) {
-                            await executeTransaction(tx, tx.description || '');
-                          }
-                          onTransactionSuccess();
+                          // كل بطاقة تم تأكيدها مسبقاً عبر onConfirm — فقط نُحدّث المؤشرات
+                          if (txs.length > 0) onTransactionSuccess();
                         }}
                         onSkip={() => {}}
                         onDone={() => {}}
