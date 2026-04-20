@@ -9,7 +9,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import PageHeader from "@/components/layout/PageHeader";
 import { useCustomDashboards } from "@/hooks/useCustomDashboards";
 import { format } from "date-fns";
 
@@ -39,16 +38,22 @@ export default function DashboardsPage() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <PageHeader
-        title="لوحات المعلومات المخصصة"
-        subtitle="ابنِ لوحتك الخاصة من KPIs وتقارير ورسومات"
-        icon={<LayoutDashboard className="h-5 w-5" />}
-        actions={
+      <div className="px-6 pt-6 pb-3 border-b border-border/30 bg-card">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <LayoutDashboard className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">لوحات المعلومات المخصصة</h1>
+              <p className="text-xs text-muted-foreground">ابنِ لوحتك الخاصة من KPIs وتقارير ورسومات</p>
+            </div>
+          </div>
           <Button onClick={() => setCreateOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" /> لوحة جديدة
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       <div className="p-6">
         {loading ? (
