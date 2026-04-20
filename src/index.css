@@ -1329,8 +1329,8 @@ input[type="number"] {
 
 /* ═══════════════════════════════════════════════════════════════════
    GLOBAL FORM FOCUS UX SYSTEM (Amwali ERP)
-   Applies to every text input, select, textarea, and combobox so the
-   active field is always visually obvious. Native + shadcn fields.
+   Clean, professional focus state — single crisp border + subtle ring.
+   No background tint (kept fields pure white for a calm, premium look).
    ═══════════════════════════════════════════════════════════════════ */
 
 /* Smooth focus transition for all interactive form elements */
@@ -1340,35 +1340,32 @@ select,
 [role="combobox"],
 [role="textbox"],
 [contenteditable="true"] {
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
-/* Strong, premium focus ring for native inputs (not covered by shadcn classes) */
+/* Clean focus ring for native inputs — thin border + soft 2px ring, no fill */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   outline: none !important;
-  border-color: hsl(var(--primary)) !important;
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.25) !important;
-  background-color: hsl(var(--primary) / 0.04) !important;
+  border-color: hsl(var(--primary) / 0.7) !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.12) !important;
+  background-color: transparent !important;
 }
 
-/* Active form section highlight — wrap a card/section with .smart-form-section
-   and it will glow softly when any of its inputs is focused. */
+/* Active form section highlight — minimal, no glow */
 .smart-form-section {
-  transition: box-shadow 160ms ease, border-color 160ms ease;
+  transition: border-color 140ms ease;
 }
 .smart-form-section:focus-within {
-  border-color: hsl(var(--primary) / 0.35) !important;
-  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 4px 16px hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.3) !important;
 }
 
-/* Inline grid (table) editing — active cell glow */
+/* Inline grid (table) editing — clean active cell outline (no fill) */
 .smart-grid td:focus-within,
 .smart-grid [role="gridcell"]:focus-within {
-  background-color: hsl(var(--primary) / 0.06);
-  outline: 2px solid hsl(var(--primary) / 0.5);
-  outline-offset: -2px;
+  outline: 1.5px solid hsl(var(--primary) / 0.45);
+  outline-offset: -1.5px;
   border-radius: 6px;
 }
 
