@@ -11,13 +11,15 @@ export interface CustomDashboard {
   icon: string | null;
   is_default: boolean;
   is_shared: boolean;
+  share_token?: string | null;
+  shared_at?: string | null;
   layout_config: Record<string, any>;
   sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
-export type WidgetType = "kpi" | "chart" | "report" | "text";
+export type WidgetType = "kpi" | "chart" | "report" | "text" | "insights";
 
 export interface DashboardWidget {
   id: string;
