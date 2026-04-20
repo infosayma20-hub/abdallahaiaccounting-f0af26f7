@@ -19,6 +19,8 @@ import {
   Activity,
   Layers,
   CircleDot,
+  History,
+  Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,8 @@ import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { exportReportToPdf, PdfTemplate } from "@/lib/report-builder/pdf-export";
 import { ChevronDown, Briefcase, Coins, Minimize2, FileStack } from "lucide-react";
+import VersionHistoryDialog from "@/components/report-builder/VersionHistoryDialog";
+import { useReportFolders } from "@/hooks/useReportFolders";
 
 const DRAFT_KEY = "report-builder-draft";
 const VIEW_KEY_PREFIX = "report-builder-view-"; // per-source last view
@@ -68,6 +72,7 @@ export default function ReportBuilderPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const loadId = searchParams.get("load");
+  const { folders } = useReportFolders();
 
   const [sourceKey, setSourceKey] = useState<string>("sales");
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
@@ -87,6 +92,9 @@ export default function ReportBuilderPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [reportName, setReportName] = useState("");
   const [reportDesc, setReportDesc] = useState("");
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [loadedReportId, setLoadedReportId] = useState<string | null>(null);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [chartType, setChartType] = useState<ChartType>("bar");
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -136,6 +144,8 @@ export default function ReportBuilderPage() {
           setGroupBy(rec.group_by || "none");
           setReportName(rec.name);
           setReportDesc(rec.description || "");
+          setFolderId(rec.folder_id || null);
+          setLoadedReportId(rec.id);
           await supabase
             .from("custom_reports")
             .update({
@@ -312,20 +322,36 @@ export default function ReportBuilderPage() {
       return;
     }
     try {
-      const { error } = await supabase.from("custom_reports").insert({
-        user_id: user.id,
+      const payload = {
         name: reportName.trim(),
         description: reportDesc.trim() || null,
         data_source: sourceKey,
         columns: selectedColumns as any,
         filters: filters as any,
         group_by: groupBy === "none" ? null : groupBy,
-      });
-      if (error) throw error;
-      toast({ title: "تم حفظ التقرير ✅", description: `تجده الآن في "تقاريري"` });
+        chart_type: chartType,
+        folder_id: folderId,
+      };
+
+      if (loadedReportId) {
+        // UPDATE → trigger auto-snapshots previous state into custom_report_versions
+        const { error } = await supabase
+          .from("custom_reports")
+          .update(payload)
+          .eq("id", loadedReportId);
+        if (error) throw error;
+        toast({ title: "تم تحديث التقرير ✅", description: "تم حفظ نسخة من الإصدار السابق" });
+      } else {
+        const { data: created, error } = await supabase
+          .from("custom_reports")
+          .insert({ user_id: user.id, ...payload })
+          .select("id")
+          .single();
+        if (error) throw error;
+        if (created) setLoadedReportId(created.id);
+        toast({ title: "تم حفظ التقرير ✅", description: `تجده الآن في "تقاريري"` });
+      }
       setSaveOpen(false);
-      setReportName("");
-      setReportDesc("");
     } catch (e: any) {
       toast({ title: "خطأ في الحفظ", description: e.message, variant: "destructive" });
     }
@@ -464,8 +490,20 @@ export default function ReportBuilderPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {loadedReportId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setVersionsOpen(true)}
+              className="gap-1.5 rounded-xl"
+              title="سجل النسخ"
+            >
+              <History className="h-4 w-4" /> النسخ
+            </Button>
+          )}
           <Button size="sm" onClick={() => setSaveOpen(true)} disabled={!hasRun} className="gap-1.5 rounded-xl">
-            <BookmarkPlus className="h-4 w-4" /> حفظ التقرير
+            <BookmarkPlus className="h-4 w-4" />
+            {loadedReportId ? "حفظ التغييرات" : "حفظ التقرير"}
           </Button>
         </div>
       </div>
@@ -775,6 +813,21 @@ export default function ReportBuilderPage() {
                 placeholder="وصف مختصر للتقرير"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Folder className="h-3 w-3" /> المجلد (اختياري)
+              </Label>
+              <select
+                value={folderId || ""}
+                onChange={(e) => setFolderId(e.target.value || null)}
+                className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="">— بدون تصنيف —</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveOpen(false)}>
@@ -786,6 +839,34 @@ export default function ReportBuilderPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Version history */}
+      <VersionHistoryDialog
+        open={versionsOpen}
+        reportId={loadedReportId}
+        onClose={() => setVersionsOpen(false)}
+        onRestored={() => {
+          // reload current saved report's config
+          if (loadedReportId) {
+            (async () => {
+              const { data: rec } = await supabase
+                .from("custom_reports")
+                .select("*")
+                .eq("id", loadedReportId)
+                .maybeSingle();
+              if (rec) {
+                setSourceKey(rec.data_source);
+                setSelectedColumns((rec.columns as any) || []);
+                setFilters((rec.filters as any) || DEFAULT_FILTERS());
+                setGroupBy(rec.group_by || "none");
+                setReportName(rec.name);
+                setReportDesc(rec.description || "");
+                if (rec.chart_type) setChartType(rec.chart_type as any);
+              }
+            })();
+          }
+        }}
+      />
     </div>
   );
 }
