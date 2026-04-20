@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
+import SmartFormScope from "@/components/forms/SmartFormScope";
 
 const ACCOUNT_TYPES = [
   { value: "Asset", label: "أصول" },
@@ -202,6 +203,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         )}
 
         {/* Form */}
+        <SmartFormScope firstFieldSelector="[data-smart-first]">
         <form onSubmit={handleSubmit} className="bg-white dark:bg-card rounded-lg border p-6 space-y-5">
           {/* Row 1: Code + Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -214,12 +216,13 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
                 className={cn("font-mono text-center", codeError && "border-destructive", isProtected && "bg-muted")}
                 dir="ltr"
                 disabled={!!isProtected}
+                data-smart-first={isProtected ? undefined : "true"}
               />
               {codeError && <p className="text-[10px] text-destructive">{codeError}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">اسم الحساب <span className="text-destructive">*</span></Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: البنك - حساب جاري" dir="rtl" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: البنك - حساب جاري" dir="rtl" data-smart-first={isProtected ? "true" : undefined} />
             </div>
           </div>
 
@@ -297,6 +300,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
             <Button type="button" variant="ghost" onClick={() => navigate("/accounts")}>إلغاء</Button>
           </div>
         </form>
+        </SmartFormScope>
       </div>
     </div>
   );
