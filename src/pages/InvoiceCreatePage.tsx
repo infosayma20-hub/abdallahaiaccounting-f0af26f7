@@ -651,6 +651,26 @@ const InvoiceCreatePage = () => {
     } else {
       setContactDebtWarning(null);
     }
+    // Smart UX: jump to first invoice row product picker
+    focusFirstProductTrigger();
+  };
+
+  // After selecting a contact / product / row action — auto-jump to the next logical field.
+  // Strategy: use the global focus framework. We dispatch focus to the first product trigger
+  // of the first invoice row (after selecting a contact), or to the quantity input of the
+  // current row (after selecting a product). Falls back to next focusable input.
+  const focusFirstProductTrigger = () => {
+    setTimeout(() => {
+      const btn = document.querySelector<HTMLButtonElement>('[data-invoice-product-trigger]');
+      if (btn) { btn.focus(); btn.click(); }
+    }, 80);
+  };
+
+  const focusRowQuantity = (itemId: string) => {
+    setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>(`[data-invoice-qty="${itemId}"]`);
+      if (input) { input.focus(); input.select(); }
+    }, 80);
   };
 
   // ─── Item Updates ───
@@ -691,6 +711,8 @@ const InvoiceCreatePage = () => {
         return updated;
       }),
     }));
+    // Smart UX: jump to quantity field of this row after picking a product
+    focusRowQuantity(itemId);
   };
 
   const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }] }));
@@ -1573,7 +1595,7 @@ const InvoiceCreatePage = () => {
                 <div className="space-y-1">
                   <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
                     <PopoverTrigger asChild>
-                      <button className="w-full flex items-center justify-between rounded-lg text-[11px] h-8 border-0 bg-background px-3 hover:bg-muted/50 transition-colors text-right">
+                      <button data-invoice-product-trigger={idx === 0 ? "true" : undefined} data-row-id={item.id} className="w-full flex items-center justify-between rounded-lg text-[11px] h-8 border-0 bg-background px-3 hover:bg-muted/50 transition-colors text-right">
                         <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
                           {item.description || "اختر منتج..."}
                         </span>
@@ -1619,7 +1641,7 @@ const InvoiceCreatePage = () => {
 
                 {/* Quantity */}
                 <div className="flex items-center gap-1">
-                  <Input type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  <Input data-invoice-qty={item.id} type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
                 </div>
 
                 {/* Price */}
