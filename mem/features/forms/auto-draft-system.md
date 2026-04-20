@@ -26,6 +26,12 @@ type: feature
   - `JournalNewPage` — مفتاح `journal_new`، routePath `/finance/journal/new`.
   - `AccountFormPage` (إنشاء حساب فقط) — مفتاح `account_new`، routePath `/accounts/new`.
 
+(4-bis) دعم النوافذ المنبثقة (Quick Add Modals):
+  - `src/hooks/useModalDraft.ts` — hook خفيف يحفظ في `amwali_modal_draft_{scope}_{modalId}` بـ debounce 600ms. الاسترجاع تلقائي وصامت بدون banner عند إعادة فتح الـ modal لنفس السياق. لا يُسجَّل في `draftRegistry` (لا يخص إغلاق التبويبات).
+  - العزل: `scope = userId[:companyId][:contactType]` لمنع تعارض تعريف عميل مع مورد، أو شركة مع شركة.
+  - يُمسح يدوياً عند: نجاح الحفظ، أو ضغط زر "إلغاء" المقصود. (إغلاق الـ modal بـ Esc/click-outside لا يمسح — حماية من الفقد العَرَضي.)
+  - الـ modals المُطبَّق عليها: `JournalEntryPopup` → `QuickAddContactDialog` (عميل/مورد) `quick_add_contact`، و `InvoiceCreatePage` → `quick_add_product` + `quick_add_sales_rep`.
+
 (5) قواعد التوسيع لصفحات أخرى:
   - استخدم `formId` فريد ومستقر، عرّف `isEmpty` لتجنب حفظ نموذج فارغ، عطّل في وضع التعديل (`enabled: !isEditMode`)، استدع `clearDraft()` في كل مسارات نجاح الحفظ، ارفع `version` عند تغيير هيكل البيانات، مرّر `routePath` لتفعيل تأكيد الإغلاق.
   - للنماذج المعقدة: اجمع كل state عبر `useMemo` snapshot، واستعد عبر `applyDraft` callback تستدعي كل setters.
