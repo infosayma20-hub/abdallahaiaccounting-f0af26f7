@@ -3322,8 +3322,47 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_report_versions: {
+        Row: {
+          change_note: string | null
+          created_at: string
+          id: string
+          report_id: string
+          snapshot: Json
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          change_note?: string | null
+          created_at?: string
+          id?: string
+          report_id: string
+          snapshot: Json
+          user_id: string
+          version_number: number
+        }
+        Update: {
+          change_note?: string | null
+          created_at?: string
+          id?: string
+          report_id?: string
+          snapshot?: Json
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_report_versions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "custom_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_reports: {
         Row: {
+          archived_at: string | null
           chart_type: string | null
           color: string | null
           columns: Json
@@ -3331,9 +3370,11 @@ export type Database = {
           data_source: string
           description: string | null
           filters: Json
+          folder_id: string | null
           group_by: string | null
           icon: string | null
           id: string
+          is_archived: boolean
           is_favorite: boolean
           is_shared: boolean
           last_used_at: string | null
@@ -3344,6 +3385,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           chart_type?: string | null
           color?: string | null
           columns?: Json
@@ -3351,9 +3393,11 @@ export type Database = {
           data_source: string
           description?: string | null
           filters?: Json
+          folder_id?: string | null
           group_by?: string | null
           icon?: string | null
           id?: string
+          is_archived?: boolean
           is_favorite?: boolean
           is_shared?: boolean
           last_used_at?: string | null
@@ -3364,6 +3408,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           chart_type?: string | null
           color?: string | null
           columns?: Json
@@ -3371,9 +3416,11 @@ export type Database = {
           data_source?: string
           description?: string | null
           filters?: Json
+          folder_id?: string | null
           group_by?: string | null
           icon?: string | null
           id?: string
+          is_archived?: boolean
           is_favorite?: boolean
           is_shared?: boolean
           last_used_at?: string | null
@@ -3383,7 +3430,15 @@ export type Database = {
           use_count?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "custom_reports_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "report_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_workshop_types: {
         Row: {
@@ -10351,6 +10406,50 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "report_folders"
             referencedColumns: ["id"]
           },
         ]
