@@ -1007,6 +1007,7 @@ const InvoiceCreatePage = () => {
         } as any);
 
         toast({ title: asDraft ? "تم حفظ التعديلات كمسودة ✅" : "تم تحديث الفاتورة ✅" });
+        clearDraft();
         navigate("/invoices");
         return;
       }
@@ -1137,6 +1138,7 @@ const InvoiceCreatePage = () => {
       }
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
+      clearDraft();
       navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
@@ -1279,6 +1281,16 @@ const InvoiceCreatePage = () => {
     <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
+      {/* Draft Restore Banner — يظهر عند العودة لصفحة فيها مسودة محفوظة تلقائياً */}
+      {hasDraft && !isEditMode && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label="يوجد مسودة فاتورة لم تُحفظ"
+        />
+      )}
 
       {/* Header */}
       <PageHeader 
