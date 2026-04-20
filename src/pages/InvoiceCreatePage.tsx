@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useCompany } from "@/hooks/useCompanyContext";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
 import { Shield } from "lucide-react";
@@ -168,6 +169,7 @@ const InvoiceCreatePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { company } = useCompany();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
   const taxEnabled = companySettings?.vat_enabled ?? true;
@@ -222,6 +224,7 @@ const InvoiceCreatePage = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
 
   // Terms
   const [termsOpen, setTermsOpen] = useState(false);
@@ -277,6 +280,8 @@ const InvoiceCreatePage = () => {
     {
       enabled: !isEditMode && !fromDuplicate,
       version: 2,
+      scope: [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":"),
+      ready: draftReady,
       // اعتبر الفورم فارغاً إذا لا يوجد زبون ولا أي بند فيه وصف/منتج
       isEmpty: (data: typeof form) =>
         !data.contactName?.trim() &&
@@ -437,7 +442,7 @@ const InvoiceCreatePage = () => {
         setForm(f => ({ ...f, contactName: prefillContactName }));
       }
     };
-    fetchAll();
+    fetchAll().finally(() => setDraftReady(true));
   }, [user]);
 
   // Update invoice number prefix when type changes

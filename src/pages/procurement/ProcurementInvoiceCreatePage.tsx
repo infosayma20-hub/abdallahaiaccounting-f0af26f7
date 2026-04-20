@@ -12,6 +12,7 @@ import { AlertTriangle, Check, Upload, Loader2, Image as ImageIcon, X, Eye } fro
 import { supabase } from "@/integrations/supabase/client";
 import { usePurchaseInvoices, useSuppliers } from "@/hooks/useProcurement";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/hooks/useCompanyContext";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ const ProcurementInvoiceCreatePage = () => {
   const { createInvoice } = usePurchaseInvoices();
   const { suppliers } = useSuppliers();
   const { user } = useAuth();
+  const { company } = useCompany();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(!!orderId);
@@ -59,6 +61,7 @@ const ProcurementInvoiceCreatePage = () => {
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
 
   // ─── Auto-Draft: حفظ تلقائي يحمي من فقدان البيانات عند التنقل بين التبويبات ───
   // معطّل عند الإنشاء من Order (يتم تحميل البيانات من DB)
@@ -84,6 +87,8 @@ const ProcurementInvoiceCreatePage = () => {
     {
       enabled: !orderId,
       version: 1,
+      scope: [user?.id || "anon", company?.id || "no-company", "/procurement/invoices/new", orderId ? "from-order" : "new"].join(":"),
+      ready: draftReady,
       isEmpty: (data: any) =>
         !data.supplierId &&
         !data.supplierInvoiceNumber?.trim() &&
@@ -93,7 +98,7 @@ const ProcurementInvoiceCreatePage = () => {
   );
 
   useEffect(() => {
-    if (!orderId) { setLoading(false); return; }
+    if (!orderId) { setLoading(false); setDraftReady(true); return; }
     (async () => {
       const { data: order } = await supabase
         .from("procurement_orders" as any)
@@ -127,6 +132,7 @@ const ProcurementInvoiceCreatePage = () => {
         }
       }
       setLoading(false);
+      setDraftReady(true);
     })();
   }, [orderId]);
 
