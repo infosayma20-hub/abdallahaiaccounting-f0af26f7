@@ -779,14 +779,18 @@ export default function ReportBuilderPage() {
         </Card>
       )}
 
-      {/* Drill-down modal */}
+      {/* Drill-down drawer */}
       {drillRows && (
-        <DrillDownModal
+        <DrillDownDrawer
           open={!!drillRows}
           onClose={() => setDrillRows(null)}
-          rows={drillRows}
-          groupLabel={drillLabel}
-          source={source}
+          sourceKey={sourceKey}
+          initialLevel={{
+            type: "group-rows",
+            title: `تفاصيل: ${drillLabel}`,
+            parentRef: { label: drillLabel },
+            rows: drillRows,
+          } as DrillLevel}
         />
       )}
 
