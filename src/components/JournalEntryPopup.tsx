@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { multiWordMatchAny } from "@/lib/utils";
+import useModalDraft from "@/hooks/useModalDraft";
 
 /* ── Types ── */
 interface AccountRow {
@@ -315,6 +316,28 @@ const QuickAddContactDialog = ({
   const isCustomer = contactType === "customer";
   const accountPrefix = isCustomer ? "1130" : "2110";
 
+  // ─── Auto-draft للـ modal: عزل كامل حسب user + نوع جهة الاتصال ───
+  const { clearModalDraft } = useModalDraft(
+    "quick_add_contact",
+    { name, phone },
+    (d) => {
+      if (typeof d?.name === "string") setName(d.name);
+      if (typeof d?.phone === "string") setPhone(d.phone);
+    },
+    {
+      enabled: open && !!userId,
+      scope: `${userId || "anon"}:${contactType}`,
+      isEmpty: (d) => !d.name?.trim() && !d.phone?.trim(),
+      version: 1,
+    }
+  );
+
+  const handleDismiss = () => {
+    clearModalDraft();
+    setName(""); setPhone("");
+    onClose();
+  };
+
   const handleSave = async () => {
     if (!name) return;
     setSaving(true);
@@ -339,6 +362,7 @@ const QuickAddContactDialog = ({
         account_type: isCustomer ? "أصول" : "التزامات",
       };
       onCreated(masterAcc);
+      clearModalDraft();
       onClose();
       setName(""); setPhone("");
     } catch (err: any) {
@@ -347,7 +371,7 @@ const QuickAddContactDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && handleDismiss()}>
       <DialogContent className="max-w-sm rounded-2xl" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold flex items-center gap-2">

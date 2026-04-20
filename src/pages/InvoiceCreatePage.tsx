@@ -36,6 +36,7 @@ import { createRoot } from "react-dom/client";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import useModalDraft from "@/hooks/useModalDraft";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -216,6 +217,45 @@ const InvoiceCreatePage = () => {
   const [showQuickAddRep, setShowQuickAddRep] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
+
+  // ─── Auto-draft للنوافذ المنبثقة (Quick Add) ───
+  // عزل: user + company + نوع modal
+  const modalScope = `${user?.id || "anon"}:${company?.id || "no-company"}`;
+
+  const { clearModalDraft: clearProductDraft } = useModalDraft(
+    "quick_add_product",
+    quickAddForm,
+    (d) => setQuickAddForm({
+      name: d?.name ?? "",
+      sell_price: Number(d?.sell_price) || 0,
+      buy_price: Number(d?.buy_price) || 0,
+      unit: d?.unit || "قطعة",
+      quantity: Number(d?.quantity) || 0,
+    }),
+    {
+      enabled: showQuickAdd && !!user,
+      scope: modalScope,
+      isEmpty: (d) => !d.name?.trim() && !d.sell_price && !d.buy_price && !d.quantity,
+      version: 1,
+    }
+  );
+
+  const { clearModalDraft: clearRepDraft } = useModalDraft(
+    "quick_add_sales_rep",
+    quickRepForm,
+    (d) => setQuickRepForm({
+      full_name: d?.full_name ?? "",
+      phone: d?.phone ?? "",
+      region: d?.region ?? "",
+      sales_commission_rate: Number(d?.sales_commission_rate) || 0,
+    }),
+    {
+      enabled: showQuickAddRep && !!user,
+      scope: modalScope,
+      isEmpty: (d) => !d.full_name?.trim() && !d.phone?.trim() && !d.region?.trim() && !d.sales_commission_rate,
+      version: 1,
+    }
+  );
 
   // Customer detail overrides (on-invoice only)
   const [customerOverrides, setCustomerOverrides] = useState({ phone: "", email: "", tax_number: "", address: "" });
@@ -759,6 +799,7 @@ const InvoiceCreatePage = () => {
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+    clearProductDraft();
     // Refresh products
     const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
     setProducts((data as any[]) || []);
@@ -778,6 +819,7 @@ const InvoiceCreatePage = () => {
     toast({ title: `تمت إضافة المندوب "${quickRepForm.full_name}" ✅` });
     setShowQuickAddRep(false);
     setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
+    clearRepDraft();
     if (newRep) {
       setSalesReps(prev => [...prev, { id: (newRep as any).id, name: (newRep as any).full_name }]);
       setForm(p => ({ ...p, salespersonId: (newRep as any).id }));
@@ -2016,7 +2058,7 @@ const InvoiceCreatePage = () => {
       </div>
 
       {/* Quick Add Product Dialog */}
-      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+      <Dialog open={showQuickAdd} onOpenChange={(o) => { if (!o) { setShowQuickAdd(false); } else { setShowQuickAdd(true); } }}>
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader><DialogTitle>تعريف منتج جديد</DialogTitle><DialogDescription>أضف منتج سريعاً واستخدمه في الفاتورة</DialogDescription></DialogHeader>
           <div className="space-y-3">
@@ -2035,12 +2077,15 @@ const InvoiceCreatePage = () => {
               <div><label className="text-xs text-muted-foreground">الكمية المبدئية</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة المنتج</Button></div>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 }); setShowQuickAdd(false); }}>إلغاء</Button>
+            <Button onClick={handleQuickAddProduct}>إضافة المنتج</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Quick Add Sales Rep Dialog */}
-      <Dialog open={showQuickAddRep} onOpenChange={setShowQuickAddRep}>
+      <Dialog open={showQuickAddRep} onOpenChange={(o) => setShowQuickAddRep(o)}>
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader><DialogTitle>تعريف مندوب جديد</DialogTitle><DialogDescription>أضف مندوب مبيعات واربطه بالفاتورة مباشرة</DialogDescription></DialogHeader>
           <div className="space-y-3">
@@ -2051,7 +2096,10 @@ const InvoiceCreatePage = () => {
             </div>
             <div><label className="text-xs text-muted-foreground">نسبة العمولة %</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
           </div>
-          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAddRep(false)}>إلغاء</Button><Button onClick={handleQuickAddRep}>إضافة المندوب</Button></div>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => { clearRepDraft(); setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 }); setShowQuickAddRep(false); }}>إلغاء</Button>
+            <Button onClick={handleQuickAddRep}>إضافة المندوب</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
