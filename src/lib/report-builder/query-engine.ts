@@ -44,14 +44,18 @@ function buildSelectClause(source: DataSourceDef, selectedColumns?: string[]) {
   const always = ALWAYS_FIELDS_BY_SOURCE[source.key] || ["id"];
   // Tokens actually present in the source's selectQuery (exact match, not substring).
   const available = new Set(source.selectQuery.split(",").map((s) => s.trim()));
+  // Allowed = columns defined on this source's fields + always + dateColumn.
+  const sourceFieldKeys = new Set(source.fields.map((f) => f.key));
   const set = new Set<string>();
   const add = (c: string) => {
     if (available.has(c)) set.add(c);
   };
-  [...always, source.dateColumn, ...selectedColumns].forEach(add);
+  [...always, source.dateColumn].forEach(add);
+  // Filter selectedColumns to only those defined on this source (drops legacy keys
+  // saved in localStorage from previous schema versions like customer_name).
+  selectedColumns.filter((c) => sourceFieldKeys.has(c)).forEach(add);
   if (source.fixedFilter) add(source.fixedFilter.column);
   ["status", "payment_status", "payment_method", "category", "invoice_number", "contact_name", "name", "sku"].forEach(add);
-  // Always include id as a safety net.
   set.add("id");
   return Array.from(set).join(", ");
 }
