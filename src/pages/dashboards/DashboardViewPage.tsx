@@ -21,8 +21,10 @@ export default function DashboardViewPage() {
   const [editMode, setEditMode] = useState(searchParams.get("edit") === "1");
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<DashboardWidget | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadDashboard = () => {
     if (!id) return;
     supabase.from("custom_dashboards").select("*").eq("id", id).maybeSingle().then(({ data, error }) => {
       if (error || !data) {
@@ -32,7 +34,9 @@ export default function DashboardViewPage() {
       }
       setDashboard(data);
     });
-  }, [id, navigate, toast]);
+  };
+
+  useEffect(() => { loadDashboard(); }, [id]);
 
   const handleSaveWidget = async (input: any) => {
     if (editing) {
