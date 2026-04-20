@@ -3332,6 +3332,8 @@ export type Database = {
           is_shared: boolean | null
           layout_config: Json | null
           name: string
+          share_token: string | null
+          shared_at: string | null
           sort_order: number | null
           updated_at: string
           user_id: string
@@ -3345,6 +3347,8 @@ export type Database = {
           is_shared?: boolean | null
           layout_config?: Json | null
           name: string
+          share_token?: string | null
+          shared_at?: string | null
           sort_order?: number | null
           updated_at?: string
           user_id: string
@@ -3358,6 +3362,8 @@ export type Database = {
           is_shared?: boolean | null
           layout_config?: Json | null
           name?: string
+          share_token?: string | null
+          shared_at?: string | null
           sort_order?: number | null
           updated_at?: string
           user_id?: string
