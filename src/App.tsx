@@ -3,6 +3,7 @@ import { useCrossTabSync } from "@/hooks/useCrossTabSync";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 const CrossTabSyncProvider = () => { useCrossTabSync(); return null; };
 const VersionChecker = () => { useVersionCheck(); return null; };
+import GlobalFormFocusProvider from "@/components/forms/GlobalFormFocusProvider";
 import { useSearchParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
