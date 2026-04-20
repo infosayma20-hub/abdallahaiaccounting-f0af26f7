@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowRight, Plus, Edit3, Save, Loader2, Radio } from "lucide-react";
+import { ArrowRight, Plus, Edit3, Save, Loader2, Radio, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardGrid from "@/components/dashboard-builder/DashboardGrid";
 import AddWidgetDialog from "@/components/dashboard-builder/AddWidgetDialog";
+import ShareDialog from "@/components/dashboard-builder/ShareDialog";
 import { useCustomDashboards, useDashboardWidgets, type DashboardWidget } from "@/hooks/useCustomDashboards";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { exportNodeAsPDF, exportNodeAsPNG } from "@/lib/exportDashboard";
 
 export default function DashboardViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,8 +21,10 @@ export default function DashboardViewPage() {
   const [editMode, setEditMode] = useState(searchParams.get("edit") === "1");
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<DashboardWidget | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadDashboard = () => {
     if (!id) return;
     supabase.from("custom_dashboards").select("*").eq("id", id).maybeSingle().then(({ data, error }) => {
       if (error || !data) {
@@ -30,7 +34,9 @@ export default function DashboardViewPage() {
       }
       setDashboard(data);
     });
-  }, [id, navigate, toast]);
+  };
+
+  useEffect(() => { loadDashboard(); }, [id]);
 
   const handleSaveWidget = async (input: any) => {
     if (editing) {
@@ -69,6 +75,9 @@ export default function DashboardViewPage() {
             <Button variant="ghost" onClick={() => navigate("/dashboards")} className="gap-2">
               <ArrowRight className="h-4 w-4" /> رجوع
             </Button>
+            <Button onClick={() => setShareOpen(true)} variant="outline" className="gap-2">
+              <Share2 className="h-4 w-4" /> مشاركة
+            </Button>
             {editMode ? (
               <>
                 <Button onClick={() => setAddOpen(true)} variant="outline" className="gap-2">
@@ -87,7 +96,7 @@ export default function DashboardViewPage() {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4" ref={captureRef}>
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -119,6 +128,19 @@ export default function DashboardViewPage() {
         onOpenChange={(o) => { setAddOpen(o); if (!o) setEditing(null); }}
         initial={editing}
         onSave={handleSaveWidget}
+      />
+
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        dashboard={dashboard}
+        onUpdated={loadDashboard}
+        onExportPNG={async () => {
+          if (captureRef.current) await exportNodeAsPNG(captureRef.current, dashboard.name);
+        }}
+        onExportPDF={async () => {
+          if (captureRef.current) await exportNodeAsPDF(captureRef.current, dashboard.name, dashboard.name);
+        }}
       />
     </div>
   );
