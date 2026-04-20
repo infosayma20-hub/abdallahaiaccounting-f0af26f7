@@ -87,30 +87,42 @@ export function useFormDraft<T>(
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const draftRef = useRef<T | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialCheckDoneRef = useRef(false);
+  const loadedDraftOnMountRef = useRef(false);
   const storageKey = getKey(formId, scope);
 
   // عند التحميل الأولي: تحقق من وجود مسودة
   useEffect(() => {
     if (!enabled || !ready) return;
     const existing = loadDraft<T>(formId, version, scope);
+    initialCheckDoneRef.current = true;
+    loadedDraftOnMountRef.current = !!existing;
     if (existing) {
       draftRef.current = existing.data;
       setDraftSavedAt(existing.savedAt);
       setHasDraft(true);
+    } else {
+      draftRef.current = null;
+      setDraftSavedAt(null);
+      setHasDraft(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId, enabled, version, scope, ready]);
 
   // حفظ تلقائي عند تغيّر القيمة (مع debounce)
   useEffect(() => {
-    if (!enabled || !ready) return;
+    if (!enabled || !ready || !initialCheckDoneRef.current) return;
     const empty = isEmpty ? isEmpty(currentValue) : false;
     if (empty) {
+      if (loadedDraftOnMountRef.current && draftRef.current) {
+        return;
+      }
       try {
         localStorage.removeItem(storageKey);
       } catch {
         // noop
       }
+      loadedDraftOnMountRef.current = false;
       draftRef.current = null;
       setHasDraft(false);
       setDraftSavedAt(null);
@@ -121,6 +133,7 @@ export function useFormDraft<T>(
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       saveDraft(formId, currentValue, version, scope);
+      loadedDraftOnMountRef.current = false;
       draftRef.current = currentValue;
       setDraftSavedAt(Date.now());
       if (routePath) registerActiveDraft(routePath, formId, storageKey);
@@ -165,6 +178,7 @@ export function useFormDraft<T>(
 
   const restoreDraft = useCallback(() => {
     if (draftRef.current) {
+      loadedDraftOnMountRef.current = false;
       applyDraft(draftRef.current);
       setHasDraft(false);
     }
@@ -174,6 +188,7 @@ export function useFormDraft<T>(
     try {
       localStorage.removeItem(storageKey);
     } catch { /* noop */ }
+    loadedDraftOnMountRef.current = false;
     draftRef.current = null;
     setHasDraft(false);
     setDraftSavedAt(null);
