@@ -16,6 +16,8 @@ import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 interface InvoiceLine {
   product_id: string | null;
@@ -57,6 +59,38 @@ const ProcurementInvoiceCreatePage = () => {
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  // ─── Auto-Draft: حفظ تلقائي يحمي من فقدان البيانات عند التنقل بين التبويبات ───
+  // معطّل عند الإنشاء من Order (يتم تحميل البيانات من DB)
+  const draftSnapshot = {
+    supplierId, supplierName, branchId, invoiceDate, supplierInvoiceNumber,
+    paymentStatus, discount, tax, notes, lines,
+  };
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    "procurement_invoice_new",
+    draftSnapshot,
+    (draft: any) => {
+      setSupplierId(draft.supplierId || "");
+      setSupplierName(draft.supplierName || "");
+      setBranchId(draft.branchId || "");
+      setInvoiceDate(draft.invoiceDate || new Date().toISOString().split("T")[0]);
+      setSupplierInvoiceNumber(draft.supplierInvoiceNumber || "");
+      setPaymentStatus(draft.paymentStatus || "unpaid");
+      setDiscount(Number(draft.discount) || 0);
+      setTax(Number(draft.tax) || 0);
+      setNotes(draft.notes || "");
+      setLines(Array.isArray(draft.lines) ? draft.lines : []);
+    },
+    {
+      enabled: !orderId,
+      version: 1,
+      isEmpty: (data: any) =>
+        !data.supplierId &&
+        !data.supplierInvoiceNumber?.trim() &&
+        !data.notes?.trim() &&
+        (!data.lines?.length || data.lines.every((l: any) => !l.item_name?.trim() && !l.product_id)),
+    }
+  );
 
   useEffect(() => {
     if (!orderId) { setLoading(false); return; }
