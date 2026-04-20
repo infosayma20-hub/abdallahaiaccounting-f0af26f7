@@ -1,29 +1,32 @@
 ---
-name: Auto-Draft Form Persistence
-description: Hook عام useFormDraft + DraftRestoreBanner لحفظ المسودات تلقائياً في localStorage مع debounce واسترجاع عند العودة
+name: Auto-Draft Form Persistence (Global)
+description: نظام عالمي لحفظ مسودات النماذج تلقائياً في localStorage مع سجل عالمي (draftRegistry) يربط المسودات بالتبويبات ويعرض confirm عند الإغلاق
 type: feature
 ---
-نظام الحفظ التلقائي لمسودات النماذج (Auto-Draft System):
+نظام Auto-Draft الموحد لمسودات النماذج (Global Draft System):
 
-(1) الهدف: حماية المستخدم من فقدان البيانات عند التنقل بين تبويبات النظام (التبويبات تعمل unmount/remount عند التبديل) أو عند إغلاق المتصفح بالخطأ.
+(1) المكونات الأساسية:
+  - `src/hooks/useFormDraft.ts` — hook عام (formId, currentValue, applyDraft) يحفظ في localStorage بمفتاح `amwali_draft_{formId}` مع debounce 800ms + حفظ على beforeunload. يدعم: version, isEmpty, enabled, **routePath** (لربط المسودة بالتبويب).
+  - `src/components/forms/DraftRestoreBanner.tsx` — شريط أصفر مع زر استرجاع/تجاهل وعرض زمن نسبي.
+  - `src/lib/draftRegistry.ts` — singleton يتتبع المسودات النشطة في الذاكرة (`Map<routePath, {formId, savedAt}>`). يُسجَّل تلقائياً من `useFormDraft` عند كل حفظ ويُلغى عند `clearDraft()`.
 
-(2) البنية:
-  - `src/hooks/useFormDraft.ts` — hook عام يأخذ formId + currentValue + applyDraft callback، يحفظ في `localStorage` بمفتاح `amwali_draft_{formId}` مع debounce افتراضي 800ms + حفظ فوري على `beforeunload`. يدعم `version` لإبطال المسودات القديمة عند تغير هيكل البيانات، و`isEmpty` لتجنب حفظ نماذج فارغة.
-  - `src/components/forms/DraftRestoreBanner.tsx` — شريط أصفر علوي (warning tokens) يعرض زمن الحفظ النسبي (قبل 5 دقائق...) مع زر استرجاع وتجاهل.
+(2) سلوك تأكيد الإغلاق:
+  - `TabsContext.closeTab` / `closeOtherTabs` / `closeAllTabs` تتحقق من `hasActiveDraft(path)` وتعرض `confirm()` قبل الإغلاق إذا فيه عمل غير محفوظ. عند التأكيد: تُلغي التسجيل والحالة. التنقل بين التبويبات لا يحذف المسودة (تبقى للاسترجاع عند العودة).
 
 (3) دورة الحياة:
-  - عند فتح الصفحة → فحص localStorage. إذا وُجدت مسودة بنفس الـ version، اعرض الـ banner.
-  - أثناء التحرير → حفظ تلقائي بعد كل تعديل (debounced).
-  - عند الحفظ الناجح في DB → استدعاء `clearDraft()` لمسح المسودة.
-  - عند الضغط على "تجاهل" → مسح المسودة بدون استرجاع.
+  - فتح الصفحة → فحص localStorage → إذا وُجدت مسودة بنفس version → عرض banner.
+  - أثناء الكتابة → حفظ debounced + تسجيل في registry.
+  - نجاح الحفظ في DB → `clearDraft()` يحذف من localStorage + registry.
+  - تجاهل/إغلاق متعمد → نفس السلوك.
 
 (4) الصفحات المُطبَّق عليها:
-  - `src/pages/InvoiceCreatePage.tsx` (مبيعات + مشتريات) — معطّل في وضع التعديل و في حالة `from_duplicate`. مفاتيح منفصلة لكل نوع: `invoice_sales_new` و `invoice_purchase_new`.
-  - `src/pages/procurement/ProcurementInvoiceCreatePage.tsx` — معطّل عند الإنشاء من Order.
+  - `InvoiceCreatePage` (مبيعات + مشتريات) — مفاتيح `invoice_sales_new` / `invoice_purchase_new`.
+  - `ProcurementInvoiceCreatePage` — مفتاح خاص.
+  - `VoucherFormPage` (سند قبض + سند صرف) — مفاتيح `voucher_receipt_new` / `voucher_payment_new`، routePath `/finance/receipt/new` و `/finance/payment/new`.
+  - `JournalNewPage` — مفتاح `journal_new`، routePath `/finance/journal/new`.
+  - `AccountFormPage` (إنشاء حساب فقط) — مفتاح `account_new`، routePath `/accounts/new`.
 
-(5) قواعد التوسيع لصفحات أخرى (السندات، القيود، POS):
-  - استخدم `formId` فريد ومستقر (لا يحتوي IDs ديناميكية).
-  - عرّف `isEmpty` لتجنب الحفظ غير المفيد (مثلاً عدم حفظ سند فارغ تماماً).
-  - عطّل الـ hook في وضع التعديل عبر `enabled: !isEditMode`.
-  - استدع `clearDraft()` في كل مسارات النجاح (insert + update).
-  - ارفع `version` عند تعديل هيكل البيانات لتجنب استرجاع مسودات غير متوافقة.
+(5) قواعد التوسيع لصفحات أخرى:
+  - استخدم `formId` فريد ومستقر، عرّف `isEmpty` لتجنب حفظ نموذج فارغ، عطّل في وضع التعديل (`enabled: !isEditMode`)، استدع `clearDraft()` في كل مسارات نجاح الحفظ، ارفع `version` عند تغيير هيكل البيانات، مرّر `routePath` لتفعيل تأكيد الإغلاق.
+  - للنماذج المعقدة: اجمع كل state عبر `useMemo` snapshot، واستعد عبر `applyDraft` callback تستدعي كل setters.
+  - معرّفات الكيانات (contactId, employeeId) تُستعاد عبر `(window as any).__duplicateXxxId` لانتظار تحميل القوائم.
