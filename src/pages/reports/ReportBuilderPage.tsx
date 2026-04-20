@@ -813,6 +813,21 @@ export default function ReportBuilderPage() {
                 placeholder="وصف مختصر للتقرير"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Folder className="h-3 w-3" /> المجلد (اختياري)
+              </Label>
+              <select
+                value={folderId || ""}
+                onChange={(e) => setFolderId(e.target.value || null)}
+                className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="">— بدون تصنيف —</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveOpen(false)}>
