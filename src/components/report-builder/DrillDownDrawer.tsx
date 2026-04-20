@@ -475,7 +475,7 @@ function DrillTable({
                     : "—"}
                 </td>
                 <td className="py-2 px-2">
-                  {r.customer_name || r.supplier_name || "—"}
+                  {r.contact_name || r.customer_name || r.supplier_name || "—"}
                 </td>
               </>
             )}
