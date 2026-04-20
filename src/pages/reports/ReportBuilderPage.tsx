@@ -174,8 +174,13 @@ export default function ReportBuilderPage() {
 
   // Init default columns when source changes (and no columns set)
   useEffect(() => {
-    if (selectedColumns.length === 0) {
+    const validKeys = new Set(source.fields.map((f) => f.key));
+    // Drop any legacy column keys that no longer exist on this source.
+    const cleaned = selectedColumns.filter((c) => validKeys.has(c));
+    if (cleaned.length === 0) {
       setSelectedColumns(source.fields.filter((f) => f.defaultVisible).map((f) => f.key));
+    } else if (cleaned.length !== selectedColumns.length) {
+      setSelectedColumns(cleaned);
     }
   }, [sourceKey]);
 
