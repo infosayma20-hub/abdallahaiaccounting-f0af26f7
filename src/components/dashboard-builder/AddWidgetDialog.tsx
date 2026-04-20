@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { KPI_METRICS } from "./KpiWidget";
 import type { WidgetType, DashboardWidget } from "@/hooks/useCustomDashboards";
-import { TrendingUp, FileBarChart, Type } from "lucide-react";
+import { TrendingUp, FileBarChart, Type, Sparkles } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -51,10 +51,14 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
     if (t === "kpi") setConfig({ metric: "sales_total", period: "month" });
     else if (t === "report") setConfig({ reportId: "", mode: "kpi" });
     else if (t === "text") setConfig({ text: "ملاحظة", align: "right", size: "md" });
+    else if (t === "insights") setConfig({ period: "month" });
   };
 
   const save = () => {
-    const defaults = { kpi: { w: 3, h: 3 }, report: { w: 6, h: 5 }, text: { w: 4, h: 2 }, chart: { w: 6, h: 5 } };
+    const defaults: Record<WidgetType, { w: number; h: number }> = {
+      kpi: { w: 3, h: 3 }, report: { w: 6, h: 5 }, text: { w: 4, h: 2 },
+      chart: { w: 6, h: 5 }, insights: { w: 4, h: 5 },
+    };
     const d = defaults[type];
     onSave({ widget_type: type, title: title.trim() || null, config, width: d.w, height: d.h });
     onOpenChange(false);
@@ -68,10 +72,11 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
           {!initial && (
             <div>
               <Label className="text-xs mb-2 block">نوع العنصر</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {[
                   { v: "kpi" as WidgetType, label: "مؤشر KPI", icon: TrendingUp },
                   { v: "report" as WidgetType, label: "تقرير محفوظ", icon: FileBarChart },
+                  { v: "insights" as WidgetType, label: "رؤى ذكية AI", icon: Sparkles },
                   { v: "text" as WidgetType, label: "نص/ملاحظة", icon: Type },
                 ].map(o => (
                   <button
