@@ -218,6 +218,45 @@ const InvoiceCreatePage = () => {
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
   const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
 
+  // ─── Auto-draft للنوافذ المنبثقة (Quick Add) ───
+  // عزل: user + company + نوع modal
+  const modalScope = `${user?.id || "anon"}:${company?.id || "no-company"}`;
+
+  const { clearModalDraft: clearProductDraft } = useModalDraft(
+    "quick_add_product",
+    quickAddForm,
+    (d) => setQuickAddForm({
+      name: d?.name ?? "",
+      sell_price: Number(d?.sell_price) || 0,
+      buy_price: Number(d?.buy_price) || 0,
+      unit: d?.unit || "قطعة",
+      quantity: Number(d?.quantity) || 0,
+    }),
+    {
+      enabled: showQuickAdd && !!user,
+      scope: modalScope,
+      isEmpty: (d) => !d.name?.trim() && !d.sell_price && !d.buy_price && !d.quantity,
+      version: 1,
+    }
+  );
+
+  const { clearModalDraft: clearRepDraft } = useModalDraft(
+    "quick_add_sales_rep",
+    quickRepForm,
+    (d) => setQuickRepForm({
+      full_name: d?.full_name ?? "",
+      phone: d?.phone ?? "",
+      region: d?.region ?? "",
+      sales_commission_rate: Number(d?.sales_commission_rate) || 0,
+    }),
+    {
+      enabled: showQuickAddRep && !!user,
+      scope: modalScope,
+      isEmpty: (d) => !d.full_name?.trim() && !d.phone?.trim() && !d.region?.trim() && !d.sales_commission_rate,
+      version: 1,
+    }
+  );
+
   // Customer detail overrides (on-invoice only)
   const [customerOverrides, setCustomerOverrides] = useState({ phone: "", email: "", tax_number: "", address: "" });
 
@@ -760,6 +799,7 @@ const InvoiceCreatePage = () => {
     toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
     setShowQuickAdd(false);
     setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+    clearProductDraft();
     // Refresh products
     const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
     setProducts((data as any[]) || []);
@@ -779,6 +819,7 @@ const InvoiceCreatePage = () => {
     toast({ title: `تمت إضافة المندوب "${quickRepForm.full_name}" ✅` });
     setShowQuickAddRep(false);
     setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
+    clearRepDraft();
     if (newRep) {
       setSalesReps(prev => [...prev, { id: (newRep as any).id, name: (newRep as any).full_name }]);
       setForm(p => ({ ...p, salespersonId: (newRep as any).id }));
