@@ -2058,7 +2058,7 @@ const InvoiceCreatePage = () => {
       </div>
 
       {/* Quick Add Product Dialog */}
-      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+      <Dialog open={showQuickAdd} onOpenChange={(o) => { if (!o) { setShowQuickAdd(false); } else { setShowQuickAdd(true); } }}>
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader><DialogTitle>تعريف منتج جديد</DialogTitle><DialogDescription>أضف منتج سريعاً واستخدمه في الفاتورة</DialogDescription></DialogHeader>
           <div className="space-y-3">
@@ -2077,12 +2077,15 @@ const InvoiceCreatePage = () => {
               <div><label className="text-xs text-muted-foreground">الكمية المبدئية</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة المنتج</Button></div>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => { clearProductDraft(); setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 }); setShowQuickAdd(false); }}>إلغاء</Button>
+            <Button onClick={handleQuickAddProduct}>إضافة المنتج</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Quick Add Sales Rep Dialog */}
-      <Dialog open={showQuickAddRep} onOpenChange={setShowQuickAddRep}>
+      <Dialog open={showQuickAddRep} onOpenChange={(o) => setShowQuickAddRep(o)}>
         <DialogContent dir="rtl" className="max-w-sm">
           <DialogHeader><DialogTitle>تعريف مندوب جديد</DialogTitle><DialogDescription>أضف مندوب مبيعات واربطه بالفاتورة مباشرة</DialogDescription></DialogHeader>
           <div className="space-y-3">
@@ -2093,7 +2096,10 @@ const InvoiceCreatePage = () => {
             </div>
             <div><label className="text-xs text-muted-foreground">نسبة العمولة %</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
           </div>
-          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAddRep(false)}>إلغاء</Button><Button onClick={handleQuickAddRep}>إضافة المندوب</Button></div>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="outline" onClick={() => { clearRepDraft(); setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 }); setShowQuickAddRep(false); }}>إلغاء</Button>
+            <Button onClick={handleQuickAddRep}>إضافة المندوب</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
