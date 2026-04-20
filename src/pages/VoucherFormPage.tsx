@@ -377,7 +377,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           delete (window as any).__duplicateContactId;
         }
       })
-      .finally(() => setDraftReady(true));
+      .then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
 
   // Load GL accounts (for "account" party type)
