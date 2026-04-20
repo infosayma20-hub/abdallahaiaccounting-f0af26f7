@@ -3,11 +3,9 @@
  * In editMode: drag/resize/delete enabled. Otherwise read-only.
  */
 import { useMemo } from "react";
-import RGL, { Responsive, WidthProvider } from "react-grid-layout";
+import { Responsive, WidthProvider, type Layout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-
-type LayoutItem = { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number };
 import { X, Settings2 } from "lucide-react";
 import KpiWidget from "./KpiWidget";
 import SavedReportWidget from "./SavedReportWidget";
