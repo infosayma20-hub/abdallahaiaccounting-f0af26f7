@@ -72,6 +72,7 @@ export default function ReportBuilderPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const loadId = searchParams.get("load");
+  const { folders } = useReportFolders();
 
   const [sourceKey, setSourceKey] = useState<string>("sales");
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
