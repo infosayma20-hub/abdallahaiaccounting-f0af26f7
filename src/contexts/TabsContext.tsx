@@ -63,6 +63,9 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/account-statement": { title: "كشف حساب", icon: "chart" },
   "/reports": { title: "التقارير", icon: "pie" },
   "/smart-report": { title: "تقرير ذكي", icon: "pie" },
+  "/reports/builder": { title: "منشئ التقارير", icon: "pie" },
+  "/reports/my-reports": { title: "تقاريري", icon: "pie" },
+  "/dashboards": { title: "لوحات المعلومات", icon: "dashboard" },
   "/cheques": { title: "الشيكات", icon: "credit" },
   "/hr": { title: "مركز قيادة HR", icon: "users" },
   "/hr/people": { title: "الموظفون", icon: "usercheck" },
@@ -234,6 +237,7 @@ const DYNAMIC_PATTERNS: Array<{ regex: RegExp; title: string; icon: string }> = 
   { regex: /^\/credit-notes\/[^/]+$/, title: "تفاصيل إشعار دائن", icon: "file" },
   { regex: /^\/debit-notes\/[^/]+$/, title: "تفاصيل إشعار مدين", icon: "file" },
   { regex: /^\/hr\/employee\/[^/]+$/, title: "ملف الموظف 360", icon: "users" },
+  { regex: /^\/dashboards\/[^/]+$/, title: "لوحة معلومات", icon: "dashboard" },
 ];
 
 function getRouteMeta(path: string): { title: string; icon: string } {
