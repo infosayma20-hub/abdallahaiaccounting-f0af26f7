@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, FileBarChart, ExternalLink } from "lucide-react";
-import { runReportQuery } from "@/lib/report-builder/query-engine";
+import { runReport } from "@/lib/report-builder/query-engine";
 import { getDataSource } from "@/lib/report-builder/data-sources";
 import ReportChart, { ChartType } from "@/components/report-builder/ReportChart";
 import { ColumnDef } from "@/components/reports/SortableReportTable";
@@ -41,17 +41,17 @@ export default function SavedReportWidget({ config, title }: Props) {
         const source = getDataSource(rec.data_source);
         if (!source) return;
         const cols = (rec.columns as any) || [];
-        const result = await runReportQuery({
+        const result = await runReport({
           source,
           userId: user.id,
-          filters: rec.filters || {},
+          filters: (rec.filters as any) || {},
           groupBy: rec.group_by || "none",
-          page: 0,
-          pageSize: mode === "kpi" ? 1 : 50,
-          fields: cols,
-        } as any);
+          page: 1,
+          pageSize: mode === "kpi" ? 500 : 50,
+          selectedColumns: cols.map((c: any) => c.key),
+        });
         if (!alive) return;
-        setData(result.data || []);
+        setData(result.rows || []);
         // Build column defs for chart
         const colDefs: ColumnDef[] = cols.map((c: any) => ({
           key: c.key,
@@ -61,8 +61,8 @@ export default function SavedReportWidget({ config, title }: Props) {
         setColumns(colDefs);
         // Sum first numeric column
         const moneyCol = cols.find((c: any) => c.type === "currency" || c.type === "number");
-        if (moneyCol && result.data?.length) {
-          const sum = result.data.reduce((s: number, r: any) => s + Number(r[moneyCol.key] || 0), 0);
+        if (moneyCol && result.rows?.length) {
+          const sum = result.rows.reduce((s: number, r: any) => s + Number(r[moneyCol.key] || 0), 0);
           setTotal(sum);
         }
       } finally {
