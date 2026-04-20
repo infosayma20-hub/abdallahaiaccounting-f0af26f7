@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, Save, RotateCcw, Lock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import SmartFormScope from "@/components/forms/SmartFormScope";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 const ACCOUNT_TYPES = [
   { value: "Asset", label: "أصول" },
@@ -118,6 +120,37 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const isProtected = existingAccount?.is_system_protected;
   const isValid = name.trim() && accountType && code && !codeError;
 
+  // ─── Auto-Draft (تعريف حساب) ───
+  const accountDraftSnapshot = useMemo(() => ({
+    code, name, accountType, parentCode, descriptionAr, notes,
+  }), [code, name, accountType, parentCode, descriptionAr, notes]);
+
+  const applyAccountDraft = useCallback((d: any) => {
+    if (d.code) setCode(d.code);
+    if (d.name) setName(d.name);
+    if (d.accountType) setAccountType(d.accountType);
+    if (d.parentCode !== undefined) setParentCode(d.parentCode);
+    if (d.descriptionAr) setDescriptionAr(d.descriptionAr);
+    if (d.notes) setNotes(d.notes);
+    toast({ title: "✅ تم استعادة المسودة" });
+  }, [toast]);
+
+  const isAccountDraftEmpty = useCallback((d: any) => {
+    return !d.code && !d.name && !d.accountType && !d.descriptionAr && !d.notes;
+  }, []);
+
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    "account_new",
+    accountDraftSnapshot,
+    applyAccountDraft,
+    {
+      enabled: mode === "create",
+      version: 1,
+      isEmpty: isAccountDraftEmpty,
+      routePath: "/accounts/new",
+    }
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid || !user) return;
@@ -136,6 +169,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         });
         if (error) throw error;
         toast({ title: "✅ تم إنشاء الحساب", description: `${code} — ${name}` });
+        clearDraft();
       } else {
         if (isProtected && code !== existingAccount!.account_code) {
           toast({ title: "⚠️ تحذير", description: "لا يمكن تغيير رمز حساب محمي", variant: "destructive" });
@@ -190,6 +224,16 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
           <ArrowRight className="w-4 h-4" />
           رجوع لشجرة الحسابات
         </button>
+
+        {/* Auto-Draft Restore Banner */}
+        {hasDraft && (
+          <DraftRestoreBanner
+            onRestore={restoreDraft}
+            onDismiss={clearDraft}
+            savedAt={draftSavedAt}
+            label="يوجد مسودة محفوظة لحساب جديد"
+          />
+        )}
 
         {/* Protected warning */}
         {isProtected && (

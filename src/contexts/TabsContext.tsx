@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
+import { hasActiveDraft, unregisterActiveDraft } from "@/lib/draftRegistry";
 import {
   LayoutDashboard, FileText, Users, Wallet, CreditCard, Package,
   BarChart3, Settings, Receipt, BookOpen, Landmark, Banknote,
@@ -383,6 +384,19 @@ export function TabsProvider({ children }: { children: ReactNode }) {
     setTabs(prev => {
       const idx = prev.findIndex(t => t.id === id);
       if (idx === -1) return prev;
+      const closingTab = prev[idx];
+      // تأكيد عند وجود مسودة غير محفوظة
+      if (closingTab && hasActiveDraft(closingTab.path)) {
+        const ok = window.confirm(
+          `يوجد بيانات غير محفوظة في "${closingTab.title}".\nهل تريد إغلاق التبويب وفقدان التغييرات؟`
+        );
+        if (!ok) return prev;
+        unregisterActiveDraft(closingTab.path);
+        // مسح المسودة من localStorage أيضاً
+        try {
+          // formId غير معروف هنا — useFormDraft سيُنظفه عند mount التالي إن لزم
+        } catch {}
+      }
       const next = prev.filter(t => t.id !== id);
       saveTabs(next, userId);
 
@@ -409,6 +423,17 @@ export function TabsProvider({ children }: { children: ReactNode }) {
 
   const closeOtherTabs = useCallback((id: string) => {
     setTabs(prev => {
+      // تحقق من وجود مسودات في التبويبات التي ستُغلق
+      const toClose = prev.filter(t => t.id !== id);
+      const draftTabs = toClose.filter(t => hasActiveDraft(t.path));
+      if (draftTabs.length > 0) {
+        const titles = draftTabs.map(t => `• ${t.title}`).join("\n");
+        const ok = window.confirm(
+          `يوجد بيانات غير محفوظة في:\n${titles}\n\nهل تريد إغلاقها وفقدان التغييرات؟`
+        );
+        if (!ok) return prev;
+        draftTabs.forEach(t => unregisterActiveDraft(t.path));
+      }
       const next = prev.filter(t => t.id === id);
       saveTabs(next, userId);
       return next;
@@ -416,11 +441,20 @@ export function TabsProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const closeAllTabs = useCallback(() => {
+    const draftTabs = tabs.filter(t => hasActiveDraft(t.path));
+    if (draftTabs.length > 0) {
+      const titles = draftTabs.map(t => `• ${t.title}`).join("\n");
+      const ok = window.confirm(
+        `يوجد بيانات غير محفوظة في:\n${titles}\n\nهل تريد إغلاق كل التبويبات وفقدان التغييرات؟`
+      );
+      if (!ok) return;
+      draftTabs.forEach(t => unregisterActiveDraft(t.path));
+    }
     setTabs([]);
     saveTabs([], userId);
     setActiveTabId(null);
     navigate("/apps");
-  }, [navigate, userId]);
+  }, [navigate, userId, tabs]);
 
   return (
     <TabsContext.Provider value={{ tabs, activeTabId, openTab, closeTab, switchTab, closeOtherTabs, closeAllTabs }}>

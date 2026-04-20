@@ -17,6 +17,7 @@
  *   {hasDraft && <DraftRestoreBanner onRestore={restoreDraft} onDismiss={clearDraft} savedAt={draftSavedAt} />}
  */
 import { useEffect, useRef, useState, useCallback } from "react";
+import { registerActiveDraft, unregisterActiveDraft } from "@/lib/draftRegistry";
 
 const DRAFT_PREFIX = "amwali_draft_";
 const DEBOUNCE_MS = 800;
@@ -36,6 +37,8 @@ interface UseFormDraftOptions {
   version?: number;
   /** هل يجب اعتبار هذا الـ form فارغاً (لا يستحق الحفظ)؟ */
   isEmpty?: (data: any) => boolean;
+  /** المسار الحالي — لربط المسودة بالتبويب (يُستخدم لـ confirm عند الإغلاق) */
+  routePath?: string;
 }
 
 function getKey(formId: string) {
@@ -74,7 +77,7 @@ export function useFormDraft<T>(
   applyDraft: (draft: T) => void,
   options: UseFormDraftOptions = {}
 ) {
-  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty } = options;
+  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty, routePath } = options;
 
   const [hasDraft, setHasDraft] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
@@ -102,12 +105,13 @@ export function useFormDraft<T>(
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       saveDraft(formId, currentValue, version);
+      if (routePath) registerActiveDraft(routePath, formId);
     }, debounceMs);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [formId, currentValue, enabled, debounceMs, version, isEmpty]);
+  }, [formId, currentValue, enabled, debounceMs, version, isEmpty, routePath]);
 
   // حفظ فوري قبل إغلاق الصفحة
   useEffect(() => {
@@ -119,6 +123,14 @@ export function useFormDraft<T>(
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [formId, currentValue, enabled, version, isEmpty]);
+
+  // إلغاء تسجيل المسودة عند unmount (التنقل لتبويب آخر لا يحذفها لأن الصفحة تعمل remount)
+  useEffect(() => {
+    return () => {
+      // لا نلغي التسجيل عند unmount لأن المستخدم قد يكون فقط بدّل تبويباً.
+      // الإلغاء يحدث فقط عبر clearDraft() الصريح (نجاح الحفظ أو تجاهل).
+    };
+  }, []);
 
   const restoreDraft = useCallback(() => {
     if (draftRef.current) {
@@ -135,7 +147,8 @@ export function useFormDraft<T>(
     dismissedRef.current = true;
     setHasDraft(false);
     setDraftSavedAt(null);
-  }, [formId]);
+    if (routePath) unregisterActiveDraft(routePath);
+  }, [formId, routePath]);
 
   return { hasDraft, restoreDraft, clearDraft, draftSavedAt };
 }

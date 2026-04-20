@@ -20,6 +20,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import { broadcastChange } from "@/lib/crossTabSync";
 import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 import SmartFormScope from "@/components/forms/SmartFormScope";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 interface Contact {
   id: string;
@@ -228,6 +230,65 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [workshopSearch, setWorkshopSearch] = useState("");
   const [showWorkshopDropdown, setShowWorkshopDropdown] = useState(false);
   const workshopDropdownRef = useRef<HTMLDivElement>(null);
+
+  // ─── Auto-Draft (السندات) ───
+  const draftFormId = `voucher_${voucherType}_new`;
+  const draftRoutePath = isReceipt ? "/finance/receipt/new" : "/finance/payment/new";
+  const draftSnapshot = useMemo(() => ({
+    paymentDate, refNumber, paymentMethod, amount, notes,
+    cheques, endorsedCheques: endorsedCheques.map(c => ({ id: c.id })),
+    currency, exchangeRate,
+    contactId: selectedContact?.id || null,
+    contactName: selectedContact?.contact_name || null,
+    glAccountCode: selectedGlAccount?.account_code || null,
+    employeeId: selectedEmployee?.id || null,
+    depositType, selectedCashBox, selectedBankAccount, selectedChequeBankAccount,
+    partyType, empCategory, empCategoryCustom, violationReason,
+    workshopId: selectedWorkshop?.id || null,
+    workshopName: selectedWorkshop?.name || null,
+    invoices: invoices.filter(i => i.selected).map(i => ({ id: i.id, allocatedAmount: i.allocatedAmount })),
+    attachments,
+  }), [paymentDate, refNumber, paymentMethod, amount, notes, cheques, endorsedCheques, currency, exchangeRate, selectedContact, selectedGlAccount, selectedEmployee, depositType, selectedCashBox, selectedBankAccount, selectedChequeBankAccount, partyType, empCategory, empCategoryCustom, violationReason, selectedWorkshop, invoices, attachments]);
+
+  const applyVoucherDraft = useCallback((d: any) => {
+    if (d.paymentDate) setPaymentDate(d.paymentDate);
+    if (d.refNumber) setRefNumber(d.refNumber);
+    if (d.paymentMethod) setPaymentMethod(d.paymentMethod);
+    if (d.amount !== undefined) setAmount(d.amount);
+    if (d.notes !== undefined) setNotes(d.notes);
+    if (Array.isArray(d.cheques)) setCheques(d.cheques);
+    if (d.currency) setCurrency(d.currency);
+    if (d.exchangeRate) setExchangeRate(d.exchangeRate);
+    if (d.depositType) setDepositType(d.depositType);
+    if (d.selectedCashBox) setSelectedCashBox(d.selectedCashBox);
+    if (d.selectedBankAccount) setSelectedBankAccount(d.selectedBankAccount);
+    if (d.selectedChequeBankAccount) setSelectedChequeBankAccount(d.selectedChequeBankAccount);
+    if (d.partyType) setPartyType(d.partyType);
+    if (d.empCategory) setEmpCategory(d.empCategory);
+    if (d.empCategoryCustom) setEmpCategoryCustom(d.empCategoryCustom);
+    if (d.violationReason) setViolationReason(d.violationReason);
+    if (Array.isArray(d.attachments)) setAttachments(d.attachments);
+    if (d.contactId) (window as any).__duplicateContactId = d.contactId;
+    if (d.glAccountCode) (window as any).__duplicateGlAccountCode = d.glAccountCode;
+    if (d.employeeId) (window as any).__duplicateEmployeeId = d.employeeId;
+    toast.success("تم استعادة المسودة");
+  }, []);
+
+  const isVoucherDraftEmpty = useCallback((d: any) => {
+    return !d.amount && !d.notes && !d.contactId && !d.employeeId && !d.glAccountCode && (!d.cheques || d.cheques.length === 0);
+  }, []);
+
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    draftFormId,
+    draftSnapshot,
+    applyVoucherDraft,
+    {
+      enabled: !isEditMode && !fromDuplicate,
+      version: 1,
+      isEmpty: isVoucherDraftEmpty,
+      routePath: draftRoutePath,
+    }
+  );
 
   // Click-outside handler for all dropdowns
   useEffect(() => {
@@ -1201,6 +1262,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`);
         setSaved(true);
         setSavedReceiptNumber(receipt?.receipt_number || "");
+        clearDraft();
       } else {
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
         const isEmpPay = partyType === "employee" && selectedEmployee;
@@ -1334,6 +1396,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`);
         setSaved(true);
         setSavedReceiptNumber(voucher?.ref_number || "");
+        clearDraft();
       }
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
@@ -1736,6 +1799,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
+      {/* Auto-Draft Restore Banner */}
+      {hasDraft && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label={`يوجد مسودة محفوظة لـ ${voucherLabel}`}
+        />
+      )}
 
       {/* Cancelled Banner */}
       {isCancelled && (
