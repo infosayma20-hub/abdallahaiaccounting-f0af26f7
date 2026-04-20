@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/hooks/useCompanyContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
@@ -56,11 +57,13 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
   const navigate = useNavigate();
   const { accountId } = useParams();
   const { user } = useAuth();
+  const { company } = useCompany();
   const { toast } = useToast();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [existingAccount, setExistingAccount] = useState<Account | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
 
   // Form state
   const [code, setCode] = useState("");
@@ -77,7 +80,8 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     if (!user) return;
     supabase.from("accounts").select("id, account_code, account_name, account_type, parent_code, description_ar, notes, is_system_protected")
       .eq("user_id", user.id).order("account_code")
-      .then(({ data }) => setAccounts(data ?? []));
+      .then(({ data }) => setAccounts(data ?? []))
+      .then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
 
   // Load existing account in edit mode
@@ -148,6 +152,8 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
       version: 1,
       isEmpty: isAccountDraftEmpty,
       routePath: "/accounts/new",
+      scope: [user?.id || "anon", company?.id || "no-company", "/accounts/new", mode].join(":"),
+      ready: draftReady,
     }
   );
 
@@ -208,6 +214,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
     } else {
       setCode(""); setName(""); setAccountType(""); setParentCode(null);
       setDescriptionAr(""); setNotes("");
+      clearDraft();
     }
   };
 
@@ -220,7 +227,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
         />
 
         {/* Back button */}
-        <button onClick={() => navigate("/accounts")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+        <button onClick={() => { if (mode === "create") clearDraft(); navigate("/accounts"); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
           <ArrowRight className="w-4 h-4" />
           رجوع لشجرة الحسابات
         </button>
@@ -341,7 +348,7 @@ const AccountFormPage = ({ mode }: AccountFormPageProps) => {
               <RotateCcw className="w-4 h-4" />
               إعادة تعيين
             </Button>
-            <Button type="button" variant="ghost" onClick={() => navigate("/accounts")}>إلغاء</Button>
+            <Button type="button" variant="ghost" onClick={() => { if (mode === "create") clearDraft(); navigate("/accounts"); }}>إلغاء</Button>
           </div>
         </form>
         </SmartFormScope>

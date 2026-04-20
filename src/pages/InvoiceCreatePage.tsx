@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
@@ -167,6 +167,7 @@ const fmtCurrencyStatic = (n: number) =>
 // ─── Component ───
 const InvoiceCreatePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
@@ -442,7 +443,7 @@ const InvoiceCreatePage = () => {
         setForm(f => ({ ...f, contactName: prefillContactName }));
       }
     };
-    fetchAll().finally(() => setDraftReady(true));
+    fetchAll().then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
 
   // Update invoice number prefix when type changes

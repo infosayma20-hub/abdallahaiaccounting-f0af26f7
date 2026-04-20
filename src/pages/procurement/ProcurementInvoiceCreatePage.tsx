@@ -261,7 +261,9 @@ const ProcurementInvoiceCreatePage = () => {
   return (
     <div className="p-4 md:p-6 space-y-4" dir="rtl">
       <div className="flex items-center gap-3">
-        <BackButton />
+        <div onClick={() => { if (!orderId) clearDraft(); }}>
+          <BackButton />
+        </div>
         <h1 className="text-xl font-bold text-foreground">استلام بضاعة وإنشاء فاتورة</h1>
         {orderNumber && <Badge variant="outline" className="font-mono">{orderNumber}</Badge>}
       </div>
