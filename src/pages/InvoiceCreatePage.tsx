@@ -33,6 +33,8 @@ import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCards
 import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
 import SmartFormScope from "@/components/forms/SmartFormScope";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
