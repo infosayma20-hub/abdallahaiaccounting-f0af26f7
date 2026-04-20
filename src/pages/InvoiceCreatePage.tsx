@@ -1439,27 +1439,37 @@ const InvoiceCreatePage = () => {
                       }
                       if (e.key === "ArrowDown") {
                         e.preventDefault();
+                        e.stopPropagation();
                         setContactActiveIdx(i => Math.min(i + 1, filteredContacts.length - 1));
                       } else if (e.key === "ArrowUp") {
                         e.preventDefault();
+                        e.stopPropagation();
                         setContactActiveIdx(i => Math.max(i - 1, -1));
                       } else if (e.key === "Enter") {
-                        if (showContactDropdown && contactActiveIdx >= 0 && filteredContacts[contactActiveIdx]) {
+                        // اقرأ من ref لتجنب closure قديم
+                        const idx = contactActiveIdxRef.current;
+                        const list = filteredContactsRef.current;
+                        if (showContactDropdown && idx >= 0 && list[idx]) {
                           e.preventDefault();
                           e.stopPropagation();
-                          selectContact(filteredContacts[contactActiveIdx]);
+                          const inputEl = e.currentTarget as HTMLInputElement;
+                          selectContact(list[idx]);
                           setContactActiveIdx(-1);
-                          // انقل التركيز للحقل التالي (المندوب → ثم بنود الفاتورة)
+                          // انقل التركيز للحقل التالي بعد render
                           setTimeout(() => {
-                            const root = (e.currentTarget as HTMLElement).closest("form, .contents, [class*='max-w-5xl']") as HTMLElement | null;
+                            const root = inputEl.closest(".contents, [class*='max-w-5xl']") as HTMLElement | null;
                             if (!root) return;
                             const focusables = Array.from(root.querySelectorAll<HTMLElement>(
                               'input:not([disabled]):not([type=hidden]), [role="combobox"]:not([disabled]), button[data-smart-focusable]:not([disabled])'
                             )).filter(el => el.offsetParent !== null);
-                            const idx = focusables.indexOf(e.currentTarget as HTMLElement);
-                            const next = focusables[idx + 1];
+                            const curIdx = focusables.indexOf(inputEl);
+                            const next = focusables[curIdx + 1];
                             if (next) next.focus();
-                          }, 30);
+                          }, 50);
+                        } else if (showContactDropdown) {
+                          // dropdown مفتوحة لكن لا يوجد عنصر مُحدَّد — امنع submit/تنقل
+                          e.preventDefault();
+                          e.stopPropagation();
                         }
                       } else if (e.key === "Escape") {
                         setShowContactDropdown(false);
