@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import SmartFormScope from "@/components/forms/SmartFormScope";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 const ACCOUNT_TYPES = [
   { value: "Asset", label: "أصول" },

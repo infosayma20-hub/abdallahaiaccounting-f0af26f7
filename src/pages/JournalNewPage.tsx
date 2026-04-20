@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import { multiWordMatchAny } from "@/lib/utils";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 interface JournalLine {
   id: string;
