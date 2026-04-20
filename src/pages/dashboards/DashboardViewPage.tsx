@@ -129,6 +129,19 @@ export default function DashboardViewPage() {
         initial={editing}
         onSave={handleSaveWidget}
       />
+
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        dashboard={dashboard}
+        onUpdated={loadDashboard}
+        onExportPNG={async () => {
+          if (captureRef.current) await exportNodeAsPNG(captureRef.current, dashboard.name);
+        }}
+        onExportPDF={async () => {
+          if (captureRef.current) await exportNodeAsPDF(captureRef.current, dashboard.name, dashboard.name);
+        }}
+      />
     </div>
   );
 }
