@@ -1319,3 +1319,57 @@ input[type="number"] {
   -moz-appearance: textfield !important;
   appearance: textfield !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL FORM FOCUS UX SYSTEM (Amwali ERP)
+   Applies to every text input, select, textarea, and combobox so the
+   active field is always visually obvious. Native + shadcn fields.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Smooth focus transition for all interactive form elements */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+textarea,
+select,
+[role="combobox"],
+[role="textbox"],
+[contenteditable="true"] {
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+/* Strong, premium focus ring for native inputs (not covered by shadcn classes) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none !important;
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.25) !important;
+  background-color: hsl(var(--primary) / 0.04) !important;
+}
+
+/* Active form section highlight — wrap a card/section with .smart-form-section
+   and it will glow softly when any of its inputs is focused. */
+.smart-form-section {
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+.smart-form-section:focus-within {
+  border-color: hsl(var(--primary) / 0.35) !important;
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 4px 16px hsl(var(--primary) / 0.08);
+}
+
+/* Inline grid (table) editing — active cell glow */
+.smart-grid td:focus-within,
+.smart-grid [role="gridcell"]:focus-within {
+  background-color: hsl(var(--primary) / 0.06);
+  outline: 2px solid hsl(var(--primary) / 0.5);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+/* Mobile: ensure focused input scrolls smoothly into view (handled by JS too) */
+@media (max-width: 768px) {
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    scroll-margin-block: 96px;
+  }
+}
