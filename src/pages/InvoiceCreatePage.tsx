@@ -341,7 +341,7 @@ const InvoiceCreatePage = () => {
       }
 
       // Backward compatibility for old draft shape that stored `form` only.
-      const legacyDraft = draft as typeof form;
+      const legacyDraft = draft as unknown as typeof form;
       setForm(legacyDraft);
       setContactSearch(legacyDraft.contactName || "");
     },
