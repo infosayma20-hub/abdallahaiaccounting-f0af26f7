@@ -254,6 +254,7 @@ const App = () => (
             <ReadOnlyProvider>
             <CompanyProvider>
             <CompanyThemeProvider>
+            <GlobalFormFocusProvider />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
