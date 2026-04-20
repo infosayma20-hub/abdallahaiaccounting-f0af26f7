@@ -1800,6 +1800,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
+      {/* Auto-Draft Restore Banner */}
+      {hasDraft && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label={`يوجد مسودة محفوظة لـ ${voucherLabel}`}
+        />
+      )}
+
       {/* Cancelled Banner */}
       {isCancelled && (
         <div style={{
