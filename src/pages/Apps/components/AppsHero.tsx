@@ -47,6 +47,7 @@ const StatChip = ({
 const AppsHero = () => {
   const { user } = useAuth();
   const [name, setName] = useState<string>("");
+  const [nameReady, setNameReady] = useState(false);
   const [stats, setStats] = useState({ sales: 0, receipts: 0, invoices: 0 });
 
   useEffect(() => {
@@ -62,6 +63,7 @@ const AppsHero = () => {
       if (cancelled) return;
       const n = (prof as any)?.display_name || (prof as any)?.company_name || user.email?.split("@")[0] || "";
       setName(n.split(" ")[0] || n);
+      setNameReady(true);
 
       // Today range — based on business date (invoice_date / transaction_date), local TZ
       const today = new Date();
@@ -150,9 +152,12 @@ const AppsHero = () => {
               color: "#fff",
               margin: 0,
               lineHeight: 1.3,
+              minHeight: 29,
             }}
           >
-            {greeting()}{name ? `، ${name}` : ""} 👋
+            {nameReady ? (
+              <>{greeting()}{name ? `، ${name}` : ""} 👋</>
+            ) : null}
           </h1>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", margin: "4px 0 0 0" }}>
             كل ما تحتاجه لإدارة أعمالك — في مكان واحد
