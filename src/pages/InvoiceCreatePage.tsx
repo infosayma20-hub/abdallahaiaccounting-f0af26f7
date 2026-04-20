@@ -331,7 +331,7 @@ const InvoiceCreatePage = () => {
     invoiceDraftSnapshot,
     (draft) => {
       const typedDraft = draft as typeof invoiceDraftSnapshot;
-      if (typedDraft.form) {
+      if (typedDraft && typedDraft.form) {
         setForm(typedDraft.form as typeof form);
         setContactSearch(typedDraft.contactSearch || typedDraft.form.contactName || "");
         setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
@@ -339,8 +339,7 @@ const InvoiceCreatePage = () => {
         setAttachments(Array.isArray(typedDraft.attachments) ? typedDraft.attachments : []);
         return;
       }
-
-      // Backward compatibility for old draft shape that stored `form` only.
+      // توافق رجعي مع المسودات القديمة (form فقط)
       const legacyDraft = draft as unknown as typeof form;
       setForm(legacyDraft);
       setContactSearch(legacyDraft.contactName || "");
@@ -350,7 +349,8 @@ const InvoiceCreatePage = () => {
       version: 3,
       scope: [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":"),
       ready: draftReady,
-      // اعتبر الفورم فارغاً إذا لا يوجد زبون ولا أي بند فيه وصف/منتج
+      // استرجاع تلقائي صامت للمسودات الحديثة (آخر 30 دقيقة) — يحاكي عودة سلسة بين التبويبات
+      autoRestoreWithinMs: 30 * 60 * 1000,
       isEmpty: (data: typeof invoiceDraftSnapshot) =>
         !data.form?.contactName?.trim() &&
         !data.form?.contactId &&
