@@ -43,6 +43,12 @@ interface UseFormDraftOptions {
   scope?: string;
   /** لا تبدأ الحفظ أو عرض الاسترجاع قبل اكتمال التحميل الأساسي */
   ready?: boolean;
+  /**
+   * استرجاع تلقائي صامت إذا كانت المسودة أحدث من هذا العمر (بالميلي ثانية).
+   * يتم تطبيقه مرة واحدة عند التحميل الأولي فقط، ولا يعرض شريط الاسترجاع.
+   * مرر 0 أو undefined لتعطيله.
+   */
+  autoRestoreWithinMs?: number;
 }
 
 function getKey(formId: string, scope?: string) {
@@ -81,7 +87,7 @@ export function useFormDraft<T>(
   applyDraft: (draft: T) => void,
   options: UseFormDraftOptions = {}
 ) {
-  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty, routePath, scope, ready = true } = options;
+  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty, routePath, scope, ready = true, autoRestoreWithinMs } = options;
 
   const [hasDraft, setHasDraft] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
@@ -100,7 +106,17 @@ export function useFormDraft<T>(
     if (existing) {
       draftRef.current = existing.data;
       setDraftSavedAt(existing.savedAt);
-      setHasDraft(true);
+      // Auto-restore silently for fresh drafts (e.g. tab switching).
+      const age = Date.now() - existing.savedAt;
+      if (autoRestoreWithinMs && age <= autoRestoreWithinMs) {
+        try {
+          applyDraft(existing.data);
+        } catch { /* noop */ }
+        loadedDraftOnMountRef.current = false;
+        setHasDraft(false);
+      } else {
+        setHasDraft(true);
+      }
     } else {
       draftRef.current = null;
       setDraftSavedAt(null);
