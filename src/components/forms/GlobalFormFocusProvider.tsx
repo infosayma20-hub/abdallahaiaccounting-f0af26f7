@@ -119,15 +119,14 @@ const GlobalFormFocusProvider = () => {
       if (!target) return;
       const tag = target.tagName.toLowerCase();
 
-      // Always allow Enter on textarea, button, submit
+      // Always allow Enter on textarea, submit
       if (tag === "textarea") return;
-      if (tag === "button") return;
       if (tag === "a") return;
       if (target.getAttribute("type") === "submit") return;
       if (target.hasAttribute("data-no-enter-nav")) return;
       if (target.closest("[data-no-enter-nav]")) return;
 
-      // Allow Enter inside open dropdowns / comboboxes (let them select)
+      // Allow Enter inside OPEN dropdowns / comboboxes (let them select an option)
       if (target.getAttribute("role") === "combobox" && target.getAttribute("aria-expanded") === "true") return;
       if (target.closest("[data-radix-popper-content-wrapper]")) return;
       if (target.closest("[role='listbox']")) return;
@@ -137,10 +136,18 @@ const GlobalFormFocusProvider = () => {
       // Don't interfere with chatbot inputs
       if (target.closest("[data-ai-chatbot]")) return;
 
-      // Only act on text-like inputs
-      if (tag !== "input" && target.getAttribute("contenteditable") !== "true") return;
-      const inputType = (target.getAttribute("type") || "text").toLowerCase();
-      if (["checkbox", "radio", "file", "color", "range", "submit", "button", "reset"].includes(inputType)) return;
+      // Act on inputs, contenteditables, AND closed Select/Combobox triggers
+      const role = target.getAttribute("role");
+      const isClosedTrigger =
+        (role === "combobox" && target.getAttribute("aria-expanded") !== "true") ||
+        (tag === "button" && target.hasAttribute("aria-haspopup"));
+
+      if (tag !== "input" && target.getAttribute("contenteditable") !== "true" && !isClosedTrigger) return;
+
+      if (tag === "input") {
+        const inputType = (target.getAttribute("type") || "text").toLowerCase();
+        if (["checkbox", "radio", "file", "color", "range", "submit", "button", "reset"].includes(inputType)) return;
+      }
 
       const focusables = getFocusableSiblings(target);
       const idx = focusables.indexOf(target);
@@ -155,14 +162,15 @@ const GlobalFormFocusProvider = () => {
           next.scrollIntoView({ block: "center", behavior: "smooth" });
           // If the next element is a Select/Combobox trigger, do NOT auto-open it.
           // Swallow the synthetic Enter that some Radix triggers interpret as "open".
-          const role = next.getAttribute("role");
+          const nextRole = next.getAttribute("role");
           const isTrigger =
-            role === "combobox" ||
+            nextRole === "combobox" ||
             next.tagName.toLowerCase() === "button" ||
             next.hasAttribute("aria-haspopup");
           if (isTrigger) {
             const swallow = (ev: KeyboardEvent) => {
-              if (ev.key === "Enter" || ev.key === " ") {
+              // Only swallow Enter — Space should still be allowed to open the dropdown
+              if (ev.key === "Enter") {
                 ev.preventDefault();
                 ev.stopPropagation();
               }
