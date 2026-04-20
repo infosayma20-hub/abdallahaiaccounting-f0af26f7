@@ -182,7 +182,22 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
               </div>
             </>
           )}
-        </div>
+
+          {type === "insights" && (
+            <div>
+              <Label className="text-xs">الفترة الزمنية</Label>
+              <Select value={config.period || "month"} onValueChange={v => setConfig({ ...config, period: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">اليوم</SelectItem>
+                  <SelectItem value="week">آخر 7 أيام</SelectItem>
+                  <SelectItem value="month">هذا الشهر</SelectItem>
+                  <SelectItem value="year">هذه السنة</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-2">يستخدم Lovable AI لتحليل بياناتك المالية وعرض ملاحظات ذكية.</p>
+            </div>
+          )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button onClick={save}>حفظ</Button>
