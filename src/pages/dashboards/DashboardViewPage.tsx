@@ -51,16 +51,15 @@ export default function DashboardViewPage() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
+      <div className="px-4 pt-4 pb-3 border-b border-border/30 bg-card">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
             <span className="text-2xl">{dashboard.icon || "📊"}</span>
-            {dashboard.name}
-          </span> as any
-        }
-        subtitle={dashboard.description || "لوحة معلومات مخصصة"}
-        icon={<LayoutDashboard className="h-5 w-5" />}
-        actions={
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-foreground truncate">{dashboard.name}</h1>
+              {dashboard.description && <p className="text-xs text-muted-foreground truncate">{dashboard.description}</p>}
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/dashboards")} className="gap-2">
               <ArrowRight className="h-4 w-4" /> رجوع
@@ -80,8 +79,8 @@ export default function DashboardViewPage() {
               </Button>
             )}
           </div>
-        }
-      />
+        </div>
+      </div>
 
       <div className="p-4">
         {loading ? (
