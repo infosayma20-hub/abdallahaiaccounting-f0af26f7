@@ -131,6 +131,27 @@ export function useFormDraft<T>(
     };
   }, [formId, currentValue, enabled, debounceMs, version, isEmpty, routePath, scope, ready, storageKey]);
 
+  // ⚠️ حفظ فوري عند unmount (التنقل بين تبويبات SPA)
+  // beforeunload لا يُطلَق عند تنقل React Router، لذلك نستخدم cleanup منفصل
+  // يحفظ آخر قيمة معروفة قبل اختفاء الصفحة.
+  // نستخدم ref لتتبع آخر قيمة لتجنب dependency على currentValue.
+  const latestValueRef = useRef<T>(currentValue);
+  useEffect(() => {
+    latestValueRef.current = currentValue;
+  }, [currentValue]);
+
+  useEffect(() => {
+    return () => {
+      if (!enabled) return;
+      const value = latestValueRef.current;
+      if (isEmpty && isEmpty(value)) return;
+      // اكتب فوراً بدون debounce — نحن نُغادر الصفحة الآن
+      saveDraft(formId, value, version, scope);
+      if (routePath) registerActiveDraft(routePath, formId, getKey(formId, scope));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, formId, version, scope, routePath]);
+
   // حفظ فوري قبل إغلاق الصفحة
   useEffect(() => {
     if (!enabled || !ready) return;
