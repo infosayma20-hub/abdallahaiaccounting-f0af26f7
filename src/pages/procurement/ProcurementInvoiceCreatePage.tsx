@@ -244,7 +244,10 @@ const ProcurementInvoiceCreatePage = () => {
       orderId || undefined
     );
     setSaving(false);
-    if (result) navigate("/procurement/invoices");
+    if (result) {
+      clearDraft();
+      navigate("/procurement/invoices");
+    }
   };
 
   if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
@@ -256,6 +259,15 @@ const ProcurementInvoiceCreatePage = () => {
         <h1 className="text-xl font-bold text-foreground">استلام بضاعة وإنشاء فاتورة</h1>
         {orderNumber && <Badge variant="outline" className="font-mono">{orderNumber}</Badge>}
       </div>
+
+      {hasDraft && !orderId && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label="يوجد مسودة فاتورة مشتريات لم تُحفظ"
+        />
+      )}
 
       <div className="grid md:grid-cols-3 gap-3">
         <Card>
