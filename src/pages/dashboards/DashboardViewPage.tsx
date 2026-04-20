@@ -56,7 +56,12 @@ export default function DashboardViewPage() {
           <div className="flex items-center gap-3 min-w-0">
             <span className="text-2xl">{dashboard.icon || "📊"}</span>
             <div className="min-w-0">
-              <h1 className="text-lg font-bold text-foreground truncate">{dashboard.name}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-foreground truncate">{dashboard.name}</h1>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[9px] font-semibold">
+                  <Radio className="h-2.5 w-2.5 animate-pulse" /> LIVE
+                </span>
+              </div>
               {dashboard.description && <p className="text-xs text-muted-foreground truncate">{dashboard.description}</p>}
             </div>
           </div>
