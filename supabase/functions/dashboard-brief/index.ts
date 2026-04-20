@@ -51,7 +51,7 @@ async function buildContext(supabase: any, userId: string, period: string): Prom
       .from("transactions")
       .select("amount")
       .eq("user_id", userId)
-      .eq("transaction_type", "payment")
+      .in("transaction_type", ["expense", "سند صرف"])
       .gte("transaction_date", from)
       .lte("transaction_date", to),
     supabase.from("products").select("id, name, quantity, min_quantity").eq("user_id", userId),
