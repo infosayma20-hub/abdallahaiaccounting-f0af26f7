@@ -94,6 +94,8 @@ const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDas
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
 const ReportBuilderPage = lazy(() => import("./pages/reports/ReportBuilderPage"));
 const MyReportsPage = lazy(() => import("./pages/reports/MyReportsPage"));
+const DashboardsPage = lazy(() => import("./pages/dashboards/DashboardsPage"));
+const DashboardViewPage = lazy(() => import("./pages/dashboards/DashboardViewPage"));
 const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
 const TemplateDesignerPage = lazy(() => import("./pages/TemplateDesignerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -327,6 +329,8 @@ const App = () => (
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/reports/builder" element={<ReportBuilderPage />} />
                       <Route path="/reports/my-reports" element={<MyReportsPage />} />
+                      <Route path="/dashboards" element={<DashboardsPage />} />
+                      <Route path="/dashboards/:id" element={<DashboardViewPage />} />
                       <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />

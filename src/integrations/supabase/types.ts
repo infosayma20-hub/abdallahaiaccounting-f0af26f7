@@ -3322,6 +3322,48 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_dashboards: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_default: boolean | null
+          is_shared: boolean | null
+          layout_config: Json | null
+          name: string
+          sort_order: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_shared?: boolean | null
+          layout_config?: Json | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_shared?: boolean | null
+          layout_config?: Json | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_report_versions: {
         Row: {
           change_note: string | null
@@ -3547,6 +3589,59 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_widgets: {
+        Row: {
+          config: Json
+          created_at: string
+          dashboard_id: string
+          height: number
+          id: string
+          pos_x: number
+          pos_y: number
+          title: string | null
+          updated_at: string
+          user_id: string
+          widget_type: string
+          width: number
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          dashboard_id: string
+          height?: number
+          id?: string
+          pos_x?: number
+          pos_y?: number
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          widget_type: string
+          width?: number
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          dashboard_id?: string
+          height?: number
+          id?: string
+          pos_x?: number
+          pos_y?: number
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          widget_type?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widgets_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "custom_dashboards"
             referencedColumns: ["id"]
           },
         ]

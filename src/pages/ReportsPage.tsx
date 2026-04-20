@@ -6,7 +6,7 @@ import {
   Sparkles, PieChart, Wallet, DollarSign, Building2, TrendingUp,
   Briefcase, Calculator, ArrowLeftRight, ShoppingCart, ClipboardList,
   Clock, AlertTriangle, Activity, BookOpen, CreditCard,
-  ArrowRight, Monitor, Layers, CalendarRange,
+  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -311,7 +311,7 @@ const ReportsPage = () => {
 
       {/* Report Builder Banner (NEW - flagship feature) */}
       {!searchQuery.trim() && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div
             onClick={() => navigate("/reports/builder")}
             className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/50 transition-all group relative overflow-hidden"
@@ -325,6 +325,21 @@ const ReportsPage = () => {
               <p className="text-[11px] text-muted-foreground">صمّم تقريرك بنفسك — أعمدة، فلاتر، تجميع، Drill-down</p>
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all rotate-180" />
+          </div>
+
+          <div
+            onClick={() => navigate("/dashboards")}
+            className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-emerald-500/50 transition-all group relative overflow-hidden"
+          >
+            <span className="absolute top-2 left-2 text-[9px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded">جديد</span>
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <LayoutDashboard className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-foreground">لوحات المعلومات المخصصة</h3>
+              <p className="text-[11px] text-muted-foreground">اسحب وأفلت widgets — KPIs، رسومات، تقارير محفوظة</p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-emerald-600 group-hover:-translate-x-1 transition-all rotate-180" />
           </div>
 
           <div
