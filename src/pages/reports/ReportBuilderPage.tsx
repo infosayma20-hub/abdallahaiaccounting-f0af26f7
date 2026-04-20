@@ -317,20 +317,36 @@ export default function ReportBuilderPage() {
       return;
     }
     try {
-      const { error } = await supabase.from("custom_reports").insert({
-        user_id: user.id,
+      const payload = {
         name: reportName.trim(),
         description: reportDesc.trim() || null,
         data_source: sourceKey,
         columns: selectedColumns as any,
         filters: filters as any,
         group_by: groupBy === "none" ? null : groupBy,
-      });
-      if (error) throw error;
-      toast({ title: "تم حفظ التقرير ✅", description: `تجده الآن في "تقاريري"` });
+        chart_type: chartType,
+        folder_id: folderId,
+      };
+
+      if (loadedReportId) {
+        // UPDATE → trigger auto-snapshots previous state into custom_report_versions
+        const { error } = await supabase
+          .from("custom_reports")
+          .update(payload)
+          .eq("id", loadedReportId);
+        if (error) throw error;
+        toast({ title: "تم تحديث التقرير ✅", description: "تم حفظ نسخة من الإصدار السابق" });
+      } else {
+        const { data: created, error } = await supabase
+          .from("custom_reports")
+          .insert({ user_id: user.id, ...payload })
+          .select("id")
+          .single();
+        if (error) throw error;
+        if (created) setLoadedReportId(created.id);
+        toast({ title: "تم حفظ التقرير ✅", description: `تجده الآن في "تقاريري"` });
+      }
       setSaveOpen(false);
-      setReportName("");
-      setReportDesc("");
     } catch (e: any) {
       toast({ title: "خطأ في الحفظ", description: e.message, variant: "destructive" });
     }
