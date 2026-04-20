@@ -406,18 +406,16 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     <MultiTransactionCards
                       transactions={JSON.parse(msg.content.replace('__MULTI_TX__', ''))}
                       onConfirm={async (tx) => {
-                        const body: any = { text: tx.description || '', userId: user?.id, email: user?.email };
+                        const body: any = { text: buildTxText(tx), userId: user?.id, email: user?.email };
                         const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
                         if (error) return { success: false, message: `❌ ${error.message}` };
-                        onTransactionSuccess();
-                        return { success: true, message: `✅ تم التسجيل` };
+                        const verdict = isTxResultSuccess(txResult);
+                        if (verdict.success) onTransactionSuccess();
+                        return verdict;
                       }}
                       onConfirmAll={async (txs) => {
-                        for (const tx of txs) {
-                          const body: any = { text: tx.description || '', userId: user?.id, email: user?.email };
-                          await supabase.functions.invoke("process-transaction", { body });
-                        }
-                        onTransactionSuccess();
+                        // المعاملات الفردية تم تأكيدها مسبقاً عبر onConfirm — لا حاجة لإعادة الإرسال
+                        if (txs.length > 0) onTransactionSuccess();
                       }}
                       onSkip={() => {}}
                       onDone={() => {}}
