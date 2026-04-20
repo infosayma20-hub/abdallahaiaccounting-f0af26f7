@@ -207,6 +207,9 @@ const InvoiceCreatePage = () => {
   const [contactSearch, setContactSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [contactActiveIdx, setContactActiveIdx] = useState<number>(-1);
+  const contactActiveIdxRef = useRef<number>(-1);
+  const filteredContactsRef = useRef<Contact[]>([]);
+  useEffect(() => { contactActiveIdxRef.current = contactActiveIdx; }, [contactActiveIdx]);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
