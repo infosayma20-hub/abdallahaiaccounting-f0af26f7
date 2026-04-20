@@ -160,6 +160,76 @@ const GlobalFormFocusProvider = () => {
     return () => document.removeEventListener("keydown", handler, true);
   }, []);
 
+  // Global "select-all on focus" for numeric / pre-filled inputs.
+  // Behavior:
+  //   • When focus moves to an <input type="number"> or [data-numeric] or [data-auto-select],
+  //     OR a text input that already contains a value AND was reached via keyboard (Tab/Enter)
+  //     or programmatic focus (not a manual mouse click positioning the caret),
+  //   • Auto-select the entire value so typing replaces it instantly.
+  //
+  // Constraints:
+  //   • Skip readonly / disabled
+  //   • Skip if value is empty
+  //   • Skip if the user explicitly placed the caret with a mouse click (mousedown→focus chain)
+  //   • Opt-out: [data-no-auto-select]
+  useEffect(() => {
+    let lastPointerDownTarget: EventTarget | null = null;
+    let lastPointerDownAt = 0;
+
+    const onPointerDown = (e: Event) => {
+      lastPointerDownTarget = e.target;
+      lastPointerDownAt = Date.now();
+    };
+
+    const onFocusIn = (e: FocusEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      if (el.tagName.toLowerCase() !== "input") return;
+      const input = el as HTMLInputElement;
+      if (input.disabled || input.readOnly) return;
+      if (input.hasAttribute("data-no-auto-select")) return;
+      if (input.closest("[data-no-auto-select]")) return;
+
+      const type = (input.getAttribute("type") || "text").toLowerCase();
+      const isNumeric =
+        type === "number" ||
+        input.hasAttribute("data-numeric") ||
+        input.hasAttribute("data-auto-select") ||
+        input.inputMode === "numeric" ||
+        input.inputMode === "decimal";
+
+      // Only operate on numeric, or text inputs that opted in via data-auto-select
+      if (!isNumeric && !input.hasAttribute("data-auto-select")) return;
+
+      // Must have a non-empty value to be worth selecting
+      const val = input.value;
+      if (val === undefined || val === null || String(val).length === 0) return;
+      if (String(val).trim() === "") return;
+
+      // If the focus was triggered by a real mouse click on this same input,
+      // respect the user's caret placement (do NOT select-all).
+      const cameFromMouse =
+        lastPointerDownTarget === input && Date.now() - lastPointerDownAt < 400;
+      if (cameFromMouse) return;
+
+      // Defer to next tick so the browser's default focus handling doesn't
+      // overwrite our selection (e.g. number inputs in some browsers).
+      requestAnimationFrame(() => {
+        try {
+          if (document.activeElement !== input) return;
+          input.select();
+        } catch { /* noop */ }
+      });
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("focusin", onFocusIn, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("focusin", onFocusIn, true);
+    };
+  }, []);
+
   return null;
 };
 
