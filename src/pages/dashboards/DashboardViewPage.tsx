@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowRight, Plus, Edit3, Save, Loader2, Radio } from "lucide-react";
+import { ArrowRight, Plus, Edit3, Save, Loader2, Radio, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardGrid from "@/components/dashboard-builder/DashboardGrid";
 import AddWidgetDialog from "@/components/dashboard-builder/AddWidgetDialog";
+import ShareDialog from "@/components/dashboard-builder/ShareDialog";
 import { useCustomDashboards, useDashboardWidgets, type DashboardWidget } from "@/hooks/useCustomDashboards";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { exportNodeAsPDF, exportNodeAsPNG } from "@/lib/exportDashboard";
 
 export default function DashboardViewPage() {
   const { id } = useParams<{ id: string }>();
