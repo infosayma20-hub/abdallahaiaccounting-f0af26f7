@@ -695,6 +695,7 @@ const InvoiceCreatePage = () => {
       (c.contact_type === typeFilter || c.contact_type === "كلاهما" || !contactSearch)
     );
   }, [contacts, contactSearch, form.type]);
+  useEffect(() => { filteredContactsRef.current = filteredContacts; }, [filteredContacts]);
 
   const selectContact = (contact: Contact) => {
     setSelectedContact(contact);
