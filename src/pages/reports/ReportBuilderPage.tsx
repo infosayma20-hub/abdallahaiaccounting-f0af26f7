@@ -19,6 +19,8 @@ import {
   Activity,
   Layers,
   CircleDot,
+  History,
+  Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,8 @@ import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 import { exportReportToPdf, PdfTemplate } from "@/lib/report-builder/pdf-export";
 import { ChevronDown, Briefcase, Coins, Minimize2, FileStack } from "lucide-react";
+import VersionHistoryDialog from "@/components/report-builder/VersionHistoryDialog";
+import { useReportFolders } from "@/hooks/useReportFolders";
 
 const DRAFT_KEY = "report-builder-draft";
 const VIEW_KEY_PREFIX = "report-builder-view-"; // per-source last view
