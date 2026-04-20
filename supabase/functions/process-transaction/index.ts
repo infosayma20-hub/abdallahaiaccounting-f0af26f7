@@ -523,6 +523,16 @@ ${contactContext}
     const amount = parsed['المبلغ'] || parsed.amount || 0;
     const currency = parsed['العملة'] || parsed.currency || 'شيكل';
     const description = parsed['البيان'] || parsed.description || text;
+
+    // ═══ REJECT ZERO/NEGATIVE AMOUNTS ═══
+    // لا نقبل قيود بمبلغ صفر — قد يكون المستخدم نسي ذكر المبلغ
+    if (!amount || Number(amount) <= 0) {
+      return new Response(JSON.stringify({
+        type: 'chat_response',
+        message: 'لم أتعرف على المبلغ في طلبك. أعد كتابة الجملة مع ذكر المبلغ بالأرقام (مثلاً: "اشتراك شهري لكرمة قصص بمبلغ 500 شيكل").',
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const contactNameParsed = parsed['الطرف_الاسم'] || parsed.contact_name || '';
     const contactType = parsed['الطرف_النوع'] || '';
     const shouldCreateContact = parsed['إنشاء_طرف_جديد'] || false;
