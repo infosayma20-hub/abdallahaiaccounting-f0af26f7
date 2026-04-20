@@ -318,22 +318,45 @@ const InvoiceCreatePage = () => {
   // معطّل في وضع التعديل (التعديل يحمل بياناته من قاعدة البيانات)،
   // وعند الاستيراد من duplicate (له منطق منفصل).
   const draftFormId = `invoice_${form.type === "purchase" ? "purchase" : "sales"}_new`;
+  const invoiceDraftSnapshot = useMemo(() => ({
+    form,
+    contactSearch,
+    customerOverrides,
+    invoiceTerms,
+    attachments,
+  }), [form, contactSearch, customerOverrides, invoiceTerms, attachments]);
+
   const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
     draftFormId,
-    form,
-    (draft) => setForm(draft as typeof form),
+    invoiceDraftSnapshot,
+    (draft) => {
+      const typedDraft = draft as typeof invoiceDraftSnapshot;
+      if (typedDraft.form) {
+        setForm(typedDraft.form as typeof form);
+        setContactSearch(typedDraft.contactSearch || typedDraft.form.contactName || "");
+        setCustomerOverrides(typedDraft.customerOverrides || { phone: "", email: "", tax_number: "", address: "" });
+        setInvoiceTerms(typedDraft.invoiceTerms ?? "");
+        setAttachments(Array.isArray(typedDraft.attachments) ? typedDraft.attachments : []);
+        return;
+      }
+
+      // Backward compatibility for old draft shape that stored `form` only.
+      const legacyDraft = draft as typeof form;
+      setForm(legacyDraft);
+      setContactSearch(legacyDraft.contactName || "");
+    },
     {
       enabled: !isEditMode && !fromDuplicate,
-      version: 2,
+      version: 3,
       scope: [user?.id || "anon", company?.id || "no-company", location.pathname, form.type, "new"].join(":"),
       ready: draftReady,
       // اعتبر الفورم فارغاً إذا لا يوجد زبون ولا أي بند فيه وصف/منتج
-      isEmpty: (data: typeof form) =>
-        !data.contactName?.trim() &&
-        !data.contactId &&
-        !data.notes?.trim() &&
-        (!data.items?.length ||
-          data.items.every((it: any) => !it.description?.trim() && !it.productId)),
+      isEmpty: (data: typeof invoiceDraftSnapshot) =>
+        !data.form?.contactName?.trim() &&
+        !data.form?.contactId &&
+        !data.form?.notes?.trim() &&
+        (!data.form?.items?.length ||
+          data.form.items.every((it: any) => !it.description?.trim() && !it.productId)),
     }
   );
 
