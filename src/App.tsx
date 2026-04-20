@@ -96,6 +96,7 @@ const ReportBuilderPage = lazy(() => import("./pages/reports/ReportBuilderPage")
 const MyReportsPage = lazy(() => import("./pages/reports/MyReportsPage"));
 const DashboardsPage = lazy(() => import("./pages/dashboards/DashboardsPage"));
 const DashboardViewPage = lazy(() => import("./pages/dashboards/DashboardViewPage"));
+const PublicDashboardPage = lazy(() => import("./pages/dashboards/PublicDashboardPage"));
 const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
 const TemplateDesignerPage = lazy(() => import("./pages/TemplateDesignerPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -268,6 +269,7 @@ const App = () => (
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/share/statement/:token" element={<PublicStatementPage />} />
+              <Route path="/share/dashboard/:token" element={<PublicDashboardPage />} />
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
               <Route path="/portal" element={<Navigate to="/auth" replace />} />
               <Route path="/portal/dashboard" element={<PortalDashboard />} />
