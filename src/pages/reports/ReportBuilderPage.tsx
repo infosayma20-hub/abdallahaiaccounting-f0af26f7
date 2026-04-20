@@ -43,7 +43,7 @@ import { DATA_SOURCES, getDataSource } from "@/lib/report-builder/data-sources";
 import { runReport, calculateKPIs, ReportFilters } from "@/lib/report-builder/query-engine";
 import ColumnPicker from "@/components/report-builder/ColumnPicker";
 import FilterPanel from "@/components/report-builder/FilterPanel";
-import DrillDownModal from "@/components/report-builder/DrillDownModal";
+import DrillDownDrawer, { DrillLevel } from "@/components/report-builder/DrillDownDrawer";
 import ReportChart, { ChartType, getAvailableCharts } from "@/components/report-builder/ReportChart";
 import ChartToolbar from "@/components/report-builder/ChartToolbar";
 import TableSkeleton from "@/components/report-builder/TableSkeleton";
@@ -779,14 +779,18 @@ export default function ReportBuilderPage() {
         </Card>
       )}
 
-      {/* Drill-down modal */}
+      {/* Drill-down drawer */}
       {drillRows && (
-        <DrillDownModal
+        <DrillDownDrawer
           open={!!drillRows}
           onClose={() => setDrillRows(null)}
-          rows={drillRows}
-          groupLabel={drillLabel}
-          source={source}
+          sourceKey={sourceKey}
+          initialLevel={{
+            type: "group-rows",
+            title: `تفاصيل: ${drillLabel}`,
+            parentRef: { label: drillLabel },
+            rows: drillRows,
+          } as DrillLevel}
         />
       )}
 
