@@ -139,6 +139,8 @@ export default function ReportBuilderPage() {
           setGroupBy(rec.group_by || "none");
           setReportName(rec.name);
           setReportDesc(rec.description || "");
+          setFolderId(rec.folder_id || null);
+          setLoadedReportId(rec.id);
           await supabase
             .from("custom_reports")
             .update({
