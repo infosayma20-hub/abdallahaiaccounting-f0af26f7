@@ -32,10 +32,11 @@ const CleanTopBar = ({
 
   return (
     <div
-      className="h-[48px] flex items-center justify-between px-3 flex-shrink-0 relative z-[100]"
+      className="h-[52px] flex items-center justify-between px-3 flex-shrink-0 sticky top-0 z-[40]"
       style={{
         background: "white",
-        borderBottom: "1px solid #F1F5F9",
+        borderBottom: "1px solid #E2E8F0",
+        boxShadow: "0 1px 0 rgba(10,35,66,0.04)",
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
