@@ -1482,8 +1482,18 @@ const InvoiceCreatePage = () => {
                   >
                     <Plus className="h-3.5 w-3.5" /> إضافة {form.type === "sales" ? "زبون" : "مورد"} جديد
                   </button>
-                  {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => selectContact(c)} className="w-full text-right px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center justify-between gap-2">
+                  {filteredContacts.map((c, idx) => (
+                    <button
+                      key={c.id}
+                      ref={el => {
+                        if (el && idx === contactActiveIdx) {
+                          el.scrollIntoView({ block: "nearest" });
+                        }
+                      }}
+                      onMouseEnter={() => setContactActiveIdx(idx)}
+                      onClick={() => selectContact(c)}
+                      className={`w-full text-right px-3 py-2.5 text-sm transition-colors flex items-center justify-between gap-2 ${idx === contactActiveIdx ? "bg-muted" : "hover:bg-muted"}`}
+                    >
                       <div>
                         <span className="font-medium">{c.contact_name}</span>
                         {c.phone && <span className="text-[10px] text-muted-foreground mr-2">{c.phone}</span>}
