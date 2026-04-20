@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { KPI_METRICS } from "./KpiWidget";
 import type { WidgetType, DashboardWidget } from "@/hooks/useCustomDashboards";
-import { TrendingUp, FileBarChart, Type } from "lucide-react";
+import { TrendingUp, FileBarChart, Type, Sparkles } from "lucide-react";
 
 interface Props {
   open: boolean;
