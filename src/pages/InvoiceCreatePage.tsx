@@ -33,6 +33,8 @@ import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCards
 import { Shield } from "lucide-react";
 import { createRoot } from "react-dom/client";
 import SmartFormScope from "@/components/forms/SmartFormScope";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -263,6 +265,27 @@ const InvoiceCreatePage = () => {
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
   const fmtCurrency = useCallback((n: number) =>
     `${currSymbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, [currSymbol]);
+
+  // ─── Auto-Draft: حفظ تلقائي يحمي من فقدان البيانات عند التنقل بين التبويبات ───
+  // معطّل في وضع التعديل (التعديل يحمل بياناته من قاعدة البيانات)،
+  // وعند الاستيراد من duplicate (له منطق منفصل).
+  const draftFormId = `invoice_${form.type === "purchase" ? "purchase" : "sales"}_new`;
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    draftFormId,
+    form,
+    (draft) => setForm(draft as typeof form),
+    {
+      enabled: !isEditMode && !fromDuplicate,
+      version: 2,
+      // اعتبر الفورم فارغاً إذا لا يوجد زبون ولا أي بند فيه وصف/منتج
+      isEmpty: (data: typeof form) =>
+        !data.contactName?.trim() &&
+        !data.contactId &&
+        !data.notes?.trim() &&
+        (!data.items?.length ||
+          data.items.every((it: any) => !it.description?.trim() && !it.productId)),
+    }
+  );
 
   useEffect(() => {
     if (!fromDuplicate) return;
@@ -984,6 +1007,7 @@ const InvoiceCreatePage = () => {
         } as any);
 
         toast({ title: asDraft ? "تم حفظ التعديلات كمسودة ✅" : "تم تحديث الفاتورة ✅" });
+        clearDraft();
         navigate("/invoices");
         return;
       }
@@ -1114,6 +1138,7 @@ const InvoiceCreatePage = () => {
       }
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
+      clearDraft();
       navigate(workshopId ? "/workshops" : "/invoices");
     } catch (err: any) {
       console.error("Invoice save error:", err);
@@ -1256,6 +1281,16 @@ const InvoiceCreatePage = () => {
     <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
+      {/* Draft Restore Banner — يظهر عند العودة لصفحة فيها مسودة محفوظة تلقائياً */}
+      {hasDraft && !isEditMode && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label="يوجد مسودة فاتورة لم تُحفظ"
+        />
+      )}
 
       {/* Header */}
       <PageHeader 

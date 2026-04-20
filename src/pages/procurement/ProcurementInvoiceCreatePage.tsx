@@ -16,6 +16,8 @@ import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import useFormDraft from "@/hooks/useFormDraft";
+import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 
 interface InvoiceLine {
   product_id: string | null;
@@ -57,6 +59,38 @@ const ProcurementInvoiceCreatePage = () => {
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  // ─── Auto-Draft: حفظ تلقائي يحمي من فقدان البيانات عند التنقل بين التبويبات ───
+  // معطّل عند الإنشاء من Order (يتم تحميل البيانات من DB)
+  const draftSnapshot = {
+    supplierId, supplierName, branchId, invoiceDate, supplierInvoiceNumber,
+    paymentStatus, discount, tax, notes, lines,
+  };
+  const { hasDraft, restoreDraft, clearDraft, draftSavedAt } = useFormDraft(
+    "procurement_invoice_new",
+    draftSnapshot,
+    (draft: any) => {
+      setSupplierId(draft.supplierId || "");
+      setSupplierName(draft.supplierName || "");
+      setBranchId(draft.branchId || "");
+      setInvoiceDate(draft.invoiceDate || new Date().toISOString().split("T")[0]);
+      setSupplierInvoiceNumber(draft.supplierInvoiceNumber || "");
+      setPaymentStatus(draft.paymentStatus || "unpaid");
+      setDiscount(Number(draft.discount) || 0);
+      setTax(Number(draft.tax) || 0);
+      setNotes(draft.notes || "");
+      setLines(Array.isArray(draft.lines) ? draft.lines : []);
+    },
+    {
+      enabled: !orderId,
+      version: 1,
+      isEmpty: (data: any) =>
+        !data.supplierId &&
+        !data.supplierInvoiceNumber?.trim() &&
+        !data.notes?.trim() &&
+        (!data.lines?.length || data.lines.every((l: any) => !l.item_name?.trim() && !l.product_id)),
+    }
+  );
 
   useEffect(() => {
     if (!orderId) { setLoading(false); return; }
@@ -210,7 +244,10 @@ const ProcurementInvoiceCreatePage = () => {
       orderId || undefined
     );
     setSaving(false);
-    if (result) navigate("/procurement/invoices");
+    if (result) {
+      clearDraft();
+      navigate("/procurement/invoices");
+    }
   };
 
   if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
@@ -222,6 +259,15 @@ const ProcurementInvoiceCreatePage = () => {
         <h1 className="text-xl font-bold text-foreground">استلام بضاعة وإنشاء فاتورة</h1>
         {orderNumber && <Badge variant="outline" className="font-mono">{orderNumber}</Badge>}
       </div>
+
+      {hasDraft && !orderId && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDismiss={clearDraft}
+          savedAt={draftSavedAt}
+          label="يوجد مسودة فاتورة مشتريات لم تُحفظ"
+        />
+      )}
 
       <div className="grid md:grid-cols-3 gap-3">
         <Card>
