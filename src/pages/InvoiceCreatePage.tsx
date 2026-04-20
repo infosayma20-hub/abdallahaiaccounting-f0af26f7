@@ -206,6 +206,7 @@ const InvoiceCreatePage = () => {
   // Contact search
   const [contactSearch, setContactSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [contactActiveIdx, setContactActiveIdx] = useState<number>(-1);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
@@ -1424,9 +1425,43 @@ const InvoiceCreatePage = () => {
                   <Input
                     placeholder={`ابحث عن ${form.type === "sales" ? "زبون" : "مورد"}...`}
                     value={contactSearch}
-                    onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); }}
-                    onFocus={() => setShowContactDropdown(true)}
+                    onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); setContactActiveIdx(-1); }}
+                    onFocus={() => { setShowContactDropdown(true); setContactActiveIdx(-1); }}
                     onBlur={() => setTimeout(() => setShowContactDropdown(false), 200)}
+                    onKeyDown={e => {
+                      if (!showContactDropdown && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+                        setShowContactDropdown(true);
+                        return;
+                      }
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setContactActiveIdx(i => Math.min(i + 1, filteredContacts.length - 1));
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setContactActiveIdx(i => Math.max(i - 1, -1));
+                      } else if (e.key === "Enter") {
+                        if (showContactDropdown && contactActiveIdx >= 0 && filteredContacts[contactActiveIdx]) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          selectContact(filteredContacts[contactActiveIdx]);
+                          setContactActiveIdx(-1);
+                          // انقل التركيز للحقل التالي (المندوب → ثم بنود الفاتورة)
+                          setTimeout(() => {
+                            const root = (e.currentTarget as HTMLElement).closest("form, .contents, [class*='max-w-5xl']") as HTMLElement | null;
+                            if (!root) return;
+                            const focusables = Array.from(root.querySelectorAll<HTMLElement>(
+                              'input:not([disabled]):not([type=hidden]), [role="combobox"]:not([disabled]), button[data-smart-focusable]:not([disabled])'
+                            )).filter(el => el.offsetParent !== null);
+                            const idx = focusables.indexOf(e.currentTarget as HTMLElement);
+                            const next = focusables[idx + 1];
+                            if (next) next.focus();
+                          }, 30);
+                        }
+                      } else if (e.key === "Escape") {
+                        setShowContactDropdown(false);
+                        setContactActiveIdx(-1);
+                      }
+                    }}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
                     data-smart-first="true"
                   />
@@ -1447,8 +1482,18 @@ const InvoiceCreatePage = () => {
                   >
                     <Plus className="h-3.5 w-3.5" /> إضافة {form.type === "sales" ? "زبون" : "مورد"} جديد
                   </button>
-                  {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => selectContact(c)} className="w-full text-right px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center justify-between gap-2">
+                  {filteredContacts.map((c, idx) => (
+                    <button
+                      key={c.id}
+                      ref={el => {
+                        if (el && idx === contactActiveIdx) {
+                          el.scrollIntoView({ block: "nearest" });
+                        }
+                      }}
+                      onMouseEnter={() => setContactActiveIdx(idx)}
+                      onClick={() => selectContact(c)}
+                      className={`w-full text-right px-3 py-2.5 text-sm transition-colors flex items-center justify-between gap-2 ${idx === contactActiveIdx ? "bg-muted" : "hover:bg-muted"}`}
+                    >
                       <div>
                         <span className="font-medium">{c.contact_name}</span>
                         {c.phone && <span className="text-[10px] text-muted-foreground mr-2">{c.phone}</span>}
