@@ -131,6 +131,9 @@ const GlobalFormFocusProvider = () => {
       if (target.closest("[data-radix-popper-content-wrapper]")) return;
       if (target.closest("[role='listbox']")) return;
       if (target.closest("[cmdk-root]")) return;
+      // Don't interfere with our custom searchable dropdowns — they own Enter logic.
+      if (target.hasAttribute("data-searchable-dropdown")) return;
+      if (target.closest("[data-searchable-dropdown]")) return;
       // Don't interfere with global search
       if (target.closest("[data-global-search]")) return;
       // Don't interfere with chatbot inputs
