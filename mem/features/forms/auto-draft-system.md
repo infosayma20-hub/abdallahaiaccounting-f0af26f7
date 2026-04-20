@@ -14,7 +14,10 @@ type: feature
   - `TabsContext.closeTab` / `closeOtherTabs` / `closeAllTabs` تتحقق من `hasActiveDraft(path)` وتعرض `confirm()` قبل الإغلاق إذا فيه عمل غير محفوظ. عند التأكيد: تُلغي التسجيل والحالة. التنقل بين التبويبات لا يحذف المسودة (تبقى للاسترجاع عند العودة).
 
 (3) دورة الحياة:
-  - فتح الصفحة → فحص localStorage → إذا وُجدت مسودة بنفس version → عرض banner.
+  - فتح الصفحة → فحص localStorage → إذا وُجدت مسودة بنفس version:
+    • إذا كان عمرها ≤ 30 دقيقة (افتراضي `autoRestoreWithinMs` في useFormDraft) → **استرجاع تلقائي صامت بدون banner** (لتجربة سلسة عند التنقل بين التبويبات).
+    • إذا كانت أقدم → عرض banner اليدوي.
+    • يمكن تخصيص العتبة أو تعطيلها عبر `autoRestoreWithinMs: 0`.
   - أثناء الكتابة → حفظ debounced + تسجيل في registry.
   - نجاح الحفظ في DB → `clearDraft()` يحذف من localStorage + registry.
   - تجاهل/إغلاق متعمد → نفس السلوك.

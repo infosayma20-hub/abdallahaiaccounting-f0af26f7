@@ -21,6 +21,8 @@ import { registerActiveDraft, unregisterActiveDraft } from "@/lib/draftRegistry"
 
 const DRAFT_PREFIX = "amwali_draft_";
 const DEBOUNCE_MS = 800;
+/** افتراضياً: استرجاع تلقائي صامت للمسودات الأحدث من 30 دقيقة (تنقل بين التبويبات) */
+const DEFAULT_AUTO_RESTORE_MS = 30 * 60 * 1000;
 
 interface DraftEnvelope<T> {
   data: T;
@@ -87,7 +89,16 @@ export function useFormDraft<T>(
   applyDraft: (draft: T) => void,
   options: UseFormDraftOptions = {}
 ) {
-  const { enabled = true, debounceMs = DEBOUNCE_MS, version = 1, isEmpty, routePath, scope, ready = true, autoRestoreWithinMs } = options;
+  const {
+    enabled = true,
+    debounceMs = DEBOUNCE_MS,
+    version = 1,
+    isEmpty,
+    routePath,
+    scope,
+    ready = true,
+    autoRestoreWithinMs = DEFAULT_AUTO_RESTORE_MS,
+  } = options;
 
   const [hasDraft, setHasDraft] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
