@@ -198,6 +198,7 @@ export default function AddWidgetDialog({ open, onOpenChange, initial, onSave }:
               <p className="text-[10px] text-muted-foreground mt-2">يستخدم Lovable AI لتحليل بياناتك المالية وعرض ملاحظات ذكية.</p>
             </div>
           )}
+        </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button onClick={save}>حفظ</Button>
