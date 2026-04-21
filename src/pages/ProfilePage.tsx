@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, ShieldCheck } from "lucide-react";
 import BrandIdentitySettings from "@/components/settings/BrandIdentitySettings";
+import PasswordManagementSection from "@/components/settings/PasswordManagementSection";
 import { useCompanyTheme } from "@/hooks/useCompanyTheme";
 import { extractColorsFromLogo, assignColorRoles, ensureAccessibility } from "@/lib/color-utils";
 import { useNavigate } from "react-router-dom";
@@ -42,90 +43,6 @@ const compressImage = (file: File, maxDim: number = 400): Promise<Blob> => {
   });
 };
 
-/** Section for Google-only users to add a password */
-const GoogleOnlyPasswordSection = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [show, setShow] = useState(false);
-  const [newPwd, setNewPwd] = useState("");
-  const [confirmPwd, setConfirmPwd] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    // Check if password was already set during onboarding
-    const pwdDismissed = localStorage.getItem(`pwd_setup_dismissed_${user.id}`);
-    if (pwdDismissed) return;
-    const identities = user.identities || [];
-    const hasGoogle = identities.some(i => i.provider === "google");
-    const hasEmail = identities.some(i => i.provider === "email");
-    if (hasGoogle && !hasEmail) setShow(true);
-  }, [user]);
-
-  if (!show || done) return null;
-
-  const isValid = newPwd.length >= 1 && newPwd === confirmPwd;
-
-  const handleSave = async () => {
-    if (!isValid) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPwd });
-      if (error) throw error;
-      if (user) localStorage.setItem(`pwd_setup_dismissed_${user.id}`, "true");
-      toast({ title: "✅ تم حفظ كلمة المرور", description: "يمكنك الآن تسجيل الدخول بالبريد وكلمة المرور" });
-      setDone(true);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Card className="border-accent/30 shadow-sm">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-accent" />
-          <h3 className="text-sm font-bold text-foreground">إضافة كلمة مرور</h3>
-        </div>
-        <p className="text-xs text-muted-foreground">حسابك مُسجل بـ Google فقط. أضف كلمة مرور للدخول السريع بالبريد الإلكتروني.</p>
-        <div className="space-y-2">
-          <div className="relative">
-            <Input
-              type={showPwd ? "text" : "password"}
-              placeholder="كلمة مرور جديدة"
-              value={newPwd}
-              onChange={e => setNewPwd(e.target.value)}
-              className="pr-3 pl-10"
-              dir="ltr"
-              style={{ textAlign: "left" }}
-            />
-            <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <Input
-            type={showPwd ? "text" : "password"}
-            placeholder="تأكيد كلمة المرور"
-            value={confirmPwd}
-            onChange={e => setConfirmPwd(e.target.value)}
-            dir="ltr"
-            style={{ textAlign: "left" }}
-          />
-          {confirmPwd && newPwd !== confirmPwd && <p className="text-xs text-destructive">كلمتا المرور غير متطابقتين</p>}
-        </div>
-        <Button onClick={handleSave} disabled={!isValid || saving} className="w-full gap-2" size="sm">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-          حفظ كلمة المرور
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
-
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -146,11 +63,6 @@ const ProfilePage = () => {
     address: "",
     work_field: "",
   });
-
-  // Password change state
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
 
   const email = user?.email || "";
   const displayName = profile.display_name || user?.user_metadata?.full_name || "";
@@ -335,34 +247,6 @@ const ProfilePage = () => {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (!user) return;
-    if (!newPassword || !confirmPassword) {
-      toast({ title: "حقول مطلوبة", description: "يرجى إدخال كلمة المرور الجديدة وتأكيدها", variant: "destructive" });
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast({ title: "كلمة مرور قصيرة", description: "يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: "غير متطابقتين", description: "كلمة المرور والتأكيد غير متطابقين", variant: "destructive" });
-      return;
-    }
-    setChangingPassword(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      setNewPassword("");
-      setConfirmPassword("");
-      toast({ title: "✅ تم تغيير كلمة المرور بنجاح" });
-    } catch (err: any) {
-      toast({ title: "خطأ في تغيير كلمة المرور", description: err.message, variant: "destructive" });
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
   const fields = [
     { key: "display_name", label: "الاسم الكامل", icon: User, placeholder: "أدخل اسمك" },
     { key: "company_name", label: "اسم النشاط / الشركة", icon: Building2, placeholder: "مثال: شركة النور للتجارة" },
@@ -454,60 +338,8 @@ const ProfilePage = () => {
       {/* Brand Identity Settings */}
       <BrandIdentitySettings />
 
-      {/* Password Section for Google users */}
-      <GoogleOnlyPasswordSection />
-
-      {/* Change Password Section */}
-      <div className="space-y-1 px-2">
-        <h2 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: "Tajawal, sans-serif" }}>تغيير كلمة المرور</h2>
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الجديدة</label>
-            <Input
-              type="password"
-              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
-              placeholder="6 أحرف على الأقل"
-              dir="ltr"
-              style={{ textAlign: "left" }}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              autoComplete="new-password"
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">تأكيد كلمة المرور</label>
-            <Input
-              type="password"
-              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
-              placeholder="أعد إدخال كلمة المرور"
-              dir="ltr"
-              style={{ textAlign: "left" }}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              autoComplete="new-password"
-            />
-          </div>
-          {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-            <p className="text-xs text-destructive pr-48">كلمتا المرور غير متطابقتين</p>
-          )}
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={handleChangePassword}
-              disabled={
-                changingPassword ||
-                !newPassword ||
-                !confirmPassword ||
-                newPassword !== confirmPassword ||
-                newPassword.length < 6
-              }
-              className="px-8 h-11 rounded-lg text-sm font-medium gap-2"
-            >
-              {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              حفظ كلمة المرور
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Password Management — single smart section based on account type */}
+      <PasswordManagementSection />
 
       <hr className="border-border/30" />
 
