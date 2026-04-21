@@ -67,7 +67,10 @@ interface Invoice {
   contactAddress?: string;
   items: InvoiceItem[];
   notes: string;
-  status: "draft" | "sent" | "paid";
+  // 🎯 Invoice lifecycle status (workflow only — does NOT reflect payment)
+  status: "draft" | "sent" | "cancelled";
+  // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
+  paymentStatus: "unpaid" | "partial" | "paid";
   paymentMethod: "cash" | "transfer" | "cheque" | "credit";
   subtotal: number;
   totalDiscount: number;
@@ -235,7 +238,12 @@ const InvoicesPage = () => {
           subtotal: Number(item.total_amount) || 0,
         })),
         notes: inv.notes || '',
-        status: inv.status === 'cancelled' ? 'cancelled' : inv.status === 'draft' ? 'draft' : inv.payment_status === 'paid' ? 'paid' : inv.status || 'sent',
+        // Invoice lifecycle status — independent from payment
+        status: inv.status === 'cancelled' ? 'cancelled' : inv.status === 'draft' ? 'draft' : 'sent',
+        // Derived payment status — driven by paid_amount vs total_amount via voucher links
+        paymentStatus: (Number(inv.paid_amount) || 0) >= (Number(inv.total_amount) || 0) && (Number(inv.total_amount) || 0) > 0
+          ? 'paid'
+          : (Number(inv.paid_amount) || 0) > 0 ? 'partial' : 'unpaid',
         paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
         subtotal: Number(inv.subtotal) || 0,
         totalDiscount: Number(inv.discount_amount) || 0,
@@ -672,6 +680,7 @@ const InvoicesPage = () => {
               notes: form.notes,
               status: "sent",
               paymentMethod: form.paymentMethod,
+              paymentStatus: summary.remainingAmount <= 0 ? "paid" : summary.paidAmount > 0 ? "partial" : "unpaid",
               subtotal: summary.subtotal,
               totalDiscount: summary.totalDiscount,
               totalTax: summary.totalTax,
@@ -796,28 +805,13 @@ const InvoicesPage = () => {
 
 
     const updateStatus = async (id: string, status: Invoice["status"]) => {
-    // 🔒 Accounting integrity: cannot mark an invoice as "paid" without an actual payment.
-    // Marking it paid via dropdown would only flip a flag without creating a receipt voucher,
-    // leaving the customer's account statement showing the invoice as a receivable forever.
-    // Instead, redirect the user to create a Receipt Voucher (سند قبض) linked to this invoice.
-    if (status === 'paid') {
-      const inv = invoices.find(i => i.id === id);
-      const contactName = inv?.contactName || '';
-      toast({
-        title: "يتطلب سند قبض 🧾",
-        description: "لا يمكن تعليم الفاتورة كمدفوعة بدون تسجيل سند قبض. سيتم تحويلك لإنشاء سند قبض مرتبط بهذه الفاتورة.",
-      });
-      // Close the preview dialog before navigating
-      setShowPreviewDialog(false);
-      const params = new URLSearchParams();
-      params.set("invoice_id", id);
-      if (contactName) params.set("contact_name", contactName);
-      navigate(`/finance/receipt/new?${params.toString()}`);
-      return;
-    }
-
-    // status is narrowed here to 'draft' | 'sent' (the 'paid' case is handled above)
-    const dbStatus = status === 'sent' ? 'sent' : 'draft';
+    // 🎯 SEPARATION OF CONCERNS:
+    //   - Invoice status: Draft | Sent | Cancelled (workflow only)
+    //   - Payment status: Unpaid | Partial | Paid (DERIVED from receipt vouchers, NEVER user-controlled)
+    //
+    // The "Mark as Paid" action no longer exists in the status dropdown.
+    // To settle an invoice, users must create a Receipt Voucher (سند قبض) via the dedicated button.
+    const dbStatus = status === 'sent' ? 'sent' : status === 'cancelled' ? 'cancelled' : 'draft';
     
     // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
     if (dbStatus === 'draft' && user) {
@@ -935,12 +929,33 @@ const InvoicesPage = () => {
     draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
     sent: { label: "مُرسلة", color: "bg-primary/10 text-primary" },
     approved: { label: "معتمدة", color: "bg-blue-100 text-blue-700" },
-    paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
-    partial: { label: "مدفوعة جزئياً", color: "bg-amber-100 text-amber-700" },
-    overdue: { label: "متأخرة", color: "bg-destructive/10 text-destructive" },
     cancelled: { label: "ملغاة", color: "bg-muted text-muted-foreground" },
   };
   const fallbackStatus = { label: "غير محدد", color: "bg-muted text-muted-foreground" };
+
+  // 🎯 Payment status — separate from invoice workflow status
+  const paymentStatusConfig: Record<string, { label: string; color: string }> = {
+    unpaid: { label: "غير مدفوعة", color: "bg-destructive/10 text-destructive" },
+    partial: { label: "مدفوعة جزئياً", color: "bg-amber-100 text-amber-700" },
+    paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
+  };
+
+  // Open receipt voucher form pre-filled to settle this invoice
+  const recordPayment = (inv: Invoice) => {
+    if (inv.type !== 'sales') {
+      // For purchases, route to payment voucher
+      const params = new URLSearchParams();
+      params.set("invoice_id", inv.id);
+      if (inv.contactName) params.set("contact_name", inv.contactName);
+      navigate(`/finance/payment/new?${params.toString()}`);
+      return;
+    }
+    setShowPreviewDialog(false);
+    const params = new URLSearchParams();
+    params.set("invoice_id", inv.id);
+    if (inv.contactName) params.set("contact_name", inv.contactName);
+    navigate(`/finance/receipt/new?${params.toString()}`);
+  };
 
   const paymentLabels: Record<string, string> = {
     cash: "نقداً",
@@ -1091,7 +1106,7 @@ const InvoicesPage = () => {
                   <SelectItem value="all">جميع الحالات</SelectItem>
                   <SelectItem value="draft">مسودة</SelectItem>
                   <SelectItem value="sent">مُرسلة</SelectItem>
-                  <SelectItem value="paid">مدفوعة</SelectItem>
+                  <SelectItem value="cancelled">ملغاة</SelectItem>
                 </SelectContent>
               </Select>
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
@@ -1202,6 +1217,11 @@ const InvoicesPage = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${st.color}`}>{st.label}</Badge>
+                        {inv.status !== 'cancelled' && (
+                          <Badge variant="secondary" className={`text-[10px] mr-1 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>
+                            {paymentStatusConfig[inv.paymentStatus]?.label}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>
                       <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
@@ -1221,6 +1241,14 @@ const InvoicesPage = () => {
                               <Printer className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger><TooltipContent side="top"><p className="text-xs">طباعة</p></TooltipContent></Tooltip>
+
+                          {inv.type === 'sales' && inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
+                            <Tooltip><TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-success" onClick={() => recordPayment(inv)}>
+                                <Receipt className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">تسجيل قبض</p></TooltipContent></Tooltip>
+                          )}
 
                           {canEdit({ status: inv.status }) && (
                             <Tooltip><TooltipTrigger asChild>
@@ -1293,6 +1321,11 @@ const InvoicesPage = () => {
                         <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}</p>
                         <div className="flex gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
+                          {inv.status !== 'cancelled' && (
+                            <Badge className={`text-[9px] px-2 py-0 border-0 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>
+                              {paymentStatusConfig[inv.paymentStatus]?.label}
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0">{paymentLabels[inv.paymentMethod]}</Badge>
                         </div>
                       </div>
@@ -1300,6 +1333,11 @@ const InvoicesPage = () => {
                         <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
                       <div className="flex gap-1 mt-1.5">
+                        {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
+                            <Receipt className="h-3 w-3" /> تسجيل قبض
+                          </Button>
+                        )}
                         {canEdit({ status: inv.status }) && (
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
                             <Pencil className="h-3 w-3" /> تعديل
@@ -1372,12 +1410,16 @@ const InvoicesPage = () => {
                     <Trash2 className="h-4 w-4" /> حذف
                   </Button>
                 )}
+                {selectedInvoice.type === 'sales' && selectedInvoice.status === 'sent' && selectedInvoice.paymentStatus !== 'paid' && (
+                  <Button size="sm" className="gap-1.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground" onClick={() => recordPayment(selectedInvoice)}>
+                    <Receipt className="h-4 w-4" /> تسجيل قبض
+                  </Button>
+                )}
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
                     <SelectItem value="draft">مسودة</SelectItem>
                     <SelectItem value="sent">مُرسلة</SelectItem>
-                    <SelectItem value="paid">مدفوعة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
