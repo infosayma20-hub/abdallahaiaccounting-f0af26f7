@@ -23,6 +23,7 @@ import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
+import CompactChequeRow from "@/components/voucher/CompactChequeRow";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import {
   AllocationMode,
@@ -2507,66 +2508,39 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   اضغط "إضافة شيك" لإدخال بيانات الشيك أو "تجيير شيك مستلم" لتحويل شيك موجود
                 </div>
               )}
-              {cheques.map((chq, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-end bg-secondary/30 rounded-lg p-3">
-                  <div>
-                    <Label className="text-[10px] mb-1 block text-muted-foreground">رقم الشيك</Label>
-                    <Input value={chq.number} onChange={e => updateCheque(idx, "number", e.target.value)} placeholder="رقم الشيك" className="h-9 text-xs" />
+              {cheques.length > 0 && (
+                <>
+                  {/* Compact column header (RTL) */}
+                  <div
+                    className="hidden md:grid items-center gap-2 px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wide"
+                    style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,1.2fr) 36px 32px" }}
+                  >
+                    <span className="text-center">#</span>
+                    <span>رقم الشيك</span>
+                    <span>البنك</span>
+                    <span>تاريخ الاستحقاق</span>
+                    <span>المبلغ</span>
+                    <span>رقم الحساب</span>
+                    <span className="text-center">📝</span>
+                    <span></span>
                   </div>
-                  <div>
-                    <Label className="text-[10px] mb-1 block text-muted-foreground">تاريخ الاستحقاق</Label>
-                    <Input type="date" value={chq.date} onChange={e => updateCheque(idx, "date", e.target.value)} className="h-9 text-xs" />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] mb-1 block text-muted-foreground">اسم البنك</Label>
-                    {isReceipt ? (
-                      <ChequeAllBankSelect value={chq.bank} onChange={v => updateCheque(idx, "bank", v)} userBanks={bankAccounts} />
-                    ) : (
-                      <Select value={chq.bank} onValueChange={v => updateCheque(idx, "bank", v)}>
-                        <SelectTrigger className="h-9 text-xs">
-                          <SelectValue placeholder="اختر البنك" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
-                            <SelectItem key={name} value={name}>{name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-[10px] mb-1 block text-muted-foreground">المبلغ</Label>
-                    <Input type="number" value={chq.amount} onChange={e => updateCheque(idx, "amount", e.target.value)} placeholder="0.00" className="h-9 text-xs font-mono" />
-                  </div>
-                  <button type="button" onClick={() => removeCheque(idx)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors mb-0.5">
-                    <X className="h-4 w-4" />
-                  </button>
-                  {/* Second row: account number + notes (full width below) */}
-                  <div className="col-span-full grid grid-cols-[1fr_2fr] gap-2 mt-1">
-                    <div>
-                      <Label className="text-[10px] mb-1 block text-muted-foreground flex items-center gap-1">
-                        رقم حساب صاحب الشيك
-                        <span title="رقم الحساب يساعدك في تتبع الشيكات ومطابقة البنك لاحقاً" className="text-muted-foreground/60 cursor-help">ⓘ</span>
-                      </Label>
-                      <Input
-                        value={chq.accountNumber}
-                        onChange={e => updateCheque(idx, "accountNumber", e.target.value)}
-                        placeholder="اختياري"
-                        className="h-9 text-xs font-mono"
+                  <div className="space-y-1.5">
+                    {cheques.map((chq, idx) => (
+                      <CompactChequeRow
+                        key={idx}
+                        index={idx}
+                        cheque={chq as any}
+                        isReceipt={isReceipt}
+                        bankAccounts={bankAccounts as any}
+                        onUpdate={updateCheque as any}
+                        onRemove={removeCheque}
+                        onEnterAdd={addCheque}
+                        autoFocusFirst={false}
                       />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] mb-1 block text-muted-foreground">ملاحظات الشيك</Label>
-                      <Input
-                        value={chq.notes}
-                        onChange={e => updateCheque(idx, "notes", e.target.value)}
-                        placeholder="ملاحظات اختيارية"
-                        className="h-9 text-xs"
-                      />
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                </>
+              )}
               {cheques.length > 1 && (
                 <div className="text-left text-xs font-mono font-bold text-primary pt-1">
                   إجمالي الشيكات: {CURRENCIES.find(c => c.value === currency)?.symbol || "₪"}{cheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
