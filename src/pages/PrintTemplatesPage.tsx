@@ -8,6 +8,8 @@ import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, 
 import { toast } from "@/hooks/use-toast";
 import PrintTemplateModal from "@/components/print-templates/PrintTemplateModal";
 import PrintTemplatePreview from "@/components/print-templates/PrintTemplatePreview";
+import SectorTemplateLibrary from "@/components/print-templates/SectorTemplateLibrary";
+import type { SectorPreset } from "@/components/print-templates/sectorTemplates";
 import { isDoulia } from "@/lib/print-themes";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 
