@@ -763,10 +763,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error("لا توجد فواتير مفتوحة لهذا العميل");
       return;
     }
-    setInvoices(prev => {
-      const next = engineAutoAllocate(prev as any, amountNum, currency, exchangeRate);
-      return next as any;
-    });
+    const next = engineAutoAllocate(invoices as any, amountNum, currency, exchangeRate);
+    setInvoices(next as any);
+    const allocated = next.reduce((s: number, i: any) => s + (i.allocatedAmount || 0), 0);
+    const unalloc = Math.round((amountNum - allocated) * 100) / 100;
+    if (unalloc < 0.01) {
+      toast.success("تم التخصيص التلقائي على كامل المبلغ");
+    } else if (allocated > 0) {
+      toast.success(`تم تخصيص ${allocated.toFixed(2)} — المتبقي ${unalloc.toFixed(2)} كدفعة مقدمة`);
+    } else {
+      toast.error("تعذَّر التخصيص — تحقق من الفواتير المفتوحة");
+    }
   };
 
   const selectOldestFirst = () => selectAll();
