@@ -507,7 +507,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setAmount(String(data.amount || ""));
             setNotes(data.notes || "");
             if (data.check_number) {
-              setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || "") }]);
+              setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || ""), accountNumber: "", notes: "" }]);
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
