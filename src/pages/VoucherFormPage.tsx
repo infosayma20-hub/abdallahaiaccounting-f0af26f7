@@ -311,6 +311,34 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
   );
 
+  // Reset form fields for fast-entry mode (preserves date/currency/last-used context).
+  const resetForFastEntry = useCallback(() => {
+    setAmount("");
+    setNotes("");
+    setSelectedContact(null);
+    setSelectedGlAccount(null);
+    setSelectedEmployee(null);
+    setInvoices([]);
+    setCheques([]);
+    setEndorsedCheques([]);
+    setAttachments([]);
+    setContactSearch("");
+    setEmployeeSearch("");
+    setGlAccountSearch("");
+    setInvoiceSearch("");
+    setEmpCategory("راتب");
+    setEmpCategoryCustom("");
+    setViolationReason("");
+    // Keep: paymentDate, currency, exchangeRate, paymentMethod, depositType,
+    //       selectedCashBox, selectedBankAccount, partyType — these are the
+    //       "last-used context" the accountant typically reuses.
+    // Refocus the first important field after the form re-renders.
+    requestAnimationFrame(() => {
+      const first = document.querySelector<HTMLElement>("[data-smart-first]");
+      first?.focus();
+    });
+  }, []);
+
   // Click-outside handler for all dropdowns
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
