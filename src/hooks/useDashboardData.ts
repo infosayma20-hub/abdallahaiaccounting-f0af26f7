@@ -211,13 +211,24 @@ export function useDashboardData() {
 
   // Compute KPIs for a given range
   const computeKPIs = useCallback((txs: any[], allTxs: any[], allTxsIncludingOB: any[]) => {
-    const revenue = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
-    const purchases = txs.filter((t) => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
-    const genExpenses = txs.filter((t) => {
-      const c = t.debit_account_code || "";
-      return (c.startsWith("5") && !c.startsWith("51") && !c.startsWith("52")) || c.startsWith("6");
-    }).reduce((s, t) => s + (t.amount || 0), 0);
-    const expenses = purchases + genExpenses;
+    // ✅ Reversal-aware net calculations
+    // Revenue accounts (4xxx): natural side is CREDIT. Debits to 4xxx = reversal/contra entries
+    //   (e.g. POS reversal: Dr 4100 / Cr Cash). Net revenue = Credits - Debits.
+    // Expense accounts (5xxx/6xxx): natural side is DEBIT. Credits to 5xxx/6xxx = reversal/contra
+    //   entries. Net expense = Debits - Credits.
+    // This matches the journal source-of-truth and prevents overstating revenue/expense
+    // when reversal entries (عكس قيد) exist for cancelled POS sales, invoices, or vouchers.
+    const revenueCredits = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+    const revenueDebits = txs.filter((t) => t.debit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+    const revenue = revenueCredits - revenueDebits;
+
+    const isPurchaseCode = (c: string) => c.startsWith("51") || c.startsWith("52");
+    const isGenExpenseCode = (c: string) => (c.startsWith("5") && !isPurchaseCode(c)) || c.startsWith("6");
+    const isExpenseCode = (c: string) => isPurchaseCode(c) || isGenExpenseCode(c);
+
+    const expenseDebits = txs.filter((t) => isExpenseCode(t.debit_account_code || "")).reduce((s, t) => s + (t.amount || 0), 0);
+    const expenseCredits = txs.filter((t) => isExpenseCode(t.credit_account_code || "")).reduce((s, t) => s + (t.amount || 0), 0);
+    const expenses = expenseDebits - expenseCredits;
     const netProfit = revenue - expenses;
 
     // Balance sheet items use ALL transactions INCLUDING opening balances (cumulative)
@@ -273,9 +284,13 @@ export function useDashboardData() {
       }
 
       if (!buckets[key]) buckets[key] = { revenue: 0, expenses: 0 };
+      // ✅ Reversal-aware: subtract debits to revenue accounts and credits to expense accounts
       if (tx.credit_account_code?.startsWith("4")) buckets[key].revenue += tx.amount || 0;
+      if (tx.debit_account_code?.startsWith("4")) buckets[key].revenue -= tx.amount || 0;
       const dc = tx.debit_account_code || "";
+      const cc = tx.credit_account_code || "";
       if (dc.startsWith("5") || dc.startsWith("6")) buckets[key].expenses += tx.amount || 0;
+      if (cc.startsWith("5") || cc.startsWith("6")) buckets[key].expenses -= tx.amount || 0;
     });
 
     return Object.entries(buckets)
@@ -298,17 +313,26 @@ export function useDashboardData() {
       days.push(d.toISOString().split("T")[0]);
     }
 
-    const compute = (filter: (t: any) => boolean) =>
-      days.map((day) => plTx.filter((t) => t.transaction_date === day && filter(t)).reduce((s, t) => s + (t.amount || 0), 0));
+    // ✅ Reversal-aware sparklines: subtract reversal entries from revenue/expense
+    const dailyRevenue = (day: string) => {
+      const rows = plTx.filter((t) => t.transaction_date === day);
+      const cr = rows.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+      const dr = rows.filter((t) => t.debit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+      return cr - dr;
+    };
+    const dailyExpense = (day: string) => {
+      const rows = plTx.filter((t) => t.transaction_date === day);
+      const dr = rows.filter((t) => (t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6")).reduce((s, t) => s + (t.amount || 0), 0);
+      const cr = rows.filter((t) => (t.credit_account_code || "").startsWith("5") || (t.credit_account_code || "").startsWith("6")).reduce((s, t) => s + (t.amount || 0), 0);
+      return dr - cr;
+    };
 
+    const revenueArr = days.map(dailyRevenue);
+    const expenseArr = days.map(dailyExpense);
     return {
-      revenue: compute((t) => t.credit_account_code?.startsWith("4")),
-      expenses: compute((t) => (t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6")),
-      profit: compute((t) => true).map((_, i) => {
-        const rev = plTx.filter((t) => t.transaction_date === days[i] && t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
-        const exp = plTx.filter((t) => t.transaction_date === days[i] && ((t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6"))).reduce((s, t) => s + (t.amount || 0), 0);
-        return rev - exp;
-      }),
+      revenue: revenueArr,
+      expenses: expenseArr,
+      profit: days.map((_, i) => revenueArr[i] - expenseArr[i]),
     };
   }, [plTx]);
 
@@ -405,10 +429,18 @@ export function useDashboardData() {
       const dc = tx.debit_account_code || "";
       const cc = tx.credit_account_code || "";
       let type: "income" | "expense" | "other" = "other";
+      // ✅ Reversal-aware classification (must run BEFORE income/expense checks):
+      //   - Reversal of revenue (Dr 4xxx) → outflow / expense-like effect
+      //   - Reversal of expense (Cr 5xxx/6xxx) → inflow / income-like effect
+      const isReversal = tx.transaction_type === "reversal" || (tx.description || "").startsWith("عكس قيد");
+      if (isReversal) {
+        if (dc.startsWith("4")) type = "expense"; // reversed sale = money out / negative income
+        else if (cc.startsWith("5") || cc.startsWith("6")) type = "income"; // reversed expense
+      }
       // Income: revenue credited OR cash/bank received
-      if (cc.startsWith("4") || dc === "1110" || dc === "1120") type = "income";
+      if (type === "other" && (cc.startsWith("4") || dc === "1110" || dc === "1120")) type = "income";
       // Expense: expense accounts debited, OR cash/bank paid out (credit side) for non-revenue
-      if (dc.startsWith("5") || dc.startsWith("6")) type = "expense";
+      if (type === "other" && (dc.startsWith("5") || dc.startsWith("6"))) type = "expense";
       // Payments from cash/bank (credit 1110/1120) that are NOT revenue (no credit 4xxx) = expense/outflow
       if (type === "other" && (cc === "1110" || cc === "1120" || cc.startsWith("111") || cc.startsWith("112")) && !dc.startsWith("1")) type = "expense";
       // Employee advances (debit 1130 employee receivable, credit cash) = outflow
@@ -492,16 +524,19 @@ export function useDashboardData() {
   const topSales = useMemo(() => {
     const periodTx = filterByRange(plTx, range);
     const salesByContact: Record<string, { name: string; amount: number }> = {};
+    // ✅ Reversal-aware: credits to 4xxx add sales, debits to 4xxx subtract reversed sales
     periodTx
-      .filter((t) => t.credit_account_code?.startsWith("4") && t.contact_id)
+      .filter((t) => t.contact_id && (t.credit_account_code?.startsWith("4") || t.debit_account_code?.startsWith("4")))
       .forEach((t) => {
         const contact = contacts.find((c) => c.id === t.contact_id);
         const name = contact?.contact_name || "غير محدد";
         if (!salesByContact[t.contact_id]) salesByContact[t.contact_id] = { name, amount: 0 };
-        salesByContact[t.contact_id].amount += t.amount || 0;
+        if (t.credit_account_code?.startsWith("4")) salesByContact[t.contact_id].amount += t.amount || 0;
+        if (t.debit_account_code?.startsWith("4")) salesByContact[t.contact_id].amount -= t.amount || 0;
       });
 
     return Object.values(salesByContact)
+      .filter((v) => v.amount > 0)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 8);
   }, [plTx, range, contacts, filterByRange]);
