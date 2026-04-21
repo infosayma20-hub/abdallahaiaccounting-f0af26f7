@@ -335,6 +335,34 @@ const ProfilePage = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!user) return;
+    if (!newPassword || !confirmPassword) {
+      toast({ title: "حقول مطلوبة", description: "يرجى إدخال كلمة المرور الجديدة وتأكيدها", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "كلمة مرور قصيرة", description: "يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "غير متطابقتين", description: "كلمة المرور والتأكيد غير متطابقين", variant: "destructive" });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: "✅ تم تغيير كلمة المرور بنجاح" });
+    } catch (err: any) {
+      toast({ title: "خطأ في تغيير كلمة المرور", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const fields = [
     { key: "display_name", label: "الاسم الكامل", icon: User, placeholder: "أدخل اسمك" },
     { key: "company_name", label: "اسم النشاط / الشركة", icon: Building2, placeholder: "مثال: شركة النور للتجارة" },
