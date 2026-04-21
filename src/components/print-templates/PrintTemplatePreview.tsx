@@ -1,11 +1,14 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X } from "lucide-react";
+import { Printer, X, Save, Sparkles, RotateCcw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { getThemeForUser, type PrintTheme, DEFAULT_THEME } from "@/lib/print-themes";
 import { amountToArabicWords } from "@/lib/arabic-number-words";
+import EditableText from "./EditableText";
 // PDF imports removed — print only
 
 interface Props {
