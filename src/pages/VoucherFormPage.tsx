@@ -1184,8 +1184,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // ─── CREATE MODE ───
       let txId: string | null = null;
 
-      // For account party type or foreign currency, create transaction directly
-      const useDirectTransaction = isAccountPayment || currency !== "ILS";
+      // Force direct transaction (bypass legacy RPC) whenever the intent
+      // requires a non-default counter-account. The RPCs hardcode 1130/2110
+      // and would silently overwrite our smart routing.
+      const intentNeedsDirect =
+        allocationIntent === "advance" ||
+        allocationIntent === "supplier_advance" ||
+        allocationIntent === "refund" ||
+        allocationIntent === "reverse_settlement";
+      const useDirectTransaction = isAccountPayment || currency !== "ILS" || intentNeedsDirect;
 
       if (!asDraft && isReceipt && !useDirectTransaction) {
         const { data: txResult, error: rpcError } = await supabase.rpc("create_receipt_with_entry", {
