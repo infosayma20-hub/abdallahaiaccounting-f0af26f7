@@ -275,7 +275,12 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "QUO":
         return (
           <>
-            <p style={{ marginBottom: 8 }}>السادة المحترمين، يسعدنا تقديم عرض الأسعار التالي لتنفيذ الأعمال المطلوبة:</p>
+            <Edit
+              k="quo_intro"
+              as="p"
+              fallback="السادة المحترمين، يسعدنا تقديم عرض الأسعار التالي لتنفيذ الأعمال المطلوبة:"
+              style={{ marginBottom: 8 }}
+            />
             {data.items?.length > 0 && (
               <table>
                 <thead><tr><th>#</th><th>البند / الخدمة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead>
@@ -287,26 +292,62 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
               </table>
             )}
             {renderTotals()}
-            {data.payment_terms && <p style={{ marginTop: 12 }}><strong>شروط الدفع:</strong> {data.payment_terms}</p>}
-            {data.validity_days && <p>هذا العرض ساري لمدة {data.validity_days} يوماً من تاريخ الإصدار.</p>}
+            {data.payment_terms && (
+              <p style={{ marginTop: 12 }}>
+                <strong>شروط الدفع:</strong>{" "}
+                <Edit k="quo_payment_terms" fallback={data.payment_terms} />
+              </p>
+            )}
+            {data.validity_days && (
+              <Edit
+                k="quo_validity"
+                as="p"
+                fallback={`هذا العرض ساري لمدة ${data.validity_days} يوماً من تاريخ الإصدار.`}
+              />
+            )}
+            <Edit
+              k="quo_closing"
+              as="p"
+              fallback="نأمل أن ينال هذا العرض رضاكم، ونحن على استعداد تام للإجابة على أي استفسار."
+              style={{ marginTop: 12 }}
+            />
           </>
         );
 
       case "CON":
         return (
           <>
-            <p><strong>وصف العمل:</strong> {data.work_description}</p>
+            <p>
+              <strong>وصف العمل:</strong>{" "}
+              <Edit k="con_work_description" fallback={data.work_description || ""} />
+            </p>
             <p><strong>القيمة الإجمالية:</strong> ₪{fmt(data.contract_value || 0)}</p>
-            <p><strong>مدة التنفيذ:</strong> {data.execution_period}</p>
-            {data.warranty_terms && <p><strong>شروط الضمان:</strong> {data.warranty_terms}</p>}
+            <p>
+              <strong>مدة التنفيذ:</strong>{" "}
+              <Edit k="con_execution_period" fallback={data.execution_period || ""} />
+            </p>
+            {data.warranty_terms && (
+              <p>
+                <strong>شروط الضمان:</strong>{" "}
+                <Edit k="con_warranty" fallback={data.warranty_terms} />
+              </p>
+            )}
           </>
         );
 
       case "DEM":
         return (
           <>
-            <p>نتقدم إليكم بأطيب التحيات، ونود الإشارة إلى أن سجلاتنا المحاسبية تُظهر وجود رصيد مستحق على حسابكم الكريم لدينا بقيمة <strong>₪{fmt(data.amount || 0)}</strong>. وانطلاقاً من حرصنا على استمرار العلاقة التجارية المتميزة التي تجمعنا بكم، فإننا نأمل التكرم بترتيب عملية التسوية في أقرب فرصة ممكنة، ونؤكد لكم استعدادنا التام للتعاون والتنسيق بما يحقق المصلحة المشتركة.</p>
-            <p>نرجو التكرم بتسوية المبلغ المذكور خلال مدة أقصاها <strong>{data.response_days || 7} أيام</strong> من تاريخ هذا الخطاب. وفي حال وجود أي استفسار، يُسعدنا التواصل معكم لإيجاد الحل الأمثل.</p>
+            <Edit
+              k="dem_intro"
+              as="p"
+              fallback={`نتقدم إليكم بأطيب التحيات، ونود الإشارة إلى أن سجلاتنا المحاسبية تُظهر وجود رصيد مستحق على حسابكم الكريم لدينا بقيمة ₪${fmt(data.amount || 0)}. وانطلاقاً من حرصنا على استمرار العلاقة التجارية المتميزة التي تجمعنا بكم، فإننا نأمل التكرم بترتيب عملية التسوية في أقرب فرصة ممكنة، ونؤكد لكم استعدادنا التام للتعاون والتنسيق بما يحقق المصلحة المشتركة.`}
+            />
+            <Edit
+              k="dem_followup"
+              as="p"
+              fallback={`نرجو التكرم بتسوية المبلغ المذكور خلال مدة أقصاها ${data.response_days || 7} أيام من تاريخ هذا الخطاب. وفي حال وجود أي استفسار، يُسعدنا التواصل معكم لإيجاد الحل الأمثل.`}
+            />
             {isCustom && renderAmountBlock(data.amount || 0)}
           </>
         );
