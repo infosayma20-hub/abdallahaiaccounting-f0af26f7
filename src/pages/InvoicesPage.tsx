@@ -804,28 +804,13 @@ const InvoicesPage = () => {
 
 
     const updateStatus = async (id: string, status: Invoice["status"]) => {
-    // 🔒 Accounting integrity: cannot mark an invoice as "paid" without an actual payment.
-    // Marking it paid via dropdown would only flip a flag without creating a receipt voucher,
-    // leaving the customer's account statement showing the invoice as a receivable forever.
-    // Instead, redirect the user to create a Receipt Voucher (سند قبض) linked to this invoice.
-    if (status === 'paid') {
-      const inv = invoices.find(i => i.id === id);
-      const contactName = inv?.contactName || '';
-      toast({
-        title: "يتطلب سند قبض 🧾",
-        description: "لا يمكن تعليم الفاتورة كمدفوعة بدون تسجيل سند قبض. سيتم تحويلك لإنشاء سند قبض مرتبط بهذه الفاتورة.",
-      });
-      // Close the preview dialog before navigating
-      setShowPreviewDialog(false);
-      const params = new URLSearchParams();
-      params.set("invoice_id", id);
-      if (contactName) params.set("contact_name", contactName);
-      navigate(`/finance/receipt/new?${params.toString()}`);
-      return;
-    }
-
-    // status is narrowed here to 'draft' | 'sent' (the 'paid' case is handled above)
-    const dbStatus = status === 'sent' ? 'sent' : 'draft';
+    // 🎯 SEPARATION OF CONCERNS:
+    //   - Invoice status: Draft | Sent | Cancelled (workflow only)
+    //   - Payment status: Unpaid | Partial | Paid (DERIVED from receipt vouchers, NEVER user-controlled)
+    //
+    // The "Mark as Paid" action no longer exists in the status dropdown.
+    // To settle an invoice, users must create a Receipt Voucher (سند قبض) via the dedicated button.
+    const dbStatus = status === 'sent' ? 'sent' : status === 'cancelled' ? 'cancelled' : 'draft';
     
     // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
     if (dbStatus === 'draft' && user) {
