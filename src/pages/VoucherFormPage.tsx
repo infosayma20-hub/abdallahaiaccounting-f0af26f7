@@ -22,6 +22,14 @@ import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
+import {
+  AllocationMode,
+  autoAllocate as engineAutoAllocate,
+  checkPostingGuards,
+  classifyVoucher as engineClassify,
+  computeSummary as engineSummary,
+} from "@/lib/voucher-allocation";
 
 interface Contact {
   id: string;
