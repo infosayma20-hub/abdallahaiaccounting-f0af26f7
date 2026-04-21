@@ -832,14 +832,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.error(`إجمالي الشيكات (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`);
         return;
       }
-      // Mandatory: account number for incoming cheques (سند قبض)
-      if (isReceipt) {
-        const missingAcct = cheques.findIndex(c => c.number && !c.accountNumber.trim());
-        if (missingAcct !== -1) {
-          toast.error(`يرجى إدخال رقم الحساب البنكي لصاحب الشيك رقم ${cheques[missingAcct].number}`);
-          return;
-        }
-      }
+      // رقم حساب صاحب الشيك أصبح اختيارياً للوارد والصادر معاً
     }
     setSaving(true);
 
