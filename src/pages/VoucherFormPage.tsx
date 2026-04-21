@@ -118,6 +118,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const isEditMode = !!editId;
 
+  // Prefill from "Mark invoice as paid" flow on InvoicesPage
+  const prefillInvoiceId = searchParams.get("invoice_id");
+  const prefillContactName = searchParams.get("contact_name");
+  const [prefillConsumed, setPrefillConsumed] = useState(false);
+
   const isReceipt = voucherType === "receipt";
   const pageTitle = isEditMode 
     ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف")
