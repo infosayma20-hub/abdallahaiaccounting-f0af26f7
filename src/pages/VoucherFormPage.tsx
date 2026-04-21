@@ -861,6 +861,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error("الرجاء اختيار الجهة");
       return;
     }
+    // ─── Smart Allocation Posting Guards ───
+    if (!asDraft && partyType === "contact" && selectedContact) {
+      const summary = engineSummary(invoices as any, amountNum);
+      const guard = checkPostingGuards({
+        voucherKind: voucherType,
+        partyType,
+        hasContact: true,
+        openInvoiceCount: invoices.length,
+        mode: allocationMode,
+        summary,
+      });
+      if (!guard.ok && guard.block) {
+        toast.error(guard.block);
+        return;
+      }
+      if (guard.confirm) {
+        const proceed = window.confirm(guard.confirm);
+        if (!proceed) return;
+      }
+    }
     // Validate cheque amounts total
     if (paymentMethod === "شيك" && cheques.length > 0 && !asDraft) {
       const chequesTotal = cheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
