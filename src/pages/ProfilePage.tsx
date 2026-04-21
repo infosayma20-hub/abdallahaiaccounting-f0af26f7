@@ -462,16 +462,49 @@ const ProfilePage = () => {
         <h2 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: "Tajawal, sans-serif" }}>تغيير كلمة المرور</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الحالية</label>
-            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-muted/20 text-sm" disabled placeholder="••••••••" dir="ltr" style={{ textAlign: "left" }} />
-          </div>
-          <div className="flex items-center gap-4">
             <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الجديدة</label>
-            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-white text-sm" placeholder="كلمة المرور الجديدة" dir="ltr" style={{ textAlign: "left" }} />
+            <Input
+              type="password"
+              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
+              placeholder="6 أحرف على الأقل"
+              dir="ltr"
+              style={{ textAlign: "left" }}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
           </div>
           <div className="flex items-center gap-4">
             <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">تأكيد كلمة المرور</label>
-            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-white text-sm" placeholder="تأكيد كلمة المرور" dir="ltr" style={{ textAlign: "left" }} />
+            <Input
+              type="password"
+              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
+              placeholder="أعد إدخال كلمة المرور"
+              dir="ltr"
+              style={{ textAlign: "left" }}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+            <p className="text-xs text-destructive pr-48">كلمتا المرور غير متطابقتين</p>
+          )}
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={handleChangePassword}
+              disabled={
+                changingPassword ||
+                !newPassword ||
+                !confirmPassword ||
+                newPassword !== confirmPassword ||
+                newPassword.length < 6
+              }
+              className="px-8 h-11 rounded-lg text-sm font-medium gap-2"
+            >
+              {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              حفظ كلمة المرور
+            </Button>
           </div>
         </div>
       </div>
