@@ -426,6 +426,9 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved, initialData
               <div><Label>العنوان / الجهة</Label><Input value={contactAddress} onChange={e => setContactAddress(e.target.value)} /></div>
             )}
 
+            {/* Writing Style picker — fills empty text fields with selected tone */}
+            <StyleSelector value={writingStyle} onChange={handleStyleChange} />
+
             {/* Template-specific fields */}
             {renderFields()}
 
