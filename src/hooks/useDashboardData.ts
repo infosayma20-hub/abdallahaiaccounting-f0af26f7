@@ -429,10 +429,18 @@ export function useDashboardData() {
       const dc = tx.debit_account_code || "";
       const cc = tx.credit_account_code || "";
       let type: "income" | "expense" | "other" = "other";
+      // ✅ Reversal-aware classification (must run BEFORE income/expense checks):
+      //   - Reversal of revenue (Dr 4xxx) → outflow / expense-like effect
+      //   - Reversal of expense (Cr 5xxx/6xxx) → inflow / income-like effect
+      const isReversal = tx.transaction_type === "reversal" || (tx.description || "").startsWith("عكس قيد");
+      if (isReversal) {
+        if (dc.startsWith("4")) type = "expense"; // reversed sale = money out / negative income
+        else if (cc.startsWith("5") || cc.startsWith("6")) type = "income"; // reversed expense
+      }
       // Income: revenue credited OR cash/bank received
-      if (cc.startsWith("4") || dc === "1110" || dc === "1120") type = "income";
+      if (type === "other" && (cc.startsWith("4") || dc === "1110" || dc === "1120")) type = "income";
       // Expense: expense accounts debited, OR cash/bank paid out (credit side) for non-revenue
-      if (dc.startsWith("5") || dc.startsWith("6")) type = "expense";
+      if (type === "other" && (dc.startsWith("5") || dc.startsWith("6"))) type = "expense";
       // Payments from cash/bank (credit 1110/1120) that are NOT revenue (no credit 4xxx) = expense/outflow
       if (type === "other" && (cc === "1110" || cc === "1120" || cc.startsWith("111") || cc.startsWith("112")) && !dc.startsWith("1")) type = "expense";
       // Employee advances (debit 1130 employee receivable, credit cash) = outflow
