@@ -23,6 +23,7 @@ import BackButton from "@/components/BackButton";
 import { multiWordMatchAny } from "@/lib/utils";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 
 interface JournalLine {
   id: string;
