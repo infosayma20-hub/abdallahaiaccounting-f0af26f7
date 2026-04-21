@@ -1217,6 +1217,11 @@ const InvoicesPage = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={`text-[10px] ${st.color}`}>{st.label}</Badge>
+                        {inv.status !== 'cancelled' && (
+                          <Badge variant="secondary" className={`text-[10px] mr-1 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>
+                            {paymentStatusConfig[inv.paymentStatus]?.label}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>
                       <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
