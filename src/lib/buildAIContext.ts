@@ -64,6 +64,11 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
   const recCredit = sumByCode(txs, 'credit_account_code', '1130');
   const payDebit = sumByCode(txs, 'debit_account_code', '2110');
   const payCredit = sumByCode(txs, 'credit_account_code', '2110');
+  // Smart Allocation advance accounts: net them off so AI sees true exposure.
+  const custAdvCr = sumByCode(txs, 'credit_account_code', '2115');
+  const custAdvDr = sumByCode(txs, 'debit_account_code', '2115');
+  const supAdvDr  = sumByCode(txs, 'debit_account_code', '1146');
+  const supAdvCr  = sumByCode(txs, 'credit_account_code', '1146');
 
   return {
     cash: cashDebit - cashCredit,
@@ -72,7 +77,8 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
     totalExpenses,
     netProfit: totalSales - totalExpenses,
     receivables: recDebit - recCredit,
-    payables: payCredit - payDebit,
+    receivables: (recDebit - recCredit) - (custAdvCr - custAdvDr),
+    payables: (payCredit - payDebit) - (supAdvDr - supAdvCr),
     recentTransactions: txs.slice(0, 30).map(t => ({
       date: t.transaction_date || "",
       description: t.description || "",
