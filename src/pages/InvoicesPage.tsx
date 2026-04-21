@@ -1410,12 +1410,16 @@ const InvoicesPage = () => {
                     <Trash2 className="h-4 w-4" /> حذف
                   </Button>
                 )}
+                {selectedInvoice.type === 'sales' && selectedInvoice.status === 'sent' && selectedInvoice.paymentStatus !== 'paid' && (
+                  <Button size="sm" className="gap-1.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground" onClick={() => recordPayment(selectedInvoice)}>
+                    <Receipt className="h-4 w-4" /> تسجيل قبض
+                  </Button>
+                )}
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
                     <SelectItem value="draft">مسودة</SelectItem>
                     <SelectItem value="sent">مُرسلة</SelectItem>
-                    <SelectItem value="paid">مدفوعة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
