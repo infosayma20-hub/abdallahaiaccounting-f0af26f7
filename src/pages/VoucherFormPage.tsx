@@ -326,7 +326,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     setEmployeeSearch("");
     setGlAccountSearch("");
     setInvoiceSearch("");
-    setEmpCategory("راتب");
+    setEmpCategory("سلفة");
     setEmpCategoryCustom("");
     setViolationReason("");
     // Keep: paymentDate, currency, exchangeRate, paymentMethod, depositType,
