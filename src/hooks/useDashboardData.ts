@@ -211,13 +211,24 @@ export function useDashboardData() {
 
   // Compute KPIs for a given range
   const computeKPIs = useCallback((txs: any[], allTxs: any[], allTxsIncludingOB: any[]) => {
-    const revenue = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
-    const purchases = txs.filter((t) => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
-    const genExpenses = txs.filter((t) => {
-      const c = t.debit_account_code || "";
-      return (c.startsWith("5") && !c.startsWith("51") && !c.startsWith("52")) || c.startsWith("6");
-    }).reduce((s, t) => s + (t.amount || 0), 0);
-    const expenses = purchases + genExpenses;
+    // ✅ Reversal-aware net calculations
+    // Revenue accounts (4xxx): natural side is CREDIT. Debits to 4xxx = reversal/contra entries
+    //   (e.g. POS reversal: Dr 4100 / Cr Cash). Net revenue = Credits - Debits.
+    // Expense accounts (5xxx/6xxx): natural side is DEBIT. Credits to 5xxx/6xxx = reversal/contra
+    //   entries. Net expense = Debits - Credits.
+    // This matches the journal source-of-truth and prevents overstating revenue/expense
+    // when reversal entries (عكس قيد) exist for cancelled POS sales, invoices, or vouchers.
+    const revenueCredits = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+    const revenueDebits = txs.filter((t) => t.debit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+    const revenue = revenueCredits - revenueDebits;
+
+    const isPurchaseCode = (c: string) => c.startsWith("51") || c.startsWith("52");
+    const isGenExpenseCode = (c: string) => (c.startsWith("5") && !isPurchaseCode(c)) || c.startsWith("6");
+    const isExpenseCode = (c: string) => isPurchaseCode(c) || isGenExpenseCode(c);
+
+    const expenseDebits = txs.filter((t) => isExpenseCode(t.debit_account_code || "")).reduce((s, t) => s + (t.amount || 0), 0);
+    const expenseCredits = txs.filter((t) => isExpenseCode(t.credit_account_code || "")).reduce((s, t) => s + (t.amount || 0), 0);
+    const expenses = expenseDebits - expenseCredits;
     const netProfit = revenue - expenses;
 
     // Balance sheet items use ALL transactions INCLUDING opening balances (cumulative)
