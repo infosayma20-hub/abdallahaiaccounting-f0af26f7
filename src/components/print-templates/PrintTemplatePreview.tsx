@@ -607,9 +607,25 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     <>
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
-        <span className="text-sm font-medium">معاينة {title}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">معاينة {title}</span>
+          {doc?.id && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> اضغط على أي فقرة للتعديل أو التحسين بالذكاء الاصطناعي
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
+          {doc?.id && Object.keys(customText).length > 0 && (
+            <Button size="sm" variant="ghost" onClick={handleResetEdits} title="استرجاع النص الافتراضي">
+              <RotateCcw className="w-3.5 h-3.5 ml-1" /> استرجاع
+            </Button>
+          )}
+          {doc?.id && dirty && (
+            <Button size="sm" variant="default" onClick={handleSaveEdits} disabled={saving}>
+              <Save className="w-3.5 h-3.5 ml-1" /> {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
           {!embedded && <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="w-4 h-4" /></Button>}
         </div>
