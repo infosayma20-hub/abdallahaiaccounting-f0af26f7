@@ -263,9 +263,6 @@ const ChequesPage = () => {
       if (!row.bank_name && addType === 'وارد') {
         toast.error(`يرجى إدخال اسم البنك في الشيك ${i + 1}`); return;
       }
-      if (addType === 'وارد' && !row.bank_account?.trim()) {
-        toast.error(`يرجى إدخال رقم الحساب البنكي لصاحب الشيك ${i + 1}`); return;
-      }
       if (addType === 'صادر' && !row.source_bank_account_id) {
         toast.error(`يرجى اختيار الحساب البنكي في الشيك ${i + 1}`); return;
       }
