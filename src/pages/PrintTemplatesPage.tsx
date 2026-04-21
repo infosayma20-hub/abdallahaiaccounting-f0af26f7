@@ -8,6 +8,8 @@ import { Search, Printer, Plus, Eye, Trash2, FileText, Handshake, Tag, Receipt, 
 import { toast } from "@/hooks/use-toast";
 import PrintTemplateModal from "@/components/print-templates/PrintTemplateModal";
 import PrintTemplatePreview from "@/components/print-templates/PrintTemplatePreview";
+import SectorTemplateLibrary from "@/components/print-templates/SectorTemplateLibrary";
+import type { SectorPreset } from "@/components/print-templates/sectorTemplates";
 import { isDoulia } from "@/lib/print-themes";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 
@@ -84,6 +86,8 @@ const PrintTemplatesPage = () => {
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [presetData, setPresetData] = useState<Record<string, any> | undefined>(undefined);
 
   const fetchRecent = async () => {
     if (!user) return;
@@ -104,7 +108,21 @@ const PrintTemplatesPage = () => {
   });
 
   const handleCreate = (template: TemplateConfig) => {
+    setPresetData(undefined);
     setSelectedTemplate(template);
+    setModalOpen(true);
+  };
+
+  /** When a sector preset is picked, find the matching template config and open
+   *  the create modal with its data prefilled. */
+  const handlePickPreset = (preset: SectorPreset) => {
+    const tpl = TEMPLATES.find((t) => t.type === preset.templateType);
+    if (!tpl) {
+      toast({ title: "النموذج غير متوفر", variant: "destructive" });
+      return;
+    }
+    setPresetData(preset.data);
+    setSelectedTemplate(tpl);
     setModalOpen(true);
   };
 
@@ -170,15 +188,25 @@ const PrintTemplatesPage = () => {
         <p className="text-muted-foreground text-sm mt-1">أنشئ وطبع نماذج احترافية مرتبطة ببيانات شركتك</p>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="ابحث عن نموذج..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="pr-10"
-        />
+      {/* Search + Library */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="ابحث عن نموذج..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setLibraryOpen(true)}
+          className="gap-2 border-primary/40 text-primary hover:bg-primary/5"
+        >
+          <Sparkles className="w-4 h-4" />
+          مكتبة القوالب الجاهزة
+        </Button>
       </div>
 
       {/* Category Tabs */}
@@ -297,7 +325,8 @@ const PrintTemplatesPage = () => {
           open={modalOpen}
           onOpenChange={setModalOpen}
           template={selectedTemplate}
-          onSaved={() => { fetchRecent(); setModalOpen(false); }}
+          initialData={presetData}
+          onSaved={() => { fetchRecent(); setModalOpen(false); setPresetData(undefined); }}
         />
       )}
 
@@ -308,6 +337,12 @@ const PrintTemplatesPage = () => {
           document={previewDoc}
         />
       )}
+
+      <SectorTemplateLibrary
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onPick={handlePickPreset}
+      />
     </div>
   );
 };
