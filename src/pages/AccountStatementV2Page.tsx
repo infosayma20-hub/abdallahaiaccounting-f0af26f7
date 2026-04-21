@@ -54,6 +54,7 @@ const fmtDate = (d: string) => { if (!d) return "—"; const p = d.split("-"); r
 const getDayName = (d: string) => { try { const date = parseISO(d); const diff = differenceInDays(new Date(), date); if (diff === 0) return "اليوم"; if (diff === 1) return "أمس"; return format(date, "EEEE", { locale: ar }); } catch { return ""; } };
 
 const getTypeBadge = (txType: string) => {
+  if (txType === "reversal" || txType.includes("reverse")) return "قيد عكسي";
   if (txType.includes("pos")) return "مبيعات POS";
   if (txType.includes("sale") || txType.includes("فاتورة")) return "فاتورة مبيعات";
   if (txType.includes("receipt") || txType.includes("قبض")) return "سند قبض";
