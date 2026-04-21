@@ -680,6 +680,7 @@ const InvoicesPage = () => {
               notes: form.notes,
               status: "sent",
               paymentMethod: form.paymentMethod,
+              paymentStatus: summary.remainingAmount <= 0 ? "paid" : summary.paidAmount > 0 ? "partial" : "unpaid",
               subtotal: summary.subtotal,
               totalDiscount: summary.totalDiscount,
               totalTax: summary.totalTax,
