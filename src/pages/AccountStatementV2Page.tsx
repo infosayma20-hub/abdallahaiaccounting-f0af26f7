@@ -880,7 +880,7 @@ const AccountStatementV2Page = () => {
                     <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
                     filteredRows.map((row, i) => (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer" }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer", background: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
                         <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
                           <div>{fmtDate(row.date)}</div>
                           <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
@@ -896,9 +896,14 @@ const AccountStatementV2Page = () => {
                             </button>
                           ) : "—"}
                         </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>{row.description}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>
+                          {(row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) && (
+                            <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#F59E0B", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>عكس قيد</span>
+                          )}
+                          {row.description}
+                        </td>
                         <td style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
-                        <td style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280" }}>{getTypeBadge(row.transaction_type)}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 10, color: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#B45309" : "#6B7280", fontWeight: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? 700 : 400 }}>{getTypeBadge(row.transaction_type)}</td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
