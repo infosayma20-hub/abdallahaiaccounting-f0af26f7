@@ -29,9 +29,9 @@ import { setNextExportBranding } from "@/lib/excel-export";
 interface Contact { id: string; contact_name: string; contact_type: string; phone: string | null; email: string | null; address: string | null; linked_account_code: string | null; credit_limit?: number; current_balance?: number; contact_class?: string; }
 interface Account { id: string; account_code: string; account_name: string; account_type: string; }
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
-interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; }
+interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contacts";
 
@@ -54,6 +54,7 @@ const fmtDate = (d: string) => { if (!d) return "—"; const p = d.split("-"); r
 const getDayName = (d: string) => { try { const date = parseISO(d); const diff = differenceInDays(new Date(), date); if (diff === 0) return "اليوم"; if (diff === 1) return "أمس"; return format(date, "EEEE", { locale: ar }); } catch { return ""; } };
 
 const getTypeBadge = (txType: string) => {
+  if (txType === "reversal" || txType.includes("reverse")) return "قيد عكسي";
   if (txType.includes("pos")) return "مبيعات POS";
   if (txType.includes("sale") || txType.includes("فاتورة")) return "فاتورة مبيعات";
   if (txType.includes("receipt") || txType.includes("قبض")) return "سند قبض";
@@ -141,7 +142,9 @@ const AccountStatementV2Page = () => {
       const [{ data: contactData }, { data: accData }, { data: txData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", user.id).eq("is_active", true).order("contact_name"),
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
-        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate").eq("user_id", user.id).eq("is_deleted", false).order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
+        // ✅ Reversal-aware: include both active rows AND soft-deleted rows that were reversed
+        // (so the original entry shows alongside its reversal, keeping the statement balanced)
+        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id").eq("user_id", user.id).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", user.id).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", user.id).order("cheque_date", { ascending: false }),
@@ -378,7 +381,7 @@ const AccountStatementV2Page = () => {
       let dueDate: string | undefined;
       if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) { try { const d = parseISO(tx.transaction_date); d.setDate(d.getDate() + 30); dueDate = format(d, "yyyy-MM-dd"); } catch {} }
       const rowCurrency = isMismatch ? "شيكل" : isForeignCash ? normalizeCurrency(tx.currency) : dispCurrName;
-      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate };
+      return { date: tx.transaction_date, description: tx.description || tx.transaction_type || "—", transaction_type: tx.transaction_type || "", reference: tx.reference || "", debit, credit, balance: running, transaction_id: tx.id, currency: rowCurrency, payment_method: tx.payment_method || null, dueDate, foreignDetail: getForeignDetail(tx), isConverted, isMismatch, conversionRate, usedHistoricRate, isCancelled: !!tx.is_deleted };
     });
     return { rows: result, openingBalance: openBal, closingBalance: running, totalDebit: sD, totalCredit: sC };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, displayCurrency, currentExchangeRate, contacts, selectedContact]);
@@ -879,7 +882,7 @@ const AccountStatementV2Page = () => {
                     <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
                     filteredRows.map((row, i) => (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer" }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer", background: row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
                         <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
                           <div>{fmtDate(row.date)}</div>
                           <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
@@ -889,15 +892,23 @@ const AccountStatementV2Page = () => {
                             <button
                               onClick={(e) => { e.stopPropagation(); setDrawerRow(row); setDrawerOpen(true); }}
                               className="hover:underline text-left"
-                              style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace" }}
+                              style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace", textDecoration: row.isCancelled ? "line-through" : "none" }}
                             >
                               {row.reference}
                             </button>
                           ) : "—"}
                         </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>{row.description}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>
+                          {(row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) && (
+                            <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#F59E0B", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>عكس قيد</span>
+                          )}
+                          {row.isCancelled && (
+                            <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
+                          )}
+                          <span style={{ textDecoration: row.isCancelled ? "line-through" : "none" }}>{row.description}</span>
+                        </td>
                         <td style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
-                        <td style={{ padding: "8px 12px", fontSize: 10, color: "#6B7280" }}>{getTypeBadge(row.transaction_type)}</td>
+                        <td style={{ padding: "8px 12px", fontSize: 10, color: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#B45309" : "#6B7280", fontWeight: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? 700 : 400 }}>{getTypeBadge(row.transaction_type)}</td>
                         <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
