@@ -816,7 +816,8 @@ const InvoicesPage = () => {
       return;
     }
 
-    const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
+    // status is narrowed here to 'draft' | 'sent' (the 'paid' case is handled above)
+    const dbStatus = status === 'sent' ? 'sent' : 'draft';
     
     // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
     if (dbStatus === 'draft' && user) {
