@@ -1106,7 +1106,7 @@ const InvoicesPage = () => {
                   <SelectItem value="all">جميع الحالات</SelectItem>
                   <SelectItem value="draft">مسودة</SelectItem>
                   <SelectItem value="sent">مُرسلة</SelectItem>
-                  <SelectItem value="paid">مدفوعة</SelectItem>
+                  <SelectItem value="cancelled">ملغاة</SelectItem>
                 </SelectContent>
               </Select>
               <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
