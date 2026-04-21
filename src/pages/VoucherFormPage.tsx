@@ -1269,8 +1269,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             contact_id: selectedContact?.id || null,
             account_number: c.accountNumber?.trim() || null,
             notes: c.notes?.trim() || null,
+            voucher_id: txId,
           }));
-          if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
+          if (chequeRows.length > 0) {
+            const { error: chErr } = await supabase.from("cheques").insert(chequeRows as any);
+            if (chErr) {
+              // Surface duplicate / constraint failures clearly to user
+              throw new Error(`فشل تسجيل الشيكات: ${chErr.message}`);
+            }
+          }
         }
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
@@ -1337,8 +1344,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             contact_id: selectedContact?.id || null,
             account_number: c.accountNumber?.trim() || null,
             notes: c.notes?.trim() || null,
+            voucher_id: txId,
           }));
-          if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
+          if (chequeRows.length > 0) {
+            const { error: chErr } = await supabase.from("cheques").insert(chequeRows as any);
+            if (chErr) {
+              throw new Error(`فشل تسجيل الشيكات: ${chErr.message}`);
+            }
+          }
         }
 
         // Handle endorsed cheques — update existing cheques to "مظهر" status
