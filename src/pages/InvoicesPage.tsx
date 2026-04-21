@@ -1242,12 +1242,12 @@ const InvoicesPage = () => {
                             </Button>
                           </TooltipTrigger><TooltipContent side="top"><p className="text-xs">طباعة</p></TooltipContent></Tooltip>
 
-                          {inv.type === 'sales' && inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
+                          {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
                             <Tooltip><TooltipTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-success" onClick={() => recordPayment(inv)}>
                                 <Receipt className="h-3.5 w-3.5" />
                               </Button>
-                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">تسجيل قبض</p></TooltipContent></Tooltip>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">{inv.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}</p></TooltipContent></Tooltip>
                           )}
 
                           {canEdit({ status: inv.status }) && (
@@ -1335,7 +1335,7 @@ const InvoicesPage = () => {
                       <div className="flex gap-1 mt-1.5">
                         {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
-                            <Receipt className="h-3 w-3" /> تسجيل قبض
+                            <Receipt className="h-3 w-3" /> {inv.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}
                           </Button>
                         )}
                         {canEdit({ status: inv.status }) && (
@@ -1410,9 +1410,9 @@ const InvoicesPage = () => {
                     <Trash2 className="h-4 w-4" /> حذف
                   </Button>
                 )}
-                {selectedInvoice.type === 'sales' && selectedInvoice.status === 'sent' && selectedInvoice.paymentStatus !== 'paid' && (
+                {selectedInvoice.status === 'sent' && selectedInvoice.paymentStatus !== 'paid' && (
                   <Button size="sm" className="gap-1.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground" onClick={() => recordPayment(selectedInvoice)}>
-                    <Receipt className="h-4 w-4" /> تسجيل قبض
+                    <Receipt className="h-4 w-4" /> {selectedInvoice.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}
                   </Button>
                 )}
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
