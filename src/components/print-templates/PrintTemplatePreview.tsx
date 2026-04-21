@@ -39,6 +39,92 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const title = TEMPLATE_TITLES[type] || type;
   const currency = data.currency || "شيكل";
 
+  // ---------- Inline editable text overrides ----------
+  // Persisted to print_documents.data.custom_text. The default strings live
+  // alongside each render below; the user can override any of them inline and
+  // optionally enhance them with AI (see EditableText).
+  const initialOverrides: Record<string, string> = (data.custom_text as any) || {};
+  const [customText, setCustomText] = useState<Record<string, string>>(initialOverrides);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Reset overrides whenever a different document is loaded
+  useEffect(() => {
+    setCustomText((doc?.data?.custom_text as Record<string, string>) || {});
+    setDirty(false);
+  }, [doc?.id]);
+
+  /** Get the current text for a key — user override if present, else fallback. */
+  const getText = (key: string, fallback: string) =>
+    customText[key] != null ? customText[key] : fallback;
+
+  /** Set/clear an override and mark the document as dirty. */
+  const setText = (key: string, fallback: string) => (next: string) => {
+    setCustomText((prev) => {
+      const out = { ...prev };
+      if (next === fallback || next.trim() === "") {
+        // Restore default by removing the override
+        delete out[key];
+      } else {
+        out[key] = next;
+      }
+      return out;
+    });
+    setDirty(true);
+  };
+
+  /** Editable wrapper — tiny shorthand to keep the body renderers readable. */
+  const Edit = ({
+    k,
+    fallback,
+    as = "span",
+    style,
+  }: {
+    k: string;
+    fallback: string;
+    as?: "p" | "span" | "div";
+    style?: React.CSSProperties;
+  }) => (
+    <EditableText
+      as={as}
+      value={getText(k, fallback)}
+      onChange={setText(k, fallback)}
+      aiContext={title}
+      disabled={!doc?.id /* can't persist edits without an id (preview mode) */}
+      style={style}
+    />
+  );
+
+  const handleSaveEdits = async () => {
+    if (!doc?.id) {
+      toast({ title: "لا يمكن حفظ التعديلات في وضع المعاينة", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const nextData = { ...(doc.data || {}), custom_text: customText };
+      const { error } = await supabase
+        .from("print_documents")
+        .update({ data: nextData })
+        .eq("id", doc.id);
+      if (error) throw error;
+      // Mutate the in-memory doc so subsequent prints use the saved text
+      doc.data = nextData;
+      setDirty(false);
+      toast({ title: "✅ تم حفظ التعديلات" });
+    } catch (err: any) {
+      toast({ title: "خطأ في الحفظ", description: err?.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetEdits = () => {
+    setCustomText({});
+    setDirty(true);
+    toast({ title: "تم استرجاع النص الافتراضي" });
+  };
+
   const handlePrint = () => {
     const content = printRef.current;
     if (!content) return;
