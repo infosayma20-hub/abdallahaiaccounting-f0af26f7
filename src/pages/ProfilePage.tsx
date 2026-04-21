@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, ShieldCheck } from "lucide-react";
 import BrandIdentitySettings from "@/components/settings/BrandIdentitySettings";
 import PasswordManagementSection from "@/components/settings/PasswordManagementSection";
+import FastEntryToggle from "@/components/settings/FastEntryToggle";
 import { useCompanyTheme } from "@/hooks/useCompanyTheme";
 import { extractColorsFromLogo, assignColorRoles, ensureAccessibility } from "@/lib/color-utils";
 import { useNavigate } from "react-router-dom";
@@ -340,6 +341,11 @@ const ProfilePage = () => {
 
       {/* Password Management — single smart section based on account type */}
       <PasswordManagementSection />
+
+      <hr className="border-border/30" />
+
+      {/* Fast entry preference — affects voucher & journal save UX */}
+      <FastEntryToggle />
 
       <hr className="border-border/30" />
 

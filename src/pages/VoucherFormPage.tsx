@@ -23,6 +23,7 @@ import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
+import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import {
   AllocationMode,
   autoAllocate as engineAutoAllocate,
@@ -217,6 +218,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  const [fastEntryEnabled] = useFastEntryMode();
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -308,6 +310,34 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       ready: draftReady,
     }
   );
+
+  // Reset form fields for fast-entry mode (preserves date/currency/last-used context).
+  const resetForFastEntry = useCallback(() => {
+    setAmount("");
+    setNotes("");
+    setSelectedContact(null);
+    setSelectedGlAccount(null);
+    setSelectedEmployee(null);
+    setInvoices([]);
+    setCheques([]);
+    setEndorsedCheques([]);
+    setAttachments([]);
+    setContactSearch("");
+    setEmployeeSearch("");
+    setGlAccountSearch("");
+    setInvoiceSearch("");
+    setEmpCategory("سلفة");
+    setEmpCategoryCustom("");
+    setViolationReason("");
+    // Keep: paymentDate, currency, exchangeRate, paymentMethod, depositType,
+    //       selectedCashBox, selectedBankAccount, partyType — these are the
+    //       "last-used context" the accountant typically reuses.
+    // Refocus the first important field after the form re-renders.
+    requestAnimationFrame(() => {
+      const first = document.querySelector<HTMLElement>("[data-smart-first]");
+      first?.focus();
+    });
+  }, []);
 
   // Click-outside handler for all dropdowns
   useEffect(() => {
@@ -1395,10 +1425,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
-        toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`);
-        setSaved(true);
+        const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`;
         setSavedReceiptNumber(receipt?.receipt_number || "");
         clearDraft();
+        if (fastEntryEnabled && !asDraft && !editId) {
+          // Fast-entry: non-blocking toast + auto-reset.
+          toast.success(successMsg, { duration: 2500 });
+          resetForFastEntry();
+        } else {
+          toast.success(successMsg);
+          setSaved(true);
+        }
       } else {
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
         const isEmpPay = partyType === "employee" && selectedEmployee;
@@ -1537,10 +1574,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("payment_voucher", "created", voucher?.id);
-        toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`);
-        setSaved(true);
+        const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`;
         setSavedReceiptNumber(voucher?.ref_number || "");
         clearDraft();
+        if (fastEntryEnabled && !asDraft && !editId) {
+          toast.success(successMsg, { duration: 2500 });
+          resetForFastEntry();
+        } else {
+          toast.success(successMsg);
+          setSaved(true);
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
