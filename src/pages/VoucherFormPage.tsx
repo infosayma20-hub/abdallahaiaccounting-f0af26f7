@@ -652,7 +652,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .in("invoice_type", isReceipt ? ["sale"] : ["purchase", "sale"])
       .in("payment_status", ["unpaid", "partial"]) as any)
       .neq("status", "cancelled")
-      .neq("is_deleted", true)
       .not("status", "in", '("مسودة","draft")')
       .order("invoice_date", { ascending: true })
       .then(({ data }) => {
