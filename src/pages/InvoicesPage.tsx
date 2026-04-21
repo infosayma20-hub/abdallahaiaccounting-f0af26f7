@@ -929,12 +929,33 @@ const InvoicesPage = () => {
     draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
     sent: { label: "مُرسلة", color: "bg-primary/10 text-primary" },
     approved: { label: "معتمدة", color: "bg-blue-100 text-blue-700" },
-    paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
-    partial: { label: "مدفوعة جزئياً", color: "bg-amber-100 text-amber-700" },
-    overdue: { label: "متأخرة", color: "bg-destructive/10 text-destructive" },
     cancelled: { label: "ملغاة", color: "bg-muted text-muted-foreground" },
   };
   const fallbackStatus = { label: "غير محدد", color: "bg-muted text-muted-foreground" };
+
+  // 🎯 Payment status — separate from invoice workflow status
+  const paymentStatusConfig: Record<string, { label: string; color: string }> = {
+    unpaid: { label: "غير مدفوعة", color: "bg-destructive/10 text-destructive" },
+    partial: { label: "مدفوعة جزئياً", color: "bg-amber-100 text-amber-700" },
+    paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
+  };
+
+  // Open receipt voucher form pre-filled to settle this invoice
+  const recordPayment = (inv: Invoice) => {
+    if (inv.type !== 'sales') {
+      // For purchases, route to payment voucher
+      const params = new URLSearchParams();
+      params.set("invoice_id", inv.id);
+      if (inv.contactName) params.set("contact_name", inv.contactName);
+      navigate(`/finance/payment/new?${params.toString()}`);
+      return;
+    }
+    setShowPreviewDialog(false);
+    const params = new URLSearchParams();
+    params.set("invoice_id", inv.id);
+    if (inv.contactName) params.set("contact_name", inv.contactName);
+    navigate(`/finance/receipt/new?${params.toString()}`);
+  };
 
   const paymentLabels: Record<string, string> = {
     cash: "نقداً",
