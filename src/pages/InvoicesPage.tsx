@@ -238,7 +238,12 @@ const InvoicesPage = () => {
           subtotal: Number(item.total_amount) || 0,
         })),
         notes: inv.notes || '',
-        status: inv.status === 'cancelled' ? 'cancelled' : inv.status === 'draft' ? 'draft' : inv.payment_status === 'paid' ? 'paid' : inv.status || 'sent',
+        // Invoice lifecycle status — independent from payment
+        status: inv.status === 'cancelled' ? 'cancelled' : inv.status === 'draft' ? 'draft' : 'sent',
+        // Derived payment status — driven by paid_amount vs total_amount via voucher links
+        paymentStatus: (Number(inv.paid_amount) || 0) >= (Number(inv.total_amount) || 0) && (Number(inv.total_amount) || 0) > 0
+          ? 'paid'
+          : (Number(inv.paid_amount) || 0) > 0 ? 'partial' : 'unpaid',
         paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
         subtotal: Number(inv.subtotal) || 0,
         totalDiscount: Number(inv.discount_amount) || 0,
