@@ -64,11 +64,6 @@ const ProfilePage = () => {
     work_field: "",
   });
 
-  // Password change state
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-
   const email = user?.email || "";
   const displayName = profile.display_name || user?.user_metadata?.full_name || "";
   const initials = (profile.company_name || displayName || email)
