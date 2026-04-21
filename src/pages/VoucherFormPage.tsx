@@ -2359,6 +2359,31 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   <button type="button" onClick={() => removeCheque(idx)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors mb-0.5">
                     <X className="h-4 w-4" />
                   </button>
+                  {/* Second row: account number + notes (full width below) */}
+                  <div className="col-span-full grid grid-cols-[1fr_2fr] gap-2 mt-1">
+                    <div>
+                      <Label className="text-[10px] mb-1 block text-muted-foreground flex items-center gap-1">
+                        رقم حساب صاحب الشيك
+                        {isReceipt && <span className="text-destructive">*</span>}
+                        <span title="رقم الحساب يساعدك في تتبع الشيكات ومطابقة البنك لاحقاً" className="text-muted-foreground/60 cursor-help">ⓘ</span>
+                      </Label>
+                      <Input
+                        value={chq.accountNumber}
+                        onChange={e => updateCheque(idx, "accountNumber", e.target.value)}
+                        placeholder={isReceipt ? "إلزامي للشيك الوارد" : "اختياري"}
+                        className={`h-9 text-xs font-mono ${isReceipt && !chq.accountNumber ? "border-amber-400 focus-visible:ring-amber-400" : ""}`}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] mb-1 block text-muted-foreground">ملاحظات الشيك</Label>
+                      <Input
+                        value={chq.notes}
+                        onChange={e => updateCheque(idx, "notes", e.target.value)}
+                        placeholder="ملاحظات اختيارية"
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
               {cheques.length > 1 && (
