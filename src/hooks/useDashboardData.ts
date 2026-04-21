@@ -232,13 +232,23 @@ export function useDashboardData() {
     const netProfit = revenue - expenses;
 
     // Balance sheet items use ALL transactions INCLUDING opening balances (cumulative)
+    // ── Net receivables = customer AR (1130) minus customer advances (2115).
+    //    Advance from a customer is a liability that offsets what they owe us.
     const recDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
     const recCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-    const receivables = recDr - recCr;
+    const custAdvCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "2115").reduce((s, t) => s + (t.amount || 0), 0);
+    const custAdvDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "2115").reduce((s, t) => s + (t.amount || 0), 0);
+    const receivables = (recDr - recCr) - (custAdvCr - custAdvDr);
 
-    const payCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-    const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-    const payables = payDr - payCr; // negative = money owed to suppliers
+    // ── Net payables = supplier AP (2110) minus supplier advances (1146 is asset).
+    //    Advance to a supplier is an asset that offsets what we owe them.
+    //    payables stays negative = money owed to suppliers (existing convention).
+    const payCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("2") && t.credit_account_code !== "2115").reduce((s, t) => s + (t.amount || 0), 0);
+    const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2") && t.debit_account_code !== "2115").reduce((s, t) => s + (t.amount || 0), 0);
+    const supAdvDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1146").reduce((s, t) => s + (t.amount || 0), 0);
+    const supAdvCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1146").reduce((s, t) => s + (t.amount || 0), 0);
+    // (payDr - payCr) is negative when we owe; advances reduce that absolute owe.
+    const payables = (payDr - payCr) + (supAdvDr - supAdvCr);
 
     // Cash = all cash boxes (111x) + all bank accounts (112x)
     const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
