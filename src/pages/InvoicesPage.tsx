@@ -812,7 +812,7 @@ const InvoicesPage = () => {
       const params = new URLSearchParams();
       params.set("invoice_id", id);
       if (contactName) params.set("contact_name", contactName);
-      navigate(`/finance/vouchers/receipt/new?${params.toString()}`);
+      navigate(`/finance/receipt/new?${params.toString()}`);
       return;
     }
 
