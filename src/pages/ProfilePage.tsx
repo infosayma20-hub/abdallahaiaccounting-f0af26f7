@@ -147,6 +147,11 @@ const ProfilePage = () => {
     work_field: "",
   });
 
+  // Password change state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const email = user?.email || "";
   const displayName = profile.display_name || user?.user_metadata?.full_name || "";
   const initials = (profile.company_name || displayName || email)
@@ -330,6 +335,34 @@ const ProfilePage = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!user) return;
+    if (!newPassword || !confirmPassword) {
+      toast({ title: "حقول مطلوبة", description: "يرجى إدخال كلمة المرور الجديدة وتأكيدها", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "كلمة مرور قصيرة", description: "يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "غير متطابقتين", description: "كلمة المرور والتأكيد غير متطابقين", variant: "destructive" });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: "✅ تم تغيير كلمة المرور بنجاح" });
+    } catch (err: any) {
+      toast({ title: "خطأ في تغيير كلمة المرور", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const fields = [
     { key: "display_name", label: "الاسم الكامل", icon: User, placeholder: "أدخل اسمك" },
     { key: "company_name", label: "اسم النشاط / الشركة", icon: Building2, placeholder: "مثال: شركة النور للتجارة" },
@@ -429,16 +462,49 @@ const ProfilePage = () => {
         <h2 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: "Tajawal, sans-serif" }}>تغيير كلمة المرور</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الحالية</label>
-            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-muted/20 text-sm" disabled placeholder="••••••••" dir="ltr" style={{ textAlign: "left" }} />
-          </div>
-          <div className="flex items-center gap-4">
             <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الجديدة</label>
-            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-white text-sm" placeholder="كلمة المرور الجديدة" dir="ltr" style={{ textAlign: "left" }} />
+            <Input
+              type="password"
+              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
+              placeholder="6 أحرف على الأقل"
+              dir="ltr"
+              style={{ textAlign: "left" }}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
           </div>
           <div className="flex items-center gap-4">
             <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">تأكيد كلمة المرور</label>
-            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-white text-sm" placeholder="تأكيد كلمة المرور" dir="ltr" style={{ textAlign: "left" }} />
+            <Input
+              type="password"
+              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
+              placeholder="أعد إدخال كلمة المرور"
+              dir="ltr"
+              style={{ textAlign: "left" }}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+            <p className="text-xs text-destructive pr-48">كلمتا المرور غير متطابقتين</p>
+          )}
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={handleChangePassword}
+              disabled={
+                changingPassword ||
+                !newPassword ||
+                !confirmPassword ||
+                newPassword !== confirmPassword ||
+                newPassword.length < 6
+              }
+              className="px-8 h-11 rounded-lg text-sm font-medium gap-2"
+            >
+              {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              حفظ كلمة المرور
+            </Button>
           </div>
         </div>
       </div>
