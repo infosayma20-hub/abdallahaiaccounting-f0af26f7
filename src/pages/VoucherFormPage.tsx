@@ -755,23 +755,42 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const selectAll = () => {
-    let remaining = amountNum;
-    setInvoices(prev => prev.map(inv => {
-      const convertedRemaining = getInvRemainingInVoucherCurrency(inv);
-      const alloc = Math.min(convertedRemaining, remaining);
-      remaining -= alloc;
-      return { ...inv, selected: alloc > 0, allocatedAmount: alloc > 0 ? alloc : 0 };
-    }));
+    if (amountNum <= 0) {
+      toast.error("أدخل المبلغ المقبوض أولاً");
+      return;
+    }
+    if (invoices.length === 0) {
+      toast.error("لا توجد فواتير مفتوحة لهذا العميل");
+      return;
+    }
+    setInvoices(prev => {
+      const next = engineAutoAllocate(prev as any, amountNum, currency, exchangeRate);
+      return next as any;
+    });
   };
 
   const selectOldestFirst = () => selectAll();
 
-  // Auto-allocate effect
+  // Auto-allocate effect — runs whenever the user is in "auto" mode and any
+  // of the inputs (amount, currency, exchange rate, invoice list) change.
+  // This makes the FIFO distribution feel "live" — the user just types the
+  // amount and the table fills in instantly, no extra click required.
   useEffect(() => {
-    if (autoAllocate && amountNum > 0 && invoices.length > 0) {
-      selectAll();
-    }
-  }, [autoAllocate, amount]);
+    if (allocationMode !== "auto") return;
+    if (amountNum <= 0 || invoices.length === 0) return;
+    setInvoices(prev => {
+      // Bail if there is nothing to recompute (avoid render loops).
+      const next = engineAutoAllocate(prev as any, amountNum, currency, exchangeRate);
+      const same = prev.length === next.length && prev.every((p, idx) => {
+        const n = next[idx];
+        return p.id === n.id
+          && p.selected === n.selected
+          && Math.abs((p.allocatedAmount || 0) - (n.allocatedAmount || 0)) < 0.005;
+      });
+      return same ? prev : (next as any);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allocationMode, amountNum, currency, exchangeRate, invoices.length]);
 
   // File upload handler
   const handleFileUpload = useCallback(async (files: FileList | File[]) => {
