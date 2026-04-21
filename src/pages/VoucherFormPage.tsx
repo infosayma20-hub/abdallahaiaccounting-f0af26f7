@@ -118,6 +118,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
   const isEditMode = !!editId;
 
+  // Prefill from "Mark invoice as paid" flow on InvoicesPage
+  const prefillInvoiceId = searchParams.get("invoice_id");
+  const prefillContactName = searchParams.get("contact_name");
+  const [prefillConsumed, setPrefillConsumed] = useState(false);
+
   const isReceipt = voucherType === "receipt";
   const pageTitle = isEditMode 
     ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف")
@@ -377,6 +382,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
           delete (window as any).__duplicateContactId;
         }
+        // Prefill contact when navigating from "Mark invoice as paid" flow
+        if (prefillInvoiceId && prefillContactName && !selectedContact) {
+          const found = contactsList.find(c => c.contact_name === prefillContactName);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+        }
       })
       .then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
@@ -625,11 +638,25 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .not("status", "in", '("مسودة","draft")')
       .order("invoice_date", { ascending: true })
       .then(({ data }) => {
-        setInvoices((data || []).map(inv => ({
+        const loaded = (data || []).map(inv => ({
           ...inv,
           selected: false,
           allocatedAmount: 0,
-        })));
+        }));
+
+        // Prefill: auto-select the invoice from the "Mark as paid" flow + set amount to its remaining
+        if (prefillInvoiceId && !prefillConsumed) {
+          const target = loaded.find(i => i.id === prefillInvoiceId);
+          if (target) {
+            const remaining = Number(target.remaining_amount ?? target.total_amount ?? 0);
+            target.selected = true;
+            target.allocatedAmount = remaining;
+            if (!amount) setAmount(String(remaining));
+            setPrefillConsumed(true);
+          }
+        }
+
+        setInvoices(loaded);
       });
   }, [user, selectedContact, isReceipt]);
 
