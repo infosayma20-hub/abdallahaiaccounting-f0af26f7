@@ -142,7 +142,9 @@ const AccountStatementV2Page = () => {
       const [{ data: contactData }, { data: accData }, { data: txData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", user.id).eq("is_active", true).order("contact_name"),
         supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
-        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate").eq("user_id", user.id).eq("is_deleted", false).order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
+        // ✅ Reversal-aware: include both active rows AND soft-deleted rows that were reversed
+        // (so the original entry shows alongside its reversal, keeping the statement balanced)
+        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id").eq("user_id", user.id).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
         supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", user.id).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
         supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", user.id).order("cheque_date", { ascending: false }),
