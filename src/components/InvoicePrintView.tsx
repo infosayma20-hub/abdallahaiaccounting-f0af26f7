@@ -256,8 +256,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                 src={settings.logo_url}
                 alt="Logo"
                 style={hasExtraWideLogo
-                  ? { width: "320px", height: "auto", objectFit: "contain" as const, display: "inline-block" }
-                  : { height: "64px", objectFit: "contain" as const, display: "inline-block" }
+                  ? { width: "260px", height: "auto", objectFit: "contain" as const, display: "inline-block" }
+                  : { height: "56px", objectFit: "contain" as const, display: "inline-block" }
                 }
               />
             ) : (
