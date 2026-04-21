@@ -555,9 +555,14 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                       <MultiTransactionCards
                         transactions={JSON.parse(msg.content.replace('__MULTI_TX__', ''))}
                         onConfirm={async (tx, idx) => {
-                          const result = await executeTransaction(tx, tx.description || '');
-                          if (result.success) onTransactionSuccess();
-                          return { success: result.success, message: result.message };
+                          // 🛡️ نلتقط أي استثناء هنا حتى لا يُسقط لوب "تأكيد الكل"
+                          try {
+                            const result = await executeTransaction(tx, tx.description || '');
+                            if (result.success) onTransactionSuccess();
+                            return { success: result.success, message: result.message };
+                          } catch (err: any) {
+                            return { success: false, message: `❌ ${err?.message || 'فشل التسجيل'}` };
+                          }
                         }}
                         onConfirmAll={async (txs) => {
                           // كل بطاقة تم تأكيدها مسبقاً عبر onConfirm — فقط نُحدّث المؤشرات
