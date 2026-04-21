@@ -76,6 +76,9 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved, initialData
   // CLR fields
   const [clrSubject, setClrSubject] = useState("");
 
+  // Selected writing style for this draft
+  const [writingStyle, setWritingStyle] = useState<WritingStyle | null>(null);
+
   const addItem = () => setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: string, value: any) => {
