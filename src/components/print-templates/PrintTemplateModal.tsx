@@ -310,6 +310,67 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved, initialData
     if (open) setActiveTab("create");
   }, [open]);
 
+  /** Helper to load a data object (from preset or style) into the typed setters. */
+  const loadData = (d: Record<string, any>) => {
+    if (d.items && Array.isArray(d.items) && d.items.length) setItems(d.items);
+    if (d.discount_percent !== undefined) setDiscountPercent(Number(d.discount_percent) || 0);
+    if (d.vat_enabled !== undefined) setVatEnabled(!!d.vat_enabled);
+    if (d.validity_days !== undefined) setValidityDays(Number(d.validity_days) || 30);
+    if (d.payment_terms !== undefined) setPaymentTerms(d.payment_terms);
+    if (d.specs !== undefined) setQuoSpecs(d.specs);
+    if (d.work_description !== undefined) {
+      setQuoProjectDesc(d.work_description);
+      setWorkDescription(d.work_description);
+    }
+    if (d.contract_value !== undefined) setContractValue(Number(d.contract_value) || 0);
+    if (d.execution_period !== undefined) setExecutionPeriod(d.execution_period);
+    if (d.warranty_terms !== undefined) setWarrantyTerms(d.warranty_terms);
+    if (d.amount !== undefined) setAmount(Number(d.amount) || 0);
+    if (d.reason !== undefined) setReason(d.reason);
+    if (d.ref_invoice !== undefined) setRefInvoice(d.ref_invoice);
+    if (d.response_days !== undefined) setResponseDays(Number(d.response_days) || 7);
+    if (d.urgency_level !== undefined) setUrgencyLevel(d.urgency_level);
+    if (d.receive_type !== undefined) setReceiveType(d.receive_type);
+    if (d.condition !== undefined) setCondition(d.condition);
+    if (d.receiver_name !== undefined) setReceiverName(d.receiver_name);
+    if (d.supplier_name !== undefined) setSupplierName(d.supplier_name);
+    if (d.contract_from !== undefined) setContractFrom(d.contract_from);
+    if (d.contract_to !== undefined) setContractTo(d.contract_to);
+    if (d.supply_terms !== undefined) setSupplyTerms(d.supply_terms);
+    if (d.delegate_name !== undefined) setDelegateName(d.delegate_name);
+    if (d.delegate_id !== undefined) setDelegateId(d.delegate_id);
+    if (d.poa_from !== undefined) setPoaFrom(d.poa_from);
+    if (d.poa_to !== undefined) setPoaTo(d.poa_to);
+    if (d.target_entity !== undefined) setTargetEntity(d.target_entity);
+    if (d.subject !== undefined || d.clr_subject !== undefined) setClrSubject(d.subject ?? d.clr_subject);
+    if (d.notes !== undefined) setNotes(d.notes);
+    if (d.contact_address !== undefined) setContactAddress(d.contact_address);
+  };
+
+  // Apply preset data when modal opens with initialData (from sector library).
+  useEffect(() => {
+    if (open && initialData) {
+      loadData(initialData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialData]);
+
+  /** Apply a writing style — fills empty text fields with the style's defaults. */
+  const handleStyleChange = (style: WritingStyle) => {
+    setWritingStyle(style);
+    const current = {
+      payment_terms: paymentTerms,
+      warranty_terms: warrantyTerms,
+      notes,
+      work_description: workDescription || quoProjectDesc,
+      supply_terms: supplyTerms,
+      reason,
+      clr_subject: clrSubject,
+    };
+    const next = applyStyle(template.type, style, current);
+    loadData(next);
+  };
+
   const previewDoc = {
     template_type: template.type,
     data: {},
