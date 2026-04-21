@@ -139,7 +139,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [paymentMethod, setPaymentMethod] = useState("نقدي");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string }[]>([]);
+  const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string; accountNumber: string; notes: string }[]>([]);
   const [endorsedCheques, setEndorsedCheques] = useState<EndorsedCheque[]>([]);
   const [showEndorseModal, setShowEndorseModal] = useState(false);
 
@@ -147,6 +147,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
     const lastDate = prev.length > 0 ? prev[prev.length - 1].date : "";
     const lastBank = prev.length > 0 ? prev[prev.length - 1].bank : "";
+    const lastAcct = prev.length > 0 ? prev[prev.length - 1].accountNumber : "";
     // Auto-increment cheque number
     const match = lastNum.match(/(\d+)$/);
     const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
@@ -157,7 +158,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       d.setDate(d.getDate() + 30);
       nextDate = d.toISOString().split("T")[0];
     }
-    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "" }];
+    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "", accountNumber: lastAcct, notes: "" }];
   });
   const removeCheque = (idx: number) => setCheques(prev => prev.filter((_, i) => i !== idx));
   const updateCheque = (idx: number, field: string, value: string) => setCheques(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
@@ -506,7 +507,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setAmount(String(data.amount || ""));
             setNotes(data.notes || "");
             if (data.check_number) {
-              setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || "") }]);
+              setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || ""), accountNumber: "", notes: "" }]);
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
@@ -535,7 +536,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setAmount(String(data.amount || data.amount_ils || ""));
             setNotes(data.notes || data.description || "");
             if (data.cheque_number) {
-              setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || "") }]);
+              setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || ""), accountNumber: "", notes: "" }]);
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
@@ -830,6 +831,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       if (diff > 0.01 && cheques.some(c => Number(c.amount) > 0)) {
         toast.error(`إجمالي الشيكات (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`);
         return;
+      }
+      // Mandatory: account number for incoming cheques (سند قبض)
+      if (isReceipt) {
+        const missingAcct = cheques.findIndex(c => c.number && !c.accountNumber.trim());
+        if (missingAcct !== -1) {
+          toast.error(`يرجى إدخال رقم الحساب البنكي لصاحب الشيك رقم ${cheques[missingAcct].number}`);
+          return;
+        }
       }
     }
     setSaving(true);
@@ -1258,6 +1267,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             source_bank_account_id: selectedChequeBankAccount || null,
             receipt_voucher_id: receipt?.id || null,
             contact_id: selectedContact?.id || null,
+            account_number: c.accountNumber?.trim() || null,
+            notes: c.notes?.trim() || null,
           }));
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
@@ -1324,6 +1335,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             currency: currencyLabel,
             source_bank_account_id: selectedChequeBankAccount || null,
             contact_id: selectedContact?.id || null,
+            account_number: c.accountNumber?.trim() || null,
+            notes: c.notes?.trim() || null,
           }));
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
@@ -2358,6 +2371,31 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                   <button type="button" onClick={() => removeCheque(idx)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors mb-0.5">
                     <X className="h-4 w-4" />
                   </button>
+                  {/* Second row: account number + notes (full width below) */}
+                  <div className="col-span-full grid grid-cols-[1fr_2fr] gap-2 mt-1">
+                    <div>
+                      <Label className="text-[10px] mb-1 block text-muted-foreground flex items-center gap-1">
+                        رقم حساب صاحب الشيك
+                        {isReceipt && <span className="text-destructive">*</span>}
+                        <span title="رقم الحساب يساعدك في تتبع الشيكات ومطابقة البنك لاحقاً" className="text-muted-foreground/60 cursor-help">ⓘ</span>
+                      </Label>
+                      <Input
+                        value={chq.accountNumber}
+                        onChange={e => updateCheque(idx, "accountNumber", e.target.value)}
+                        placeholder={isReceipt ? "إلزامي للشيك الوارد" : "اختياري"}
+                        className={`h-9 text-xs font-mono ${isReceipt && !chq.accountNumber ? "border-amber-400 focus-visible:ring-amber-400" : ""}`}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] mb-1 block text-muted-foreground">ملاحظات الشيك</Label>
+                      <Input
+                        value={chq.notes}
+                        onChange={e => updateCheque(idx, "notes", e.target.value)}
+                        placeholder="ملاحظات اختيارية"
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
               {cheques.length > 1 && (

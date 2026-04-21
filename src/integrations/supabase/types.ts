@@ -1639,6 +1639,7 @@ export type Database = {
       }
       cheques: {
         Row: {
+          account_number: string | null
           amount: number
           bank_fees: number | null
           bank_name: string | null
@@ -1673,6 +1674,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_number?: string | null
           amount: number
           bank_fees?: number | null
           bank_name?: string | null
@@ -1707,6 +1709,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_number?: string | null
           amount?: number
           bank_fees?: number | null
           bank_name?: string | null
