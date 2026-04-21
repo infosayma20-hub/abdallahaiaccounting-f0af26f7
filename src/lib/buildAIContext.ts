@@ -76,7 +76,6 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
     totalSales,
     totalExpenses,
     netProfit: totalSales - totalExpenses,
-    receivables: recDebit - recCredit,
     receivables: (recDebit - recCredit) - (custAdvCr - custAdvDr),
     payables: (payCredit - payDebit) - (supAdvDr - supAdvCr),
     recentTransactions: txs.slice(0, 30).map(t => ({
