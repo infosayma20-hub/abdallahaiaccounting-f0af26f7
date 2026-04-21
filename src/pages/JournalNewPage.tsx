@@ -64,6 +64,7 @@ const JournalNewPage = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedRefNumber, setSavedRefNumber] = useState("");
+  const [fastEntryEnabled] = useFastEntryMode();
   const [lineSortOrder, setLineSortOrder] = useState<"debit_first" | "original">("original");
   const [draftReady, setDraftReady] = useState(false);
 
