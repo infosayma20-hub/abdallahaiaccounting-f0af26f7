@@ -220,6 +220,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  // Smart allocation mode (auto / manual / advance / refund)
+  const [allocationMode, setAllocationMode] = useState<AllocationMode>("auto");
   const isCancelled = editVoucherStatus === "cancelled";
 
   // Attachments
