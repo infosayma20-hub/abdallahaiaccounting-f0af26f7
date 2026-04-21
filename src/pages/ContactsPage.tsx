@@ -210,6 +210,15 @@ const ContactsPage = () => {
         if (tx.credit_account_code === "1130") balanceMap[tx.contact_id] -= (tx.amount || 0);
         if (tx.credit_account_code === "2110") balanceMap[tx.contact_id] -= (tx.amount || 0);
         if (tx.debit_account_code === "2110") balanceMap[tx.contact_id] += (tx.amount || 0);
+        // Smart Allocation advance accounts:
+        //   2115 = دفعات مقدمة من العملاء (liability) → credit reduces what
+        //          customer owes (treat as if credit on 1130).
+        //   1146 = دفعات مقدمة للموردين (asset) → debit reduces what we owe
+        //          (treat as if debit on 2110).
+        if (tx.credit_account_code === "2115") balanceMap[tx.contact_id] -= (tx.amount || 0);
+        if (tx.debit_account_code === "2115")  balanceMap[tx.contact_id] += (tx.amount || 0);
+        if (tx.debit_account_code === "1146")  balanceMap[tx.contact_id] -= (tx.amount || 0);
+        if (tx.credit_account_code === "1146") balanceMap[tx.contact_id] += (tx.amount || 0);
         // Track last transaction date
         if (!lastTxMap[tx.contact_id] || tx.transaction_date > lastTxMap[tx.contact_id]) {
           lastTxMap[tx.contact_id] = tx.transaction_date;

@@ -433,6 +433,13 @@ const InvoiceCreatePage = () => {
         // Supplier payables (2110): credit = we owe them more, debit = we paid
         if (tx.credit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
         if (tx.debit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
+        // Smart Allocation advance accounts:
+        //   2115 = customer advance (credit = customer prepaid → reduces receivable)
+        //   1146 = supplier advance (debit = we prepaid → reduces payable)
+        if (tx.credit_account_code === "2115") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
+        if (tx.debit_account_code === "2115")  customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
+        if (tx.debit_account_code === "1146")  supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
+        if (tx.credit_account_code === "1146") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
       });
       
       const contactsWithBalance = contactsList.map(c => {
