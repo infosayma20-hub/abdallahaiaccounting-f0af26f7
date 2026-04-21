@@ -516,16 +516,19 @@ export function useDashboardData() {
   const topSales = useMemo(() => {
     const periodTx = filterByRange(plTx, range);
     const salesByContact: Record<string, { name: string; amount: number }> = {};
+    // ✅ Reversal-aware: credits to 4xxx add sales, debits to 4xxx subtract reversed sales
     periodTx
-      .filter((t) => t.credit_account_code?.startsWith("4") && t.contact_id)
+      .filter((t) => t.contact_id && (t.credit_account_code?.startsWith("4") || t.debit_account_code?.startsWith("4")))
       .forEach((t) => {
         const contact = contacts.find((c) => c.id === t.contact_id);
         const name = contact?.contact_name || "غير محدد";
         if (!salesByContact[t.contact_id]) salesByContact[t.contact_id] = { name, amount: 0 };
-        salesByContact[t.contact_id].amount += t.amount || 0;
+        if (t.credit_account_code?.startsWith("4")) salesByContact[t.contact_id].amount += t.amount || 0;
+        if (t.debit_account_code?.startsWith("4")) salesByContact[t.contact_id].amount -= t.amount || 0;
       });
 
     return Object.values(salesByContact)
+      .filter((v) => v.amount > 0)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 8);
   }, [plTx, range, contacts, filterByRange]);
