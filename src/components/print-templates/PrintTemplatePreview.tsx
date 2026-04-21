@@ -682,7 +682,8 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
 
             {data.notes && (
               <div style={{ marginTop: 16, padding: "8px 12px", background: theme.lightBg, borderRadius: 4, fontSize: 10 }}>
-                <strong>ملاحظات:</strong> {data.notes}
+                <strong>ملاحظات:</strong>{" "}
+                <Edit k="notes" fallback={data.notes} />
               </div>
             )}
 
