@@ -130,6 +130,19 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     if (!content) return;
     const w = window.open("", "_blank");
     if (!w) return;
+
+    // Clone the content so we can rewrite relative image URLs to absolute ones
+    // (relative paths break inside about:blank windows in some browsers).
+    const clone = content.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("img").forEach((img) => {
+      const src = img.getAttribute("src") || "";
+      if (src && !/^(https?:|data:|blob:)/.test(src)) {
+        img.setAttribute("src", new URL(src, window.location.origin).href);
+      }
+    });
+    // Strip any AI floating toolbars that might have been left in the DOM.
+    clone.querySelectorAll(".no-print").forEach((el) => el.remove());
+
     w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${title}</title>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
@@ -145,9 +158,35 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
         .amount-value { font-size: ${theme.amountFontSize}px; font-weight: 800; color: ${theme.amountColor}; }
         .amount-words { font-size: 11px; color: #666; font-style: italic; margin-top: 4px; }
         .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: ${theme.watermarkOpacity}; z-index: 0; pointer-events: none; }
-      </style></head><body>${content.innerHTML}</body></html>`);
+        /* Remove any leftover edit affordances from contentEditable elements */
+        [contenteditable] { outline: none !important; }
+        .no-print { display: none !important; }
+        img { max-width: 100%; }
+      </style></head><body>${clone.innerHTML}</body></html>`);
     w.document.close();
-    setTimeout(() => { w.print(); w.close(); }, 300);
+
+    // Wait for fonts + images to load before triggering the print dialog.
+    const triggerPrint = () => {
+      try { w.focus(); w.print(); } catch {}
+      // Give the print dialog a moment, then close.
+      setTimeout(() => { try { w.close(); } catch {} }, 500);
+    };
+    const imgs = Array.from(w.document.images);
+    const waitImages = Promise.all(
+      imgs.map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>((res) => {
+              img.addEventListener("load", () => res(), { once: true });
+              img.addEventListener("error", () => res(), { once: true });
+            }),
+      ),
+    );
+    const waitFonts =
+      (w.document as any).fonts?.ready instanceof Promise
+        ? (w.document as any).fonts.ready
+        : Promise.resolve();
+    Promise.all([waitImages, waitFonts]).then(() => setTimeout(triggerPrint, 100));
   };
 
   // PDF download removed — print only
