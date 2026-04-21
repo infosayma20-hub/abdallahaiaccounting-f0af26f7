@@ -382,6 +382,14 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
           delete (window as any).__duplicateContactId;
         }
+        // Prefill contact when navigating from "Mark invoice as paid" flow
+        if (prefillInvoiceId && prefillContactName && !selectedContact) {
+          const found = contactsList.find(c => c.contact_name === prefillContactName);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+        }
       })
       .then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
