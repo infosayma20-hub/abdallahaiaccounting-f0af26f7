@@ -188,15 +188,25 @@ const PrintTemplatesPage = () => {
         <p className="text-muted-foreground text-sm mt-1">أنشئ وطبع نماذج احترافية مرتبطة ببيانات شركتك</p>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="ابحث عن نموذج..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="pr-10"
-        />
+      {/* Search + Library */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="ابحث عن نموذج..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setLibraryOpen(true)}
+          className="gap-2 border-primary/40 text-primary hover:bg-primary/5"
+        >
+          <Sparkles className="w-4 h-4" />
+          مكتبة القوالب الجاهزة
+        </Button>
       </div>
 
       {/* Category Tabs */}
@@ -315,7 +325,8 @@ const PrintTemplatesPage = () => {
           open={modalOpen}
           onOpenChange={setModalOpen}
           template={selectedTemplate}
-          onSaved={() => { fetchRecent(); setModalOpen(false); }}
+          initialData={presetData}
+          onSaved={() => { fetchRecent(); setModalOpen(false); setPresetData(undefined); }}
         />
       )}
 
@@ -326,6 +337,12 @@ const PrintTemplatesPage = () => {
           document={previewDoc}
         />
       )}
+
+      <SectorTemplateLibrary
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onPick={handlePickPreset}
+      />
     </div>
   );
 };
