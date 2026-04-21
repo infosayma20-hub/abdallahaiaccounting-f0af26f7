@@ -832,14 +832,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         toast.error(`إجمالي الشيكات (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`);
         return;
       }
-      // Mandatory: account number for incoming cheques (سند قبض)
-      if (isReceipt) {
-        const missingAcct = cheques.findIndex(c => c.number && !c.accountNumber.trim());
-        if (missingAcct !== -1) {
-          toast.error(`يرجى إدخال رقم الحساب البنكي لصاحب الشيك رقم ${cheques[missingAcct].number}`);
-          return;
-        }
-      }
+      // رقم حساب صاحب الشيك أصبح اختيارياً للوارد والصادر معاً
     }
     setSaving(true);
 
@@ -2389,14 +2382,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     <div>
                       <Label className="text-[10px] mb-1 block text-muted-foreground flex items-center gap-1">
                         رقم حساب صاحب الشيك
-                        {isReceipt && <span className="text-destructive">*</span>}
                         <span title="رقم الحساب يساعدك في تتبع الشيكات ومطابقة البنك لاحقاً" className="text-muted-foreground/60 cursor-help">ⓘ</span>
                       </Label>
                       <Input
                         value={chq.accountNumber}
                         onChange={e => updateCheque(idx, "accountNumber", e.target.value)}
-                        placeholder={isReceipt ? "إلزامي للشيك الوارد" : "اختياري"}
-                        className={`h-9 text-xs font-mono ${isReceipt && !chq.accountNumber ? "border-amber-400 focus-visible:ring-amber-400" : ""}`}
+                        placeholder="اختياري"
+                        className="h-9 text-xs font-mono"
                       />
                     </div>
                     <div>
