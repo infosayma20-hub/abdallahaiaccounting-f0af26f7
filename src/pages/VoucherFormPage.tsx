@@ -1335,6 +1335,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             currency: currencyLabel,
             source_bank_account_id: selectedChequeBankAccount || null,
             contact_id: selectedContact?.id || null,
+            account_number: c.accountNumber?.trim() || null,
+            notes: c.notes?.trim() || null,
           }));
           if (chequeRows.length > 0) await supabase.from("cheques").insert(chequeRows);
         }
