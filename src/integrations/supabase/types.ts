@@ -1672,6 +1672,7 @@ export type Database = {
           status: Database["public"]["Enums"]["cheque_status"]
           updated_at: string
           user_id: string
+          voucher_id: string | null
         }
         Insert: {
           account_number?: string | null
@@ -1707,6 +1708,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["cheque_status"]
           updated_at?: string
           user_id: string
+          voucher_id?: string | null
         }
         Update: {
           account_number?: string | null
@@ -1742,6 +1744,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["cheque_status"]
           updated_at?: string
           user_id?: string
+          voucher_id?: string | null
         }
         Relationships: [
           {
@@ -1756,6 +1759,13 @@ export type Database = {
             columns: ["source_bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
