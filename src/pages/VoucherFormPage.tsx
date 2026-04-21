@@ -218,6 +218,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  const [fastEntryEnabled] = useFastEntryMode();
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
