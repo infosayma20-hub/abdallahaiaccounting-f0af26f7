@@ -44,3 +44,16 @@ seeds them at runtime if missing:
 ## Legacy 2110 references kept as-is
 - Cheque endorsement block (~line 1428): debit 2110 / credit 1150 — separate flow.
 - Employee-payment edit fallback `editDebitAccountCode = "2110"` — overridden later.
+
+## Statement & Dashboard integration (CRITICAL)
+Anywhere that derives a customer/supplier balance MUST net the advance
+accounts together with the receivable/payable, otherwise advance vouchers
+become invisible:
+
+| File | Treatment |
+|---|---|
+| `src/pages/AccountStatementV2Page.tsx` | `contactAccountCodes = ["1130","2110","2180","2115","1146"]` for both balance map & statement rows. |
+| `src/pages/ContactsPage.tsx` | Balance map nets 2115 (Cr reduces customer debt) and 1146 (Dr reduces supplier debt). |
+| `src/pages/InvoiceCreatePage.tsx` | Same netting on per-contact balance map used in invoice form. |
+| `src/hooks/useDashboardData.ts` | `receivables = (1130 Dr−Cr) − (2115 Cr−Dr)`; `payables = (2*−2115)+(1146 Dr−Cr)`. |
+| `src/lib/buildAIContext.ts` | Same netting so the AI sees true exposure. |
