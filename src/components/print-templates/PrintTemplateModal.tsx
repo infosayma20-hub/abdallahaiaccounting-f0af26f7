@@ -171,7 +171,20 @@ const PrintTemplateModal = ({ open, onOpenChange, template, onSaved, initialData
               <Button size="sm" variant="outline" onClick={addItem}><Plus className="w-3.5 h-3.5 ml-1" /> إضافة بند</Button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>الخصم %</Label><Input type="number" value={discountPercent} onChange={e => setDiscountPercent(+e.target.value)} /></div>
+              <div>
+                <Label>الخصم %</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={discountPercent}
+                  onChange={e => {
+                    const v = parseFloat(e.target.value) || 0;
+                    setDiscountPercent(Math.min(100, Math.max(0, v)));
+                  }}
+                />
+              </div>
               <div className="flex items-center gap-2 pt-6"><Switch checked={vatEnabled} onCheckedChange={setVatEnabled} /><Label>ضريبة القيمة المضافة (16%)</Label></div>
             </div>
             <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">

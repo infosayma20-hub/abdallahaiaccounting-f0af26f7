@@ -275,7 +275,24 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const renderTotals = () => (
     <div style={{ marginTop: 8, fontSize: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}><span>المجموع الفرعي:</span><span>₪{fmt(data.subtotal || 0)}</span></div>
-      {data.discount_percent > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>الخصم ({data.discount_percent}%):</span><span>-₪{fmt((data.subtotal || 0) * data.discount_percent / 100)}</span></div>}
+      {data.discount_percent > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>الخصم ({data.discount_percent}%):</span>
+          <span>-₪{fmt((data.subtotal || 0) * data.discount_percent / 100)}</span>
+        </div>
+      )}
+      {data.discount_percent < 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", color: "#B45309" }}>
+          <span>زيادة ({Math.abs(data.discount_percent)}%):</span>
+          <span>+₪{fmt((data.subtotal || 0) * Math.abs(data.discount_percent) / 100)}</span>
+        </div>
+      )}
+      {data.vat_enabled && (
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>ضريبة القيمة المضافة (16%):</span>
+          <span>₪{fmt(((data.subtotal || 0) - (data.subtotal || 0) * (data.discount_percent || 0) / 100) * 0.16)}</span>
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: `1px solid ${theme.primaryColor}`, paddingTop: 4, marginTop: 4 }}><span>الإجمالي النهائي:</span><span>₪{fmt(data.total || 0)}</span></div>
     </div>
   );
