@@ -67,7 +67,10 @@ interface Invoice {
   contactAddress?: string;
   items: InvoiceItem[];
   notes: string;
-  status: "draft" | "sent" | "paid";
+  // 🎯 Invoice lifecycle status (workflow only — does NOT reflect payment)
+  status: "draft" | "sent" | "cancelled";
+  // 🎯 Payment status — derived from receipt vouchers, NOT user-controlled
+  paymentStatus: "unpaid" | "partial" | "paid";
   paymentMethod: "cash" | "transfer" | "cheque" | "credit";
   subtotal: number;
   totalDiscount: number;
