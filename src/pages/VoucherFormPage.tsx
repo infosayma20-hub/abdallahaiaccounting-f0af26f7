@@ -636,12 +636,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load invoices when contact is selected
   useEffect(() => {
     if (!user || !selectedContact) { setInvoices([]); return; }
-    const invoiceType = isReceipt ? "sale" : "purchase";
+    // Smart loading:
+    //   - Receipt + customer  → sale invoices (settlement)
+    //   - Payment + supplier  → purchase invoices (settlement)
+    //   - Payment + customer  → sale invoices (reverse-settlement / refund)
+    //   - Receipt + supplier  → purchase invoices (rare: supplier refund)
+    // We can't tell party-side here (customer vs supplier) without the contact_type,
+    // but the same invoice query (filtered by contact_id) returns whatever is open
+    // for THIS contact regardless of invoice_type. So we fetch BOTH sides and let
+    // the allocation engine work on the open set.
     (supabase.from("invoices")
-      .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate")
+      .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate, invoice_type")
       .eq("user_id", user.id)
       .eq("contact_id", selectedContact.id)
-      .eq("invoice_type", invoiceType)
+      .in("invoice_type", isReceipt ? ["sale"] : ["purchase", "sale"])
       .in("payment_status", ["unpaid", "partial"]) as any)
       .neq("status", "cancelled")
       .neq("is_deleted", true)
@@ -927,6 +935,56 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         counterAccountCode = selectedGlAccount.account_code;
       }
 
+      // ─── Smart Allocation: route by intent ───
+      // For contact-based vouchers, the engine tells us whether this is a
+      // settlement, advance, refund, or reverse-settlement. Map each intent
+      // to the correct counter-account so the journal entry is meaningful
+      // and customer/supplier statements stay clean.
+      let allocationIntent: string | null = null;
+      if (partyType === "contact" && selectedContact && !isAccountPayment) {
+        const summaryNow = engineSummary(invoices as any, amountNum);
+        const cls = engineClassify({
+          voucherKind: voucherType,
+          partyType: "contact",
+          hasContact: true,
+          openInvoiceCount: invoices.length,
+          mode: allocationMode,
+          summary: summaryNow,
+        });
+        allocationIntent = cls.intent;
+
+        // Make sure the advance accounts exist for this user (idempotent)
+        if (cls.intent === "advance" || cls.intent === "supplier_advance") {
+          await supabase.rpc("ensure_advance_accounts" as any, { p_user_id: user.id });
+        }
+
+        if (isReceipt) {
+          // Receipt + customer
+          if (cls.intent === "advance") {
+            // Customer prepayment → liability (دفعات مقدمة من العملاء)
+            counterAccountCode = "2115";
+          } else {
+            // settlement / partial → standard receivables
+            counterAccountCode = "1130";
+          }
+        } else {
+          // Payment voucher
+          if (cls.intent === "refund") {
+            // Refund / reverse-settlement to a customer → reduce receivable
+            counterAccountCode = "1130";
+          } else if (cls.intent === "reverse_settlement") {
+            // Payment to customer with open sale invoices (return / discount)
+            counterAccountCode = "1130";
+          } else if (cls.intent === "supplier_advance") {
+            // Advance to supplier → asset (دفعات مقدمة للموردين)
+            counterAccountCode = "1146";
+          } else {
+            // Standard supplier settlement
+            counterAccountCode = "2110";
+          }
+        }
+      }
+
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
         if (isReceipt) {
@@ -1126,8 +1184,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // ─── CREATE MODE ───
       let txId: string | null = null;
 
-      // For account party type or foreign currency, create transaction directly
-      const useDirectTransaction = isAccountPayment || currency !== "ILS";
+      // Force direct transaction (bypass legacy RPC) whenever the intent
+      // requires a non-default counter-account. The RPCs hardcode 1130/2110
+      // and would silently overwrite our smart routing.
+      const intentNeedsDirect =
+        allocationIntent === "advance" ||
+        allocationIntent === "supplier_advance" ||
+        allocationIntent === "refund" ||
+        allocationIntent === "reverse_settlement";
+      const useDirectTransaction = isAccountPayment || currency !== "ILS" || intentNeedsDirect;
 
       if (!asDraft && isReceipt && !useDirectTransaction) {
         const { data: txResult, error: rpcError } = await supabase.rpc("create_receipt_with_entry", {
