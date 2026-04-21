@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, ShieldCheck } from "lucide-react";
 import BrandIdentitySettings from "@/components/settings/BrandIdentitySettings";
+import PasswordManagementSection from "@/components/settings/PasswordManagementSection";
 import { useCompanyTheme } from "@/hooks/useCompanyTheme";
 import { extractColorsFromLogo, assignColorRoles, ensureAccessibility } from "@/lib/color-utils";
 import { useNavigate } from "react-router-dom";
