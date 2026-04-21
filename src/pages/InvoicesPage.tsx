@@ -796,6 +796,26 @@ const InvoicesPage = () => {
 
 
     const updateStatus = async (id: string, status: Invoice["status"]) => {
+    // 🔒 Accounting integrity: cannot mark an invoice as "paid" without an actual payment.
+    // Marking it paid via dropdown would only flip a flag without creating a receipt voucher,
+    // leaving the customer's account statement showing the invoice as a receivable forever.
+    // Instead, redirect the user to create a Receipt Voucher (سند قبض) linked to this invoice.
+    if (status === 'paid') {
+      const inv = invoices.find(i => i.id === id);
+      const contactName = inv?.contactName || '';
+      toast({
+        title: "يتطلب سند قبض 🧾",
+        description: "لا يمكن تعليم الفاتورة كمدفوعة بدون تسجيل سند قبض. سيتم تحويلك لإنشاء سند قبض مرتبط بهذه الفاتورة.",
+      });
+      // Close the preview dialog before navigating
+      setShowPreviewDialog(false);
+      const params = new URLSearchParams();
+      params.set("invoice_id", id);
+      if (contactName) params.set("contact_name", contactName);
+      navigate(`/finance/vouchers/receipt/new?${params.toString()}`);
+      return;
+    }
+
     const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
     
     // ✅ تقييد تحويل الفاتورة لمسودة بصلاحية admin أو accountant_senior فقط
