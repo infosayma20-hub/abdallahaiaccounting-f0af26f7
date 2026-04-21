@@ -86,6 +86,8 @@ const PrintTemplatesPage = () => {
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [presetData, setPresetData] = useState<Record<string, any> | undefined>(undefined);
 
   const fetchRecent = async () => {
     if (!user) return;
@@ -106,7 +108,21 @@ const PrintTemplatesPage = () => {
   });
 
   const handleCreate = (template: TemplateConfig) => {
+    setPresetData(undefined);
     setSelectedTemplate(template);
+    setModalOpen(true);
+  };
+
+  /** When a sector preset is picked, find the matching template config and open
+   *  the create modal with its data prefilled. */
+  const handlePickPreset = (preset: SectorPreset) => {
+    const tpl = TEMPLATES.find((t) => t.type === preset.templateType);
+    if (!tpl) {
+      toast({ title: "النموذج غير متوفر", variant: "destructive" });
+      return;
+    }
+    setPresetData(preset.data);
+    setSelectedTemplate(tpl);
     setModalOpen(true);
   };
 
