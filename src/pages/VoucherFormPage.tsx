@@ -1426,10 +1426,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
-        toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`);
-        setSaved(true);
+        const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${receipt?.receipt_number}`;
         setSavedReceiptNumber(receipt?.receipt_number || "");
         clearDraft();
+        if (fastEntryEnabled && !asDraft && !editId) {
+          // Fast-entry: non-blocking toast + auto-reset.
+          toast.success(successMsg, { duration: 2500 });
+          resetForFastEntry();
+        } else {
+          toast.success(successMsg);
+          setSaved(true);
+        }
       } else {
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
         const isEmpPay = partyType === "employee" && selectedEmployee;
