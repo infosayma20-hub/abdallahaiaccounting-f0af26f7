@@ -252,7 +252,28 @@ const AccountStatementV2Page = () => {
 
   const { contactBalances, contactTxCounts } = useMemo(() => {
     const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
-    for (const c of contacts) { let b = 0, cnt = 0; const accountCode = c.contact_type === "عميل" ? "1130" : c.contact_type === "مورد" ? "2110" : "2180"; for (const tx of transactions) { const matches = (tx.contact_id === c.id) || (!tx.contact_id && tx.description?.includes(c.contact_name?.trim())); if (!matches) continue; cnt++; if (tx.debit_account_code === accountCode) b += tx.amount || 0; if (tx.credit_account_code === accountCode) b -= tx.amount || 0; } balMap[c.id] = b; cntMap[c.id] = cnt; }
+    // Include advance accounts so dفعات مقدمة (2115 / 1146) reflect in the
+    // contact's balance & statement (Smart Allocation routes them there).
+    const codesByType: Record<string, string[]> = {
+      "عميل": ["1130", "2115"],     // ذمم عملاء + دفعات مقدمة من العملاء
+      "مورد": ["2110", "1146"],     // ذمم موردين + دفعات مقدمة للموردين
+      "موظف": ["2180"],
+    };
+    for (const c of contacts) {
+      let b = 0, cnt = 0;
+      const codes = codesByType[c.contact_type] || ["2180"];
+      for (const tx of transactions) {
+        const matches = (tx.contact_id === c.id) || (!tx.contact_id && tx.description?.includes(c.contact_name?.trim()));
+        if (!matches) continue;
+        const isDr = codes.includes(tx.debit_account_code);
+        const isCr = codes.includes(tx.credit_account_code);
+        if (!isDr && !isCr) continue;
+        cnt++;
+        if (isDr) b += tx.amount || 0;
+        if (isCr) b -= tx.amount || 0;
+      }
+      balMap[c.id] = b; cntMap[c.id] = cnt;
+    }
     return { contactBalances: balMap, contactTxCounts: cntMap };
   }, [contacts, transactions]);
 
