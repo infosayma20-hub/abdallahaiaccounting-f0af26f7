@@ -1242,12 +1242,12 @@ const InvoicesPage = () => {
                             </Button>
                           </TooltipTrigger><TooltipContent side="top"><p className="text-xs">طباعة</p></TooltipContent></Tooltip>
 
-                          {inv.type === 'sales' && inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
+                          {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
                             <Tooltip><TooltipTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-success" onClick={() => recordPayment(inv)}>
                                 <Receipt className="h-3.5 w-3.5" />
                               </Button>
-                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">تسجيل قبض</p></TooltipContent></Tooltip>
+                            </TooltipTrigger><TooltipContent side="top"><p className="text-xs">{inv.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}</p></TooltipContent></Tooltip>
                           )}
 
                           {canEdit({ status: inv.status }) && (
