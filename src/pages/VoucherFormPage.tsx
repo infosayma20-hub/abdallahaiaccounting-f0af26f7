@@ -1575,10 +1575,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         broadcastChange("payment_voucher", "created", voucher?.id);
-        toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`);
-        setSaved(true);
+        const successMsg = asDraft ? "تم حفظ المسودة" : `تم ترحيل ${voucherLabel} ${voucher?.ref_number}`;
         setSavedReceiptNumber(voucher?.ref_number || "");
         clearDraft();
+        if (fastEntryEnabled && !asDraft && !editId) {
+          toast.success(successMsg, { duration: 2500 });
+          resetForFastEntry();
+        } else {
+          toast.success(successMsg);
+          setSaved(true);
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
