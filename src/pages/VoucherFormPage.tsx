@@ -22,6 +22,14 @@ import ChequeAllBankSelect from "@/components/ChequeAllBankSelect";
 import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
+import {
+  AllocationMode,
+  autoAllocate as engineAutoAllocate,
+  checkPostingGuards,
+  classifyVoucher as engineClassify,
+  computeSummary as engineSummary,
+} from "@/lib/voucher-allocation";
 
 interface Contact {
   id: string;
@@ -212,6 +220,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [autoAllocate, setAutoAllocate] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  // Smart allocation mode (auto / manual / advance / refund)
+  const [allocationMode, setAllocationMode] = useState<AllocationMode>("auto");
   const isCancelled = editVoucherStatus === "cancelled";
 
   // Attachments
@@ -850,6 +860,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!isEmployeePayment && !isAccountPayment && !selectedContact) {
       toast.error("الرجاء اختيار الجهة");
       return;
+    }
+    // ─── Smart Allocation Posting Guards ───
+    if (!asDraft && partyType === "contact" && selectedContact) {
+      const summary = engineSummary(invoices as any, amountNum);
+      const guard = checkPostingGuards({
+        voucherKind: voucherType,
+        partyType,
+        hasContact: true,
+        openInvoiceCount: invoices.length,
+        mode: allocationMode,
+        summary,
+      });
+      if (!guard.ok && guard.block) {
+        toast.error(guard.block);
+        return;
+      }
+      if (guard.confirm) {
+        const proceed = window.confirm(guard.confirm);
+        if (!proceed) return;
+      }
     }
     // Validate cheque amounts total
     if (paymentMethod === "شيك" && cheques.length > 0 && !asDraft) {
@@ -2442,148 +2472,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       {/* Invoice Linking Section */}
       {selectedContact && partyType === "contact" && (
-        <Card>
-          <CardContent className="p-5 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                📄 ربط بفاتورة
-              </h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                <label className="flex items-center gap-1.5 text-[10px] cursor-pointer select-none">
-                  <input type="checkbox" checked={autoAllocate} onChange={e => { setAutoAllocate(e.target.checked); if (!e.target.checked) clearSelection(); }}
-                    className="w-3.5 h-3.5 rounded border-border accent-primary" />
-                  تخصيص تلقائي حسب الأقدمية
-                </label>
-                <button onClick={selectAll} className="text-[10px] px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all">✓ تحديد الكل</button>
-                <button onClick={clearSelection} className="text-[10px] px-2.5 py-1 rounded-lg bg-secondary text-muted-foreground hover:bg-secondary/80 transition-all">مسح</button>
-              </div>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input value={invoiceSearch} onChange={e => setInvoiceSearch(e.target.value)} placeholder="ابحث برقم الفاتورة..." className="pr-9" />
-            </div>
-
-            {filteredInvoices.length > 0 ? (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-right" style={{ background: "#0D1B2A" }}>
-                      <th className="p-2.5 text-white font-medium w-10">✓</th>
-                      <th className="p-2.5 text-white font-medium">رقم الفاتورة</th>
-                      <th className="p-2.5 text-white font-medium">تاريخ الإصدار</th>
-                      <th className="p-2.5 text-white font-medium">الاستحقاق</th>
-                      <th className="p-2.5 text-white font-medium text-left">الإجمالي</th>
-                      <th className="p-2.5 text-white font-medium text-left">المتبقي</th>
-                      <th className="p-2.5 text-white font-medium">التأخير</th>
-                      <th className="p-2.5 text-white font-medium text-left w-28">المبلغ المخصص</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInvoices.map((inv, idx) => {
-                      const rawRemaining = Math.max(0, (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0));
-                      const convertedRemaining = getInvRemainingInVoucherCurrency(inv);
-                      const isDiffCurrency = isInvCurrencyDifferent(inv);
-                      const invSymbol = getInvCurrencySymbol(inv);
-                      const days = getDaysOverdue(inv.due_date);
-                      return (
-                        <tr key={inv.id} className={`border-t border-border/30 transition-colors ${inv.selected ? "bg-primary/5" : idx % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
-                          <td className="p-2.5 text-center">
-                            <input type="checkbox" checked={inv.selected || false} onChange={() => toggleInvoice(inv.id)}
-                              className="w-4 h-4 rounded border-border accent-primary" />
-                          </td>
-                          <td className="p-2.5 font-mono font-medium text-foreground">
-                            {inv.invoice_number || "-"}
-                            {isDiffCurrency && (
-                              <span className="block text-[9px] text-warning font-normal">⚠️ {inv.currency}</span>
-                            )}
-                          </td>
-                          <td className="p-2.5 text-muted-foreground">{inv.invoice_date}</td>
-                          <td className="p-2.5 text-muted-foreground">{inv.due_date || "-"}</td>
-                          <td className="p-2.5 text-left font-mono">
-                            {invSymbol}{formatAmount(inv.total_amount)}
-                            {isDiffCurrency && (
-                              <span className="block text-[9px] text-muted-foreground">= {currencySymbol}{formatAmount(inv.total_amount * (inv.exchange_rate || 1))}</span>
-                            )}
-                          </td>
-                          <td className="p-2.5 text-left font-mono font-bold">
-                            {invSymbol}{formatAmount(rawRemaining)}
-                            {isDiffCurrency && (
-                              <span className="block text-[9px] text-muted-foreground">= {currencySymbol}{formatAmount(convertedRemaining)}</span>
-                            )}
-                          </td>
-                          <td className="p-2.5">
-                            <span className={`${getOverdueColor(days)} text-[10px]`}>
-                              {getOverdueIcon(days)} {getOverdueLabel(days)}
-                            </span>
-                          </td>
-                          <td className="p-2.5">
-                            {inv.selected && (
-                              <div>
-                                <Input type="number" value={inv.allocatedAmount || ""} onChange={e => updateAllocation(inv.id, parseFloat(e.target.value) || 0)}
-                                  className="h-7 text-xs font-mono text-left w-24" min={0} max={convertedRemaining} step={0.01} />
-                                {isDiffCurrency && (
-                                  <span className="text-[9px] text-muted-foreground block mt-0.5">
-                                    {invSymbol}{formatAmount(rawRemaining)} × {inv.exchange_rate || 1} = {currencySymbol}{formatAmount(convertedRemaining)}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">لا توجد فواتير مفتوحة لهذا {isReceipt ? "الزبون" : "المورد"}</p>
-              </div>
-            )}
-
-            {/* Distribution Summary */}
-            {amountNum > 0 && (() => {
-              const hasMultiCurrency = invoices.some(i => i.selected && isInvCurrencyDifferent(i));
-              return (
-              <div className={`rounded-xl p-4 space-y-2 text-xs ${unallocated === 0 && totalAllocated > 0 ? "bg-primary/5 border border-primary/20" : unallocated > 0 ? "bg-warning/5 border border-warning/20" : "bg-destructive/5 border border-destructive/20"}`}>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{amountLabel}:</span>
-                  <span className="font-mono font-bold">{currencySymbol}{formatAmount(amountNum)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">الموزَّع على الفواتير:</span>
-                  <span className="font-mono">({currencySymbol}{formatAmount(totalAllocated)})</span>
-                </div>
-                {hasMultiCurrency && (
-                  <div className="flex items-center gap-1.5 text-warning text-[10px] bg-warning/10 rounded-lg px-2 py-1">
-                    <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                    المبالغ المخصصة محوّلة بسعر صرف الفاتورة الأصلي
-                  </div>
-                )}
-                <div className="border-t border-border/30 pt-2 flex justify-between font-bold">
-                  <span>المبلغ غير الموزَّع:</span>
-                  <span className="font-mono">{currencySymbol}{formatAmount(Math.abs(unallocated))}</span>
-                </div>
-                {unallocated === 0 && totalAllocated > 0 && (
-                  <p className="flex items-center gap-1.5 text-primary"><CheckCircle className="h-3.5 w-3.5" /> مطابق تام ✓</p>
-                )}
-                {unallocated > 0 && totalAllocated > 0 && (
-                  <p className="flex items-center gap-1.5 text-warning"><AlertTriangle className="h-3.5 w-3.5" /> يوجد فائض — سيُضاف لرصيد {isReceipt ? "الزبون" : "المورد"}</p>
-                )}
-                {unallocated < 0 && (
-                  <p className="flex items-center gap-1.5 text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> غير كافٍ — سيُسجَّل كدفع جزئي</p>
-                )}
-                {totalAllocated === 0 && (
-                  <p className="flex items-center gap-1.5 text-muted-foreground"><Info className="h-3.5 w-3.5" /> لم يتم ربط أي فاتورة — سيُسجل كدفعة على الحساب</p>
-                )}
-              </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
+        <SmartAllocationPanel
+          voucherKind={voucherType}
+          partyType={partyType}
+          hasContact={!!selectedContact}
+          invoices={invoices as any}
+          amount={amountNum}
+          currency={currency}
+          exchangeRate={exchangeRate}
+          currencySymbol={currencySymbol}
+          mode={allocationMode}
+          onModeChange={setAllocationMode}
+          onToggle={toggleInvoice}
+          onUpdateAllocation={updateAllocation}
+          onAutoAllocate={selectAll}
+          onClear={clearSelection}
+          invoiceSearch={invoiceSearch}
+          onInvoiceSearch={setInvoiceSearch}
+        />
       )}
 
       {/* Attachments */}
