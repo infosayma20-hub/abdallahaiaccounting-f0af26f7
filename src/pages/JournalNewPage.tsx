@@ -364,10 +364,29 @@ const JournalNewPage = () => {
       }
 
       const modeLabel = mode === "posted" ? `تم ترحيل سند القيد ${voucher.ref_number}` : mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${voucher.ref_number}` : "تم حفظ المسودة";
-      toast.success(modeLabel);
-      setSaved(true);
       setSavedRefNumber(voucher.ref_number || "");
       clearDraft();
+      if (fastEntryEnabled && mode === "posted") {
+        toast.success(modeLabel, { duration: 2500 });
+        // Auto-reset for fast entry — keep date + subtype as last-used context.
+        setFormDescription("");
+        setFormNotes("");
+        setFormContactId("");
+        setContactSearch("");
+        setAttachments([]);
+        setLines([
+          { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+          { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+        ]);
+        setAccountSearches({});
+        setLineContactSearches({});
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>("[data-smart-first]")?.focus();
+        });
+      } else {
+        toast.success(modeLabel);
+        setSaved(true);
+      }
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
     } finally {
