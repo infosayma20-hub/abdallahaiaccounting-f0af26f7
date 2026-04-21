@@ -12,15 +12,19 @@ import { toast } from "@/hooks/use-toast";
 import type { TemplateConfig } from "@/pages/PrintTemplatesPage";
 import PrintTemplatePreview from "./PrintTemplatePreview";
 import { isDoulia } from "@/lib/print-themes";
+import StyleSelector from "./StyleSelector";
+import { applyStyle, type WritingStyle } from "./writingStyles";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   template: TemplateConfig;
   onSaved: () => void;
+  /** Optional preset data (e.g. from sector library) to prefill the form. */
+  initialData?: Record<string, any>;
 }
 
-const PrintTemplateModal = ({ open, onOpenChange, template, onSaved }: Props) => {
+const PrintTemplateModal = ({ open, onOpenChange, template, onSaved, initialData }: Props) => {
   const { user } = useAuth();
   const showExtendedFields = isDoulia(user?.email);
   const [contactName, setContactName] = useState("");
