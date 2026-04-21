@@ -355,7 +355,11 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "DN":
         return (
           <>
-            <p>بناءً على ذلك، تم إضافة مبلغ <strong>₪{fmt(data.amount || 0)}</strong> على حسابكم.</p>
+            <Edit
+              k="dn_intro"
+              as="p"
+              fallback={`بناءً على ذلك، تم إضافة مبلغ ₪${fmt(data.amount || 0)} على حسابكم.`}
+            />
             {data.reason && <p><strong>السبب:</strong> {data.reason}</p>}
             {data.ref_invoice && <p><strong>رقم الفاتورة المرجعية:</strong> {data.ref_invoice}</p>}
             {isCustom && renderAmountBlock(data.amount || 0)}
@@ -365,7 +369,11 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "CN":
         return (
           <>
-            <p>بناءً على ذلك، تم خصم مبلغ <strong>₪{fmt(data.amount || 0)}</strong> من حسابكم.</p>
+            <Edit
+              k="cn_intro"
+              as="p"
+              fallback={`بناءً على ذلك، تم خصم مبلغ ₪${fmt(data.amount || 0)} من حسابكم.`}
+            />
             {data.reason && <p><strong>السبب:</strong> {data.reason}</p>}
             {data.ref_invoice && <p><strong>رقم الفاتورة المرجعية:</strong> {data.ref_invoice}</p>}
             {isCustom && renderAmountBlock(data.amount || 0)}
@@ -424,9 +432,17 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "CLR":
         return (
           <>
-            <p>نشهد بموجب هذا الخطاب أن الجهة المذكورة أدناه قد أوفت بجميع التزاماتها المالية والتعاقدية.</p>
+            <Edit
+              k="clr_intro"
+              as="p"
+              fallback="نشهد بموجب هذا الخطاب أن الجهة المذكورة أدناه قد أوفت بجميع التزاماتها المالية والتعاقدية."
+            />
             {data.subject && <p><strong>الموضوع:</strong> {data.subject}</p>}
-            <p>وبناءً عليه، فإنه لا توجد أي مطالبات أو التزامات مالية متبقية.</p>
+            <Edit
+              k="clr_closing"
+              as="p"
+              fallback="وبناءً عليه، فإنه لا توجد أي مطالبات أو التزامات مالية متبقية."
+            />
           </>
         );
 
