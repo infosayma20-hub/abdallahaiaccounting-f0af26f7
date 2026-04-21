@@ -1,11 +1,14 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X } from "lucide-react";
+import { Printer, X, Save, Sparkles, RotateCcw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { getThemeForUser, type PrintTheme, DEFAULT_THEME } from "@/lib/print-themes";
 import { amountToArabicWords } from "@/lib/arabic-number-words";
+import EditableText from "./EditableText";
 // PDF imports removed — print only
 
 interface Props {
@@ -35,6 +38,92 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
   const data = doc?.data || {};
   const title = TEMPLATE_TITLES[type] || type;
   const currency = data.currency || "شيكل";
+
+  // ---------- Inline editable text overrides ----------
+  // Persisted to print_documents.data.custom_text. The default strings live
+  // alongside each render below; the user can override any of them inline and
+  // optionally enhance them with AI (see EditableText).
+  const initialOverrides: Record<string, string> = (data.custom_text as any) || {};
+  const [customText, setCustomText] = useState<Record<string, string>>(initialOverrides);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Reset overrides whenever a different document is loaded
+  useEffect(() => {
+    setCustomText((doc?.data?.custom_text as Record<string, string>) || {});
+    setDirty(false);
+  }, [doc?.id]);
+
+  /** Get the current text for a key — user override if present, else fallback. */
+  const getText = (key: string, fallback: string) =>
+    customText[key] != null ? customText[key] : fallback;
+
+  /** Set/clear an override and mark the document as dirty. */
+  const setText = (key: string, fallback: string) => (next: string) => {
+    setCustomText((prev) => {
+      const out = { ...prev };
+      if (next === fallback || next.trim() === "") {
+        // Restore default by removing the override
+        delete out[key];
+      } else {
+        out[key] = next;
+      }
+      return out;
+    });
+    setDirty(true);
+  };
+
+  /** Editable wrapper — tiny shorthand to keep the body renderers readable. */
+  const Edit = ({
+    k,
+    fallback,
+    as = "span",
+    style,
+  }: {
+    k: string;
+    fallback: string;
+    as?: "p" | "span" | "div";
+    style?: React.CSSProperties;
+  }) => (
+    <EditableText
+      as={as}
+      value={getText(k, fallback)}
+      onChange={setText(k, fallback)}
+      aiContext={title}
+      disabled={!doc?.id /* can't persist edits without an id (preview mode) */}
+      style={style}
+    />
+  );
+
+  const handleSaveEdits = async () => {
+    if (!doc?.id) {
+      toast({ title: "لا يمكن حفظ التعديلات في وضع المعاينة", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const nextData = { ...(doc.data || {}), custom_text: customText };
+      const { error } = await supabase
+        .from("print_documents")
+        .update({ data: nextData })
+        .eq("id", doc.id);
+      if (error) throw error;
+      // Mutate the in-memory doc so subsequent prints use the saved text
+      doc.data = nextData;
+      setDirty(false);
+      toast({ title: "✅ تم حفظ التعديلات" });
+    } catch (err: any) {
+      toast({ title: "خطأ في الحفظ", description: err?.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetEdits = () => {
+    setCustomText({});
+    setDirty(true);
+    toast({ title: "تم استرجاع النص الافتراضي" });
+  };
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -186,7 +275,12 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "QUO":
         return (
           <>
-            <p style={{ marginBottom: 8 }}>السادة المحترمين، يسعدنا تقديم عرض الأسعار التالي لتنفيذ الأعمال المطلوبة:</p>
+            <Edit
+              k="quo_intro"
+              as="p"
+              fallback="السادة المحترمين، يسعدنا تقديم عرض الأسعار التالي لتنفيذ الأعمال المطلوبة:"
+              style={{ marginBottom: 8 }}
+            />
             {data.items?.length > 0 && (
               <table>
                 <thead><tr><th>#</th><th>البند / الخدمة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead>
@@ -198,26 +292,62 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
               </table>
             )}
             {renderTotals()}
-            {data.payment_terms && <p style={{ marginTop: 12 }}><strong>شروط الدفع:</strong> {data.payment_terms}</p>}
-            {data.validity_days && <p>هذا العرض ساري لمدة {data.validity_days} يوماً من تاريخ الإصدار.</p>}
+            {data.payment_terms && (
+              <p style={{ marginTop: 12 }}>
+                <strong>شروط الدفع:</strong>{" "}
+                <Edit k="quo_payment_terms" fallback={data.payment_terms} />
+              </p>
+            )}
+            {data.validity_days && (
+              <Edit
+                k="quo_validity"
+                as="p"
+                fallback={`هذا العرض ساري لمدة ${data.validity_days} يوماً من تاريخ الإصدار.`}
+              />
+            )}
+            <Edit
+              k="quo_closing"
+              as="p"
+              fallback="نأمل أن ينال هذا العرض رضاكم، ونحن على استعداد تام للإجابة على أي استفسار."
+              style={{ marginTop: 12 }}
+            />
           </>
         );
 
       case "CON":
         return (
           <>
-            <p><strong>وصف العمل:</strong> {data.work_description}</p>
+            <p>
+              <strong>وصف العمل:</strong>{" "}
+              <Edit k="con_work_description" fallback={data.work_description || ""} />
+            </p>
             <p><strong>القيمة الإجمالية:</strong> ₪{fmt(data.contract_value || 0)}</p>
-            <p><strong>مدة التنفيذ:</strong> {data.execution_period}</p>
-            {data.warranty_terms && <p><strong>شروط الضمان:</strong> {data.warranty_terms}</p>}
+            <p>
+              <strong>مدة التنفيذ:</strong>{" "}
+              <Edit k="con_execution_period" fallback={data.execution_period || ""} />
+            </p>
+            {data.warranty_terms && (
+              <p>
+                <strong>شروط الضمان:</strong>{" "}
+                <Edit k="con_warranty" fallback={data.warranty_terms} />
+              </p>
+            )}
           </>
         );
 
       case "DEM":
         return (
           <>
-            <p>نتقدم إليكم بأطيب التحيات، ونود الإشارة إلى أن سجلاتنا المحاسبية تُظهر وجود رصيد مستحق على حسابكم الكريم لدينا بقيمة <strong>₪{fmt(data.amount || 0)}</strong>. وانطلاقاً من حرصنا على استمرار العلاقة التجارية المتميزة التي تجمعنا بكم، فإننا نأمل التكرم بترتيب عملية التسوية في أقرب فرصة ممكنة، ونؤكد لكم استعدادنا التام للتعاون والتنسيق بما يحقق المصلحة المشتركة.</p>
-            <p>نرجو التكرم بتسوية المبلغ المذكور خلال مدة أقصاها <strong>{data.response_days || 7} أيام</strong> من تاريخ هذا الخطاب. وفي حال وجود أي استفسار، يُسعدنا التواصل معكم لإيجاد الحل الأمثل.</p>
+            <Edit
+              k="dem_intro"
+              as="p"
+              fallback={`نتقدم إليكم بأطيب التحيات، ونود الإشارة إلى أن سجلاتنا المحاسبية تُظهر وجود رصيد مستحق على حسابكم الكريم لدينا بقيمة ₪${fmt(data.amount || 0)}. وانطلاقاً من حرصنا على استمرار العلاقة التجارية المتميزة التي تجمعنا بكم، فإننا نأمل التكرم بترتيب عملية التسوية في أقرب فرصة ممكنة، ونؤكد لكم استعدادنا التام للتعاون والتنسيق بما يحقق المصلحة المشتركة.`}
+            />
+            <Edit
+              k="dem_followup"
+              as="p"
+              fallback={`نرجو التكرم بتسوية المبلغ المذكور خلال مدة أقصاها ${data.response_days || 7} أيام من تاريخ هذا الخطاب. وفي حال وجود أي استفسار، يُسعدنا التواصل معكم لإيجاد الحل الأمثل.`}
+            />
             {isCustom && renderAmountBlock(data.amount || 0)}
           </>
         );
@@ -225,7 +355,11 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "DN":
         return (
           <>
-            <p>بناءً على ذلك، تم إضافة مبلغ <strong>₪{fmt(data.amount || 0)}</strong> على حسابكم.</p>
+            <Edit
+              k="dn_intro"
+              as="p"
+              fallback={`بناءً على ذلك، تم إضافة مبلغ ₪${fmt(data.amount || 0)} على حسابكم.`}
+            />
             {data.reason && <p><strong>السبب:</strong> {data.reason}</p>}
             {data.ref_invoice && <p><strong>رقم الفاتورة المرجعية:</strong> {data.ref_invoice}</p>}
             {isCustom && renderAmountBlock(data.amount || 0)}
@@ -235,7 +369,11 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "CN":
         return (
           <>
-            <p>بناءً على ذلك، تم خصم مبلغ <strong>₪{fmt(data.amount || 0)}</strong> من حسابكم.</p>
+            <Edit
+              k="cn_intro"
+              as="p"
+              fallback={`بناءً على ذلك، تم خصم مبلغ ₪${fmt(data.amount || 0)} من حسابكم.`}
+            />
             {data.reason && <p><strong>السبب:</strong> {data.reason}</p>}
             {data.ref_invoice && <p><strong>رقم الفاتورة المرجعية:</strong> {data.ref_invoice}</p>}
             {isCustom && renderAmountBlock(data.amount || 0)}
@@ -294,9 +432,17 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
       case "CLR":
         return (
           <>
-            <p>نشهد بموجب هذا الخطاب أن الجهة المذكورة أدناه قد أوفت بجميع التزاماتها المالية والتعاقدية.</p>
+            <Edit
+              k="clr_intro"
+              as="p"
+              fallback="نشهد بموجب هذا الخطاب أن الجهة المذكورة أدناه قد أوفت بجميع التزاماتها المالية والتعاقدية."
+            />
             {data.subject && <p><strong>الموضوع:</strong> {data.subject}</p>}
-            <p>وبناءً عليه، فإنه لا توجد أي مطالبات أو التزامات مالية متبقية.</p>
+            <Edit
+              k="clr_closing"
+              as="p"
+              fallback="وبناءً عليه، فإنه لا توجد أي مطالبات أو التزامات مالية متبقية."
+            />
           </>
         );
 
@@ -461,9 +607,25 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
     <>
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/50 no-print">
-        <span className="text-sm font-medium">معاينة {title}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">معاينة {title}</span>
+          {doc?.id && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> اضغط على أي فقرة للتعديل أو التحسين بالذكاء الاصطناعي
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
+          {doc?.id && Object.keys(customText).length > 0 && (
+            <Button size="sm" variant="ghost" onClick={handleResetEdits} title="استرجاع النص الافتراضي">
+              <RotateCcw className="w-3.5 h-3.5 ml-1" /> استرجاع
+            </Button>
+          )}
+          {doc?.id && dirty && (
+            <Button size="sm" variant="default" onClick={handleSaveEdits} disabled={saving}>
+              <Save className="w-3.5 h-3.5 ml-1" /> {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="w-3.5 h-3.5 ml-1" /> طباعة</Button>
           {!embedded && <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)}><X className="w-4 h-4" /></Button>}
         </div>
@@ -520,7 +682,8 @@ const PrintTemplatePreview = ({ open, onOpenChange, document: doc, embedded = fa
 
             {data.notes && (
               <div style={{ marginTop: 16, padding: "8px 12px", background: theme.lightBg, borderRadius: 4, fontSize: 10 }}>
-                <strong>ملاحظات:</strong> {data.notes}
+                <strong>ملاحظات:</strong>{" "}
+                <Edit k="notes" fallback={data.notes} />
               </div>
             )}
 
