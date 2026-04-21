@@ -935,6 +935,56 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         counterAccountCode = selectedGlAccount.account_code;
       }
 
+      // ─── Smart Allocation: route by intent ───
+      // For contact-based vouchers, the engine tells us whether this is a
+      // settlement, advance, refund, or reverse-settlement. Map each intent
+      // to the correct counter-account so the journal entry is meaningful
+      // and customer/supplier statements stay clean.
+      let allocationIntent: string | null = null;
+      if (partyType === "contact" && selectedContact && !isAccountPayment) {
+        const summaryNow = engineSummary(invoices as any, amountNum);
+        const cls = engineClassify({
+          voucherKind: voucherType,
+          partyType: "contact",
+          hasContact: true,
+          openInvoiceCount: invoices.length,
+          mode: allocationMode,
+          summary: summaryNow,
+        });
+        allocationIntent = cls.intent;
+
+        // Make sure the advance accounts exist for this user (idempotent)
+        if (cls.intent === "advance" || cls.intent === "supplier_advance") {
+          await supabase.rpc("ensure_advance_accounts" as any, { p_user_id: user.id });
+        }
+
+        if (isReceipt) {
+          // Receipt + customer
+          if (cls.intent === "advance") {
+            // Customer prepayment → liability (دفعات مقدمة من العملاء)
+            counterAccountCode = "2115";
+          } else {
+            // settlement / partial → standard receivables
+            counterAccountCode = "1130";
+          }
+        } else {
+          // Payment voucher
+          if (cls.intent === "refund") {
+            // Refund / reverse-settlement to a customer → reduce receivable
+            counterAccountCode = "1130";
+          } else if (cls.intent === "reverse_settlement") {
+            // Payment to customer with open sale invoices (return / discount)
+            counterAccountCode = "1130";
+          } else if (cls.intent === "supplier_advance") {
+            // Advance to supplier → asset (دفعات مقدمة للموردين)
+            counterAccountCode = "1146";
+          } else {
+            // Standard supplier settlement
+            counterAccountCode = "2110";
+          }
+        }
+      }
+
       // ─── EDIT MODE ───
       if (isEditMode && editId) {
         if (isReceipt) {
