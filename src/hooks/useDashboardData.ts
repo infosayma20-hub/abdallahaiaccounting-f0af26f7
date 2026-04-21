@@ -313,17 +313,26 @@ export function useDashboardData() {
       days.push(d.toISOString().split("T")[0]);
     }
 
-    const compute = (filter: (t: any) => boolean) =>
-      days.map((day) => plTx.filter((t) => t.transaction_date === day && filter(t)).reduce((s, t) => s + (t.amount || 0), 0));
+    // ✅ Reversal-aware sparklines: subtract reversal entries from revenue/expense
+    const dailyRevenue = (day: string) => {
+      const rows = plTx.filter((t) => t.transaction_date === day);
+      const cr = rows.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+      const dr = rows.filter((t) => t.debit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+      return cr - dr;
+    };
+    const dailyExpense = (day: string) => {
+      const rows = plTx.filter((t) => t.transaction_date === day);
+      const dr = rows.filter((t) => (t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6")).reduce((s, t) => s + (t.amount || 0), 0);
+      const cr = rows.filter((t) => (t.credit_account_code || "").startsWith("5") || (t.credit_account_code || "").startsWith("6")).reduce((s, t) => s + (t.amount || 0), 0);
+      return dr - cr;
+    };
 
+    const revenueArr = days.map(dailyRevenue);
+    const expenseArr = days.map(dailyExpense);
     return {
-      revenue: compute((t) => t.credit_account_code?.startsWith("4")),
-      expenses: compute((t) => (t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6")),
-      profit: compute((t) => true).map((_, i) => {
-        const rev = plTx.filter((t) => t.transaction_date === days[i] && t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
-        const exp = plTx.filter((t) => t.transaction_date === days[i] && ((t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6"))).reduce((s, t) => s + (t.amount || 0), 0);
-        return rev - exp;
-      }),
+      revenue: revenueArr,
+      expenses: expenseArr,
+      profit: days.map((_, i) => revenueArr[i] - expenseArr[i]),
     };
   }, [plTx]);
 
