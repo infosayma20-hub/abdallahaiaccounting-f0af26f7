@@ -1313,6 +1313,11 @@ const InvoicesPage = () => {
                         <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}</p>
                         <div className="flex gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
+                          {inv.status !== 'cancelled' && (
+                            <Badge className={`text-[9px] px-2 py-0 border-0 ${paymentStatusConfig[inv.paymentStatus]?.color || ''}`}>
+                              {paymentStatusConfig[inv.paymentStatus]?.label}
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0">{paymentLabels[inv.paymentMethod]}</Badge>
                         </div>
                       </div>
@@ -1320,6 +1325,11 @@ const InvoicesPage = () => {
                         <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
                       <div className="flex gap-1 mt-1.5">
+                        {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
+                            <ReceiptIcon className="h-3 w-3" /> تسجيل قبض
+                          </Button>
+                        )}
                         {canEdit({ status: inv.status }) && (
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
                             <Pencil className="h-3 w-3" /> تعديل
