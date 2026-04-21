@@ -344,6 +344,11 @@ const ProfilePage = () => {
 
       <hr className="border-border/30" />
 
+      {/* Fast entry preference — affects voucher & journal save UX */}
+      <FastEntryToggle />
+
+      <hr className="border-border/30" />
+
       {/* Action Buttons */}
       <div className="flex items-center gap-3 justify-center px-2">
         <Button onClick={handleSave} disabled={saving} className="px-8 h-11 rounded-lg text-sm font-medium gap-2">
