@@ -636,12 +636,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load invoices when contact is selected
   useEffect(() => {
     if (!user || !selectedContact) { setInvoices([]); return; }
-    const invoiceType = isReceipt ? "sale" : "purchase";
+    // Smart loading:
+    //   - Receipt + customer  → sale invoices (settlement)
+    //   - Payment + supplier  → purchase invoices (settlement)
+    //   - Payment + customer  → sale invoices (reverse-settlement / refund)
+    //   - Receipt + supplier  → purchase invoices (rare: supplier refund)
+    // We can't tell party-side here (customer vs supplier) without the contact_type,
+    // but the same invoice query (filtered by contact_id) returns whatever is open
+    // for THIS contact regardless of invoice_type. So we fetch BOTH sides and let
+    // the allocation engine work on the open set.
     (supabase.from("invoices")
-      .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate")
+      .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, currency, exchange_rate, invoice_type")
       .eq("user_id", user.id)
       .eq("contact_id", selectedContact.id)
-      .eq("invoice_type", invoiceType)
+      .in("invoice_type", isReceipt ? ["sale"] : ["purchase", "sale"])
       .in("payment_status", ["unpaid", "partial"]) as any)
       .neq("status", "cancelled")
       .neq("is_deleted", true)
