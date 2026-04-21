@@ -1335,7 +1335,7 @@ const InvoicesPage = () => {
                       <div className="flex gap-1 mt-1.5">
                         {inv.status === 'sent' && inv.paymentStatus !== 'paid' && (
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-success" onClick={e => { e.stopPropagation(); recordPayment(inv); }}>
-                            <Receipt className="h-3 w-3" /> تسجيل قبض
+                            <Receipt className="h-3 w-3" /> {inv.type === 'sales' ? 'تسجيل قبض' : 'تسجيل صرف'}
                           </Button>
                         )}
                         {canEdit({ status: inv.status }) && (
