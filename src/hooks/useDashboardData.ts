@@ -284,9 +284,13 @@ export function useDashboardData() {
       }
 
       if (!buckets[key]) buckets[key] = { revenue: 0, expenses: 0 };
+      // ✅ Reversal-aware: subtract debits to revenue accounts and credits to expense accounts
       if (tx.credit_account_code?.startsWith("4")) buckets[key].revenue += tx.amount || 0;
+      if (tx.debit_account_code?.startsWith("4")) buckets[key].revenue -= tx.amount || 0;
       const dc = tx.debit_account_code || "";
+      const cc = tx.credit_account_code || "";
       if (dc.startsWith("5") || dc.startsWith("6")) buckets[key].expenses += tx.amount || 0;
+      if (cc.startsWith("5") || cc.startsWith("6")) buckets[key].expenses -= tx.amount || 0;
     });
 
     return Object.entries(buckets)
