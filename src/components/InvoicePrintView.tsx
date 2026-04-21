@@ -320,9 +320,6 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           {settings.licensed_dealer_number && (
             <span><strong style={{ color: "#1B3A5C" }}>مشتغل مرخص:</strong> {settings.licensed_dealer_number}</span>
           )}
-          {taxEnabled && settings.tax_number && (
-            <span><strong style={{ color: "#1B3A5C" }}>الرقم الضريبي:</strong> {settings.tax_number}</span>
-          )}
           {settings.commercial_register && (
             <span><strong style={{ color: "#1B3A5C" }}>سجل تجاري:</strong> {settings.commercial_register}</span>
           )}
