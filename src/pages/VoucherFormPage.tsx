@@ -139,7 +139,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [paymentMethod, setPaymentMethod] = useState("نقدي");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
-  const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string }[]>([]);
+  const [cheques, setCheques] = useState<{ number: string; date: string; bank: string; amount: string; accountNumber: string; notes: string }[]>([]);
   const [endorsedCheques, setEndorsedCheques] = useState<EndorsedCheque[]>([]);
   const [showEndorseModal, setShowEndorseModal] = useState(false);
 
@@ -147,6 +147,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     const lastNum = prev.length > 0 ? prev[prev.length - 1].number : "";
     const lastDate = prev.length > 0 ? prev[prev.length - 1].date : "";
     const lastBank = prev.length > 0 ? prev[prev.length - 1].bank : "";
+    const lastAcct = prev.length > 0 ? prev[prev.length - 1].accountNumber : "";
     // Auto-increment cheque number
     const match = lastNum.match(/(\d+)$/);
     const nextNum = match ? lastNum.replace(/(\d+)$/, String(Number(match[1]) + 1).padStart(match[1].length, "0")) : "";
@@ -157,7 +158,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       d.setDate(d.getDate() + 30);
       nextDate = d.toISOString().split("T")[0];
     }
-    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "" }];
+    return [...prev, { number: nextNum, date: nextDate, bank: lastBank, amount: "", accountNumber: lastAcct, notes: "" }];
   });
   const removeCheque = (idx: number) => setCheques(prev => prev.filter((_, i) => i !== idx));
   const updateCheque = (idx: number, field: string, value: string) => setCheques(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
