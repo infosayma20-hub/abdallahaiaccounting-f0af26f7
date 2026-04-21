@@ -262,7 +262,33 @@ export function classifyVoucher(args: {
     };
   }
 
-  // Nothing allocated yet but invoices exist
+  // Nothing allocated yet but invoices exist. Tailor the copy to the mode the
+  // user is currently sitting in, so we don't tell them to "pick auto" when
+  // they're already on auto (which means the amount is zero or invalid).
+  if (mode === "auto") {
+    if (summary.totalAmount <= 0) {
+      return {
+        intent: voucherKind === "receipt" ? "advance" : "supplier_advance",
+        label: "أدخل المبلغ أولاً",
+        message: `يوجد ${openInvoiceCount} فاتورة مفتوحة لهذه الجهة — أدخل المبلغ ليتم التوزيع تلقائياً.`,
+        tone: "info",
+      };
+    }
+    return {
+      intent: voucherKind === "receipt" ? "advance" : "supplier_advance",
+      label: "تعذَّر التوزيع التلقائي",
+      message: "تحقق من المبلغ المُدخل أو الفواتير المفتوحة.",
+      tone: "warning",
+    };
+  }
+  if (mode === "manual") {
+    return {
+      intent: voucherKind === "receipt" ? "advance" : "supplier_advance",
+      label: "اختر الفواتير يدوياً",
+      message: `يوجد ${openInvoiceCount} فاتورة مفتوحة — اختر الفواتير التي تريد ربط السند بها.`,
+      tone: "info",
+    };
+  }
   return {
     intent: voucherKind === "receipt" ? "advance" : "supplier_advance",
     label: voucherKind === "receipt" ? "غير موزَّع — يحتاج قرار" : "غير موزَّع — يحتاج قرار",
