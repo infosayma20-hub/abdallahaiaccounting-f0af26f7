@@ -82,7 +82,13 @@ export default function MultiTransactionCards({ transactions: initial, onConfirm
 
     setTxList(prev => prev.map((t, i) => i === index ? { ...t, _status: "processing" } : t));
     const finalTx = tx._editAmount ? { ...tx, total: Number(tx._editAmount), amount: Number(tx._editAmount) } : tx;
-    const result = await onConfirm(finalTx, index);
+    let result: { success: boolean; message: string };
+    try {
+      result = await onConfirm(finalTx, index);
+    } catch (err: any) {
+      // ⚠️ منع تعطّل تأكيد الكل: نلتقط أي استثناء ونعيد عنصراً فاشلاً بدلاً من رميه
+      result = { success: false, message: `❌ ${err?.message || "خطأ غير متوقع"}` };
+    }
     setResults(prev => [...prev, { index, ...result }]);
     setTxList(prev => prev.map((t, i) => i === index ? { ...t, _status: result.success ? "confirmed" : "pending" } : t));
   };
@@ -92,20 +98,69 @@ export default function MultiTransactionCards({ transactions: initial, onConfirm
     onSkip(index);
   };
 
+  /**
+   * تأكيد الكل (Confirm All) — معالجة ذرية لكل بند:
+   * - نلتقط snapshot للبنود المعلقة فقط
+   * - كل بند يُعالج باستقلال داخل try/catch منفصل (لا يُسقط الباقي عند فشل)
+   * - نتائج لكل بند تُجمع محلياً ثم تُحفظ دفعة واحدة لتجنب stale state
+   * - بعد الانتهاء نُمرّر للـ parent فقط البنود التي نجحت فعلاً
+   */
   const handleConfirmAll = async () => {
+    if (bulkProcessing) return; // حماية من النقر المزدوج (Idempotency)
     setBulkProcessing(true);
-    const pending = txList.map((t, i) => ({ tx: t, index: i })).filter(({ tx }) => tx._status === "pending");
-    
+
+    // snapshot ثابت من البنود المعلقة (لا يتأثر بتغير txList خلال اللوب)
+    const pending = txList
+      .map((t, i) => ({ tx: t, index: i }))
+      .filter(({ tx }) => tx._status === "pending");
+
+    const localResults: { index: number; success: boolean; message: string }[] = [];
+    const confirmedTxs: ParsedTransaction[] = [];
+
     for (const { tx, index } of pending) {
+      // علّم البند كـ "قيد المعالجة"
       setTxList(prev => prev.map((t, i) => i === index ? { ...t, _status: "processing" } : t));
-      const finalTx = tx._editAmount ? { ...tx, total: Number(tx._editAmount), amount: Number(tx._editAmount) } : tx;
-      const result = await onConfirm(finalTx, index);
-      setResults(prev => [...prev, { index, ...result }]);
-      setTxList(prev => prev.map((t, i) => i === index ? { ...t, _status: result.success ? "confirmed" : "pending" } : t));
+
+      const finalTx = tx._editAmount
+        ? { ...tx, total: Number(tx._editAmount), amount: Number(tx._editAmount) }
+        : tx;
+
+      let result: { success: boolean; message: string };
+      try {
+        result = await onConfirm(finalTx, index);
+      } catch (err: any) {
+        // 🔥 الإصلاح الحرج: لا نسمح للاستثناء بإيقاف اللوب
+        // قبل هذا الإصلاح، كان throw من onConfirm يكسر الـ for-loop
+        // وتبقى البنود التالية بدون معالجة
+        result = { success: false, message: `❌ ${err?.message || "فشل غير متوقع"}` };
+      }
+
+      localResults.push({ index, ...result });
+      if (result.success) confirmedTxs.push(finalTx);
+
+      // تحديث حالة هذا البند فقط
+      setTxList(prev => prev.map((t, i) =>
+        i === index ? { ...t, _status: result.success ? "confirmed" : "pending" } : t
+      ));
     }
 
+    // دفع كل النتائج المتراكمة محلياً (تجنب stale closures)
+    setResults(prev => [...prev, ...localResults]);
     setBulkProcessing(false);
-    await onConfirmAll(txList.filter(t => t._status === "confirmed"));
+
+    // تمرير البنود الناجحة فعلاً (محسوبة من localResults وليس من txList stale)
+    try {
+      await onConfirmAll(confirmedTxs);
+    } catch {
+      /* تجاهل أخطاء الـ callback النهائي — البنود نفسها مُعالجة بالفعل */
+    }
+
+    // ملخّص خفيف للمستخدم
+    const okCount = localResults.filter(r => r.success).length;
+    const failCount = localResults.length - okCount;
+    if (failCount > 0 && typeof window !== "undefined") {
+      console.warn(`[ConfirmAll] ${okCount}/${localResults.length} تم — ${failCount} فشل(ت)`);
+    }
   };
 
   const updateAmount = (index: number, val: string) => {

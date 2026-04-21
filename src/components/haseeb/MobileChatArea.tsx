@@ -428,12 +428,17 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     <MultiTransactionCards
                       transactions={JSON.parse(msg.content.replace('__MULTI_TX__', ''))}
                       onConfirm={async (tx) => {
-                        const body: any = { text: buildTxText(tx), userId: user?.id, email: user?.email };
-                        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
-                        if (error) return { success: false, message: `❌ ${error.message}` };
-                        const verdict = isTxResultSuccess(txResult);
-                        if (verdict.success) onTransactionSuccess();
-                        return verdict;
+                        // 🛡️ تحصين تأكيد الكل: نلتقط أي استثناء (شبكة/خادم) كنتيجة فشل
+                        try {
+                          const body: any = { text: buildTxText(tx), userId: user?.id, email: user?.email };
+                          const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
+                          if (error) return { success: false, message: `❌ ${error.message}` };
+                          const verdict = isTxResultSuccess(txResult);
+                          if (verdict.success) onTransactionSuccess();
+                          return verdict;
+                        } catch (err: any) {
+                          return { success: false, message: `❌ ${err?.message || 'فشل التسجيل'}` };
+                        }
                       }}
                       onConfirmAll={async (txs) => {
                         if (txs.length > 0) onTransactionSuccess();
