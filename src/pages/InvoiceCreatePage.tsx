@@ -933,10 +933,13 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
       };
 
-      const debitCode = form.paymentMethod === "cash" ? "1110" : form.paymentMethod === "transfer" ? "1120" : form.paymentMethod === "cheque" ? "1150" : "1130";
-      const transactionType = form.type === "sales"
-        ? form.paymentMethod === "cash" ? "sale_cash" : form.paymentMethod === "transfer" ? "sale_bank" : form.paymentMethod === "cheque" ? "sale_cheque" : "sale_credit"
-        : form.paymentMethod === "cash" ? "purchase_cash" : form.paymentMethod === "transfer" ? "purchase_bank" : form.paymentMethod === "cheque" ? "purchase_cheque" : "purchase_credit";
+      // ─── Accounting routing (credit-only invoices) ───
+      // Sales invoice  → Dr 1130 (AR) / Cr 4100 (Revenue)
+      // Purchase invoice → Dr 5110 (Purchases) / Cr 2110 (AP)
+      // Note: payment-related debit codes (1110/1120/1150) are no longer used here;
+      // payment is recorded later via receipt/payment vouchers.
+      const debitCode = "1130"; // AR for sales (purchase branch overrides below)
+      const transactionType = form.type === "sales" ? "sale_credit" : "purchase_credit";
       const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
       const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
 
