@@ -2147,7 +2147,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
         onOpenStatement={
           partyType === "contact" && selectedContact?.id
-            ? () => window.open(`/account-statement?contact_id=${selectedContact.id}&contact_type=${selectedContact.contact_type || "زبون"}`, "_blank")
+            ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
             : undefined
         }
       />
