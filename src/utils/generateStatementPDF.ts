@@ -395,14 +395,7 @@ export const generateStatementPDF = (
     alternateRowStyles: {
       fillColor: [248, 250, 252],
     },
-    columnStyles: {
-      0: { cellWidth: 30, fontStyle: 'bold' },
-      1: { cellWidth: 28, textColor: greenText },
-      2: { cellWidth: 28, textColor: redText },
-      3: { cellWidth: 'auto', halign: 'right' },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 24 },
-    },
+    columnStyles,
     didParseCell: (hookData) => {
       const rowIdx = hookData.row.index;
       const lastIdx = data.rows.length + 1;
@@ -434,7 +427,7 @@ export const generateStatementPDF = (
   currentY = (doc as any).lastAutoTable?.finalY || currentY + 30;
 
   // ══════ AGING ANALYSIS ══════
-  if (data.agingData && currentY + 30 < H - 80) {
+  if (opts.showAging && data.agingData && currentY + 30 < H - 80) {
     currentY += 6;
     doc.setFontSize(9);
     doc.setFont('Amiri', 'bold');
