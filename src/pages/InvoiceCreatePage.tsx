@@ -38,6 +38,8 @@ import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
+import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
+import MobileSummaryBar from "@/components/voucher/MobileSummaryBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 
