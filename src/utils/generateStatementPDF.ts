@@ -106,6 +106,20 @@ const fmtDate = (d: string) => {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
 };
 
+const getPdfTypeLabel = (t: string): string => {
+  if (!t) return 'حركة';
+  if (t.includes('reversal') || t.includes('reverse')) return 'قيد عكسي';
+  if (t.includes('pos')) return 'مبيعات POS';
+  if (t.includes('sale') || t.includes('فاتورة')) return 'فاتورة مبيعات';
+  if (t.includes('receipt') || t.includes('قبض')) return 'سند قبض';
+  if (t.includes('payment') || t.includes('صرف')) return 'سند صرف';
+  if (t.includes('purchase') || t.includes('مشتريات')) return 'فاتورة مشتريات';
+  if (t.includes('journal') || t.includes('قيد') || t.includes('salary')) return 'قيد محاسبي';
+  if (t.includes('cheque')) return 'شيك';
+  if (t.includes('opening_balance')) return 'رصيد افتتاحي';
+  return 'حركة';
+};
+
 // ─── Register Arabic font ───
 const registerArabicFont = (doc: jsPDF) => {
   doc.addFileToVFS('Amiri-Regular.ttf', AmiriRegular);
