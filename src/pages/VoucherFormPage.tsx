@@ -2062,11 +2062,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
   return (
     <SmartFormScope
-      className="max-w-4xl mx-auto space-y-5"
+      className="max-w-7xl mx-auto"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
-    <div dir="rtl" className="contents">
+    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
+      {/* ───── Right column: Input ───── */}
+      <div className="space-y-5 min-w-0">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
