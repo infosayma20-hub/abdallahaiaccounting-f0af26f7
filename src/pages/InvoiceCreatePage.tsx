@@ -621,7 +621,9 @@ const InvoiceCreatePage = () => {
           date: data.invoice_date || prev.date,
           dueDate: data.due_date || "",
           paymentTerms,
-          paymentMethod: mapDbPaymentMethod(data.payment_method),
+          // Always force credit — invoices are accrual-only since payment UI was removed.
+          // Existing non-credit invoices will be re-saved as credit with paid_amount=0.
+          paymentMethod: "credit",
           currency: data.currency || "شيكل",
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
@@ -630,12 +632,6 @@ const InvoiceCreatePage = () => {
           billingAddress: data.billing_address || "",
           taxInclusive: Boolean(data.tax_inclusive),
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
-          chequeNumber: "",
-          chequeBank: "",
-          chequeBankAccountId: "",
-          chequeDueDate: "",
-          transferRef: "",
-          transferBank: "",
         }));
 
         if (data.invoice_number) setNextInvoiceNumber(data.invoice_number);
