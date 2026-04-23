@@ -963,16 +963,8 @@ const JournalNewPage = () => {
             </label>
           </div>
 
-          {/* Balance Status */}
-          <div className={`rounded-xl p-3 text-xs font-medium ${isBalanced ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400" : diff > 0 ? "bg-destructive/5 text-destructive" : "bg-muted text-muted-foreground"}`}>
-            {isBalanced ? (
-              <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> متوازن — المدين = الدائن = ₪{formatAmount(totalDebit)}</span>
-            ) : totalDebit > 0 || totalCredit > 0 ? (
-              <span>✗ غير متوازن — فرق: ₪{formatAmount(diff)}</span>
-            ) : (
-              <span>أدخل المبالغ للتحقق من التوازن</span>
-            )}
-          </div>
+          {/* Balance Status — high-visibility, color-coded */}
+          <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
 
