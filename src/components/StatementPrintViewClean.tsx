@@ -47,6 +47,13 @@ interface Props {
   dateTo: string;
   statementNumber?: string;
   contactCode?: string;
+  /** View options — control which document elements appear in the printed output. */
+  showLogo?: boolean;
+  showCompanyContact?: boolean;
+  showSignatures?: boolean;
+  showReference?: boolean;
+  showDueDate?: boolean;
+  showType?: boolean;
 }
 
 const fmt = (n: number) =>
@@ -107,13 +114,24 @@ const S = {
   footer: { borderTop: "1px solid #E5E7EB", paddingTop: 6, marginTop: 20, display: "flex", justifyContent: "space-between", fontSize: 9, color: "#9CA3AF" } as React.CSSProperties,
 };
 
-const COL_WIDTHS = ["11%", "13%", "24%", "9%", "9%", "11%", "11%", "12%"];
-const COL_HEADERS = ["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين (عليه)", "دائن (له)", "الرصيد"];
-
 const StatementPrintViewClean = ({
   company, contact, rows, openingBalance, closingBalance,
   totalDebit, totalCredit, dateFrom, dateTo, statementNumber, contactCode,
+  showLogo = true, showCompanyContact = true, showSignatures = true,
+  showReference = true, showDueDate = true, showType = true,
 }: Props) => {
+  // Build dynamic column set based on view options
+  const columns = [
+    { key: "date", label: "التاريخ", width: "11%" },
+    ...(showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
+    { key: "description", label: "البيان", width: "auto" as const },
+    ...(showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
+    ...(showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+    { key: "debit", label: "مدين (عليه)", width: "11%" },
+    { key: "credit", label: "دائن (له)", width: "11%" },
+    { key: "balance", label: "الرصيد", width: "12%" },
+  ];
+  const amountStartIdx = columns.findIndex(c => c.key === "debit");
   const balColor = (v: number) => v > 0 ? "#DC2626" : v < 0 ? "#059669" : "#6B7280";
   const soaNum = statementNumber || `SOA-0000`;
 
@@ -121,10 +139,28 @@ const StatementPrintViewClean = ({
     <div style={S.page} dir="rtl">
       {/* ═══ HEADER ═══ */}
       <div style={S.headerWrap}>
-        <div>
-          <p style={S.companyName}>{company.name || "AMWALI"}</p>
-          {company.phone && <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>}
-          {company.tax_number && <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {showLogo && company.logo_url && (
+            <img
+              src={company.logo_url}
+              alt={company.name || "Logo"}
+              crossOrigin="anonymous"
+              style={{ height: 56, width: "auto", maxWidth: 160, objectFit: "contain", borderRadius: 4 }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          )}
+          <div>
+            <p style={S.companyName}>{company.name || "AMWALI"}</p>
+            {showCompanyContact && company.phone && (
+              <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>
+            )}
+            {showCompanyContact && company.address && (
+              <p style={S.companySub}>{company.address}</p>
+            )}
+            {showCompanyContact && company.tax_number && (
+              <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>
+            )}
+          </div>
         </div>
         <div style={S.titleBlock}>
           <p style={S.titleAr}>كشف حساب</p>
@@ -182,52 +218,60 @@ const StatementPrintViewClean = ({
       {/* ═══ TABLE ═══ */}
       <table style={S.table}>
         <colgroup>
-          {COL_WIDTHS.map((w, i) => <col key={i} style={{ width: w }} />)}
+          {columns.map((c) => <col key={c.key} style={{ width: c.width }} />)}
         </colgroup>
         <thead>
           <tr>
-            {COL_HEADERS.map((h, i) => (
-              <th key={i} style={{ ...S.th, textAlign: i >= 5 ? "left" : "right" }}>{h}</th>
+            {columns.map((c, i) => (
+              <th key={c.key} style={{ ...S.th, textAlign: i >= amountStartIdx ? "left" : "right" }}>{c.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {/* Opening balance */}
           <tr>
-            <td style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>{fmtDate(dateFrom)}</td>
-            <td style={{ ...S.td, color: "#9CA3AF" }}>—</td>
-            <td style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>رصيد أول المدة</td>
-            <td style={S.td} />
-            <td style={S.td} />
-            <td style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{openingBalance > 0 ? fmt(openingBalance) : "—"}</td>
-            <td style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{openingBalance < 0 ? fmt(openingBalance) : "—"}</td>
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(openingBalance) }}>{fmt(openingBalance)}</td>
+            {columns.map((c) => {
+              if (c.key === "date") return <td key={c.key} style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>{fmtDate(dateFrom)}</td>;
+              if (c.key === "description") return <td key={c.key} style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>رصيد أول المدة</td>;
+              if (c.key === "debit") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{openingBalance > 0 ? fmt(openingBalance) : "—"}</td>;
+              if (c.key === "credit") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{openingBalance < 0 ? fmt(openingBalance) : "—"}</td>;
+              if (c.key === "balance") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(openingBalance) }}>{fmt(openingBalance)}</td>;
+              if (c.key === "reference") return <td key={c.key} style={{ ...S.td, color: "#9CA3AF" }}>—</td>;
+              return <td key={c.key} style={S.td} />;
+            })}
           </tr>
 
           {/* Data rows */}
           {rows.map((r, i) => (
             <tr key={r.transaction_id + "-" + i}>
-              <td style={S.td}>{fmtDate(r.date)}</td>
-              <td style={{ ...S.td, fontSize: 9, wordBreak: "break-all", whiteSpace: "normal", lineHeight: 1.3 }}>{r.reference || "—"}</td>
-              <td style={{ ...S.td, lineHeight: 1.4 }}>{r.description}</td>
-              <td style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{r.dueDate ? fmtDate(r.dueDate) : "—"}</td>
-              <td style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{getTypeLabel(r.transaction_type)}</td>
-              <td style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{r.debit > 0 ? fmt(r.debit) : "—"}</td>
-              <td style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{r.credit > 0 ? fmt(r.credit) : "—"}</td>
-              <td style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(r.balance) }}>{fmt(r.balance)}</td>
+              {columns.map((c) => {
+                switch (c.key) {
+                  case "date": return <td key={c.key} style={S.td}>{fmtDate(r.date)}</td>;
+                  case "reference": return <td key={c.key} style={{ ...S.td, fontSize: 9, wordBreak: "break-all", whiteSpace: "normal", lineHeight: 1.3 }}>{r.reference || "—"}</td>;
+                  case "description": return <td key={c.key} style={{ ...S.td, lineHeight: 1.4 }}>{r.description}</td>;
+                  case "due": return <td key={c.key} style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{r.dueDate ? fmtDate(r.dueDate) : "—"}</td>;
+                  case "type": return <td key={c.key} style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{getTypeLabel(r.transaction_type)}</td>;
+                  case "debit": return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{r.debit > 0 ? fmt(r.debit) : "—"}</td>;
+                  case "credit": return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{r.credit > 0 ? fmt(r.credit) : "—"}</td>;
+                  case "balance": return <td key={c.key} style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(r.balance) }}>{fmt(r.balance)}</td>;
+                  default: return <td key={c.key} style={S.td} />;
+                }
+              })}
             </tr>
           ))}
 
           {/* Totals row */}
           <tr style={S.totalsRow}>
-            <td style={{ ...S.td, fontWeight: 700, fontSize: 11, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>—</td>
-            <td style={{ ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>—</td>
-            <td style={{ ...S.td, fontWeight: 700, fontSize: 11, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>رصيد ختامي</td>
-            <td style={{ ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }} />
-            <td style={{ ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }} />
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#1E40AF", borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>{fmt(totalDebit)}</td>
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#065F46", borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>{fmt(totalCredit)}</td>
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 700, fontSize: 12, color: balColor(closingBalance), borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>{fmt(closingBalance)}</td>
+            {columns.map((c) => {
+              const baseStyle = { ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" } as React.CSSProperties;
+              if (c.key === "description") return <td key={c.key} style={{ ...baseStyle, fontWeight: 700, fontSize: 11 }}>رصيد ختامي</td>;
+              if (c.key === "debit") return <td key={c.key} style={{ ...baseStyle, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#1E40AF" }}>{fmt(totalDebit)}</td>;
+              if (c.key === "credit") return <td key={c.key} style={{ ...baseStyle, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#065F46" }}>{fmt(totalCredit)}</td>;
+              if (c.key === "balance") return <td key={c.key} style={{ ...baseStyle, ...S.tdAmount, fontWeight: 700, fontSize: 12, color: balColor(closingBalance) }}>{fmt(closingBalance)}</td>;
+              if (c.key === "date") return <td key={c.key} style={{ ...baseStyle, fontWeight: 700, fontSize: 11 }}>—</td>;
+              if (c.key === "reference") return <td key={c.key} style={baseStyle}>—</td>;
+              return <td key={c.key} style={baseStyle} />;
+            })}
           </tr>
         </tbody>
       </table>
@@ -245,10 +289,12 @@ const StatementPrintViewClean = ({
       </div>
 
       {/* ═══ SIGNATURES ═══ */}
-      <div style={S.sigWrap}>
-        <div style={S.sigBox}>ختم الشركة وتوقيع المحاسب</div>
-        <div style={S.sigBox}>اعتماد العميل</div>
-      </div>
+      {showSignatures && (
+        <div style={S.sigWrap}>
+          <div style={S.sigBox}>ختم الشركة وتوقيع المحاسب</div>
+          <div style={S.sigBox}>اعتماد العميل</div>
+        </div>
+      )}
 
       {/* ═══ FOOTER ═══ */}
       <div style={S.footer}>
