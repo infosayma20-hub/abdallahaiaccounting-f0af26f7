@@ -287,5 +287,195 @@ export function useSaveJournalVoucher() {
     }
   };
 
-  return { save, saving };
+  /**
+   * تعديل سند موجود — يحذف الـ lines/transactions القديمة ويعيد إنشاءها عبر نفس
+   * تسلسل الحفظ، ضماناً لعدم تسرب أي قيود "شبح".
+   */
+  const update = async (
+    voucherId: string,
+    input: JournalSaveInput
+  ): Promise<JournalSaveResult> => {
+    if (!user) return { success: false, error: "غير مسجل الدخول" };
+
+    const mode = input.mode || "posted";
+    const validationError = validateJournalInput({ ...input, mode });
+    if (validationError) return { success: false, error: validationError };
+
+    // فحص الفترة المقفلة على التاريخ الجديد
+    const lockError = await checkFiscalPeriodLock(user.id, input.date);
+    if (lockError) return { success: false, error: lockError };
+
+    setSaving(true);
+    try {
+      // (1) تحقق من ملكية السند قبل التعديل
+      const { data: existing, error: fetchErr } = await supabase
+        .from("vouchers")
+        .select("id, ref_number, date, user_id, type")
+        .eq("id", voucherId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (fetchErr || !existing) throw new Error("السند غير موجود أو ليس لديك صلاحية");
+
+      // فحص الفترة على التاريخ القديم أيضاً (منع تحريك سند خارج فترة مقفلة)
+      const oldDateLock = await checkFiscalPeriodLock(user.id, existing.date);
+      if (oldDateLock) {
+        setSaving(false);
+        return { success: false, error: oldDateLock.replace("الحفظ", "التعديل") };
+      }
+
+      // (2) حذف lines + transactions القديمة (نحتفظ بـ voucher master)
+      await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
+      await supabase
+        .from("transactions")
+        .delete()
+        .eq("reference", existing.ref_number)
+        .eq("user_id", user.id);
+
+      // (3) إعادة بناء lines + transactions باستخدام نفس منطق save
+      const validLines = input.lines.filter(
+        (l) => (l.account_code || l.contact_id) && (Number(l.debit) > 0 || Number(l.credit) > 0)
+      );
+      const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+
+      // تحديث الـ master
+      const { error: uErr } = await supabase
+        .from("vouchers")
+        .update({
+          subtype: input.subtype,
+          date: input.date,
+          contact_id: input.contact_id || null,
+          amount: totalDebit,
+          amount_ils: totalDebit,
+          description: input.description.trim(),
+          notes: input.notes || null,
+          status: mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft",
+          attachments: input.attachments && input.attachments.length > 0 ? input.attachments : [],
+          line_sort_order: input.line_sort_order || "original",
+          linked_transaction_id: null,
+        })
+        .eq("id", voucherId);
+      if (uErr) throw uErr;
+
+      // إعادة إنشاء voucher_lines
+      const { error: lErr } = await supabase.from("voucher_lines").insert(
+        validLines.map((l, i) => ({
+          voucher_id: voucherId,
+          account_code: l.account_code,
+          account_name: l.account_name || null,
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+          line_order: i + 1,
+          contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
+          contact_name: l.contact_name || null,
+          line_comment: l.line_comment || null,
+        }))
+      );
+      if (lErr) throw lErr;
+
+      // إعادة إنشاء transactions (إذا posted)
+      if (mode === "posted") {
+        const debitLines = validLines.filter((l) => Number(l.debit) > 0);
+        const creditLines = validLines.filter((l) => Number(l.credit) > 0);
+        const txns: any[] = [];
+        const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
+        const dQueue = debitLines.map((l) => ({ ...l, remaining: Number(l.debit) }));
+        const cQueue = creditLines.map((l) => ({ ...l, remaining: Number(l.credit) }));
+        let di = 0, ci = 0, pairIdx = 0;
+        while (di < dQueue.length && ci < cQueue.length) {
+          const dl = dQueue[di];
+          const cl = cQueue[ci];
+          const amount = Math.min(dl.remaining, cl.remaining);
+          if (amount > 0) {
+            const lineContactId =
+              (dl.contact_id && dl.contact_id !== "__none__" && dl.contact_id) ||
+              (cl.contact_id && cl.contact_id !== "__none__" && cl.contact_id) ||
+              input.contact_id ||
+              null;
+            const contactName = dl.contact_name || cl.contact_name || null;
+            txns.push({
+              user_id: user.id,
+              transaction_date: input.date,
+              description: contactName
+                ? `${input.description.trim()} - ${contactName}`
+                : input.description.trim(),
+              debit_account_code: dl.account_code,
+              credit_account_code: cl.account_code,
+              amount,
+              currency: "ILS",
+              transaction_type: txType,
+              reference: existing.ref_number,
+              contact_id: lineContactId,
+              idempotency_key: `VOUCHER-${voucherId}-${pairIdx}`,
+            });
+            pairIdx++;
+          }
+          dl.remaining -= amount;
+          cl.remaining -= amount;
+          if (dl.remaining <= 0.0001) di++;
+          if (cl.remaining <= 0.0001) ci++;
+        }
+
+        if (txns.length > 0) {
+          const { data: txData, error: tErr } = await supabase
+            .from("transactions")
+            .insert(txns)
+            .select("id");
+          if (tErr) throw tErr;
+          if (txData && txData.length > 0) {
+            await supabase
+              .from("vouchers")
+              .update({ linked_transaction_id: txData[0].id })
+              .eq("id", voucherId);
+          }
+        }
+      }
+
+      setSaving(false);
+      return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
+    } catch (err: any) {
+      setSaving(false);
+      return { success: false, error: err?.message || "فشل تعديل السند" };
+    }
+  };
+
+  /**
+   * حذف سند — يحذف voucher_lines + transactions المرتبطة + voucher master.
+   * يفحص الفترة المقفلة لمنع حذف سند داخل فترة مغلقة.
+   */
+  const remove = async (voucherId: string): Promise<JournalSaveResult> => {
+    if (!user) return { success: false, error: "غير مسجل الدخول" };
+    setSaving(true);
+    try {
+      const { data: existing, error: fetchErr } = await supabase
+        .from("vouchers")
+        .select("id, ref_number, date, user_id")
+        .eq("id", voucherId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (fetchErr || !existing) throw new Error("السند غير موجود أو ليس لديك صلاحية");
+
+      const lockError = await checkFiscalPeriodLock(user.id, existing.date);
+      if (lockError) {
+        setSaving(false);
+        return { success: false, error: lockError.replace("الحفظ", "الحذف") };
+      }
+
+      await supabase.from("voucher_lines").delete().eq("voucher_id", voucherId);
+      await supabase
+        .from("transactions")
+        .delete()
+        .eq("reference", existing.ref_number)
+        .eq("user_id", user.id);
+      const { error: dErr } = await supabase.from("vouchers").delete().eq("id", voucherId);
+      if (dErr) throw dErr;
+
+      setSaving(false);
+      return { success: true, voucher_id: voucherId, ref_number: existing.ref_number };
+    } catch (err: any) {
+      setSaving(false);
+      return { success: false, error: err?.message || "فشل حذف السند" };
+    }
+  };
+
+  return { save, update, remove, saving };
 }
