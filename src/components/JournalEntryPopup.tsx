@@ -571,6 +571,29 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     setShowTemplates(false);
   };
 
+  /* ── Apply a SAVED template (from DB library) ── */
+  const applySavedTemplate = (tpl: SavedJournalTemplate) => {
+    const newLines: JournalLine[] = tpl.lines.map(l => {
+      const acc = accounts.find(a => a.account_code === l.account_code);
+      return {
+        id: uid(),
+        account_code: l.account_code || "",
+        account_name: acc?.account_name || l.account_name || "",
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        memo: l.memo || "",
+      };
+    });
+    while (newLines.length < 2) newLines.push(emptyLine());
+    setLines(newLines);
+    if (!description && tpl.description) setDescription(tpl.description);
+    if (!description && tpl.name) setDescription(tpl.name);
+    if (tpl.default_subtype) {
+      const map: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفال" };
+      setEntryType(map[tpl.default_subtype] || "عادي");
+    }
+  };
+
   /* ── Account selection from dropdown ── */
   const handleAccountSelect = (idx: number, acc: AccountRow) => {
     updateLine(idx, "account_code", acc.account_code);
