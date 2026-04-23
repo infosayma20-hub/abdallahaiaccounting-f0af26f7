@@ -259,7 +259,7 @@ const ProcurementInvoiceCreatePage = () => {
   if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
 
   return (
-    <div className="p-4 md:p-6 space-y-4" dir="rtl">
+    <div className="mx-auto max-w-[1180px] p-4 md:p-6 space-y-4" dir="rtl">
       <div className="flex items-center gap-3">
         <div onClick={() => { if (!orderId) clearDraft(); }}>
           <BackButton />
@@ -277,7 +277,7 @@ const ProcurementInvoiceCreatePage = () => {
         />
       )}
 
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_320px] gap-3">
         <Card>
           <CardContent className="p-4 space-y-3">
             <div>
@@ -391,7 +391,7 @@ const ProcurementInvoiceCreatePage = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">بنود الاستلام</CardTitle>
@@ -405,59 +405,61 @@ const ProcurementInvoiceCreatePage = () => {
         </CardHeader>
         <CardContent className="p-0">
           {lines.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>الصنف</TableHead>
-                  <TableHead>الوحدة</TableHead>
-                  <TableHead>الكمية المطلوبة</TableHead>
-                  <TableHead>الكمية المستلمة</TableHead>
-                  <TableHead>السعر الفعلي</TableHead>
-                  <TableHead>الإجمالي</TableHead>
-                  <TableHead>ملاحظة</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lines.map((line, idx) => {
-                  const variance = line.received_quantity < line.ordered_quantity;
-                  return (
-                    <TableRow key={idx} className={variance ? "bg-orange-500/5" : ""}>
-                      <TableCell className="font-medium">{line.item_name}</TableCell>
-                      <TableCell>{line.unit}</TableCell>
-                      <TableCell>{line.ordered_quantity}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[940px] [&_th]:text-center [&_td]:align-middle">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[320px] text-right">الصنف</TableHead>
+                    <TableHead className="w-[90px]">الوحدة</TableHead>
+                    <TableHead className="w-[110px]">الكمية المطلوبة</TableHead>
+                    <TableHead className="w-[120px] bg-muted/40">الكمية المستلمة</TableHead>
+                    <TableHead className="w-[130px] bg-muted/40">السعر الفعلي</TableHead>
+                    <TableHead className="w-[130px] bg-muted/40">الإجمالي</TableHead>
+                    <TableHead className="w-[170px] text-right">ملاحظة</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lines.map((line, idx) => {
+                    const variance = line.received_quantity < line.ordered_quantity;
+                    return (
+                      <TableRow key={idx} className={variance ? "bg-orange-500/5" : ""}>
+                        <TableCell className="font-medium text-right">{line.item_name}</TableCell>
+                        <TableCell className="text-center">{line.unit}</TableCell>
+                        <TableCell className="text-center tabular-nums">{line.ordered_quantity}</TableCell>
+                        <TableCell className="bg-muted/20">
+                          <div className="flex items-center justify-center gap-1">
+                            <Input
+                              type="number"
+                              value={line.received_quantity}
+                              onChange={e => updateLine(idx, "received_quantity", Number(e.target.value))}
+                              className="h-8 w-24 text-center bg-background"
+                            />
+                            {variance && <AlertTriangle className="h-4 w-4 text-orange-500" />}
+                          </div>
+                        </TableCell>
+                        <TableCell className="bg-muted/20">
                           <Input
                             type="number"
-                            value={line.received_quantity}
-                            onChange={e => updateLine(idx, "received_quantity", Number(e.target.value))}
-                            className="h-8 w-20 text-center"
+                            value={line.unit_price}
+                            onChange={e => updateLine(idx, "unit_price", Number(e.target.value))}
+                            className="h-8 w-28 text-center bg-background"
                           />
-                          {variance && <AlertTriangle className="h-4 w-4 text-orange-500" />}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={line.unit_price}
-                          onChange={e => updateLine(idx, "unit_price", Number(e.target.value))}
-                          className="h-8 w-24 text-center"
-                        />
-                      </TableCell>
-                      <TableCell className="font-mono">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
-                      <TableCell>
-                        <Input
-                          value={line.notes}
-                          onChange={e => updateLine(idx, "notes", e.target.value)}
-                          className="h-8 w-28 text-xs"
-                          placeholder="ملاحظة"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell className="bg-muted/20 text-center font-bold tabular-nums">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>
+                          <Input
+                            value={line.notes}
+                            onChange={e => updateLine(idx, "notes", e.target.value)}
+                            className="h-8 w-full text-xs bg-background"
+                            placeholder="ملاحظة"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="p-8 text-center text-muted-foreground text-sm">
               {orderId ? "لا توجد بنود محفوظة لهذه الطلبية" : "لم يتم إضافة بنود بعد"}

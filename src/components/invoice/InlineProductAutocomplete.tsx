@@ -29,7 +29,7 @@ interface InlineProductAutocompleteProps {
   inputClassName?: string;
   dropdownClassName?: string;
   disabled?: boolean;
-  inputProps?: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "onFocus" | "onBlur" | "onKeyDown">;
+  inputProps?: Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "onFocus" | "onBlur" | "onKeyDown"> & Record<string, any>;
 }
 
 export default function InlineProductAutocomplete({
