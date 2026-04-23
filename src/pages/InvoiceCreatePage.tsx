@@ -1357,6 +1357,25 @@ const InvoiceCreatePage = () => {
 
   const paymentLabels: Record<string, string> = { cash: "نقداً", transfer: "تحويل", cheque: "شيك", credit: "آجل" };
 
+  // ─── Phase 2: Power-user keyboard shortcuts ───
+  // Ctrl/Cmd+Enter → save invoice, Alt+N → add a new row.
+  useInvoiceKeyboard({
+    enabled: !loadingEditInvoice && !creating,
+    onSave: () => handleCreate(false),
+    onAddRow: addItemAndFocus,
+  });
+
+  const itemIds = form.items.map(i => i.id);
+  const handleCellEnter = useCallback(
+    (field: "qty" | "price" | "discount", itemId: string) =>
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        focusNextInvoiceCell(field, itemId, itemIds, addItemAndFocus);
+      },
+    [itemIds, addItemAndFocus],
+  );
+
   // ─── RENDER ───
   if (loadingEditInvoice) {
     return (
