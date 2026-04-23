@@ -289,10 +289,12 @@ const StatementPrintViewClean = ({
       </div>
 
       {/* ═══ SIGNATURES ═══ */}
-      <div style={S.sigWrap}>
-        <div style={S.sigBox}>ختم الشركة وتوقيع المحاسب</div>
-        <div style={S.sigBox}>اعتماد العميل</div>
-      </div>
+      {showSignatures && (
+        <div style={S.sigWrap}>
+          <div style={S.sigBox}>ختم الشركة وتوقيع المحاسب</div>
+          <div style={S.sigBox}>اعتماد العميل</div>
+        </div>
+      )}
 
       {/* ═══ FOOTER ═══ */}
       <div style={S.footer}>
