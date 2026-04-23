@@ -5930,6 +5930,54 @@ export type Database = {
           },
         ]
       }
+      journal_templates: {
+        Row: {
+          created_at: string
+          default_contact_id: string | null
+          default_subtype: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_pinned: boolean
+          last_used_at: string | null
+          lines: Json
+          name: string
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_contact_id?: string | null
+          default_subtype?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_pinned?: boolean
+          last_used_at?: string | null
+          lines?: Json
+          name: string
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_contact_id?: string | null
+          default_subtype?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_pinned?: boolean
+          last_used_at?: string | null
+          lines?: Json
+          name?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       kitchen_stations: {
         Row: {
           branch_id: string | null
