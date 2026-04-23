@@ -37,6 +37,9 @@ interface Contact {
   id: string;
   contact_name: string;
   current_balance: number;
+  ledger_balance?: number;
+  open_invoices_balance?: number;
+  unapplied_credit?: number;
 }
 
 interface Invoice {
@@ -408,11 +411,59 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load contacts
   useEffect(() => {
     if (!user) return;
-    supabase.from("contacts").select("id, contact_name, current_balance")
-      .eq("user_id", user.id)
-      .order("contact_name")
-      .then(({ data }) => {
-        const contactsList = data || [];
+    Promise.all([
+      supabase.from("contacts").select("id, contact_name, current_balance").eq("user_id", user.id).order("contact_name"),
+      supabase.from("transactions").select("contact_id, amount, debit_account_code, credit_account_code").eq("user_id", user.id).eq("is_deleted", false),
+      (supabase.from("invoices").select("contact_id, remaining_amount, total_amount, paid_amount").eq("user_id", user.id).in("payment_status", ["unpaid", "partial"]) as any)
+        .neq("status", "cancelled")
+        .not("status", "in", '("مسودة","draft")'),
+    ])
+      .then(([contactsRes, txRes, openInvoicesRes]) => {
+        const ledgerMap: Record<string, number> = {};
+        const advanceMap: Record<string, number> = {};
+
+        for (const tx of (txRes.data || [])) {
+          if (!tx.contact_id) continue;
+          if (!ledgerMap[tx.contact_id]) ledgerMap[tx.contact_id] = 0;
+          if (!advanceMap[tx.contact_id]) advanceMap[tx.contact_id] = 0;
+
+          if (tx.debit_account_code === "1130") ledgerMap[tx.contact_id] += tx.amount || 0;
+          if (tx.credit_account_code === "1130") ledgerMap[tx.contact_id] -= tx.amount || 0;
+          if (tx.credit_account_code === "2110") ledgerMap[tx.contact_id] -= tx.amount || 0;
+          if (tx.debit_account_code === "2110") ledgerMap[tx.contact_id] += tx.amount || 0;
+          if (tx.credit_account_code === "2115") {
+            ledgerMap[tx.contact_id] -= tx.amount || 0;
+            advanceMap[tx.contact_id] += tx.amount || 0;
+          }
+          if (tx.debit_account_code === "2115") {
+            ledgerMap[tx.contact_id] += tx.amount || 0;
+            advanceMap[tx.contact_id] -= tx.amount || 0;
+          }
+          if (tx.debit_account_code === "1146") {
+            ledgerMap[tx.contact_id] -= tx.amount || 0;
+            advanceMap[tx.contact_id] += tx.amount || 0;
+          }
+          if (tx.credit_account_code === "1146") {
+            ledgerMap[tx.contact_id] += tx.amount || 0;
+            advanceMap[tx.contact_id] -= tx.amount || 0;
+          }
+        }
+
+        const openInvoiceMap: Record<string, number> = {};
+        for (const inv of (openInvoicesRes.data || [])) {
+          if (!inv.contact_id) continue;
+          const remaining = Math.max(0, Number(inv.remaining_amount ?? (Number(inv.total_amount || 0) - Number(inv.paid_amount || 0))));
+          openInvoiceMap[inv.contact_id] = (openInvoiceMap[inv.contact_id] || 0) + remaining;
+        }
+
+        const contactsList = ((contactsRes.data as Contact[]) || []).map((c) => ({
+          ...c,
+          current_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
+          ledger_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
+          open_invoices_balance: openInvoiceMap[c.id] ?? 0,
+          unapplied_credit: Math.max(0, advanceMap[c.id] ?? 0),
+        }));
+
         setContacts(contactsList);
         const dupContactId = (window as any).__duplicateContactId;
         if (dupContactId) {
@@ -526,18 +577,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .eq("contact_id", selectedContact.id)
       .then(({ data }) => {
         if (!data) { setComputedBalance(0); return; }
-        let bal1130 = 0;
-        let bal2100 = 0;
+        let ledger = 0;
         for (const t of data) {
-          if (t.debit_account_code === "1130") bal1130 += t.amount;
-          if (t.credit_account_code === "1130") bal1130 -= t.amount;
-          if (t.debit_account_code === "2110") bal2100 += t.amount;
-          if (t.credit_account_code === "2110") bal2100 -= t.amount;
+          if (t.debit_account_code === "1130") ledger += t.amount;
+          if (t.credit_account_code === "1130") ledger -= t.amount;
+          if (t.credit_account_code === "2110") ledger -= t.amount;
+          if (t.debit_account_code === "2110") ledger += t.amount;
+          if (t.credit_account_code === "2115") ledger -= t.amount;
+          if (t.debit_account_code === "2115") ledger += t.amount;
+          if (t.debit_account_code === "1146") ledger -= t.amount;
+          if (t.credit_account_code === "1146") ledger += t.amount;
         }
-        if (bal1130 !== 0 && bal2100 === 0) setComputedBalance(bal1130);
-        else if (bal2100 !== 0 && bal1130 === 0) setComputedBalance(-bal2100);
-        else if (bal1130 !== 0 && bal2100 !== 0) setComputedBalance(isReceipt ? bal1130 : -bal2100);
-        else setComputedBalance(0);
+        setComputedBalance(ledger);
       });
   }, [selectedContact, user, isReceipt]);
 
@@ -925,14 +976,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error("الرجاء اختيار الجهة");
       return;
     }
+    const effectiveInvoices = allocationMode === "auto"
+      ? (engineAutoAllocate(invoices as any, amountNum, currency, exchangeRate) as Invoice[])
+      : invoices;
+
     // ─── Smart Allocation Posting Guards ───
     if (!asDraft && partyType === "contact" && selectedContact) {
-      const summary = engineSummary(invoices as any, amountNum);
+      const summary = engineSummary(effectiveInvoices as any, amountNum);
       const guard = checkPostingGuards({
         voucherKind: voucherType,
         partyType,
         hasContact: true,
-        openInvoiceCount: invoices.length,
+        openInvoiceCount: effectiveInvoices.length,
         mode: allocationMode,
         summary,
       });
@@ -998,12 +1053,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // and customer/supplier statements stay clean.
       let allocationIntent: string | null = null;
       if (partyType === "contact" && selectedContact && !isAccountPayment) {
-        const summaryNow = engineSummary(invoices as any, amountNum);
+        const summaryNow = engineSummary(effectiveInvoices as any, amountNum);
         const cls = engineClassify({
           voucherKind: voucherType,
           partyType: "contact",
           hasContact: true,
-          openInvoiceCount: invoices.length,
+          openInvoiceCount: effectiveInvoices.length,
           mode: allocationMode,
           summary: summaryNow,
         });
@@ -1402,7 +1457,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           await supabase.from("transactions").update({ reference: receipt.receipt_number }).eq("id", txId);
         }
 
-        const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+        const selectedInvoices = effectiveInvoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && receipt) {
           const links = selectedInvoices.map(inv => ({
             payment_id: receipt.id,
@@ -1577,7 +1632,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
-        const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+        const selectedInvoices = effectiveInvoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
           // Save payment_invoice_links for payment vouchers too (for cancel reversal)
           const links = selectedInvoices.map(inv => ({
@@ -2160,7 +2215,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
                         className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
                         <span className="text-sm">{c.contact_name}</span>
-                        <span className="text-xs text-muted-foreground">₪{formatAmount(c.current_balance || 0)}</span>
+                        <span className="text-xs text-muted-foreground">دفتر: ₪{formatAmount(c.ledger_balance ?? c.current_balance ?? 0)} · مفتوح: ₪{formatAmount(c.open_invoices_balance ?? 0)}</span>
                       </button>
                     ))}
                     {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
@@ -2294,10 +2349,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           {selectedContact && partyType === "contact" && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                💰 رصيد الزبون / المورد: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
+                💰 الرصيد الدفتري: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)}</span>
               </span>
               <span className="flex items-center gap-1.5">
-                📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة</span>
+                📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة · ₪{formatAmount(selectedContact.open_invoices_balance ?? 0)}</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                🧾 دفعات غير مخصصة: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.unapplied_credit ?? 0)}</span>
               </span>
               {oldestInvoiceDays > 0 && (
                 <span className="flex items-center gap-1.5">
