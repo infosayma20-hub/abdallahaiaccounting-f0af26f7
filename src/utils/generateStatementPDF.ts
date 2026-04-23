@@ -46,6 +46,30 @@ export interface StatementCompanyData {
   logo_url?: string;
 }
 
+/**
+ * View options that mirror the on-screen "خيارات العرض" panel.
+ * Lets the PDF be a faithful copy of what the user sees.
+ */
+export interface StatementPDFViewOptions {
+  showReference?: boolean;
+  showDueDate?: boolean;
+  showType?: boolean;
+  showLogo?: boolean;
+  showCompanyContact?: boolean;
+  showSignatures?: boolean;
+  showAging?: boolean;
+}
+
+const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
+  showReference: true,
+  showDueDate: true,
+  showType: true,
+  showLogo: true,
+  showCompanyContact: true,
+  showSignatures: true,
+  showAging: true,
+};
+
 // ─── Colors ───
 const navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
 const navyLight: [number, number, number] = [27, 58, 92];  // #1B3A5C
