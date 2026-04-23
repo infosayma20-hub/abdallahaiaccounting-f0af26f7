@@ -2254,7 +2254,22 @@ const InvoiceCreatePage = () => {
 
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="max-w-5xl mx-auto flex gap-2">
+        <div className="max-w-5xl mx-auto flex gap-2 items-center">
+          {/* Live mini-summary: gives accountant a constant sense of control */}
+          <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
+            <span className="text-muted-foreground">الإجمالي</span>
+            <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground">المدفوع</span>
+            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-muted-foreground" : "text-emerald-600"}`}>
+              {fmtCurrency(form.paymentMethod === "credit" ? 0 : summary.total)}
+            </span>
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground">المتبقي</span>
+            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-amber-600" : "text-foreground"}`}>
+              {fmtCurrency(form.paymentMethod === "credit" ? summary.total : 0)}
+            </span>
+          </div>
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
             <Save className="h-4 w-4" /> حفظ كمسودة
           </Button>
