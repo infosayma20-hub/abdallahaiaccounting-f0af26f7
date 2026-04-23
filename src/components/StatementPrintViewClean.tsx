@@ -114,13 +114,24 @@ const S = {
   footer: { borderTop: "1px solid #E5E7EB", paddingTop: 6, marginTop: 20, display: "flex", justifyContent: "space-between", fontSize: 9, color: "#9CA3AF" } as React.CSSProperties,
 };
 
-const COL_WIDTHS = ["11%", "13%", "24%", "9%", "9%", "11%", "11%", "12%"];
-const COL_HEADERS = ["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين (عليه)", "دائن (له)", "الرصيد"];
-
 const StatementPrintViewClean = ({
   company, contact, rows, openingBalance, closingBalance,
   totalDebit, totalCredit, dateFrom, dateTo, statementNumber, contactCode,
+  showLogo = true, showCompanyContact = true, showSignatures = true,
+  showReference = true, showDueDate = true, showType = true,
 }: Props) => {
+  // Build dynamic column set based on view options
+  const columns = [
+    { key: "date", label: "التاريخ", width: "11%" },
+    ...(showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
+    { key: "description", label: "البيان", width: "auto" as const },
+    ...(showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
+    ...(showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+    { key: "debit", label: "مدين (عليه)", width: "11%" },
+    { key: "credit", label: "دائن (له)", width: "11%" },
+    { key: "balance", label: "الرصيد", width: "12%" },
+  ];
+  const amountStartIdx = columns.findIndex(c => c.key === "debit");
   const balColor = (v: number) => v > 0 ? "#DC2626" : v < 0 ? "#059669" : "#6B7280";
   const soaNum = statementNumber || `SOA-0000`;
 
