@@ -37,12 +37,6 @@ interface JournalLine {
   memo: string;
 }
 
-interface JournalTemplate {
-  name: string;
-  icon: string;
-  lines: Omit<JournalLine, "id">[];
-}
-
 interface JournalEntryPopupProps {
   open: boolean;
   onClose: () => void;
@@ -50,50 +44,6 @@ interface JournalEntryPopupProps {
   initialData?: any;
   accounts?: { id: string; name: string; type: string }[];
 }
-
-/* ── Templates ── */
-const TEMPLATES: JournalTemplate[] = [
-  {
-    name: "سلفة موظف",
-    icon: "💰",
-    lines: [
-      { account_code: "2110", account_name: "مسحوبات الموظفين", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "شراء بضاعة نقداً",
-    icon: "📦",
-    lines: [
-      { account_code: "5200", account_name: "تكلفة البضاعة المباعة", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "دفع مورد",
-    icon: "💳",
-    lines: [
-      { account_code: "2110", account_name: "ذمم موردين", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "إيداع بنكي",
-    icon: "🏦",
-    lines: [
-      { account_code: "1120", account_name: "البنك", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "قيد تسوية",
-    icon: "📊",
-    lines: [
-      { account_code: "", account_name: "", debit: 0, credit: 0, memo: "" },
-      { account_code: "", account_name: "", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-];
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
