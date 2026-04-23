@@ -501,22 +501,40 @@ const AccountStatementV2Page = () => {
     const currencySymbol = getCurrencySymbol(statementCurrency);
     const periodLabel = `${dateFrom ? fmtDate(dateFrom) : "—"}  →  ${dateTo ? fmtDate(dateTo) : "—"}`;
 
-    const header = [[
-      "التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع",
-      `مدين (${currencySymbol})`, `دائن (${currencySymbol})`, `الرصيد (${currencySymbol})`,
-    ]];
-    const data = filteredRows.map(r => [
-      fmtDate(r.date), r.reference || "—", r.description,
-      r.dueDate ? fmtDate(r.dueDate) : "—", getTypeBadge(r.transaction_type),
-      r.debit || "", r.credit || "", r.balance,
-    ]);
-    const totalsRow = [
-      "", "", "الإجمالي", "", "",
-      totalDebit, totalCredit, closingBalance,
+    // Build columns dynamically based on viewOptions (single source of truth)
+    type ColDef = { key: string; label: string; width: number; value: (r: typeof filteredRows[number]) => string | number };
+    const cols: ColDef[] = [
+      { key: "date", label: "التاريخ", width: 12, value: (r) => fmtDate(r.date) },
+      ...(viewOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
+      { key: "description", label: "البيان", width: 38, value: (r) => r.description },
+      ...(viewOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
+      ...(viewOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
+      { key: "debit", label: `مدين (${currencySymbol})`, width: 16, value: (r) => r.debit || "" },
+      { key: "credit", label: `دائن (${currencySymbol})`, width: 16, value: (r) => r.credit || "" },
+      { key: "balance", label: `الرصيد (${currencySymbol})`, width: 18, value: (r) => r.balance },
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet([...header, ...data, [], totalsRow]);
-    ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 18 }];
+    const header = [cols.map(c => c.label)];
+    const data = filteredRows.map(r => cols.map(c => c.value(r)));
+    const totalsRow = cols.map(c => {
+      if (c.key === "description") return "الإجمالي";
+      if (c.key === "debit") return totalDebit;
+      if (c.key === "credit") return totalCredit;
+      if (c.key === "balance") return closingBalance;
+      return "";
+    });
+
+    const sheet: (string | number)[][] = [...header, ...data, [], totalsRow];
+
+    // Append aging analysis if enabled
+    if (viewOptions.showAging && agingData) {
+      sheet.push([], ["تحليل التقادم (Aging)"]);
+      sheet.push(["جاري", "1-30 يوم", "31-60 يوم", "+60 يوم", "الإجمالي"]);
+      sheet.push([agingData.current, agingData.d1_30, agingData.d31_60, agingData.d60plus, agingData.total]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(sheet);
+    ws["!cols"] = cols.map(c => ({ wch: c.width }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
     setNextExportBranding({
