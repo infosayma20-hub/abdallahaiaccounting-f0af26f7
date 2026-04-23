@@ -258,6 +258,45 @@ const JournalNewPage = () => {
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
+  // Apply a saved template into the form (overwrites lines, prefills metadata)
+  const applyTemplate = useCallback((tpl: JournalTemplate) => {
+    if (tpl.default_subtype) setFormSubtype(tpl.default_subtype);
+    if (tpl.default_contact_id) setFormContactId(tpl.default_contact_id);
+    if (!formDescription && tpl.description) setFormDescription(tpl.description);
+
+    const newLines: JournalLine[] = tpl.lines.map((l, i) => {
+      const acct = accounts.find(a => a.account_code === l.account_code);
+      return {
+        id: String(Date.now() + i),
+        account_code: l.account_code || "",
+        account_name: acct?.account_name || l.account_name || "",
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        contact_id: l.contact_id || "",
+        contact_name: l.contact_name || "",
+        line_comment: l.memo || "",
+      };
+    });
+    if (newLines.length < 2) {
+      while (newLines.length < 2) {
+        newLines.push({
+          id: String(Date.now() + newLines.length + 99),
+          account_code: "", account_name: "", debit: 0, credit: 0,
+          contact_id: "", contact_name: "", line_comment: "",
+        });
+      }
+    }
+    setLines(newLines);
+    toast.success(`تم تطبيق القالب: ${tpl.name}`);
+    // Focus first empty amount cell
+    setTimeout(() => {
+      const firstEmpty = newLines.find(l => !l.debit && !l.credit);
+      if (firstEmpty) {
+        document.querySelector<HTMLInputElement>(`[data-journal-debit="${firstEmpty.id}"]`)?.focus();
+      }
+    }, 100);
+  }, [accounts, formDescription]);
+
   // Power-user keyboard shortcuts
   useJournalKeyboard({
     enabled: !showQuickAdd && !saved,
