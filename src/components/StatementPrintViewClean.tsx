@@ -218,52 +218,60 @@ const StatementPrintViewClean = ({
       {/* ═══ TABLE ═══ */}
       <table style={S.table}>
         <colgroup>
-          {COL_WIDTHS.map((w, i) => <col key={i} style={{ width: w }} />)}
+          {columns.map((c) => <col key={c.key} style={{ width: c.width }} />)}
         </colgroup>
         <thead>
           <tr>
-            {COL_HEADERS.map((h, i) => (
-              <th key={i} style={{ ...S.th, textAlign: i >= 5 ? "left" : "right" }}>{h}</th>
+            {columns.map((c, i) => (
+              <th key={c.key} style={{ ...S.th, textAlign: i >= amountStartIdx ? "left" : "right" }}>{c.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {/* Opening balance */}
           <tr>
-            <td style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>{fmtDate(dateFrom)}</td>
-            <td style={{ ...S.td, color: "#9CA3AF" }}>—</td>
-            <td style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>رصيد أول المدة</td>
-            <td style={S.td} />
-            <td style={S.td} />
-            <td style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{openingBalance > 0 ? fmt(openingBalance) : "—"}</td>
-            <td style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{openingBalance < 0 ? fmt(openingBalance) : "—"}</td>
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(openingBalance) }}>{fmt(openingBalance)}</td>
+            {columns.map((c) => {
+              if (c.key === "date") return <td key={c.key} style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>{fmtDate(dateFrom)}</td>;
+              if (c.key === "description") return <td key={c.key} style={{ ...S.td, fontStyle: "italic", color: "#9CA3AF" }}>رصيد أول المدة</td>;
+              if (c.key === "debit") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{openingBalance > 0 ? fmt(openingBalance) : "—"}</td>;
+              if (c.key === "credit") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{openingBalance < 0 ? fmt(openingBalance) : "—"}</td>;
+              if (c.key === "balance") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(openingBalance) }}>{fmt(openingBalance)}</td>;
+              if (c.key === "reference") return <td key={c.key} style={{ ...S.td, color: "#9CA3AF" }}>—</td>;
+              return <td key={c.key} style={S.td} />;
+            })}
           </tr>
 
           {/* Data rows */}
           {rows.map((r, i) => (
             <tr key={r.transaction_id + "-" + i}>
-              <td style={S.td}>{fmtDate(r.date)}</td>
-              <td style={{ ...S.td, fontSize: 9, wordBreak: "break-all", whiteSpace: "normal", lineHeight: 1.3 }}>{r.reference || "—"}</td>
-              <td style={{ ...S.td, lineHeight: 1.4 }}>{r.description}</td>
-              <td style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{r.dueDate ? fmtDate(r.dueDate) : "—"}</td>
-              <td style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{getTypeLabel(r.transaction_type)}</td>
-              <td style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{r.debit > 0 ? fmt(r.debit) : "—"}</td>
-              <td style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{r.credit > 0 ? fmt(r.credit) : "—"}</td>
-              <td style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(r.balance) }}>{fmt(r.balance)}</td>
+              {columns.map((c) => {
+                switch (c.key) {
+                  case "date": return <td key={c.key} style={S.td}>{fmtDate(r.date)}</td>;
+                  case "reference": return <td key={c.key} style={{ ...S.td, fontSize: 9, wordBreak: "break-all", whiteSpace: "normal", lineHeight: 1.3 }}>{r.reference || "—"}</td>;
+                  case "description": return <td key={c.key} style={{ ...S.td, lineHeight: 1.4 }}>{r.description}</td>;
+                  case "due": return <td key={c.key} style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{r.dueDate ? fmtDate(r.dueDate) : "—"}</td>;
+                  case "type": return <td key={c.key} style={{ ...S.td, fontSize: 9.5, color: "#6B7280" }}>{getTypeLabel(r.transaction_type)}</td>;
+                  case "debit": return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#1E40AF" }}>{r.debit > 0 ? fmt(r.debit) : "—"}</td>;
+                  case "credit": return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#065F46" }}>{r.credit > 0 ? fmt(r.credit) : "—"}</td>;
+                  case "balance": return <td key={c.key} style={{ ...S.td, ...S.tdAmount, fontWeight: 600, color: balColor(r.balance) }}>{fmt(r.balance)}</td>;
+                  default: return <td key={c.key} style={S.td} />;
+                }
+              })}
             </tr>
           ))}
 
           {/* Totals row */}
           <tr style={S.totalsRow}>
-            <td style={{ ...S.td, fontWeight: 700, fontSize: 11, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>—</td>
-            <td style={{ ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>—</td>
-            <td style={{ ...S.td, fontWeight: 700, fontSize: 11, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>رصيد ختامي</td>
-            <td style={{ ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }} />
-            <td style={{ ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }} />
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#1E40AF", borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>{fmt(totalDebit)}</td>
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#065F46", borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>{fmt(totalCredit)}</td>
-            <td style={{ ...S.td, ...S.tdAmount, fontWeight: 700, fontSize: 12, color: balColor(closingBalance), borderTop: "1px solid #111827", borderBottom: "1px solid #111827" }}>{fmt(closingBalance)}</td>
+            {columns.map((c) => {
+              const baseStyle = { ...S.td, borderTop: "1px solid #111827", borderBottom: "1px solid #111827" } as React.CSSProperties;
+              if (c.key === "description") return <td key={c.key} style={{ ...baseStyle, fontWeight: 700, fontSize: 11 }}>رصيد ختامي</td>;
+              if (c.key === "debit") return <td key={c.key} style={{ ...baseStyle, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#1E40AF" }}>{fmt(totalDebit)}</td>;
+              if (c.key === "credit") return <td key={c.key} style={{ ...baseStyle, ...S.tdAmount, fontWeight: 700, fontSize: 11, color: "#065F46" }}>{fmt(totalCredit)}</td>;
+              if (c.key === "balance") return <td key={c.key} style={{ ...baseStyle, ...S.tdAmount, fontWeight: 700, fontSize: 12, color: balColor(closingBalance) }}>{fmt(closingBalance)}</td>;
+              if (c.key === "date") return <td key={c.key} style={{ ...baseStyle, fontWeight: 700, fontSize: 11 }}>—</td>;
+              if (c.key === "reference") return <td key={c.key} style={baseStyle}>—</td>;
+              return <td key={c.key} style={baseStyle} />;
+            })}
           </tr>
         </tbody>
       </table>
