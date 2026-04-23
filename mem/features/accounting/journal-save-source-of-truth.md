@@ -31,6 +31,7 @@ Before this hook, `JournalEntryPopup` inserted directly into `transactions`, ski
 
 ## Forbidden
 - ❌ Direct `supabase.from('transactions').insert(...)` for a journal entry
+- ❌ Direct `supabase.from('transactions').update(...)` for a single row that belongs to a voucher/invoice/payment/etc. — read-only screens (مثل تقرير القيود `JournalEntriesPage`) must route the user to the source document editor instead.
 - ❌ Direct `supabase.from('vouchers').update/delete(...)` for journal vouchers — use `update`/`remove`
 - ❌ Inserting `vouchers` without matching `voucher_lines`
 - ❌ Re-implementing pairing/idempotency logic in any other component
@@ -45,5 +46,6 @@ Before this hook, `JournalEntryPopup` inserted directly into `transactions`, ski
 - `src/hooks/useSaveJournalVoucher.ts` — the hook (source of truth)
 - `src/pages/JournalNewPage.tsx` — uses `saveJournalVoucher(...)`
 - `src/pages/FinanceJournalPage.tsx` — uses `save` / `update` / `remove` (cancel)
+- `src/pages/JournalEntriesPage.tsx` — read-only report; the edit pencil now opens a **resolution dialog** that detects whether the row is voucher-based (→ navigate to `/finance/journals?edit={voucher_id}`), invoice/payment/etc. (→ message pointing to source document), or orphan (→ propose creating an adjustment voucher). No direct `transactions` update.
 - `src/components/JournalEntryPopup.tsx` — uses `saveJournalVoucher(...)`
 - `src/components/journal/JournalTemplatesPicker.tsx` — only place that lists templates (no static `TEMPLATES` arrays anywhere else)
