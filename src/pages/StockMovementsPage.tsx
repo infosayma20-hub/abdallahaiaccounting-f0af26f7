@@ -120,19 +120,46 @@ const StockMovementsPage = () => {
         case "product": cmp = (productMap.get(a.product_id)?.name || "").localeCompare(productMap.get(b.product_id)?.name || ""); break;
         case "type": cmp = a.movement_type.localeCompare(b.movement_type); break;
         case "quantity": cmp = a.quantity - b.quantity; break;
+        case "balance": cmp = 0; break;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
   }, [filtered, sortKey, sortDir, productMap]);
 
+  // Compute running balance per product (chronological order, then map back to displayed rows)
+  const balancesById = useMemo(() => {
+    const byProduct = new Map<string, StockMovement[]>();
+    movements.forEach(mv => {
+      const arr = byProduct.get(mv.product_id) || [];
+      arr.push(mv);
+      byProduct.set(mv.product_id, arr);
+    });
+    const map = new Map<string, number>();
+    byProduct.forEach((arr) => {
+      const chronological = [...arr].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      let bal = 0;
+      chronological.forEach(mv => {
+        const dir = getMovementDirection(mv.movement_type);
+        const qty = Math.abs(mv.quantity);
+        if (dir === "in") bal += qty;
+        else if (dir === "out") bal -= qty;
+        else bal += mv.quantity; // manual adjustment keeps original sign
+        map.set(mv.id, bal);
+      });
+    });
+    return map;
+  }, [movements]);
+
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => { setPage(1); }, [searchQuery, typeFilter, productFilter]);
 
-  const totalIn = filtered.filter(m => m.movement_type === "وارد").reduce((s, m) => s + m.quantity, 0);
-  const totalOut = filtered.filter(m => m.movement_type === "صادر").reduce((s, m) => s + m.quantity, 0);
+  const totalIn = filtered.filter(m => getMovementDirection(m.movement_type) === "in").reduce((s, m) => s + Math.abs(m.quantity), 0);
+  const totalOut = filtered.filter(m => getMovementDirection(m.movement_type) === "out").reduce((s, m) => s + Math.abs(m.quantity), 0);
+  const netDelta = totalIn - totalOut;
+  const netLabel = netDelta > 0 ? `زيادة ${netDelta.toLocaleString()} قطعة` : netDelta < 0 ? `نقص ${Math.abs(netDelta).toLocaleString()} قطعة` : "بدون تغيير";
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
