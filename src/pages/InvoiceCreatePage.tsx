@@ -368,7 +368,7 @@ const InvoiceCreatePage = () => {
         contactName: data.contactName || "",
         contactId: data.contactId || null,
         paymentTerms: data.paymentTerms || "net_30",
-        paymentMethod: data.paymentMethod || "cash",
+        paymentMethod: "credit",
         currency: data.currency || "شيكل",
         exchangeRate: data.exchangeRate || 1,
         notes: data.notes || "",
@@ -377,8 +377,7 @@ const InvoiceCreatePage = () => {
         billingAddress: data.billingAddress || "",
         taxInclusive: data.taxInclusive || false,
         items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
-        // Reset excluded fields — invoices are credit-only, no payment metadata
-        paymentMethod: "credit",
+        // Invoices are credit-only — payment metadata is reset
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
       }));
@@ -871,7 +870,8 @@ const InvoiceCreatePage = () => {
     if (!user) return;
     setCreating(true);
 
-    const paymentMethodDb = mapPaymentMethodToDb(form.paymentMethod);
+    // Invoices are accrual-only — always credit ("آجل")
+    const paymentMethodDb = CREDIT_PAYMENT_METHOD_DB;
 
     try {
       let contactId = form.contactId;
