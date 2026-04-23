@@ -381,7 +381,6 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
   // UI state
   const [sending, setSending] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [showAddContact, setShowAddContact] = useState(false);
   const [addContactType, setAddContactType] = useState<"customer" | "supplier">("customer");
