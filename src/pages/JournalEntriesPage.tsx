@@ -260,68 +260,94 @@ const JournalEntriesPage = () => {
   const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
   const totalCredit = totalDebit;
 
-  const openEdit = (tx: TransactionRow) => {
+  /**
+   * ✅ Source of Truth: لا نعدّل صف transaction مباشرة هنا.
+   * نحدد مصدر القيد ونوجّه المستخدم للمحرر الموحّد المناسب:
+   *  - voucher (journal): فتح FinanceJournalPage في وضع تعديل
+   *  - invoice / payment / receipt / cheque ...: عرض رسالة + رابط للمستند الأصلي
+   *  - يتيم بدون مرجع: عرض رسالة "لا يمكن التعديل" مع تفسير
+   */
+  const openEdit = async (tx: TransactionRow) => {
+    if (!user) return;
     setEditingTx(tx);
-    setEditFields({
-      description: tx.description || "",
-      transaction_type: tx.transaction_type || "",
-      amount: String(tx.amount || ""),
-      currency: tx.currency || "شيكل",
-      transaction_date: tx.transaction_date || "",
-      debit_account_code: tx.debit_account_code || "",
-      credit_account_code: tx.credit_account_code || "",
-    });
-  };
+    setEditResolution(null);
+    setResolving(true);
 
-  // Auto-detect transaction_type based on account codes
-  const inferTransactionType = (debit: string, credit: string, currentType: string): string => {
-    // Employee-related: debit to employee account (1130) from cash/bank
-    if (debit.startsWith("113") && (credit.startsWith("111") || credit.startsWith("112"))) return "employee_advance";
-    // Expense: debit to expense account (5xxx) from cash/bank
-    if (debit.startsWith("5") && (credit.startsWith("111") || credit.startsWith("112"))) return "payment";
-    // Payment voucher: debit to liability/payable from cash/bank
-    if (debit.startsWith("2") && (credit.startsWith("111") || credit.startsWith("112"))) return "payment";
-    // Receipt voucher: debit to cash/bank from receivable/revenue
-    if ((debit.startsWith("111") || debit.startsWith("112")) && (credit.startsWith("113") || credit.startsWith("4"))) return "receipt";
-    // Sale: credit to revenue (4xxx)
-    if (credit.startsWith("4")) return "sale";
-    // Purchase: debit to purchases/inventory
-    if (debit.startsWith("51") || debit.startsWith("114")) return "purchase";
-    // Opening balance
-    if (debit.startsWith("34") || credit.startsWith("34")) return "opening_balance";
-    return currentType;
-  };
-
-  const handleSave = async () => {
-    if (!editingTx || !user) return;
-    setSaving(true);
     try {
-      const finalType = inferTransactionType(
-        editFields.debit_account_code,
-        editFields.credit_account_code,
-        editFields.transaction_type
-      );
-      const { error } = await supabase.from("transactions")
-        .update({
-          description: editFields.description,
-          transaction_type: finalType,
-          amount: Number(editFields.amount),
-          currency: editFields.currency,
-          transaction_date: editFields.transaction_date,
-          debit_account_code: editFields.debit_account_code,
-          credit_account_code: editFields.credit_account_code,
-        })
-        .eq("id", editingTx.id)
-        .eq("user_id", user.id);
+      const ref = (tx.reference || "").trim();
+      const txType = (tx.transaction_type || "").toLowerCase();
 
-      if (error) throw error;
-      toast({ title: "✅ تم تعديل القيد بنجاح" });
-      setEditingTx(null);
-      fetchData();
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      // (1) قيد يومية / رصيد افتتاحي → ابحث عن voucher مطابق
+      if (ref && (txType === "journal" || txType === "opening_balance" || txType === "قيد يومية")) {
+        const { data: v } = await supabase
+          .from("vouchers")
+          .select("id, ref_number, type, status")
+          .eq("user_id", user.id)
+          .eq("type", "journal")
+          .eq("ref_number", ref)
+          .maybeSingle();
+
+        if (v) {
+          setEditResolution({
+            kind: "voucher",
+            voucherId: v.id,
+            voucherRef: v.ref_number,
+            message: `هذا القيد مرتبط بسند يومية (${v.ref_number}). أي تعديل يجب أن يتم من خلال محرر السند الموحّد لضمان تزامن الرأس والأسطر مع كشف الحساب والتقارير.`,
+          });
+          return;
+        }
+      }
+
+      // (2) فاتورة/سند صرف/قبض/شيك/راتب... — مرتبط بمستند آخر
+      const docHints: Record<string, string> = {
+        sale: "فاتورة مبيعات", sale_cash: "فاتورة مبيعات", sale_bank: "فاتورة مبيعات",
+        sale_cheque: "فاتورة مبيعات", sale_credit: "فاتورة مبيعات",
+        purchase: "فاتورة مشتريات", purchase_cash: "فاتورة مشتريات", purchase_bank: "فاتورة مشتريات",
+        purchase_cheque: "فاتورة مشتريات", purchase_credit: "فاتورة مشتريات", purchase_invoice: "فاتورة مشتريات",
+        receipt: "سند قبض", "سند قبض": "سند قبض",
+        payment: "سند صرف", "سند صرف": "سند صرف",
+        salary: "راتب", employee_salary: "راتب", employee_payment: "دفعة موظف",
+        employee_advance: "سلفة موظف", employee_deduction: "خصم موظف",
+        loan_payment: "قسط قرض", loan_disbursement: "صرف قرض",
+        cheque_collection: "تحصيل شيك", cheque_register: "تسجيل شيك",
+        cheque_deposit: "إيداع شيك", cheque_bounce: "شيك مرتجع",
+        cheque_endorsement: "تظهير شيك", cheque_return: "إرجاع شيك",
+        depreciation: "إهلاك أصل", asset_purchase: "شراء أصل", asset_disposal: "استبعاد أصل",
+        pos_sale: "وردية POS", pos_cogs: "وردية POS", pos_transfer: "ترحيل وردية",
+      };
+      const hint = docHints[txType] || (tx.transaction_type ? typeDisplayMap[tx.transaction_type] : null);
+      if (hint) {
+        setEditResolution({
+          kind: "invoice",
+          invoiceHint: hint,
+          message: `هذا القيد ناتج تلقائياً عن "${hint}"${ref ? ` (المرجع: ${ref})` : ""}. لا يمكن تعديله مباشرة من هنا — التعديل يجب أن يتم من المستند الأصلي حتى تنعكس التغييرات على المخزون والذمم وكشف الحساب معاً.`,
+        });
+        return;
+      }
+
+      // (3) سجل يتيم بدون مرجع — لا يمكن تعديله من هذه الشاشة
+      setEditResolution({
+        kind: "orphan",
+        message: ref
+          ? `قيد بمرجع "${ref}" غير مرتبط بسند معروف في النظام. لا يمكن تعديله من شاشة تقرير القيود؛ هذا التقرير للعرض والتدقيق فقط. للتعديل أنشئ سند قيد تسوية جديد.`
+          : `هذا القيد لا يحمل أي مرجع لمستند مصدر. شاشة "تقرير القيود المحاسبية" للعرض والتدقيق فقط — أي تعديل محاسبي يجب أن يمر عبر إنشاء سند قيد تسوية جديد.`,
+      });
     } finally {
-      setSaving(false);
+      setResolving(false);
+    }
+  };
+
+  const handleEditNavigate = () => {
+    if (!editResolution) return;
+    if (editResolution.kind === "voucher" && editResolution.voucherId) {
+      navigate(`/finance/journals?edit=${editResolution.voucherId}`);
+      setEditingTx(null);
+      setEditResolution(null);
+    } else if (editResolution.kind === "orphan") {
+      // افتح محرر السند الموحّد لإنشاء قيد تسوية جديد
+      setEditingTx(null);
+      setEditResolution(null);
+      setShowJournalEntry(true);
     }
   };
 
