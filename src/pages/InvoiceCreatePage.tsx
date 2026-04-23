@@ -291,6 +291,10 @@ const InvoiceCreatePage = () => {
   const [openProductPopover, setOpenProductPopover] = useState<string | null>(null);
 
   // Form state
+  // ─── Accounting policy (post QuickBooks-style refactor) ───
+  // All invoices are issued on **credit (آجل)** basis. Payment is recorded later
+  // through the dedicated voucher system (receipt for sales, payment for purchases).
+  // This mirrors QuickBooks/Xero accrual flow: invoice → AR/AP, then voucher → cash/bank.
   const [form, setForm] = useState({
     type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
@@ -298,7 +302,7 @@ const InvoiceCreatePage = () => {
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentTerms: "net_30",
-    paymentMethod: "credit" as "cash" | "transfer" | "cheque" | "credit",
+    paymentMethod: "credit" as "credit", // ← always credit; no UI to change
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
@@ -307,12 +311,6 @@ const InvoiceCreatePage = () => {
     billingAddress: "",
     taxInclusive: false,
     items: [createEmptyItem()] as InvoiceItem[],
-    chequeNumber: "",
-    chequeBank: "",
-    chequeBankAccountId: "" as string,
-    chequeDueDate: "",
-    transferRef: "",
-    transferBank: "",
   });
 
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
@@ -389,15 +387,10 @@ const InvoiceCreatePage = () => {
         billingAddress: data.billingAddress || "",
         taxInclusive: data.taxInclusive || false,
         items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
-        // Reset excluded fields
+        // Reset excluded fields — invoices are credit-only, no payment metadata
+        paymentMethod: "credit",
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
-        chequeNumber: "",
-        chequeBank: "",
-        chequeBankAccountId: "",
-        chequeDueDate: "",
-        transferRef: "",
-        transferBank: "",
       }));
       if (data.contactSearch) setContactSearch(data.contactSearch);
     } catch (e) { /* ignore parse errors */ }
@@ -623,7 +616,9 @@ const InvoiceCreatePage = () => {
           date: data.invoice_date || prev.date,
           dueDate: data.due_date || "",
           paymentTerms,
-          paymentMethod: mapDbPaymentMethod(data.payment_method),
+          // Always force credit — invoices are accrual-only since payment UI was removed.
+          // Existing non-credit invoices will be re-saved as credit with paid_amount=0.
+          paymentMethod: "credit",
           currency: data.currency || "شيكل",
           exchangeRate: Number(data.exchange_rate) || 1,
           notes: data.notes || "",
@@ -632,12 +627,6 @@ const InvoiceCreatePage = () => {
           billingAddress: data.billing_address || "",
           taxInclusive: Boolean(data.tax_inclusive),
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
-          chequeNumber: "",
-          chequeBank: "",
-          chequeBankAccountId: "",
-          chequeDueDate: "",
-          transferRef: "",
-          transferBank: "",
         }));
 
         if (data.invoice_number) setNextInvoiceNumber(data.invoice_number);
@@ -883,12 +872,6 @@ const InvoiceCreatePage = () => {
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
-    if (form.paymentMethod === "cheque") {
-      if (!form.chequeNumber.trim()) { toast({ title: "يرجى إدخال رقم الشيك", variant: "destructive" }); return false; }
-      if (!form.chequeBank.trim()) { toast({ title: "يرجى إدخال اسم البنك", variant: "destructive" }); return false; }
-      if (!form.chequeDueDate) { toast({ title: "يرجى تحديد تاريخ استحقاق الشيك", variant: "destructive" }); return false; }
-      if (!form.chequeBankAccountId) { toast({ title: "يرجى اختيار الحساب البنكي", variant: "destructive" }); return false; }
-    }
     return true;
   };
 
@@ -945,10 +928,13 @@ const InvoiceCreatePage = () => {
         terms: invoiceTerms.trim() || null,
       };
 
-      const debitCode = form.paymentMethod === "cash" ? "1110" : form.paymentMethod === "transfer" ? "1120" : form.paymentMethod === "cheque" ? "1150" : "1130";
-      const transactionType = form.type === "sales"
-        ? form.paymentMethod === "cash" ? "sale_cash" : form.paymentMethod === "transfer" ? "sale_bank" : form.paymentMethod === "cheque" ? "sale_cheque" : "sale_credit"
-        : form.paymentMethod === "cash" ? "purchase_cash" : form.paymentMethod === "transfer" ? "purchase_bank" : form.paymentMethod === "cheque" ? "purchase_cheque" : "purchase_credit";
+      // ─── Accounting routing (credit-only invoices) ───
+      // Sales invoice  → Dr 1130 (AR) / Cr 4100 (Revenue)
+      // Purchase invoice → Dr 5110 (Purchases) / Cr 2110 (AP)
+      // Note: payment-related debit codes (1110/1120/1150) are no longer used here;
+      // payment is recorded later via receipt/payment vouchers.
+      const debitCode = "1130"; // AR for sales (purchase branch overrides below)
+      const transactionType = form.type === "sales" ? "sale_credit" : "purchase_credit";
       const isForeign = form.currency !== "شيكل" && form.exchangeRate && form.exchangeRate !== 1;
       const amountILS = isForeign ? summary.total * form.exchangeRate : summary.total;
 
@@ -1150,30 +1136,15 @@ const InvoiceCreatePage = () => {
           } as any);
         }
 
-        if (form.paymentMethod === "cheque") {
-          await supabase.from("cheques").insert({
-            user_id: user.id,
-            cheque_type: form.type === "sales" ? "وارد" : "صادر",
-            party_name: form.contactName,
-            party_type: form.type === "sales" ? "عميل" : "مورد",
-            amount: summary.total,
-            cheque_date: form.chequeDueDate || form.date,
-            cheque_number: form.chequeNumber || null,
-            bank_name: form.chequeBank || null,
-            currency: form.currency,
-            status: "مسجل",
-            deposit_bank_account_id: form.chequeBankAccountId || null,
-            linked_account: bankAccounts.find(b => b.id === form.chequeBankAccountId)?.gl_account_code || null,
-            notes: `مرتبط بفاتورة ${dbInv.invoice_number}`,
-          } as any);
-        }
-
+        // ─── Post the GL entry (credit-only invoices) ───
+        // Sales: Dr 1130 AR / Cr 4100 Revenue
+        // Purchase: Dr 5110 Purchases / Cr 2110 AP
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
-          debit_account_code: form.type === "sales" ? debitCode : "5110",
-          credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2110" : debitCode,
+          debit_account_code: form.type === "sales" ? "1130" : "5110",
+          credit_account_code: form.type === "sales" ? "4100" : "2110",
           amount: amountILS,
           currency: form.currency,
           foreign_amount: isForeign ? summary.total : null,
@@ -1356,8 +1327,6 @@ const InvoiceCreatePage = () => {
     );
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   };
-
-  const paymentLabels: Record<string, string> = { cash: "نقداً", transfer: "تحويل", cheque: "شيك", credit: "آجل" };
 
   // ─── Phase 2: Power-user keyboard shortcuts ───
   // Ctrl/Cmd+Enter → save invoice, Alt+N → add a new row.
