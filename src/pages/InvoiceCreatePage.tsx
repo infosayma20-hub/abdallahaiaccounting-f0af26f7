@@ -1706,15 +1706,16 @@ const InvoiceCreatePage = () => {
         </CardContent>
       </Card>
 
-      {/* ─── SECTION 2: Invoice Items ─── */}
-      <Card className="border-0 shadow-sm rounded-2xl">
-        <CardHeader className="pb-2 pt-4 px-5">
-          <div className="flex items-center justify-between">
+      {/* ─── SECTION 2: Invoice Items — Clean Professional Table ─── */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-3 pt-4 px-5 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
+              <span className="text-[10px] font-normal text-muted-foreground">({form.items.length} {form.items.length === 1 ? "بند" : "بنود"})</span>
             </CardTitle>
-            <div className="flex gap-1 items-center">
-              <span className="hidden md:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-muted/40 rounded-md px-1.5 py-0.5 mr-1">
+            <div className="flex gap-1.5 items-center">
+              <span className="hidden lg:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-background border border-border/50 rounded-md px-2 py-1">
                 <kbd className="font-mono">Enter</kbd> للتنقل
                 <span className="text-muted-foreground/60">·</span>
                 <kbd className="font-mono">Alt+N</kbd> سطر جديد
@@ -1722,128 +1723,151 @@ const InvoiceCreatePage = () => {
                 <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
               </span>
               {taxEnabled && (
-                <div className="flex items-center gap-1.5 mr-1 px-2 py-1 rounded-md bg-muted/40">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background border border-border/50">
                   <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
                   <Label htmlFor="tax-inclusive" className="text-[10px] text-muted-foreground cursor-pointer">
                     {form.taxInclusive ? "شامل الضريبة" : "غير شامل"}
                   </Label>
                 </div>
               )}
-              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
+              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary hover:bg-primary/10" onClick={() => setShowQuickAdd(true)}>
                 <Plus className="h-3 w-3" /> تعريف منتج
               </Button>
-              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-destructive" onClick={clearItems}>
-                مسح الكل
+              <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-destructive hover:bg-destructive/10" onClick={clearItems}>
+                <Trash2 className="h-3 w-3" /> مسح الكل
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="px-4 pb-4">
-          {/* Table Header */}
-          <div className={`hidden lg:grid ${taxEnabled ? "grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px]" : "grid-cols-[30px_1fr_70px_90px_70px_30px_100px_30px]"} gap-1.5 px-2 mb-2 text-[10px] font-semibold text-muted-foreground`}>
-            <span>#</span>
-            <span>المنتج / الخدمة</span>
-            <span className="text-center">الكمية</span>
-            <span className="text-center">السعر</span>
-            <span className="text-center">الخصم</span>
-            <span></span>
-            {taxEnabled && <span className="text-center">تصنيف الضريبة</span>}
-            <span className="text-center">الإجمالي</span>
-            <span></span>
-          </div>
+        <CardContent className="p-0">
+          {/* Clean professional table */}
+          <div className="hidden lg:block">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/30 border-b border-border/60 text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  <th className="py-2.5 px-3 text-center w-[42px]">#</th>
+                  <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
+                  <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
+                  <th className="py-2.5 px-3 text-center w-[110px]">السعر</th>
+                  <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
+                  {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
+                  <th className="py-2.5 px-3 text-left w-[120px]">الإجمالي</th>
+                  <th className="py-2.5 px-2 text-center w-[40px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {form.items.map((item, idx) => {
+                  const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+                  const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
+                  const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
+                  const diff = item.unitPrice - storedPrice;
+                  const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
+                  const stock = prod ? Number(prod.quantity || 0) : 0;
+                  const unit = prod?.unit || "قطعة";
+                  const isService = prod?.product_type === "service";
+                  return (
+                    <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors group">
+                      {/* # */}
+                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle">
+                        {idx + 1}
+                      </td>
 
-          <div className="space-y-2">
-            {form.items.map((item, idx) => (
-              <div key={item.id} className={`lg:grid ${taxEnabled ? "lg:grid-cols-[30px_1fr_70px_90px_70px_30px_110px_100px_30px]" : "lg:grid-cols-[30px_1fr_70px_90px_70px_30px_100px_30px]"} gap-1.5 items-center bg-muted/20 rounded-xl p-2.5 space-y-2 lg:space-y-0`}>
-                {/* Row number */}
-                <span className="hidden lg:block text-[10px] text-muted-foreground font-mono text-center">{idx + 1}</span>
-
-                {/* Product */}
-                <div className="space-y-1">
-                  <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
-                    <PopoverTrigger asChild>
-                      <button data-invoice-product-trigger={idx === 0 ? "true" : undefined} data-row-id={item.id} className="w-full flex items-center justify-between rounded-lg text-[11px] h-8 border-0 bg-background px-3 hover:bg-muted/50 transition-colors text-right">
-                        <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
-                          {item.description || "اختر منتج..."}
-                        </span>
-                        <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[320px] p-0" align="start" dir="rtl">
-                      <Command dir="rtl">
-                        <CommandInput placeholder="ابحث عن منتج..." className="text-[12px]" />
-                        <CommandList>
-                          <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem onSelect={() => { setShowQuickAdd(true); setOpenProductPopover(null); }} className="text-primary font-semibold text-[11px] gap-1.5">
-                              <Plus className="h-3 w-3" /> تعريف منتج جديد
-                            </CommandItem>
-                          </CommandGroup>
-                          <CommandGroup heading="المنتجات">
-                            {products.map(p => (
-                              <CommandItem
-                                key={p.id}
-                                value={`${p.name} ${p.barcode || ""}`}
-                                onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }}
-                                className="text-[11px] flex items-center justify-between gap-2"
-                              >
-                                <span>{p.name}</span>
-                                <span className="text-[9px] text-muted-foreground tabular-nums">
-                                  {form.type === "sales" ? `${currSymbol}${p.sell_price}` : `${currSymbol}${p.buy_price}`} • {p.quantity} {p.unit}
-                                </span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {item.productId && (() => {
-                    const prod = products.find(p => p.id === item.productId);
-                    if (!prod) return null;
-                    const stock = Number(prod.quantity || 0);
-                    const unit = prod.unit || "قطعة";
-                    const isService = prod.product_type === "service";
-                    if (isService) {
-                      return <p className="text-[9px] text-muted-foreground px-1">⚙️ خدمة</p>;
-                    }
-                    const tone =
-                      stock <= 0
-                        ? "text-destructive"
-                        : stock < item.quantity
-                        ? "text-warning"
-                        : "text-emerald-600";
-                    return (
-                      <p className={`text-[9px] font-medium px-1 tabular-nums ${tone}`}>
-                        📦 المتاح: {stock.toLocaleString("en")} {unit}
-                        {form.type === "sales" && stock < item.quantity && (
-                          <span className="mr-1 font-bold">— غير كافٍ!</span>
+                      {/* Product */}
+                      <td className="py-2 px-2 align-middle">
+                        <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
+                          <PopoverTrigger asChild>
+                            <button
+                              data-invoice-product-trigger={idx === 0 ? "true" : undefined}
+                              data-row-id={item.id}
+                              className="w-full flex items-center justify-between rounded-md text-[12px] h-8 border border-transparent hover:border-border bg-transparent px-2 hover:bg-background transition-all text-right focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary/20 outline-none"
+                            >
+                              <span className={item.description ? "text-foreground font-medium truncate" : "text-muted-foreground"}>
+                                {item.description || "اختر منتج..."}
+                              </span>
+                              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[340px] p-0" align="start" dir="rtl">
+                            <Command dir="rtl">
+                              <CommandInput placeholder="ابحث عن منتج..." className="text-[12px]" />
+                              <CommandList>
+                                <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج</CommandEmpty>
+                                <CommandGroup>
+                                  <CommandItem onSelect={() => { setShowQuickAdd(true); setOpenProductPopover(null); }} className="text-primary font-semibold text-[11px] gap-1.5">
+                                    <Plus className="h-3 w-3" /> تعريف منتج جديد
+                                  </CommandItem>
+                                </CommandGroup>
+                                <CommandGroup heading="المنتجات">
+                                  {products.map(p => (
+                                    <CommandItem
+                                      key={p.id}
+                                      value={`${p.name} ${p.barcode || ""}`}
+                                      onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }}
+                                      className="text-[11px] flex items-center justify-between gap-2"
+                                    >
+                                      <span>{p.name}</span>
+                                      <span className="text-[9px] text-muted-foreground tabular-nums">
+                                        {form.type === "sales" ? `${currSymbol}${p.sell_price}` : `${currSymbol}${p.buy_price}`} • {p.quantity} {p.unit}
+                                      </span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        {item.productId && (
+                          isService ? (
+                            <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5">⚙️ خدمة</p>
+                          ) : (
+                            <p className={`text-[9.5px] font-medium px-2 mt-0.5 tabular-nums ${
+                              stock <= 0 ? "text-destructive" :
+                              stock < item.quantity ? "text-amber-600" :
+                              "text-emerald-600"
+                            }`}>
+                              📦 المتاح: {stock.toLocaleString("en")} {unit}
+                              {form.type === "sales" && stock < item.quantity && (
+                                <span className="mr-1 font-bold">— غير كافٍ!</span>
+                              )}
+                            </p>
+                          )
                         )}
-                      </p>
-                    );
-                  })()}
-                </div>
+                      </td>
 
-                {/* Quantity */}
-                <div className="flex items-center gap-1">
-                  <Input data-invoice-qty={item.id} type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} onKeyDown={handleCellEnter("qty", item.id)} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
-                </div>
+                      {/* Quantity */}
+                      <td className="py-2 px-2 align-middle">
+                        <Input
+                          data-invoice-qty={item.id}
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
+                          onKeyDown={handleCellEnter("qty", item.id)}
+                          className="rounded-md text-[12px] h-8 text-center border border-transparent hover:border-border focus:border-primary bg-transparent hover:bg-background focus:bg-background tabular-nums"
+                          dir="ltr"
+                        />
+                      </td>
 
-                {/* Price */}
-                <div className="relative">
-                  {(() => {
-                    const prod = item.productId ? products.find(p => p.id === item.productId) : null;
-                    const storedPrice = prod ? Number(prod.buy_price) || 0 : 0;
-                    const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
-                    const diff = item.unitPrice - storedPrice;
-                    const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
-                    return (
-                      <>
-                        <Input data-invoice-price={item.id} type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} onKeyDown={handleCellEnter("price", item.id)} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
+                      {/* Price */}
+                      <td className="py-2 px-2 align-middle relative">
+                        <Input
+                          data-invoice-price={item.id}
+                          type="number"
+                          min={0}
+                          value={item.unitPrice}
+                          onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
+                          onKeyDown={handleCellEnter("price", item.id)}
+                          className={`rounded-md text-[12px] h-8 text-center border bg-transparent hover:bg-background focus:bg-background tabular-nums ${
+                            showWarning
+                              ? "border-amber-400 bg-amber-50/50"
+                              : "border-transparent hover:border-border focus:border-primary"
+                          }`}
+                          dir="ltr"
+                        />
                         {showWarning && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-help">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 cursor-help">
                                 <TriangleAlert className="h-3.5 w-3.5 text-amber-500" />
                               </span>
                             </TooltipTrigger>
@@ -1854,51 +1878,127 @@ const InvoiceCreatePage = () => {
                             </TooltipContent>
                           </Tooltip>
                         )}
-                      </>
-                    );
-                  })()}
+                      </td>
+
+                      {/* Discount with type toggle inline */}
+                      <td className="py-2 px-2 align-middle">
+                        <div className="flex items-center gap-1">
+                          <Input
+                            data-invoice-discount={item.id}
+                            type="number"
+                            min={0}
+                            value={item.discount}
+                            onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
+                            onKeyDown={handleCellEnter("discount", item.id)}
+                            className="rounded-md text-[12px] h-8 text-center border border-transparent hover:border-border focus:border-primary bg-transparent hover:bg-background focus:bg-background tabular-nums flex-1 min-w-0"
+                            dir="ltr"
+                          />
+                          <button
+                            onClick={() => updateItem(item.id, "discountType", item.discountType === "percent" ? "amount" : "percent")}
+                            className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                            title={item.discountType === "percent" ? "خصم نسبي %" : "خصم ثابت"}
+                          >
+                            {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : currSymbol}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Tax Category */}
+                      {taxEnabled && (
+                        <td className="py-2 px-2 align-middle">
+                          <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
+                            <SelectTrigger className="rounded-md text-[10.5px] h-8 border border-transparent hover:border-border focus:border-primary bg-transparent hover:bg-background px-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TAX_CATEGORY_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      )}
+
+                      {/* Subtotal */}
+                      <td className="py-2 px-3 text-left align-middle">
+                        <span className="text-[13px] font-bold text-foreground tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</span>
+                      </td>
+
+                      {/* Delete */}
+                      <td className="py-2 px-2 text-center align-middle">
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-20 disabled:hover:text-muted-foreground/40 opacity-0 group-hover:opacity-100"
+                          disabled={form.items.length <= 1}
+                          title="حذف البند"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="lg:hidden divide-y divide-border/40">
+            {form.items.map((item, idx) => (
+              <div key={item.id} className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-muted-foreground">#{idx + 1}</span>
+                  <button onClick={() => removeItem(item.id)} className="text-destructive/60 hover:text-destructive disabled:opacity-30" disabled={form.items.length <= 1}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-
-                {/* Discount */}
-                <Input data-invoice-discount={item.id} type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} onKeyDown={handleCellEnter("discount", item.id)} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
-
-                {/* Discount type toggle */}
-                <button
-                  onClick={() => updateItem(item.id, "discountType", item.discountType === "percent" ? "amount" : "percent")}
-                  className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors"
-                  title={item.discountType === "percent" ? "خصم نسبي" : "خصم ثابت"}
-                >
-                  {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : currSymbol}
-                </button>
-
-                {/* Tax Category */}
-                {taxEnabled && (
-                  <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
-                    <SelectTrigger className="rounded-lg text-[10px] h-8 border-0 bg-background px-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TAX_CATEGORY_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {/* Subtotal */}
-                <div className="text-center">
-                  <span className="text-xs font-bold text-foreground tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</span>
+                <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
+                  <PopoverTrigger asChild>
+                    <button className="w-full flex items-center justify-between rounded-md text-[12px] h-9 border border-border bg-background px-3 text-right">
+                      <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
+                        {item.description || "اختر منتج..."}
+                      </span>
+                      <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start" dir="rtl">
+                    <Command dir="rtl">
+                      <CommandInput placeholder="ابحث..." className="text-[12px]" />
+                      <CommandList>
+                        <CommandEmpty className="py-3 text-center text-xs">لا توجد نتائج</CommandEmpty>
+                        <CommandGroup heading="المنتجات">
+                          {products.map(p => (
+                            <CommandItem key={p.id} value={`${p.name} ${p.barcode || ""}`} onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }} className="text-[11px]">
+                              {p.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground">الكمية</Label>
+                    <Input type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="h-8 text-[11px] text-center" dir="ltr" />
+                  </div>
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground">السعر</Label>
+                    <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className="h-8 text-[11px] text-center" dir="ltr" />
+                  </div>
+                  <div>
+                    <Label className="text-[9px] text-muted-foreground">الإجمالي</Label>
+                    <div className="h-8 flex items-center justify-center text-[12px] font-bold tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</div>
+                  </div>
                 </div>
-
-                {/* Delete */}
-                <button onClick={() => removeItem(item.id)} className="text-destructive/60 hover:text-destructive transition-colors disabled:opacity-30 mx-auto" disabled={form.items.length <= 1}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
               </div>
             ))}
           </div>
 
-          <div className="flex gap-2 mt-3">
-            <Button variant="outline" size="sm" className="flex-1 rounded-xl text-xs gap-1.5 border-dashed h-9" onClick={addItem}>
-              <Plus className="h-3.5 w-3.5" /> إضافة بند
+          {/* Add row footer */}
+          <div className="px-3 py-2 border-t border-border/50 bg-muted/10">
+            <Button variant="ghost" size="sm" className="w-full rounded-md text-xs gap-1.5 h-8 text-primary hover:bg-primary/10 justify-center" onClick={addItem}>
+              <Plus className="h-3.5 w-3.5" /> إضافة بند جديد
             </Button>
           </div>
         </CardContent>
