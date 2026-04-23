@@ -516,6 +516,39 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     setLines(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const removeLineById = (id: string) => {
+    if (lines.length <= 2) return;
+    setLines(prev => prev.filter(l => l.id !== id));
+  };
+
+  const duplicateLineById = (id: string) => {
+    setLines(prev => {
+      const idx = prev.findIndex(l => l.id === id);
+      if (idx < 0) return prev;
+      const copy: JournalLine = { ...prev[idx], id: uid() };
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+  };
+
+  const addLineAndFocus = () => {
+    const newLine = emptyLine();
+    setLines(prev => [...prev, newLine]);
+    setTimeout(() => {
+      document.querySelector<HTMLInputElement>(`[data-journal-debit="${newLine.id}"]`)?.focus();
+    }, 50);
+  };
+
+  // Power-user keyboard shortcuts (only active when modal is open)
+  useJournalKeyboard({
+    enabled: open && !showSuccess && !showPreview,
+    onSave: () => { if (canSubmit) handleSubmit(); },
+    onAddRow: addLineAndFocus,
+    onDuplicateRow: duplicateLineById,
+    onDeleteRow: removeLineById,
+  });
+
   /* ── Template apply ── */
   const applyTemplate = (tpl: JournalTemplate) => {
     const newLines: JournalLine[] = tpl.lines.map(l => {
