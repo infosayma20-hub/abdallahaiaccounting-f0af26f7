@@ -976,14 +976,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       toast.error("الرجاء اختيار الجهة");
       return;
     }
+    const effectiveInvoices = allocationMode === "auto"
+      ? (engineAutoAllocate(invoices as any, amountNum, currency, exchangeRate) as Invoice[])
+      : invoices;
+
     // ─── Smart Allocation Posting Guards ───
     if (!asDraft && partyType === "contact" && selectedContact) {
-      const summary = engineSummary(invoices as any, amountNum);
+      const summary = engineSummary(effectiveInvoices as any, amountNum);
       const guard = checkPostingGuards({
         voucherKind: voucherType,
         partyType,
         hasContact: true,
-        openInvoiceCount: invoices.length,
+        openInvoiceCount: effectiveInvoices.length,
         mode: allocationMode,
         summary,
       });
@@ -1049,12 +1053,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       // and customer/supplier statements stay clean.
       let allocationIntent: string | null = null;
       if (partyType === "contact" && selectedContact && !isAccountPayment) {
-        const summaryNow = engineSummary(invoices as any, amountNum);
+        const summaryNow = engineSummary(effectiveInvoices as any, amountNum);
         const cls = engineClassify({
           voucherKind: voucherType,
           partyType: "contact",
           hasContact: true,
-          openInvoiceCount: invoices.length,
+          openInvoiceCount: effectiveInvoices.length,
           mode: allocationMode,
           summary: summaryNow,
         });
