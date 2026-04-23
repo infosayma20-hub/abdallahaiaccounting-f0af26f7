@@ -41,7 +41,32 @@ interface ReceiptPaymentProps extends BaseProps {
   onOpenStatement?: () => void;
 }
 
-type Props = ReceiptPaymentProps;
+interface InvoiceProps extends BaseProps {
+  variant: "invoice" | "credit_note" | "debit_note";
+  invoiceType: "sales" | "purchase";
+  subtotal: number;
+  totalDiscount: number;
+  totalTax: number;
+  total: number;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
+  itemsCount?: number;
+  partyName?: string | null;
+  partyId?: string | null;
+  /** الرصيد الحالي للعميل قبل هذه الفاتورة */
+  balanceBefore?: number | null;
+  openInvoicesTotal?: number;
+  unappliedCredit?: number;
+  creditLimit?: number | null;
+  currency?: string;
+  exchangeRate?: number;
+  date?: string;
+  dueDate?: string;
+  refNumber?: string;
+  onOpenStatement?: () => void;
+}
+
+type Props = ReceiptPaymentProps | InvoiceProps;
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
