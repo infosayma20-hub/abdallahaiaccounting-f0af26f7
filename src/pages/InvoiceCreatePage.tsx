@@ -291,6 +291,10 @@ const InvoiceCreatePage = () => {
   const [openProductPopover, setOpenProductPopover] = useState<string | null>(null);
 
   // Form state
+  // ─── Accounting policy (post QuickBooks-style refactor) ───
+  // All invoices are issued on **credit (آجل)** basis. Payment is recorded later
+  // through the dedicated voucher system (receipt for sales, payment for purchases).
+  // This mirrors QuickBooks/Xero accrual flow: invoice → AR/AP, then voucher → cash/bank.
   const [form, setForm] = useState({
     type: (prefillType === "purchase" ? "purchase" : "sales") as "sales" | "purchase",
     contactName: "",
@@ -298,7 +302,7 @@ const InvoiceCreatePage = () => {
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentTerms: "net_30",
-    paymentMethod: "credit" as "cash" | "transfer" | "cheque" | "credit",
+    paymentMethod: "credit" as const, // ← always credit; no UI to change
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
@@ -307,12 +311,6 @@ const InvoiceCreatePage = () => {
     billingAddress: "",
     taxInclusive: false,
     items: [createEmptyItem()] as InvoiceItem[],
-    chequeNumber: "",
-    chequeBank: "",
-    chequeBankAccountId: "" as string,
-    chequeDueDate: "",
-    transferRef: "",
-    transferBank: "",
   });
 
   const currSymbol = CURRENCY_SYMBOLS[form.currency] || "₪";
