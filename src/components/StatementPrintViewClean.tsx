@@ -139,10 +139,28 @@ const StatementPrintViewClean = ({
     <div style={S.page} dir="rtl">
       {/* ═══ HEADER ═══ */}
       <div style={S.headerWrap}>
-        <div>
-          <p style={S.companyName}>{company.name || "AMWALI"}</p>
-          {company.phone && <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>}
-          {company.tax_number && <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {showLogo && company.logo_url && (
+            <img
+              src={company.logo_url}
+              alt={company.name || "Logo"}
+              crossOrigin="anonymous"
+              style={{ height: 56, width: "auto", maxWidth: 160, objectFit: "contain", borderRadius: 4 }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          )}
+          <div>
+            <p style={S.companyName}>{company.name || "AMWALI"}</p>
+            {showCompanyContact && company.phone && (
+              <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>
+            )}
+            {showCompanyContact && company.address && (
+              <p style={S.companySub}>{company.address}</p>
+            )}
+            {showCompanyContact && company.tax_number && (
+              <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>
+            )}
+          </div>
         </div>
         <div style={S.titleBlock}>
           <p style={S.titleAr}>كشف حساب</p>
