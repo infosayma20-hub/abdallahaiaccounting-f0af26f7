@@ -217,20 +217,50 @@ const StockMovementsPage = () => {
 
       {/* Summary */}
       {movements.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-primary/5 border border-primary/10 p-3 text-center">
-            <TrendingUp className="h-4 w-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold text-primary">{totalIn.toLocaleString()}</p>
-            <p className="text-[10px] text-primary/70">إجمالي الوارد</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+              <ArrowUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80 font-medium mb-0.5">إجمالي الوارد</p>
+              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums leading-none">{totalIn.toLocaleString()}</p>
+              <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/60 mt-1">قطعة دخلت المخزون</p>
+            </div>
           </div>
-          <div className="rounded-2xl bg-destructive/5 border border-destructive/10 p-3 text-center">
-            <TrendingDown className="h-4 w-4 text-destructive mx-auto mb-1" />
-            <p className="text-lg font-bold text-destructive">{totalOut.toLocaleString()}</p>
-            <p className="text-[10px] text-destructive/70">إجمالي الصادر</p>
+          <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-800/40 p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+              <ArrowDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] text-red-700/80 dark:text-red-300/80 font-medium mb-0.5">إجمالي الصادر</p>
+              <p className="text-2xl font-bold text-red-700 dark:text-red-400 tabular-nums leading-none">{totalOut.toLocaleString()}</p>
+              <p className="text-[10px] text-red-600/70 dark:text-red-400/60 mt-1">قطعة خرجت من المخزون</p>
+            </div>
           </div>
-          <div className="rounded-2xl bg-muted/50 border border-border/30 p-3 text-center">
-            <p className="text-lg font-bold text-foreground">{(totalIn - totalOut).toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">صافي الحركة</p>
+          <div className={`rounded-2xl border p-4 flex items-center gap-3 ${
+            netDelta > 0 ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200/40 dark:border-emerald-800/30" :
+            netDelta < 0 ? "bg-red-50/50 dark:bg-red-950/10 border-red-200/40 dark:border-red-800/30" :
+            "bg-muted/40 border-border/30"
+          }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              netDelta > 0 ? "bg-emerald-100 dark:bg-emerald-900/40" :
+              netDelta < 0 ? "bg-red-100 dark:bg-red-900/40" :
+              "bg-muted"
+            }`}>
+              {netDelta > 0 ? <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> :
+               netDelta < 0 ? <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" /> :
+               <Minus className="h-5 w-5 text-muted-foreground" />}
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] text-muted-foreground font-medium mb-0.5">صافي التغيير</p>
+              <p className={`text-2xl font-bold tabular-nums leading-none ${
+                netDelta > 0 ? "text-emerald-700 dark:text-emerald-400" :
+                netDelta < 0 ? "text-red-700 dark:text-red-400" :
+                "text-foreground"
+              }`}>{Math.abs(netDelta).toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{netLabel}</p>
+            </div>
           </div>
         </div>
       )}
