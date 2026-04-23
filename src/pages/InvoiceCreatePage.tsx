@@ -651,11 +651,54 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!form.contactId) {
       setSelectedContact(null);
+      setContactOpenInvoicesTotal(0);
+      setContactUnappliedCredit(0);
       return;
     }
     const matched = contacts.find(c => c.id === form.contactId) || null;
     setSelectedContact(matched);
   }, [contacts, form.contactId]);
+
+  // ─── Bridge of Understanding: fetch open invoices + unapplied credits for selected contact ───
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !form.contactId) {
+      setContactOpenInvoicesTotal(0);
+      setContactUnappliedCredit(0);
+      return;
+    }
+    (async () => {
+      const [invRes, payRes] = await Promise.all([
+        // Open (unpaid/partial) credit invoices — sales side only contributes to receivables
+        supabase
+          .from("invoices")
+          .select("remaining_amount, invoice_type, status")
+          .eq("user_id", user.id)
+          .eq("contact_id", form.contactId)
+          .eq("invoice_type", form.type === "sales" ? "sale" : "purchase")
+          .neq("status", "cancelled")
+          .gt("remaining_amount", 0),
+        // Unapplied receipts/payments (advance balance not yet linked to invoices)
+        supabase
+          .from("transactions")
+          .select("amount, transaction_type, debit_account_code, credit_account_code")
+          .eq("user_id", user.id)
+          .eq("contact_id", form.contactId)
+          .eq("is_deleted", false)
+          .in("transaction_type", form.type === "sales"
+            ? ["receipt", "receipt_unapplied"]
+            : ["payment", "payment_unapplied"]),
+      ]);
+      if (cancelled) return;
+      const openSum = (invRes.data || []).reduce((s: number, r: any) => s + Number(r.remaining_amount || 0), 0);
+      // Unapplied = receipt amounts not yet bound to an invoice (heuristic: receipt minus open invoices, floored at 0)
+      const receiptsSum = (payRes.data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const unapplied = Math.max(0, receiptsSum - openSum);
+      setContactOpenInvoicesTotal(openSum);
+      setContactUnappliedCredit(unapplied);
+    })();
+    return () => { cancelled = true; };
+  }, [user, form.contactId, form.type]);
 
   const getItemDiscountAmount = useCallback((item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
@@ -2160,8 +2203,8 @@ const InvoiceCreatePage = () => {
           partyName={selectedContact?.contact_name || form.contactName || null}
           partyId={selectedContact?.id || null}
           balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
-          openInvoicesTotal={0}
-          unappliedCredit={0}
+          openInvoicesTotal={contactOpenInvoicesTotal}
+          unappliedCredit={contactUnappliedCredit}
           creditLimit={selectedContact?.credit_limit ?? null}
           currency={form.currency}
           exchangeRate={form.exchangeRate}
