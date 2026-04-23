@@ -572,12 +572,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // ─── Compute real balance from transactions ───
   useEffect(() => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
+    // Reset immediately so stale balance from previous contact never shows
+    setComputedBalance(null);
+    let cancelled = false;
     supabase.from("transactions")
       .select("debit_account_code, credit_account_code, amount")
       .eq("user_id", user.id)
       .eq("is_deleted", false)
       .eq("contact_id", selectedContact.id)
       .then(({ data }) => {
+        if (cancelled) return;
         if (!data) { setComputedBalance(0); return; }
         let ledger = 0;
         for (const t of data) {
@@ -592,6 +596,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
         setComputedBalance(ledger);
       });
+    return () => { cancelled = true; };
   }, [selectedContact, user, isReceipt]);
 
   // ─── Load existing voucher for editing ───
