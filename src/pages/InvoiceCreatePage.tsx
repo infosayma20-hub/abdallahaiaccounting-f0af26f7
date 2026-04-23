@@ -1575,7 +1575,6 @@ const InvoiceCreatePage = () => {
                       }
                     }}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
-                    data-smart-first="true"
                     data-no-enter-nav="true"
                   />
                 </div>
