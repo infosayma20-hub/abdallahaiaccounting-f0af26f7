@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { multiWordMatchAny } from "@/lib/utils";
 import useModalDraft from "@/hooks/useModalDraft";
+import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
+import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 
 /* ── Types ── */
 interface AccountRow {
