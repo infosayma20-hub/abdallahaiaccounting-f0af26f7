@@ -174,16 +174,14 @@ const JournalEntriesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
-  const [editFields, setEditFields] = useState({
-    description: "",
-    transaction_type: "",
-    amount: "",
-    currency: "",
-    transaction_date: "",
-    debit_account_code: "",
-    credit_account_code: "",
-  });
-  const [saving, setSaving] = useState(false);
+  const [editResolution, setEditResolution] = useState<{
+    kind: "voucher" | "invoice" | "orphan";
+    voucherId?: string;
+    voucherRef?: string;
+    invoiceHint?: string;
+    message: string;
+  } | null>(null);
+  const [resolving, setResolving] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
 
   // Build account code → name map
