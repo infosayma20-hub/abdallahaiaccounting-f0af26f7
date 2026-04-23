@@ -97,19 +97,9 @@ const PAYMENT_TERMS: { value: string; label: string; days: number }[] = [
   { value: "custom", label: "مخصص", days: -1 },
 ];
 
-const mapDbPaymentMethod = (method?: string | null): "cash" | "transfer" | "cheque" | "credit" => {
-  if (method === "cash" || method === "نقدي") return "cash";
-  if (method === "transfer" || method === "بنك") return "transfer";
-  if (method === "cheque" || method === "شيك") return "cheque";
-  return "credit";
-};
-
-const mapPaymentMethodToDb = (method: "cash" | "transfer" | "cheque" | "credit") => {
-  if (method === "cash") return "نقدي";
-  if (method === "transfer") return "بنك";
-  if (method === "cheque") return "شيك";
-  return "آجل";
-};
+// Invoices are accrual-only (credit). Payment is recorded later via receipt/payment vouchers.
+// The DB stores the Arabic label "آجل" for credit invoices.
+const CREDIT_PAYMENT_METHOD_DB = "آجل" as const;
 
 const createEmptyItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
