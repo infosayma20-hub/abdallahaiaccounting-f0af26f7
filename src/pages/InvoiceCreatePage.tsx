@@ -40,6 +40,7 @@ import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
+import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
