@@ -1826,6 +1826,30 @@ const InvoiceCreatePage = () => {
                   {!item.productId && (
                     <Input placeholder="وصف يدوي..." value={item.description} onChange={e => updateItem(item.id, "description", e.target.value)} className="rounded-lg text-[11px] h-7 border-0 bg-muted/30" />
                   )}
+                  {item.productId && (() => {
+                    const prod = products.find(p => p.id === item.productId);
+                    if (!prod) return null;
+                    const stock = Number(prod.quantity || 0);
+                    const unit = prod.unit || "قطعة";
+                    const isService = prod.product_type === "service";
+                    if (isService) {
+                      return <p className="text-[9px] text-muted-foreground px-1">⚙️ خدمة</p>;
+                    }
+                    const tone =
+                      stock <= 0
+                        ? "text-destructive"
+                        : stock < item.quantity
+                        ? "text-warning"
+                        : "text-emerald-600";
+                    return (
+                      <p className={`text-[9px] font-medium px-1 tabular-nums ${tone}`}>
+                        📦 المتاح: {stock.toLocaleString("en")} {unit}
+                        {form.type === "sales" && stock < item.quantity && (
+                          <span className="mr-1 font-bold">— غير كافٍ!</span>
+                        )}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Quantity */}
