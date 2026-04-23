@@ -1005,7 +1005,7 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── COLLAPSIBLE: AGING ─── */}
-            {agingData && (
+            {viewOptions.showAging && agingData && (
               <Collapsible open={agingOpen} onOpenChange={setAgingOpen} className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold" style={{ color: "#374151" }}>
                   <span>تحليل التقادم (Aging)</span>
