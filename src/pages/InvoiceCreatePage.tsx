@@ -1429,14 +1429,14 @@ const InvoiceCreatePage = () => {
         total={summary.total}
         paidAmount={summary.paidAmount}
         remainingAmount={summary.remainingAmount}
-        itemsCount={form.items.filter(i => (i.product_name || "").trim() && Number(i.quantity) > 0).length}
+        itemsCount={form.items.filter(i => (i.name || i.description || "").toString().trim() && Number(i.quantity) > 0).length}
         paymentMethod={form.paymentMethod}
         partyName={selectedContact?.contact_name ?? null}
         partyType="contact"
         balanceBefore={selectedContact ? (selectedContact.balance ?? selectedContact.current_balance ?? 0) : null}
         creditLimit={selectedContact?.credit_limit}
         refNumber={nextInvoiceNumber}
-        date={form.invoiceDate}
+        date={form.date}
         onOpenStatement={
           selectedContact?.id
             ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
