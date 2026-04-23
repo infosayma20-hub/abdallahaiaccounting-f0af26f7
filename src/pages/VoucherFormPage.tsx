@@ -1457,7 +1457,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           await supabase.from("transactions").update({ reference: receipt.receipt_number }).eq("id", txId);
         }
 
-        const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+        const selectedInvoices = effectiveInvoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && receipt) {
           const links = selectedInvoices.map(inv => ({
             payment_id: receipt.id,
@@ -1632,7 +1632,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
-        const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+        const selectedInvoices = effectiveInvoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
           // Save payment_invoice_links for payment vouchers too (for cancel reversal)
           const links = selectedInvoices.map(inv => ({
@@ -2215,7 +2215,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
                         className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
                         <span className="text-sm">{c.contact_name}</span>
-                        <span className="text-xs text-muted-foreground">₪{formatAmount(c.current_balance || 0)}</span>
+                        <span className="text-xs text-muted-foreground">دفتر: ₪{formatAmount(c.ledger_balance ?? c.current_balance ?? 0)} · مفتوح: ₪{formatAmount(c.open_invoices_balance ?? 0)}</span>
                       </button>
                     ))}
                     {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
@@ -2349,10 +2349,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           {selectedContact && partyType === "contact" && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                💰 رصيد الزبون / المورد: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
+                💰 الرصيد الدفتري: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)}</span>
               </span>
               <span className="flex items-center gap-1.5">
-                📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة</span>
+                📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة · ₪{formatAmount(selectedContact.open_invoices_balance ?? 0)}</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                🧾 دفعات غير مخصصة: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.unapplied_credit ?? 0)}</span>
               </span>
               {oldestInvoiceDays > 0 && (
                 <span className="flex items-center gap-1.5">
