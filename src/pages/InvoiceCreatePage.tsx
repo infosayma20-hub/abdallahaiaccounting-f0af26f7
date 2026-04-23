@@ -1666,20 +1666,42 @@ const InvoiceCreatePage = () => {
           {/* Row 3: Payment Method + Currency */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">طريقة الدفع</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-muted-foreground font-medium">طريقة الدفع</label>
+                <span className="text-[10px] text-muted-foreground tabular-nums">
+                  المبلغ: <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
+                  <span className="mx-1.5 text-muted-foreground/50">·</span>
+                  {form.paymentMethod === "credit" ? (
+                    <span className="text-amber-600 font-semibold">سيُضاف لذمة العميل</span>
+                  ) : (
+                    <span className="text-emerald-600 font-semibold">مدفوع بالكامل</span>
+                  )}
+                </span>
+              </div>
               <div className="grid grid-cols-4 gap-1.5">
                 {([
-                  { val: "cash", icon: Banknote, label: "نقداً" },
-                  { val: "cheque", icon: CreditCard, label: "شيك" },
-                  { val: "credit", icon: Clock, label: "آجل" },
-                  { val: "transfer", icon: Building2, label: "تحويل" },
-                ] as const).map(pm => (
-                  <button key={pm.val} onClick={() => setForm(p => ({ ...p, paymentMethod: pm.val }))}
-                    className={`py-2.5 rounded-xl text-[11px] font-semibold transition-all flex flex-col items-center gap-0.5 ${form.paymentMethod === pm.val ? "bg-primary/15 text-primary border border-primary/30" : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted"}`}>
-                    <pm.icon className="h-4 w-4" />
-                    {pm.label}
-                  </button>
-                ))}
+                  { val: "cash", icon: Banknote, label: "نقداً", hint: "صندوق" },
+                  { val: "cheque", icon: CreditCard, label: "شيك", hint: "ورقي" },
+                  { val: "transfer", icon: Building2, label: "تحويل", hint: "بنكي" },
+                  { val: "credit", icon: Clock, label: "آجل", hint: "على الحساب" },
+                ] as const).map(pm => {
+                  const active = form.paymentMethod === pm.val;
+                  return (
+                    <button
+                      key={pm.val}
+                      onClick={() => setForm(p => ({ ...p, paymentMethod: pm.val }))}
+                      className={`py-2 rounded-xl text-[11px] font-semibold transition-all flex flex-col items-center gap-0.5 ${
+                        active
+                          ? "bg-primary text-primary-foreground border border-primary shadow-sm shadow-primary/20"
+                          : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:text-foreground"
+                      }`}
+                    >
+                      <pm.icon className="h-4 w-4" />
+                      <span>{pm.label}</span>
+                      <span className={`text-[8.5px] ${active ? "text-primary-foreground/80" : "text-muted-foreground/70"}`}>{pm.hint}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div>
