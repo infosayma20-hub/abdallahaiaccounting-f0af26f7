@@ -1959,41 +1959,56 @@ const InvoiceCreatePage = () => {
             )}
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">
-              {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
-            </span>
-            <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
-          </div>
-          {summary.totalDiscount > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-destructive">(-) إجمالي الخصومات</span>
-              <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
+          {/* Two-column layout: breakdown on the right, big total on the left */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+            {/* Breakdown */}
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">
+                  {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+                </span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
+              </div>
+              {summary.totalDiscount > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-destructive">(-) إجمالي الخصومات</span>
+                  <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
+                </div>
+              )}
+              {taxEnabled && summary.totalTax > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
+                </div>
+              )}
+              {summary.paidAmount > 0 && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">(-) المدفوع مسبقاً</span>
+                    <span className="text-sm font-semibold text-foreground tabular-nums">({fmtCurrency(summary.paidAmount)})</span>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-          {taxEnabled && summary.totalTax > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">
-                {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
-              </span>
-              <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
+
+            {/* Big total panel */}
+            <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 flex flex-col justify-center items-center text-center">
+              <p className="text-[11px] font-semibold text-primary/80 uppercase tracking-wide">الإجمالي النهائي</p>
+              <p className="text-3xl font-black text-primary tabular-nums leading-tight mt-1">
+                {fmtCurrency(summary.total)}
+              </p>
+              {summary.paidAmount > 0 && (
+                <div className="w-full mt-3 pt-3 border-t border-primary/20 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground">المتبقي</span>
+                  <span className={`text-base font-black tabular-nums ${summary.remainingAmount > 0.01 ? "text-destructive" : "text-emerald-600"}`}>
+                    {fmtCurrency(summary.remainingAmount)}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-          <Separator />
-          <div className="flex justify-between items-center">
-            <span className="text-base font-bold text-foreground">الإجمالي النهائي</span>
-            <span className="text-2xl font-black text-primary tabular-nums">{fmtCurrency(summary.total)}</span>
-          </div>
-          <Separator />
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">(-) المدفوع مسبقاً</span>
-            <span className="text-sm font-semibold text-foreground tabular-nums">({fmtCurrency(summary.paidAmount)})</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-foreground">المتبقي (البالنس)</span>
-            <span className={`text-sm font-bold tabular-nums ${summary.remainingAmount > 0 ? "text-destructive" : "text-primary"}`}>
-              {fmtCurrency(summary.remainingAmount)}
-            </span>
           </div>
 
           {/* Amount in words */}
