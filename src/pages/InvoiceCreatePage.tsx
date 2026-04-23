@@ -1634,6 +1634,7 @@ const InvoiceCreatePage = () => {
                   contactType={form.type as "sales" | "purchase"}
                   creditLimit={selectedContact.credit_limit}
                   ledgerBalance={selectedContact.balance ?? selectedContact.current_balance ?? 0}
+                  compact
                 />
               )}
               {selectedContact && contactDebtWarning && (selectedContact.credit_limit || 0) > 0 && (selectedContact.balance || 0) > (selectedContact.credit_limit || 0) && (
