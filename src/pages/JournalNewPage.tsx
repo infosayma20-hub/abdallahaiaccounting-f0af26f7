@@ -864,6 +864,13 @@ const JournalNewPage = () => {
                             updateLine(line.id, "debit", Number(val) || 0);
                           }
                         }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            focusNextJournalCell("debit", line.id, lines.map(l => l.id), addLineAndFocus);
+                          }
+                        }}
+                        data-journal-debit={line.id}
                         className="h-9 font-mono text-xs" placeholder="0"
                       />
                     </td>
@@ -882,6 +889,13 @@ const JournalNewPage = () => {
                             updateLine(line.id, "credit", Number(val) || 0);
                           }
                         }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            focusNextJournalCell("credit", line.id, lines.map(l => l.id), addLineAndFocus);
+                          }
+                        }}
+                        data-journal-credit={line.id}
                         className="h-9 font-mono text-xs" placeholder="0"
                       />
                     </td>
@@ -889,6 +903,13 @@ const JournalNewPage = () => {
                       <Input
                         value={line.line_comment || ""}
                         onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            focusNextJournalCell("memo", line.id, lines.map(l => l.id), addLineAndFocus);
+                          }
+                        }}
+                        data-journal-memo={line.id}
                         className="h-9 text-xs"
                         placeholder="تعليق على هذا السطر..."
                       />
