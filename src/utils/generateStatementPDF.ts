@@ -165,9 +165,11 @@ export const generateStatementPDF = (
   doc.setTextColor(200, 210, 220);
   doc.setFontSize(7);
   doc.setFont('Amiri', 'normal');
-  const info = [company.phone, company.email, company.address].filter(Boolean).join('  |  ');
-  if (info) doc.text(info, W - margin, 23, { align: 'right' });
-  if (company.tax_number) doc.text(`Tax No: ${company.tax_number}`, W - margin, 28, { align: 'right' });
+  if (opts.showCompanyContact) {
+    const info = [company.phone, company.email, company.address].filter(Boolean).join('  |  ');
+    if (info) doc.text(info, W - margin, 23, { align: 'right' });
+    if (company.tax_number) doc.text(`Tax No: ${company.tax_number}`, W - margin, 28, { align: 'right' });
+  }
 
   // Title (left side)
   doc.setTextColor(255, 255, 255);
