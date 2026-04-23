@@ -422,7 +422,7 @@ const ProcurementInvoiceCreatePage = () => {
                   {lines.map((line, idx) => {
                     const variance = line.received_quantity < line.ordered_quantity;
                     return (
-                      <TableRow key={idx} className={variance ? "bg-orange-500/5" : ""}>
+                      <TableRow key={idx} className={variance ? "bg-destructive/5" : ""}>
                         <TableCell className="font-medium text-right">{line.item_name}</TableCell>
                         <TableCell className="text-center">{line.unit}</TableCell>
                         <TableCell className="text-center tabular-nums">{line.ordered_quantity}</TableCell>
@@ -434,7 +434,7 @@ const ProcurementInvoiceCreatePage = () => {
                               onChange={e => updateLine(idx, "received_quantity", Number(e.target.value))}
                               className="h-8 w-24 text-center bg-background"
                             />
-                            {variance && <AlertTriangle className="h-4 w-4 text-orange-500" />}
+                            {variance && <AlertTriangle className="h-4 w-4 text-destructive" />}
                           </div>
                         </TableCell>
                         <TableCell className="bg-muted/20">
