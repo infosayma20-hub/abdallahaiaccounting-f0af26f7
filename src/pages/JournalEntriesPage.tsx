@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import {
-  ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus,
+  ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus, ExternalLink, Lock,
   FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
