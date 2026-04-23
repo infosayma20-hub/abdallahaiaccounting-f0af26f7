@@ -16,10 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -41,6 +38,7 @@ import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
+import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -281,7 +279,7 @@ const InvoiceCreatePage = () => {
     }
   }, [defaultTerms]);
 
-  const [openProductPopover, setOpenProductPopover] = useState<string | null>(null);
+  const [productSearchByRow, setProductSearchByRow] = useState<Record<string, string>>({});
 
   // Form state
   // ─── Accounting policy (post QuickBooks-style refactor) ───
@@ -792,8 +790,11 @@ const InvoiceCreatePage = () => {
   // current row (after selecting a product). Falls back to next focusable input.
   const focusFirstProductTrigger = () => {
     setTimeout(() => {
-      const btn = document.querySelector<HTMLButtonElement>('[data-invoice-product-trigger]');
-      if (btn) { btn.focus(); btn.click(); }
+      const input = document.querySelector<HTMLInputElement>('[data-invoice-product-input="true"]');
+      if (input) {
+        input.focus();
+        input.select();
+      }
     }, 80);
   };
 
@@ -824,6 +825,7 @@ const InvoiceCreatePage = () => {
   const selectProduct = (itemId: string, productId: string) => {
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
+    setProductSearchByRow(prev => ({ ...prev, [itemId]: prod.name }));
     setForm(prev => ({
       ...prev,
       items: prev.items.map(it => {
@@ -849,9 +851,17 @@ const InvoiceCreatePage = () => {
   const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }] }));
   const removeItem = (id: string) => {
     if (form.items.length <= 1) return;
+    setProductSearchByRow(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
   };
-  const clearItems = () => setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
+  const clearItems = () => {
+    setProductSearchByRow({});
+    setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
+  };
 
   // Adds a new row and focuses its quantity field — used by Enter on last row's discount cell.
   const addItemAndFocus = useCallback(() => {
@@ -1444,8 +1454,8 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
-      {/* Two-column shell: Right = Input | Left = Smart Summary (sticky) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5 items-start mt-4">
+      {/* Two-column shell: denser invoice work area with narrower summary rail */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1100px)_280px] xl:justify-center gap-4 items-start mt-4">
       <div className="space-y-4 min-w-0">
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardHeader className="pb-3 pt-4 px-5">
@@ -1779,49 +1789,26 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Product */}
-                      <td className="py-1.5 px-2 align-middle">
-                        <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
-                          <PopoverTrigger asChild>
-                            <button
-                              data-invoice-product-trigger={idx === 0 ? "true" : undefined}
-                              data-row-id={item.id}
-                              className="w-full flex items-center justify-between rounded-md text-[12px] h-9 border border-input bg-background px-2.5 hover:border-foreground/30 transition-all text-right focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none shadow-sm"
-                            >
-                              <span className={item.description ? "text-foreground font-medium truncate" : "text-muted-foreground"}>
-                                {item.description || "اختر منتج..."}
-                              </span>
-                              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[340px] p-0" align="start" dir="rtl">
-                            <Command dir="rtl">
-                              <CommandInput placeholder="ابحث عن منتج..." className="text-[12px]" />
-                              <CommandList>
-                                <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">لا توجد نتائج</CommandEmpty>
-                                <CommandGroup>
-                                  <CommandItem onSelect={() => { setShowQuickAdd(true); setOpenProductPopover(null); }} className="text-primary font-semibold text-[11px] gap-1.5">
-                                    <Plus className="h-3 w-3" /> تعريف منتج جديد
-                                  </CommandItem>
-                                </CommandGroup>
-                                <CommandGroup heading="المنتجات">
-                                  {products.map(p => (
-                                    <CommandItem
-                                      key={p.id}
-                                      value={`${p.name} ${p.barcode || ""}`}
-                                      onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }}
-                                      className="text-[11px] flex items-center justify-between gap-2"
-                                    >
-                                      <span>{p.name}</span>
-                                      <span className="text-[9px] text-muted-foreground tabular-nums">
-                                        {form.type === "sales" ? `${currSymbol}${p.sell_price}` : `${currSymbol}${p.buy_price}`} • {p.quantity} {p.unit}
-                                      </span>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                      <td className="py-1.5 px-2 align-top min-w-[320px] xl:min-w-[380px]">
+                        <InlineProductAutocomplete
+                          value={productSearchByRow[item.id] ?? item.description}
+                          products={products}
+                          invoiceType={form.type}
+                          currencySymbol={currSymbol}
+                          onChange={(value) => {
+                            setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
+                            setForm(prev => ({
+                              ...prev,
+                              items: prev.items.map(it => it.id === item.id ? { ...it, description: value, productId: undefined } : it),
+                            }));
+                          }}
+                          onSelect={(productId) => selectProduct(item.id, productId)}
+                          onQuickAdd={() => setShowQuickAdd(true)}
+                          inputProps={{
+                            "data-invoice-product-input": idx === 0 ? "true" : undefined,
+                            "data-row-id": item.id,
+                          }}
+                        />
                         {item.productId && (
                           isService ? (
                             <p className="text-[9.5px] text-muted-foreground px-2 mt-1">⚙️ خدمة</p>
@@ -1958,31 +1945,21 @@ const InvoiceCreatePage = () => {
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
-                  <PopoverTrigger asChild>
-                    <button className="w-full flex items-center justify-between rounded-md text-[12px] h-9 border border-border bg-background px-3 text-right">
-                      <span className={item.description ? "text-foreground" : "text-muted-foreground"}>
-                        {item.description || "اختر منتج..."}
-                      </span>
-                      <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start" dir="rtl">
-                    <Command dir="rtl">
-                      <CommandInput placeholder="ابحث..." className="text-[12px]" />
-                      <CommandList>
-                        <CommandEmpty className="py-3 text-center text-xs">لا توجد نتائج</CommandEmpty>
-                        <CommandGroup heading="المنتجات">
-                          {products.map(p => (
-                            <CommandItem key={p.id} value={`${p.name} ${p.barcode || ""}`} onSelect={() => { selectProduct(item.id, p.id); setOpenProductPopover(null); }} className="text-[11px]">
-                              {p.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <InlineProductAutocomplete
+                  value={productSearchByRow[item.id] ?? item.description}
+                  products={products}
+                  invoiceType={form.type}
+                  currencySymbol={currSymbol}
+                  onChange={(value) => {
+                    setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
+                    setForm(prev => ({
+                      ...prev,
+                      items: prev.items.map(it => it.id === item.id ? { ...it, description: value, productId: undefined } : it),
+                    }));
+                  }}
+                  onSelect={(productId) => selectProduct(item.id, productId)}
+                  onQuickAdd={() => setShowQuickAdd(true)}
+                />
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[9px] text-muted-foreground">الكمية</Label>
