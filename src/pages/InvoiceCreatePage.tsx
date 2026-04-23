@@ -302,7 +302,7 @@ const InvoiceCreatePage = () => {
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
     paymentTerms: "net_30",
-    paymentMethod: "credit" as const, // ← always credit; no UI to change
+    paymentMethod: "credit" as "credit", // ← always credit; no UI to change
     currency: "شيكل",
     exchangeRate: 1,
     notes: "",
