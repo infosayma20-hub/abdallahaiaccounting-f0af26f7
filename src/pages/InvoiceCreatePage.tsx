@@ -39,6 +39,7 @@ import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
+import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -828,6 +829,17 @@ const InvoiceCreatePage = () => {
   };
   const clearItems = () => setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
 
+  // Adds a new row and focuses its quantity field — used by Enter on last row's discount cell.
+  const addItemAndFocus = useCallback(() => {
+    const newItem = { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 };
+    setForm(prev => ({ ...prev, items: [...prev.items, newItem] }));
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>(`[data-invoice-qty="${newItem.id}"]`);
+      el?.focus();
+      el?.select();
+    }, 30);
+  }, [defaultTaxCategory]);
+
   // ─── Quick Add Product ───
   const handleQuickAddProduct = async () => {
     if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
@@ -1345,6 +1357,25 @@ const InvoiceCreatePage = () => {
 
   const paymentLabels: Record<string, string> = { cash: "نقداً", transfer: "تحويل", cheque: "شيك", credit: "آجل" };
 
+  // ─── Phase 2: Power-user keyboard shortcuts ───
+  // Ctrl/Cmd+Enter → save invoice, Alt+N → add a new row.
+  useInvoiceKeyboard({
+    enabled: !loadingEditInvoice && !creating,
+    onSave: () => handleCreate(false),
+    onAddRow: addItemAndFocus,
+  });
+
+  const itemIds = form.items.map(i => i.id);
+  const handleCellEnter = useCallback(
+    (field: "qty" | "price" | "discount", itemId: string) =>
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        focusNextInvoiceCell(field, itemId, itemIds, addItemAndFocus);
+      },
+    [itemIds, addItemAndFocus],
+  );
+
   // ─── RENDER ───
   if (loadingEditInvoice) {
     return (
@@ -1750,7 +1781,14 @@ const InvoiceCreatePage = () => {
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
             </CardTitle>
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              <span className="hidden md:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-muted/40 rounded-md px-1.5 py-0.5 mr-1">
+                <kbd className="font-mono">Enter</kbd> للتنقل
+                <span className="text-muted-foreground/60">·</span>
+                <kbd className="font-mono">Alt+N</kbd> سطر جديد
+                <span className="text-muted-foreground/60">·</span>
+                <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
+              </span>
               <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
                 <Plus className="h-3 w-3" /> تعريف منتج
               </Button>
@@ -1854,7 +1892,7 @@ const InvoiceCreatePage = () => {
 
                 {/* Quantity */}
                 <div className="flex items-center gap-1">
-                  <Input data-invoice-qty={item.id} type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  <Input data-invoice-qty={item.id} type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} onKeyDown={handleCellEnter("qty", item.id)} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
                 </div>
 
                 {/* Price */}
@@ -1867,7 +1905,7 @@ const InvoiceCreatePage = () => {
                     const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
                     return (
                       <>
-                        <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
+                        <Input data-invoice-price={item.id} type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} onKeyDown={handleCellEnter("price", item.id)} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
                         {showWarning && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1888,7 +1926,7 @@ const InvoiceCreatePage = () => {
                 </div>
 
                 {/* Discount */}
-                <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                <Input data-invoice-discount={item.id} type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} onKeyDown={handleCellEnter("discount", item.id)} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
 
                 {/* Discount type toggle */}
                 <button
