@@ -56,6 +56,7 @@ const JournalNewPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
+  const { save: saveJournalVoucher } = useSaveJournalVoucher();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
@@ -356,98 +357,38 @@ const JournalNewPage = () => {
 
     setSaving(true);
     try {
-      const { data: voucher, error } = await supabase.from("vouchers").insert({
-        user_id: user.id,
-        type: "journal",
-        subtype: formSubtype,
-        ref_number: formRefNumber || "",
+      // ✅ Source of Truth الموحّد — نفس المنطق المستخدم في JournalEntryPopup
+      const result = await saveJournalVoucher({
+        ref_number: formRefNumber,
         date: formDate,
-        contact_id: formContactId || null,
-        amount: totalDebit,
-        amount_ils: totalDebit,
+        subtype: formSubtype as any,
         description: formDescription,
         notes: formNotes || null,
-        status: mode === "posted" ? "posted" : mode === "deferred" ? "deferred" : "draft",
-        posted_by: mode === "posted" ? user.id : null,
-        posted_at: mode === "posted" ? new Date().toISOString() : null,
-        attachments: attachments.length > 0 ? attachments : [],
-        line_sort_order: lineSortOrder,
-      }).select("id, ref_number").single();
-
-      if (error) throw error;
-
-      // Insert voucher lines
-      await supabase.from("voucher_lines").insert(
-        validLines.map((l, i) => ({
-          voucher_id: voucher.id,
+        contact_id: formContactId || null,
+        lines: preparedLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
           debit: Number(l.debit) || 0,
           credit: Number(l.credit) || 0,
-          line_order: i + 1,
           contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
           contact_name: l.contact_name || null,
           line_comment: l.line_comment || null,
-        }))
-      );
+        })),
+        mode,
+        attachments,
+        line_sort_order: lineSortOrder,
+      });
 
-      // If posted, create transactions (one per debit-credit pair, with contact_id)
-      if (mode === "posted") {
-        const debitLines = validLines.filter(l => Number(l.debit) > 0);
-        const creditLines = validLines.filter(l => Number(l.credit) > 0);
-        
-        const txns: any[] = [];
-        for (const dl of debitLines) {
-          for (const cl of creditLines) {
-            const amount = Math.min(Number(dl.debit), Number(cl.credit));
-            if (amount <= 0) continue;
-            const lineContactId = dl.contact_id && dl.contact_id !== "__none__" ? dl.contact_id : 
-                                  cl.contact_id && cl.contact_id !== "__none__" ? cl.contact_id : 
-                                  formContactId || null;
-            const contactName = lineContactId ? contacts.find(c => c.id === lineContactId)?.contact_name || "" : "";
-            txns.push({
-              user_id: user.id,
-              transaction_date: formDate,
-              description: contactName ? `${formDescription} - ${contactName}` : formDescription,
-              debit_account_code: dl.account_code,
-              credit_account_code: cl.account_code,
-              amount,
-              currency: "شيكل",
-              transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
-              reference: voucher.ref_number,
-              contact_id: lineContactId,
-              idempotency_key: `VOUCHER-${voucher.id}-${dl.account_code}-${cl.account_code}`,
-            });
-          }
-        }
-        
-        if (txns.length === 0 && debitLines.length > 0 && creditLines.length > 0) {
-          txns.push({
-            user_id: user.id,
-            transaction_date: formDate,
-            description: formDescription,
-            debit_account_code: debitLines[0].account_code,
-            credit_account_code: creditLines[0].account_code,
-            amount: totalDebit,
-            currency: "شيكل",
-            transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
-            reference: voucher.ref_number,
-            contact_id: formContactId || null,
-            idempotency_key: `VOUCHER-${voucher.id}`,
-          });
-        }
-        
-        if (txns.length > 0) {
-          const { data: txData } = await supabase.from("transactions").insert(txns).select("id").limit(1);
-          // Link the first transaction to the voucher for cascade delete support
-          if (txData && txData.length > 0) {
-            await supabase.from("vouchers").update({ linked_transaction_id: txData[0].id }).eq("id", voucher.id);
-          }
-        }
+      if (!result.success) {
+        throw new Error(result.error || "فشل حفظ السند");
       }
 
-      const modeLabel = mode === "posted" ? `تم ترحيل سند القيد ${voucher.ref_number}` : mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${voucher.ref_number}` : "تم حفظ المسودة";
-      setSavedRefNumber(voucher.ref_number || "");
+      const savedRef = result.ref_number || formRefNumber;
+      const modeLabel =
+        mode === "posted" ? `تم ترحيل سند القيد ${savedRef}` :
+        mode === "deferred" ? `تم حفظ سند القيد كمؤجل ${savedRef}` :
+        "تم حفظ المسودة";
+      setSavedRefNumber(savedRef || "");
       clearDraft();
       if (fastEntryEnabled && mode === "posted") {
         toast.success(modeLabel, { duration: 2500 });
