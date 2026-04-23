@@ -666,8 +666,8 @@ const InvoiceCreatePage = () => {
     // If tax is disabled at company level, skip all tax calculations
     if (!taxEnabled) {
       const total = grossTotal - totalDiscount;
-      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount, remainingAmount: total - paidAmount };
+      // Credit-only invoices: paid_amount is always 0 at creation; payment is via vouchers later.
+      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount: 0, remainingAmount: total };
     }
 
     if (form.taxInclusive) {
@@ -682,8 +682,7 @@ const InvoiceCreatePage = () => {
       });
       const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
       const subtotalExTax = total - totalTax;
-      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
+      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
     } else {
       // Tax-exclusive: tax added on top
       const afterDiscount = grossTotal - totalDiscount;
@@ -693,10 +692,9 @@ const InvoiceCreatePage = () => {
         return s + (base - disc) * (i.taxRate / 100);
       }, 0);
       const total = afterDiscount + totalTax;
-      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
+      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
     }
-  }, [form.items, form.paymentMethod, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
+  }, [form.items, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -2175,20 +2173,14 @@ const InvoiceCreatePage = () => {
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
         <div className="w-full mx-auto flex gap-2 items-center">
-          {/* Live mini-summary: gives accountant a constant sense of control */}
+          {/* Live mini-summary: invoices are credit-only, so always shows total as outstanding (آجل) */}
           <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
             <span className="text-muted-foreground">الإجمالي</span>
             <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
             <span className="text-muted-foreground/50">·</span>
-            <span className="text-muted-foreground">المدفوع</span>
-            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-muted-foreground" : "text-emerald-600"}`}>
-              {fmtCurrency(form.paymentMethod === "credit" ? 0 : summary.total)}
-            </span>
+            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">آجل</span>
             <span className="text-muted-foreground/50">·</span>
-            <span className="text-muted-foreground">المتبقي</span>
-            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-amber-600" : "text-foreground"}`}>
-              {fmtCurrency(form.paymentMethod === "credit" ? summary.total : 0)}
-            </span>
+            <span className="text-muted-foreground">يُسجَّل القبض لاحقاً عبر سند</span>
           </div>
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
             <Save className="h-4 w-4" /> حفظ كمسودة
