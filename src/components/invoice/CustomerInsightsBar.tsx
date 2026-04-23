@@ -138,7 +138,7 @@ export default function CustomerInsightsBar({
         )}
         {contactId && (
           <a
-            href={`/account-statement-v2?contact_id=${contactId}`}
+            href={`/account-statement?contact_id=${contactId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-primary hover:underline ms-auto"
@@ -261,7 +261,7 @@ export default function CustomerInsightsBar({
         </div>
       ) : (
         <a
-          href={contactId ? `/account-statement-v2?contact_id=${contactId}` : "#"}
+          href={contactId ? `/account-statement?contact_id=${contactId}` : "#"}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl p-2.5 border border-border bg-muted/40 hover:bg-muted/60 transition-colors flex items-center gap-2.5 group"
