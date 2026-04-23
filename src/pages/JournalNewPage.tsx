@@ -29,6 +29,7 @@ import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
+import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 
 interface JournalLine {
   id: string;
