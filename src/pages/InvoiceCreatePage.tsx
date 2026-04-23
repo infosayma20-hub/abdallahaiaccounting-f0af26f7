@@ -2115,7 +2115,7 @@ const InvoiceCreatePage = () => {
 
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="max-w-[1600px] mx-auto flex gap-2 items-center">
+        <div className="w-full mx-auto flex gap-2 items-center">
           {/* Live mini-summary: gives accountant a constant sense of control */}
           <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
             <span className="text-muted-foreground">الإجمالي</span>
