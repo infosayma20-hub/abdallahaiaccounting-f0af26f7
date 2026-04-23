@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink, Percent, Minus, Plus, ShoppingCart, RotateCcw } from "lucide-react";
 
 /**
  * SmartSummaryPanel — موحّد بالشكل، مختلف بالمنطق
@@ -41,7 +41,49 @@ interface ReceiptPaymentProps extends BaseProps {
   onOpenStatement?: () => void;
 }
 
-type Props = ReceiptPaymentProps;
+interface InvoiceProps extends BaseProps {
+  variant: "invoice" | "credit_note" | "debit_note";
+  /** نوع الفاتورة: مبيعات / مشتريات */
+  invoiceKind?: "sales" | "purchase";
+  /** هل الضريبة مفعّلة على مستوى الشركة */
+  taxEnabled?: boolean;
+  /** هل الإجمالي شامل الضريبة */
+  taxInclusive?: boolean;
+  /** إجمالي قبل الخصم والضريبة (Gross items) */
+  subtotal: number;
+  /** إجمالي الخصومات */
+  totalDiscount: number;
+  /** إجمالي الضريبة */
+  totalTax: number;
+  /** الإجمالي النهائي (الفاتورة) */
+  total: number;
+  /** المدفوع لحظة الإنشاء */
+  paidAmount: number;
+  /** المتبقي بعد الدفع */
+  remainingAmount: number;
+  /** عدد الأصناف */
+  itemsCount?: number;
+  /** طريقة الدفع: cash | transfer | cheque | credit */
+  paymentMethod?: "cash" | "transfer" | "cheque" | "credit";
+  /** اسم الجهة (زبون أو مورد) */
+  partyName?: string | null;
+  /** نوع الجهة من منظور أعلى الجداول */
+  partyType?: "contact";
+  /** رصيد دفتر الحساب قبل هذه الفاتورة (مدين موجب / دائن سالب للزبائن) */
+  balanceBefore?: number | null;
+  /** الفواتير المفتوحة الحالية للزبون (قبل هذه الفاتورة) */
+  openInvoicesTotal?: number;
+  unappliedCredit?: number;
+  /** الحد الائتماني للزبون (إن وجد) */
+  creditLimit?: number;
+  /** رقم الفاتورة المرجعي (للإشعارات: رقم الفاتورة الأصلية) */
+  originalInvoiceNumber?: string | null;
+  date?: string;
+  refNumber?: string;
+  onOpenStatement?: () => void;
+}
+
+type Props = ReceiptPaymentProps | InvoiceProps;
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -58,6 +100,10 @@ export default function SmartSummaryPanel(props: Props) {
 
   if (variant === "receipt" || variant === "payment") {
     return <ReceiptPaymentSummary {...(props as ReceiptPaymentProps)} symbol={currencySymbol} />;
+  }
+
+  if (variant === "invoice" || variant === "credit_note" || variant === "debit_note") {
+    return <InvoiceSummary {...(props as InvoiceProps)} symbol={currencySymbol} />;
   }
 
   return null;
@@ -503,6 +549,292 @@ function Warning({
     <div className={`flex items-start gap-2 text-[11px] leading-relaxed rounded-lg border px-2.5 py-2 ${styles}`}>
       {icon && <span className="shrink-0 mt-0.5">{icon}</span>}
       <span>{children}</span>
+    </div>
+  );
+}
+
+/* ───────── Invoice / Credit Note / Debit Note Summary ─────────
+ *
+ *  Result-driven (not amount-driven). The hero shows the FINAL TOTAL,
+ *  not the gross. Below it: a math breakdown that walks the user from
+ *  subtotal → discount → tax → total → paid → remaining.
+ *
+ *  After the breakdown we show the impact on the customer's ledger:
+ *  balance before → +invoice (credit notes subtract) → balance after.
+ *
+ *  Bridge of Understanding: same explanation pattern as receipts —
+ *  if balance ≠ open invoices we expand to show the gap (other
+ *  movements). Credit-limit warnings show only when relevant.
+ */
+function InvoiceSummary({
+  variant,
+  invoiceKind = "sales",
+  taxEnabled = true,
+  taxInclusive = false,
+  subtotal,
+  totalDiscount,
+  totalTax,
+  total,
+  paidAmount,
+  remainingAmount,
+  itemsCount = 0,
+  paymentMethod = "cash",
+  partyName,
+  balanceBefore,
+  openInvoicesTotal = 0,
+  unappliedCredit = 0,
+  creditLimit,
+  originalInvoiceNumber,
+  date,
+  refNumber,
+  onOpenStatement,
+  symbol,
+}: InvoiceProps & { symbol: string }) {
+  const isCreditNote = variant === "credit_note";
+  const isDebitNote = variant === "debit_note";
+  const isNote = isCreditNote || isDebitNote;
+  const isSales = invoiceKind === "sales";
+
+  // Sign for ledger impact:
+  //   sales invoice    → +debit (customer owes more)
+  //   purchase invoice → +credit (we owe supplier more, balanceBefore negative)
+  //   credit note (sales) → -debit (reduce customer's debt)
+  //   debit note  (sales) → +debit (extra charge)
+  const ledgerSign = isCreditNote ? -1 : 1;
+  const before = balanceBefore ?? 0;
+  const delta = ledgerSign * (isSales ? remainingAmount : -remainingAmount);
+  const after = before + delta;
+
+  // Header tone
+  const headerColor = isCreditNote
+    ? "from-amber-500/10 to-amber-500/5"
+    : isDebitNote
+      ? "from-violet-500/10 to-violet-500/5"
+      : isSales
+        ? "from-emerald-500/10 to-emerald-500/5"
+        : "from-sky-500/10 to-sky-500/5";
+  const accentText = isCreditNote
+    ? "text-amber-600"
+    : isDebitNote
+      ? "text-violet-600"
+      : isSales
+        ? "text-emerald-600"
+        : "text-sky-600";
+  const HeroIcon = isCreditNote ? RotateCcw : isDebitNote ? Plus : isSales ? ReceiptIcon : ShoppingCart;
+  const heroLabel = isCreditNote
+    ? "قيمة الإشعار الدائن"
+    : isDebitNote
+      ? "قيمة الإشعار المدين"
+      : "الإجمالي النهائي للفاتورة";
+
+  // Warnings
+  const noItems = !itemsCount || itemsCount <= 0;
+  const noTotal = !total || total <= 0;
+  const overCreditLimit =
+    !!creditLimit && creditLimit > 0 && isSales && !isCreditNote && after > creditLimit + 0.01;
+  const noteWithoutOriginal = isNote && !originalInvoiceNumber;
+  const isFullyPaid = paymentMethod !== "credit" && remainingAmount <= 0.01 && total > 0;
+  const isCreditSale = paymentMethod === "credit" && total > 0;
+
+  return (
+    <div className="space-y-3">
+      {/* Hero — Final Total (not subtotal!) */}
+      <div
+        className={`relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br ${headerColor} px-4 pt-3 pb-3.5`}
+      >
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 tracking-wide flex items-center gap-1">
+            <HeroIcon className="h-3 w-3" />
+            {heroLabel}
+          </span>
+          {!isNote && (
+            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isSales ? "bg-emerald-500/15 text-emerald-700" : "bg-sky-500/15 text-sky-700"}`}>
+              {isSales ? "مبيعات" : "مشتريات"}
+            </span>
+          )}
+          {isNote && (
+            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isCreditNote ? "bg-amber-500/15 text-amber-700" : "bg-violet-500/15 text-violet-700"}`}>
+              {isCreditNote ? "إشعار دائن" : "إشعار مدين"}
+            </span>
+          )}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={total}
+            initial={{ opacity: 0.5, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className={`text-[2rem] leading-tight font-bold ${accentText} tracking-tight`}
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {symbol}{fmt(total)}
+          </motion.div>
+        </AnimatePresence>
+        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground/70">
+          {refNumber && <span className="font-mono">{refNumber}</span>}
+          {itemsCount > 0 && <span>{itemsCount} صنف</span>}
+        </div>
+      </div>
+
+      {/* Math Breakdown — subtotal → discount → tax → total */}
+      {!noTotal && (
+        <div className="rounded-xl border border-border/60 bg-card p-3 space-y-1.5 text-[11px]">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">
+              {taxInclusive && taxEnabled ? "الإجمالي قبل الضريبة" : "الإجمالي الفرعي"}
+            </span>
+            <span className="font-medium tabular-nums text-foreground">
+              {symbol}{fmt(subtotal)}
+            </span>
+          </div>
+          {totalDiscount > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Minus className="h-2.5 w-2.5 text-rose-500" /> الخصم
+              </span>
+              <span className="font-medium tabular-nums text-rose-600">
+                −{symbol}{fmt(totalDiscount)}
+              </span>
+            </div>
+          )}
+          {taxEnabled && totalTax > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Percent className="h-2.5 w-2.5" />
+                {taxInclusive ? "الضريبة (مستخرجة)" : "الضريبة"}
+              </span>
+              <span className="font-medium tabular-nums text-foreground">
+                {taxInclusive ? "" : "+"}{symbol}{fmt(totalTax)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50">
+            <span className="font-semibold text-foreground">= الإجمالي النهائي</span>
+            <span className={`font-bold tabular-nums ${accentText}`}>
+              {symbol}{fmt(total)}
+            </span>
+          </div>
+
+          {/* Payment row — paid vs remaining (only when not credit) */}
+          {paymentMethod !== "credit" && paidAmount > 0 && (
+            <>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Wallet className="h-2.5 w-2.5" /> المدفوع
+                </span>
+                <span className="font-medium tabular-nums text-emerald-600">
+                  −{symbol}{fmt(paidAmount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-dashed border-border/50">
+                <span className="font-semibold text-foreground">المتبقي</span>
+                <span
+                  className={`font-bold tabular-nums ${
+                    remainingAmount > 0.01 ? "text-rose-600" : "text-emerald-600"
+                  }`}
+                >
+                  {symbol}{fmt(remainingAmount)}
+                </span>
+              </div>
+            </>
+          )}
+          {paymentMethod === "credit" && (
+            <div className="flex items-center justify-between pt-1 border-t border-dashed border-border/50">
+              <span className="text-muted-foreground">طريقة التسوية</span>
+              <span className="font-semibold text-amber-600 text-[10.5px]">
+                آجل · يضاف إلى ذمة الجهة
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Impact on customer ledger — Bridge of Understanding */}
+      {partyName && balanceBefore !== null && balanceBefore !== undefined && !noTotal && (
+        <div className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5" />
+            الأثر على {isSales ? "الزبون" : "المورد"}
+          </div>
+          <div className="space-y-2">
+            <BalanceBreakdown
+              total={before}
+              openInvoicesTotal={openInvoicesTotal}
+              unappliedCredit={unappliedCredit}
+              symbol={symbol}
+              isReceipt={false}
+              onOpenStatement={onOpenStatement}
+            />
+            <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
+              <span className="text-muted-foreground">
+                {isCreditNote ? "− خصم بإشعار دائن" : isDebitNote ? "+ إضافة بإشعار مدين" : isSales ? "+ فاتورة جديدة" : "+ فاتورة شراء"}
+              </span>
+              <span
+                className={`font-bold ${delta >= 0 ? "text-rose-600" : "text-emerald-600"}`}
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {delta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(delta))}
+              </span>
+            </div>
+            <BalanceRow label="الرصيد بعد" value={after} symbol={symbol} bold />
+          </div>
+        </div>
+      )}
+
+      {/* Credit limit hint */}
+      {!!creditLimit && creditLimit > 0 && isSales && !isCreditNote && partyName && (
+        <div className="px-1 text-[10.5px] flex items-center justify-between">
+          <span className="text-muted-foreground">الحد الائتماني</span>
+          <span className={overCreditLimit ? "text-rose-600 font-semibold" : "text-foreground font-medium"} style={{ fontVariantNumeric: "tabular-nums" }}>
+            {symbol}{fmt(creditLimit)}
+          </span>
+        </div>
+      )}
+
+      {/* Warnings */}
+      <div className="space-y-2">
+        {noItems && (
+          <Warning tone="info" icon={<Info className="h-3.5 w-3.5" />}>
+            أضف صنفاً واحداً على الأقل لرؤية الإجماليات
+          </Warning>
+        )}
+        {!noItems && noTotal && (
+          <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+            الإجمالي صفر — تحقق من الأسعار والكميات
+          </Warning>
+        )}
+        {noteWithoutOriginal && (
+          <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+            لم يتم ربط الإشعار بفاتورة أصلية — قد يصعب تتبع الأثر لاحقاً
+          </Warning>
+        )}
+        {overCreditLimit && (
+          <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+            الرصيد بعد الفاتورة ({symbol}{fmt(after)}) يتجاوز الحد الائتماني ({symbol}{fmt(creditLimit!)})
+          </Warning>
+        )}
+        {isFullyPaid && !noItems && (
+          <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
+            الفاتورة مدفوعة بالكامل — لا ذمة على الجهة
+          </Warning>
+        )}
+        {isCreditSale && !noItems && (
+          <Warning tone="info" icon={<Info className="h-3.5 w-3.5" />}>
+            فاتورة آجلة — ستظهر في الذمم حتى التحصيل
+          </Warning>
+        )}
+        {!noItems && !noTotal && !overCreditLimit && !isFullyPaid && !isCreditSale && !noteWithoutOriginal && (
+          <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
+            الفاتورة جاهزة للحفظ والترحيل
+          </Warning>
+        )}
+      </div>
+
+      {date && (
+        <div className="text-[10px] text-muted-foreground/60 text-center pt-1 font-mono">
+          {date}
+        </div>
+      )}
     </div>
   );
 }
