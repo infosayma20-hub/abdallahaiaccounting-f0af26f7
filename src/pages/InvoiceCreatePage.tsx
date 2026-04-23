@@ -878,7 +878,7 @@ const InvoiceCreatePage = () => {
 
   const validate = (): boolean => {
     if (!form.contactName.trim()) { toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" }); return false; }
-    if (form.items.some(i => !i.description.trim())) { toast({ title: "يرجى تعبئة وصف جميع البنود", variant: "destructive" }); return false; }
+    if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: "يرجى اختيار منتج لكل بند", variant: "destructive" }); return false; }
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
