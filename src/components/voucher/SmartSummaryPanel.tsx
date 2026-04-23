@@ -135,35 +135,16 @@ function ReceiptPaymentSummary({
         )}
       </div>
 
-      {/* Payment method + cheque check */}
+      {/* Payment method (compact line, only icon + label) */}
       {paymentMethod && (
-        <div className="rounded-xl border border-border/60 bg-card p-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">طريقة الدفع</span>
-            <span className="flex items-center gap-1.5 font-semibold text-foreground">
-              <PayIcon className="h-3.5 w-3.5" /> {paymentMethod}
-            </span>
-          </div>
-          {paymentMethod === "شيك" && chequesCount > 0 && (
-            <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted-foreground">عدد الشيكات</span>
-                <span className="font-semibold text-foreground">{chequesCount}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted-foreground">إجمالي الشيكات</span>
-                <span className={`font-semibold ${chequeMismatch ? "text-amber-600" : "text-foreground"}`}>
-                  {symbol}{fmt(chequesTotal)}
-                </span>
-              </div>
-              {chequeMismatch && (
-                <div className="text-[10px] text-amber-600 flex items-center gap-1 pt-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  الفرق: {symbol}{fmt(Math.abs(chequesTotal - amount))}
-                </div>
-              )}
-            </div>
-          )}
+        <div className="flex items-center justify-between px-1 text-[11px]">
+          <span className="text-muted-foreground">طريقة الدفع</span>
+          <span className="flex items-center gap-1.5 font-medium text-foreground">
+            <PayIcon className="h-3 w-3 text-muted-foreground" /> {paymentMethod}
+            {paymentMethod === "شيك" && chequesCount > 0 && (
+              <span className="text-[10px] text-muted-foreground/70">· {chequesCount}</span>
+            )}
+          </span>
         </div>
       )}
 
@@ -190,34 +171,14 @@ function ReceiptPaymentSummary({
         </div>
       )}
 
-      {/* Open invoices info */}
+      {/* Open invoices — compact 2-line summary (only meta not duplicated elsewhere) */}
       {partyType === "contact" && openInvoicesCount > 0 && (
-        <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <FileText className="h-3 w-3" /> فواتير مفتوحة
-            </span>
-            <span className="font-semibold text-foreground">{openInvoicesCount}</span>
-          </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">إجمالي المتبقي</span>
-            <span className="font-semibold text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {symbol}{fmt(openInvoicesTotal)}
-            </span>
-          </div>
-          {unappliedCredit > 0 && (
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground">دفعات غير مخصصة</span>
-              <span className="font-semibold text-amber-600" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {symbol}{fmt(unappliedCredit)}
-              </span>
-            </div>
-          )}
+        <div className="flex items-center justify-between px-1 text-[11px]">
+          <span className="text-muted-foreground flex items-center gap-1">
+            <FileText className="h-3 w-3" /> {openInvoicesCount} فاتورة مفتوحة
+          </span>
           {oldestInvoiceDays > 0 && (
-            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
-              <span className="text-muted-foreground">أقدم فاتورة</span>
-              <span className="font-semibold text-rose-600">منذ {oldestInvoiceDays} يوم</span>
-            </div>
+            <span className="text-[10px] text-rose-600/90 font-medium">أقدم: {oldestInvoiceDays}ي</span>
           )}
         </div>
       )}
@@ -257,8 +218,8 @@ function ReceiptPaymentSummary({
       </div>
 
       {date && (
-        <div className="text-[10px] text-muted-foreground text-center pt-1">
-          📅 {date}
+        <div className="text-[10px] text-muted-foreground/60 text-center pt-1 font-mono">
+          {date}
         </div>
       )}
     </div>
