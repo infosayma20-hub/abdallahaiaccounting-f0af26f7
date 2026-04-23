@@ -85,6 +85,10 @@ export default function SmartSummaryPanel(props: Props) {
     return <ReceiptPaymentSummary {...(props as ReceiptPaymentProps)} symbol={currencySymbol} />;
   }
 
+  if (variant === "invoice" || variant === "credit_note" || variant === "debit_note") {
+    return <InvoiceSummary {...(props as InvoiceProps)} symbol={currencySymbol} />;
+  }
+
   return null;
 }
 
