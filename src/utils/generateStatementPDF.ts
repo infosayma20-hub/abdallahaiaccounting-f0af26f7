@@ -137,8 +137,10 @@ const drawLabelValue = (
 // ─── Main Generator ───
 export const generateStatementPDF = (
   data: StatementPDFData,
-  company: StatementCompanyData
+  company: StatementCompanyData,
+  viewOpts: StatementPDFViewOptions = {}
 ): jsPDF => {
+  const opts = { ...DEFAULT_PDF_VIEW_OPTS, ...viewOpts };
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.width;
   const H = doc.internal.pageSize.height;
