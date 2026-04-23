@@ -81,6 +81,7 @@ function ReceiptPaymentSummary({
   allocatedTotal = 0,
   date,
   refNumber,
+  onOpenStatement,
   symbol,
 }: ReceiptPaymentProps & { symbol: string }) {
   const isReceipt = variant === "receipt";
@@ -160,7 +161,14 @@ function ReceiptPaymentSummary({
             الأثر على {partyType === "employee" ? "الموظف" : isReceipt ? "الزبون" : "المورد"}
           </div>
           <div className="space-y-2">
-            <BalanceRow label="الرصيد قبل" value={before} symbol={symbol} muted />
+            <BalanceBreakdown
+              total={before}
+              openInvoicesTotal={partyType === "contact" ? openInvoicesTotal : 0}
+              unappliedCredit={partyType === "contact" ? unappliedCredit : 0}
+              symbol={symbol}
+              isReceipt={isReceipt}
+              onOpenStatement={onOpenStatement}
+            />
             <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
               <span className="text-muted-foreground">{isReceipt ? "− تحصيل" : "+ صرف"}</span>
               <span
@@ -175,15 +183,13 @@ function ReceiptPaymentSummary({
         </div>
       )}
 
-      {/* Open invoices — compact 2-line summary (only meta not duplicated elsewhere) */}
-      {partyType === "contact" && openInvoicesCount > 0 && (
+      {/* Oldest invoice flag (only meta not in breakdown) */}
+      {partyType === "contact" && openInvoicesCount > 0 && oldestInvoiceDays > 0 && (
         <div className="flex items-center justify-between px-1 text-[11px]">
           <span className="text-muted-foreground flex items-center gap-1">
-            <FileText className="h-3 w-3" /> {openInvoicesCount} فاتورة مفتوحة
+            <FileText className="h-3 w-3" /> أقدم فاتورة مفتوحة
           </span>
-          {oldestInvoiceDays > 0 && (
-            <span className="text-[10px] text-rose-600/90 font-medium">أقدم: {oldestInvoiceDays}ي</span>
-          )}
+          <span className="text-[10px] text-rose-600/90 font-medium">منذ {oldestInvoiceDays} يوم</span>
         </div>
       )}
 
