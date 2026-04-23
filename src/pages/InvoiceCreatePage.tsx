@@ -1461,7 +1461,7 @@ const InvoiceCreatePage = () => {
           </div>
 
           {/* Row 1: Invoice Number, Issue Date, Due Date, Payment Terms */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
               <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
@@ -1471,6 +1471,28 @@ const InvoiceCreatePage = () => {
               <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
                 <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
               </div>
+            </div>
+            <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
+              <Select value={form.currency} onValueChange={async (v) => {
+                setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
+                if (v !== "شيكل" && user) {
+                  const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                  const code = codeMap[v];
+                  if (code) {
+                    const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", user.id).maybeSingle();
+                    if (curr) {
+                      const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", user.id).order("rate_date", { ascending: false }).limit(1).maybeSingle();
+                      if (rate?.sell_rate) setForm(p => ({ ...p, exchangeRate: Number(rate.sell_rate) }));
+                    }
+                  }
+                }
+              }}>
+                <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
