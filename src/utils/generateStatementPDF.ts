@@ -291,35 +291,67 @@ export const generateStatementPDF = (
   currentY += cardH + 5;
 
   // ══════ TRANSACTIONS TABLE ══════
-  const tableHead = [[
-    ar('الرصيد'), ar('دائن (له)'), ar('مدين (عليه)'),
-    ar('البيان'), ar('المرجع'), ar('التاريخ')
-  ]];
+  // Build columns dynamically based on view options.
+  // Order in array = visual order in the RTL table (rightmost first when reversed).
+  // We declare in left→right order to match autoTable expectations.
+  const cols: { key: string; head: string; width?: number; halign?: 'left'|'right'|'center'; color?: [number,number,number]; bold?: boolean }[] = [];
+  cols.push({ key: 'balance', head: ar('الرصيد'), width: 28, halign: 'center', bold: true });
+  cols.push({ key: 'credit',  head: ar('دائن (له)'),  width: 26, halign: 'center', color: greenText });
+  cols.push({ key: 'debit',   head: ar('مدين (عليه)'), width: 26, halign: 'center', color: redText });
+  if (opts.showType)      cols.push({ key: 'type', head: ar('النوع'), width: 22, halign: 'center' });
+  if (opts.showDueDate)   cols.push({ key: 'due',  head: ar('الاستحقاق'), width: 20, halign: 'center' });
+  cols.push({ key: 'description', head: ar('البيان'), halign: 'right' });
+  if (opts.showReference) cols.push({ key: 'reference', head: ar('المرجع'), width: 24, halign: 'center' });
+  cols.push({ key: 'date', head: ar('التاريخ'), width: 22, halign: 'center' });
 
-  const openRow = [
-    `${sym}${fmt(data.openingBalance)}`,
-    '—', '—',
-    ar('رصيد أول المدة'),
-    '—',
-    fmtDate(data.dateFrom),
-  ];
+  const cellFor = (key: string, ctx: 'open'|'body'|'close', r?: StatementPDFRow): string => {
+    if (ctx === 'open') {
+      switch (key) {
+        case 'balance':     return `${sym}${fmt(data.openingBalance)}`;
+        case 'credit':      return data.openingBalance < 0 ? `${sym}${fmt(data.openingBalance)}` : '—';
+        case 'debit':       return data.openingBalance > 0 ? `${sym}${fmt(data.openingBalance)}` : '—';
+        case 'description': return ar('رصيد أول المدة');
+        case 'date':        return fmtDate(data.dateFrom);
+        default:            return '—';
+      }
+    }
+    if (ctx === 'close') {
+      switch (key) {
+        case 'balance':     return `${sym}${fmt(data.closingBalance)}`;
+        case 'credit':      return `${sym}${fmt(data.totalCredit)}`;
+        case 'debit':       return `${sym}${fmt(data.totalDebit)}`;
+        case 'description': return ar('رصيد ختامي');
+        default:            return '—';
+      }
+    }
+    if (!r) return '';
+    switch (key) {
+      case 'balance':     return r.isLineItem ? '' : `${sym}${fmt(r.balance)}`;
+      case 'credit':      return r.credit > 0 ? `${sym}${fmt(r.credit)}` : '—';
+      case 'debit':       return r.debit > 0 ? `${sym}${fmt(r.debit)}` : '—';
+      case 'description': return ar(r.description);
+      case 'reference':   return r.reference || '—';
+      case 'due':         return r.dueDate ? fmtDate(r.dueDate) : '—';
+      case 'type':        return ar(getPdfTypeLabel(r.transaction_type || ''));
+      case 'date':        return fmtDate(r.date);
+      default:            return '';
+    }
+  };
 
-  const bodyRows = data.rows.map(r => [
-    r.isLineItem ? '' : `${sym}${fmt(r.balance)}`,
-    r.credit > 0 ? `${sym}${fmt(r.credit)}` : '—',
-    r.debit > 0 ? `${sym}${fmt(r.debit)}` : '—',
-    ar(r.description),
-    r.reference || '—',
-    fmtDate(r.date),
-  ]);
+  const tableHead = [cols.map(c => c.head)];
+  const openRow = cols.map(c => cellFor(c.key, 'open'));
+  const bodyRows = data.rows.map(r => cols.map(c => cellFor(c.key, 'body', r)));
+  const closeRow = cols.map(c => cellFor(c.key, 'close'));
 
-  const closeRow = [
-    `${sym}${fmt(data.closingBalance)}`,
-    `${sym}${fmt(data.totalCredit)}`,
-    `${sym}${fmt(data.totalDebit)}`,
-    ar('رصيد ختامي'),
-    '—', '—',
-  ];
+  const columnStyles: Record<number, any> = {};
+  cols.forEach((c, i) => {
+    columnStyles[i] = {
+      ...(c.width ? { cellWidth: c.width } : { cellWidth: 'auto' }),
+      ...(c.halign ? { halign: c.halign } : {}),
+      ...(c.color ? { textColor: c.color } : {}),
+      ...(c.bold ? { fontStyle: 'bold' } : {}),
+    };
+  });
 
   autoTable(doc, {
     startY: currentY,
