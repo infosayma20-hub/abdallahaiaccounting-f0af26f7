@@ -1396,7 +1396,7 @@ const InvoiceCreatePage = () => {
   return (
     <SmartFormScope
       className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
-      firstFieldSelector="[data-smart-first]"
+      firstFieldSelector="[data-smart-first] button, [data-smart-first]"
       disableAutoFocus={isEditMode}
     >
     <div dir="rtl" className="contents">
