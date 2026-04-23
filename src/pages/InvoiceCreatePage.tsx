@@ -1898,7 +1898,7 @@ const InvoiceCreatePage = () => {
                     const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
                     return (
                       <>
-                        <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
+                        <Input data-invoice-price={item.id} type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} onKeyDown={handleCellEnter("price", item.id)} className={`rounded-lg text-[11px] h-8 text-center border-0 bg-background ${showWarning ? "!border !border-amber-400 !bg-amber-50" : ""}`} dir="ltr" />
                         {showWarning && (
                           <Tooltip>
                             <TooltipTrigger asChild>
