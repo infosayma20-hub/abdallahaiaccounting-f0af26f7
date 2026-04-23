@@ -37,6 +37,9 @@ interface Contact {
   id: string;
   contact_name: string;
   current_balance: number;
+  ledger_balance?: number;
+  open_invoices_balance?: number;
+  unapplied_credit?: number;
 }
 
 interface Invoice {
@@ -408,11 +411,59 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load contacts
   useEffect(() => {
     if (!user) return;
-    supabase.from("contacts").select("id, contact_name, current_balance")
-      .eq("user_id", user.id)
-      .order("contact_name")
-      .then(({ data }) => {
-        const contactsList = data || [];
+    Promise.all([
+      supabase.from("contacts").select("id, contact_name, current_balance").eq("user_id", user.id).order("contact_name"),
+      supabase.from("transactions").select("contact_id, amount, debit_account_code, credit_account_code").eq("user_id", user.id).eq("is_deleted", false),
+      (supabase.from("invoices").select("contact_id, remaining_amount, total_amount, paid_amount").eq("user_id", user.id).in("payment_status", ["unpaid", "partial"]) as any)
+        .neq("status", "cancelled")
+        .not("status", "in", '("مسودة","draft")'),
+    ])
+      .then(([contactsRes, txRes, openInvoicesRes]) => {
+        const ledgerMap: Record<string, number> = {};
+        const advanceMap: Record<string, number> = {};
+
+        for (const tx of (txRes.data || [])) {
+          if (!tx.contact_id) continue;
+          if (!ledgerMap[tx.contact_id]) ledgerMap[tx.contact_id] = 0;
+          if (!advanceMap[tx.contact_id]) advanceMap[tx.contact_id] = 0;
+
+          if (tx.debit_account_code === "1130") ledgerMap[tx.contact_id] += tx.amount || 0;
+          if (tx.credit_account_code === "1130") ledgerMap[tx.contact_id] -= tx.amount || 0;
+          if (tx.credit_account_code === "2110") ledgerMap[tx.contact_id] -= tx.amount || 0;
+          if (tx.debit_account_code === "2110") ledgerMap[tx.contact_id] += tx.amount || 0;
+          if (tx.credit_account_code === "2115") {
+            ledgerMap[tx.contact_id] -= tx.amount || 0;
+            advanceMap[tx.contact_id] += tx.amount || 0;
+          }
+          if (tx.debit_account_code === "2115") {
+            ledgerMap[tx.contact_id] += tx.amount || 0;
+            advanceMap[tx.contact_id] -= tx.amount || 0;
+          }
+          if (tx.debit_account_code === "1146") {
+            ledgerMap[tx.contact_id] -= tx.amount || 0;
+            advanceMap[tx.contact_id] += tx.amount || 0;
+          }
+          if (tx.credit_account_code === "1146") {
+            ledgerMap[tx.contact_id] += tx.amount || 0;
+            advanceMap[tx.contact_id] -= tx.amount || 0;
+          }
+        }
+
+        const openInvoiceMap: Record<string, number> = {};
+        for (const inv of (openInvoicesRes.data || [])) {
+          if (!inv.contact_id) continue;
+          const remaining = Math.max(0, Number(inv.remaining_amount ?? (Number(inv.total_amount || 0) - Number(inv.paid_amount || 0))));
+          openInvoiceMap[inv.contact_id] = (openInvoiceMap[inv.contact_id] || 0) + remaining;
+        }
+
+        const contactsList = ((contactsRes.data as Contact[]) || []).map((c) => ({
+          ...c,
+          current_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
+          ledger_balance: ledgerMap[c.id] ?? c.current_balance ?? 0,
+          open_invoices_balance: openInvoiceMap[c.id] ?? 0,
+          unapplied_credit: Math.max(0, advanceMap[c.id] ?? 0),
+        }));
+
         setContacts(contactsList);
         const dupContactId = (window as any).__duplicateContactId;
         if (dupContactId) {
@@ -526,18 +577,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .eq("contact_id", selectedContact.id)
       .then(({ data }) => {
         if (!data) { setComputedBalance(0); return; }
-        let bal1130 = 0;
-        let bal2100 = 0;
+        let ledger = 0;
         for (const t of data) {
-          if (t.debit_account_code === "1130") bal1130 += t.amount;
-          if (t.credit_account_code === "1130") bal1130 -= t.amount;
-          if (t.debit_account_code === "2110") bal2100 += t.amount;
-          if (t.credit_account_code === "2110") bal2100 -= t.amount;
+          if (t.debit_account_code === "1130") ledger += t.amount;
+          if (t.credit_account_code === "1130") ledger -= t.amount;
+          if (t.credit_account_code === "2110") ledger -= t.amount;
+          if (t.debit_account_code === "2110") ledger += t.amount;
+          if (t.credit_account_code === "2115") ledger -= t.amount;
+          if (t.debit_account_code === "2115") ledger += t.amount;
+          if (t.debit_account_code === "1146") ledger -= t.amount;
+          if (t.credit_account_code === "1146") ledger += t.amount;
         }
-        if (bal1130 !== 0 && bal2100 === 0) setComputedBalance(bal1130);
-        else if (bal2100 !== 0 && bal1130 === 0) setComputedBalance(-bal2100);
-        else if (bal1130 !== 0 && bal2100 !== 0) setComputedBalance(isReceipt ? bal1130 : -bal2100);
-        else setComputedBalance(0);
+        setComputedBalance(ledger);
       });
   }, [selectedContact, user, isReceipt]);
 
