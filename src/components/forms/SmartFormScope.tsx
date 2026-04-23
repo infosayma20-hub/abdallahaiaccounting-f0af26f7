@@ -53,6 +53,8 @@ export interface SmartFormScopeProps {
   /** Delay (ms) before auto-focus runs — useful if data needs to load. */
   autoFocusDelay?: number;
   className?: string;
+  /** Optional text direction (e.g. "rtl"). Forwarded to the wrapper div. */
+  dir?: "rtl" | "ltr" | "auto";
 }
 
 const SmartFormScope = ({
@@ -62,6 +64,7 @@ const SmartFormScope = ({
   firstFieldSelector,
   autoFocusDelay = 120,
   className,
+  dir,
 }: SmartFormScopeProps) => {
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -137,7 +140,7 @@ const SmartFormScope = ({
   );
 
   return (
-    <div ref={rootRef} onKeyDown={onKeyDown} className={className}>
+    <div ref={rootRef} onKeyDown={onKeyDown} className={className} dir={dir}>
       {children}
     </div>
   );
