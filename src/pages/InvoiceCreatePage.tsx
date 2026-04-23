@@ -37,6 +37,8 @@ import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
+import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
+import RtlDateField from "@/components/account-statement/RtlDateField";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
