@@ -1108,6 +1108,14 @@ const AccountStatementV2Page = () => {
                 dateTo={dateTo}
                 contactCode={selectedEntityCode}
                 statementNumber={stableSOANumber}
+                showLogo={viewOptions.showLogo}
+                showCompanyContact={viewOptions.showCompanyContact}
+                showSignatures={viewOptions.showSignatures}
+                showReference={viewOptions.showReference}
+                showDueDate={viewOptions.showDueDate}
+                showType={viewOptions.showType}
+                showAging={viewOptions.showAging}
+                agingData={agingData}
               />
             </div>
           </div>
