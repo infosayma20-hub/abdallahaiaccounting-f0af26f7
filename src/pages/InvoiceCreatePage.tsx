@@ -40,6 +40,7 @@ import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
+import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -1390,7 +1391,7 @@ const InvoiceCreatePage = () => {
 
   return (
     <SmartFormScope
-      className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto"
+      className="px-3 lg:px-6 pt-4 pb-32 max-w-[1600px] mx-auto"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
@@ -1438,6 +1439,10 @@ const InvoiceCreatePage = () => {
           </Button>
         </div>
       )}
+
+      {/* Two-column shell: Right = Input | Left = Smart Summary (sticky) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5 items-start mt-4">
+      <div className="space-y-4 min-w-0">
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardHeader className="pb-3 pt-4 px-5">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -1456,7 +1461,7 @@ const InvoiceCreatePage = () => {
           </div>
 
           {/* Row 1: Invoice Number, Issue Date, Due Date, Payment Terms */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
               <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
@@ -1466,6 +1471,28 @@ const InvoiceCreatePage = () => {
               <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
                 <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
               </div>
+            </div>
+            <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
+              <Select value={form.currency} onValueChange={async (v) => {
+                setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
+                if (v !== "شيكل" && user) {
+                  const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                  const code = codeMap[v];
+                  if (code) {
+                    const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", user.id).maybeSingle();
+                    if (curr) {
+                      const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", user.id).order("rate_date", { ascending: false }).limit(1).maybeSingle();
+                      if (rate?.sell_rate) setForm(p => ({ ...p, exchangeRate: Number(rate.sell_rate) }));
+                    }
+                  }
+                }
+              }}>
+                <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
@@ -1663,150 +1690,15 @@ const InvoiceCreatePage = () => {
             </div>
           )}
 
-          {/* Row 3: Payment Method + Currency */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] text-muted-foreground font-medium">طريقة الدفع</label>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
-                  المبلغ: <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
-                  <span className="mx-1.5 text-muted-foreground/50">·</span>
-                  {form.paymentMethod === "credit" ? (
-                    <span className="text-amber-600 font-semibold">سيُضاف لذمة العميل</span>
-                  ) : (
-                    <span className="text-emerald-600 font-semibold">مدفوع بالكامل</span>
-                  )}
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {([
-                  { val: "cash", icon: Banknote, label: "نقداً", hint: "صندوق" },
-                  { val: "cheque", icon: CreditCard, label: "شيك", hint: "ورقي" },
-                  { val: "transfer", icon: Building2, label: "تحويل", hint: "بنكي" },
-                  { val: "credit", icon: Clock, label: "آجل", hint: "على الحساب" },
-                ] as const).map(pm => {
-                  const active = form.paymentMethod === pm.val;
-                  return (
-                    <button
-                      key={pm.val}
-                      onClick={() => setForm(p => ({ ...p, paymentMethod: pm.val }))}
-                      className={`py-2 rounded-xl text-[11px] font-semibold transition-all flex flex-col items-center gap-0.5 ${
-                        active
-                          ? "bg-primary text-primary-foreground border border-primary shadow-sm shadow-primary/20"
-                          : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:text-foreground"
-                      }`}
-                    >
-                      <pm.icon className="h-4 w-4" />
-                      <span>{pm.label}</span>
-                      <span className={`text-[8.5px] ${active ? "text-primary-foreground/80" : "text-muted-foreground/70"}`}>{pm.hint}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
-              <Select value={form.currency} onValueChange={async (v) => {
-                setForm(p => ({ ...p, currency: v, exchangeRate: v === "شيكل" ? 1 : p.exchangeRate }));
-                if (v !== "شيكل" && user) {
-                  const codeMap: Record<string, string> = { "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
-                  const code = codeMap[v];
-                  if (code) {
-                    const { data: curr } = await supabase.from("currencies").select("id").eq("code", code).eq("user_id", user.id).maybeSingle();
-                    if (curr) {
-                      const { data: rate } = await supabase.from("exchange_rates").select("sell_rate").eq("currency_id", curr.id).eq("user_id", user.id).order("rate_date", { ascending: false }).limit(1).maybeSingle();
-                      if (rate?.sell_rate) setForm(p => ({ ...p, exchangeRate: Number(rate.sell_rate) }));
-                    }
-                  }
-                }
-              }}>
-                <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {form.currency !== "شيكل" && (
-                <div className="mt-2">
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">سعر الصرف</label>
-                  <Input type="number" step="0.01" value={form.exchangeRate} onChange={e => setForm(p => ({ ...p, exchangeRate: Number(e.target.value) }))} className="rounded-xl text-xs h-8" dir="ltr" />
-                  <p className="text-[10px] text-muted-foreground mt-0.5">المكافئ بالشيكل: {fmtCurrencyStatic(summary.total * form.exchangeRate)}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Cheque Details */}
-          {form.paymentMethod === "cheque" && (
-            <div className="border border-primary/10 rounded-xl p-3 bg-primary/5 space-y-3">
-              <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> بيانات الشيك</p>
-              <div className="grid grid-cols-3 gap-3">
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">رقم الشيك *</label><Input value={form.chequeNumber} onChange={e => setForm(p => ({ ...p, chequeNumber: e.target.value }))} className="rounded-lg text-sm" /></div>
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك *</label>
-                  <Select value={form.chequeBank || "__empty__"} onValueChange={v => setForm(p => ({ ...p, chequeBank: v === "__empty__" ? "" : v }))}>
-                    <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر البنك" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__empty__" disabled>اختر البنك</SelectItem>
-                      {[...new Set(bankAccounts.map(b => b.bank_name).filter(Boolean))].map(name => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الشيك *</label><Input type="date" value={form.chequeDueDate} onChange={e => setForm(p => ({ ...p, chequeDueDate: e.target.value }))} className="rounded-lg text-sm" dir="ltr" /></div>
-              </div>
+          {/* Exchange rate (only when non-ILS) */}
+          {form.currency !== "شيكل" && (
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] text-muted-foreground mb-0.5 block">الحساب البنكي *</label>
-                <Select value={form.chequeBankAccountId} onValueChange={v => {
-                  const ba = bankAccounts.find(b => b.id === v);
-                  setForm(p => ({ ...p, chequeBankAccountId: v, chequeBank: ba?.bank_name || p.chequeBank }));
-                }}>
-                  <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts
-                      .filter(b => {
-                        const currMap: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
-                        const targetCode = currMap[form.currency] || form.currency;
-                        return !b.currency || b.currency === targetCode || b.currency === form.currency;
-                      })
-                      .map(b => (
-                        <SelectItem key={b.id} value={b.id}>{b.name} - {b.bank_name}</SelectItem>
-                      ))}
-                    {bankAccounts.filter(b => {
-                      const currMap: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
-                      const targetCode = currMap[form.currency] || form.currency;
-                      return !b.currency || b.currency === targetCode || b.currency === form.currency;
-                    }).length === 0 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">لا توجد حسابات بنكية بعملة {form.currency}</div>
-                    )}
-                  </SelectContent>
-                </Select>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">سعر الصرف</label>
+                <Input type="number" step="0.01" value={form.exchangeRate} onChange={e => setForm(p => ({ ...p, exchangeRate: Number(e.target.value) }))} className="rounded-xl text-sm h-10" dir="ltr" />
               </div>
-            </div>
-          )}
-
-          {form.paymentMethod === "transfer" && (
-            <div className="border border-border rounded-xl p-3 space-y-3">
-              <p className="text-xs font-semibold flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-primary" /> بيانات التحويل</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الحساب البنكي المستلم</label>
-                  <Select value={form.transferBank || "__none__"} onValueChange={v => {
-                    const ba = bankAccounts.find(b => b.id === v);
-                    setForm(p => ({ ...p, transferBank: v === "__none__" ? "" : (ba?.name || v) }));
-                  }}>
-                    <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__" disabled>اختر الحساب البنكي</SelectItem>
-                      {bankAccounts.map(b => (
-                        <SelectItem key={b.id} value={b.id}>{b.name} — {b.bank_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">رقم العملية / المرجع</label>
-                  <Input value={form.transferRef} onChange={e => setForm(p => ({ ...p, transferRef: e.target.value }))} className="rounded-lg text-sm" placeholder="رقم تحويل بنكي اختياري" />
-                </div>
+              <div className="flex items-end">
+                <p className="text-[11px] text-muted-foreground">المكافئ بالشيكل: <span className="font-semibold text-foreground">{fmtCurrencyStatic(summary.total * form.exchangeRate)}</span></p>
               </div>
             </div>
           )}
@@ -2252,9 +2144,39 @@ const InvoiceCreatePage = () => {
         </Card>
       </Collapsible>
 
+      </div>
+
+      {/* ─── Smart Summary Panel (Left, sticky on desktop) ─── */}
+      <aside className="hidden lg:block lg:sticky lg:top-4 self-start">
+        <SmartSummaryPanel
+          variant="invoice"
+          invoiceType={form.type}
+          subtotal={summary.subtotal}
+          totalDiscount={summary.totalDiscount}
+          totalTax={summary.totalTax}
+          total={summary.total}
+          taxEnabled={taxEnabled}
+          taxInclusive={form.taxInclusive}
+          itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
+          partyName={selectedContact?.contact_name || form.contactName || null}
+          partyId={selectedContact?.id || null}
+          balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
+          openInvoicesTotal={0}
+          unappliedCredit={0}
+          creditLimit={selectedContact?.credit_limit ?? null}
+          currency={form.currency}
+          exchangeRate={form.exchangeRate}
+          dueDate={form.dueDate}
+          refNumber={nextInvoiceNumber}
+          currencySymbol={currSymbol}
+          onOpenStatement={selectedContact ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank") : undefined}
+        />
+      </aside>
+      </div>
+
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="max-w-5xl mx-auto flex gap-2 items-center">
+        <div className="max-w-[1600px] mx-auto flex gap-2 items-center">
           {/* Live mini-summary: gives accountant a constant sense of control */}
           <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
             <span className="text-muted-foreground">الإجمالي</span>

@@ -41,7 +41,32 @@ interface ReceiptPaymentProps extends BaseProps {
   onOpenStatement?: () => void;
 }
 
-type Props = ReceiptPaymentProps;
+interface InvoiceProps extends BaseProps {
+  variant: "invoice" | "credit_note" | "debit_note";
+  invoiceType: "sales" | "purchase";
+  subtotal: number;
+  totalDiscount: number;
+  totalTax: number;
+  total: number;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
+  itemsCount?: number;
+  partyName?: string | null;
+  partyId?: string | null;
+  /** الرصيد الحالي للعميل قبل هذه الفاتورة */
+  balanceBefore?: number | null;
+  openInvoicesTotal?: number;
+  unappliedCredit?: number;
+  creditLimit?: number | null;
+  currency?: string;
+  exchangeRate?: number;
+  date?: string;
+  dueDate?: string;
+  refNumber?: string;
+  onOpenStatement?: () => void;
+}
+
+type Props = ReceiptPaymentProps | InvoiceProps;
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -58,6 +83,10 @@ export default function SmartSummaryPanel(props: Props) {
 
   if (variant === "receipt" || variant === "payment") {
     return <ReceiptPaymentSummary {...(props as ReceiptPaymentProps)} symbol={currencySymbol} />;
+  }
+
+  if (variant === "invoice" || variant === "credit_note" || variant === "debit_note") {
+    return <InvoiceSummary {...(props as InvoiceProps)} symbol={currencySymbol} />;
   }
 
   return null;
@@ -503,6 +532,194 @@ function Warning({
     <div className={`flex items-start gap-2 text-[11px] leading-relaxed rounded-lg border px-2.5 py-2 ${styles}`}>
       {icon && <span className="shrink-0 mt-0.5">{icon}</span>}
       <span>{children}</span>
+    </div>
+  );
+}
+
+/* ───────── Invoice / Credit Note / Debit Note Summary ─────────
+ * Result-driven: subtotal → discount → tax → total
+ *                + customer balance impact + warnings
+ */
+function InvoiceSummary({
+  variant,
+  invoiceType,
+  subtotal,
+  totalDiscount,
+  totalTax,
+  total,
+  taxEnabled = true,
+  taxInclusive = false,
+  itemsCount = 0,
+  partyName,
+  balanceBefore,
+  openInvoicesTotal = 0,
+  unappliedCredit = 0,
+  creditLimit,
+  currency,
+  exchangeRate = 1,
+  dueDate,
+  refNumber,
+  onOpenStatement,
+  symbol,
+}: InvoiceProps & { symbol: string }) {
+  const isCreditNote = variant === "credit_note";
+  const isPurchase = invoiceType === "purchase";
+  const isSales = invoiceType === "sales" && variant === "invoice";
+
+  // Direction:
+  //   sales invoice → INCREASES customer debit (they owe more)
+  //   purchase invoice → INCREASES our liability to supplier (their credit grows)
+  //   credit note (sales) → REDUCES customer debit
+  const before = balanceBefore ?? 0;
+  const delta = isCreditNote
+    ? (isSales ? -total : total)
+    : (isPurchase ? -total : total);
+  const after = before + delta;
+
+  // Warnings
+  const noItems = !itemsCount || total <= 0;
+  const overCreditLimit =
+    isSales && (creditLimit ?? 0) > 0 && after > (creditLimit ?? 0) + 0.01;
+  const headerColor = isCreditNote
+    ? "from-amber-500/10 to-amber-500/5"
+    : isPurchase
+      ? "from-rose-500/10 to-rose-500/5"
+      : "from-emerald-500/10 to-emerald-500/5";
+  const accentText = isCreditNote
+    ? "text-amber-700"
+    : isPurchase
+      ? "text-rose-600"
+      : "text-emerald-600";
+  const heroLabel = isCreditNote
+    ? "إجمالي الإشعار"
+    : isPurchase
+      ? "إجمالي فاتورة المشتريات"
+      : "إجمالي فاتورة المبيعات";
+
+  return (
+    <div className="space-y-3">
+      {/* Hero — Total */}
+      <div className={`relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br ${headerColor} px-4 pt-3 pb-3.5`}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 tracking-wide">
+            {heroLabel}
+          </span>
+          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isPurchase ? "bg-rose-500/15 text-rose-700" : isCreditNote ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}`}>
+            {isPurchase ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+            {isCreditNote ? "مرتجع" : isPurchase ? "صادر" : "وارد"}
+          </span>
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={total}
+            initial={{ opacity: 0.5, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className={`text-[2rem] leading-tight font-bold ${accentText} tracking-tight`}
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {symbol}{fmt(total)}
+          </motion.div>
+        </AnimatePresence>
+        {refNumber && (
+          <div className="mt-1 text-[10px] text-muted-foreground/70 font-mono">{refNumber}</div>
+        )}
+      </div>
+
+      {/* Breakdown */}
+      <div className="rounded-xl border border-border/60 bg-card p-3 space-y-1.5">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-muted-foreground">عدد البنود</span>
+          <span className="font-semibold text-foreground tabular-nums">{itemsCount}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-muted-foreground">
+            {taxEnabled && taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+          </span>
+          <span className="font-semibold text-foreground tabular-nums">{symbol}{fmt(subtotal)}</span>
+        </div>
+        {totalDiscount > 0 && (
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-rose-600">(−) الخصومات</span>
+            <span className="font-semibold text-rose-600 tabular-nums">{symbol}{fmt(totalDiscount)}</span>
+          </div>
+        )}
+        {taxEnabled && totalTax > 0 && (
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">
+              {taxInclusive ? "الضريبة (مستخرجة)" : "(+) الضريبة 16%"}
+            </span>
+            <span className="font-semibold text-foreground tabular-nums">{symbol}{fmt(totalTax)}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50 text-[12px]">
+          <span className="font-semibold text-foreground">الإجمالي النهائي</span>
+          <span className={`font-bold ${accentText} tabular-nums`}>{symbol}{fmt(total)}</span>
+        </div>
+        {currency && currency !== "شيكل" && exchangeRate !== 1 && (
+          <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/30">
+            <span className="text-muted-foreground">المكافئ بالشيكل</span>
+            <span className="font-medium text-foreground tabular-nums">₪{fmt(total * exchangeRate)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Customer/Supplier Impact */}
+      {partyName && (
+        <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            {isPurchase || isCreditNote ? <TrendingDown className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
+            الأثر على {isPurchase ? "المورد" : "الزبون"}
+          </div>
+          <div className="space-y-2">
+            <BalanceBreakdown
+              total={before}
+              openInvoicesTotal={openInvoicesTotal}
+              unappliedCredit={unappliedCredit}
+              symbol={symbol}
+              isReceipt={false}
+              onOpenStatement={onOpenStatement}
+            />
+            <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
+              <span className="text-muted-foreground">
+                {isCreditNote ? "− تخفيض" : isPurchase ? "+ التزام جديد" : "+ ذمة جديدة"}
+              </span>
+              <span
+                className={`font-bold ${delta >= 0 ? (isPurchase ? "text-emerald-600" : "text-rose-600") : "text-emerald-600"}`}
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {delta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(delta))}
+              </span>
+            </div>
+            <BalanceRow label="الرصيد بعد" value={after} symbol={symbol} bold />
+          </div>
+        </div>
+      )}
+
+      {/* Warnings */}
+      <div className="space-y-2">
+        {noItems && (
+          <Warning tone="info" icon={<Info className="h-3.5 w-3.5" />}>
+            أضِف بنوداً لرؤية الأثر الكامل على الذمة
+          </Warning>
+        )}
+        {!noItems && overCreditLimit && (
+          <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+            الرصيد بعد الفاتورة يتجاوز الحد الائتماني المسموح ({symbol}{fmt(creditLimit ?? 0)})
+          </Warning>
+        )}
+        {!noItems && !overCreditLimit && (
+          <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
+            الفاتورة جاهزة للحفظ والترحيل
+          </Warning>
+        )}
+      </div>
+
+      {dueDate && (
+        <div className="text-[10px] text-muted-foreground/60 text-center pt-1 font-mono">
+          استحقاق: {dueDate}
+        </div>
+      )}
     </div>
   );
 }
