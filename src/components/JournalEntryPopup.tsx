@@ -16,6 +16,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import useModalDraft from "@/hooks/useModalDraft";
 import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
 import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
+import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
+import type { JournalTemplate as SavedJournalTemplate } from "@/hooks/useJournalTemplates";
 
 /* ── Types ── */
 interface AccountRow {
