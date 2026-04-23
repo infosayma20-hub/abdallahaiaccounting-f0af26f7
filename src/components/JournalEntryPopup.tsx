@@ -16,6 +16,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import useModalDraft from "@/hooks/useModalDraft";
 import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
 import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
+import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
+import type { JournalTemplate as SavedJournalTemplate } from "@/hooks/useJournalTemplates";
 
 /* ── Types ── */
 interface AccountRow {
@@ -434,6 +436,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
   const [activeLineIdx, setActiveLineIdx] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [savedEntryRef, setSavedEntryRef] = useState("");
+  const [showTemplatesLibrary, setShowTemplatesLibrary] = useState(false);
 
   // Load accounts from Supabase
   useEffect(() => {
@@ -566,6 +569,29 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     setLines(newLines);
     setDescription(tpl.name);
     setShowTemplates(false);
+  };
+
+  /* ── Apply a SAVED template (from DB library) ── */
+  const applySavedTemplate = (tpl: SavedJournalTemplate) => {
+    const newLines: JournalLine[] = tpl.lines.map(l => {
+      const acc = accounts.find(a => a.account_code === l.account_code);
+      return {
+        id: uid(),
+        account_code: l.account_code || "",
+        account_name: acc?.account_name || l.account_name || "",
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
+        memo: l.memo || "",
+      };
+    });
+    while (newLines.length < 2) newLines.push(emptyLine());
+    setLines(newLines);
+    if (!description && tpl.description) setDescription(tpl.description);
+    if (!description && tpl.name) setDescription(tpl.name);
+    if (tpl.default_subtype) {
+      const map: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفال" };
+      setEntryType(map[tpl.default_subtype] || "عادي");
+    }
   };
 
   /* ── Account selection from dropdown ── */
@@ -804,6 +830,13 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
                       <span className="text-foreground font-medium">{tpl.name}</span>
                     </button>
                   ))}
+                  <button
+                    onClick={() => { setShowTemplates(false); setShowTemplatesLibrary(true); }}
+                    className="w-full text-right px-3 py-2.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 border-t border-border/40 text-primary font-bold rounded-b-xl"
+                  >
+                    <Bookmark className="h-3.5 w-3.5" />
+                    📂 المكتبة الكاملة (محفوظة)
+                  </button>
                 </div>
               )}
             </div>
@@ -973,6 +1006,26 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
         contactType={addContactType}
         userId={user?.id || ""}
         onCreated={handleAccountCreated}
+      />
+
+      {/* Saved templates library (DB-backed) */}
+      <JournalTemplatesPicker
+        open={showTemplatesLibrary}
+        onClose={() => setShowTemplatesLibrary(false)}
+        onApply={applySavedTemplate}
+        currentSnapshot={{
+          name: description || "قالب جديد",
+          description: description,
+          default_subtype: entryType === "افتتاحي" ? "opening" : entryType === "تسوية" ? "adjustment" : entryType === "إقفال" ? "closing" : "normal",
+          default_contact_id: null,
+          lines: lines.map(l => ({
+            account_code: l.account_code,
+            account_name: l.account_name,
+            debit: Number(l.debit) || 0,
+            credit: Number(l.credit) || 0,
+            memo: l.memo || "",
+          })),
+        }}
       />
     </div>
   );
