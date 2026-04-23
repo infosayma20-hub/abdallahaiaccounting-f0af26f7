@@ -1396,7 +1396,7 @@ const InvoiceCreatePage = () => {
   return (
     <SmartFormScope
       className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
-      firstFieldSelector="[data-smart-first]"
+      firstFieldSelector="[data-smart-first] button, [data-smart-first]"
       disableAutoFocus={isEditMode}
     >
     <div dir="rtl" className="contents">
@@ -1470,7 +1470,7 @@ const InvoiceCreatePage = () => {
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
               <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
             </div>
-            <div>
+            <div data-smart-first="true">
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
               <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
                 <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
@@ -1575,7 +1575,6 @@ const InvoiceCreatePage = () => {
                       }
                     }}
                     className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
-                    data-smart-first="true"
                     data-no-enter-nav="true"
                   />
                 </div>
@@ -1635,6 +1634,7 @@ const InvoiceCreatePage = () => {
                   contactType={form.type as "sales" | "purchase"}
                   creditLimit={selectedContact.credit_limit}
                   ledgerBalance={selectedContact.balance ?? selectedContact.current_balance ?? 0}
+                  compact
                 />
               )}
               {selectedContact && contactDebtWarning && (selectedContact.credit_limit || 0) > 0 && (selectedContact.balance || 0) > (selectedContact.credit_limit || 0) && (
@@ -1662,36 +1662,38 @@ const InvoiceCreatePage = () => {
 
           {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
-            <div className="bg-muted/30 rounded-xl p-3 space-y-2">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الهاتف</label>
-                  <Input value={customerOverrides.phone} onChange={e => setCustomerOverrides(p => ({ ...p, phone: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+            <details className="group rounded-lg border border-border/60 bg-muted/20">
+              <summary className="cursor-pointer select-none px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
+                  بيانات العميل (هاتف، بريد، عنوان، رقم ضريبي)
+                </span>
+                <span className="text-[10px] text-muted-foreground/70">اختياري</span>
+              </summary>
+              <div className="px-3 pb-3 pt-1 space-y-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  <div>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">الهاتف</label>
+                    <Input value={customerOverrides.phone} onChange={e => setCustomerOverrides(p => ({ ...p, phone: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">البريد الإلكتروني</label>
+                    <Input value={customerOverrides.email} onChange={e => setCustomerOverrides(p => ({ ...p, email: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">الرقم الضريبي</label>
+                    <Input value={customerOverrides.tax_number} onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">العنوان</label>
+                    <Input value={customerOverrides.address} onChange={e => setCustomerOverrides(p => ({ ...p, address: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">البريد الإلكتروني</label>
-                  <Input value={customerOverrides.email} onChange={e => setCustomerOverrides(p => ({ ...p, email: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الرقم الضريبي</label>
-                  <Input value={customerOverrides.tax_number} onChange={e => setCustomerOverrides(p => ({ ...p, tax_number: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" dir="ltr" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-0.5 block">العنوان</label>
-                  <Input value={customerOverrides.address} onChange={e => setCustomerOverrides(p => ({ ...p, address: e.target.value }))} className="rounded-lg text-[11px] h-7 bg-background" placeholder="—" />
-                </div>
-              </div>
-              {selectedContact && (
                 <a href={`/contacts?edit=${selectedContact.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline justify-end">
-                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل
+                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل في الملف الكامل
                 </a>
-              )}
-              {!selectedContact && (!customerOverrides.phone && !customerOverrides.email && !customerOverrides.tax_number && !customerOverrides.address) && (
-                <a href="/contacts" target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-medium flex items-center gap-1 hover:underline justify-end">
-                  <ExternalLink className="h-3 w-3" /> إكمال بيانات العميل
-                </a>
-              )}
-            </div>
+              </div>
+            </details>
           )}
 
           {/* Exchange rate (only when non-ILS) */}

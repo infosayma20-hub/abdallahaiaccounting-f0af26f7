@@ -8,6 +8,8 @@ interface Props {
   contactType?: "sales" | "purchase";
   creditLimit?: number;
   ledgerBalance?: number;
+  /** When true, render as a single compact info strip (Mobile-style line). */
+  compact?: boolean;
 }
 
 interface OpenInvoiceSummary {
@@ -34,6 +36,7 @@ export default function CustomerInsightsBar({
   contactType = "sales",
   creditLimit,
   ledgerBalance = 0,
+  compact = false,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<OpenInvoiceSummary>({
@@ -74,6 +77,78 @@ export default function CustomerInsightsBar({
   const overLimit = creditLimit && creditLimit > 0 && ledgerBalance > creditLimit;
   const utilization =
     creditLimit && creditLimit > 0 ? Math.min(100, (ledgerBalance / creditLimit) * 100) : 0;
+
+  if (compact) {
+    const balLabel =
+      ledgerBalance > 0
+        ? contactType === "sales" ? "مدين" : "علينا"
+        : ledgerBalance < 0
+        ? contactType === "sales" ? "دائن" : "لنا"
+        : "صفر";
+    const balColor =
+      ledgerBalance > 0
+        ? "text-destructive"
+        : ledgerBalance < 0
+        ? "text-emerald-600"
+        : "text-muted-foreground";
+    return (
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground leading-tight">
+        <span className="inline-flex items-center gap-1">
+          <Wallet className="h-3 w-3" />
+          الرصيد:
+          <span className={`font-semibold tabular-nums ${balColor}`}>
+            {fmt(Math.abs(ledgerBalance))}
+          </span>
+          <span className="text-muted-foreground/80">{balLabel}</span>
+        </span>
+        <span className="text-border">|</span>
+        <span className="inline-flex items-center gap-1">
+          <FileText className="h-3 w-3" />
+          فواتير مفتوحة:
+          <span className="font-semibold tabular-nums text-foreground">
+            {loading ? "..." : fmt(open.totalRemaining)}
+          </span>
+          {!loading && open.count > 0 && (
+            <span className="text-muted-foreground/80">({open.count})</span>
+          )}
+          {open.oldestDate && (
+            <span className="text-muted-foreground/80">· أقدم {daysSince(open.oldestDate)}ي</span>
+          )}
+        </span>
+        {creditLimit && creditLimit > 0 && (
+          <>
+            <span className="text-border">|</span>
+            <span className="inline-flex items-center gap-1">
+              {overLimit ? (
+                <AlertTriangle className="h-3 w-3 text-destructive" />
+              ) : (
+                <TrendingUp className="h-3 w-3" />
+              )}
+              الحد الائتماني:
+              <span
+                className={`font-semibold tabular-nums ${
+                  overLimit ? "text-destructive" : "text-foreground"
+                }`}
+              >
+                {fmt(creditLimit)}
+              </span>
+              <span className="text-muted-foreground/80">({utilization.toFixed(0)}%)</span>
+            </span>
+          </>
+        )}
+        {contactId && (
+          <a
+            href={`/account-statement-v2?contact_id=${contactId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline ms-auto"
+          >
+            <ExternalLink className="h-3 w-3" /> كشف الحساب
+          </a>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
