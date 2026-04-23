@@ -1432,7 +1432,9 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
-              <Input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
+                <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
+              </div>
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
@@ -1445,7 +1447,9 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
-              <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
+                <RtlDateField value={form.dueDate} onChange={(v) => setForm(p => ({ ...p, dueDate: v }))} ariaLabel="تاريخ الاستحقاق" />
+              </div>
             </div>
           </div>
 
