@@ -12,6 +12,8 @@ export interface StatementPDFRow {
   credit: number;
   balance: number;
   isLineItem?: boolean;
+  dueDate?: string;
+  transaction_type?: string;
 }
 
 export interface StatementPDFData {
