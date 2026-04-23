@@ -47,6 +47,13 @@ interface Props {
   dateTo: string;
   statementNumber?: string;
   contactCode?: string;
+  /** View options — control which document elements appear in the printed output. */
+  showLogo?: boolean;
+  showCompanyContact?: boolean;
+  showSignatures?: boolean;
+  showReference?: boolean;
+  showDueDate?: boolean;
+  showType?: boolean;
 }
 
 const fmt = (n: number) =>
