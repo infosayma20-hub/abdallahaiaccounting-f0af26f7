@@ -2429,7 +2429,6 @@ const InvoiceCreatePage = () => {
           invoiceDate={form.date}
         />
       )}
-    </div>
     </SmartFormScope>
   );
 };
