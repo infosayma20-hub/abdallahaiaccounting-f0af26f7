@@ -504,26 +504,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     onDeleteRow: removeLineById,
   });
 
-  /* ── Template apply ── */
-  const applyTemplate = (tpl: JournalTemplate) => {
-    const newLines: JournalLine[] = tpl.lines.map(l => {
-      // Try to resolve account name from actual accounts
-      const acc = accounts.find(a => a.account_code === l.account_code);
-      return {
-        id: uid(),
-        account_code: l.account_code,
-        account_name: acc?.account_name || l.account_name,
-        debit: l.debit,
-        credit: l.credit,
-        memo: l.memo,
-      };
-    });
-    setLines(newLines);
-    setDescription(tpl.name);
-    setShowTemplates(false);
-  };
-
-  /* ── Apply a SAVED template (from DB library) ── */
+  /* ── Apply a SAVED template (from DB library — single source of truth) ── */
   const applySavedTemplate = (tpl: SavedJournalTemplate) => {
     const newLines: JournalLine[] = tpl.lines.map(l => {
       const acc = accounts.find(a => a.account_code === l.account_code);
