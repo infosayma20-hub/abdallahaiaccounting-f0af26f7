@@ -2000,10 +2000,13 @@ const InvoiceCreatePage = () => {
           </div>
 
           {/* Add row footer */}
-          <div className="px-3 py-2 border-t border-border/50 bg-muted/10">
-            <Button variant="ghost" size="sm" className="w-full rounded-md text-xs gap-1.5 h-8 text-primary hover:bg-primary/10 justify-center" onClick={addItem}>
-              <Plus className="h-3.5 w-3.5" /> إضافة بند جديد
-            </Button>
+          <div className="p-2 bg-muted/10">
+            <button
+              onClick={addItem}
+              className="w-full h-10 rounded-md border-2 border-dashed border-border bg-muted/30 hover:border-primary/60 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-[12px] font-semibold text-muted-foreground hover:text-primary"
+            >
+              <Plus className="h-4 w-4" /> إضافة بند جديد
+            </button>
           </div>
         </CardContent>
       </Card>
