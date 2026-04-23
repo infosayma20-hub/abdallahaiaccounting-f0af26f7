@@ -834,49 +834,60 @@ const AccountStatementV2Page = () => {
 
             {/* ─── TRANSACTIONS TABLE ─── */}
             <div className="rounded-lg overflow-hidden mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
+              {(() => {
+                const screenCols: Array<{ key: string; label: string; width: string }> = [
+                  { key: "date", label: "التاريخ", width: "10%" },
+                  ...(viewOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
+                  { key: "description", label: "البيان", width: viewOptions.showReference ? "25%" : "38%" },
+                  ...(viewOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
+                  ...(viewOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+                  { key: "debit", label: "مدين (عليه)", width: "11%" },
+                  { key: "credit", label: "دائن (له)", width: "11%" },
+                  { key: "balance", label: "الرصيد", width: "12%" },
+                ];
+                const colSpan = screenCols.length;
+                return (
               <table className="w-full" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "25%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "11%" }} />
-                  <col style={{ width: "11%" }} />
-                  <col style={{ width: "12%" }} />
+                  {screenCols.map(c => <col key={c.key} style={{ width: c.width }} />)}
                 </colgroup>
                 <thead>
                   <tr style={{ background: "#F3F4F6", borderBottom: "2px solid #E5E7EB" }}>
-                    {["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين (عليه)", "دائن (له)", "الرصيد"].map(h => (
-                      <th key={h} className="text-right" style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all" }}>{h}</th>
+                    {screenCols.map(c => (
+                      <th key={c.key} className="text-right" style={{ padding: "10px 12px", fontSize: 11, fontWeight: 600, color: "#374151", whiteSpace: "normal", wordBreak: "keep-all" }}>{c.label}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {/* Opening balance row */}
                   <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
-                    <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>
-                    <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>—</td>
-                    <td style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>
-                    <td style={{ padding: "8px 12px" }} />
-                    <td style={{ padding: "8px 12px" }} />
-                    <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>
-                    <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>
-                    <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>
+                    {screenCols.map(c => {
+                      if (c.key === "date") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
+                      if (c.key === "reference") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>—</td>;
+                      if (c.key === "description") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>;
+                      if (c.key === "debit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "credit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "balance") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>;
+                      return <td key={c.key} style={{ padding: "8px 12px" }} />;
+                    })}
                   </tr>
 
                   {loading ? (
-                    <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />جاري التحميل...</td></tr>
+                    <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />جاري التحميل...</td></tr>
                   ) : filteredRows.length === 0 ? (
-                    <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
+                    <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
                     filteredRows.map((row, i) => (
                       <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer", background: row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
-                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
+                        {screenCols.map(c => {
+                          if (c.key === "date") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
                           <div>{fmtDate(row.date)}</div>
                           <div style={{ fontSize: 9, color: "#9CA3AF" }}>{getDayName(row.date)}</div>
-                        </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
+                            </td>
+                          );
+                          if (c.key === "reference") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontFamily: "monospace", wordBreak: "break-all" }}>
                           {row.reference ? (
                             <button
                               onClick={(e) => { e.stopPropagation(); setDrawerRow(row); setDrawerOpen(true); }}
@@ -886,8 +897,10 @@ const AccountStatementV2Page = () => {
                               {row.reference}
                             </button>
                           ) : "—"}
-                        </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>
+                            </td>
+                          );
+                          if (c.key === "description") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#111827", lineHeight: 1.5 }}>
                           {(row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) && (
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#F59E0B", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>عكس قيد</span>
                           )}
@@ -895,22 +908,32 @@ const AccountStatementV2Page = () => {
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
                           )}
                           <span style={{ textDecoration: row.isCancelled ? "line-through" : "none" }}>{row.description}</span>
-                        </td>
-                        <td style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
-                        <td style={{ padding: "8px 12px", fontSize: 10, color: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#B45309" : "#6B7280", fontWeight: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? 700 : 400 }}>{getTypeBadge(row.transaction_type)}</td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            </td>
+                          );
+                          if (c.key === "due") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: "#9CA3AF" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</td>
+                          );
+                          if (c.key === "type") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#B45309" : "#6B7280", fontWeight: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? 700 : 400 }}>{getTypeBadge(row.transaction_type)}</td>
+                          );
+                          if (c.key === "debit") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
                           {row.debit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
                           {row.debit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
-                        </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            </td>
+                          );
+                          if (c.key === "credit") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                           {row.credit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
                           {row.credit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
                           {row.credit > 0 && row.isMismatch && <span title="عملة مختلفة — معروض بالشيكل" style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚠️</span>}
-                        </td>
-                        <td style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            </td>
+                          );
+                          if (c.key === "balance") return (
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: balColor(row.balance), textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           <div className="flex items-center gap-1">
                             <span>
                               {fmtAmount(row.balance, row.currency)}
@@ -918,7 +941,10 @@ const AccountStatementV2Page = () => {
                             </span>
                             <ArrowLeft className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" style={{ color: "#9CA3AF" }} />
                           </div>
-                        </td>
+                            </td>
+                          );
+                          return <td key={c.key} style={{ padding: "8px 12px" }} />;
+                        })}
                       </tr>
                     ))
                   )}
@@ -926,18 +952,21 @@ const AccountStatementV2Page = () => {
                   {/* Closing balance row */}
                   {filteredRows.length > 0 && (
                     <tr style={{ background: "#F3F4F6", borderTop: "2px solid #E5E7EB" }}>
-                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>
-                      <td style={{ padding: "10px 12px", fontSize: 11 }}>—</td>
-                      <td style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>
-                      <td style={{ padding: "10px 12px" }} />
-                      <td style={{ padding: "10px 12px" }} />
-                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>
-                      <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>
+                      {screenCols.map(c => {
+                        if (c.key === "date") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>;
+                        if (c.key === "reference") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11 }}>—</td>;
+                        if (c.key === "description") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>;
+                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>;
+                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>;
+                        if (c.key === "balance") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>;
+                        return <td key={c.key} style={{ padding: "10px 12px" }} />;
+                      })}
                     </tr>
                   )}
                 </tbody>
               </table>
+                );
+              })()}
             </div>
 
             {/* ─── COLLAPSIBLE: CHEQUES ─── */}
