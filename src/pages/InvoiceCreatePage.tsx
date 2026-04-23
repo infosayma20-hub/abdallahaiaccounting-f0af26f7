@@ -2282,6 +2282,36 @@ const InvoiceCreatePage = () => {
         </Card>
       </Collapsible>
 
+      {/* ───── Left column: Smart Summary (sticky on desktop) ───── */}
+      <aside className="hidden lg:block lg:col-start-2 lg:row-start-1 lg:row-span-full lg:sticky lg:top-4 self-start">
+        <SmartSummaryPanel
+          variant="invoice"
+          currencySymbol={currSymbol}
+          invoiceKind={form.type === "purchase" ? "purchase" : "sales"}
+          taxEnabled={taxEnabled}
+          taxInclusive={form.taxInclusive}
+          subtotal={summary.subtotal}
+          totalDiscount={summary.totalDiscount}
+          totalTax={summary.totalTax}
+          total={summary.total}
+          paidAmount={summary.paidAmount}
+          remainingAmount={summary.remainingAmount}
+          itemsCount={form.items.filter(i => (i.description || "").trim() && Number(i.quantity) > 0).length}
+          paymentMethod={form.paymentMethod}
+          partyName={selectedContact?.contact_name ?? null}
+          partyType="contact"
+          balanceBefore={selectedContact ? (selectedContact.balance ?? selectedContact.current_balance ?? 0) : null}
+          creditLimit={selectedContact?.credit_limit}
+          refNumber={nextInvoiceNumber}
+          date={form.date}
+          onOpenStatement={
+            selectedContact?.id
+              ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
+              : undefined
+          }
+        />
+      </aside>
+
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
         <div className="max-w-5xl mx-auto flex gap-2 items-center">
