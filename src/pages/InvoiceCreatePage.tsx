@@ -1392,7 +1392,7 @@ const InvoiceCreatePage = () => {
 
   return (
     <SmartFormScope
-      className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto"
+      className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-7xl mx-auto lg:grid lg:grid-cols-[1fr_320px] lg:gap-5 lg:items-start lg:[&>*]:col-start-1"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
@@ -1414,6 +1414,34 @@ const InvoiceCreatePage = () => {
       <PageHeader 
         title={isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"} 
         breadcrumb={["المبيعات", "الفواتير", isEditMode ? "تعديل" : "إنشاء فاتورة"]} 
+      />
+
+      {/* Mobile Summary Bar (collapsible — lg: hidden) */}
+      <MobileSummaryBar
+        variant="invoice"
+        currencySymbol={currSymbol}
+        invoiceKind={form.type === "purchase" ? "purchase" : "sales"}
+        taxEnabled={taxEnabled}
+        taxInclusive={form.taxInclusive}
+        subtotal={summary.subtotal}
+        totalDiscount={summary.totalDiscount}
+        totalTax={summary.totalTax}
+        total={summary.total}
+        paidAmount={summary.paidAmount}
+        remainingAmount={summary.remainingAmount}
+        itemsCount={form.items.filter(i => (i.product_name || "").trim() && Number(i.quantity) > 0).length}
+        paymentMethod={form.paymentMethod}
+        partyName={selectedContact?.contact_name ?? null}
+        partyType="contact"
+        balanceBefore={selectedContact ? (selectedContact.balance ?? selectedContact.current_balance ?? 0) : null}
+        creditLimit={selectedContact?.credit_limit}
+        refNumber={nextInvoiceNumber}
+        date={form.invoiceDate}
+        onOpenStatement={
+          selectedContact?.id
+            ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
+            : undefined
+        }
       />
 
       {/* Navigation Toolbar */}
