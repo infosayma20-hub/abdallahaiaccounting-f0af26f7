@@ -54,6 +54,14 @@ interface Props {
   showReference?: boolean;
   showDueDate?: boolean;
   showType?: boolean;
+  showAging?: boolean;
+  agingData?: {
+    current: number;
+    d1_30: number;
+    d31_60: number;
+    d60plus: number;
+    total: number;
+  } | null;
 }
 
 const fmt = (n: number) =>
