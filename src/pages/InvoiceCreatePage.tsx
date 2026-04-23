@@ -16,10 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -1457,8 +1454,8 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
-      {/* Two-column shell: Right = Input | Left = Smart Summary (sticky) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5 items-start mt-4">
+      {/* Two-column shell: denser invoice work area with narrower summary rail */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1100px)_280px] xl:justify-center gap-4 items-start mt-4">
       <div className="space-y-4 min-w-0">
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardHeader className="pb-3 pt-4 px-5">
