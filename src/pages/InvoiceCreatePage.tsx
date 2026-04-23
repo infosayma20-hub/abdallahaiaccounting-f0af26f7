@@ -1470,7 +1470,7 @@ const InvoiceCreatePage = () => {
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
               <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
             </div>
-            <div>
+            <div data-smart-first="true">
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
               <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
                 <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
