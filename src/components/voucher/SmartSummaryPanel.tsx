@@ -105,33 +105,33 @@ function ReceiptPaymentSummary({
 
   return (
     <div className="space-y-3">
-      {/* Hero — Amount */}
+      {/* Hero — Amount (compact + amount-first) */}
       <div
-        className={`relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br ${headerColor} p-5`}
+        className={`relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br ${headerColor} px-4 pt-3 pb-3.5`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-muted-foreground tracking-wide">
-            {isReceipt ? "💰 المبلغ المقبوض" : "💸 المبلغ المدفوع"}
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 tracking-wide">
+            {isReceipt ? "المبلغ المقبوض" : "المبلغ المدفوع"}
           </span>
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isReceipt ? "bg-emerald-500/15 text-emerald-700" : "bg-rose-500/15 text-rose-700"}`}>
-            {isReceipt ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold ${isReceipt ? "bg-emerald-500/15 text-emerald-700" : "bg-rose-500/15 text-rose-700"}`}>
+            {isReceipt ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />}
             {isReceipt ? "وارد" : "صادر"}
           </span>
         </div>
         <AnimatePresence mode="wait">
           <motion.div
             key={amount}
-            initial={{ opacity: 0.5, y: 4 }}
+            initial={{ opacity: 0.5, y: 3 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            className={`text-3xl font-bold ${accentText} tracking-tight`}
+            className={`text-[2rem] leading-tight font-bold ${accentText} tracking-tight`}
             style={{ fontVariantNumeric: "tabular-nums" }}
           >
             {symbol}{fmt(amount)}
           </motion.div>
         </AnimatePresence>
         {refNumber && (
-          <div className="mt-2 text-[10px] text-muted-foreground font-mono">{refNumber}</div>
+          <div className="mt-1 text-[10px] text-muted-foreground/70 font-mono">{refNumber}</div>
         )}
       </div>
 
