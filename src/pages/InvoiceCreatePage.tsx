@@ -37,6 +37,8 @@ import SmartFormScope from "@/components/forms/SmartFormScope";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
+import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
+import RtlDateField from "@/components/account-statement/RtlDateField";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -1430,7 +1432,9 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
-              <Input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
+                <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
+              </div>
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
@@ -1443,7 +1447,9 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
-              <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
+                <RtlDateField value={form.dueDate} onChange={(v) => setForm(p => ({ ...p, dueDate: v }))} ariaLabel="تاريخ الاستحقاق" />
+              </div>
             </div>
           </div>
 
@@ -1559,10 +1565,20 @@ const InvoiceCreatePage = () => {
               {!form.contactId && form.contactName.trim() && (
                 <p className="text-[10px] text-primary mt-1 font-medium">✨ سيتم إنشاء جهة اتصال جديدة تلقائياً</p>
               )}
-              {contactDebtWarning && (
-                <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-warning/10 border border-warning/20">
-                  <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
-                  <p className="text-[10px] text-warning font-medium">{contactDebtWarning}</p>
+              {/* Customer insights — always visible right under the picker */}
+              {selectedContact && (
+                <CustomerInsightsBar
+                  contactId={selectedContact.id}
+                  contactName={selectedContact.contact_name}
+                  contactType={form.type as "sales" | "purchase"}
+                  creditLimit={selectedContact.credit_limit}
+                  ledgerBalance={selectedContact.balance ?? selectedContact.current_balance ?? 0}
+                />
+              )}
+              {selectedContact && contactDebtWarning && (selectedContact.credit_limit || 0) > 0 && (selectedContact.balance || 0) > (selectedContact.credit_limit || 0) && (
+                <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                  <p className="text-[10px] text-destructive font-medium">⚠️ تجاوز الحد الائتماني المسموح</p>
                 </div>
               )}
             </div>
@@ -1810,6 +1826,30 @@ const InvoiceCreatePage = () => {
                   {!item.productId && (
                     <Input placeholder="وصف يدوي..." value={item.description} onChange={e => updateItem(item.id, "description", e.target.value)} className="rounded-lg text-[11px] h-7 border-0 bg-muted/30" />
                   )}
+                  {item.productId && (() => {
+                    const prod = products.find(p => p.id === item.productId);
+                    if (!prod) return null;
+                    const stock = Number(prod.quantity || 0);
+                    const unit = prod.unit || "قطعة";
+                    const isService = prod.product_type === "service";
+                    if (isService) {
+                      return <p className="text-[9px] text-muted-foreground px-1">⚙️ خدمة</p>;
+                    }
+                    const tone =
+                      stock <= 0
+                        ? "text-destructive"
+                        : stock < item.quantity
+                        ? "text-warning"
+                        : "text-emerald-600";
+                    return (
+                      <p className={`text-[9px] font-medium px-1 tabular-nums ${tone}`}>
+                        📦 المتاح: {stock.toLocaleString("en")} {unit}
+                        {form.type === "sales" && stock < item.quantity && (
+                          <span className="mr-1 font-bold">— غير كافٍ!</span>
+                        )}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Quantity */}
@@ -1919,41 +1959,56 @@ const InvoiceCreatePage = () => {
             )}
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">
-              {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
-            </span>
-            <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
-          </div>
-          {summary.totalDiscount > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-destructive">(-) إجمالي الخصومات</span>
-              <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
+          {/* Two-column layout: breakdown on the right, big total on the left */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+            {/* Breakdown */}
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">
+                  {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+                </span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
+              </div>
+              {summary.totalDiscount > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-destructive">(-) إجمالي الخصومات</span>
+                  <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
+                </div>
+              )}
+              {taxEnabled && summary.totalTax > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
+                </div>
+              )}
+              {summary.paidAmount > 0 && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">(-) المدفوع مسبقاً</span>
+                    <span className="text-sm font-semibold text-foreground tabular-nums">({fmtCurrency(summary.paidAmount)})</span>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-          {taxEnabled && summary.totalTax > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">
-                {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
-              </span>
-              <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
+
+            {/* Big total panel */}
+            <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 flex flex-col justify-center items-center text-center">
+              <p className="text-[11px] font-semibold text-primary/80 uppercase tracking-wide">الإجمالي النهائي</p>
+              <p className="text-3xl font-black text-primary tabular-nums leading-tight mt-1">
+                {fmtCurrency(summary.total)}
+              </p>
+              {summary.paidAmount > 0 && (
+                <div className="w-full mt-3 pt-3 border-t border-primary/20 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground">المتبقي</span>
+                  <span className={`text-base font-black tabular-nums ${summary.remainingAmount > 0.01 ? "text-destructive" : "text-emerald-600"}`}>
+                    {fmtCurrency(summary.remainingAmount)}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-          <Separator />
-          <div className="flex justify-between items-center">
-            <span className="text-base font-bold text-foreground">الإجمالي النهائي</span>
-            <span className="text-2xl font-black text-primary tabular-nums">{fmtCurrency(summary.total)}</span>
-          </div>
-          <Separator />
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">(-) المدفوع مسبقاً</span>
-            <span className="text-sm font-semibold text-foreground tabular-nums">({fmtCurrency(summary.paidAmount)})</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-foreground">المتبقي (البالنس)</span>
-            <span className={`text-sm font-bold tabular-nums ${summary.remainingAmount > 0 ? "text-destructive" : "text-primary"}`}>
-              {fmtCurrency(summary.remainingAmount)}
-            </span>
           </div>
 
           {/* Amount in words */}
