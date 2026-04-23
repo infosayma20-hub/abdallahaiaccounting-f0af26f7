@@ -877,12 +877,6 @@ const InvoiceCreatePage = () => {
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
-    if (form.paymentMethod === "cheque") {
-      if (!form.chequeNumber.trim()) { toast({ title: "يرجى إدخال رقم الشيك", variant: "destructive" }); return false; }
-      if (!form.chequeBank.trim()) { toast({ title: "يرجى إدخال اسم البنك", variant: "destructive" }); return false; }
-      if (!form.chequeDueDate) { toast({ title: "يرجى تحديد تاريخ استحقاق الشيك", variant: "destructive" }); return false; }
-      if (!form.chequeBankAccountId) { toast({ title: "يرجى اختيار الحساب البنكي", variant: "destructive" }); return false; }
-    }
     return true;
   };
 
