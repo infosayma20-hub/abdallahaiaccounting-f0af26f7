@@ -1141,30 +1141,15 @@ const InvoiceCreatePage = () => {
           } as any);
         }
 
-        if (form.paymentMethod === "cheque") {
-          await supabase.from("cheques").insert({
-            user_id: user.id,
-            cheque_type: form.type === "sales" ? "وارد" : "صادر",
-            party_name: form.contactName,
-            party_type: form.type === "sales" ? "عميل" : "مورد",
-            amount: summary.total,
-            cheque_date: form.chequeDueDate || form.date,
-            cheque_number: form.chequeNumber || null,
-            bank_name: form.chequeBank || null,
-            currency: form.currency,
-            status: "مسجل",
-            deposit_bank_account_id: form.chequeBankAccountId || null,
-            linked_account: bankAccounts.find(b => b.id === form.chequeBankAccountId)?.gl_account_code || null,
-            notes: `مرتبط بفاتورة ${dbInv.invoice_number}`,
-          } as any);
-        }
-
+        // ─── Post the GL entry (credit-only invoices) ───
+        // Sales: Dr 1130 AR / Cr 4100 Revenue
+        // Purchase: Dr 5110 Purchases / Cr 2110 AP
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
           description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
-          debit_account_code: form.type === "sales" ? debitCode : "5110",
-          credit_account_code: form.type === "sales" ? "4100" : debitCode === "1130" ? "2110" : debitCode,
+          debit_account_code: form.type === "sales" ? "1130" : "5110",
+          credit_account_code: form.type === "sales" ? "4100" : "2110",
           amount: amountILS,
           currency: form.currency,
           foreign_amount: isForeign ? summary.total : null,
