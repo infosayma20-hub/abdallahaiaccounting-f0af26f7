@@ -24,6 +24,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
+import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
+import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 
 interface JournalLine {
   id: string;
@@ -206,6 +208,34 @@ const JournalNewPage = () => {
     setLines(prev => prev.filter(l => l.id !== id));
   };
 
+  // Duplicate a row in place (Ctrl+D shortcut)
+  const duplicateLine = (id: string) => {
+    setLines(prev => {
+      const idx = prev.findIndex(l => l.id === id);
+      if (idx < 0) return prev;
+      const src = prev[idx];
+      const copy: JournalLine = {
+        ...src,
+        id: String(Date.now()),
+      };
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+  };
+
+  // Add a row and immediately focus its debit cell — used by Alt+N and Enter overflow
+  const addLineAndFocus = () => {
+    const newId = String(Date.now());
+    setLines(prev => [
+      ...prev,
+      { id: newId, account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+    ]);
+    setTimeout(() => {
+      document.querySelector<HTMLInputElement>(`[data-journal-debit="${newId}"]`)?.focus();
+    }, 50);
+  };
+
   const updateLine = (id: string, field: keyof JournalLine, value: any) => {
     setLines(prev => prev.map(l => {
       if (l.id !== id) return l;
@@ -223,6 +253,15 @@ const JournalNewPage = () => {
   };
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+  // Power-user keyboard shortcuts
+  useJournalKeyboard({
+    enabled: !showQuickAdd && !saved,
+    onSave: () => { if (isBalanced && !saving) handleSave("posted"); },
+    onAddRow: addLineAndFocus,
+    onDuplicateRow: duplicateLine,
+    onDeleteRow: (id) => removeLine(id),
+  });
 
   const handleQuickAddContact = async () => {
     if (!user || !quickAddName.trim()) return;
@@ -610,9 +649,24 @@ const JournalNewPage = () => {
               <BookOpen className="h-4 w-4 text-primary" />
               أسطر القيد
             </h3>
-            <Button variant="outline" size="sm" onClick={addLine} className="gap-1 text-xs h-8">
-              <Plus className="h-3 w-3" /> إضافة سطر
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <span className="hidden md:flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Enter</kbd>
+                <span>التالي</span>
+                <span className="text-muted-foreground/50">•</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Alt+N</kbd>
+                <span>سطر</span>
+                <span className="text-muted-foreground/50">•</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+D</kbd>
+                <span>نسخ</span>
+                <span className="text-muted-foreground/50">•</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+Enter</kbd>
+                <span>حفظ</span>
+              </span>
+              <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
+                <Plus className="h-3 w-3" /> إضافة سطر
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-border overflow-hidden">
@@ -640,7 +694,7 @@ const JournalNewPage = () => {
                   return displayLines.map((line, i) => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
-                    <td className="p-2.5 text-muted-foreground">{i + 1}</td>
+                    <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
                       <Input
                         value={line.account_code}
@@ -825,6 +879,13 @@ const JournalNewPage = () => {
                             updateLine(line.id, "debit", Number(val) || 0);
                           }
                         }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            focusNextJournalCell("debit", line.id, lines.map(l => l.id), addLineAndFocus);
+                          }
+                        }}
+                        data-journal-debit={line.id}
                         className="h-9 font-mono text-xs" placeholder="0"
                       />
                     </td>
@@ -843,6 +904,13 @@ const JournalNewPage = () => {
                             updateLine(line.id, "credit", Number(val) || 0);
                           }
                         }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            focusNextJournalCell("credit", line.id, lines.map(l => l.id), addLineAndFocus);
+                          }
+                        }}
+                        data-journal-credit={line.id}
                         className="h-9 font-mono text-xs" placeholder="0"
                       />
                     </td>
@@ -850,6 +918,13 @@ const JournalNewPage = () => {
                       <Input
                         value={line.line_comment || ""}
                         onChange={e => updateLine(line.id, "line_comment" as any, e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            focusNextJournalCell("memo", line.id, lines.map(l => l.id), addLineAndFocus);
+                          }
+                        }}
+                        data-journal-memo={line.id}
                         className="h-9 text-xs"
                         placeholder="تعليق على هذا السطر..."
                       />
@@ -888,16 +963,8 @@ const JournalNewPage = () => {
             </label>
           </div>
 
-          {/* Balance Status */}
-          <div className={`rounded-xl p-3 text-xs font-medium ${isBalanced ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400" : diff > 0 ? "bg-destructive/5 text-destructive" : "bg-muted text-muted-foreground"}`}>
-            {isBalanced ? (
-              <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> متوازن — المدين = الدائن = ₪{formatAmount(totalDebit)}</span>
-            ) : totalDebit > 0 || totalCredit > 0 ? (
-              <span>✗ غير متوازن — فرق: ₪{formatAmount(diff)}</span>
-            ) : (
-              <span>أدخل المبالغ للتحقق من التوازن</span>
-            )}
-          </div>
+          {/* Balance Status — high-visibility, color-coded */}
+          <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
         </CardContent>
       </Card>
 

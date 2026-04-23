@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { multiWordMatchAny } from "@/lib/utils";
 import useModalDraft from "@/hooks/useModalDraft";
+import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
+import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 
 /* ── Types ── */
 interface AccountRow {
@@ -514,6 +516,39 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     setLines(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const removeLineById = (id: string) => {
+    if (lines.length <= 2) return;
+    setLines(prev => prev.filter(l => l.id !== id));
+  };
+
+  const duplicateLineById = (id: string) => {
+    setLines(prev => {
+      const idx = prev.findIndex(l => l.id === id);
+      if (idx < 0) return prev;
+      const copy: JournalLine = { ...prev[idx], id: uid() };
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+  };
+
+  const addLineAndFocus = () => {
+    const newLine = emptyLine();
+    setLines(prev => [...prev, newLine]);
+    setTimeout(() => {
+      document.querySelector<HTMLInputElement>(`[data-journal-debit="${newLine.id}"]`)?.focus();
+    }, 50);
+  };
+
+  // Power-user keyboard shortcuts (only active when modal is open)
+  useJournalKeyboard({
+    enabled: open && !showSuccess && !showPreview,
+    onSave: () => { if (canSubmit) handleSubmit(); },
+    onAddRow: addLineAndFocus,
+    onDuplicateRow: duplicateLineById,
+    onDeleteRow: removeLineById,
+  });
+
   /* ── Template apply ── */
   const applyTemplate = (tpl: JournalTemplate) => {
     const newLines: JournalLine[] = tpl.lines.map(l => {
@@ -830,7 +865,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
 
             {/* Lines */}
             {lines.map((line, idx) => (
-              <div key={line.id} className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-1.5 border-t border-border/20 items-center hover:bg-muted/10">
+              <div key={line.id} data-journal-line-id={line.id} className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-1.5 border-t border-border/20 items-center hover:bg-muted/10">
                 <span className="text-[10px] text-muted-foreground text-center">{idx + 1}</span>
                 <AccountSearchDropdown
                   accounts={accounts}
@@ -843,6 +878,13 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
                   type="number"
                   value={line.debit || ""}
                   onChange={e => updateLine(idx, "debit", Number(e.target.value) || 0)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      focusNextJournalCell("debit", line.id, lines.map(l => l.id), addLineAndFocus);
+                    }
+                  }}
+                  data-journal-debit={line.id}
                   placeholder="0"
                   className="h-8 w-full bg-primary/5 rounded-lg px-2 text-xs text-center font-bold text-primary outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
                   dir="ltr"
@@ -851,6 +893,13 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
                   type="number"
                   value={line.credit || ""}
                   onChange={e => updateLine(idx, "credit", Number(e.target.value) || 0)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      focusNextJournalCell("credit", line.id, lines.map(l => l.id), addLineAndFocus);
+                    }
+                  }}
+                  data-journal-credit={line.id}
                   placeholder="0"
                   className="h-8 w-full bg-destructive/5 rounded-lg px-2 text-xs text-center font-bold text-destructive outline-none focus:ring-1 focus:ring-destructive/30 tabular-nums"
                   dir="ltr"
@@ -866,27 +915,18 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
             ))}
 
             {/* Add line */}
-            <button onClick={addLine} className="w-full px-4 py-2 text-xs text-primary font-medium hover:bg-primary/5 transition-colors flex items-center gap-1.5 border-t border-border/20">
+            <button onClick={addLineAndFocus} className="w-full px-4 py-2 text-xs text-primary font-medium hover:bg-primary/5 transition-colors flex items-center gap-1.5 border-t border-border/20">
               <Plus className="h-3.5 w-3.5" /> إضافة سطر
+              <span className="ms-auto hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                <kbd className="px-1 py-0.5 rounded bg-muted border border-border/40 font-mono">Enter</kbd>
+                <kbd className="px-1 py-0.5 rounded bg-muted border border-border/40 font-mono">Alt+N</kbd>
+                <kbd className="px-1 py-0.5 rounded bg-muted border border-border/40 font-mono">Ctrl+Enter</kbd>
+              </span>
             </button>
-
-            {/* Totals row */}
-            <div className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-2 bg-muted/40 border-t-2 border-primary/20 items-center">
-              <span></span>
-              <div className="flex items-center gap-2 text-xs font-bold">
-                {isBalanced ? (
-                  <span className="text-primary flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> متوازن</span>
-                ) : totalDebit > 0 || totalCredit > 0 ? (
-                  <span className="text-destructive flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> الفرق: ₪{difference.toLocaleString()}</span>
-                ) : (
-                  <span className="text-muted-foreground">الإجمالي</span>
-                )}
-              </div>
-              <span className="text-center text-xs font-bold text-primary tabular-nums">₪{totalDebit.toLocaleString()}</span>
-              <span className="text-center text-xs font-bold text-destructive tabular-nums">₪{totalCredit.toLocaleString()}</span>
-              <span></span>
-            </div>
           </div>
+
+          {/* High-visibility balance bar */}
+          <JournalBalanceBar totalDebit={totalDebit} totalCredit={totalCredit} variant="inline" />
 
           {/* Notes */}
           <div className="space-y-1">
