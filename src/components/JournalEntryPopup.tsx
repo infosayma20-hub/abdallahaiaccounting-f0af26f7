@@ -830,6 +830,13 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
                       <span className="text-foreground font-medium">{tpl.name}</span>
                     </button>
                   ))}
+                  <button
+                    onClick={() => { setShowTemplates(false); setShowTemplatesLibrary(true); }}
+                    className="w-full text-right px-3 py-2.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 border-t border-border/40 text-primary font-bold rounded-b-xl"
+                  >
+                    <Bookmark className="h-3.5 w-3.5" />
+                    📂 المكتبة الكاملة (محفوظة)
+                  </button>
                 </div>
               )}
             </div>
