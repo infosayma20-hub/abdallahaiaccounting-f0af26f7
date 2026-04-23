@@ -44,5 +44,6 @@ Before this hook, `JournalEntryPopup` inserted directly into `transactions`, ski
 ## Files
 - `src/hooks/useSaveJournalVoucher.ts` — the hook (source of truth)
 - `src/pages/JournalNewPage.tsx` — uses `saveJournalVoucher(...)`
+- `src/pages/FinanceJournalPage.tsx` — uses `save` / `update` / `remove` (cancel)
 - `src/components/JournalEntryPopup.tsx` — uses `saveJournalVoucher(...)`
 - `src/components/journal/JournalTemplatesPicker.tsx` — only place that lists templates (no static `TEMPLATES` arrays anywhere else)
