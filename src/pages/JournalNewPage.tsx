@@ -709,6 +709,9 @@ const JournalNewPage = () => {
               <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
                 <Plus className="h-3 w-3" /> إضافة سطر
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="gap-1 text-xs h-8">
+                <Bookmark className="h-3 w-3" /> القوالب
+              </Button>
             </div>
           </div>
 
