@@ -1429,7 +1429,7 @@ const InvoiceCreatePage = () => {
         total={summary.total}
         paidAmount={summary.paidAmount}
         remainingAmount={summary.remainingAmount}
-        itemsCount={form.items.filter(i => (i.name || i.description || "").toString().trim() && Number(i.quantity) > 0).length}
+        itemsCount={form.items.filter(i => (i.description || "").trim() && Number(i.quantity) > 0).length}
         paymentMethod={form.paymentMethod}
         partyName={selectedContact?.contact_name ?? null}
         partyType="contact"
