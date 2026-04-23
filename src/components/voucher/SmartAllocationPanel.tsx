@@ -91,10 +91,40 @@ const SmartAllocationPanel = ({
         </div>
 
         {/* Mode selector */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Hierarchy: Auto (default — strongest) > Manual (secondary) > Advance (subtle / exceptional) */}
+        <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr] gap-2">
           {modeOptions.map(opt => {
             const Icon = opt.icon;
             const active = mode === opt.value;
+            const isPrimary = opt.value === "auto";
+            const isException = opt.value === "advance" || opt.value === "refund";
+
+            // Visual weight per role
+            const baseClass = isPrimary
+              ? // Default / recommended
+                active
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary/60"
+              : isException
+                ? // Subtle, dashed — exceptional choice
+                  active
+                    ? "border-amber-500/60 bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20"
+                    : "border-dashed border-border/60 bg-transparent text-muted-foreground hover:bg-secondary/30 hover:text-foreground hover:border-border"
+                : // Manual — neutral secondary
+                  active
+                    ? "border-foreground/40 bg-secondary text-foreground ring-1 ring-foreground/10"
+                    : "border-border bg-card hover:bg-secondary/40";
+
+            const iconColor = isPrimary && active
+              ? "text-primary-foreground"
+              : isException && active
+                ? "text-amber-700"
+                : active
+                  ? "text-foreground"
+                  : isPrimary
+                    ? "text-primary"
+                    : "text-muted-foreground";
+
             return (
               <button
                 key={opt.value}
@@ -104,16 +134,25 @@ const SmartAllocationPanel = ({
                   if (opt.value === "auto") onAutoAllocate();
                   if (opt.value === "advance" || opt.value === "refund") onClear();
                 }}
-                className={`text-right rounded-xl border p-2.5 transition-all ${
-                  active ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:border-primary/40 hover:bg-secondary/40"
-                }`}
+                className={`relative text-right rounded-xl border p-2.5 transition-all ${baseClass}`}
                 title={opt.hint}
               >
+                {isPrimary && !active && (
+                  <span className="absolute -top-1.5 right-2 text-[8px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                    موصى به
+                  </span>
+                )}
                 <div className="flex items-center gap-2">
-                  <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className={`text-xs font-bold ${active ? "text-primary" : "text-foreground"}`}>{opt.label}</span>
+                  <Icon className={`h-4 w-4 ${iconColor}`} />
+                  <span className={`text-xs font-bold ${isPrimary && active ? "text-primary-foreground" : ""}`}>
+                    {opt.label}
+                  </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{opt.hint}</p>
+                <p className={`text-[10px] mt-0.5 leading-tight ${
+                  isPrimary && active ? "text-primary-foreground/85" : "text-muted-foreground"
+                }`}>
+                  {opt.hint}
+                </p>
               </button>
             );
           })}

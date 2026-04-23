@@ -25,6 +25,7 @@ import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
 import CompactChequeRow from "@/components/voucher/CompactChequeRow";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
+import MobileSummaryBar from "@/components/voucher/MobileSummaryBar";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import {
   AllocationMode,
@@ -2117,6 +2118,35 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       </div>
 
+      {/* Mobile Summary Bar (collapsible — lg: hidden) */}
+      <MobileSummaryBar
+        variant={voucherType}
+        currencySymbol={currencySymbol}
+        amount={amountNum}
+        partyName={
+          partyType === "contact" ? selectedContact?.contact_name :
+          partyType === "employee" ? selectedEmployee?.full_name :
+          partyType === "account" ? selectedGlAccount?.account_name :
+          null
+        }
+        partyType={partyType}
+        balanceBefore={
+          partyType === "contact"
+            ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+            : null
+        }
+        openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
+        openInvoicesTotal={partyType === "contact" ? Number(selectedContact?.open_invoices_balance ?? 0) : 0}
+        unappliedCredit={partyType === "contact" ? Number(selectedContact?.unapplied_credit ?? 0) : 0}
+        oldestInvoiceDays={oldestInvoiceDays}
+        paymentMethod={paymentMethod}
+        chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
+        chequesCount={cheques.length}
+        allocatedTotal={totalAllocated}
+        date={paymentDate}
+        refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
+      />
+
       {/* Navigation Toolbar + Cancel Button */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex-1">
@@ -2348,25 +2378,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           )}
 
-          {/* Contact Info Badge */}
-          {selectedContact && partyType === "contact" && (
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5">
-                💰 الرصيد الدفتري: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة · ₪{formatAmount(selectedContact.open_invoices_balance ?? 0)}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                🧾 دفعات غير مخصصة: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.unapplied_credit ?? 0)}</span>
-              </span>
-              {oldestInvoiceDays > 0 && (
-                <span className="flex items-center gap-1.5">
-                  ⏰ أقدم فاتورة: <span className="font-bold text-destructive">منذ {oldestInvoiceDays} يوم</span>
-                </span>
-              )}
-            </div>
-          )}
+          {/* Contact info now lives inside SmartSummaryPanel (left/mobile bar) — no duplicate strip here */}
         </CardContent>
       </Card>
 
