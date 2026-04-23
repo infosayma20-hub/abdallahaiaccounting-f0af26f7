@@ -1565,10 +1565,20 @@ const InvoiceCreatePage = () => {
               {!form.contactId && form.contactName.trim() && (
                 <p className="text-[10px] text-primary mt-1 font-medium">✨ سيتم إنشاء جهة اتصال جديدة تلقائياً</p>
               )}
-              {contactDebtWarning && (
-                <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-warning/10 border border-warning/20">
-                  <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
-                  <p className="text-[10px] text-warning font-medium">{contactDebtWarning}</p>
+              {/* Customer insights — always visible right under the picker */}
+              {selectedContact && (
+                <CustomerInsightsBar
+                  contactId={selectedContact.id}
+                  contactName={selectedContact.contact_name}
+                  contactType={form.type as "sales" | "purchase"}
+                  creditLimit={selectedContact.credit_limit}
+                  ledgerBalance={selectedContact.balance ?? selectedContact.current_balance ?? 0}
+                />
+              )}
+              {selectedContact && contactDebtWarning && (selectedContact.credit_limit || 0) > 0 && (selectedContact.balance || 0) > (selectedContact.credit_limit || 0) && (
+                <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                  <p className="text-[10px] text-destructive font-medium">⚠️ تجاوز الحد الائتماني المسموح</p>
                 </div>
               )}
             </div>
