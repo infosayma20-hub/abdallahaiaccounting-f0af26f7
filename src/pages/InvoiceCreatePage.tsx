@@ -277,6 +277,7 @@ const InvoiceCreatePage = () => {
 
   // Terms
   const [termsOpen, setTermsOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [invoiceTerms, setInvoiceTerms] = useState("");
   const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nشكراً لتعاملكم معنا.";
 
@@ -878,7 +879,7 @@ const InvoiceCreatePage = () => {
 
   const validate = (): boolean => {
     if (!form.contactName.trim()) { toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" }); return false; }
-    if (form.items.some(i => !i.description.trim())) { toast({ title: "يرجى تعبئة وصف جميع البنود", variant: "destructive" }); return false; }
+    if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: "يرجى اختيار منتج لكل بند", variant: "destructive" }); return false; }
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
@@ -1391,7 +1392,7 @@ const InvoiceCreatePage = () => {
 
   return (
     <SmartFormScope
-      className="px-3 lg:px-6 pt-4 pb-32 max-w-[1600px] mx-auto"
+      className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
@@ -1720,6 +1721,14 @@ const InvoiceCreatePage = () => {
                 <span className="text-muted-foreground/60">·</span>
                 <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
               </span>
+              {taxEnabled && (
+                <div className="flex items-center gap-1.5 mr-1 px-2 py-1 rounded-md bg-muted/40">
+                  <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
+                  <Label htmlFor="tax-inclusive" className="text-[10px] text-muted-foreground cursor-pointer">
+                    {form.taxInclusive ? "شامل الضريبة" : "غير شامل"}
+                  </Label>
+                </div>
+              )}
               <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
                 <Plus className="h-3 w-3" /> تعريف منتج
               </Button>
@@ -1769,9 +1778,6 @@ const InvoiceCreatePage = () => {
                             <CommandItem onSelect={() => { setShowQuickAdd(true); setOpenProductPopover(null); }} className="text-primary font-semibold text-[11px] gap-1.5">
                               <Plus className="h-3 w-3" /> تعريف منتج جديد
                             </CommandItem>
-                            <CommandItem onSelect={() => { updateItem(item.id, "productId", ""); setOpenProductPopover(null); }} className="text-muted-foreground text-[11px] gap-1.5">
-                              ✏️ إدخال يدوي
-                            </CommandItem>
                           </CommandGroup>
                           <CommandGroup heading="المنتجات">
                             {products.map(p => (
@@ -1792,9 +1798,6 @@ const InvoiceCreatePage = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {!item.productId && (
-                    <Input placeholder="وصف يدوي..." value={item.description} onChange={e => updateItem(item.id, "description", e.target.value)} className="rounded-lg text-[11px] h-7 border-0 bg-muted/30" />
-                  )}
                   {item.productId && (() => {
                     const prod = products.find(p => p.id === item.productId);
                     if (!prod) return null;
@@ -1913,116 +1916,52 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
-      {/* ─── SECTION 3: Summary ─── */}
-      <Card className="border-0 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-foreground">الإجماليات</span>
-            {taxEnabled && (
-              <div className="flex items-center gap-2">
-                <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
-                <Label htmlFor="tax-inclusive" className="text-[11px] text-muted-foreground cursor-pointer">
-                  {form.taxInclusive ? "شامل الضريبة" : "غير شامل الضريبة"}
-                </Label>
+      {/* ─── SECTION 4: Notes (Collapsible) ─── */}
+      <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-primary" /> ملاحظات
+                  {(form.notes?.trim() || form.notesInternal?.trim()) && (
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5">●</Badge>
+                  )}
+                </CardTitle>
+                {notesOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </div>
-            )}
-          </div>
-
-          {/* Two-column layout: breakdown on the right, big total on the left */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-            {/* Breakdown */}
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">
-                  {taxEnabled && form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
-                </span>
-                <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-5 pb-5 pt-3 space-y-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
+                  ملاحظة على الفاتورة
+                  <span className="text-[9px] text-muted-foreground/60">(تظهر في PDF)</span>
+                </label>
+                <Textarea
+                  placeholder={companySettings.invoice_default_notes || "شكراً لتعاملكم معنا..."}
+                  value={form.notes}
+                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                  className="rounded-xl text-sm min-h-[60px] resize-none"
+                />
               </div>
-              {summary.totalDiscount > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-destructive">(-) إجمالي الخصومات</span>
-                  <span className="text-sm font-semibold text-destructive tabular-nums">({fmtCurrency(summary.totalDiscount)})</span>
-                </div>
-              )}
-              {taxEnabled && summary.totalTax > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">
-                    {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
-                  </span>
-                  <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
-                </div>
-              )}
-              {summary.paidAmount > 0 && (
-                <>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">(-) المدفوع مسبقاً</span>
-                    <span className="text-sm font-semibold text-foreground tabular-nums">({fmtCurrency(summary.paidAmount)})</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Big total panel */}
-            <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 flex flex-col justify-center items-center text-center">
-              <p className="text-[11px] font-semibold text-primary/80 uppercase tracking-wide">الإجمالي النهائي</p>
-              <p className="text-3xl font-black text-primary tabular-nums leading-tight mt-1">
-                {fmtCurrency(summary.total)}
-              </p>
-              {summary.paidAmount > 0 && (
-                <div className="w-full mt-3 pt-3 border-t border-primary/20 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-foreground">المتبقي</span>
-                  <span className={`text-base font-black tabular-nums ${summary.remainingAmount > 0.01 ? "text-destructive" : "text-emerald-600"}`}>
-                    {fmtCurrency(summary.remainingAmount)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Amount in words */}
-          <div className="bg-muted/30 rounded-xl p-3 mt-2">
-            <p className="text-[11px] text-muted-foreground">المبلغ كتابةً:</p>
-            <p className="text-xs font-semibold text-foreground">{amountInWords}</p>
-          </div>
-
-          <div className="flex items-center gap-2 pt-1 flex-wrap">
-            <Badge variant="outline" className="text-[10px] gap-1">{paymentLabels[form.paymentMethod]}</Badge>
-            {form.dueDate && <Badge variant="outline" className="text-[10px] gap-1 text-warning border-warning/30"><Clock className="h-3 w-3" /> استحقاق: {form.dueDate}</Badge>}
-            {form.currency !== "شيكل" && <Badge variant="outline" className="text-[10px]">سعر الصرف: {form.exchangeRate}</Badge>}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ─── SECTION 4: Notes ─── */}
-      <Card className="border-0 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-3">
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" /> ملاحظة على الفاتورة
-              <span className="text-[9px] text-muted-foreground/60">(تظهر في PDF)</span>
-            </label>
-            <Textarea
-              placeholder={companySettings.invoice_default_notes || "شكراً لتعاملكم معنا..."}
-              value={form.notes}
-              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="rounded-xl text-sm min-h-[60px] resize-none"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
-              ملاحظة داخلية
-              <span className="text-[9px] text-muted-foreground/60">(لا تظهر في PDF)</span>
-            </label>
-            <Textarea
-              placeholder="ملاحظات داخلية للفريق..."
-              value={form.notesInternal}
-              onChange={e => setForm(p => ({ ...p, notesInternal: e.target.value }))}
-              className="rounded-xl text-sm min-h-[50px] resize-none bg-muted/30"
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
+                  ملاحظة داخلية
+                  <span className="text-[9px] text-muted-foreground/60">(لا تظهر في PDF)</span>
+                </label>
+                <Textarea
+                  placeholder="ملاحظات داخلية للفريق..."
+                  value={form.notesInternal}
+                  onChange={e => setForm(p => ({ ...p, notesInternal: e.target.value }))}
+                  className="rounded-xl text-sm min-h-[50px] resize-none bg-muted/30"
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* ─── SECTION 5: Terms & Conditions (Collapsible) ─── */}
       <Collapsible open={termsOpen} onOpenChange={setTermsOpen}>
@@ -2176,7 +2115,7 @@ const InvoiceCreatePage = () => {
 
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="max-w-[1600px] mx-auto flex gap-2 items-center">
+        <div className="w-full mx-auto flex gap-2 items-center">
           {/* Live mini-summary: gives accountant a constant sense of control */}
           <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
             <span className="text-muted-foreground">الإجمالي</span>
