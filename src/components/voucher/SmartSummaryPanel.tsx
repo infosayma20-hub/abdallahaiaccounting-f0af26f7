@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink } from "lucide-react";
 
 /**
  * SmartSummaryPanel — موحّد بالشكل، مختلف بالمنطق
@@ -22,6 +23,7 @@ interface ReceiptPaymentProps extends BaseProps {
   variant: "receipt" | "payment";
   amount: number;
   partyName?: string | null;
+  partyId?: string | null;
   partyType?: "contact" | "employee" | "account";
   /** الرصيد الدفتري قبل الحركة (مدين موجب / دائن سالب للزبائن) */
   balanceBefore?: number | null;
@@ -35,6 +37,8 @@ interface ReceiptPaymentProps extends BaseProps {
   allocatedTotal?: number;
   date?: string;
   refNumber?: string;
+  /** رابط لفتح كشف الحساب (deep link) */
+  onOpenStatement?: () => void;
 }
 
 type Props = ReceiptPaymentProps;
