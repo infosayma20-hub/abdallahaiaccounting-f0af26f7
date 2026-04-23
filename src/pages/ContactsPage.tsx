@@ -170,6 +170,17 @@ const ContactsPage = () => {
     else if (typeParam === "supplier") setFilterType("مورد");
   }, [searchParams]);
 
+  // Auto-open edit dialog when ?edit=<contact_id> is present
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (!editId || contacts.length === 0) return;
+    const target = contacts.find((c) => c.id === editId);
+    if (target) {
+      setEditData({ ...target });
+      setEditContact(target);
+    }
+  }, [searchParams, contacts]);
+
   // Fetch overdue invoices when dialog opens
   useEffect(() => {
     if (!overdueDialogOpen || !overdueContact || !user) return;
