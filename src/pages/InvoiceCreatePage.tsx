@@ -387,15 +387,10 @@ const InvoiceCreatePage = () => {
         billingAddress: data.billingAddress || "",
         taxInclusive: data.taxInclusive || false,
         items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
-        // Reset excluded fields
+        // Reset excluded fields — invoices are credit-only, no payment metadata
+        paymentMethod: "credit",
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
-        chequeNumber: "",
-        chequeBank: "",
-        chequeBankAccountId: "",
-        chequeDueDate: "",
-        transferRef: "",
-        transferBank: "",
       }));
       if (data.contactSearch) setContactSearch(data.contactSearch);
     } catch (e) { /* ignore parse errors */ }
@@ -1332,8 +1327,6 @@ const InvoiceCreatePage = () => {
     );
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   };
-
-  const paymentLabels: Record<string, string> = { cash: "نقداً", transfer: "تحويل", cheque: "شيك", credit: "آجل" };
 
   // ─── Phase 2: Power-user keyboard shortcuts ───
   // Ctrl/Cmd+Enter → save invoice, Alt+N → add a new row.
