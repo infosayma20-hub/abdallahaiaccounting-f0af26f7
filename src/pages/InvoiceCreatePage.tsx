@@ -1919,7 +1919,7 @@ const InvoiceCreatePage = () => {
                 </div>
 
                 {/* Discount */}
-                <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                <Input data-invoice-discount={item.id} type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} onKeyDown={handleCellEnter("discount", item.id)} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
 
                 {/* Discount type toggle */}
                 <button
