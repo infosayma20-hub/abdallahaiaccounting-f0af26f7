@@ -436,6 +436,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
   const [activeLineIdx, setActiveLineIdx] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [savedEntryRef, setSavedEntryRef] = useState("");
+  const [showTemplatesLibrary, setShowTemplatesLibrary] = useState(false);
 
   // Load accounts from Supabase
   useEffect(() => {
