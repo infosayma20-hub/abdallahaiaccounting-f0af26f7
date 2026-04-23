@@ -254,6 +254,15 @@ const JournalNewPage = () => {
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
+  // Power-user keyboard shortcuts
+  useJournalKeyboard({
+    enabled: !showQuickAdd && !saved,
+    onSave: () => { if (isBalanced && !saving) handleSave("posted"); },
+    onAddRow: addLineAndFocus,
+    onDuplicateRow: duplicateLine,
+    onDeleteRow: (id) => removeLine(id),
+  });
+
   const handleQuickAddContact = async () => {
     if (!user || !quickAddName.trim()) return;
     setQuickAddSaving(true);
