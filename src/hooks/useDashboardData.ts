@@ -516,10 +516,26 @@ export function useDashboardData() {
   const cashFlowData = useMemo(() => {
     const periodTx = filterByRange(plTx, range);
     const isCashAccount = (code: string) => code?.startsWith("1110") || code?.startsWith("1120");
-    const inflows = periodTx
+
+    // ✅ Reversal-aware cash flow:
+    // عند إلغاء سند قبض/فاتورة نقدية يُنشئ النظام قيداً عكسياً (transaction_type = "reversal"
+    // أو وصف يبدأ بـ "عكس قيد"). القيد الأصلي يبقى لكن يُربط بـ reversed_by_id.
+    // يجب استثناء الطرفين من التدفق النقدي حتى لا يظهر الإلغاء كحركة "خارج" أو "داخل" وهمية.
+    const reversedIds = new Set(
+      plTx
+        .filter((t) => t.reversed_by_id)
+        .map((t) => t.id as string)
+    );
+    const isReversalEntry = (t: any) =>
+      t.transaction_type === "reversal" || (t.description || "").startsWith("عكس قيد");
+    const isCanceledOriginal = (t: any) => reversedIds.has(t.id);
+
+    const cashTx = periodTx.filter((t) => !isReversalEntry(t) && !isCanceledOriginal(t));
+
+    const inflows = cashTx
       .filter((t) => isCashAccount(t.debit_account_code))
       .reduce((s, t) => s + (t.amount || 0), 0);
-    const outflows = periodTx
+    const outflows = cashTx
       .filter((t) => isCashAccount(t.credit_account_code))
       .reduce((s, t) => s + (t.amount || 0), 0);
 
