@@ -210,6 +210,11 @@ function ReceiptPaymentSummary({
             المبلغ يتجاوز رصيد العميل المدين بـ {symbol}{fmt(amount - before)} — سيُسجَّل كرصيد دائن
           </Warning>
         )}
+        {chequeMismatch && (
+          <Warning tone="warn" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+            إجمالي الشيكات ({symbol}{fmt(chequesTotal)}) لا يساوي المبلغ — الفرق {symbol}{fmt(Math.abs(chequesTotal - amount))}
+          </Warning>
+        )}
         {!noAmount && !exceedsOpenInvoices && !willOverpay && !chequeMismatch && (
           <Warning tone="ok" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
             القيد جاهز للحفظ والترحيل
