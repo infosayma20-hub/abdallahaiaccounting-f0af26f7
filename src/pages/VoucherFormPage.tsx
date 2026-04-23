@@ -2349,25 +2349,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             </div>
           )}
 
-          {/* Contact Info Badge */}
-          {selectedContact && partyType === "contact" && (
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5">
-                💰 الرصيد الدفتري: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.ledger_balance ?? selectedContact.current_balance ?? 0)}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة · ₪{formatAmount(selectedContact.open_invoices_balance ?? 0)}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                🧾 دفعات غير مخصصة: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.unapplied_credit ?? 0)}</span>
-              </span>
-              {oldestInvoiceDays > 0 && (
-                <span className="flex items-center gap-1.5">
-                  ⏰ أقدم فاتورة: <span className="font-bold text-destructive">منذ {oldestInvoiceDays} يوم</span>
-                </span>
-              )}
-            </div>
-          )}
+          {/* Contact info now lives inside SmartSummaryPanel (left/mobile bar) — no duplicate strip here */}
         </CardContent>
       </Card>
 
