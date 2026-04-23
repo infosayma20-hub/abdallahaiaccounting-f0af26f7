@@ -1139,6 +1139,28 @@ const JournalNewPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Templates Picker */}
+      <JournalTemplatesPicker
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        onApply={applyTemplate}
+        currentSnapshot={{
+          name: formDescription || "قالب جديد",
+          description: formDescription,
+          default_subtype: formSubtype,
+          default_contact_id: formContactId || null,
+          lines: lines.map(l => ({
+            account_code: l.account_code,
+            account_name: l.account_name,
+            debit: Number(l.debit) || 0,
+            credit: Number(l.credit) || 0,
+            memo: l.line_comment || "",
+            contact_id: l.contact_id || null,
+            contact_name: l.contact_name || null,
+          })),
+        }}
+      />
     </div>
     </SmartFormScope>
   );
