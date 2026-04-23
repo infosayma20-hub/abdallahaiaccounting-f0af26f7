@@ -54,6 +54,14 @@ interface Props {
   showReference?: boolean;
   showDueDate?: boolean;
   showType?: boolean;
+  showAging?: boolean;
+  agingData?: {
+    current: number;
+    d1_30: number;
+    d31_60: number;
+    d60plus: number;
+    total: number;
+  } | null;
 }
 
 const fmt = (n: number) =>
@@ -119,6 +127,7 @@ const StatementPrintViewClean = ({
   totalDebit, totalCredit, dateFrom, dateTo, statementNumber, contactCode,
   showLogo = true, showCompanyContact = true, showSignatures = true,
   showReference = true, showDueDate = true, showType = true,
+  showAging = true, agingData = null,
 }: Props) => {
   // Build dynamic column set based on view options
   const columns = [
@@ -287,6 +296,27 @@ const StatementPrintViewClean = ({
       <div style={S.statsLine}>
         إجمالي الحركات: {rows.length} قيود | مدين: {fmt(totalDebit)} | دائن: {fmt(totalCredit)} | الرصيد: {fmt(closingBalance)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدد"})
       </div>
+
+      {/* ═══ AGING ANALYSIS ═══ */}
+      {showAging && agingData && (
+        <div style={{ marginTop: 16, border: "1px solid #E5E7EB", borderRadius: 6, padding: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#111827", marginBottom: 8 }}>تحليل التقادم (Aging)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, textAlign: "center" }}>
+            {[
+              { label: "جاري", value: agingData.current, color: "#059669" },
+              { label: "1-30 يوم", value: agingData.d1_30, color: "#D97706" },
+              { label: "31-60 يوم", value: agingData.d31_60, color: "#EA580C" },
+              { label: "+60 يوم", value: agingData.d60plus, color: "#DC2626" },
+              { label: "الإجمالي", value: agingData.total, color: "#111827" },
+            ].map(a => (
+              <div key={a.label}>
+                <div style={{ fontSize: 9, color: "#6B7280", marginBottom: 2 }}>{a.label}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: a.color }}>{fmt(a.value)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ═══ SIGNATURES ═══ */}
       {showSignatures && (

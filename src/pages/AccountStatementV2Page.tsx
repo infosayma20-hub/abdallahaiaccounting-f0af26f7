@@ -564,6 +564,8 @@ const AccountStatementV2Page = () => {
             debit: r.debit,
             credit: r.credit,
             balance: r.balance,
+            dueDate: r.dueDate,
+            transaction_type: r.transaction_type,
           })),
           agingData,
         },
@@ -574,6 +576,15 @@ const AccountStatementV2Page = () => {
           address: companyInfo.address,
           tax_number: companyInfo.tax_number,
           logo_url: companyInfo.logo_url,
+        },
+        {
+          showReference: viewOptions.showReference,
+          showDueDate: viewOptions.showDueDate,
+          showType: viewOptions.showType,
+          showLogo: viewOptions.showLogo,
+          showCompanyContact: viewOptions.showCompanyContact,
+          showSignatures: viewOptions.showSignatures,
+          showAging: viewOptions.showAging,
         }
       );
 

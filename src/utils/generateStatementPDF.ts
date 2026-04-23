@@ -12,6 +12,8 @@ export interface StatementPDFRow {
   credit: number;
   balance: number;
   isLineItem?: boolean;
+  dueDate?: string;
+  transaction_type?: string;
 }
 
 export interface StatementPDFData {
@@ -45,6 +47,30 @@ export interface StatementCompanyData {
   tax_number?: string;
   logo_url?: string;
 }
+
+/**
+ * View options that mirror the on-screen "خيارات العرض" panel.
+ * Lets the PDF be a faithful copy of what the user sees.
+ */
+export interface StatementPDFViewOptions {
+  showReference?: boolean;
+  showDueDate?: boolean;
+  showType?: boolean;
+  showLogo?: boolean;
+  showCompanyContact?: boolean;
+  showSignatures?: boolean;
+  showAging?: boolean;
+}
+
+const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
+  showReference: true,
+  showDueDate: true,
+  showType: true,
+  showLogo: true,
+  showCompanyContact: true,
+  showSignatures: true,
+  showAging: true,
+};
 
 // ─── Colors ───
 const navy: [number, number, number] = [13, 27, 46];       // #0D1B2E
@@ -80,6 +106,20 @@ const fmtDate = (d: string) => {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
 };
 
+const getPdfTypeLabel = (t: string): string => {
+  if (!t) return 'حركة';
+  if (t.includes('reversal') || t.includes('reverse')) return 'قيد عكسي';
+  if (t.includes('pos')) return 'مبيعات POS';
+  if (t.includes('sale') || t.includes('فاتورة')) return 'فاتورة مبيعات';
+  if (t.includes('receipt') || t.includes('قبض')) return 'سند قبض';
+  if (t.includes('payment') || t.includes('صرف')) return 'سند صرف';
+  if (t.includes('purchase') || t.includes('مشتريات')) return 'فاتورة مشتريات';
+  if (t.includes('journal') || t.includes('قيد') || t.includes('salary')) return 'قيد محاسبي';
+  if (t.includes('cheque')) return 'شيك';
+  if (t.includes('opening_balance')) return 'رصيد افتتاحي';
+  return 'حركة';
+};
+
 // ─── Register Arabic font ───
 const registerArabicFont = (doc: jsPDF) => {
   doc.addFileToVFS('Amiri-Regular.ttf', AmiriRegular);
@@ -111,8 +151,10 @@ const drawLabelValue = (
 // ─── Main Generator ───
 export const generateStatementPDF = (
   data: StatementPDFData,
-  company: StatementCompanyData
+  company: StatementCompanyData,
+  viewOpts: StatementPDFViewOptions = {}
 ): jsPDF => {
+  const opts = { ...DEFAULT_PDF_VIEW_OPTS, ...viewOpts };
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.width;
   const H = doc.internal.pageSize.height;
@@ -137,9 +179,11 @@ export const generateStatementPDF = (
   doc.setTextColor(200, 210, 220);
   doc.setFontSize(7);
   doc.setFont('Amiri', 'normal');
-  const info = [company.phone, company.email, company.address].filter(Boolean).join('  |  ');
-  if (info) doc.text(info, W - margin, 23, { align: 'right' });
-  if (company.tax_number) doc.text(`Tax No: ${company.tax_number}`, W - margin, 28, { align: 'right' });
+  if (opts.showCompanyContact) {
+    const info = [company.phone, company.email, company.address].filter(Boolean).join('  |  ');
+    if (info) doc.text(info, W - margin, 23, { align: 'right' });
+    if (company.tax_number) doc.text(`Tax No: ${company.tax_number}`, W - margin, 28, { align: 'right' });
+  }
 
   // Title (left side)
   doc.setTextColor(255, 255, 255);
@@ -261,35 +305,67 @@ export const generateStatementPDF = (
   currentY += cardH + 5;
 
   // ══════ TRANSACTIONS TABLE ══════
-  const tableHead = [[
-    ar('الرصيد'), ar('دائن (له)'), ar('مدين (عليه)'),
-    ar('البيان'), ar('المرجع'), ar('التاريخ')
-  ]];
+  // Build columns dynamically based on view options.
+  // Order in array = visual order in the RTL table (rightmost first when reversed).
+  // We declare in left→right order to match autoTable expectations.
+  const cols: { key: string; head: string; width?: number; halign?: 'left'|'right'|'center'; color?: [number,number,number]; bold?: boolean }[] = [];
+  cols.push({ key: 'balance', head: ar('الرصيد'), width: 28, halign: 'center', bold: true });
+  cols.push({ key: 'credit',  head: ar('دائن (له)'),  width: 26, halign: 'center', color: greenText });
+  cols.push({ key: 'debit',   head: ar('مدين (عليه)'), width: 26, halign: 'center', color: redText });
+  if (opts.showType)      cols.push({ key: 'type', head: ar('النوع'), width: 22, halign: 'center' });
+  if (opts.showDueDate)   cols.push({ key: 'due',  head: ar('الاستحقاق'), width: 20, halign: 'center' });
+  cols.push({ key: 'description', head: ar('البيان'), halign: 'right' });
+  if (opts.showReference) cols.push({ key: 'reference', head: ar('المرجع'), width: 24, halign: 'center' });
+  cols.push({ key: 'date', head: ar('التاريخ'), width: 22, halign: 'center' });
 
-  const openRow = [
-    `${sym}${fmt(data.openingBalance)}`,
-    '—', '—',
-    ar('رصيد أول المدة'),
-    '—',
-    fmtDate(data.dateFrom),
-  ];
+  const cellFor = (key: string, ctx: 'open'|'body'|'close', r?: StatementPDFRow): string => {
+    if (ctx === 'open') {
+      switch (key) {
+        case 'balance':     return `${sym}${fmt(data.openingBalance)}`;
+        case 'credit':      return data.openingBalance < 0 ? `${sym}${fmt(data.openingBalance)}` : '—';
+        case 'debit':       return data.openingBalance > 0 ? `${sym}${fmt(data.openingBalance)}` : '—';
+        case 'description': return ar('رصيد أول المدة');
+        case 'date':        return fmtDate(data.dateFrom);
+        default:            return '—';
+      }
+    }
+    if (ctx === 'close') {
+      switch (key) {
+        case 'balance':     return `${sym}${fmt(data.closingBalance)}`;
+        case 'credit':      return `${sym}${fmt(data.totalCredit)}`;
+        case 'debit':       return `${sym}${fmt(data.totalDebit)}`;
+        case 'description': return ar('رصيد ختامي');
+        default:            return '—';
+      }
+    }
+    if (!r) return '';
+    switch (key) {
+      case 'balance':     return r.isLineItem ? '' : `${sym}${fmt(r.balance)}`;
+      case 'credit':      return r.credit > 0 ? `${sym}${fmt(r.credit)}` : '—';
+      case 'debit':       return r.debit > 0 ? `${sym}${fmt(r.debit)}` : '—';
+      case 'description': return ar(r.description);
+      case 'reference':   return r.reference || '—';
+      case 'due':         return r.dueDate ? fmtDate(r.dueDate) : '—';
+      case 'type':        return ar(getPdfTypeLabel(r.transaction_type || ''));
+      case 'date':        return fmtDate(r.date);
+      default:            return '';
+    }
+  };
 
-  const bodyRows = data.rows.map(r => [
-    r.isLineItem ? '' : `${sym}${fmt(r.balance)}`,
-    r.credit > 0 ? `${sym}${fmt(r.credit)}` : '—',
-    r.debit > 0 ? `${sym}${fmt(r.debit)}` : '—',
-    ar(r.description),
-    r.reference || '—',
-    fmtDate(r.date),
-  ]);
+  const tableHead = [cols.map(c => c.head)];
+  const openRow = cols.map(c => cellFor(c.key, 'open'));
+  const bodyRows = data.rows.map(r => cols.map(c => cellFor(c.key, 'body', r)));
+  const closeRow = cols.map(c => cellFor(c.key, 'close'));
 
-  const closeRow = [
-    `${sym}${fmt(data.closingBalance)}`,
-    `${sym}${fmt(data.totalCredit)}`,
-    `${sym}${fmt(data.totalDebit)}`,
-    ar('رصيد ختامي'),
-    '—', '—',
-  ];
+  const columnStyles: Record<number, any> = {};
+  cols.forEach((c, i) => {
+    columnStyles[i] = {
+      ...(c.width ? { cellWidth: c.width } : { cellWidth: 'auto' }),
+      ...(c.halign ? { halign: c.halign } : {}),
+      ...(c.color ? { textColor: c.color } : {}),
+      ...(c.bold ? { fontStyle: 'bold' } : {}),
+    };
+  });
 
   autoTable(doc, {
     startY: currentY,
@@ -319,14 +395,7 @@ export const generateStatementPDF = (
     alternateRowStyles: {
       fillColor: [248, 250, 252],
     },
-    columnStyles: {
-      0: { cellWidth: 30, fontStyle: 'bold' },
-      1: { cellWidth: 28, textColor: greenText },
-      2: { cellWidth: 28, textColor: redText },
-      3: { cellWidth: 'auto', halign: 'right' },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 24 },
-    },
+    columnStyles,
     didParseCell: (hookData) => {
       const rowIdx = hookData.row.index;
       const lastIdx = data.rows.length + 1;
@@ -358,7 +427,7 @@ export const generateStatementPDF = (
   currentY = (doc as any).lastAutoTable?.finalY || currentY + 30;
 
   // ══════ AGING ANALYSIS ══════
-  if (data.agingData && currentY + 30 < H - 80) {
+  if (opts.showAging && data.agingData && currentY + 30 < H - 80) {
     currentY += 6;
     doc.setFontSize(9);
     doc.setFont('Amiri', 'bold');
@@ -434,7 +503,7 @@ export const generateStatementPDF = (
 
   // ══════ SIGNATURES SECTION ══════
   const sigY = Math.max(currentY + 10, H - 60);
-  if (sigY + 30 < H - 20) {
+  if (opts.showSignatures && sigY + 30 < H - 20) {
     // Title
     doc.setFontSize(9);
     doc.setFont('Amiri', 'bold');
