@@ -261,7 +261,7 @@ export default function CustomerInsightsBar({
         </div>
       ) : (
         <a
-          href={contactId ? `/account-statement-v2?contact_id=${contactId}` : "#"}
+          href={contactId ? `/account-statement?contact_id=${contactId}` : "#"}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl p-2.5 border border-border bg-muted/40 hover:bg-muted/60 transition-colors flex items-center gap-2.5 group"
