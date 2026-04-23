@@ -24,6 +24,8 @@ import { multiWordMatchAny } from "@/lib/utils";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
+import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
+import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
 
 interface JournalLine {
   id: string;
