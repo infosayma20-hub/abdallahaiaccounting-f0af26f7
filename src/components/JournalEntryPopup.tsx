@@ -37,12 +37,6 @@ interface JournalLine {
   memo: string;
 }
 
-interface JournalTemplate {
-  name: string;
-  icon: string;
-  lines: Omit<JournalLine, "id">[];
-}
-
 interface JournalEntryPopupProps {
   open: boolean;
   onClose: () => void;
@@ -50,50 +44,6 @@ interface JournalEntryPopupProps {
   initialData?: any;
   accounts?: { id: string; name: string; type: string }[];
 }
-
-/* ── Templates ── */
-const TEMPLATES: JournalTemplate[] = [
-  {
-    name: "سلفة موظف",
-    icon: "💰",
-    lines: [
-      { account_code: "2110", account_name: "مسحوبات الموظفين", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "شراء بضاعة نقداً",
-    icon: "📦",
-    lines: [
-      { account_code: "5200", account_name: "تكلفة البضاعة المباعة", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "دفع مورد",
-    icon: "💳",
-    lines: [
-      { account_code: "2110", account_name: "ذمم موردين", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "إيداع بنكي",
-    icon: "🏦",
-    lines: [
-      { account_code: "1120", account_name: "البنك", debit: 0, credit: 0, memo: "" },
-      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-  {
-    name: "قيد تسوية",
-    icon: "📊",
-    lines: [
-      { account_code: "", account_name: "", debit: 0, credit: 0, memo: "" },
-      { account_code: "", account_name: "", debit: 0, credit: 0, memo: "" },
-    ],
-  },
-];
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -431,7 +381,6 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
   // UI state
   const [sending, setSending] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [showAddContact, setShowAddContact] = useState(false);
   const [addContactType, setAddContactType] = useState<"customer" | "supplier">("customer");
@@ -554,26 +503,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     onDeleteRow: removeLineById,
   });
 
-  /* ── Template apply ── */
-  const applyTemplate = (tpl: JournalTemplate) => {
-    const newLines: JournalLine[] = tpl.lines.map(l => {
-      // Try to resolve account name from actual accounts
-      const acc = accounts.find(a => a.account_code === l.account_code);
-      return {
-        id: uid(),
-        account_code: l.account_code,
-        account_name: acc?.account_name || l.account_name,
-        debit: l.debit,
-        credit: l.credit,
-        memo: l.memo,
-      };
-    });
-    setLines(newLines);
-    setDescription(tpl.name);
-    setShowTemplates(false);
-  };
-
-  /* ── Apply a SAVED template (from DB library) ── */
+  /* ── Apply a SAVED template (from DB library — single source of truth) ── */
   const applySavedTemplate = (tpl: SavedJournalTemplate) => {
     const newLines: JournalLine[] = tpl.lines.map(l => {
       const acc = accounts.find(a => a.account_code === l.account_code);
@@ -779,36 +709,13 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Templates button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowTemplates(!showTemplates)}
-                className="h-8 px-3 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <Bookmark className="h-3.5 w-3.5" /> قوالب
-              </button>
-              {showTemplates && (
-                <div className="absolute left-0 top-full mt-1 w-56 bg-card border border-border rounded-xl shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
-                  {TEMPLATES.map((tpl, i) => (
-                    <button
-                      key={i}
-                      onClick={() => applyTemplate(tpl)}
-                      className="w-full text-right px-3 py-2.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl"
-                    >
-                      <span>{tpl.icon}</span>
-                      <span className="text-foreground font-medium">{tpl.name}</span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => { setShowTemplates(false); setShowTemplatesLibrary(true); }}
-                    className="w-full text-right px-3 py-2.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 border-t border-border/40 text-primary font-bold rounded-b-xl"
-                  >
-                    <Bookmark className="h-3.5 w-3.5" />
-                    📂 المكتبة الكاملة (محفوظة)
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Templates button — opens unified library (single source of truth) */}
+            <button
+              onClick={() => setShowTemplatesLibrary(true)}
+              className="h-8 px-3 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-medium flex items-center gap-1.5 transition-colors"
+            >
+              <Bookmark className="h-3.5 w-3.5" /> القوالب
+            </button>
             <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center transition-colors">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
