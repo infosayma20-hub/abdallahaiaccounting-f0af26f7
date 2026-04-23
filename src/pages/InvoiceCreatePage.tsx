@@ -1792,9 +1792,6 @@ const InvoiceCreatePage = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {!item.productId && (
-                    <Input placeholder="وصف يدوي..." value={item.description} onChange={e => updateItem(item.id, "description", e.target.value)} className="rounded-lg text-[11px] h-7 border-0 bg-muted/30" />
-                  )}
                   {item.productId && (() => {
                     const prod = products.find(p => p.id === item.productId);
                     if (!prod) return null;
