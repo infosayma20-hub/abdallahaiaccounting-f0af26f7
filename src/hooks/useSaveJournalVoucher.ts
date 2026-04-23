@@ -110,6 +110,28 @@ export function validateJournalInput(input: JournalSaveInput): string | null {
   return null;
 }
 
+/**
+ * فحص الفترة المالية المقفلة.
+ * يُرجع رسالة خطأ إذا كان التاريخ ضمن فترة مقفلة (status='closed') للمستخدم،
+ * أو null إذا لم يكن هناك قفل.
+ */
+async function checkFiscalPeriodLock(userId: string, date: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("fiscal_periods")
+    .select("period_name, start_date, end_date, status")
+    .eq("user_id", userId)
+    .eq("status", "closed")
+    .lte("start_date", date)
+    .gte("end_date", date)
+    .limit(1);
+  if (error) return null; // لا نعطّل الحفظ إذا فشل فحص الفترة
+  if (data && data.length > 0) {
+    const p = data[0];
+    return `لا يمكن الحفظ: التاريخ ${date} يقع ضمن فترة مقفلة (${p.period_name}). افتح الفترة من إعدادات الفترات المحاسبية أو غيّر التاريخ.`;
+  }
+  return null;
+}
+
 export function useSaveJournalVoucher() {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -120,6 +142,10 @@ export function useSaveJournalVoucher() {
     const mode = input.mode || "posted";
     const validationError = validateJournalInput({ ...input, mode });
     if (validationError) return { success: false, error: validationError };
+
+    // ── (0) حماية الفترة المقفلة (fiscal period lock) ──
+    const lockError = await checkFiscalPeriodLock(user.id, input.date);
+    if (lockError) return { success: false, error: lockError };
 
     setSaving(true);
     let createdVoucherId: string | null = null;
