@@ -108,8 +108,13 @@ const FinanceJournalPage = () => {
     if (!user) return;
     setCancelling(true);
     try {
-      // Just cancel the voucher — DB trigger handles cascading to linked transactions
-      await supabase.from("vouchers").update({ status: "cancelled" }).eq("id", voucherId);
+      // ✅ Source of Truth: نمر عبر useSaveJournalVoucher.remove
+      // يتكفل بحذف voucher_lines + transactions + voucher master + فحص الفترة المقفلة
+      const result = await removeJournalVoucher(voucherId);
+      if (!result.success) {
+        toast({ title: "خطأ", description: result.error || "تعذر إلغاء السند", variant: "destructive" });
+        return;
+      }
       toast({ title: "تم إلغاء السند والقيود المرتبطة بنجاح ✅" });
       setCancelConfirmId(null);
       fetchData();
