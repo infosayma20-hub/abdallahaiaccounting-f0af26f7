@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
+import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 
 interface JournalLine {
   id: string;
@@ -32,6 +33,7 @@ const FinanceJournalPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -106,8 +108,13 @@ const FinanceJournalPage = () => {
     if (!user) return;
     setCancelling(true);
     try {
-      // Just cancel the voucher — DB trigger handles cascading to linked transactions
-      await supabase.from("vouchers").update({ status: "cancelled" }).eq("id", voucherId);
+      // ✅ Source of Truth: نمر عبر useSaveJournalVoucher.remove
+      // يتكفل بحذف voucher_lines + transactions + voucher master + فحص الفترة المقفلة
+      const result = await removeJournalVoucher(voucherId);
+      if (!result.success) {
+        toast({ title: "خطأ", description: result.error || "تعذر إلغاء السند", variant: "destructive" });
+        return;
+      }
       toast({ title: "تم إلغاء السند والقيود المرتبطة بنجاح ✅" });
       setCancelConfirmId(null);
       fetchData();
@@ -255,158 +262,46 @@ const FinanceJournalPage = () => {
 
   const handleSave = async (status: "draft" | "posted") => {
     if (!user) return;
-    if (!formDescription.trim()) { toast({ title: "خطأ", description: "الوصف مطلوب", variant: "destructive" }); return; }
-    if (status === "posted" && !isBalanced) { toast({ title: "خطأ", description: "القيد غير متوازن", variant: "destructive" }); return; }
-
-    const validLines = lines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
-    if (validLines.length < 2) { toast({ title: "خطأ", description: "أدخل سطرين على الأقل", variant: "destructive" }); return; }
-
     setSaving(true);
 
-    const voucherPayload = {
-      user_id: user.id,
-      type: "journal" as const,
-      subtype: formSubtype,
-      ref_number: formRefNumber || "",
+    // ✅ Source of Truth: استدعاء useSaveJournalVoucher.save / update
+    // - validation موحّدة (مدين=دائن، حسابات، وصف، فترة مقفلة)
+    // - إنشاء voucher + voucher_lines + transactions atomic مع rollback
+    // - currency=ILS و transaction_type=journal/opening_balance
+    const payload = {
+      ref_number: formRefNumber || undefined,
       date: formDate,
-      contact_id: formContactId || null,
-      amount: totalDebit,
-      amount_ils: totalDebit,
+      subtype: (formSubtype as "normal" | "opening" | "adjustment" | "closing") || "normal",
       description: formDescription,
       notes: formNotes || null,
-      status,
-      posted_by: status === "posted" ? user.id : null,
-      posted_at: status === "posted" ? new Date().toISOString() : null,
-    };
+      contact_id: formContactId || null,
+      lines: lines
+        .filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0))
+        .map(l => ({
+          account_code: l.account_code,
+          account_name: l.account_name || null,
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+          contact_id: formContactId || null,
+        })),
+      mode: status,
+    } as const;
 
-    let voucher: any = null;
-    let error: any = null;
-    let previousRefNumber: string | null = null;
-    const softDeletePayload = { is_deleted: true, idempotency_key: null } as any;
+    const result = editingVoucherId
+      ? await updateJournalVoucher(editingVoucherId, payload)
+      : await saveJournalVoucher(payload);
 
-    if (editingVoucherId) {
-      const { data: existingVoucher, error: existingVoucherError } = await supabase
-        .from("vouchers")
-        .select("ref_number")
-        .eq("id", editingVoucherId)
-        .single();
-
-      if (existingVoucherError) {
-        toast({ title: "خطأ", description: existingVoucherError.message, variant: "destructive" });
-        setSaving(false);
-        return;
-      }
-
-      previousRefNumber = existingVoucher?.ref_number || null;
-
-      const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editingVoucherId).select().single();
-      voucher = res.data;
-      error = res.error;
-
-      if (voucher) {
-        const [{ error: deleteLinesError }, { error: softDeleteByKeyError }] = await Promise.all([
-          supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId),
-          supabase
-            .from("transactions")
-            .update(softDeletePayload)
-            .eq("user_id", user.id)
-            .like("idempotency_key", `VOUCHER-${editingVoucherId}%`),
-        ]);
-
-        if (deleteLinesError || softDeleteByKeyError) {
-          toast({
-            title: "خطأ",
-            description: deleteLinesError?.message || softDeleteByKeyError?.message || "تعذر تحديث القيود السابقة",
-            variant: "destructive",
-          });
-          setSaving(false);
-          return;
-        }
-
-        const refsToClear = Array.from(new Set([previousRefNumber, voucher.ref_number].filter(Boolean))) as string[];
-        for (const ref of refsToClear) {
-          const { error: softDeleteByRefError } = await supabase
-            .from("transactions")
-            .update(softDeletePayload)
-            .eq("user_id", user.id)
-            .eq("reference", ref)
-            .in("transaction_type", ["journal", "opening_balance"])
-            .eq("is_deleted", false);
-
-          if (softDeleteByRefError) {
-            toast({ title: "خطأ", description: softDeleteByRefError.message, variant: "destructive" });
-            setSaving(false);
-            return;
-          }
-        }
-      }
-    } else {
-      const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
-      voucher = res.data;
-      error = res.error;
-    }
-
-    if (error || !voucher) {
-      toast({ title: "خطأ", description: error?.message || "حدث خطأ", variant: "destructive" });
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.error || "تعذر حفظ السند", variant: "destructive" });
       setSaving(false);
       return;
     }
 
-    const { error: voucherLinesError } = await supabase.from("voucher_lines").insert(
-      validLines.map((l, i) => ({
-        voucher_id: voucher.id,
-        account_code: l.account_code,
-        account_name: l.account_name,
-        debit: Number(l.debit) || 0,
-        credit: Number(l.credit) || 0,
-        line_order: i + 1,
-      }))
-    );
-
-    if (voucherLinesError) {
-      toast({ title: "خطأ", description: voucherLinesError.message, variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-
-    if (status === "posted") {
-      const debitLines = validLines.filter(l => Number(l.debit) > 0);
-      const creditLines = validLines.filter(l => Number(l.credit) > 0);
-      const batchTs = Date.now();
-      let pairIdx = 0;
-      const transactionRows = [];
-
-      for (const dl of debitLines) {
-        for (const cl of creditLines) {
-          const pairAmount = (Number(dl.debit) / totalDebit) * Number(cl.credit);
-          if (pairAmount <= 0) continue;
-          transactionRows.push({
-            user_id: user.id,
-            transaction_date: formDate,
-            description: formDescription,
-            debit_account_code: dl.account_code,
-            credit_account_code: cl.account_code,
-            amount: Math.round(pairAmount * 100) / 100,
-            currency: "شيكل",
-            transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
-            reference: voucher.ref_number,
-            idempotency_key: `VOUCHER-${voucher.id}-${batchTs}-${pairIdx++}`,
-            contact_id: formContactId || (dl as any).contact_id || (cl as any).contact_id || null,
-          });
-        }
-      }
-
-      if (transactionRows.length > 0) {
-        const { error: txInsertError } = await supabase.from("transactions").insert(transactionRows);
-        if (txInsertError) {
-          toast({ title: "خطأ", description: txInsertError.message, variant: "destructive" });
-          setSaving(false);
-          return;
-        }
-      }
-    }
-
-    toast({ title: status === "posted" ? `✅ تم ترحيل سند القيد ${voucher.ref_number}` : "تم الحفظ كمسودة" });
+    toast({
+      title: status === "posted"
+        ? `✅ تم ترحيل سند القيد ${result.ref_number || ""}`
+        : "تم الحفظ كمسودة",
+    });
     setSaving(false);
     setModalOpen(false);
     resetForm();
