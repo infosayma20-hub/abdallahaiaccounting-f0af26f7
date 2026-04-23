@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X, LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X, LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Minus, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -30,15 +31,33 @@ interface StockMovement {
   created_at: string;
 }
 
-const movementMeta: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
-  "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
-  "صادر": { label: "صادر", color: "text-destructive", icon: TrendingDown },
-  "تعديل يدوي": { label: "تعديل يدوي", color: "text-warning", icon: Pencil },
+// Movement direction: incoming (+), outgoing (-), neutral (0)
+const getMovementDirection = (type: string): "in" | "out" | "neutral" => {
+  if (["وارد", "مرتجع مبيعات", "تسوية موجبة"].includes(type)) return "in";
+  if (["صادر", "مرتجع مشتريات", "تسوية سالبة"].includes(type)) return "out";
+  return "neutral";
+};
+
+const movementMeta: Record<string, { label: string; badgeClass: string; icon: typeof TrendingUp; iconBg: string }> = {
+  "وارد": { label: "وارد", badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800", icon: ArrowUp, iconBg: "bg-emerald-50 dark:bg-emerald-950/30" },
+  "صادر": { label: "صادر", badgeClass: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800", icon: ArrowDown, iconBg: "bg-red-50 dark:bg-red-950/30" },
+  "تعديل يدوي": { label: "تسوية", badgeClass: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/40 dark:text-slate-300 dark:border-slate-700", icon: Pencil, iconBg: "bg-slate-100 dark:bg-slate-800/30" },
+  "مرتجع مبيعات": { label: "مرتجع مبيعات", badgeClass: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800", icon: ArrowUp, iconBg: "bg-blue-50 dark:bg-blue-950/30" },
+  "مرتجع مشتريات": { label: "مرتجع مشتريات", badgeClass: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800", icon: ArrowDown, iconBg: "bg-orange-50 dark:bg-orange-950/30" },
+};
+
+const getMeta = (type: string) => movementMeta[type] || movementMeta["تعديل يدوي"];
+
+// Extract invoice number from reference_note (e.g. "فاتورة مبيعات INV-2026-0007")
+const extractInvoiceNumber = (note: string | null): string | null => {
+  if (!note) return null;
+  const m = note.match(/(INV|PUR|PI|SI)-\d{4}-\d{4,}/i);
+  return m ? m[0] : null;
 };
 
 const PAGE_SIZE = 20;
 
-type SortKey = "created_at" | "product" | "type" | "quantity";
+type SortKey = "created_at" | "product" | "type" | "quantity" | "balance";
 type SortDir = "asc" | "desc";
 
 const StockMovementsPage = () => {
