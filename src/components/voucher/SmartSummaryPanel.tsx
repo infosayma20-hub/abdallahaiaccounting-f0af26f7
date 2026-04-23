@@ -286,6 +286,144 @@ function BalanceRow({
   );
 }
 
+function BalanceBreakdown({
+  total,
+  openInvoicesTotal,
+  unappliedCredit,
+  symbol,
+  isReceipt,
+  onOpenStatement,
+}: {
+  total: number;
+  openInvoicesTotal: number;
+  unappliedCredit: number;
+  symbol: string;
+  isReceipt: boolean;
+  onOpenStatement?: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Bridge math:
+  // For receipts: ledger debit (positive) should ≈ openInvoices − unappliedCredit + other
+  // "other" = movements not represented by open invoices/advances (paid portions of past invoices, journals, etc.)
+  const expectedFromInvoices = Math.max(0, openInvoicesTotal) - Math.max(0, unappliedCredit);
+  const other = total - expectedFromInvoices;
+  const hasOther = Math.abs(other) > 0.01;
+  const hasBreakdown = openInvoicesTotal > 0.01 || unappliedCredit > 0.01 || hasOther;
+
+  // Determine balance nature
+  const isDebit = total > 0.005;
+  const isCredit = total < -0.005;
+  const totalColor = isDebit
+    ? "text-rose-600"
+    : isCredit
+      ? "text-emerald-600"
+      : "text-foreground";
+  const tag = isDebit ? "مدين" : isCredit ? "دائن" : "متوازن";
+  const tagBg = isDebit
+    ? "bg-rose-500/10 text-rose-600"
+    : isCredit
+      ? "bg-emerald-500/10 text-emerald-600"
+      : "bg-muted text-muted-foreground";
+
+  return (
+    <div className="space-y-1.5">
+      {/* Total row — clickable if breakdown available */}
+      <button
+        type="button"
+        onClick={() => hasBreakdown && setExpanded(e => !e)}
+        disabled={!hasBreakdown}
+        className={`w-full flex items-center justify-between text-[11px] ${hasBreakdown ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
+      >
+        <span className="flex items-center gap-1 text-muted-foreground">
+          الرصيد الإجمالي
+          <span className="text-[9px] text-muted-foreground/60">(كشف الحساب)</span>
+          {hasBreakdown && (
+            <ChevronDown
+              className={`h-3 w-3 text-muted-foreground/60 transition-transform ${expanded ? "rotate-180" : ""}`}
+            />
+          )}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${tagBg}`}>{tag}</span>
+          <span
+            className={`text-xs font-semibold ${totalColor}`}
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {symbol}{fmt(Math.abs(total))}
+          </span>
+        </span>
+      </button>
+
+      {/* Breakdown — explains the gap between ledger and open invoices */}
+      <AnimatePresence initial={false}>
+        {expanded && hasBreakdown && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-1.5 rounded-lg bg-muted/40 border border-border/40 px-2.5 py-2 space-y-1.5 text-[10.5px]">
+              {openInvoicesTotal > 0.01 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <FileText className="h-2.5 w-2.5" /> فواتير مفتوحة
+                  </span>
+                  <span className="font-medium text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    +{symbol}{fmt(openInvoicesTotal)}
+                  </span>
+                </div>
+              )}
+              {unappliedCredit > 0.01 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Wallet className="h-2.5 w-2.5" /> دفعات غير مخصصة
+                  </span>
+                  <span className="font-medium text-emerald-600" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    −{symbol}{fmt(unappliedCredit)}
+                  </span>
+                </div>
+              )}
+              {hasOther && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Info className="h-2.5 w-2.5" /> حركات أخرى
+                    <span className="text-[9px] text-muted-foreground/70">(دفعات سابقة، قيود)</span>
+                  </span>
+                  <span
+                    className={`font-medium ${other >= 0 ? "text-foreground" : "text-emerald-600"}`}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {other >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(other))}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50">
+                <span className="text-muted-foreground font-medium">= الرصيد</span>
+                <span className={`font-bold ${totalColor}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {symbol}{fmt(Math.abs(total))}
+                </span>
+              </div>
+              {onOpenStatement && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onOpenStatement(); }}
+                  className="w-full flex items-center justify-center gap-1 mt-1 pt-1.5 border-t border-border/40 text-[10px] text-primary hover:underline"
+                >
+                  <ExternalLink className="h-2.5 w-2.5" />
+                  عرض كشف الحساب الكامل
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function AllocationStatus({
   allocated,
   amount,
