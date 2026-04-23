@@ -1666,20 +1666,42 @@ const InvoiceCreatePage = () => {
           {/* Row 3: Payment Method + Currency */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">طريقة الدفع</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-muted-foreground font-medium">طريقة الدفع</label>
+                <span className="text-[10px] text-muted-foreground tabular-nums">
+                  المبلغ: <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
+                  <span className="mx-1.5 text-muted-foreground/50">·</span>
+                  {form.paymentMethod === "credit" ? (
+                    <span className="text-amber-600 font-semibold">سيُضاف لذمة العميل</span>
+                  ) : (
+                    <span className="text-emerald-600 font-semibold">مدفوع بالكامل</span>
+                  )}
+                </span>
+              </div>
               <div className="grid grid-cols-4 gap-1.5">
                 {([
-                  { val: "cash", icon: Banknote, label: "نقداً" },
-                  { val: "cheque", icon: CreditCard, label: "شيك" },
-                  { val: "credit", icon: Clock, label: "آجل" },
-                  { val: "transfer", icon: Building2, label: "تحويل" },
-                ] as const).map(pm => (
-                  <button key={pm.val} onClick={() => setForm(p => ({ ...p, paymentMethod: pm.val }))}
-                    className={`py-2.5 rounded-xl text-[11px] font-semibold transition-all flex flex-col items-center gap-0.5 ${form.paymentMethod === pm.val ? "bg-primary/15 text-primary border border-primary/30" : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted"}`}>
-                    <pm.icon className="h-4 w-4" />
-                    {pm.label}
-                  </button>
-                ))}
+                  { val: "cash", icon: Banknote, label: "نقداً", hint: "صندوق" },
+                  { val: "cheque", icon: CreditCard, label: "شيك", hint: "ورقي" },
+                  { val: "transfer", icon: Building2, label: "تحويل", hint: "بنكي" },
+                  { val: "credit", icon: Clock, label: "آجل", hint: "على الحساب" },
+                ] as const).map(pm => {
+                  const active = form.paymentMethod === pm.val;
+                  return (
+                    <button
+                      key={pm.val}
+                      onClick={() => setForm(p => ({ ...p, paymentMethod: pm.val }))}
+                      className={`py-2 rounded-xl text-[11px] font-semibold transition-all flex flex-col items-center gap-0.5 ${
+                        active
+                          ? "bg-primary text-primary-foreground border border-primary shadow-sm shadow-primary/20"
+                          : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted hover:text-foreground"
+                      }`}
+                    >
+                      <pm.icon className="h-4 w-4" />
+                      <span>{pm.label}</span>
+                      <span className={`text-[8.5px] ${active ? "text-primary-foreground/80" : "text-muted-foreground/70"}`}>{pm.hint}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div>
@@ -1766,8 +1788,25 @@ const InvoiceCreatePage = () => {
             <div className="border border-border rounded-xl p-3 space-y-3">
               <p className="text-xs font-semibold flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-primary" /> بيانات التحويل</p>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">رقم المرجع</label><Input value={form.transferRef} onChange={e => setForm(p => ({ ...p, transferRef: e.target.value }))} className="rounded-lg text-sm" /></div>
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك</label><Input value={form.transferBank} onChange={e => setForm(p => ({ ...p, transferBank: e.target.value }))} className="rounded-lg text-sm" /></div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الحساب البنكي المستلم</label>
+                  <Select value={form.transferBank || "__none__"} onValueChange={v => {
+                    const ba = bankAccounts.find(b => b.id === v);
+                    setForm(p => ({ ...p, transferBank: v === "__none__" ? "" : (ba?.name || v) }));
+                  }}>
+                    <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__" disabled>اختر الحساب البنكي</SelectItem>
+                      {bankAccounts.map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.name} — {b.bank_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">رقم العملية / المرجع</label>
+                  <Input value={form.transferRef} onChange={e => setForm(p => ({ ...p, transferRef: e.target.value }))} className="rounded-lg text-sm" placeholder="رقم تحويل بنكي اختياري" />
+                </div>
               </div>
             </div>
           )}
@@ -2215,7 +2254,22 @@ const InvoiceCreatePage = () => {
 
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="max-w-5xl mx-auto flex gap-2">
+        <div className="max-w-5xl mx-auto flex gap-2 items-center">
+          {/* Live mini-summary: gives accountant a constant sense of control */}
+          <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
+            <span className="text-muted-foreground">الإجمالي</span>
+            <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground">المدفوع</span>
+            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-muted-foreground" : "text-emerald-600"}`}>
+              {fmtCurrency(form.paymentMethod === "credit" ? 0 : summary.total)}
+            </span>
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground">المتبقي</span>
+            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-amber-600" : "text-foreground"}`}>
+              {fmtCurrency(form.paymentMethod === "credit" ? summary.total : 0)}
+            </span>
+          </div>
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
             <Save className="h-4 w-4" /> حفظ كمسودة
           </Button>
