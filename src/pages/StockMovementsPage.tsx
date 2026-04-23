@@ -327,46 +327,98 @@ const StockMovementsPage = () => {
 
       {/* TABLE VIEW */}
       {!loading && viewMode === "table" && paginated.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+        <Card className="border border-border/40 shadow-sm rounded-2xl overflow-hidden">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="text-right"><SortHeader label="التاريخ" field="created_at" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="المنتج" field="product" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>
-                  <TableHead className="text-right"><SortHeader label="الكمية" field="quantity" /></TableHead>
-                  <TableHead className="text-right">الوحدة</TableHead>
-                  <TableHead className="text-right">ملاحظات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginated.map(mv => {
-                  const prod = productMap.get(mv.product_id);
-                  const meta = movementMeta[mv.movement_type] || movementMeta["تعديل يدوي"];
-                  return (
-                    <TableRow key={mv.id} className="hover:bg-muted/20">
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(mv.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </TableCell>
-                      <TableCell className="font-medium text-sm">{prod?.name || "منتج محذوف"}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={`text-[10px] ${
-                          mv.movement_type === "وارد" ? "bg-primary/10 text-primary" : mv.movement_type === "صادر" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
-                        }`}>
-                          {meta.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={`font-bold tabular-nums ${meta.color}`}>
-                        {mv.movement_type === "صادر" ? "-" : "+"}{mv.quantity}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{prod?.unit || ""}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{mv.reference_note || "—"}</TableCell>
+            <TooltipProvider delayDuration={200}>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10">
+                    <TableRow className="bg-muted/60 hover:bg-muted/60 border-b-2 border-border">
+                      <TableHead className="text-right text-xs font-bold text-foreground"><SortHeader label="التاريخ" field="created_at" /></TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground"><SortHeader label="المنتج" field="product" /></TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="النوع" field="type" /></TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground"><SortHeader label="الكمية" field="quantity" /></TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">الوحدة</TableHead>
+                      <TableHead className="text-center text-xs font-bold text-foreground">الرصيد بعد الحركة</TableHead>
+                      <TableHead className="text-right text-xs font-bold text-foreground">المرجع</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginated.map((mv, idx) => {
+                      const prod = productMap.get(mv.product_id);
+                      const meta = getMeta(mv.movement_type);
+                      const dir = getMovementDirection(mv.movement_type);
+                      const Icon = meta.icon;
+                      const balance = balancesById.get(mv.id) ?? 0;
+                      const invNo = extractInvoiceNumber(mv.reference_note);
+                      const isZebra = idx % 2 === 1;
+                      return (
+                        <TableRow key={mv.id} className={`${isZebra ? "bg-muted/20" : "bg-background"} hover:bg-accent/40 transition-colors border-b border-border/30`}>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap py-3">
+                            {new Date(mv.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </TableCell>
+                          <TableCell className="font-medium text-sm text-foreground py-3">{prod?.name || "منتج محذوف"}</TableCell>
+                          <TableCell className="text-center py-3">
+                            <Badge variant="outline" className={`text-[11px] font-semibold gap-1 px-2 py-0.5 ${meta.badgeClass}`}>
+                              <Icon className="h-3 w-3" />
+                              {meta.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center py-3">
+                            <span className={`text-base font-bold tabular-nums ${
+                              dir === "in" ? "text-emerald-600 dark:text-emerald-400" :
+                              dir === "out" ? "text-red-600 dark:text-red-400" :
+                              "text-foreground"
+                            }`}>
+                              {Math.abs(mv.quantity).toLocaleString()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-muted-foreground py-3">{prod?.unit || "—"}</TableCell>
+                          <TableCell className="text-center py-3">
+                            <span className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-md text-sm font-bold tabular-nums ${
+                              balance < 0 ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400" :
+                              balance === 0 ? "bg-muted text-muted-foreground" :
+                              "bg-muted/60 text-foreground"
+                            }`}>
+                              {balance.toLocaleString()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs py-3 max-w-[220px]">
+                            {invNo ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => navigate(`/sales`)}
+                                    className="inline-flex items-center gap-1 text-primary hover:underline font-mono text-[11px]"
+                                  >
+                                    {invNo}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="text-xs">{mv.reference_note}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : mv.reference_note ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-muted-foreground truncate block cursor-help">{mv.reference_note}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="text-xs max-w-xs">{mv.reference_note}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       )}
@@ -376,23 +428,26 @@ const StockMovementsPage = () => {
         <div className="space-y-2">
           {paginated.map(mv => {
             const prod = productMap.get(mv.product_id);
-            const meta = movementMeta[mv.movement_type] || movementMeta["تعديل يدوي"];
+            const meta = getMeta(mv.movement_type);
+            const dir = getMovementDirection(mv.movement_type);
             const Icon = meta.icon;
+            const balance = balancesById.get(mv.id) ?? 0;
             return (
-              <Card key={mv.id} className="border-0 shadow-sm rounded-2xl">
+              <Card key={mv.id} className="border border-border/40 shadow-sm rounded-2xl">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                      mv.movement_type === "وارد" ? "bg-primary/10" : mv.movement_type === "صادر" ? "bg-destructive/10" : "bg-warning/10"
-                    }`}>
-                      <Icon className={`h-4 w-4 ${meta.color}`} />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${meta.iconBg}`}>
+                      <Icon className={`h-5 w-5 ${
+                        dir === "in" ? "text-emerald-600 dark:text-emerald-400" :
+                        dir === "out" ? "text-red-600 dark:text-red-400" :
+                        "text-muted-foreground"
+                      }`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-foreground truncate">{prod?.name || "منتج محذوف"}</p>
-                        <Badge variant="secondary" className={`text-[10px] ${
-                          mv.movement_type === "وارد" ? "bg-primary/10 text-primary" : mv.movement_type === "صادر" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
-                        }`}>
+                        <Badge variant="outline" className={`text-[10px] font-semibold gap-1 ${meta.badgeClass}`}>
+                          <Icon className="h-2.5 w-2.5" />
                           {meta.label}
                         </Badge>
                       </div>
@@ -400,9 +455,19 @@ const StockMovementsPage = () => {
                         <p className="text-[10px] text-muted-foreground">
                           {new Date(mv.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
-                        <p className={`text-sm font-bold tabular-nums ${meta.color}`}>
-                          {mv.movement_type === "صادر" ? "-" : "+"}{mv.quantity} {prod?.unit || ""}
+                        <p className={`text-base font-bold tabular-nums ${
+                          dir === "in" ? "text-emerald-600 dark:text-emerald-400" :
+                          dir === "out" ? "text-red-600 dark:text-red-400" :
+                          "text-foreground"
+                        }`}>
+                          {Math.abs(mv.quantity).toLocaleString()} {prod?.unit || ""}
                         </p>
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-border/30">
+                        <span className="text-[10px] text-muted-foreground">الرصيد بعد الحركة</span>
+                        <span className={`text-xs font-bold tabular-nums ${balance < 0 ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
+                          {balance.toLocaleString()} {prod?.unit || ""}
+                        </span>
                       </div>
                       {mv.reference_note && (
                         <p className="text-[10px] text-muted-foreground/80 mt-1 truncate">{mv.reference_note}</p>
