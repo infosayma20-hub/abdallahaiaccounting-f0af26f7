@@ -503,7 +503,7 @@ export const generateStatementPDF = (
 
   // ══════ SIGNATURES SECTION ══════
   const sigY = Math.max(currentY + 10, H - 60);
-  if (sigY + 30 < H - 20) {
+  if (opts.showSignatures && sigY + 30 < H - 20) {
     // Title
     doc.setFontSize(9);
     doc.setFont('Amiri', 'bold');
