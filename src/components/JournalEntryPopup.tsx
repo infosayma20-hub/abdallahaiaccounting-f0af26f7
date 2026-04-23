@@ -1007,6 +1007,26 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
         userId={user?.id || ""}
         onCreated={handleAccountCreated}
       />
+
+      {/* Saved templates library (DB-backed) */}
+      <JournalTemplatesPicker
+        open={showTemplatesLibrary}
+        onClose={() => setShowTemplatesLibrary(false)}
+        onApply={applySavedTemplate}
+        currentSnapshot={{
+          name: description || "قالب جديد",
+          description: description,
+          default_subtype: entryType === "افتتاحي" ? "opening" : entryType === "تسوية" ? "adjustment" : entryType === "إقفال" ? "closing" : "normal",
+          default_contact_id: null,
+          lines: lines.map(l => ({
+            account_code: l.account_code,
+            account_name: l.account_name,
+            debit: Number(l.debit) || 0,
+            credit: Number(l.credit) || 0,
+            memo: l.memo || "",
+          })),
+        }}
+      />
     </div>
   );
 };
