@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
+import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
 
 interface JournalLine {
   id: string;
@@ -32,6 +33,7 @@ const FinanceJournalPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
 
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
