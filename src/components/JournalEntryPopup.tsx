@@ -414,6 +414,7 @@ const QuickAddContactDialog = ({
 const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: propAccounts }: JournalEntryPopupProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { save: saveJournalVoucher } = useSaveJournalVoucher();
 
   // Data
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -611,71 +612,38 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     if (!canSubmit || !user) return;
     setSending(true);
     try {
-      // For multi-line entries, create multiple transaction rows
-      // Each debit line pairs with description
-      const txInserts = [];
-      const debitLines = lines.filter(l => l.debit > 0);
-      const creditLines = lines.filter(l => l.credit > 0);
+      // ✅ Source of Truth الموحّد: ينشئ voucher + voucher_lines + transactions atomically
+      const subtypeMap: Record<string, "normal" | "opening" | "adjustment" | "closing"> = {
+        "عادي": "normal",
+        "افتتاحي": "opening",
+        "تسوية": "adjustment",
+        "إقفال": "closing",
+        "إقفالي": "closing",
+      };
+      const subtype = subtypeMap[entryType] || "normal";
 
-      // Simple case: equal debit/credit lines → pair them
-      if (debitLines.length === 1 && creditLines.length === 1) {
-        txInserts.push({
-          user_id: user.id,
-          transaction_date: date,
-          description: description,
-          debit_account_code: debitLines[0].account_code,
-          credit_account_code: creditLines[0].account_code,
-          amount: debitLines[0].debit,
-          currency: "شيكل",
-          transaction_type: entryType === "افتتاحي" ? "opening" : "قيد يومية",
-          reference: reference,
-          payment_method: "قيد",
-          idempotency_key: `JE-${reference}-${Date.now()}`,
-        });
-      } else {
-        // Complex: multiple lines → create separate entries for each debit line
-        // distributing credits proportionally
-        for (const dl of debitLines) {
-          txInserts.push({
-            user_id: user.id,
-            transaction_date: date,
-            description: `${description}${dl.memo ? " - " + dl.memo : ""}`,
-            debit_account_code: dl.account_code,
-            credit_account_code: creditLines[0]?.account_code || "",
-            amount: dl.debit,
-            currency: "شيكل",
-            transaction_type: entryType === "افتتاحي" ? "opening" : "قيد يومية",
-            reference: reference,
-            payment_method: "قيد",
-            idempotency_key: `JE-${reference}-${dl.id}`,
-          });
-        }
-        // If there are multiple credit lines with a single debit
-        if (debitLines.length === 1 && creditLines.length > 1) {
-          // Clear above and redo
-          txInserts.length = 0;
-          for (const cl of creditLines) {
-            txInserts.push({
-              user_id: user.id,
-              transaction_date: date,
-              description: `${description}${cl.memo ? " - " + cl.memo : ""}`,
-              debit_account_code: debitLines[0].account_code,
-              credit_account_code: cl.account_code,
-              amount: cl.credit,
-              currency: "شيكل",
-              transaction_type: entryType === "افتتاحي" ? "opening" : "قيد يومية",
-              reference: reference,
-              payment_method: "قيد",
-              idempotency_key: `JE-${reference}-${cl.id}`,
-            });
-          }
-        }
+      const result = await saveJournalVoucher({
+        ref_number: reference,
+        date,
+        subtype,
+        description,
+        notes: notes || null,
+        contact_id: null,
+        lines: lines.map((l) => ({
+          account_code: l.account_code,
+          account_name: l.account_name,
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+          line_comment: l.memo || null,
+        })),
+        mode: "posted",
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "فشل حفظ السند");
       }
 
-      const { error } = await supabase.from("transactions").insert(txInserts);
-      if (error) throw error;
-
-      setSavedEntryRef(reference);
+      setSavedEntryRef(result.ref_number || reference);
       setShowSuccess(true);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
