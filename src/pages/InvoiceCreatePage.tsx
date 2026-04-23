@@ -1781,7 +1781,14 @@ const InvoiceCreatePage = () => {
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
             </CardTitle>
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              <span className="hidden md:inline-flex items-center gap-1 text-[9.5px] text-muted-foreground bg-muted/40 rounded-md px-1.5 py-0.5 mr-1">
+                <kbd className="font-mono">Enter</kbd> للتنقل
+                <span className="text-muted-foreground/60">·</span>
+                <kbd className="font-mono">Alt+N</kbd> سطر جديد
+                <span className="text-muted-foreground/60">·</span>
+                <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
+              </span>
               <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
                 <Plus className="h-3 w-3" /> تعريف منتج
               </Button>
