@@ -2257,9 +2257,39 @@ const InvoiceCreatePage = () => {
         </Card>
       </Collapsible>
 
+      </div>
+
+      {/* ─── Smart Summary Panel (Left, sticky on desktop) ─── */}
+      <aside className="hidden lg:block lg:sticky lg:top-4 self-start">
+        <SmartSummaryPanel
+          variant="invoice"
+          invoiceType={form.type}
+          subtotal={summary.subtotal}
+          totalDiscount={summary.totalDiscount}
+          totalTax={summary.totalTax}
+          total={summary.total}
+          taxEnabled={taxEnabled}
+          taxInclusive={form.taxInclusive}
+          itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
+          partyName={selectedContact?.contact_name || form.contactName || null}
+          partyId={selectedContact?.id || null}
+          balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
+          openInvoicesTotal={0}
+          unappliedCredit={0}
+          creditLimit={selectedContact?.credit_limit ?? null}
+          currency={form.currency}
+          exchangeRate={form.exchangeRate}
+          dueDate={form.dueDate}
+          refNumber={nextInvoiceNumber}
+          currencySymbol={currSymbol}
+          onOpenStatement={selectedContact ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank") : undefined}
+        />
+      </aside>
+      </div>
+
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="max-w-5xl mx-auto flex gap-2 items-center">
+        <div className="max-w-[1600px] mx-auto flex gap-2 items-center">
           {/* Live mini-summary: gives accountant a constant sense of control */}
           <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
             <span className="text-muted-foreground">الإجمالي</span>
