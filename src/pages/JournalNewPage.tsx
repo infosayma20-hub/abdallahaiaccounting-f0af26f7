@@ -208,6 +208,34 @@ const JournalNewPage = () => {
     setLines(prev => prev.filter(l => l.id !== id));
   };
 
+  // Duplicate a row in place (Ctrl+D shortcut)
+  const duplicateLine = (id: string) => {
+    setLines(prev => {
+      const idx = prev.findIndex(l => l.id === id);
+      if (idx < 0) return prev;
+      const src = prev[idx];
+      const copy: JournalLine = {
+        ...src,
+        id: String(Date.now()),
+      };
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+  };
+
+  // Add a row and immediately focus its debit cell — used by Alt+N and Enter overflow
+  const addLineAndFocus = () => {
+    const newId = String(Date.now());
+    setLines(prev => [
+      ...prev,
+      { id: newId, account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+    ]);
+    setTimeout(() => {
+      document.querySelector<HTMLInputElement>(`[data-journal-debit="${newId}"]`)?.focus();
+    }, 50);
+  };
+
   const updateLine = (id: string, field: keyof JournalLine, value: any) => {
     setLines(prev => prev.map(l => {
       if (l.id !== id) return l;
