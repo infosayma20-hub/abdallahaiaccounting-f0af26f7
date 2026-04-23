@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Wallet, Receipt as ReceiptIcon, Banknote, Building2, CreditCard, FileText, TrendingDown, TrendingUp, Info, ChevronDown, ExternalLink, Percent, Minus, Plus, ShoppingCart, RotateCcw } from "lucide-react";
 
 /**
  * SmartSummaryPanel — موحّد بالشكل، مختلف بالمنطق
@@ -41,7 +41,49 @@ interface ReceiptPaymentProps extends BaseProps {
   onOpenStatement?: () => void;
 }
 
-type Props = ReceiptPaymentProps;
+interface InvoiceProps extends BaseProps {
+  variant: "invoice" | "credit_note" | "debit_note";
+  /** نوع الفاتورة: مبيعات / مشتريات */
+  invoiceKind?: "sales" | "purchase";
+  /** هل الضريبة مفعّلة على مستوى الشركة */
+  taxEnabled?: boolean;
+  /** هل الإجمالي شامل الضريبة */
+  taxInclusive?: boolean;
+  /** إجمالي قبل الخصم والضريبة (Gross items) */
+  subtotal: number;
+  /** إجمالي الخصومات */
+  totalDiscount: number;
+  /** إجمالي الضريبة */
+  totalTax: number;
+  /** الإجمالي النهائي (الفاتورة) */
+  total: number;
+  /** المدفوع لحظة الإنشاء */
+  paidAmount: number;
+  /** المتبقي بعد الدفع */
+  remainingAmount: number;
+  /** عدد الأصناف */
+  itemsCount?: number;
+  /** طريقة الدفع: cash | transfer | cheque | credit */
+  paymentMethod?: "cash" | "transfer" | "cheque" | "credit";
+  /** اسم الجهة (زبون أو مورد) */
+  partyName?: string | null;
+  /** نوع الجهة من منظور أعلى الجداول */
+  partyType?: "contact";
+  /** رصيد دفتر الحساب قبل هذه الفاتورة (مدين موجب / دائن سالب للزبائن) */
+  balanceBefore?: number | null;
+  /** الفواتير المفتوحة الحالية للزبون (قبل هذه الفاتورة) */
+  openInvoicesTotal?: number;
+  unappliedCredit?: number;
+  /** الحد الائتماني للزبون (إن وجد) */
+  creditLimit?: number;
+  /** رقم الفاتورة المرجعي (للإشعارات: رقم الفاتورة الأصلية) */
+  originalInvoiceNumber?: string | null;
+  date?: string;
+  refNumber?: string;
+  onOpenStatement?: () => void;
+}
+
+type Props = ReceiptPaymentProps | InvoiceProps;
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -58,6 +100,10 @@ export default function SmartSummaryPanel(props: Props) {
 
   if (variant === "receipt" || variant === "payment") {
     return <ReceiptPaymentSummary {...(props as ReceiptPaymentProps)} symbol={currencySymbol} />;
+  }
+
+  if (variant === "invoice" || variant === "credit_note" || variant === "debit_note") {
+    return <InvoiceSummary {...(props as InvoiceProps)} symbol={currencySymbol} />;
   }
 
   return null;
