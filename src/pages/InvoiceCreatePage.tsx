@@ -206,6 +206,9 @@ const InvoiceCreatePage = () => {
   useEffect(() => { contactActiveIdxRef.current = contactActiveIdx; }, [contactActiveIdx]);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  // Bridge of Understanding data — fetched per-contact for the SmartSummaryPanel
+  const [contactOpenInvoicesTotal, setContactOpenInvoicesTotal] = useState<number>(0);
+  const [contactUnappliedCredit, setContactUnappliedCredit] = useState<number>(0);
 
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
