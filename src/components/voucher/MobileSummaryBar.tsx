@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ArrowDown, ArrowUp } from "lucide-react";
+import { ChevronDown, ArrowDown, ArrowUp, FileText, ShoppingCart, RotateCcw, Plus } from "lucide-react";
 import SmartSummaryPanel from "./SmartSummaryPanel";
 import type { ComponentProps } from "react";
 
 type Props = ComponentProps<typeof SmartSummaryPanel> & {
-  variant: "receipt" | "payment";
-  amount: number;
   currencySymbol?: string;
 };
 
@@ -15,14 +13,64 @@ const fmt = (n: number) =>
 
 /**
  * Mobile-only collapsed summary card.
- * Shows amount + party + status as a sticky bar; tap to expand into full SmartSummaryPanel.
+ * Shows the headline number + party + status as a sticky bar.
+ * Tap to expand into the full SmartSummaryPanel for the current variant.
  */
 export default function MobileSummaryBar(props: Props) {
   const [open, setOpen] = useState(false);
-  const { variant, amount, currencySymbol = "₪", partyName, balanceBefore } = props;
+  const { variant, currencySymbol = "₪", partyName } = props;
   const isReceipt = variant === "receipt";
+  const isPayment = variant === "payment";
+  const isVoucher = isReceipt || isPayment;
+  const isInvoice = variant === "invoice";
+  const isCreditNote = variant === "credit_note";
+  const isDebitNote = variant === "debit_note";
+
+  // Pull the right "headline number" depending on variant
+  const headline =
+    isVoucher
+      ? Number((props as any).amount || 0)
+      : Number((props as any).total || 0);
+  const balanceBefore = (props as any).balanceBefore as number | null | undefined;
   const before = balanceBefore ?? 0;
-  const after = isReceipt ? before - amount : before + amount;
+
+  // Compute "after" impact for the badge on the right
+  let after = before;
+  if (isReceipt) after = before - headline;
+  else if (isPayment) after = before + headline;
+  else if (isInvoice) {
+    const kind = (props as any).invoiceKind as "sales" | "purchase" | undefined;
+    const remaining = Number((props as any).remainingAmount || 0);
+    after = before + (kind === "purchase" ? -remaining : remaining);
+  } else if (isCreditNote) {
+    const remaining = Number((props as any).remainingAmount || 0);
+    after = before - remaining;
+  } else if (isDebitNote) {
+    const remaining = Number((props as any).remainingAmount || 0);
+    after = before + remaining;
+  }
+
+  const tone =
+    isReceipt
+      ? { bg: "bg-emerald-500/15", text: "text-emerald-700", Icon: ArrowDown }
+      : isPayment
+        ? { bg: "bg-rose-500/15", text: "text-rose-700", Icon: ArrowUp }
+        : isCreditNote
+          ? { bg: "bg-amber-500/15", text: "text-amber-700", Icon: RotateCcw }
+          : isDebitNote
+            ? { bg: "bg-violet-500/15", text: "text-violet-700", Icon: Plus }
+            : ((props as any).invoiceKind === "purchase")
+              ? { bg: "bg-sky-500/15", text: "text-sky-700", Icon: ShoppingCart }
+              : { bg: "bg-emerald-500/15", text: "text-emerald-700", Icon: FileText };
+  const Icon = tone.Icon;
+
+  const headlineLabel =
+    isReceipt ? "وارد"
+    : isPayment ? "صادر"
+    : isCreditNote ? "إشعار دائن"
+    : isDebitNote ? "إشعار مدين"
+    : ((props as any).invoiceKind === "purchase") ? "مشتريات"
+    : "مبيعات";
 
   return (
     <div className="lg:hidden sticky top-0 z-30 -mx-2 mb-2">
@@ -32,20 +80,17 @@ export default function MobileSummaryBar(props: Props) {
       >
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-              isReceipt ? "bg-emerald-500/15 text-emerald-700" : "bg-rose-500/15 text-rose-700"
-            }`}
+            className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${tone.bg} ${tone.text}`}
+            title={headlineLabel}
           >
-            {isReceipt ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
+            <Icon className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0 text-right">
             <div
-              className={`text-base font-bold leading-tight ${
-                isReceipt ? "text-emerald-700" : "text-rose-700"
-              }`}
+              className={`text-base font-bold leading-tight ${tone.text}`}
               style={{ fontVariantNumeric: "tabular-nums" }}
             >
-              {currencySymbol}{fmt(amount)}
+              {currencySymbol}{fmt(headline)}
             </div>
             {partyName && (
               <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">{partyName}</div>
