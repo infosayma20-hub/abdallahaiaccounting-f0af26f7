@@ -585,96 +585,65 @@ const JournalEntriesPage = () => {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingTx} onOpenChange={(open) => { if (!open) setEditingTx(null); }}>
+      {/* ✅ Edit Resolution Dialog — لا تعديل مباشر؛ توجيه للمحرر الموحّد */}
+      <Dialog open={!!editingTx} onOpenChange={(open) => { if (!open) { setEditingTx(null); setEditResolution(null); } }}>
         <DialogContent className="max-w-lg rounded-2xl" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Pencil className="h-4 w-4 text-primary" />
-              تعديل القيد
+              <Lock className="h-4 w-4 text-primary" />
+              تعديل القيد المحاسبي
             </DialogTitle>
+            <DialogDescription className="text-[11px] text-muted-foreground pt-1">
+              يفرض النظام مرور كل تعديل عبر المحرر الموحّد لضمان تزامن السندات والقيود وكشف الحساب.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">الوصف</label>
-              <Input value={editFields.description} onChange={(e) => setEditFields(f => ({ ...f, description: e.target.value }))}
-                className="h-10 rounded-xl bg-secondary/50 border-0" />
+
+          {resolving ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">التاريخ</label>
-                <Input type="date" value={editFields.transaction_date}
-                  onChange={(e) => setEditFields(f => ({ ...f, transaction_date: e.target.value }))}
-                  className="h-10 rounded-xl bg-secondary/50 border-0" />
+          ) : editResolution ? (
+            <div className="space-y-4 mt-2">
+              {/* بطاقة معلومات القيد */}
+              {editingTx && (
+                <div className="bg-muted/30 rounded-xl p-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">التاريخ:</span><span className="font-medium">{fmtDateDisplay(editingTx.transaction_date) || "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">الوصف:</span><span className="font-medium truncate max-w-[260px]">{editingTx.description || "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">المبلغ:</span><span className="font-bold tabular-nums">₪{(editingTx.amount || 0).toLocaleString()}</span></div>
+                  {editingTx.reference && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">المرجع:</span><span className="font-mono text-[10px]">{editingTx.reference}</span></div>
+                  )}
+                </div>
+              )}
+
+              {/* رسالة التشخيص */}
+              <div className={`rounded-xl p-3 text-xs leading-relaxed border ${
+                editResolution.kind === "voucher" ? "bg-primary/5 border-primary/20 text-foreground" :
+                editResolution.kind === "invoice" ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 text-foreground" :
+                "bg-muted/40 border-border text-foreground"
+              }`}>
+                {editResolution.message}
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                <Input type="number" value={editFields.amount}
-                  onChange={(e) => setEditFields(f => ({ ...f, amount: e.target.value }))}
-                  className="h-10 rounded-xl bg-secondary/50 border-0 text-left" dir="ltr" />
-              </div>
+
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button variant="outline" onClick={() => { setEditingTx(null); setEditResolution(null); }} className="rounded-xl">
+                  إلغاء
+                </Button>
+                {editResolution.kind === "voucher" && (
+                  <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    فتح محرر السند
+                  </Button>
+                )}
+                {editResolution.kind === "orphan" && (
+                  <Button onClick={handleEditNavigate} className="gap-2 rounded-xl">
+                    <Plus className="h-3.5 w-3.5" />
+                    إنشاء قيد تسوية
+                  </Button>
+                )}
+              </DialogFooter>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">النوع</label>
-                <Select value={editFields.transaction_type} onValueChange={(v) => setEditFields(f => ({ ...f, transaction_type: v }))}>
-                  <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["سند صرف", "سند قبض", "قيد يومية", "فاتورة مشتريات", "فاتورة مبيعات", "receipt", "payment", "salary", "employee_advance", "employee_payment", "expense", "workshop_cost", "workshop_receipt", "cash_transfer"].map(t => (
-                      <SelectItem key={t} value={t}>{typeDisplayMap[t] || t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">العملة</label>
-                <Select value={editFields.currency} onValueChange={(v) => setEditFields(f => ({ ...f, currency: v }))}>
-                  <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["شيكل", "دولار", "دينار", "يورو"].map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-primary text-[11px]">الحساب المدين</label>
-                <Select value={editFields.debit_account_code} onValueChange={(v) => setEditFields(f => ({ ...f, debit_account_code: v }))}>
-                  <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0 text-xs">
-                    <SelectValue placeholder="اختر حساب" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {accountCodes.map(a => (
-                      <SelectItem key={a.code} value={a.code} className="text-xs">{a.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-destructive text-[11px]">الحساب الدائن</label>
-                <Select value={editFields.credit_account_code} onValueChange={(v) => setEditFields(f => ({ ...f, credit_account_code: v }))}>
-                  <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0 text-xs">
-                    <SelectValue placeholder="اختر حساب" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {accountCodes.map(a => (
-                      <SelectItem key={a.code} value={a.code} className="text-xs">{a.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={handleSave} disabled={saving} className="w-full h-11 rounded-xl gap-2 font-bold">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              حفظ التعديلات
-            </Button>
-          </div>
+          ) : null}
         </DialogContent>
       </Dialog>
 
