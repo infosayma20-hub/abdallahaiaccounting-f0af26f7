@@ -1391,7 +1391,7 @@ const InvoiceCreatePage = () => {
 
   return (
     <SmartFormScope
-      className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto"
+      className="px-3 lg:px-6 pt-4 pb-32 max-w-[1600px] mx-auto"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
@@ -1439,6 +1439,10 @@ const InvoiceCreatePage = () => {
           </Button>
         </div>
       )}
+
+      {/* Two-column shell: Right = Input | Left = Smart Summary (sticky) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5 items-start mt-4">
+      <div className="space-y-4 min-w-0">
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardHeader className="pb-3 pt-4 px-5">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
