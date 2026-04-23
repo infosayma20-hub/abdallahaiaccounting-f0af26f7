@@ -1392,11 +1392,11 @@ const InvoiceCreatePage = () => {
 
   return (
     <SmartFormScope
-      dir="rtl"
       className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-7xl mx-auto lg:grid lg:grid-cols-[1fr_320px] lg:gap-5 lg:items-start lg:[&>*]:col-start-1"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
+    <div dir="rtl" className="contents">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
@@ -2429,6 +2429,7 @@ const InvoiceCreatePage = () => {
           invoiceDate={form.date}
         />
       )}
+    </div>
     </SmartFormScope>
   );
 };
