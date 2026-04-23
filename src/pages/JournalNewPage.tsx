@@ -679,7 +679,7 @@ const JournalNewPage = () => {
                   return displayLines.map((line, i) => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
-                    <td className="p-2.5 text-muted-foreground">{i + 1}</td>
+                    <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
                       <Input
                         value={line.account_code}
