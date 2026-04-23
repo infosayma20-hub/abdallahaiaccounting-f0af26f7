@@ -41,6 +41,7 @@ import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
+import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -281,7 +282,7 @@ const InvoiceCreatePage = () => {
     }
   }, [defaultTerms]);
 
-  const [openProductPopover, setOpenProductPopover] = useState<string | null>(null);
+  const [productSearchByRow, setProductSearchByRow] = useState<Record<string, string>>({});
 
   // Form state
   // ─── Accounting policy (post QuickBooks-style refactor) ───
@@ -792,8 +793,11 @@ const InvoiceCreatePage = () => {
   // current row (after selecting a product). Falls back to next focusable input.
   const focusFirstProductTrigger = () => {
     setTimeout(() => {
-      const btn = document.querySelector<HTMLButtonElement>('[data-invoice-product-trigger]');
-      if (btn) { btn.focus(); btn.click(); }
+      const input = document.querySelector<HTMLInputElement>('[data-invoice-product-input="true"]');
+      if (input) {
+        input.focus();
+        input.select();
+      }
     }, 80);
   };
 
@@ -824,6 +828,7 @@ const InvoiceCreatePage = () => {
   const selectProduct = (itemId: string, productId: string) => {
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
+    setProductSearchByRow(prev => ({ ...prev, [itemId]: prod.name }));
     setForm(prev => ({
       ...prev,
       items: prev.items.map(it => {
@@ -849,9 +854,17 @@ const InvoiceCreatePage = () => {
   const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 }] }));
   const removeItem = (id: string) => {
     if (form.items.length <= 1) return;
+    setProductSearchByRow(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
   };
-  const clearItems = () => setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
+  const clearItems = () => {
+    setProductSearchByRow({});
+    setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
+  };
 
   // Adds a new row and focuses its quantity field — used by Enter on last row's discount cell.
   const addItemAndFocus = useCallback(() => {
