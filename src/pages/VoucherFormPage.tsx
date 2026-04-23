@@ -24,6 +24,7 @@ import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
 import CompactChequeRow from "@/components/voucher/CompactChequeRow";
+import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import {
   AllocationMode,
