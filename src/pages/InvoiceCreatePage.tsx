@@ -97,19 +97,9 @@ const PAYMENT_TERMS: { value: string; label: string; days: number }[] = [
   { value: "custom", label: "مخصص", days: -1 },
 ];
 
-const mapDbPaymentMethod = (method?: string | null): "cash" | "transfer" | "cheque" | "credit" => {
-  if (method === "cash" || method === "نقدي") return "cash";
-  if (method === "transfer" || method === "بنك") return "transfer";
-  if (method === "cheque" || method === "شيك") return "cheque";
-  return "credit";
-};
-
-const mapPaymentMethodToDb = (method: "cash" | "transfer" | "cheque" | "credit") => {
-  if (method === "cash") return "نقدي";
-  if (method === "transfer") return "بنك";
-  if (method === "cheque") return "شيك";
-  return "آجل";
-};
+// Invoices are accrual-only (credit). Payment is recorded later via receipt/payment vouchers.
+// The DB stores the Arabic label "آجل" for credit invoices.
+const CREDIT_PAYMENT_METHOD_DB = "آجل" as const;
 
 const createEmptyItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
@@ -216,6 +206,9 @@ const InvoiceCreatePage = () => {
   useEffect(() => { contactActiveIdxRef.current = contactActiveIdx; }, [contactActiveIdx]);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  // Bridge of Understanding data — fetched per-contact for the SmartSummaryPanel
+  const [contactOpenInvoicesTotal, setContactOpenInvoicesTotal] = useState<number>(0);
+  const [contactUnappliedCredit, setContactUnappliedCredit] = useState<number>(0);
 
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -378,7 +371,7 @@ const InvoiceCreatePage = () => {
         contactName: data.contactName || "",
         contactId: data.contactId || null,
         paymentTerms: data.paymentTerms || "net_30",
-        paymentMethod: data.paymentMethod || "cash",
+        paymentMethod: "credit",
         currency: data.currency || "شيكل",
         exchangeRate: data.exchangeRate || 1,
         notes: data.notes || "",
@@ -387,8 +380,7 @@ const InvoiceCreatePage = () => {
         billingAddress: data.billingAddress || "",
         taxInclusive: data.taxInclusive || false,
         items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
-        // Reset excluded fields — invoices are credit-only, no payment metadata
-        paymentMethod: "credit",
+        // Invoices are credit-only — payment metadata is reset
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
       }));
@@ -659,11 +651,54 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!form.contactId) {
       setSelectedContact(null);
+      setContactOpenInvoicesTotal(0);
+      setContactUnappliedCredit(0);
       return;
     }
     const matched = contacts.find(c => c.id === form.contactId) || null;
     setSelectedContact(matched);
   }, [contacts, form.contactId]);
+
+  // ─── Bridge of Understanding: fetch open invoices + unapplied credits for selected contact ───
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !form.contactId) {
+      setContactOpenInvoicesTotal(0);
+      setContactUnappliedCredit(0);
+      return;
+    }
+    (async () => {
+      const [invRes, payRes] = await Promise.all([
+        // Open (unpaid/partial) credit invoices — sales side only contributes to receivables
+        supabase
+          .from("invoices")
+          .select("remaining_amount, invoice_type, status")
+          .eq("user_id", user.id)
+          .eq("contact_id", form.contactId)
+          .eq("invoice_type", form.type === "sales" ? "sale" : "purchase")
+          .neq("status", "cancelled")
+          .gt("remaining_amount", 0),
+        // Unapplied receipts/payments (advance balance not yet linked to invoices)
+        supabase
+          .from("transactions")
+          .select("amount, transaction_type, debit_account_code, credit_account_code")
+          .eq("user_id", user.id)
+          .eq("contact_id", form.contactId)
+          .eq("is_deleted", false)
+          .in("transaction_type", form.type === "sales"
+            ? ["receipt", "receipt_unapplied"]
+            : ["payment", "payment_unapplied"]),
+      ]);
+      if (cancelled) return;
+      const openSum = (invRes.data || []).reduce((s: number, r: any) => s + Number(r.remaining_amount || 0), 0);
+      // Unapplied = receipt amounts not yet bound to an invoice (heuristic: receipt minus open invoices, floored at 0)
+      const receiptsSum = (payRes.data || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const unapplied = Math.max(0, receiptsSum - openSum);
+      setContactOpenInvoicesTotal(openSum);
+      setContactUnappliedCredit(unapplied);
+    })();
+    return () => { cancelled = true; };
+  }, [user, form.contactId, form.type]);
 
   const getItemDiscountAmount = useCallback((item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
@@ -677,8 +712,8 @@ const InvoiceCreatePage = () => {
     // If tax is disabled at company level, skip all tax calculations
     if (!taxEnabled) {
       const total = grossTotal - totalDiscount;
-      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount, remainingAmount: total - paidAmount };
+      // Credit-only invoices: paid_amount is always 0 at creation; payment is via vouchers later.
+      return { subtotal: grossTotal, totalDiscount, totalTax: 0, total, paidAmount: 0, remainingAmount: total };
     }
 
     if (form.taxInclusive) {
@@ -693,8 +728,7 @@ const InvoiceCreatePage = () => {
       });
       const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
       const subtotalExTax = total - totalTax;
-      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
+      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
     } else {
       // Tax-exclusive: tax added on top
       const afterDiscount = grossTotal - totalDiscount;
@@ -704,10 +738,9 @@ const InvoiceCreatePage = () => {
         return s + (base - disc) * (i.taxRate / 100);
       }, 0);
       const total = afterDiscount + totalTax;
-      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
+      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount: 0, remainingAmount: total };
     }
-  }, [form.items, form.paymentMethod, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
+  }, [form.items, form.taxInclusive, taxEnabled, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -881,7 +914,8 @@ const InvoiceCreatePage = () => {
     if (!user) return;
     setCreating(true);
 
-    const paymentMethodDb = mapPaymentMethodToDb(form.paymentMethod);
+    // Invoices are accrual-only — always credit ("آجل")
+    const paymentMethodDb = CREDIT_PAYMENT_METHOD_DB;
 
     try {
       let contactId = form.contactId;
@@ -2169,8 +2203,8 @@ const InvoiceCreatePage = () => {
           partyName={selectedContact?.contact_name || form.contactName || null}
           partyId={selectedContact?.id || null}
           balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
-          openInvoicesTotal={0}
-          unappliedCredit={0}
+          openInvoicesTotal={contactOpenInvoicesTotal}
+          unappliedCredit={contactUnappliedCredit}
           creditLimit={selectedContact?.credit_limit ?? null}
           currency={form.currency}
           exchangeRate={form.exchangeRate}
@@ -2185,20 +2219,14 @@ const InvoiceCreatePage = () => {
       {/* ─── Sticky Bottom Actions ─── */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
         <div className="w-full mx-auto flex gap-2 items-center">
-          {/* Live mini-summary: gives accountant a constant sense of control */}
+          {/* Live mini-summary: invoices are credit-only, so always shows total as outstanding (آجل) */}
           <div className="hidden lg:flex items-center gap-3 px-3 h-11 rounded-xl bg-muted/40 text-[11px] tabular-nums">
             <span className="text-muted-foreground">الإجمالي</span>
             <span className="font-bold text-foreground">{fmtCurrency(summary.total)}</span>
             <span className="text-muted-foreground/50">·</span>
-            <span className="text-muted-foreground">المدفوع</span>
-            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-muted-foreground" : "text-emerald-600"}`}>
-              {fmtCurrency(form.paymentMethod === "credit" ? 0 : summary.total)}
-            </span>
+            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px]">آجل</span>
             <span className="text-muted-foreground/50">·</span>
-            <span className="text-muted-foreground">المتبقي</span>
-            <span className={`font-bold ${form.paymentMethod === "credit" ? "text-amber-600" : "text-foreground"}`}>
-              {fmtCurrency(form.paymentMethod === "credit" ? summary.total : 0)}
-            </span>
+            <span className="text-muted-foreground">يُسجَّل القبض لاحقاً عبر سند</span>
           </div>
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
             <Save className="h-4 w-4" /> حفظ كمسودة
