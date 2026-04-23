@@ -1743,18 +1743,18 @@ const InvoiceCreatePage = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Clean professional table */}
-          <div className="hidden lg:block">
-            <table className="w-full text-xs">
+          {/* Excel-grade accounting grid: visible borders, alternating rows, emphasized columns */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-border/60 [&_th]:border [&_th]:border-border/60">
               <thead>
-                <tr className="bg-muted/30 border-b border-border/60 text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wide">
+                <tr className="bg-muted/60 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
                   <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
                   <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
-                  <th className="py-2.5 px-3 text-center w-[110px]">السعر</th>
+                  <th className="py-2.5 px-3 text-center w-[110px] bg-muted/80">السعر</th>
                   <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
                   {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
-                  <th className="py-2.5 px-3 text-left w-[120px]">الإجمالي</th>
+                  <th className="py-2.5 px-3 text-left w-[120px] bg-muted/80">الإجمالي</th>
                   <th className="py-2.5 px-2 text-center w-[40px]"></th>
                 </tr>
               </thead>
@@ -1768,21 +1768,22 @@ const InvoiceCreatePage = () => {
                   const stock = prod ? Number(prod.quantity || 0) : 0;
                   const unit = prod?.unit || "قطعة";
                   const isService = prod?.product_type === "service";
+                  const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
                   return (
-                    <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors group">
+                    <tr key={item.id} className={`${rowBg} hover:bg-sky-50/60 dark:hover:bg-sky-950/20 focus-within:bg-sky-50/80 dark:focus-within:bg-sky-950/30 transition-colors group`}>
                       {/* # */}
-                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle">
+                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle bg-muted/30">
                         {idx + 1}
                       </td>
 
                       {/* Product */}
-                      <td className="py-2 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle">
                         <Popover open={openProductPopover === item.id} onOpenChange={(open) => setOpenProductPopover(open ? item.id : null)}>
                           <PopoverTrigger asChild>
                             <button
                               data-invoice-product-trigger={idx === 0 ? "true" : undefined}
                               data-row-id={item.id}
-                              className="w-full flex items-center justify-between rounded-md text-[12px] h-8 border border-transparent hover:border-border bg-transparent px-2 hover:bg-background transition-all text-right focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary/20 outline-none"
+                              className="w-full flex items-center justify-between rounded-md text-[12px] h-9 border border-input bg-background px-2.5 hover:border-foreground/30 transition-all text-right focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none shadow-sm"
                             >
                               <span className={item.description ? "text-foreground font-medium truncate" : "text-muted-foreground"}>
                                 {item.description || "اختر منتج..."}
@@ -1821,9 +1822,9 @@ const InvoiceCreatePage = () => {
                         </Popover>
                         {item.productId && (
                           isService ? (
-                            <p className="text-[9.5px] text-muted-foreground px-2 mt-0.5">⚙️ خدمة</p>
+                            <p className="text-[9.5px] text-muted-foreground px-2 mt-1">⚙️ خدمة</p>
                           ) : (
-                            <p className={`text-[9.5px] font-medium px-2 mt-0.5 tabular-nums ${
+                            <p className={`text-[9.5px] font-medium px-2 mt-1 tabular-nums ${
                               stock <= 0 ? "text-destructive" :
                               stock < item.quantity ? "text-amber-600" :
                               "text-emerald-600"
@@ -1838,7 +1839,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Quantity */}
-                      <td className="py-2 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle">
                         <Input
                           data-invoice-qty={item.id}
                           type="number"
@@ -1846,13 +1847,13 @@ const InvoiceCreatePage = () => {
                           value={item.quantity}
                           onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
                           onKeyDown={handleCellEnter("qty", item.id)}
-                          className="rounded-md text-[12px] h-8 text-center border border-transparent hover:border-border focus:border-primary bg-transparent hover:bg-background focus:bg-background tabular-nums"
+                          className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm font-semibold"
                           dir="ltr"
                         />
                       </td>
 
                       {/* Price */}
-                      <td className="py-2 px-2 align-middle relative">
+                      <td className="py-1.5 px-2 align-middle relative bg-muted/40">
                         <Input
                           data-invoice-price={item.id}
                           type="number"
@@ -1860,10 +1861,10 @@ const InvoiceCreatePage = () => {
                           value={item.unitPrice}
                           onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))}
                           onKeyDown={handleCellEnter("price", item.id)}
-                          className={`rounded-md text-[12px] h-8 text-center border bg-transparent hover:bg-background focus:bg-background tabular-nums ${
+                          className={`rounded-md text-[12px] h-9 text-center border bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm font-semibold ${
                             showWarning
-                              ? "border-amber-400 bg-amber-50/50"
-                              : "border-transparent hover:border-border focus:border-primary"
+                              ? "border-amber-400 bg-amber-50"
+                              : "border-input"
                           }`}
                           dir="ltr"
                         />
@@ -1884,7 +1885,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Discount with type toggle inline */}
-                      <td className="py-2 px-2 align-middle">
+                      <td className="py-1.5 px-2 align-middle">
                         <div className="flex items-center gap-1">
                           <Input
                             data-invoice-discount={item.id}
@@ -1893,12 +1894,12 @@ const InvoiceCreatePage = () => {
                             value={item.discount}
                             onChange={e => updateItem(item.id, "discount", Number(e.target.value))}
                             onKeyDown={handleCellEnter("discount", item.id)}
-                            className="rounded-md text-[12px] h-8 text-center border border-transparent hover:border-border focus:border-primary bg-transparent hover:bg-background focus:bg-background tabular-nums flex-1 min-w-0"
+                            className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums flex-1 min-w-0 shadow-sm"
                             dir="ltr"
                           />
                           <button
                             onClick={() => updateItem(item.id, "discountType", item.discountType === "percent" ? "amount" : "percent")}
-                            className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                            className="h-9 w-9 rounded-md border border-input bg-background flex items-center justify-center text-[10px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0 shadow-sm"
                             title={item.discountType === "percent" ? "خصم نسبي %" : "خصم ثابت"}
                           >
                             {item.discountType === "percent" ? <Percent className="h-3 w-3" /> : currSymbol}
@@ -1908,9 +1909,9 @@ const InvoiceCreatePage = () => {
 
                       {/* Tax Category */}
                       {taxEnabled && (
-                        <td className="py-2 px-2 align-middle">
+                        <td className="py-1.5 px-2 align-middle">
                           <Select value={item.taxCategory} onValueChange={v => updateItem(item.id, "taxCategory", v)}>
-                            <SelectTrigger className="rounded-md text-[10.5px] h-8 border border-transparent hover:border-border focus:border-primary bg-transparent hover:bg-background px-2">
+                            <SelectTrigger className="rounded-md text-[10.5px] h-9 border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 px-2 shadow-sm">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1923,12 +1924,12 @@ const InvoiceCreatePage = () => {
                       )}
 
                       {/* Subtotal */}
-                      <td className="py-2 px-3 text-left align-middle">
+                      <td className="py-2 px-3 text-left align-middle bg-muted/40">
                         <span className="text-[13px] font-bold text-foreground tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</span>
                       </td>
 
                       {/* Delete */}
-                      <td className="py-2 px-2 text-center align-middle">
+                      <td className="py-2 px-2 text-center align-middle bg-muted/30">
                         <button
                           onClick={() => removeItem(item.id)}
                           className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-20 disabled:hover:text-muted-foreground/40 opacity-0 group-hover:opacity-100"
@@ -1999,10 +2000,13 @@ const InvoiceCreatePage = () => {
           </div>
 
           {/* Add row footer */}
-          <div className="px-3 py-2 border-t border-border/50 bg-muted/10">
-            <Button variant="ghost" size="sm" className="w-full rounded-md text-xs gap-1.5 h-8 text-primary hover:bg-primary/10 justify-center" onClick={addItem}>
-              <Plus className="h-3.5 w-3.5" /> إضافة بند جديد
-            </Button>
+          <div className="p-2 bg-muted/10">
+            <button
+              onClick={addItem}
+              className="w-full h-10 rounded-md border-2 border-dashed border-border bg-muted/30 hover:border-primary/60 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-[12px] font-semibold text-muted-foreground hover:text-primary"
+            >
+              <Plus className="h-4 w-4" /> إضافة بند جديد
+            </button>
           </div>
         </CardContent>
       </Card>
