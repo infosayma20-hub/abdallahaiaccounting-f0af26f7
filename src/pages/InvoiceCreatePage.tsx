@@ -1788,8 +1788,25 @@ const InvoiceCreatePage = () => {
             <div className="border border-border rounded-xl p-3 space-y-3">
               <p className="text-xs font-semibold flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-primary" /> بيانات التحويل</p>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">رقم المرجع</label><Input value={form.transferRef} onChange={e => setForm(p => ({ ...p, transferRef: e.target.value }))} className="rounded-lg text-sm" /></div>
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك</label><Input value={form.transferBank} onChange={e => setForm(p => ({ ...p, transferBank: e.target.value }))} className="rounded-lg text-sm" /></div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">الحساب البنكي المستلم</label>
+                  <Select value={form.transferBank || "__none__"} onValueChange={v => {
+                    const ba = bankAccounts.find(b => b.id === v);
+                    setForm(p => ({ ...p, transferBank: v === "__none__" ? "" : (ba?.name || v) }));
+                  }}>
+                    <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__" disabled>اختر الحساب البنكي</SelectItem>
+                      {bankAccounts.map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.name} — {b.bank_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-0.5 block">رقم العملية / المرجع</label>
+                  <Input value={form.transferRef} onChange={e => setForm(p => ({ ...p, transferRef: e.target.value }))} className="rounded-lg text-sm" placeholder="رقم تحويل بنكي اختياري" />
+                </div>
               </div>
             </div>
           )}
