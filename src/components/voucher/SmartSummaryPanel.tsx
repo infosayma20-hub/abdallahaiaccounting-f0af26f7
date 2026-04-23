@@ -303,17 +303,26 @@ function BalanceBreakdown({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  // Bridge math:
-  // For receipts: ledger debit (positive) should ≈ openInvoices − unappliedCredit + other
-  // "other" = movements not represented by open invoices/advances (paid portions of past invoices, journals, etc.)
-  const expectedFromInvoices = Math.max(0, openInvoicesTotal) - Math.max(0, unappliedCredit);
-  const other = total - expectedFromInvoices;
-  const hasOther = Math.abs(other) > 0.01;
-  const hasBreakdown = openInvoicesTotal > 0.01 || unappliedCredit > 0.01 || hasOther;
+  // Determine balance nature first — drives interpretation of breakdown
+  const isDebit = total > 0.005;     // they owe us (customer debit / receivable)
+  const isCredit = total < -0.005;   // we owe them (supplier credit / payable)
+  const isZero = !isDebit && !isCredit;
 
-  // Determine balance nature
-  const isDebit = total > 0.005;
-  const isCredit = total < -0.005;
+  // Bridge math (sign-aware):
+  //   Customer (debit, total > 0): ledger ≈ openInvoices − unappliedCredit + other
+  //   Supplier (credit, total < 0): ledger ≈ −openInvoices + unappliedAdvance + other
+  //   "other" = movements not represented by open docs (paid history, journals, opening balance…)
+  const expectedFromDocs = isCredit
+    ? -(Math.max(0, openInvoicesTotal)) + Math.max(0, unappliedCredit)
+    :  (Math.max(0, openInvoicesTotal)) - Math.max(0, unappliedCredit);
+  const other = total - expectedFromDocs;
+  const hasOther = Math.abs(other) > 0.01;
+  const hasOpen = openInvoicesTotal > 0.01;
+  const hasUnapplied = unappliedCredit > 0.01;
+  // Only show breakdown when at least 2 components contribute — otherwise the "breakdown" is the value itself
+  const componentCount = (hasOpen ? 1 : 0) + (hasUnapplied ? 1 : 0) + (hasOther ? 1 : 0);
+  const hasBreakdown = !isZero && componentCount >= 2;
+
   const totalColor = isDebit
     ? "text-rose-600"
     : isCredit
@@ -366,23 +375,29 @@ function BalanceBreakdown({
             className="overflow-hidden"
           >
             <div className="mt-1.5 rounded-lg bg-muted/40 border border-border/40 px-2.5 py-2 space-y-1.5 text-[10.5px]">
-              {openInvoicesTotal > 0.01 && (
+              {hasOpen && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <FileText className="h-2.5 w-2.5" /> فواتير مفتوحة
                   </span>
-                  <span className="font-medium text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    +{symbol}{fmt(openInvoicesTotal)}
+                  <span
+                    className={`font-medium ${isCredit ? "text-emerald-600" : "text-rose-600"}`}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {isCredit ? "−" : "+"}{symbol}{fmt(openInvoicesTotal)}
                   </span>
                 </div>
               )}
-              {unappliedCredit > 0.01 && (
+              {hasUnapplied && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Wallet className="h-2.5 w-2.5" /> دفعات غير مخصصة
                   </span>
-                  <span className="font-medium text-emerald-600" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    −{symbol}{fmt(unappliedCredit)}
+                  <span
+                    className={`font-medium ${isCredit ? "text-rose-600" : "text-emerald-600"}`}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {isCredit ? "+" : "−"}{symbol}{fmt(unappliedCredit)}
                   </span>
                 </div>
               )}
@@ -393,7 +408,7 @@ function BalanceBreakdown({
                     <span className="text-[9px] text-muted-foreground/70">(دفعات سابقة، قيود)</span>
                   </span>
                   <span
-                    className={`font-medium ${other >= 0 ? "text-foreground" : "text-emerald-600"}`}
+                    className={`font-medium ${other >= 0 ? "text-rose-600" : "text-emerald-600"}`}
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {other >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(other))}
@@ -401,7 +416,9 @@ function BalanceBreakdown({
                 </div>
               )}
               <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-dashed border-border/50">
-                <span className="text-muted-foreground font-medium">= الرصيد</span>
+                <span className="text-muted-foreground font-medium">
+                  = صافي الرصيد {isDebit ? "(مدين)" : isCredit ? "(دائن)" : ""}
+                </span>
                 <span className={`font-bold ${totalColor}`} style={{ fontVariantNumeric: "tabular-nums" }}>
                   {symbol}{fmt(Math.abs(total))}
                 </span>
