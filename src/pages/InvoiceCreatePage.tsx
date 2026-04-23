@@ -277,6 +277,7 @@ const InvoiceCreatePage = () => {
 
   // Terms
   const [termsOpen, setTermsOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [invoiceTerms, setInvoiceTerms] = useState("");
   const defaultTerms = companySettings?.default_invoice_terms || "يُرجى السداد خلال المدة المتفق عليها.\nشكراً لتعاملكم معنا.";
 
