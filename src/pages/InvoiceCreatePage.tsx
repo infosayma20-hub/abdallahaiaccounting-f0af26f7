@@ -1916,35 +1916,52 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
-      {/* ─── SECTION 4: Notes ─── */}
-      <Card className="border-0 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-3">
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" /> ملاحظة على الفاتورة
-              <span className="text-[9px] text-muted-foreground/60">(تظهر في PDF)</span>
-            </label>
-            <Textarea
-              placeholder={companySettings.invoice_default_notes || "شكراً لتعاملكم معنا..."}
-              value={form.notes}
-              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="rounded-xl text-sm min-h-[60px] resize-none"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
-              ملاحظة داخلية
-              <span className="text-[9px] text-muted-foreground/60">(لا تظهر في PDF)</span>
-            </label>
-            <Textarea
-              placeholder="ملاحظات داخلية للفريق..."
-              value={form.notesInternal}
-              onChange={e => setForm(p => ({ ...p, notesInternal: e.target.value }))}
-              className="rounded-xl text-sm min-h-[50px] resize-none bg-muted/30"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* ─── SECTION 4: Notes (Collapsible) ─── */}
+      <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-0 pt-4 px-5 cursor-pointer hover:bg-muted/30 rounded-t-2xl transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-primary" /> ملاحظات
+                  {(form.notes?.trim() || form.notesInternal?.trim()) && (
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5">●</Badge>
+                  )}
+                </CardTitle>
+                {notesOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="px-5 pb-5 pt-3 space-y-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
+                  ملاحظة على الفاتورة
+                  <span className="text-[9px] text-muted-foreground/60">(تظهر في PDF)</span>
+                </label>
+                <Textarea
+                  placeholder={companySettings.invoice_default_notes || "شكراً لتعاملكم معنا..."}
+                  value={form.notes}
+                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                  className="rounded-xl text-sm min-h-[60px] resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium flex items-center gap-1.5">
+                  ملاحظة داخلية
+                  <span className="text-[9px] text-muted-foreground/60">(لا تظهر في PDF)</span>
+                </label>
+                <Textarea
+                  placeholder="ملاحظات داخلية للفريق..."
+                  value={form.notesInternal}
+                  onChange={e => setForm(p => ({ ...p, notesInternal: e.target.value }))}
+                  className="rounded-xl text-sm min-h-[50px] resize-none bg-muted/30"
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* ─── SECTION 5: Terms & Conditions (Collapsible) ─── */}
       <Collapsible open={termsOpen} onOpenChange={setTermsOpen}>
