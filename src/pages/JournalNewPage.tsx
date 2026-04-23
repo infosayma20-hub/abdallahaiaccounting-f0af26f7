@@ -26,6 +26,9 @@ import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import useJournalKeyboard, { focusNextJournalCell } from "@/hooks/useJournalKeyboard";
 import JournalBalanceBar from "@/components/journal/JournalBalanceBar";
+import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker";
+import type { JournalTemplate } from "@/hooks/useJournalTemplates";
+import { Bookmark } from "lucide-react";
 
 interface JournalLine {
   id: string;
