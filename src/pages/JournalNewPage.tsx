@@ -649,9 +649,24 @@ const JournalNewPage = () => {
               <BookOpen className="h-4 w-4 text-primary" />
               أسطر القيد
             </h3>
-            <Button variant="outline" size="sm" onClick={addLine} className="gap-1 text-xs h-8">
-              <Plus className="h-3 w-3" /> إضافة سطر
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <span className="hidden md:flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Enter</kbd>
+                <span>التالي</span>
+                <span className="text-muted-foreground/50">•</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Alt+N</kbd>
+                <span>سطر</span>
+                <span className="text-muted-foreground/50">•</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+D</kbd>
+                <span>نسخ</span>
+                <span className="text-muted-foreground/50">•</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono text-[10px]">Ctrl+Enter</kbd>
+                <span>حفظ</span>
+              </span>
+              <Button variant="outline" size="sm" onClick={addLineAndFocus} className="gap-1 text-xs h-8">
+                <Plus className="h-3 w-3" /> إضافة سطر
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-border overflow-hidden">
