@@ -2822,6 +2822,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           allocatedTotal={totalAllocated}
           date={paymentDate}
           refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
+          onOpenStatement={
+            partyType === "contact" && selectedContact?.id
+              ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
+              : undefined
+          }
         />
       </aside>
     </div>
