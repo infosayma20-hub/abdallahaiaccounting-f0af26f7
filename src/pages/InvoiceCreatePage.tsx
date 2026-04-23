@@ -1720,6 +1720,14 @@ const InvoiceCreatePage = () => {
                 <span className="text-muted-foreground/60">·</span>
                 <kbd className="font-mono">Ctrl+Enter</kbd> حفظ
               </span>
+              {taxEnabled && (
+                <div className="flex items-center gap-1.5 mr-1 px-2 py-1 rounded-md bg-muted/40">
+                  <Switch id="tax-inclusive" checked={form.taxInclusive} onCheckedChange={v => setForm(p => ({ ...p, taxInclusive: v }))} />
+                  <Label htmlFor="tax-inclusive" className="text-[10px] text-muted-foreground cursor-pointer">
+                    {form.taxInclusive ? "شامل الضريبة" : "غير شامل"}
+                  </Label>
+                </div>
+              )}
               <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
                 <Plus className="h-3 w-3" /> تعريف منتج
               </Button>
