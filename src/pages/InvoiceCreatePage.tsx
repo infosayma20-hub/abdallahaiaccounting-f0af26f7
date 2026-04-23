@@ -829,6 +829,17 @@ const InvoiceCreatePage = () => {
   };
   const clearItems = () => setForm(prev => ({ ...prev, items: [createEmptyItem()] }));
 
+  // Adds a new row and focuses its quantity field — used by Enter on last row's discount cell.
+  const addItemAndFocus = useCallback(() => {
+    const newItem = { ...createEmptyItem(), taxCategory: defaultTaxCategory, taxRate: defaultTaxCategory === "taxable" ? 16 : 0 };
+    setForm(prev => ({ ...prev, items: [...prev.items, newItem] }));
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>(`[data-invoice-qty="${newItem.id}"]`);
+      el?.focus();
+      el?.select();
+    }, 30);
+  }, [defaultTaxCategory]);
+
   // ─── Quick Add Product ───
   const handleQuickAddProduct = async () => {
     if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
