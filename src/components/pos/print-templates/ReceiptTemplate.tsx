@@ -92,19 +92,21 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
 
   return (
     <div ref={ref} dir="rtl" lang="ar" style={{
-      width: '320px',
-      minWidth: '320px',
-      maxWidth: '320px',
+      // Aligned with ShiftSummaryTemplate (closure report) which prints perfectly.
+      // Width 576px (80mm @ 203 DPI), larger fonts, Tahoma for connected Arabic.
+      width: '576px',
+      minWidth: '576px',
+      maxWidth: '576px',
       overflow: 'visible',
       boxSizing: 'border-box',
       direction: 'rtl',
-      padding: '6px 12px',
+      padding: '20px 24px',
       backgroundColor: '#ffffff',
       color: '#000000',
       fontFamily: FONT,
-      fontSize: '15px',
-      fontWeight: 500,
-      lineHeight: 1.2,
+      fontSize: '20px',
+      fontWeight: 700,
+      lineHeight: 1.5,
     }}>
 
       {/* ═══ 1. LOGO ═══ */}
