@@ -295,9 +295,7 @@ function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
     })),
     total: order.total,
     createdAt: order.date ? `${order.date}T${order.time || '00:00'}` : new Date().toISOString(),
-    // Kitchen tickets should NOT display invoice-level notes — only per-item notes.
-    // Per management request (Al-Malaky restaurant, April 2026).
-    orderNote: undefined,
+    orderNote: order.orderNote,
   };
 }
 
@@ -460,6 +458,7 @@ export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promi
   try {
     const session = {
       branchName: data.companyName,
+      logoUrl: data.logoUrl,
       cashierName: data.cashierName,
       terminalName: data.terminalName,
       cashBoxName: data.cashBoxName,
