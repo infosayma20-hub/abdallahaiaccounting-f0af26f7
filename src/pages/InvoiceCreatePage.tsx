@@ -1465,14 +1465,40 @@ const InvoiceCreatePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-5 pb-5 space-y-4">
-          {/* Type Toggle */}
-          <div className="flex gap-2">
-            <button onClick={() => setForm(p => ({ ...p, type: "sales" }))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${form.type === "sales" ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}>
-              <Receipt className="h-4 w-4" /> فاتورة مبيعات
-            </button>
-            <button onClick={() => setForm(p => ({ ...p, type: "purchase" }))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${form.type === "purchase" ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}>
-              <ShoppingCart className="h-4 w-4" /> فاتورة مشتريات
-            </button>
+          {/* Type Toggle — compact segmented control aligned to the right (RTL) */}
+          <div className="flex justify-start">
+            <div
+              role="tablist"
+              aria-label="نوع الفاتورة"
+              className="inline-flex w-full max-w-[420px] rounded-xl border border-border bg-muted/40 p-1 shadow-sm"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={form.type === "sales"}
+                onClick={() => setForm(p => ({ ...p, type: "sales" }))}
+                className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  form.type === "sales"
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" /> فاتورة مبيعات
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={form.type === "purchase"}
+                onClick={() => setForm(p => ({ ...p, type: "purchase" }))}
+                className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  form.type === "purchase"
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ShoppingCart className="h-3.5 w-3.5" /> فاتورة مشتريات
+              </button>
+            </div>
           </div>
 
           {/* Row 1: Invoice Number, Issue Date, Due Date, Payment Terms */}
