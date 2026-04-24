@@ -293,6 +293,10 @@ export async function printReceiptImage(
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string }
 ): Promise<PrintImageResult> {
   try {
+    const dedupeKey = `receipt|${order.orderNumber}|${order.id || 'noid'}`;
+    if (_shouldBlockDuplicate(dedupeKey)) {
+      return { success: true, error: 'duplicate_blocked' };
+    }
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
     const itemsCount = order.items?.length || 0;
     const meta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
@@ -351,6 +355,10 @@ export async function printAllImage(
   kitchenJobs?: KitchenJob[],
 ): Promise<PrintImageResult> {
   try {
+    const dedupeKey = `all|${order.orderNumber}|${order.id || 'noid'}`;
+    if (_shouldBlockDuplicate(dedupeKey)) {
+      return { success: true, error: 'duplicate_blocked' };
+    }
     const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
     const kitchenOrder = toBridgeKitchenOrder(order, order.items);
     const itemsCount = order.items?.length || 0;
