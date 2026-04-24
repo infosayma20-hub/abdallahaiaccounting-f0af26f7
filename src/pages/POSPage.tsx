@@ -2829,7 +2829,15 @@ const POSPage = () => {
           subtotal: cartTotals.subtotal,
           discount: effectiveDiscount,
           total: effectiveTotal,
-          paymentMethod: effectivePaymentMethod === "cash" ? "نقد" : effectivePaymentMethod === "card" ? "بطاقة" : "تحويل",
+          paymentMethod: (() => {
+            // For card payments from call center, include the source app name (e.g. "فيزا - Wheel App")
+            if (effectivePaymentMethod === "cash") return "نقد";
+            if (effectivePaymentMethod === "card") {
+              const src = activeOrder.callCenterSourceApp?.trim();
+              return src ? `فيزا - ${src}` : "بطاقة";
+            }
+            return "تحويل";
+          })(),
           currency: paymentCurrency,
           exchangeRate: rate,
           tenderedAmount: tendered,
@@ -4490,18 +4498,28 @@ const POSPage = () => {
             )}
 
             {/* Order Note Input */}
+            {/* Order Note Input — WHITE background, always visible (Al-Malaky April 2026) */}
             <div className="px-3 pt-2">
               <div className="flex items-center gap-1.5">
                 <Input
                   value={orderNote}
                   onChange={(e) => setOrderNote(e.target.value)}
                   placeholder="📝 ملاحظة على الفاتورة..."
-                  className="h-7 text-[11px] flex-1"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
+                  className="h-9 text-[13px] flex-1 font-semibold"
+                  style={{
+                    background: '#ffffff',
+                    border: '2px solid #e5e7eb',
+                    color: '#111827',
+                  }}
                 />
                 {orderNote && (
-                  <button onClick={() => setOrderNote("")} className="text-[10px]" style={{ color: '#fca5a5' }}>
-                    <X className="h-3 w-3" />
+                  <button
+                    onClick={() => setOrderNote("")}
+                    className="h-9 w-9 rounded-md flex items-center justify-center"
+                    style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}
+                    title="مسح الملاحظة"
+                  >
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>

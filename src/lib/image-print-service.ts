@@ -64,6 +64,29 @@ interface PrintImageResult {
   results?: { printerKey: string; name?: string; success: boolean; error?: string }[];
 }
 
+// ──────────────────────────────────────────
+// Anti-duplicate guard (frontend layer)
+// Prevents rapid re-fires from F9/button double-clicks or retry loops.
+// key = `${endpoint}|${orderNumber}|${printerKey}`  — kept for 60 seconds.
+// ──────────────────────────────────────────
+const _recentPrintJobs = new Map<string, number>();
+const DUPLICATE_WINDOW_MS = 60_000;
+
+function _shouldBlockDuplicate(key: string): boolean {
+  const now = Date.now();
+  // Garbage-collect stale entries
+  for (const [k, t] of _recentPrintJobs) {
+    if (now - t > DUPLICATE_WINDOW_MS) _recentPrintJobs.delete(k);
+  }
+  const last = _recentPrintJobs.get(key);
+  if (last && now - last < DUPLICATE_WINDOW_MS) {
+    console.warn(`[duplicate-blocked] ${key} — fired ${now - last}ms ago`);
+    return true;
+  }
+  _recentPrintJobs.set(key, now);
+  return false;
+}
+
 /** Build diagnostic meta payload sent with every print request */
 function buildMeta(receiptType: string, opts: { itemsCount?: number; estimatedHeight?: number; debug?: boolean } = {}) {
   return {
@@ -252,7 +275,9 @@ function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
     })),
     total: order.total,
     createdAt: order.date ? `${order.date}T${order.time || '00:00'}` : new Date().toISOString(),
-    orderNote: order.orderNote,
+    // Kitchen tickets should NOT display invoice-level notes — only per-item notes.
+    // Per management request (Al-Malaky restaurant, April 2026).
+    orderNote: undefined,
   };
 }
 
@@ -268,6 +293,10 @@ export async function printReceiptImage(
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string }
 ): Promise<PrintImageResult> {
   try {
+    const dedupeKey = `receipt|${order.orderNumber}|${order.id || 'noid'}`;
+    if (_shouldBlockDuplicate(dedupeKey)) {
+      return { success: true, error: 'duplicate_blocked' };
+    }
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
     const itemsCount = order.items?.length || 0;
     const meta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
@@ -326,6 +355,10 @@ export async function printAllImage(
   kitchenJobs?: KitchenJob[],
 ): Promise<PrintImageResult> {
   try {
+    const dedupeKey = `all|${order.orderNumber}|${order.id || 'noid'}`;
+    if (_shouldBlockDuplicate(dedupeKey)) {
+      return { success: true, error: 'duplicate_blocked' };
+    }
     const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
     const kitchenOrder = toBridgeKitchenOrder(order, order.items);
     const itemsCount = order.items?.length || 0;
