@@ -96,16 +96,39 @@ async function imageToEscPos(base64Image, targetWidth) {
     }
   }
 
-  // GS v 0 — Print raster bit image
-  // Format: GS v 0 m xL xH yL yH [data]
-  // m = 0 (normal), xL xH = bytes per row, yL yH = height
-  const header = Buffer.from([
-    GS, 0x76, 0x30, 0x00,
-    bytesPerRow & 0xFF, (bytesPerRow >> 8) & 0xFF,
-    height & 0xFF, (height >> 8) & 0xFF,
-  ]);
+  // ─── CRITICAL FIX: Chunk raster data to avoid printer buffer overflow ───
+  // Many ESC/POS printers (especially 80mm thermal) have a small buffer.
+  // Sending one giant GS v 0 block with height > 255 rows can cause the
+  // printer to fall back to text mode and print remaining bytes as garbage.
+  //
+  // Solution: split into chunks of MAX_CHUNK_HEIGHT rows each, sending
+  // a fresh GS v 0 header for every chunk. This is the standard, safe way.
+  const MAX_CHUNK_HEIGHT = 128; // safe for almost all thermal printers
+  const chunks = [];
 
-  return Buffer.concat([CMD.INIT, header, rasterData, CMD.FEED_3, CMD.CUT]);
+  // Always start with a clean printer state
+  chunks.push(CMD.INIT);
+
+  for (let yStart = 0; yStart < height; yStart += MAX_CHUNK_HEIGHT) {
+    const chunkHeight = Math.min(MAX_CHUNK_HEIGHT, height - yStart);
+    const chunkData   = rasterData.slice(yStart * bytesPerRow, (yStart + chunkHeight) * bytesPerRow);
+
+    // GS v 0 — Print raster bit image
+    // Format: GS v 0 m xL xH yL yH [data]
+    // m = 0 (normal), xL xH = bytes per row, yL yH = chunk height
+    const header = Buffer.from([
+      GS, 0x76, 0x30, 0x00,
+      bytesPerRow  & 0xFF, (bytesPerRow  >> 8) & 0xFF,
+      chunkHeight  & 0xFF, (chunkHeight  >> 8) & 0xFF,
+    ]);
+
+    chunks.push(header, chunkData);
+  }
+
+  // Re-init AFTER image to flush any pending raster state, then feed + cut
+  chunks.push(CMD.INIT, CMD.FEED_3, CMD.CUT);
+
+  return Buffer.concat(chunks);
 }
 
 // ─── Send to Printer ────────────────────────────────
