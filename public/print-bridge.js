@@ -1,9 +1,13 @@
 /**
- * AMWALI Print Bridge v5.0 — Image Mode (Raster Printing)
+ * AMWALI Print Bridge v5.1 — Image Mode (Raster Printing) — Chunked Output Fix
  *
  * Instead of sending text commands, this version receives pre-rendered
  * receipt/ticket images (base64 PNG) from the browser and converts them
  * to ESC/POS raster bitmaps for perfect Arabic rendering.
+ *
+ * v5.1 fix: Splits long receipt images into 128-row raster chunks to
+ *           prevent thermal printers from falling back to text mode and
+ *           printing the trailing buffer as garbage characters.
  *
  * Install: npm install express sharp
  * Run:     node print-bridge.js
@@ -96,16 +100,39 @@ async function imageToEscPos(base64Image, targetWidth) {
     }
   }
 
-  // GS v 0 — Print raster bit image
-  // Format: GS v 0 m xL xH yL yH [data]
-  // m = 0 (normal), xL xH = bytes per row, yL yH = height
-  const header = Buffer.from([
-    GS, 0x76, 0x30, 0x00,
-    bytesPerRow & 0xFF, (bytesPerRow >> 8) & 0xFF,
-    height & 0xFF, (height >> 8) & 0xFF,
-  ]);
+  // ─── CRITICAL FIX: Chunk raster data to avoid printer buffer overflow ───
+  // Many ESC/POS printers (especially 80mm thermal) have a small buffer.
+  // Sending one giant GS v 0 block with height > 255 rows can cause the
+  // printer to fall back to text mode and print remaining bytes as garbage.
+  //
+  // Solution: split into chunks of MAX_CHUNK_HEIGHT rows each, sending
+  // a fresh GS v 0 header for every chunk. This is the standard, safe way.
+  const MAX_CHUNK_HEIGHT = 128; // safe for almost all thermal printers
+  const chunks = [];
 
-  return Buffer.concat([CMD.INIT, header, rasterData, CMD.FEED_3, CMD.CUT]);
+  // Always start with a clean printer state
+  chunks.push(CMD.INIT);
+
+  for (let yStart = 0; yStart < height; yStart += MAX_CHUNK_HEIGHT) {
+    const chunkHeight = Math.min(MAX_CHUNK_HEIGHT, height - yStart);
+    const chunkData   = rasterData.slice(yStart * bytesPerRow, (yStart + chunkHeight) * bytesPerRow);
+
+    // GS v 0 — Print raster bit image
+    // Format: GS v 0 m xL xH yL yH [data]
+    // m = 0 (normal), xL xH = bytes per row, yL yH = chunk height
+    const header = Buffer.from([
+      GS, 0x76, 0x30, 0x00,
+      bytesPerRow  & 0xFF, (bytesPerRow  >> 8) & 0xFF,
+      chunkHeight  & 0xFF, (chunkHeight  >> 8) & 0xFF,
+    ]);
+
+    chunks.push(header, chunkData);
+  }
+
+  // Re-init AFTER image to flush any pending raster state, then feed + cut
+  chunks.push(CMD.INIT, CMD.FEED_3, CMD.CUT);
+
+  return Buffer.concat(chunks);
 }
 
 // ─── Send to Printer ────────────────────────────────
@@ -142,11 +169,11 @@ app.get('/health', async (req, res) => {
       status: await testConnection(p.ip, p.port) ? 'online' : 'offline',
     }))
   );
-  res.json({ status: 'ok', version: '5.0-image', mode: 'raster', printers: results, timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '5.1-image-chunked', mode: 'raster', printers: results, timestamp: new Date().toISOString() });
 });
 
 app.get('/status', (req, res) => {
-  res.json({ status: 'ok', version: '5.0-image', mode: 'raster', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '5.1-image-chunked', mode: 'raster', timestamp: new Date().toISOString() });
 });
 
 // ── /print-image — Main image-mode endpoint ──
@@ -245,7 +272,7 @@ app.get('/config', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('\n  AMWALI Print Bridge v5.0 — IMAGE MODE');
+  console.log('\n  AMWALI Print Bridge v5.1 — IMAGE MODE (chunked)');
   console.log('  Port: ' + PORT);
   Object.entries(PRINTERS).forEach(([key, p]) => {
     console.log(`  [${key}] ${p.name} @ ${p.ip}:${p.port}  ${p.width}px  ${p.stationId || ''}`);
