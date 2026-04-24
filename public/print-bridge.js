@@ -1,9 +1,13 @@
 /**
- * AMWALI Print Bridge v5.0 — Image Mode (Raster Printing)
+ * AMWALI Print Bridge v5.1 — Image Mode (Raster Printing) — Chunked Output Fix
  *
  * Instead of sending text commands, this version receives pre-rendered
  * receipt/ticket images (base64 PNG) from the browser and converts them
  * to ESC/POS raster bitmaps for perfect Arabic rendering.
+ *
+ * v5.1 fix: Splits long receipt images into 128-row raster chunks to
+ *           prevent thermal printers from falling back to text mode and
+ *           printing the trailing buffer as garbage characters.
  *
  * Install: npm install express sharp
  * Run:     node print-bridge.js
@@ -165,11 +169,11 @@ app.get('/health', async (req, res) => {
       status: await testConnection(p.ip, p.port) ? 'online' : 'offline',
     }))
   );
-  res.json({ status: 'ok', version: '5.0-image', mode: 'raster', printers: results, timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '5.1-image-chunked', mode: 'raster', printers: results, timestamp: new Date().toISOString() });
 });
 
 app.get('/status', (req, res) => {
-  res.json({ status: 'ok', version: '5.0-image', mode: 'raster', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: '5.1-image-chunked', mode: 'raster', timestamp: new Date().toISOString() });
 });
 
 // ── /print-image — Main image-mode endpoint ──
@@ -268,7 +272,7 @@ app.get('/config', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('\n  AMWALI Print Bridge v5.0 — IMAGE MODE');
+  console.log('\n  AMWALI Print Bridge v5.1 — IMAGE MODE (chunked)');
   console.log('  Port: ' + PORT);
   Object.entries(PRINTERS).forEach(([key, p]) => {
     console.log(`  [${key}] ${p.name} @ ${p.ip}:${p.port}  ${p.width}px  ${p.stationId || ''}`);
