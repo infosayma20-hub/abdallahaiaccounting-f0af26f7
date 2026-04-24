@@ -310,6 +310,34 @@ const POSPage = () => {
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
   const { printAll: bridgePrintAll } = usePrintBridge();
+  // Guard against rapid double-fires on print shortcuts (F8/F9/payment button).
+  // Holds the timestamp of the last print click — ignores clicks within 1500ms.
+  const lastPrintClickRef = useRef<number>(0);
+  const printInProgressRef = useRef<boolean>(false);
+
+  /** Build a stable hash for the current cart contents (for F8 dedupe). */
+  const buildCartHash = useCallback((items: { name: string; qty: number; unit_price?: number }[]): string => {
+    if (!items?.length) return "empty";
+    const sig = items.map(i => `${i.name}x${i.qty}@${i.unit_price || 0}`).join("|");
+    let h = 0;
+    for (let i = 0; i < sig.length; i++) h = ((h << 5) - h + sig.charCodeAt(i)) | 0;
+    return Math.abs(h).toString(36);
+  }, []);
+
+  /** Returns true if a print click should be ignored (throttled or in-flight). */
+  const shouldThrottlePrint = useCallback((label: string): boolean => {
+    const now = Date.now();
+    if (printInProgressRef.current) {
+      console.warn(`[frontend-print-blocked-in-progress] ${label}`);
+      return true;
+    }
+    if (now - lastPrintClickRef.current < 1500) {
+      console.warn(`[frontend-print-blocked-throttle] ${label} — last click ${now - lastPrintClickRef.current}ms ago`);
+      return true;
+    }
+    lastPrintClickRef.current = now;
+    return false;
+  }, []);
 
   // URL params for table context
   const urlTableId = searchParams.get("table_id");
@@ -3314,6 +3342,8 @@ const POSPage = () => {
       }
       // F9 = Send to printer (not for call center)
       if (e.key === "F9" && cart.length > 0 && !isCallCenter) {
+        console.log("[frontend-print-click] F9");
+        if (shouldThrottlePrint("F9")) { e.preventDefault(); return; }
         handleSendToKitchen();
         e.preventDefault();
         return;
@@ -3326,8 +3356,12 @@ const POSPage = () => {
       }
       // F8 = Print (silent via bridge)
       if (e.key === "F8" && cart.length > 0) {
+        console.log("[frontend-print-click] F8");
+        if (shouldThrottlePrint("F8")) { e.preventDefault(); return; }
+        const cartHash = buildCartHash(cart as any);
         const f8Order: BridgePrintOrder = {
-          orderNumber: Date.now().toString(),
+          orderNumber: `F8-${cartHash}`,
+          id: `f8-${cartHash}`,
           branchName: company?.name || "مطعم الملكي - سفيان",
           cashier: session?.cashier_name || "",
           tableNumber: activeOrder.tableName || undefined,
@@ -3346,7 +3380,10 @@ const POSPage = () => {
           total: cartTotals.total,
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
-        printAllImage(f8Order).catch(() => console.warn("F8 image print failed"));
+        printInProgressRef.current = true;
+        printAllImage(f8Order)
+          .catch(() => console.warn("F8 image print failed"))
+          .finally(() => { printInProgressRef.current = false; });
         e.preventDefault();
         return;
       }
