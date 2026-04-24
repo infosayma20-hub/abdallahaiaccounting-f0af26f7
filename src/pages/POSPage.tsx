@@ -3342,6 +3342,8 @@ const POSPage = () => {
       }
       // F9 = Send to printer (not for call center)
       if (e.key === "F9" && cart.length > 0 && !isCallCenter) {
+        console.log("[frontend-print-click] F9");
+        if (shouldThrottlePrint("F9")) { e.preventDefault(); return; }
         handleSendToKitchen();
         e.preventDefault();
         return;
