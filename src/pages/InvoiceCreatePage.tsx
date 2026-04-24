@@ -1501,17 +1501,16 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
-          {/* Row 1: Invoice Number, Issue Date, Due Date, Payment Terms */}
+          {/* Row 1 (Enter order): Issue Date → Currency → Due Date → Payment Terms · Invoice # is read-only on the right */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
-              <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
-            </div>
-            <div data-smart-first="true">
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
-              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
-                <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
-              </div>
+              <TypedDateInput
+                value={form.date}
+                onChange={(v) => setForm(p => ({ ...p, date: v }))}
+                ariaLabel="تاريخ الإصدار"
+                inputProps={{ "data-smart-first": "true" }}
+              />
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
@@ -1536,6 +1535,14 @@ const InvoiceCreatePage = () => {
               </Select>
             </div>
             <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
+              <TypedDateInput
+                value={form.dueDate}
+                onChange={(v) => setForm(p => ({ ...p, dueDate: v }))}
+                ariaLabel="تاريخ الاستحقاق"
+              />
+            </div>
+            <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
               <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
                 <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
@@ -1545,10 +1552,15 @@ const InvoiceCreatePage = () => {
               </Select>
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
-              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
-                <RtlDateField value={form.dueDate} onChange={(v) => setForm(p => ({ ...p, dueDate: v }))} ariaLabel="تاريخ الاستحقاق" />
-              </div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
+              <Input
+                value={nextInvoiceNumber}
+                readOnly
+                tabIndex={-1}
+                data-smart-skip="true"
+                className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono"
+                dir="ltr"
+              />
             </div>
           </div>
 
