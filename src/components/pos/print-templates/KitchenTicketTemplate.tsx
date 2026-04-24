@@ -91,13 +91,13 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {/* TIME — moved directly BELOW order number, larger font (per Al-Malaky April 2026) */}
       <div style={{
         textAlign: 'center',
-        fontSize: '36px',
+        fontSize: '28px',
         fontWeight: 900,
         color: '#000',
-        padding: '6px 8px',
+        padding: '5px 8px',
         margin: '4px 0 8px',
-        lineHeight: 1.1,
-        letterSpacing: '1px',
+        lineHeight: 1.05,
+        letterSpacing: '0.5px',
         border: '2px solid #000',
         borderRadius: '4px',
       }}>
@@ -158,8 +158,25 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         );
       })}
 
-      {/* Invoice-level order note is INTENTIONALLY NOT printed on kitchen tickets */}
-      {/* Per management request (Al-Malaky, April 2026): kitchen tickets show only per-item notes. */}
+      {order.orderNote && (
+        <>
+          <div style={{ borderTop: '3px solid #000', margin: '8px 0 6px' }} />
+          <div style={{
+            fontSize: '20px',
+            fontWeight: 900,
+            color: '#000',
+            textAlign: 'right',
+            background: '#eee',
+            padding: '6px 8px',
+            borderRadius: '3px',
+            lineHeight: 1.25,
+            border: '2px solid #000',
+            wordBreak: 'break-word',
+          }}>
+            ملاحظة الفاتورة: {order.orderNote}
+          </div>
+        </>
+      )}
 
       <div style={{ height: '12px' }} />
     </div>
