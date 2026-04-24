@@ -35,7 +35,6 @@ import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
-import RtlDateField from "@/components/account-statement/RtlDateField";
 import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
@@ -1407,7 +1406,7 @@ const InvoiceCreatePage = () => {
   return (
     <SmartFormScope
       className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
-      firstFieldSelector="[data-smart-first] button, [data-smart-first]"
+      firstFieldSelector="input[data-smart-first], [data-smart-first] input, [data-smart-first]"
       disableAutoFocus={isEditMode}
     >
     <div dir="rtl" className="contents">
