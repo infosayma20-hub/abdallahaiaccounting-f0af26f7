@@ -36,6 +36,7 @@ import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
 import RtlDateField from "@/components/account-statement/RtlDateField";
+import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
