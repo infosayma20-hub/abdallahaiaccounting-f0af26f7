@@ -51,21 +51,25 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         fontSize: '22px',
         fontWeight: 700,
         lineHeight: 1.2,
-        padding: '10px 14px',
+        // Extra top padding so the physical clip does NOT cover the order number.
+        padding: '48px 14px 14px',
+        // Outer black border (replacing the old black top bar per management request).
+        border: '4px solid #000',
+        borderRadius: '4px',
         position: 'absolute',
         left: '-9999px',
         top: 0,
       }}
     >
-      {/* Station Name */}
+      {/* Station Name — clean border, no black bar */}
       {stationName && (
         <div style={{
           textAlign: 'center',
-          fontSize: '32px',
+          fontSize: '30px',
           fontWeight: 900,
-          padding: '4px 0',
-          borderBottom: '3px solid #000',
-          marginBottom: '6px',
+          padding: '6px 0',
+          borderBottom: '2px solid #000',
+          marginBottom: '8px',
           letterSpacing: '1px',
           lineHeight: 1.1,
         }}>
@@ -73,29 +77,28 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         </div>
       )}
 
-      {/* Order Number — BIG (46px, kitchen-first visibility) */}
+      {/* Order Number — BIGGEST element for kitchen-first visibility */}
       <div style={{
         textAlign: 'center',
-        fontSize: '46px',
+        fontSize: '52px',
         fontWeight: 900,
-        margin: '4px 0',
+        margin: '6px 0 2px',
         lineHeight: 1.0,
       }}>
         # {qNum}
       </div>
 
-      {/* TIME — most prominent kitchen element (28px, pure black, high contrast) */}
+      {/* TIME — moved directly BELOW order number, larger font (per Al-Malaky April 2026) */}
       <div style={{
         textAlign: 'center',
-        fontSize: '28px',
+        fontSize: '36px',
         fontWeight: 900,
         color: '#000',
-        background: '#000',
-        WebkitTextFillColor: '#fff',
-        padding: '4px 8px',
-        margin: '4px 0 6px',
+        padding: '6px 8px',
+        margin: '4px 0 8px',
         lineHeight: 1.1,
         letterSpacing: '1px',
+        border: '2px solid #000',
         borderRadius: '4px',
       }}>
         🕐 {timeStr} • {dateStr}
@@ -155,20 +158,8 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
         );
       })}
 
-      {/* Order Note */}
-      {order.orderNote && (
-        <>
-          <div style={{ borderTop: '3px solid #000', margin: '6px 0' }} />
-          <div style={{
-            fontSize: '22px', fontWeight: 900,
-            background: '#eee', padding: '6px 8px', borderRadius: '3px',
-            border: '2px solid #000',
-            lineHeight: 1.2,
-          }}>
-            ملاحظات: {order.orderNote}
-          </div>
-        </>
-      )}
+      {/* Invoice-level order note is INTENTIONALLY NOT printed on kitchen tickets */}
+      {/* Per management request (Al-Malaky, April 2026): kitchen tickets show only per-item notes. */}
 
       <div style={{ height: '12px' }} />
     </div>
