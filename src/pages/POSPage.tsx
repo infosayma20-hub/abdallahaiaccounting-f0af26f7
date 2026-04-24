@@ -2829,7 +2829,15 @@ const POSPage = () => {
           subtotal: cartTotals.subtotal,
           discount: effectiveDiscount,
           total: effectiveTotal,
-          paymentMethod: effectivePaymentMethod === "cash" ? "نقد" : effectivePaymentMethod === "card" ? "بطاقة" : "تحويل",
+          paymentMethod: (() => {
+            // For card payments from call center, include the source app name (e.g. "فيزا - Wheel App")
+            if (effectivePaymentMethod === "cash") return "نقد";
+            if (effectivePaymentMethod === "card") {
+              const src = activeOrder.callCenterSourceApp?.trim();
+              return src ? `فيزا - ${src}` : "بطاقة";
+            }
+            return "تحويل";
+          })(),
           currency: paymentCurrency,
           exchangeRate: rate,
           tenderedAmount: tendered,
