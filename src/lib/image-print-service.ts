@@ -80,11 +80,31 @@ function _shouldBlockDuplicate(key: string): boolean {
   }
   const last = _recentPrintJobs.get(key);
   if (last && now - last < DUPLICATE_WINDOW_MS) {
-    console.warn(`[duplicate-blocked] ${key} — fired ${now - last}ms ago`);
+    console.warn(`[frontend-print-blocked-duplicate] key=${key} — fired ${now - last}ms ago`);
     return true;
   }
   _recentPrintJobs.set(key, now);
   return false;
+}
+
+// ──────────────────────────────────────────
+// In-flight guard: prevents concurrent print calls for the SAME job key
+// (e.g. user double-clicks payment button before first request returns).
+// Independent from the 60s time-based dedupe above.
+// ──────────────────────────────────────────
+const _inFlightJobs = new Set<string>();
+
+function _markInFlight(key: string): boolean {
+  if (_inFlightJobs.has(key)) {
+    console.warn(`[frontend-print-blocked-in-progress] key=${key} — already in-flight`);
+    return false;
+  }
+  _inFlightJobs.add(key);
+  return true;
+}
+
+function _clearInFlight(key: string): void {
+  _inFlightJobs.delete(key);
 }
 
 /** Build diagnostic meta payload sent with every print request */
@@ -292,11 +312,17 @@ export async function printReceiptImage(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; logoUrl?: string; terminalName?: string }
 ): Promise<PrintImageResult> {
+  const dedupeKey = `receipt|${order.orderNumber}|${order.id || 'noid'}`;
+  console.log(`[frontend-print-click] receipt key=${dedupeKey}`);
+  if (!_markInFlight(dedupeKey)) {
+    return { success: true, error: 'in_progress' };
+  }
+  if (_shouldBlockDuplicate(dedupeKey)) {
+    _clearInFlight(dedupeKey);
+    return { success: true, error: 'duplicate_blocked' };
+  }
   try {
-    const dedupeKey = `receipt|${order.orderNumber}|${order.id || 'noid'}`;
-    if (_shouldBlockDuplicate(dedupeKey)) {
-      return { success: true, error: 'duplicate_blocked' };
-    }
+    console.log(`[frontend-print-request] receipt key=${dedupeKey}`);
     const bridgeOrder = toBridgeReceiptOrder(order, companyInfo);
     const itemsCount = order.items?.length || 0;
     const meta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
@@ -305,10 +331,14 @@ export async function printReceiptImage(
       { order: bridgeOrder, meta },
       { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: meta.estimatedHeight },
     );
+    if (result.success) console.log(`[frontend-print-success] receipt key=${dedupeKey}`);
+    else console.warn(`[frontend-print-failed] receipt key=${dedupeKey} err=${result.error}`);
     return { success: result.success, error: result.error };
   } catch (err: any) {
     console.error('[printReceiptImage]', err);
     return { success: false, error: err.message };
+  } finally {
+    _clearInFlight(dedupeKey);
   }
 }
 
@@ -354,11 +384,17 @@ export async function printAllImage(
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; terminalName?: string },
   kitchenJobs?: KitchenJob[],
 ): Promise<PrintImageResult> {
+  const dedupeKey = `all|${order.orderNumber}|${order.id || 'noid'}`;
+  console.log(`[frontend-print-click] all key=${dedupeKey}`);
+  if (!_markInFlight(dedupeKey)) {
+    return { success: true, error: 'in_progress' };
+  }
+  if (_shouldBlockDuplicate(dedupeKey)) {
+    _clearInFlight(dedupeKey);
+    return { success: true, error: 'duplicate_blocked' };
+  }
   try {
-    const dedupeKey = `all|${order.orderNumber}|${order.id || 'noid'}`;
-    if (_shouldBlockDuplicate(dedupeKey)) {
-      return { success: true, error: 'duplicate_blocked' };
-    }
+    console.log(`[frontend-print-request] all key=${dedupeKey}`);
     const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
     const kitchenOrder = toBridgeKitchenOrder(order, order.items);
     const itemsCount = order.items?.length || 0;
@@ -380,13 +416,15 @@ export async function printAllImage(
         .catch((err: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: false, error: err.message })),
     ]);
 
-    return {
-      success: results.every(r => r.success),
-      results,
-    };
+    const allOk = results.every(r => r.success);
+    if (allOk) console.log(`[frontend-print-success] all key=${dedupeKey}`);
+    else console.warn(`[frontend-print-partial] all key=${dedupeKey} failed=${results.filter(r=>!r.success).map(r=>r.name).join(',')}`);
+    return { success: allOk, results };
   } catch (err: any) {
     console.error('[printAllImage]', err);
     return { success: false, error: err.message };
+  } finally {
+    _clearInFlight(dedupeKey);
   }
 }
 
