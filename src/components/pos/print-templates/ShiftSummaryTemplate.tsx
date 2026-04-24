@@ -188,15 +188,16 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
       {/* ═══ TOTAL VARIANCE — extra prominent ═══ */}
       <div style={{
         textAlign: 'center',
-        padding: '12px',
+        padding: '12px 10px',
         borderRadius: '6px',
         margin: '6px 0',
         fontWeight: 900,
-        fontSize: '30px',
-        lineHeight: 1.2,
+        fontSize: '28px',
+        lineHeight: 1.25,
         background: '#eee',
         color: '#000',
         border: '3px solid #000',
+        wordBreak: 'break-word',
       }}>
         {variancePrefix}: ₪{Math.abs(data.variance).toFixed(2)}
       </div>
