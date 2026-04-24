@@ -35,7 +35,7 @@ import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import useModalDraft from "@/hooks/useModalDraft";
 import CustomerInsightsBar from "@/components/invoice/CustomerInsightsBar";
-import RtlDateField from "@/components/account-statement/RtlDateField";
+import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
@@ -1406,7 +1406,7 @@ const InvoiceCreatePage = () => {
   return (
     <SmartFormScope
       className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
-      firstFieldSelector="[data-smart-first] button, [data-smart-first]"
+      firstFieldSelector="input[data-smart-first], [data-smart-first] input, [data-smart-first]"
       disableAutoFocus={isEditMode}
     >
     <div dir="rtl" className="contents">
@@ -1458,33 +1458,58 @@ const InvoiceCreatePage = () => {
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1100px)_280px] xl:justify-center gap-4 items-start mt-4">
       <div className="space-y-4 min-w-0">
       <Card className="border-0 shadow-sm rounded-2xl">
-        <CardHeader className="pb-3 pt-4 px-5">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" /> بيانات الفاتورة
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-5 pb-5 space-y-4">
-          {/* Type Toggle */}
-          <div className="flex gap-2">
-            <button onClick={() => setForm(p => ({ ...p, type: "sales" }))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${form.type === "sales" ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}>
-              <Receipt className="h-4 w-4" /> فاتورة مبيعات
-            </button>
-            <button onClick={() => setForm(p => ({ ...p, type: "purchase" }))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${form.type === "purchase" ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}>
-              <ShoppingCart className="h-4 w-4" /> فاتورة مشتريات
-            </button>
+        <CardContent className="px-4 pb-4 space-y-3">
+          {/* Type Toggle — compact segmented control aligned to the right (RTL) */}
+          <div className="flex justify-start">
+            <div
+              role="tablist"
+              aria-label="نوع الفاتورة"
+              className="inline-flex w-full max-w-[420px] rounded-xl border border-border bg-muted/40 p-1 shadow-sm"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={form.type === "sales"}
+                onClick={() => setForm(p => ({ ...p, type: "sales" }))}
+                className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  form.type === "sales"
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" /> فاتورة مبيعات
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={form.type === "purchase"}
+                onClick={() => setForm(p => ({ ...p, type: "purchase" }))}
+                className={`flex-1 h-9 rounded-lg text-[12px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  form.type === "purchase"
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ShoppingCart className="h-3.5 w-3.5" /> فاتورة مشتريات
+              </button>
+            </div>
           </div>
 
-          {/* Row 1: Invoice Number, Issue Date, Due Date, Payment Terms */}
+          {/* Row 1 (Enter order): Issue Date → Currency → Due Date → Payment Terms · Invoice # is read-only on the right */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
-              <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
-            </div>
-            <div data-smart-first="true">
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
-              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
-                <RtlDateField value={form.date} onChange={(v) => setForm(p => ({ ...p, date: v }))} ariaLabel="تاريخ الإصدار" />
-              </div>
+              <TypedDateInput
+                value={form.date}
+                onChange={(v) => setForm(p => ({ ...p, date: v }))}
+                ariaLabel="تاريخ الإصدار"
+                inputProps={{ "data-smart-first": "true" }}
+              />
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
@@ -1509,6 +1534,14 @@ const InvoiceCreatePage = () => {
               </Select>
             </div>
             <div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
+              <TypedDateInput
+                value={form.dueDate}
+                onChange={(v) => setForm(p => ({ ...p, dueDate: v }))}
+                ariaLabel="تاريخ الاستحقاق"
+              />
+            </div>
+            <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">شروط الدفع</label>
               <Select value={form.paymentTerms} onValueChange={v => setForm(p => ({ ...p, paymentTerms: v }))}>
                 <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
@@ -1518,10 +1551,15 @@ const InvoiceCreatePage = () => {
               </Select>
             </div>
             <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الاستحقاق</label>
-              <div className="rounded-xl border border-input bg-background px-3 h-10 flex items-center">
-                <RtlDateField value={form.dueDate} onChange={(v) => setForm(p => ({ ...p, dueDate: v }))} ariaLabel="تاريخ الاستحقاق" />
-              </div>
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
+              <Input
+                value={nextInvoiceNumber}
+                readOnly
+                tabIndex={-1}
+                data-smart-skip="true"
+                className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono"
+                dir="ltr"
+              />
             </div>
           </div>
 
