@@ -108,7 +108,14 @@ export async function checkBridgeHealth(): Promise<{
     });
     if (!res.ok) return { online: false };
     const data = await res.json();
-    return { online: true, printers: data.printers || [] };
+    const printers = Array.isArray(data.printers)
+      ? data.printers.map((printer: { name?: string; ip?: string; connected?: boolean; status?: string }) => ({
+          name: printer.name || "",
+          ip: printer.ip || "",
+          connected: printer.connected ?? printer.status === "online",
+        }))
+      : [];
+    return { online: true, printers };
   } catch {
     return { online: false };
   }
