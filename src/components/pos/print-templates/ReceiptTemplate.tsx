@@ -167,7 +167,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
       <hr style={hrBold} />
 
       {/* ═══ 4. ITEMS TABLE — item names enlarged for readability ═══ */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
             <th style={{ padding: '4px 3px', fontSize: '18px', fontWeight: 800, textAlign: 'right', width: '45%' }}>الصنف</th>
@@ -181,13 +181,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
             const qty = item.quantity || 1;
             const lineTotal = (qty * (item.price || 0)).toFixed(2);
             return (
-              <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-                <td style={{ padding: '5px 3px', fontSize: '24px', fontWeight: 900, textAlign: 'right', verticalAlign: 'top', lineHeight: 1.3 }}>
+              <tr key={i}>
+                <td style={{ padding: '8px 4px 10px', fontSize: '24px', fontWeight: 900, textAlign: 'right', verticalAlign: 'top', lineHeight: 1.35, borderBottom: '1px solid #ddd' }}>
                   {item.name}
                   {item.modifiers && item.modifiers.length > 0 && (
                     <div>
                       {item.modifiers.map((mod, mi) => (
-                        <div key={mi} style={{ fontSize: '17px', color: '#333', marginTop: '2px', fontWeight: 600 }}>
+                        <div key={mi} style={{ fontSize: '17px', color: '#333', marginTop: '4px', fontWeight: 600, lineHeight: 1.3 }}>
                           + {mod.option_name}
                           {mod.extra_price && mod.extra_price > 0 && ` (+₪${mod.extra_price.toFixed(2)})`}
                         </div>
@@ -195,14 +195,14 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: '17px', color: '#222', marginTop: '2px', fontWeight: 700 }}>
+                    <div style={{ fontSize: '17px', color: '#222', marginTop: '4px', fontWeight: 700, lineHeight: 1.3 }}>
                       📝 {item.note}
                     </div>
                   )}
                 </td>
-                <td style={{ padding: '5px 3px', fontSize: '22px', fontWeight: 900, textAlign: 'center', verticalAlign: 'top' }}>{qty}</td>
-                <td style={{ padding: '5px 3px', fontSize: '22px', fontWeight: 700, textAlign: 'center', verticalAlign: 'top' }}>₪{(item.price || 0).toFixed(2)}</td>
-                <td style={{ padding: '5px 3px', fontSize: '22px', fontWeight: 800, textAlign: 'left', verticalAlign: 'top' }}>₪{lineTotal}</td>
+                <td style={{ padding: '8px 4px 10px', fontSize: '22px', fontWeight: 900, textAlign: 'center', verticalAlign: 'top', borderBottom: '1px solid #ddd' }}>{qty}</td>
+                <td style={{ padding: '8px 4px 10px', fontSize: '22px', fontWeight: 700, textAlign: 'center', verticalAlign: 'top', borderBottom: '1px solid #ddd', whiteSpace: 'nowrap' }}>₪{(item.price || 0).toFixed(2)}</td>
+                <td style={{ padding: '8px 4px 10px', fontSize: '22px', fontWeight: 800, textAlign: 'left', verticalAlign: 'top', borderBottom: '1px solid #ddd', whiteSpace: 'nowrap' }}>₪{lineTotal}</td>
               </tr>
             );
           })}
