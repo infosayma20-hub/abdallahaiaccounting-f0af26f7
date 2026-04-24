@@ -49,6 +49,48 @@ export default function InlineProductAutocomplete({
 }: InlineProductAutocompleteProps) {
   const [open, setOpen] = React.useState(false);
   const debouncedQuery = useDebouncedValue(value.trim(), 150);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const [popover, setPopover] = React.useState<{
+    top: number;
+    left: number;
+    width: number;
+    flipUp: boolean;
+    maxH: number;
+  } | null>(null);
+
+  // Position the dropdown using fixed coordinates so it escapes table/overflow parents.
+  // Flips upward when near the viewport bottom so users never need to scroll the page.
+  const recomputePosition = React.useCallback(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const viewportH = window.innerHeight;
+    const spaceBelow = viewportH - rect.bottom;
+    const spaceAbove = rect.top;
+    const desired = 280;
+    const flipUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+    const maxH = Math.min(desired, Math.max(160, (flipUp ? spaceAbove : spaceBelow) - 16));
+    setPopover({
+      top: flipUp ? rect.top - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      flipUp,
+      maxH,
+    });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    recomputePosition();
+    const onScroll = () => recomputePosition();
+    const onResize = () => recomputePosition();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [open, recomputePosition]);
 
   const filteredProducts = React.useMemo(() => {
     const query = debouncedQuery.toLowerCase();
@@ -79,7 +121,7 @@ export default function InlineProductAutocomplete({
   });
 
   return (
-    <div className={cn("relative", className)}>
+    <div ref={wrapperRef} className={cn("relative", className)}>
       <Search className="absolute right-3 top-[18px] h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
       <Input
         ref={dd.inputRef}
@@ -93,8 +135,13 @@ export default function InlineProductAutocomplete({
           onChange(e.target.value);
           dd.open();
           dd.reset();
+          // Reposition after content (and therefore container size) changes.
+          requestAnimationFrame(recomputePosition);
         }}
-        onFocus={() => dd.open()}
+        onFocus={() => {
+          dd.open();
+          requestAnimationFrame(recomputePosition);
+        }}
         onBlur={() => dd.closeDelayed()}
         onKeyDown={dd.onKeyDown}
         className={cn(
@@ -105,10 +152,19 @@ export default function InlineProductAutocomplete({
         )}
       />
 
-      {open && (
+      {open && popover && (
         <div
+          style={{
+            position: "fixed",
+            top: popover.flipUp ? undefined : popover.top,
+            bottom: popover.flipUp ? window.innerHeight - popover.top : undefined,
+            left: popover.left,
+            width: popover.width,
+            maxHeight: popover.maxH,
+            zIndex: 60,
+          }}
           className={cn(
-            "absolute inset-x-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-popover shadow-lg",
+            "overflow-y-auto rounded-md border border-border bg-popover shadow-xl",
             dropdownClassName,
           )}
         >
