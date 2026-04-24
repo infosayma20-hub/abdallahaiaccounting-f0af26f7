@@ -139,7 +139,7 @@ export default function TypedDateInput({
           "placeholder:text-muted-foreground/60",
           "hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15",
           isValid ? "border-input" : "border-destructive/60 focus:border-destructive",
-          isComplete && "border-emerald-500/50",
+          isComplete && "border-primary/40",
           inputProps?.className,
         )}
       />
