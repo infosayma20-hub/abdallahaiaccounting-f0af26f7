@@ -1458,12 +1458,12 @@ const InvoiceCreatePage = () => {
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1100px)_280px] xl:justify-center gap-4 items-start mt-4">
       <div className="space-y-4 min-w-0">
       <Card className="border-0 shadow-sm rounded-2xl">
-        <CardHeader className="pb-3 pt-4 px-5">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" /> بيانات الفاتورة
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-5 pb-5 space-y-4">
+        <CardContent className="px-4 pb-4 space-y-3">
           {/* Type Toggle — compact segmented control aligned to the right (RTL) */}
           <div className="flex justify-start">
             <div
