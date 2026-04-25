@@ -118,7 +118,7 @@ export default function SalesRepsLivePage() {
                   <CardTitle className="text-base">{r.full_name}</CardTitle>
                   <div className="flex items-center gap-2">
                     {!r.is_active && <Badge variant="outline">موقوف</Badge>}
-                    {r.day_status === "open" && <Badge className="bg-emerald-500 hover:bg-emerald-600">يوم مفتوح</Badge>}
+                    {r.day_status === "open" && <Badge>يوم مفتوح</Badge>}
                     {r.day_status === "closed" && <Badge variant="secondary">يوم مغلق</Badge>}
                     {!r.day_status && <Badge variant="outline">لم يبدأ اليوم</Badge>}
                   </div>
@@ -142,11 +142,11 @@ export default function SalesRepsLivePage() {
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground">إجمالي النقد</div>
-                    <div className="font-bold text-lg text-emerald-600">{fmt(r.total_cash)}</div>
+                    <div className="font-bold text-lg text-primary">{fmt(r.total_cash)}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground">إجمالي الآجل</div>
-                    <div className="font-bold text-lg text-amber-600">{fmt(r.total_credit)}</div>
+                    <div className="font-bold text-lg text-destructive">{fmt(r.total_credit)}</div>
                   </div>
                 </div>
               </CardContent>
