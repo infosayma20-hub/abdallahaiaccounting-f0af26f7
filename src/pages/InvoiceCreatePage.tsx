@@ -193,6 +193,14 @@ const InvoiceCreatePage = () => {
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
+  // Cache invoice counts per type so toggling sales/purchase recomputes the number locally
+  const typeCountsRef = useRef<{
+    sales: number;
+    purchase: number;
+    salesPrefix: string;
+    purchasePrefix: string;
+    salesOffset: number;
+  } | null>(null);
   const [defaultTaxCategory, setDefaultTaxCategory] = useState<TaxCategory>("taxable");
 
   // Contact search
