@@ -30,8 +30,10 @@ const fmt = (v: number) =>
 
 export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
   const navigate = useNavigate();
+  const displayName: string =
+    employee?.full_name || employee?.name || "موظف";
   const initials =
-    (employee?.name || "؟")
+    (displayName || "؟")
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
@@ -82,13 +84,13 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
 
         <div className="flex-1 min-w-0 space-y-2 text-right">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">
-            {employee?.name || "موظف"}
+            {displayName}
           </h1>
           <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground justify-end">
-            {employee?.job_title && (
+            {(employee?.job_title || employee?.position) && (
               <span className="flex items-center gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" />
-                {employee.job_title}
+                {employee.job_title || employee.position}
               </span>
             )}
             {employee?.department && (
@@ -97,10 +99,10 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
                 {employee.department}
               </span>
             )}
-            {employee?.hire_date && (
+            {(employee?.hire_date || employee?.start_date) && (
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                تاريخ التعيين: {new Date(employee.hire_date).toLocaleDateString("ar")}
+                تاريخ التعيين: {new Date(employee.hire_date || employee.start_date).toLocaleDateString("ar")}
               </span>
             )}
           </div>
