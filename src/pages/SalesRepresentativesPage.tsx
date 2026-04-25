@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, UserCheck, TrendingUp, Percent, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, UserCheck, TrendingUp, Percent, Edit, Trash2, Truck } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import { Link } from "react-router-dom";
 import { multiWordMatchAny } from "@/lib/utils";
 
 const SalesRepresentativesPage = () => {
@@ -75,8 +76,11 @@ const SalesRepresentativesPage = () => {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
       <PageHeader title="إدارة المندوبين" breadcrumb={["المبيعات", "إدارة المندوبين"]} />
-      <div className="flex items-center justify-start">
+      <div className="flex items-center justify-start gap-2 flex-wrap">
         <Button onClick={() => { setForm({ full_name: "", phone: "", email: "", region: "", sales_commission_rate: 0, collection_commission_rate: 0, linked_account_name: "", notes: "", is_active: true }); setEditingId(null); setShowForm(true); }} className="gap-2"><Plus className="h-4 w-4" /> إضافة مندوب</Button>
+        <Button asChild variant="outline" className="gap-2">
+          <Link to="/admin/sales-reps-live"><Truck className="h-4 w-4" /> متابعة مباشرة (Van Sales)</Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
