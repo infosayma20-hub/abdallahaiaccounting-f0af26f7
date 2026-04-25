@@ -135,6 +135,7 @@ const ImportWizardPage = () => {
   const [supplierInvoice, setSupplierInvoice] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [currencyId, setCurrencyId] = useState("");
+  const [warehouseId, setWarehouseId] = useState("");
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [notes, setNotes] = useState("");
   const [showNewSupplier, setShowNewSupplier] = useState(false);
@@ -183,6 +184,14 @@ const ImportWizardPage = () => {
     queryKey: ["currencies-for-import"],
     queryFn: async () => {
       const { data } = await supabase.from("currencies").select("id, code, name_ar, symbol");
+      return data || [];
+    },
+  });
+
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ["warehouses-for-import"],
+    queryFn: async () => {
+      const { data } = await supabase.from("warehouses").select("id, name").eq("is_active", true).order("name");
       return data || [];
     },
   });
@@ -447,6 +456,16 @@ const ImportWizardPage = () => {
   // Save
   const handleSave = async (post = false) => {
     if (!user) return;
+
+    // Pre-flight validation for posting
+    if (post) {
+      if (!warehouseId) { toast.error("⚠️ يجب تحديد المستودع قبل الترحيل"); return; }
+      if (!currencyId) { toast.error("⚠️ يجب تحديد العملة قبل الترحيل"); return; }
+      if (items.length === 0 || items.every(i => !i.quantity || i.quantity <= 0)) {
+        toast.error("⚠️ لا يوجد بنود صالحة بكميات للترحيل"); return;
+      }
+    }
+
     setSaving(true);
     try {
       const status = post ? "posted" : items.length > 0 ? (costs.length > 0 ? "distributed" : "items_entered") : "draft";
@@ -459,14 +478,15 @@ const ImportWizardPage = () => {
         supplier_invoice_number: supplierInvoice,
         invoice_date: invoiceDate || null,
         currency_id: currencyId || null,
+        warehouse_id: warehouseId || null,
         exchange_rate: exchangeRate,
-        status,
+        status: post ? 'draft' : status,  // RPC will mark as 'posted'
         total_items_cost_foreign: totalForeign,
         total_items_cost_local: totalLocal,
         total_import_costs: totalCosts,
         total_landed_cost: totalLanded,
         created_by: user.id,
-        posted_at: post ? new Date().toISOString() : null,
+        posted_at: null,  // RPC sets this
         notes,
       }).select("id").single();
       
@@ -517,51 +537,23 @@ const ImportWizardPage = () => {
         if (costsErr) throw costsErr;
       }
 
-      // Post journal entries
-      if (post && totalLocal > 0) {
-        const txDate = invoiceDate || new Date().toISOString().split("T")[0];
-        const refBase = `IMP-${shipment.id.slice(0, 8)}`;
-
-        // 1. Goods value entry: Debit Inventory, Credit Supplier
-        await supabase.from("transactions").insert({
-          user_id: user.id,
-          transaction_date: txDate,
-          description: `استيراد بضاعة - ${shipmentName || shipment.id}`,
-          debit_account_code: "1140",
-          credit_account_code: "2110",
-          amount: totalLocal,
-          currency: "شيكل",
-          transaction_type: "purchase_credit",
-          contact_id: supplierId || null,
-          reference: refBase,
-          idempotency_key: `IMP-GOODS-${shipment.id}`,
-        });
-
-        // 2. Separate entry for each cost
-        for (const cost of costs) {
-          if (!cost.amount_local || cost.amount_local <= 0) continue;
-          const ct = costTypes.find(c => c.type === cost.cost_type);
-          const debitCode = ct?.accountCode || "5290";
-          const isCapitalized = ct?.capitalize !== false;
-          // Bank fees/interest: credit Bank; Others: credit Payables
-          const creditCode = (cost.cost_type === "bank_fees" || cost.cost_type === "interest") ? "1120" : "2110";
-          
-          await supabase.from("transactions").insert({
-            user_id: user.id,
-            transaction_date: txDate,
-            description: `${cost.cost_name_ar || ct?.label || "تكاليف"} - ${shipmentName || shipment.id}`,
-            debit_account_code: debitCode,
-            credit_account_code: creditCode,
-            amount: cost.amount_local,
-            currency: "شيكل",
-            transaction_type: isCapitalized ? "import_cost" : "expense",
-            reference: `${refBase}-${cost.cost_type}`,
-            idempotency_key: `IMP-COST-${shipment.id}-${cost.id}`,
-          });
+      // === ATOMIC POSTING: products + stock + capitalized journal ===
+      if (post) {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+          'post_import_shipment_atomic' as any,
+          { p_shipment_id: shipment.id, p_user_id: user.id }
+        );
+        if (rpcErr) throw rpcErr;
+        const result = rpcRes as any;
+        if (!result?.success) {
+          throw new Error(result?.error || 'فشل ترحيل الشحنة');
         }
+        toast.success(
+          `✅ تم الترحيل: ${result.products_created} صنف جديد + ${result.products_linked} صنف مربوط + ${result.movements_created} حركة مخزون`
+        );
+      } else {
+        toast.success("تم حفظ الشحنة كمسودة");
       }
-
-      toast.success(post ? "تم ترحيل الشحنة بنجاح" : "تم حفظ الشحنة");
       navigate("/purchases/import");
     } catch (err: any) {
       toast.error(err.message || "فشل الحفظ");
@@ -675,6 +667,15 @@ const ImportWizardPage = () => {
             <div className="space-y-2">
               <Label>إجمالي فاتورة المورد ({selectedCurrency?.code || "—"})</Label>
               <Input type="number" step="0.01" placeholder="للتحقق من مطابقة البنود" value={supplierInvoiceTotal || ""} onChange={e => setSupplierInvoiceTotal(parseFloat(e.target.value) || 0)} />
+            </div>
+            <div className="space-y-2">
+              <Label>المستودع * <span className="text-xs text-muted-foreground">(إجباري للترحيل)</span></Label>
+              <Select value={warehouseId} onValueChange={setWarehouseId}>
+                <SelectTrigger><SelectValue placeholder="اختر المستودع المستلم" /></SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">
