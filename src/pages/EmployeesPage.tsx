@@ -239,6 +239,27 @@ const EmployeesPage = () => {
 
   useEffect(() => { fetchEmployees(); fetchBranches(); }, [user]);
 
+  // Deep-link: open employee drawer + (optionally) create-account dialog
+  // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
+  useEffect(() => {
+    const openAccountId = searchParams.get("openAccount");
+    if (!openAccountId || employees.length === 0) return;
+    const emp = employees.find((e) => e.id === openAccountId);
+    if (!emp) return;
+    setSelectedEmployee(emp);
+    fetchEmployeeDetails(emp.id);
+    setActiveTab("info");
+    setDrawerOpen(true);
+    if (!(emp as any).auth_user_id) {
+      setAccountForm({ email: emp.email || "", password: "" });
+      setShowCreateAccount(true);
+    }
+    // clear the param so the dialog doesn't reopen on re-renders
+    const next = new URLSearchParams(searchParams);
+    next.delete("openAccount");
+    setSearchParams(next, { replace: true });
+  }, [employees, searchParams, setSearchParams]);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
