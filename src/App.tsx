@@ -76,6 +76,10 @@ const HRAttendancePage = lazy(() => import("./pages/HRAttendancePage"));
 const BranchDisplayPage = lazy(() => import("./pages/BranchDisplayPage"));
 const EmployeeApp = lazy(() => import("./pages/EmployeeApp"));
 const AppsLauncher = lazy(() => import("./pages/AppsLauncher"));
+const RepLayout = lazy(() => import("./pages/rep/RepLayout"));
+const RepDashboardPage = lazy(() => import("./pages/rep/RepDashboardPage"));
+const RepNewOrderPage = lazy(() => import("./pages/rep/RepNewOrderPage"));
+const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
@@ -270,6 +274,11 @@ const App = () => (
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/rep" element={<ProtectedRoute><RepLayout /></ProtectedRoute>}>
+                <Route index element={<RepDashboardPage />} />
+                <Route path="new-order" element={<RepNewOrderPage />} />
+                <Route path="orders" element={<RepOrdersPage />} />
+              </Route>
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/share/statement/:token" element={<PublicStatementPage />} />
