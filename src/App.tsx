@@ -305,7 +305,7 @@ const App = () => (
               <Route path="/store-tracker" element={<ProtectedRoute><StoreTrackerDashboard /></ProtectedRoute>} />
               <Route path="/store-tracker/orders/:id" element={<ProtectedRoute><StoreTrackerOrderDetail /></ProtectedRoute>} />
               <Route path="/*" element={
-                <ProtectedRoute blockCashier blockStoreTracker>
+                <ProtectedRoute blockCashier blockStoreTracker blockSalesRep>
                   <WebLayout>
                     <Suspense fallback={<AuthCheckSpinner />}>
                     <Routes>
