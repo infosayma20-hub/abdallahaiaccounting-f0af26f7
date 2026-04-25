@@ -236,13 +236,14 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               
               {/* ═══ LOGO ═══ */}
               <div style={{ textAlign: "center", paddingBottom: "2px" }}>
-                <img src={data.logoUrl || '/images/malaky-logo.png'} alt={data.companyName} style={{ maxWidth: "140px", maxHeight: "80px", margin: "0 auto 4px", display: "block" }} />
-                <div style={{ fontSize: "28px", fontWeight: 900, color: "#000", letterSpacing: "1px", lineHeight: 1.2, fontFamily: "'Arial', 'Tahoma', sans-serif" }}>
-                  مطعم الملكي
-                </div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "#333", letterSpacing: "2px", marginTop: "1px" }}>
-                  MALAKY RESTAURANT
-                </div>
+                {data.logoUrl && (
+                  <img src={data.logoUrl} alt={data.companyName || ""} style={{ maxWidth: "140px", maxHeight: "80px", margin: "0 auto 4px", display: "block" }} />
+                )}
+                {data.companyName && (
+                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#000", letterSpacing: "1px", lineHeight: 1.2, fontFamily: "'Arial', 'Tahoma', sans-serif" }}>
+                    {data.companyName}
+                  </div>
+                )}
               </div>
 
               <hr style={{ border: "none", borderTop: "1px solid #999", margin: "4px 0" }} />
