@@ -111,7 +111,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
     const bridgeOrder: PrintOrder = {
       orderNumber: data.displayNumber || data.orderNumber,
       queueNumber: data.queueNumber,
-      branchName: data.companyName || "مطعم الملكي",
+      branchName: data.companyName || "",
       cashier: data.cashierName,
       tableNumber: data.tableName,
       orderType: data.orderType,

@@ -84,7 +84,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   const qrContent = order.id
     ? `${baseUrl}/receipt/${order.id}`
     : [
-        companyName || 'مطعم الملكي',
+        companyName || '',
         `طلب: ${qNum}`,
         `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
         `التاريخ: ${dateStr} ${timeStr}`,
