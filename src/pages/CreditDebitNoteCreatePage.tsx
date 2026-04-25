@@ -440,10 +440,9 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       />
       <div className="flex justify-between items-start gap-3">
         <p className="text-sm text-muted-foreground">
-          {noteType === "credit" ? "تخفيض / إلغاء جزئي على فاتورة مبيعات" :
-           noteType === "debit" ? "تخفيض / إرجاع على فاتورة مشتريات" :
-           noteType === "sales_return" ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً" :
-                                         "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
+          {noteType === "credit"
+            ? "تخفيض / إلغاء جزئي على فاتورة مبيعات"
+            : "تخفيض / إرجاع على فاتورة مشتريات"}
         </p>
         <Button variant="outline" onClick={() => navigate(listPath)} className="gap-2">
           <ArrowRight className="h-4 w-4" /> رجوع للقائمة
