@@ -309,8 +309,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     if (!form.contactName.trim()) { toast({ title: `يرجى اختيار ${partyLabel}`, variant: "destructive" }); return false; }
     const finalReason = form.reason === "أخرى" ? form.reasonOther.trim() : form.reason;
     if (!asDraft && !finalReason) { toast({ title: "يرجى تحديد سبب المردود", variant: "destructive" }); return false; }
-    if (!asDraft && form.items.some(it => !it.description.trim() || it.quantity <= 0 || it.unitPrice <= 0)) {
-      toast({ title: "تأكد من تعبئة جميع البنود (الوصف، الكمية، السعر)", variant: "destructive" });
+    if (!asDraft && form.items.some(it => (!it.productId && !it.description.trim()) || it.quantity <= 0 || it.unitPrice <= 0)) {
+      toast({ title: "تأكد من اختيار الصنف وتعبئة الكمية والسعر لكل بند", variant: "destructive" });
       return false;
     }
     if (!asDraft && summary.total <= 0) {
