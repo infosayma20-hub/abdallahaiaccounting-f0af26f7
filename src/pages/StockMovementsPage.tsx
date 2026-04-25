@@ -206,10 +206,11 @@ const StockMovementsPage = () => {
   const handleExport = () => {
     const rows = sorted.map(mv => {
       const prod = productMap.get(mv.product_id);
-      return { "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"), "المنتج": prod?.name || "غير معروف", "النوع": mv.movement_type, "الكمية": mv.quantity, "الوحدة": prod?.unit || "", "ملاحظات": mv.reference_note || "" };
+      const wh = mv.warehouse_id ? warehouseMap.get(mv.warehouse_id) : null;
+      return { "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"), "المنتج": prod?.name || "غير معروف", "النوع": mv.movement_type, "الكمية": mv.quantity, "الوحدة": prod?.unit || "", "المستودع": wh?.name || "—", "ملاحظات": mv.reference_note || "" };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "حركات المخزون");
     setNextExportBranding({ title: "حركات المخزون" });
