@@ -13,6 +13,8 @@ import {
   HandCoins,
   Receipt,
   Wallet,
+  UserPlus,
+  ShieldCheck,
 } from "lucide-react";
 import type { RiskScoreResult } from "@/hooks/hr/useEmployeeRiskScore";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
@@ -110,6 +112,22 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
       </div>
 
       <div className="mt-5 pt-5 border-t flex flex-wrap gap-2 justify-end">
+        {employee?.auth_user_id ? (
+          <Badge variant="outline" className="gap-1.5 bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            لديه حساب دخول
+          </Badge>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => navigate(`/employees?openAccount=${employee?.id}`)}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            إنشاء حساب دخول
+          </Button>
+        )}
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => onQuickAction("leave")}>
           <Plane className="h-3.5 w-3.5" />
           <Plus className="h-3 w-3" />
