@@ -668,6 +668,15 @@ const ImportWizardPage = () => {
               <Label>إجمالي فاتورة المورد ({selectedCurrency?.code || "—"})</Label>
               <Input type="number" step="0.01" placeholder="للتحقق من مطابقة البنود" value={supplierInvoiceTotal || ""} onChange={e => setSupplierInvoiceTotal(parseFloat(e.target.value) || 0)} />
             </div>
+            <div className="space-y-2">
+              <Label>المستودع * <span className="text-xs text-muted-foreground">(إجباري للترحيل)</span></Label>
+              <Select value={warehouseId} onValueChange={setWarehouseId}>
+                <SelectTrigger><SelectValue placeholder="اختر المستودع المستلم" /></SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>ملاحظات</Label>
