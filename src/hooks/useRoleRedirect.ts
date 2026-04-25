@@ -44,21 +44,6 @@ export function useRoleRedirect() {
           .eq("user_id", user.id);
 
         const roles: string[] = (data || []).map((r) => r.role);
-
-        // Sales Rep detection: also check sales_representatives table
-        // (so an existing employee promoted to rep is routed correctly even
-        // if user_roles row is missing)
-        if (!roles.includes("admin")) {
-          const { data: repRow } = await (supabase as any)
-            .from("sales_representatives")
-            .select("id, is_active")
-            .eq("auth_user_id", user.id)
-            .maybeSingle();
-          if (repRow && repRow.is_active && !roles.includes("sales_rep")) {
-            roles.push("sales_rep");
-          }
-        }
-
         let nextPath: string;
 
         if (roles.includes("super_admin")) {

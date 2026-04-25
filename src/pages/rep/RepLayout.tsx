@@ -13,7 +13,7 @@ export default function RepLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      navigate("/auth", { replace: true });
+      navigate("/rep/login", { replace: true });
       return;
     }
     (async () => {
@@ -24,7 +24,7 @@ export default function RepLayout() {
         .maybeSingle();
       if (!data || !data.is_active) {
         await signOut();
-        navigate("/auth", { replace: true });
+        navigate("/rep/login", { replace: true });
         return;
       }
       setRepName(data.full_name);
@@ -48,7 +48,7 @@ export default function RepLayout() {
           <div className="font-semibold text-foreground">{repName}</div>
         </div>
         <button
-          onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
+          onClick={async () => { await signOut(); navigate("/rep/login", { replace: true }); }}
           className="text-muted-foreground hover:text-destructive p-2"
           aria-label="خروج"
         >
