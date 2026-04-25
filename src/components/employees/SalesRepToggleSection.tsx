@@ -20,7 +20,7 @@ interface RepRow {
   is_active: boolean;
   default_warehouse_id: string | null;
   cash_box_id: string | null;
-  commission_rate: number | null;
+  sales_commission_rate: number | null;
 }
 
 export default function SalesRepToggleSection({ employeeId, employeeName, authUserId }: Props) {
@@ -42,7 +42,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
       if (authUserId) {
         const { data } = await (supabase as any)
           .from("sales_representatives")
-          .select("id, is_active, default_warehouse_id, cash_box_id, commission_rate")
+          .select("id, is_active, default_warehouse_id, cash_box_id, sales_commission_rate")
           .eq("auth_user_id", authUserId)
           .maybeSingle();
         row = (data as RepRow | null) || null;
@@ -52,7 +52,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
         if (user) {
           const { data } = await (supabase as any)
             .from("sales_representatives")
-            .select("id, is_active, default_warehouse_id, cash_box_id, commission_rate")
+            .select("id, is_active, default_warehouse_id, cash_box_id, sales_commission_rate")
             .eq("user_id", user.id)
             .eq("full_name", employeeName)
             .maybeSingle();
@@ -80,7 +80,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
     await loadOptions();
     setWarehouseId(rep?.default_warehouse_id || "");
     setCashBoxId(rep?.cash_box_id || "");
-    setCommissionRate(rep?.commission_rate ? String(rep.commission_rate) : "");
+    setCommissionRate(rep?.sales_commission_rate ? String(rep.sales_commission_rate) : "");
     setShowDialog(true);
   };
 
@@ -121,7 +121,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
         full_name: employeeName,
         default_warehouse_id: warehouseId,
         cash_box_id: cashBoxId,
-        commission_rate: commissionRate ? Number(commissionRate) : 0,
+        sales_commission_rate: commissionRate ? Number(commissionRate) : 0,
         is_active: true,
       };
       if (authUserId) payload.auth_user_id = authUserId;
