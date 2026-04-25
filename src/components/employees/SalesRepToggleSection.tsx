@@ -39,7 +39,17 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
     setLoading(true);
     try {
       let row: RepRow | null = null;
-      if (authUserId) {
+      // 1) Lookup by employee_id (canonical link)
+      {
+        const { data } = await (supabase as any)
+          .from("sales_representatives")
+          .select("id, is_active, default_warehouse_id, cash_box_id, sales_commission_rate")
+          .eq("employee_id", employeeId)
+          .maybeSingle();
+        row = (data as RepRow | null) || null;
+      }
+      // 2) Fallback: by auth_user_id
+      if (!row && authUserId) {
         const { data } = await (supabase as any)
           .from("sales_representatives")
           .select("id, is_active, default_warehouse_id, cash_box_id, sales_commission_rate")
@@ -47,6 +57,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
           .maybeSingle();
         row = (data as RepRow | null) || null;
       }
+      // 3) Fallback: by name within owner
       if (!row) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -122,6 +133,7 @@ export default function SalesRepToggleSection({ employeeId, employeeName, authUs
         default_warehouse_id: warehouseId,
         cash_box_id: cashBoxId,
         sales_commission_rate: commissionRate ? Number(commissionRate) : 0,
+        employee_id: employeeId,
         is_active: true,
       };
       if (authUserId) payload.auth_user_id = authUserId;

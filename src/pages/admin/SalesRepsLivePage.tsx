@@ -16,6 +16,7 @@ interface RepRow {
   total_invoices: number;
   total_cash: number;
   total_credit: number;
+  employee_id: string | null;
 }
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(n || 0);
@@ -30,7 +31,7 @@ export default function SalesRepsLivePage() {
     try {
       const { data: reps } = await (supabase as any)
         .from("sales_representatives")
-        .select("id, full_name, is_active, default_warehouse_id, cash_box_id")
+        .select("id, full_name, is_active, default_warehouse_id, cash_box_id, employee_id, employee:employees!sales_representatives_employee_id_fkey(full_name)")
         .order("full_name");
 
       const list = (reps as any[]) || [];
@@ -67,7 +68,7 @@ export default function SalesRepsLivePage() {
         const totalCredit = Math.max(0, totalSales - totalCash);
         return {
           id: r.id,
-          full_name: r.full_name,
+          full_name: r.employee?.full_name || r.full_name,
           is_active: r.is_active,
           warehouse_name: r.default_warehouse_id ? whMap.get(r.default_warehouse_id) || null : null,
           cash_box_name: r.cash_box_id ? cbMap.get(r.cash_box_id) || null : null,
@@ -75,6 +76,7 @@ export default function SalesRepsLivePage() {
           total_invoices: Number(day?.total_invoices || 0),
           total_cash: totalCash,
           total_credit: totalCredit,
+          employee_id: r.employee_id || null,
         };
       });
 
@@ -118,6 +120,7 @@ export default function SalesRepsLivePage() {
                   <CardTitle className="text-base">{r.full_name}</CardTitle>
                   <div className="flex items-center gap-2">
                     {!r.is_active && <Badge variant="outline">موقوف</Badge>}
+                    {!r.employee_id && <Badge variant="outline" className="border-amber-300 text-amber-700">غير مرتبط بموظف</Badge>}
                     {r.day_status === "open" && <Badge>يوم مفتوح</Badge>}
                     {r.day_status === "closed" && <Badge variant="secondary">يوم مغلق</Badge>}
                     {!r.day_status && <Badge variant="outline">لم يبدأ اليوم</Badge>}

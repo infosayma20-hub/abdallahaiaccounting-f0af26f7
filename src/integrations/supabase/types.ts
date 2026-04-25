@@ -10957,6 +10957,7 @@ export type Database = {
           created_at: string
           default_warehouse_id: string | null
           email: string | null
+          employee_id: string | null
           full_name: string
           id: string
           is_active: boolean
@@ -10976,6 +10977,7 @@ export type Database = {
           created_at?: string
           default_warehouse_id?: string | null
           email?: string | null
+          employee_id?: string | null
           full_name: string
           id?: string
           is_active?: boolean
@@ -10995,6 +10997,7 @@ export type Database = {
           created_at?: string
           default_warehouse_id?: string | null
           email?: string | null
+          employee_id?: string | null
           full_name?: string
           id?: string
           is_active?: boolean
@@ -11027,6 +11030,20 @@ export type Database = {
             columns: ["default_warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_representatives_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_representatives_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
         ]
