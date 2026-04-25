@@ -10951,6 +10951,7 @@ export type Database = {
       }
       sales_representatives: {
         Row: {
+          auth_user_id: string | null
           collection_commission_rate: number
           created_at: string
           default_warehouse_id: string | null
@@ -10965,8 +10966,10 @@ export type Database = {
           sales_commission_rate: number
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
+          auth_user_id?: string | null
           collection_commission_rate?: number
           created_at?: string
           default_warehouse_id?: string | null
@@ -10981,8 +10984,10 @@ export type Database = {
           sales_commission_rate?: number
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
+          auth_user_id?: string | null
           collection_commission_rate?: number
           created_at?: string
           default_warehouse_id?: string | null
@@ -10997,6 +11002,7 @@ export type Database = {
           sales_commission_rate?: number
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: [
           {
@@ -14843,6 +14849,8 @@ export type Database = {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
       }
+      get_rep_owner_id: { Args: never; Returns: string }
+      get_rep_warehouse_id: { Args: never; Returns: string }
       get_team_owner_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -14855,6 +14863,7 @@ export type Database = {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
+      is_sales_rep: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_member: {
         Args: { _data_owner_id: string; _user_id: string }
@@ -14978,6 +14987,7 @@ export type Database = {
         | "worker"
         | "supervisor"
         | "portal"
+        | "sales_rep"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -15165,6 +15175,7 @@ export const Constants = {
         "worker",
         "supervisor",
         "portal",
+        "sales_rep",
       ],
       cheque_status: [
         "مسجل",
