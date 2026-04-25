@@ -118,12 +118,12 @@ const InventoryPage = () => {
   const [kitchenStations, setKitchenStations] = useState<KitchenStation[]>([]);
 
   const CATEGORIES = useMemo(() =>
-    [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category)])].filter(Boolean),
-    [products]
+    [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category), form.category])].filter(Boolean),
+    [products, form.category]
   );
   const UNITS = useMemo(() =>
-    [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit)])].filter(Boolean),
-    [products]
+    [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit), form.unit])].filter(Boolean),
+    [products, form.unit]
   );
 
   const [form, setForm] = useState({
