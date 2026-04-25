@@ -81,6 +81,7 @@ const RepDashboardPage = lazy(() => import("./pages/rep/RepDashboardPage"));
 const RepNewOrderPage = lazy(() => import("./pages/rep/RepNewOrderPage"));
 const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
+const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
@@ -388,6 +389,7 @@ const App = () => (
                       <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/admin/sales-reps-live" element={<RoleGuard allowedRoles={["admin"]}><SalesRepsLivePage /></RoleGuard>} />
+                      <Route path="/admin/sales-rep-orders" element={<RoleGuard allowedRoles={["admin"]}><SalesRepOrdersPage /></RoleGuard>} />
                       <Route path="/warehouses" element={<WarehousesPage />} />
                       <Route path="/stock-transfers" element={<StockTransfersPage />} />
                       <Route path="/van-days" element={<VanDaysPage />} />

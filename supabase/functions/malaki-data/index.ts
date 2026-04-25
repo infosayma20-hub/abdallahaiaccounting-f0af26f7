@@ -186,13 +186,16 @@ Deno.serve(async (req) => {
       const netProfit = revenue - expenses;
 
       // Balance sheet (cumulative)
+      // Receivables: only positive (debit) customer balances. Negative net = customer credit, not a receivable.
       const recDr = allTx.filter(t => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
       const recCr = allTx.filter(t => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-      const receivables = recDr - recCr;
+      const receivables = Math.max(0, recDr - recCr);
 
-      const payCr = allTx.filter(t => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-      const payDr = allTx.filter(t => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-      const payables = payCr - payDr;
+      // Payables: amount actually owed to suppliers (account 2110 only; excludes VAT/payroll/other liabilities).
+      // Liability nature = credit balance, so payables = credit - debit. Floor at 0 so prepayments don't flip the sign.
+      const payCr = allTx.filter(t => t.credit_account_code === "2110").reduce((s, t) => s + (t.amount || 0), 0);
+      const payDr = allTx.filter(t => t.debit_account_code === "2110").reduce((s, t) => s + (t.amount || 0), 0);
+      const payables = Math.max(0, payCr - payDr);
 
       const cashDr = allTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
       const cashCr = allTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
@@ -1035,6 +1038,191 @@ Deno.serve(async (req) => {
         .sort((a: any, b: any) => b.balance - a.balance);
 
       return respond({ success: true, payables });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // ACTION: sales_rep_orders — list rep orders for the admin portal
+    //   - Filters: repId, dateFrom, dateTo, paymentMethod (cash|credit), status
+    //   - Returns: orders[], reps[] (for the filter dropdown)
+    // ACTION: sales_rep_order_detail — single order with line items
+    //   - Body: { invoiceId }
+    // ════════════════════════════════════════════════════════════
+    if (action === "sales_rep_orders") {
+      const repId: string | null = body.repId || null;
+      const dateFrom: string | null = body.dateFrom || null;
+      const dateTo: string | null = body.dateTo || null;
+      const paymentMethod: string | null = body.paymentMethod || null; // 'cash' | 'credit'
+      const status: string | null = body.status || null;
+
+      // 1) Reps for this owner (used for filter + name lookup)
+      const { data: reps } = await supabase
+        .from("sales_representatives")
+        .select("id, full_name, default_warehouse_id, cash_box_id")
+        .eq("user_id", linkedUserId)
+        .order("full_name");
+
+      const repList = (reps || []) as any[];
+      const warehouseToRep = new Map<string, any>();
+      for (const r of repList) {
+        if (r.default_warehouse_id) warehouseToRep.set(r.default_warehouse_id, r);
+      }
+
+      // Restrict to warehouses owned by reps; optionally narrow to one rep
+      let warehouseIds = repList.map((r) => r.default_warehouse_id).filter(Boolean);
+      if (repId) {
+        const single = repList.find((r) => r.id === repId);
+        warehouseIds = single?.default_warehouse_id ? [single.default_warehouse_id] : [];
+      }
+
+      if (warehouseIds.length === 0) {
+        return respond({ success: true, reps: repList.map((r) => ({ id: r.id, name: r.full_name })), orders: [], totals: { count: 0, total: 0, cash: 0, credit: 0 } });
+      }
+
+      let q = supabase
+        .from("invoices")
+        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, contact_id, contact_name, warehouse_id, created_at")
+        .eq("user_id", linkedUserId)
+        .eq("invoice_type", "sale")
+        .eq("is_deleted", false)
+        .in("warehouse_id", warehouseIds)
+        .like("invoice_number", "REP-%")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+
+      if (dateFrom) q = q.gte("invoice_date", dateFrom);
+      if (dateTo) q = q.lte("invoice_date", dateTo);
+      if (paymentMethod) q = q.eq("payment_method", paymentMethod);
+      if (status) q = q.eq("status", status);
+
+      const { data: invs, error: invErr } = await q;
+      if (invErr) throw invErr;
+
+      const invoices = (invs || []) as any[];
+
+      // Lookup warehouse names + cash box names
+      const whIds = Array.from(new Set(invoices.map((i) => i.warehouse_id).filter(Boolean)));
+      const cbIds = Array.from(new Set(repList.map((r) => r.cash_box_id).filter(Boolean)));
+      const [whRes, cbRes] = await Promise.all([
+        whIds.length ? supabase.from("warehouses").select("id, name").in("id", whIds) : Promise.resolve({ data: [] as any[] }),
+        cbIds.length ? supabase.from("cash_boxes").select("id, name").in("id", cbIds) : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const whMap = new Map<string, string>(((whRes.data as any[]) || []).map((w: any) => [w.id, w.name]));
+      const cbMap = new Map<string, string>(((cbRes.data as any[]) || []).map((c: any) => [c.id, c.name]));
+
+      const orders = invoices.map((inv: any) => {
+        const rep = warehouseToRep.get(inv.warehouse_id);
+        return {
+          id: inv.id,
+          invoice_number: inv.invoice_number,
+          invoice_date: inv.invoice_date,
+          created_at: inv.created_at,
+          total_amount: Number(inv.total_amount || 0),
+          payment_method: inv.payment_method,
+          status: inv.status,
+          contact_name: inv.contact_name || (inv.payment_method === "cash" ? "زبون نقدي" : "—"),
+          rep_id: rep?.id || null,
+          rep_name: rep?.full_name || "—",
+          warehouse_id: inv.warehouse_id,
+          warehouse_name: whMap.get(inv.warehouse_id) || "—",
+          cash_box_id: rep?.cash_box_id || null,
+          cash_box_name: rep?.cash_box_id ? (cbMap.get(rep.cash_box_id) || "—") : "—",
+        };
+      });
+
+      const totals = {
+        count: orders.length,
+        total: orders.reduce((s, o) => s + o.total_amount, 0),
+        cash: orders.filter((o) => o.payment_method === "cash").reduce((s, o) => s + o.total_amount, 0),
+        credit: orders.filter((o) => o.payment_method === "credit").reduce((s, o) => s + o.total_amount, 0),
+      };
+
+      return respond({
+        success: true,
+        reps: repList.map((r) => ({ id: r.id, name: r.full_name })),
+        orders,
+        totals,
+      });
+    }
+
+    if (action === "sales_rep_order_detail") {
+      const invoiceId: string | null = body.invoiceId || null;
+      if (!invoiceId) return respond({ error: "invoiceId required" }, 400);
+
+      const { data: inv, error: invErr } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, contact_name, warehouse_id, created_at")
+        .eq("id", invoiceId)
+        .eq("user_id", linkedUserId)
+        .single();
+      if (invErr || !inv) return respond({ error: "Order not found" }, 404);
+
+      const { data: items } = await supabase
+        .from("invoice_items")
+        .select("id, product_id, product_name, description, quantity, unit_price, total_amount")
+        .eq("invoice_id", invoiceId);
+
+      // Stock movements for this invoice (warehouse impact)
+      const { data: movements } = await supabase
+        .from("stock_movements")
+        .select("product_id, quantity, movement_type, warehouse_id")
+        .eq("reference_id", invoiceId)
+        .limit(500);
+
+      // Cash impact: only when payment_method = cash → credited to rep cash box account.
+      // Pull related accounting transactions by description / reference if available.
+      const { data: cashTx } = await supabase
+        .from("transactions")
+        .select("id, amount, debit_account_code, credit_account_code, description, transaction_date")
+        .eq("user_id", linkedUserId)
+        .eq("is_deleted", false)
+        .ilike("description", `%${inv.invoice_number}%`)
+        .limit(50);
+
+      // Warehouse name
+      let warehouseName = "—";
+      if (inv.warehouse_id) {
+        const { data: wh } = await supabase.from("warehouses").select("name").eq("id", inv.warehouse_id).single();
+        warehouseName = wh?.name || "—";
+      }
+
+      return respond({
+        success: true,
+        order: {
+          id: inv.id,
+          invoice_number: inv.invoice_number,
+          invoice_date: inv.invoice_date,
+          created_at: inv.created_at,
+          total_amount: Number(inv.total_amount || 0),
+          payment_method: inv.payment_method,
+          status: inv.status,
+          contact_name: inv.contact_name || (inv.payment_method === "cash" ? "زبون نقدي" : "—"),
+          warehouse_id: inv.warehouse_id,
+          warehouse_name: warehouseName,
+        },
+        items: (items || []).map((it: any) => ({
+          id: it.id,
+          product_name: it.product_name || it.description || "—",
+          quantity: Number(it.quantity || 0),
+          unit_price: Number(it.unit_price || 0),
+          total_amount: Number(it.total_amount || 0),
+        })),
+        stockImpact: (movements || []).map((m: any) => ({
+          product_id: m.product_id,
+          quantity: Number(m.quantity || 0),
+          type: m.movement_type,
+          warehouse_id: m.warehouse_id,
+        })),
+        cashImpact: inv.payment_method === "cash"
+          ? (cashTx || []).map((t: any) => ({
+              id: t.id,
+              amount: Number(t.amount || 0),
+              debit: t.debit_account_code,
+              credit: t.credit_account_code,
+              description: t.description,
+              date: t.transaction_date,
+            }))
+          : [],
+      });
     }
 
     return respond({ error: "Unknown action" }, 400);

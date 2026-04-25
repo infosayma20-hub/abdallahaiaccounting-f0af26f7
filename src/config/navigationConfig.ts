@@ -266,6 +266,7 @@ export const navigationSections: NavSection[] = [
               { label: "وضع البائع المتجول", path: "/van" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
+              { label: "طلبيات المندوبين", path: "/admin/sales-rep-orders" },
             ],
           },
           {
