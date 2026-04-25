@@ -98,7 +98,9 @@ const ShiftSummaryTemplate = forwardRef<HTMLDivElement, { data: ShiftSummaryPrin
 
       {/* ═══ HEADER ═══ */}
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-        <img src={data.logoUrl || '/images/malaky-logo.png'} alt="" style={{ maxWidth: '160px', maxHeight: '90px', margin: '0 auto 6px', display: 'block' }} />
+        {data.logoUrl && (
+          <img src={data.logoUrl} alt="" style={{ maxWidth: '160px', maxHeight: '90px', margin: '0 auto 6px', display: 'block' }} />
+        )}
         <div style={{ fontSize: '14px', color: '#000', fontWeight: 800 }}>{data.terminalName}</div>
         <div style={{ borderTop: '3px solid #000', margin: '10px 0' }} />
         <div style={{ fontSize: '20px', fontWeight: 900, color: '#000' }}>📋 ملخص تسليم العهدة</div>
