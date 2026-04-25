@@ -308,6 +308,11 @@ const InventoryPage = () => {
       terms: form.terms.trim() || null,
       product_type: form.product_type,
       service_direction: form.product_type === "service" ? (form.service_direction || null) : null,
+      has_warranty: form.has_warranty,
+      warranty_duration: form.has_warranty && form.warranty_duration ? parseInt(form.warranty_duration) : null,
+      warranty_unit: form.has_warranty ? (form.warranty_unit || "months") : null,
+      warranty_type: form.has_warranty ? (form.warranty_type || null) : null,
+      warranty_notes: form.has_warranty ? (form.warranty_notes.trim() || null) : null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
