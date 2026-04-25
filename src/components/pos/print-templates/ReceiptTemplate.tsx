@@ -84,7 +84,7 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
   const qrContent = order.id
     ? `${baseUrl}/receipt/${order.id}`
     : [
-        companyName || 'مطعم الملكي',
+        companyName || '',
         `طلب: ${qNum}`,
         `المبلغ: ₪${Number(order.total || 0).toFixed(2)}`,
         `التاريخ: ${dateStr} ${timeStr}`,
@@ -111,11 +111,13 @@ const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({
 
       {/* ═══ 1. LOGO ═══ */}
       <div style={{ textAlign: 'center', ...box }}>
-        <img
-          src={logoUrl || '/images/malaky-logo.png'}
-          alt=""
-          style={{ height: '90px', margin: '0 auto 6px', display: 'block' }}
-        />
+        {logoUrl && (
+          <img
+            src={logoUrl}
+            alt=""
+            style={{ height: '90px', margin: '0 auto 6px', display: 'block' }}
+          />
+        )}
       </div>
 
       <hr style={hr} />
