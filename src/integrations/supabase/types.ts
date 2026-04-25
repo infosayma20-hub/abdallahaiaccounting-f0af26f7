@@ -5564,6 +5564,7 @@ export type Database = {
           total_items_cost_local: number | null
           total_landed_cost: number | null
           user_id: string
+          warehouse_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -5584,6 +5585,7 @@ export type Database = {
           total_items_cost_local?: number | null
           total_landed_cost?: number | null
           user_id: string
+          warehouse_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -5604,6 +5606,7 @@ export type Database = {
           total_items_cost_local?: number | null
           total_landed_cost?: number | null
           user_id?: string
+          warehouse_id?: string | null
         }
         Relationships: [
           {
@@ -5618,6 +5621,20 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_shipments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["warehouse_id"]
+          },
+          {
+            foreignKeyName: "import_shipments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -14953,6 +14970,10 @@ export type Database = {
           p_sales_rep_id: string
         }
         Returns: string
+      }
+      post_import_shipment_atomic: {
+        Args: { p_shipment_id: string; p_user_id: string }
+        Returns: Json
       }
       process_pos_return: {
         Args: {
