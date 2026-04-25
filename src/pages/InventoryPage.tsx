@@ -201,7 +201,7 @@ const InventoryPage = () => {
   useEffect(() => { fetchProducts(); fetchStations(); fetchAccounts(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "", barcode: "", tax_rate: "0", custom_tax_rate: "", is_sold: true, is_purchased: true, is_pos_product: false, sales_account_code: "4100", purchase_account_code: "5110", description: "", terms: "", product_type: "product", service_direction: "", has_warranty: false, warranty_duration: "", warranty_unit: "months", warranty_type: "", warranty_notes: "" });
     setEditMode(false);
     setSelectedProduct(null);
     stopBarcodeScanner();
@@ -271,6 +271,11 @@ const InventoryPage = () => {
       terms: product.terms || "",
       product_type: (product as any).product_type || "product",
       service_direction: (product as any).service_direction || "",
+      has_warranty: !!(product as any).has_warranty,
+      warranty_duration: (product as any).warranty_duration ? String((product as any).warranty_duration) : "",
+      warranty_unit: (product as any).warranty_unit || "months",
+      warranty_type: (product as any).warranty_type || "",
+      warranty_notes: (product as any).warranty_notes || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
