@@ -148,14 +148,14 @@ export default function RepDashboardPage() {
             <div className="text-xs text-muted-foreground">يوم العمل</div>
             <div className="font-bold text-foreground">{openDay.day_number}</div>
           </div>
-          <div className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">مفتوح</div>
+          <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">مفتوح</div>
         </div>
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.count}</div><div className="text-xs text-muted-foreground">طلبات اليوم</div></Card>
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
-        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-emerald-600" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
+        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
         <Card className="p-4 space-y-1"><Package className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{Number(openDay.opening_cash || 0).toFixed(2)}</div><div className="text-xs text-muted-foreground">العهدة الافتتاحية</div></Card>
       </div>
 
