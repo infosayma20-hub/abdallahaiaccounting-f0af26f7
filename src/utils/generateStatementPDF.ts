@@ -199,6 +199,19 @@ export const generateStatementPDF = (
   doc.setTextColor(...navyLight);
   doc.text(data.statementNumber, margin, 30);
 
+  // Center: Logo (between company details on right and title on left)
+  if (opts.showLogo && company.logo_url) {
+    try {
+      const logoMaxH = 22;
+      const logoMaxW = 40;
+      const logoY = (36 - logoMaxH) / 2;
+      const logoX = (W - logoMaxW) / 2;
+      doc.addImage(company.logo_url, 'PNG', logoX, logoY, logoMaxW, logoMaxH, undefined, 'FAST');
+    } catch (e) {
+      // ignore logo errors
+    }
+  }
+
   // ══════ DETAILS SECTION ══════
   let currentY = 42;
 

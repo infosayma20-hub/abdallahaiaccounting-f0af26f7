@@ -92,7 +92,7 @@ const getTypeLabel = (t: string) => {
 
 const S = {
   page: { direction: "rtl" as const, fontFamily: "'Cairo', Arial, sans-serif", fontSize: 11, color: "#111827", background: "white", padding: "40px 48px", maxWidth: 780 },
-  headerWrap: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 16, borderBottom: "2px solid #111827" } as React.CSSProperties,
+  headerWrap: { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 16, paddingBottom: 16, borderBottom: "2px solid #111827" } as React.CSSProperties,
   companyName: { fontSize: 20, fontWeight: 700, color: "#111827", margin: 0 },
   companySub: { fontSize: 10, color: "#6B7280", marginTop: 2 },
   titleBlock: { textAlign: "left" as const },
@@ -146,31 +146,36 @@ const StatementPrintViewClean = ({
 
   return (
     <div style={S.page} dir="rtl">
-      {/* ═══ HEADER ═══ */}
+      {/* ═══ HEADER (3 columns: company-details | logo | title) ═══ */}
       <div style={S.headerWrap}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {/* RIGHT (RTL first column): Company details */}
+        <div style={{ textAlign: "right" }}>
+          <p style={S.companyName}>{company.name || "AMWALI"}</p>
+          {showCompanyContact && (company.phone || company.email) && (
+            <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>
+          )}
+          {showCompanyContact && company.address && (
+            <p style={S.companySub}>{company.address}</p>
+          )}
+          {showCompanyContact && company.tax_number && (
+            <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>
+          )}
+        </div>
+
+        {/* CENTER: Logo only */}
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           {showLogo && company.logo_url && (
             <img
               src={company.logo_url}
               alt={company.name || "Logo"}
               crossOrigin="anonymous"
-              style={{ height: 56, width: "auto", maxWidth: 160, objectFit: "contain", borderRadius: 4 }}
+              style={{ maxHeight: 45, maxWidth: 140, width: "auto", objectFit: "contain" }}
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           )}
-          <div>
-            <p style={S.companyName}>{company.name || "AMWALI"}</p>
-            {showCompanyContact && company.phone && (
-              <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>
-            )}
-            {showCompanyContact && company.address && (
-              <p style={S.companySub}>{company.address}</p>
-            )}
-            {showCompanyContact && company.tax_number && (
-              <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>
-            )}
-          </div>
         </div>
+
+        {/* LEFT (RTL last column): Statement title */}
         <div style={S.titleBlock}>
           <p style={S.titleAr}>كشف حساب</p>
           <p style={S.titleEn}>STATEMENT OF ACCOUNT</p>
