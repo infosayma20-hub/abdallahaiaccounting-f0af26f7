@@ -71,8 +71,42 @@ const SessionManager = () => {
 
   const handleAutoLogout = useCallback(() => {
     setShowWarning(false);
-    setShowLocked(true);
     if (countdownRef.current) clearInterval(countdownRef.current);
+
+    // Real sign-out: clear Supabase session + localStorage/sessionStorage so refresh cannot restore it.
+    (async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn("[SessionManager] signOut failed:", e);
+      }
+      try {
+        // Clear all Supabase auth tokens (sb-*-auth-token, etc.) and known session keys.
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (
+            k.startsWith("sb-") ||
+            k.startsWith("supabase.") ||
+            k === "task_session" ||
+            k === "portal_session" ||
+            k === "malaki_session" ||
+            k.startsWith("amwali_draft_")
+          ) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        sessionStorage.clear();
+      } catch {}
+
+      // Show the lock screen briefly, then hard-redirect so React state is fully reset.
+      setShowLocked(true);
+      setTimeout(() => {
+        window.location.replace("/auth?reason=session_expired");
+      }, 50);
+    })();
   }, []);
 
   const resetTimer = useCallback(() => {
@@ -147,9 +181,10 @@ const SessionManager = () => {
     await signOut();
   };
 
-  const handleReLogin = async () => {
-    await signOut();
+  const handleReLogin = () => {
+    // Session is already terminated by handleAutoLogout; just navigate.
     setShowLocked(false);
+    window.location.replace("/auth?reason=session_expired");
   };
 
   const formatTime = (seconds: number) => {
