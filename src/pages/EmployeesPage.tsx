@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
 import EmployeeFinancialMovementsTab from "@/components/hr/EmployeeFinancialMovementsTab";
@@ -103,6 +103,7 @@ type SortDir = "asc" | "desc";
 const EmployeesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,6 +238,27 @@ const EmployeesPage = () => {
   };
 
   useEffect(() => { fetchEmployees(); fetchBranches(); }, [user]);
+
+  // Deep-link: open employee drawer + (optionally) create-account dialog
+  // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
+  useEffect(() => {
+    const openAccountId = searchParams.get("openAccount");
+    if (!openAccountId || employees.length === 0) return;
+    const emp = employees.find((e) => e.id === openAccountId);
+    if (!emp) return;
+    setSelectedEmployee(emp);
+    fetchEmployeeDetails(emp.id);
+    setActiveTab("info");
+    setDrawerOpen(true);
+    if (!(emp as any).auth_user_id) {
+      setAccountForm({ email: emp.email || "", password: "" });
+      setShowCreateAccount(true);
+    }
+    // clear the param so the dialog doesn't reopen on re-renders
+    const next = new URLSearchParams(searchParams);
+    next.delete("openAccount");
+    setSearchParams(next, { replace: true });
+  }, [employees, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -478,7 +500,7 @@ const EmployeesPage = () => {
         className={`border-b border-border/50 transition-colors cursor-pointer ${
           idx % 2 === 0 ? "bg-background" : "bg-muted/20"
         } hover:bg-primary/5`}
-        onClick={() => navigate(`/hr/employee/${emp.id}`)}
+        onClick={() => openEmployeeDrawer(emp)}
       >
         <td className="px-3 py-3">
           <div className="flex items-center gap-2">

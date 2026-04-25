@@ -13,6 +13,8 @@ import {
   HandCoins,
   Receipt,
   Wallet,
+  UserPlus,
+  ShieldCheck,
 } from "lucide-react";
 import type { RiskScoreResult } from "@/hooks/hr/useEmployeeRiskScore";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
@@ -30,8 +32,10 @@ const fmt = (v: number) =>
 
 export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
   const navigate = useNavigate();
+  const displayName: string =
+    employee?.full_name || employee?.name || "موظف";
   const initials =
-    (employee?.name || "؟")
+    (displayName || "؟")
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
@@ -82,13 +86,13 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
 
         <div className="flex-1 min-w-0 space-y-2 text-right">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">
-            {employee?.name || "موظف"}
+            {displayName}
           </h1>
           <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground justify-end">
-            {employee?.job_title && (
+            {(employee?.job_title || employee?.position) && (
               <span className="flex items-center gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" />
-                {employee.job_title}
+                {employee.job_title || employee.position}
               </span>
             )}
             {employee?.department && (
@@ -97,10 +101,10 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
                 {employee.department}
               </span>
             )}
-            {employee?.hire_date && (
+            {(employee?.hire_date || employee?.start_date) && (
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                تاريخ التعيين: {new Date(employee.hire_date).toLocaleDateString("ar")}
+                تاريخ التعيين: {new Date(employee.hire_date || employee.start_date).toLocaleDateString("ar")}
               </span>
             )}
           </div>
@@ -108,6 +112,22 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
       </div>
 
       <div className="mt-5 pt-5 border-t flex flex-wrap gap-2 justify-end">
+        {employee?.auth_user_id ? (
+          <Badge variant="outline" className="gap-1.5 bg-primary/5 text-primary border-primary/20">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            لديه حساب دخول
+          </Badge>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => navigate(`/employees?openAccount=${employee?.id}`)}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            إنشاء حساب دخول
+          </Button>
+        )}
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => onQuickAction("leave")}>
           <Plane className="h-3.5 w-3.5" />
           <Plus className="h-3 w-3" />
