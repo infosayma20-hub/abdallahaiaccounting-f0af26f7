@@ -45,7 +45,7 @@ interface InvoiceLite {
 }
 
 interface Props {
-  noteType: "credit" | "debit";
+  noteType: "credit" | "debit" | "sales_return" | "purchase_return";
 }
 
 const TAX_OPTS: { value: TaxCategory; label: string; rate: number }[] = [
@@ -82,6 +82,24 @@ const REASONS_DEBIT = [
   "أخرى",
 ];
 
+const REASONS_SALES_RETURN = [
+  "إرجاع منتج معيب",
+  "إرجاع منتج غير مطابق للطلب",
+  "إلغاء جزئي للطلب",
+  "خطأ في الكمية المسلّمة",
+  "اتفاق مع العميل",
+  "أخرى",
+];
+
+const REASONS_PURCHASE_RETURN = [
+  "بضاعة معيبة من المورد",
+  "بضاعة غير مطابقة للمواصفات",
+  "إلغاء جزء من الطلبية",
+  "خطأ في الكمية المستلمة",
+  "اتفاق مع المورد",
+  "أخرى",
+];
+
 const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -96,14 +114,35 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
   const recordId = editId || viewId;
 
   const isCredit = noteType === "credit";
-  const dbType = isCredit ? "credit_note" : "debit_note";
-  const titleAr = isCredit ? "إشعار دائن" : "إشعار مدين";
-  const partyLabel = isCredit ? "العميل" : "المورد";
-  const partyType = isCredit ? "عميل" : "مورد";
-  const linkedType = isCredit ? "sale" : "purchase";
-  const accent = isCredit ? "emerald" : "rose";
-  const reasons = isCredit ? REASONS_CREDIT : REASONS_DEBIT;
-  const listPath = isCredit ? "/credit-notes" : "/debit-notes";
+  const isSalesReturn = noteType === "sales_return";
+  const isPurchaseReturn = noteType === "purchase_return";
+  const isReturn = isSalesReturn || isPurchaseReturn;
+  const isCustomerSide = isCredit || isSalesReturn;
+
+  const dbType =
+    noteType === "credit" ? "credit_note" :
+    noteType === "debit" ? "debit_note" :
+    noteType === "sales_return" ? "sales_return" : "purchase_return";
+
+  const titleAr =
+    noteType === "credit" ? "إشعار دائن" :
+    noteType === "debit" ? "إشعار مدين" :
+    noteType === "sales_return" ? "مردود مبيعات" : "مردود مشتريات";
+
+  const partyLabel = isCustomerSide ? "العميل" : "المورد";
+  const partyType = isCustomerSide ? "عميل" : "مورد";
+  const linkedType = isCustomerSide ? "sale" : "purchase";
+  const accent = isCustomerSide ? "emerald" : "rose";
+
+  const reasons =
+    noteType === "credit" ? REASONS_CREDIT :
+    noteType === "debit" ? REASONS_DEBIT :
+    noteType === "sales_return" ? REASONS_SALES_RETURN : REASONS_PURCHASE_RETURN;
+
+  const listPath =
+    noteType === "credit" ? "/credit-notes" :
+    noteType === "debit" ? "/debit-notes" :
+    noteType === "sales_return" ? "/sales/returns" : "/purchases/returns";
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkedInvoices, setLinkedInvoices] = useState<InvoiceLite[]>([]);
@@ -288,7 +327,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       const payload: any = {
         user_id: user.id,
         invoice_type: dbType,
-        is_credit_note: isCredit,
+        is_credit_note: isCustomerSide,
         contact_id: form.contactId,
         contact_name: form.contactName,
         invoice_date: form.date,
@@ -343,11 +382,22 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       // ─── Post accounting entry (reverse of original invoice) ───
       if (!asDraft && summary.total > 0) {
         const txDescription = `${titleAr} ${noteNumber} - ${form.contactName}`;
-        // Credit Note: Debit Sales Revenue (4100), Credit AR (1130)
-        // Debit Note:  Debit AP (2110),         Credit Purchases (5110)
-        const debitCode = isCredit ? "4100" : "2110";
-        const creditCode = isCredit ? "1130" : "5110";
-        const txType = isCredit ? "credit_note" : "debit_note";
+        // Credit Note     : Dr Sales Revenue (4100), Cr AR (1130)
+        // Debit Note      : Dr AP (2110),           Cr Purchases (5110)
+        // Sales Return    : Dr Sales Returns (4150 contra-revenue), Cr AR (1130)
+        // Purchase Return : Dr AP (2110),           Cr Purchase Returns (5150 contra-expense)
+        let debitCode = "4100";
+        let creditCode = "1130";
+        if (noteType === "credit")          { debitCode = "4100"; creditCode = "1130"; }
+        else if (noteType === "debit")      { debitCode = "2110"; creditCode = "5110"; }
+        else if (noteType === "sales_return")    { debitCode = "4150"; creditCode = "1130"; }
+        else if (noteType === "purchase_return") { debitCode = "2110"; creditCode = "5150"; }
+        const txType = dbType;
+
+        // Make sure the contra accounts exist for this user (idempotent)
+        if (isReturn) {
+          await supabase.rpc("ensure_return_accounts" as any, { p_user_id: user.id });
+        }
 
         const { data: txInsert } = await supabase.from("transactions").insert({
           user_id: user.id,
@@ -373,7 +423,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
           const d = new Date(form.date);
           await supabase.from("tax_ledger").insert({
             user_id: user.id,
-            tax_type: isCredit ? "output" : "input",
+            tax_type: isCustomerSide ? "output" : "input",
             net_amount: -summary.net,
             tax_rate: 16,
             tax_amount: -summary.tax,
@@ -411,11 +461,14 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
     <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
       <PageHeader
         title={isView ? `معاينة ${titleAr}` : recordId ? `تعديل ${titleAr}` : `إنشاء ${titleAr}`}
-        breadcrumb={["الرئيسية", isCredit ? "المبيعات" : "المشتريات", titleAr]}
+        breadcrumb={["الرئيسية", isCustomerSide ? "المبيعات" : "المشتريات", titleAr]}
       />
       <div className="flex justify-between items-start gap-3">
         <p className="text-sm text-muted-foreground">
-          {isCredit ? "تخفيض / إلغاء جزئي على فاتورة مبيعات" : "تخفيض / إرجاع على فاتورة مشتريات"}
+          {noteType === "credit" ? "تخفيض / إلغاء جزئي على فاتورة مبيعات" :
+           noteType === "debit" ? "تخفيض / إرجاع على فاتورة مشتريات" :
+           noteType === "sales_return" ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً" :
+                                         "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
         </p>
         <Button variant="outline" onClick={() => navigate(listPath)} className="gap-2">
           <ArrowRight className="h-4 w-4" /> رجوع للقائمة
@@ -663,7 +716,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
             <CardHeader>
               <CardTitle className={`text-base text-${accent}-700 dark:text-${accent}-400 flex items-center justify-between`}>
                 <span>الإجمالي</span>
-                <Badge className={isCredit ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}>
+                <Badge className={isCustomerSide ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}>
                   {titleAr}
                 </Badge>
               </CardTitle>
