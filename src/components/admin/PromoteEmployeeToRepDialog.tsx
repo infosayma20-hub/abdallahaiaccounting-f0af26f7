@@ -51,11 +51,28 @@ export default function PromoteEmployeeToRepDialog({ open, onOpenChange, onDone 
       const emp = employees.find((e) => e.id === employeeId);
       if (!emp) throw new Error("الموظف غير موجود");
 
-      const { data: existing } = await (supabase as any)
-        .from("sales_representatives")
-        .select("id")
-        .eq("full_name", emp.full_name)
-        .maybeSingle();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("غير مصرح");
+
+      // Look up existing rep by auth_user_id first (most reliable), fallback to full_name within same owner.
+      let existingId: string | null = null;
+      if (emp.auth_user_id) {
+        const { data: byAuth } = await (supabase as any)
+          .from("sales_representatives")
+          .select("id")
+          .eq("auth_user_id", emp.auth_user_id)
+          .maybeSingle();
+        existingId = byAuth?.id ?? null;
+      }
+      if (!existingId) {
+        const { data: byName } = await (supabase as any)
+          .from("sales_representatives")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("full_name", emp.full_name)
+          .maybeSingle();
+        existingId = byName?.id ?? null;
+      }
 
       const repPayload: any = {
         full_name: emp.full_name,
@@ -65,12 +82,10 @@ export default function PromoteEmployeeToRepDialog({ open, onOpenChange, onDone 
       };
       if (emp.auth_user_id) repPayload.auth_user_id = emp.auth_user_id;
 
-      if (existing?.id) {
-        const { error } = await (supabase as any).from("sales_representatives").update(repPayload).eq("id", existing.id);
+      if (existingId) {
+        const { error } = await (supabase as any).from("sales_representatives").update(repPayload).eq("id", existingId);
         if (error) throw error;
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("غير مصرح");
         const { error } = await (supabase as any)
           .from("sales_representatives")
           .insert({ ...repPayload, user_id: user.id });
