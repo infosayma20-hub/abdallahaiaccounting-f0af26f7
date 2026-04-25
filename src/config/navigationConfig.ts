@@ -389,6 +389,29 @@ export const navigationSections: NavSection[] = [
               { label: "⚙️ إعدادات HR", path: "/hr/settings" },
             ],
           },
+          {
+            groupLabel: "الحضور والانصراف",
+            children: [
+              { label: "🕐 لوحة إدارة الحضور", path: "/hr-attendance" },
+              { label: "📅 الإجازات", path: "/leaves" },
+            ],
+          },
+          {
+            groupLabel: "الرواتب",
+            children: [
+              { label: "💵 الرواتب", path: "/payroll" },
+              { label: "📝 مدخلات الرواتب الشهرية", path: "/payroll/inputs" },
+              { label: "⚙️ إعدادات الرواتب", path: "/payroll-settings" },
+            ],
+          },
+          {
+            groupLabel: "السلف والقروض والخصومات",
+            children: [
+              { label: "💸 السلف", path: "/advances" },
+              { label: "🏦 القروض", path: "/loans" },
+              { label: "➖ الخصومات", path: "/hr-deductions" },
+            ],
+          },
         ],
       },
     ],
