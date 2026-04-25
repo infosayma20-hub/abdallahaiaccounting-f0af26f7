@@ -94,16 +94,23 @@ function useCountUp(target: number, duration = 800) {
   useEffect(() => {
     if (target === prevTarget.current) return;
     prevTarget.current = target;
+    const sign = target < 0 ? -1 : 1;
+    const abs = Math.abs(target);
     let start = 0;
-    const step = target / (duration / 16);
+    const step = abs / (duration / 16);
     const timer = setInterval(() => {
       start += step;
-      if (start >= target) { setValue(target); clearInterval(timer); }
-      else setValue(Math.floor(start));
+      if (start >= abs) { setValue(target); clearInterval(timer); }
+      else setValue(Math.floor(start) * sign);
     }, 16);
     return () => clearInterval(timer);
   }, [target, duration]);
   return value;
+}
+
+function fmtSigned(n: number) {
+  const abs = Math.abs(n).toLocaleString();
+  return n < 0 ? `-₪${abs}` : `₪${abs}`;
 }
 
 function getGreeting() {
@@ -191,6 +198,7 @@ export default function PortalDashboard() {
   const receivablesTotal = homeData?.kpis?.receivables || 0;
   const salesToday = homeData?.kpis?.revenue || 0;
   const cashBalance = homeData?.kpis?.cashBalance || 0;
+  const payablesTotal = homeData?.kpis?.payables || 0;
 
   const animatedReceivables = useCountUp(receivablesTotal);
   const animatedSales = useCountUp(salesToday);
