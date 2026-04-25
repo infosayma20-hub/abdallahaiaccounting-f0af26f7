@@ -9,6 +9,21 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, Search, Save } from "lucide-react";
 
+// ============================================================================
+// TODO (post-demo): Add explicit `invoices.sales_rep_id` column and set it here.
+// Current linkage between an invoice and its sales rep is INFERRED via:
+//   invoices.warehouse_id == sales_representatives.default_warehouse_id
+//   AND invoice_number LIKE 'REP-%'
+// This is acceptable for the demo, but FAILS when:
+//   - Multiple reps share the same warehouse
+//   - A rep changes warehouse mid-period
+//   - Manual invoices use the rep's warehouse outside van-sales flow
+// Migration plan:
+//   1) ALTER TABLE invoices ADD COLUMN sales_rep_id uuid REFERENCES sales_representatives(id);
+//   2) Set p_sales_rep_id = rep.id when inserting the invoice below.
+//   3) Update /admin/sales-rep-orders + reports + commissions to filter by sales_rep_id.
+//   4) Backfill historical REP-% invoices via warehouse mapping.
+// ============================================================================
 type Item = { product_id: string; name: string; qty: number; price: number };
 
 export default function RepNewOrderPage() {
