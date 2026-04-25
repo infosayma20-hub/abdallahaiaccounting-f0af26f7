@@ -55,7 +55,7 @@ interface ProductLite {
   buy_price: number | null;
   unit: string | null;
   product_type: string | null;
-  current_stock: number | null;
+  quantity: number | null;
 }
 
 interface Props {
@@ -161,7 +161,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     (async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, current_stock")
+        .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, quantity")
         .eq("user_id", user.id)
         .order("name");
       setProducts((data as ProductLite[]) || []);
