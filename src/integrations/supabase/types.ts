@@ -10738,6 +10738,166 @@ export type Database = {
           },
         ]
       }
+      return_items: {
+        Row: {
+          created_at: string
+          description: string
+          discount: number
+          id: string
+          line_total: number
+          product_id: string | null
+          quantity: number
+          return_id: string
+          source_invoice_item_id: string | null
+          tax_amount: number
+          tax_rate: number
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          discount?: number
+          id?: string
+          line_total?: number
+          product_id?: string | null
+          quantity?: number
+          return_id: string
+          source_invoice_item_id?: string | null
+          tax_amount?: number
+          tax_rate?: number
+          unit_price?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount?: number
+          id?: string
+          line_total?: number
+          product_id?: string | null
+          quantity?: number
+          return_id?: string
+          source_invoice_item_id?: string | null
+          tax_amount?: number
+          tax_rate?: number
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_warehouse_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "return_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      returns: {
+        Row: {
+          company_id: string | null
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          discount_amount: number
+          id: string
+          is_deleted: boolean
+          journal_entry_id: string | null
+          notes: string | null
+          reason: string | null
+          refund_account_code: string | null
+          refund_method: string | null
+          related_invoice_id: string | null
+          return_date: string
+          return_number: string
+          return_type: Database["public"]["Enums"]["return_type_enum"]
+          status: Database["public"]["Enums"]["return_status_enum"]
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          is_deleted?: boolean
+          journal_entry_id?: string | null
+          notes?: string | null
+          reason?: string | null
+          refund_account_code?: string | null
+          refund_method?: string | null
+          related_invoice_id?: string | null
+          return_date?: string
+          return_number: string
+          return_type: Database["public"]["Enums"]["return_type_enum"]
+          status?: Database["public"]["Enums"]["return_status_enum"]
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          is_deleted?: boolean
+          journal_entry_id?: string | null
+          notes?: string | null
+          reason?: string | null
+          refund_account_code?: string | null
+          refund_method?: string | null
+          related_invoice_id?: string | null
+          return_date?: string
+          return_number?: string
+          return_type?: Database["public"]["Enums"]["return_type_enum"]
+          status?: Database["public"]["Enums"]["return_status_enum"]
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_related_invoice_id_fkey"
+            columns: ["related_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           can_approve: boolean
@@ -12206,6 +12366,7 @@ export type Database = {
           notes: string | null
           payment_method: string | null
           reference: string | null
+          return_id: string | null
           reversed_by_id: string | null
           transaction_date: string
           transaction_type: string
@@ -12234,6 +12395,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           reference?: string | null
+          return_id?: string | null
           reversed_by_id?: string | null
           transaction_date?: string
           transaction_type?: string
@@ -12262,6 +12424,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           reference?: string | null
+          return_id?: string | null
           reversed_by_id?: string | null
           transaction_date?: string
           transaction_type?: string
@@ -12275,6 +12438,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
             referencedColumns: ["id"]
           },
           {
@@ -13620,7 +13790,7 @@ export type Database = {
             columns: ["invoice_item_id"]
             isOneToOne: false
             referencedRelation: "invoice_items_returnable"
-            referencedColumns: ["item_id"]
+            referencedColumns: ["invoice_item_id"]
           },
           {
             foreignKeyName: "warranty_cards_policy_id_fkey"
@@ -14446,14 +14616,17 @@ export type Database = {
       }
       invoice_items_returnable: {
         Row: {
-          already_returned_qty: number | null
+          description: string | null
           invoice_id: string | null
-          item_id: string | null
-          original_qty: number | null
+          invoice_item_id: string | null
+          invoice_type: string | null
+          original_quantity: number | null
           product_id: string | null
-          product_name: string | null
-          returnable_qty: number | null
+          remaining_returnable_quantity: number | null
+          returned_quantity: number | null
+          tax_rate: number | null
           unit_price: number | null
+          user_id: string | null
         }
         Relationships: [
           {
@@ -14643,6 +14816,13 @@ export type Database = {
         Returns: undefined
       }
       expire_trials: { Args: never; Returns: Json }
+      generate_return_number: {
+        Args: {
+          _return_type: Database["public"]["Enums"]["return_type_enum"]
+          _user_id: string
+        }
+        Returns: string
+      }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
@@ -14828,6 +15008,8 @@ export type Database = {
         | "مواد تعبئة"
         | "قطع غيار"
         | "أخرى"
+      return_status_enum: "draft" | "confirmed" | "cancelled"
+      return_type_enum: "sales" | "purchase"
       stock_movement_type: "وارد" | "صادر" | "تعديل يدوي"
     }
     CompositeTypes: {
@@ -15019,6 +15201,8 @@ export const Constants = {
         "قطع غيار",
         "أخرى",
       ],
+      return_status_enum: ["draft", "confirmed", "cancelled"],
+      return_type_enum: ["sales", "purchase"],
       stock_movement_type: ["وارد", "صادر", "تعديل يدوي"],
     },
   },

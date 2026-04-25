@@ -45,7 +45,7 @@ interface InvoiceLite {
 }
 
 interface Props {
-  noteType: "credit" | "debit" | "sales_return" | "purchase_return";
+  noteType: "credit" | "debit";
 }
 
 const TAX_OPTS: { value: TaxCategory; label: string; rate: number }[] = [
@@ -114,35 +114,17 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
   const recordId = editId || viewId;
 
   const isCredit = noteType === "credit";
-  const isSalesReturn = noteType === "sales_return";
-  const isPurchaseReturn = noteType === "purchase_return";
-  const isReturn = isSalesReturn || isPurchaseReturn;
-  const isCustomerSide = isCredit || isSalesReturn;
-
-  const dbType =
-    noteType === "credit" ? "credit_note" :
-    noteType === "debit" ? "debit_note" :
-    noteType === "sales_return" ? "sales_return" : "purchase_return";
-
-  const titleAr =
-    noteType === "credit" ? "إشعار دائن" :
-    noteType === "debit" ? "إشعار مدين" :
-    noteType === "sales_return" ? "مردود مبيعات" : "مردود مشتريات";
+  const isCustomerSide = isCredit;
+  const dbType = noteType === "credit" ? "credit_note" : "debit_note";
+  const titleAr = noteType === "credit" ? "إشعار دائن" : "إشعار مدين";
 
   const partyLabel = isCustomerSide ? "العميل" : "المورد";
   const partyType = isCustomerSide ? "عميل" : "مورد";
   const linkedType = isCustomerSide ? "sale" : "purchase";
   const accent = isCustomerSide ? "emerald" : "rose";
 
-  const reasons =
-    noteType === "credit" ? REASONS_CREDIT :
-    noteType === "debit" ? REASONS_DEBIT :
-    noteType === "sales_return" ? REASONS_SALES_RETURN : REASONS_PURCHASE_RETURN;
-
-  const listPath =
-    noteType === "credit" ? "/credit-notes" :
-    noteType === "debit" ? "/debit-notes" :
-    noteType === "sales_return" ? "/sales/returns" : "/purchases/returns";
+  const reasons = noteType === "credit" ? REASONS_CREDIT : REASONS_DEBIT;
+  const listPath = noteType === "credit" ? "/credit-notes" : "/debit-notes";
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkedInvoices, setLinkedInvoices] = useState<InvoiceLite[]>([]);
@@ -390,14 +372,7 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
         let creditCode = "1130";
         if (noteType === "credit")          { debitCode = "4100"; creditCode = "1130"; }
         else if (noteType === "debit")      { debitCode = "2110"; creditCode = "5110"; }
-        else if (noteType === "sales_return")    { debitCode = "4150"; creditCode = "1130"; }
-        else if (noteType === "purchase_return") { debitCode = "2110"; creditCode = "5150"; }
         const txType = dbType;
-
-        // Make sure the contra accounts exist for this user (idempotent)
-        if (isReturn) {
-          await supabase.rpc("ensure_return_accounts" as any, { p_user_id: user.id });
-        }
 
         const { data: txInsert } = await supabase.from("transactions").insert({
           user_id: user.id,
@@ -465,10 +440,9 @@ const CreditDebitNoteCreatePage = ({ noteType }: Props) => {
       />
       <div className="flex justify-between items-start gap-3">
         <p className="text-sm text-muted-foreground">
-          {noteType === "credit" ? "تخفيض / إلغاء جزئي على فاتورة مبيعات" :
-           noteType === "debit" ? "تخفيض / إرجاع على فاتورة مشتريات" :
-           noteType === "sales_return" ? "إرجاع بضاعة من العميل وإعادتها إلى المخزون تلقائياً" :
-                                         "إرجاع بضاعة للمورد وخصمها من المخزون تلقائياً"}
+          {noteType === "credit"
+            ? "تخفيض / إلغاء جزئي على فاتورة مبيعات"
+            : "تخفيض / إرجاع على فاتورة مشتريات"}
         </p>
         <Button variant="outline" onClick={() => navigate(listPath)} className="gap-2">
           <ArrowRight className="h-4 w-4" /> رجوع للقائمة
