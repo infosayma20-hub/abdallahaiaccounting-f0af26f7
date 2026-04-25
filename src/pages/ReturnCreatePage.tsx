@@ -379,7 +379,7 @@ const ReturnCreatePage = ({ returnType }: Props) => {
           creditCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : arCode;
         } else {
           debitCode = form.refundMethod === "cash" ? cashCode : form.refundMethod === "bank" ? bankCode : apCode;
-          creditCode = "5150";
+          creditCode = "5160";
         }
 
         const txDescription = `${titleAr} ${returnNumber} - ${form.contactName}`;
@@ -412,12 +412,11 @@ const ReturnCreatePage = ({ returnType }: Props) => {
             net_amount: -summary.net,
             tax_rate: 16,
             tax_amount: -summary.tax,
-            total_amount: -summary.total,
             reference_type: isSales ? "sales_return" : "purchase_return",
             reference_id: returnId,
-            reference_number: returnNumber,
-            contact_name: form.contactName,
-            description: txDescription,
+            invoice_number: returnNumber,
+            party_name: form.contactName,
+            notes: txDescription,
             transaction_date: form.date,
             period_year: d.getFullYear(),
             period_month: d.getMonth() + 1,
