@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, Save, Send, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,19 @@ interface InvoiceLite {
   contact_id: string | null;
   total_amount: number | null;
   invoice_date: string | null;
+}
+
+interface ProductLite {
+  id: string;
+  name: string;
+  sku: string | null;
+  barcode: string | null;
+  category: string | null;
+  sell_price: number | null;
+  buy_price: number | null;
+  unit: string | null;
+  product_type: string | null;
+  current_stock: number | null;
 }
 
 interface Props {
