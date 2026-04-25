@@ -774,17 +774,22 @@ const InventoryPage = () => {
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">التصنيف</label>
                 {showCustomCategory ? (
-                  <div className="flex gap-1.5">
-                    <Input placeholder="اسم التصنيف الجديد" value={customCategoryInput} onChange={e => setCustomCategoryInput(e.target.value)} className="rounded-xl flex-1" autoFocus />
-                    <Button type="button" size="sm" className="rounded-xl px-3" disabled={!customCategoryInput.trim()} onClick={() => {
-                      const cat = customCategoryInput.trim();
-                      setForm(p => ({ ...p, category: cat, skuPrefix: getCategoryPrefix(cat) }));
-                      setShowCustomCategory(false);
-                      setCustomCategoryInput("");
-                    }}>✓</Button>
-                    <Button type="button" size="sm" variant="ghost" className="rounded-xl px-2" onClick={() => { setShowCustomCategory(false); setCustomCategoryInput(""); }}>
-                      <X className="h-4 w-4" />
-                    </Button>
+                  <div className="rounded-xl border border-primary/40 bg-primary/5 p-2 space-y-2">
+                    <Input placeholder="اسم التصنيف الجديد" value={customCategoryInput} onChange={e => setCustomCategoryInput(e.target.value)} className="rounded-lg" autoFocus
+                      onKeyDown={e => { if (e.key === "Enter" && customCategoryInput.trim()) {
+                        const cat = customCategoryInput.trim();
+                        setForm(p => ({ ...p, category: cat, skuPrefix: getCategoryPrefix(cat) }));
+                        setShowCustomCategory(false); setCustomCategoryInput("");
+                      } }}
+                    />
+                    <div className="flex gap-1.5">
+                      <Button type="button" size="sm" className="rounded-lg flex-1 h-7 text-xs" disabled={!customCategoryInput.trim()} onClick={() => {
+                        const cat = customCategoryInput.trim();
+                        setForm(p => ({ ...p, category: cat, skuPrefix: getCategoryPrefix(cat) }));
+                        setShowCustomCategory(false); setCustomCategoryInput("");
+                      }}>حفظ</Button>
+                      <Button type="button" size="sm" variant="ghost" className="rounded-lg h-7 text-xs" onClick={() => { setShowCustomCategory(false); setCustomCategoryInput(""); }}>إلغاء</Button>
+                    </div>
                   </div>
                 ) : (
                   <Select value={form.category} onValueChange={v => {
@@ -804,16 +809,20 @@ const InventoryPage = () => {
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الوحدة</label>
                 {showCustomUnit ? (
-                  <div className="flex gap-1.5">
-                    <Input placeholder="اسم الوحدة الجديدة" value={customUnitInput} onChange={e => setCustomUnitInput(e.target.value)} className="rounded-xl flex-1" autoFocus />
-                    <Button type="button" size="sm" className="rounded-xl px-3" disabled={!customUnitInput.trim()} onClick={() => {
-                      setForm(p => ({ ...p, unit: customUnitInput.trim() }));
-                      setShowCustomUnit(false);
-                      setCustomUnitInput("");
-                    }}>✓</Button>
-                    <Button type="button" size="sm" variant="ghost" className="rounded-xl px-2" onClick={() => { setShowCustomUnit(false); setCustomUnitInput(""); }}>
-                      <X className="h-4 w-4" />
-                    </Button>
+                  <div className="rounded-xl border border-primary/40 bg-primary/5 p-2 space-y-2">
+                    <Input placeholder="اسم الوحدة الجديدة" value={customUnitInput} onChange={e => setCustomUnitInput(e.target.value)} className="rounded-lg" autoFocus
+                      onKeyDown={e => { if (e.key === "Enter" && customUnitInput.trim()) {
+                        setForm(p => ({ ...p, unit: customUnitInput.trim() }));
+                        setShowCustomUnit(false); setCustomUnitInput("");
+                      } }}
+                    />
+                    <div className="flex gap-1.5">
+                      <Button type="button" size="sm" className="rounded-lg flex-1 h-7 text-xs" disabled={!customUnitInput.trim()} onClick={() => {
+                        setForm(p => ({ ...p, unit: customUnitInput.trim() }));
+                        setShowCustomUnit(false); setCustomUnitInput("");
+                      }}>حفظ</Button>
+                      <Button type="button" size="sm" variant="ghost" className="rounded-lg h-7 text-xs" onClick={() => { setShowCustomUnit(false); setCustomUnitInput(""); }}>إلغاء</Button>
+                    </div>
                   </div>
                 ) : (
                   <Select value={form.unit} onValueChange={v => {
@@ -876,6 +885,55 @@ const InventoryPage = () => {
             </div>
             <p className="text-[10px] text-muted-foreground -mt-2">غيّر العائلة (مثل GEN, RAW, PKG) للتحكم بأنواع المخزون</p>
 
+            {/* Product Type + checkboxes */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">نوع الصنف</label>
+                <Select value={form.product_type} onValueChange={v => setForm(p => ({ ...p, product_type: v, service_direction: v === "product" ? "" : p.service_direction }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">📦 منتج (له مخزون)</SelectItem>
+                    <SelectItem value="service">🔧 خدمة (بدون مخزون)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.product_type === "service" && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">اتجاه الخدمة</label>
+                  <Select value={form.service_direction} onValueChange={v => setForm(p => ({ ...p, service_direction: v }))}>
+                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختياري" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="provided">خدمة مقدمة (نبيعها)</SelectItem>
+                      <SelectItem value="received">خدمة متلقاة (نشتريها)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-4 py-2 border-y border-border/50">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_sold} onCheckedChange={v => setForm(p => ({ ...p, is_sold: !!v }))} />
+                يُباع
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_purchased} onCheckedChange={v => setForm(p => ({ ...p, is_purchased: !!v }))} />
+                يُشترى
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.is_pos_product} onCheckedChange={v => setForm(p => ({ ...p, is_pos_product: !!v }))} />
+                منتج نقاط البيع
+              </label>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">وصف المنتج</label>
+              <Textarea placeholder="وصف تفصيلي للمنتج أو الخدمة..." value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="rounded-xl min-h-[60px] resize-none" rows={2} />
+            </div>
+            </TabsContent>
+
+            {/* ============ TAB 2: Pricing & Stock ============ */}
+            <TabsContent value="pricing" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">سعر الشراء (₪)</label>
@@ -913,48 +971,73 @@ const InventoryPage = () => {
                 )}
               </div>
             </div>
+            </TabsContent>
 
-            {/* Product Type */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">نوع الصنف</label>
-                <Select value={form.product_type} onValueChange={v => setForm(p => ({ ...p, product_type: v, service_direction: v === "product" ? "" : p.service_direction }))}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="product">📦 منتج (له مخزون)</SelectItem>
-                    <SelectItem value="service">🔧 خدمة (بدون مخزون)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.product_type === "service" && (
+            {/* ============ TAB 3: Warranty ============ */}
+            <TabsContent value="warranty" className="space-y-4 mt-4">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/50">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">اتجاه الخدمة</label>
-                  <Select value={form.service_direction} onValueChange={v => setForm(p => ({ ...p, service_direction: v }))}>
-                    <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختياري" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="provided">خدمة مقدمة (نبيعها)</SelectItem>
-                      <SelectItem value="received">خدمة متلقاة (نشتريها)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <p className="text-sm font-semibold">المنتج عليه كفالة</p>
+                  <p className="text-[11px] text-muted-foreground">يتم عرض معلومات الكفالة في الفاتورة عند البيع</p>
+                </div>
+                <Checkbox checked={form.has_warranty} onCheckedChange={v => setForm(p => ({ ...p, has_warranty: !!v }))} />
+              </div>
+
+              {form.has_warranty && (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2">
+                      <label className="text-xs text-muted-foreground mb-1 block">مدة الكفالة</label>
+                      <Input type="number" min="0" placeholder="مثال: 12" value={form.warranty_duration} onChange={e => setForm(p => ({ ...p, warranty_duration: e.target.value }))} className="rounded-xl" dir="ltr" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">الوحدة</label>
+                      <Select value={form.warranty_unit} onValueChange={v => setForm(p => ({ ...p, warranty_unit: v }))}>
+                        <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="days">أيام</SelectItem>
+                          <SelectItem value="months">أشهر</SelectItem>
+                          <SelectItem value="years">سنوات</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">نوع الكفالة</label>
+                    <Select value={form.warranty_type || "none"} onValueChange={v => setForm(p => ({ ...p, warranty_type: v === "none" ? "" : v }))}>
+                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر نوع الكفالة" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— غير محدد —</SelectItem>
+                        <SelectItem value="company">كفالة الشركة المصنعة</SelectItem>
+                        <SelectItem value="supplier">كفالة المورد</SelectItem>
+                        <SelectItem value="store">كفالة المحل</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">ملاحظات الكفالة</label>
+                    <Textarea placeholder="شروط الكفالة، الاستثناءات، طريقة المطالبة..." value={form.warranty_notes} onChange={e => setForm(p => ({ ...p, warranty_notes: e.target.value }))} className="rounded-xl min-h-[70px] resize-none" rows={3} />
+                  </div>
+
+                  <div className="text-[11px] text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl p-2.5">
+                    💡 سيتم عرض معلومات الكفالة (المدة + النوع) تلقائياً في الفاتورة عند بيع هذا المنتج، ويمكنك إنشاء بطاقة كفالة لاحقاً من موديول إدارة الكفالات.
+                  </div>
+                </>
+              )}
+
+              {!form.has_warranty && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">المنتج بدون كفالة</p>
+                  <p className="text-xs mt-1">فعّل الخيار أعلاه لإضافة معلومات الكفالة</p>
                 </div>
               )}
-            </div>
+            </TabsContent>
 
-            {/* Checkboxes */}
-            <div className="flex flex-wrap gap-4 py-2 border-y border-border/50">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={form.is_sold} onCheckedChange={v => setForm(p => ({ ...p, is_sold: !!v }))} />
-                يُباع
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={form.is_purchased} onCheckedChange={v => setForm(p => ({ ...p, is_purchased: !!v }))} />
-                يُشترى
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={form.is_pos_product} onCheckedChange={v => setForm(p => ({ ...p, is_pos_product: !!v }))} />
-                منتج نقاط البيع
-              </label>
-            </div>
+            {/* ============ TAB 4: Advanced ============ */}
+            <TabsContent value="advanced" className="space-y-4 mt-4">
+            <p className="text-[11px] text-muted-foreground">⚙️ هذه إعدادات محاسبية متقدمة، القيم الافتراضية تعمل لمعظم الحالات.</p>
 
             {/* Sales Account */}
             {form.is_sold && (
@@ -985,12 +1068,6 @@ const InventoryPage = () => {
                 </Select>
               </div>
             )}
-
-            {/* Description */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">وصف المنتج</label>
-              <Textarea placeholder="وصف تفصيلي للمنتج أو الخدمة..." value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="rounded-xl min-h-[60px] resize-none" rows={2} />
-            </div>
 
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
@@ -1025,12 +1102,13 @@ const InventoryPage = () => {
                 </Select>
               </div>
             )}
+            </TabsContent>
+          </Tabs>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl gap-2 shadow-md shadow-primary/20">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
-            </Button>
-          </div>
+          <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl gap-2 shadow-md shadow-primary/20 mt-4">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
+          </Button>
         </DialogContent>
       </Dialog>
 
