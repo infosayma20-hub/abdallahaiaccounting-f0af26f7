@@ -305,8 +305,8 @@ const StockMovementsPage = () => {
 
       {/* Search & Filters */}
       {movements.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
             <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث بالمنتج أو الملاحظة..." className="pr-9 rounded-xl text-sm" />
             {searchQuery && (
@@ -327,15 +327,64 @@ const StockMovementsPage = () => {
               <SelectItem value="تعديل يدوي">تعديل يدوي</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={productFilter} onValueChange={setProductFilter}>
-            <SelectTrigger className="w-[140px] rounded-xl">
-              <SelectValue placeholder="المنتج" />
-            </SelectTrigger>
-            <SelectContent className="bg-background z-50 max-h-48">
-              <SelectItem value="all">جميع المنتجات</SelectItem>
-              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {warehouses.length > 0 && (
+            <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+              <SelectTrigger className="w-[170px] rounded-xl">
+                <WarehouseIcon className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
+                <SelectValue placeholder="المستودع" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50 max-h-64">
+                <SelectItem value="all">جميع المستودعات</SelectItem>
+                {warehouses.map(w => (
+                  <SelectItem key={w.id} value={w.id}>{w.name}{w.code ? ` (${w.code})` : ""}</SelectItem>
+                ))}
+                <SelectItem value="__none__">بدون مستودع</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          <div className="w-[220px]">
+            <SmartSearchableDropdown
+              value={
+                productFilter === "all"
+                  ? productSearch
+                  : (productMap.get(productFilter)?.name || productSearch)
+              }
+              onChange={(v) => {
+                setProductSearch(v);
+                if (productFilter !== "all") setProductFilter("all");
+              }}
+              items={filteredProductOptions}
+              getKey={(p) => p.id}
+              getLabel={(p) => p.name}
+              onSelect={(p) => {
+                setProductFilter(p.id);
+                setProductSearch(p.name);
+              }}
+              renderOption={(p, active) => (
+                <div className={`flex flex-col items-end gap-0.5 ${active ? "bg-muted" : ""}`}>
+                  <span className="text-sm font-medium text-foreground">{p.name}</span>
+                  {(p.sku || p.barcode || p.category) && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {[p.sku, p.barcode, p.category].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
+                </div>
+              )}
+              headerAction={
+                productFilter !== "all" || productSearch
+                  ? {
+                      label: "إظهار جميع المنتجات",
+                      onClick: () => {
+                        setProductFilter("all");
+                        setProductSearch("");
+                      },
+                    }
+                  : undefined
+              }
+              placeholder="ابحث عن منتج (اسم/SKU/باركود)..."
+              emptyText="لا توجد منتجات مطابقة"
+            />
+          </div>
         </div>
       )}
 
@@ -359,7 +408,7 @@ const StockMovementsPage = () => {
         <div className="text-center py-12 space-y-2">
           <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
           <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة</p>
-          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setProductFilter("all"); }}>مسح الفلاتر</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setProductFilter("all"); setWarehouseFilter("all"); setProductSearch(""); }}>مسح الفلاتر</Button>
         </div>
       )}
 
