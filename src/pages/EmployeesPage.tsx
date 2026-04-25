@@ -478,7 +478,7 @@ const EmployeesPage = () => {
         className={`border-b border-border/50 transition-colors cursor-pointer ${
           idx % 2 === 0 ? "bg-background" : "bg-muted/20"
         } hover:bg-primary/5`}
-        onClick={() => navigate(`/hr/employee/${emp.id}`)}
+        onClick={() => openEmployeeDrawer(emp)}
       >
         <td className="px-3 py-3">
           <div className="flex items-center gap-2">
