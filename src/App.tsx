@@ -329,6 +329,10 @@ const App = () => (
                       <Route path="/credit-notes/new" element={<CreditDebitNoteCreatePage noteType="credit" />} />
                       <Route path="/debit-notes" element={<CreditDebitNotesPage noteType="debit" />} />
                       <Route path="/debit-notes/new" element={<CreditDebitNoteCreatePage noteType="debit" />} />
+                      <Route path="/sales/returns" element={<CreditDebitNotesPage noteType="sales_return" />} />
+                      <Route path="/sales/returns/new" element={<CreditDebitNoteCreatePage noteType="sales_return" />} />
+                      <Route path="/purchases/returns" element={<CreditDebitNotesPage noteType="purchase_return" />} />
+                      <Route path="/purchases/returns/new" element={<CreditDebitNoteCreatePage noteType="purchase_return" />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/reports/builder" element={<ReportBuilderPage />} />
