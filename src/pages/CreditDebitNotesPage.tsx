@@ -24,7 +24,7 @@ interface NoteRow {
 }
 
 interface Props {
-  noteType: "credit" | "debit";
+  noteType: "credit" | "debit" | "sales_return" | "purchase_return";
 }
 
 const CreditDebitNotesPage = ({ noteType }: Props) => {
@@ -36,13 +36,38 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
   const [search, setSearch] = useState("");
 
   const isCredit = noteType === "credit";
-  const dbInvoiceType = isCredit ? "credit_note" : "debit_note";
-  const titleAr = isCredit ? "الإشعارات الدائنة" : "الإشعارات المدينة";
-  const newPath = isCredit ? "/credit-notes/new" : "/debit-notes/new";
-  const accentColor = isCredit ? "text-emerald-600" : "text-rose-600";
-  const badgeColor = isCredit
+  const isCustomerSide = noteType === "credit" || noteType === "sales_return";
+
+  const dbInvoiceType =
+    noteType === "credit" ? "credit_note" :
+    noteType === "debit" ? "debit_note" :
+    noteType === "sales_return" ? "sales_return" : "purchase_return";
+
+  const titleAr =
+    noteType === "credit" ? "الإشعارات الدائنة" :
+    noteType === "debit" ? "الإشعارات المدينة" :
+    noteType === "sales_return" ? "مردودات المبيعات" : "مردودات المشتريات";
+
+  const newPath =
+    noteType === "credit" ? "/credit-notes/new" :
+    noteType === "debit" ? "/debit-notes/new" :
+    noteType === "sales_return" ? "/sales/returns/new" : "/purchases/returns/new";
+
+  const accentColor = isCustomerSide ? "text-emerald-600" : "text-rose-600";
+  const badgeColor = isCustomerSide
     ? "bg-emerald-100 text-emerald-700 border-emerald-200"
     : "bg-rose-100 text-rose-700 border-rose-200";
+
+  const newButtonLabel =
+    noteType === "credit" ? "إنشاء إشعار دائن" :
+    noteType === "debit" ? "إنشاء إشعار مدين" :
+    noteType === "sales_return" ? "إنشاء مردود مبيعات" : "إنشاء مردود مشتريات";
+
+  const headerSubtitle =
+    noteType === "credit" ? "إشعارات دائنة للعملاء — تخفيض أو إلغاء جزئي/كلي لفواتير المبيعات" :
+    noteType === "debit" ? "إشعارات مدينة للموردين — إرجاع بضاعة أو تخفيض على فواتير المشتريات" :
+    noteType === "sales_return" ? "مردودات المبيعات — إرجاع بضاعة من العميل وإعادتها للمخزون" :
+                                  "مردودات المشتريات — إرجاع بضاعة للمورد وخصمها من المخزون";
 
   const fetchNotes = async () => {
     if (!user) return;
