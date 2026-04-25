@@ -117,15 +117,6 @@ const InventoryPage = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [kitchenStations, setKitchenStations] = useState<KitchenStation[]>([]);
 
-  const CATEGORIES = useMemo(() =>
-    [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category), form.category])].filter(Boolean),
-    [products, form.category]
-  );
-  const UNITS = useMemo(() =>
-    [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit), form.unit])].filter(Boolean),
-    [products, form.unit]
-  );
-
   const [form, setForm] = useState({
     name: "", category: "بضاعة عامة", skuPrefix: "GEN",
     buy_price: "", sell_price: "", quantity: "", min_quantity: "",
@@ -142,6 +133,16 @@ const InventoryPage = () => {
     warranty_type: "" as string,
     warranty_notes: "" as string,
   });
+
+  const CATEGORIES = useMemo(() =>
+    [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category), form.category])].filter(Boolean),
+    [products, form.category]
+  );
+  const UNITS = useMemo(() =>
+    [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit), form.unit])].filter(Boolean),
+    [products, form.unit]
+  );
+
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [barcodePrintProduct, setBarcodePrintProduct] = useState<Product | null>(null);
