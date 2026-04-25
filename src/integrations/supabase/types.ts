@@ -10952,6 +10952,7 @@ export type Database = {
       sales_representatives: {
         Row: {
           auth_user_id: string | null
+          cash_box_id: string | null
           collection_commission_rate: number
           created_at: string
           default_warehouse_id: string | null
@@ -10970,6 +10971,7 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          cash_box_id?: string | null
           collection_commission_rate?: number
           created_at?: string
           default_warehouse_id?: string | null
@@ -10988,6 +10990,7 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          cash_box_id?: string | null
           collection_commission_rate?: number
           created_at?: string
           default_warehouse_id?: string | null
@@ -11005,6 +11008,13 @@ export type Database = {
           username?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_representatives_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_representatives_default_warehouse_id_fkey"
             columns: ["default_warehouse_id"]
