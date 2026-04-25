@@ -58,6 +58,8 @@ export function useRoleRedirect() {
           nextPath = "/pos";
         } else if (roles.includes("employee") && roles.length === 1) {
           nextPath = "/employee";
+        } else if (roles.includes("sales_rep") && !roles.includes("admin")) {
+          nextPath = "/rep";
         } else if (
           (roles.includes("accountant_senior") || roles.includes("accountant_sales") || roles.includes("accountant_purchases"))
           && !roles.includes("admin")
