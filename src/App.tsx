@@ -165,6 +165,7 @@ const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
+const CashLiquidityPage = lazy(() => import("./pages/CashLiquidityPage"));
 const VoucherFormPage = lazy(() => import("./pages/VoucherFormPage"));
 const JournalNewPage = lazy(() => import("./pages/JournalNewPage"));
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
@@ -375,6 +376,7 @@ const App = () => (
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
                       <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
+                      <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
                       <Route path="/employees" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard></ModuleGuard>} />

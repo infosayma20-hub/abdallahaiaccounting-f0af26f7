@@ -24,7 +24,7 @@ const KPI_DEFS = [
   { id: "net_profit", label: "صافي الربح", icon: "💰", key: "netProfit" as const, prevKey: "prevNetProfit" as const, sparkKey: "profit" as const, route: "/profit-loss", positiveGood: true },
   { id: "revenue", label: "إجمالي المبيعات", icon: "📈", key: "revenue" as const, prevKey: "prevRevenue" as const, sparkKey: "revenue" as const, route: "/profit-loss", positiveGood: true },
   { id: "expenses", label: "إجمالي المصروفات", icon: "💸", key: "expenses" as const, prevKey: "prevExpenses" as const, sparkKey: "expenses" as const, route: "/profit-loss", positiveGood: false },
-  { id: "cash", label: "السيولة النقدية", icon: "💧", key: "cashBalance" as const, prevKey: "prevCashBalance" as const, sparkKey: "profit" as const, route: "/accounts", positiveGood: true },
+  { id: "cash", label: "السيولة النقدية", icon: "💧", key: "cashBalance" as const, prevKey: "prevCashBalance" as const, sparkKey: "profit" as const, route: "/reports/cash-liquidity", positiveGood: true },
   { id: "receivables", label: "الذمم المدينة", icon: "👥", key: "receivables" as const, prevKey: "prevReceivables" as const, sparkKey: "revenue" as const, route: "/contacts", positiveGood: false },
   { id: "payables", label: "الذمم الدائنة", icon: "🏭", key: "payables" as const, prevKey: "prevPayables" as const, sparkKey: "expenses" as const, route: "/contacts", positiveGood: false },
 ];
