@@ -46,6 +46,8 @@ const RecurringInvoicesPage = lazy(() => import("./pages/RecurringInvoicesPage")
 const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
 const CreditDebitNotesPage = lazy(() => import("./pages/CreditDebitNotesPage"));
 const CreditDebitNoteCreatePage = lazy(() => import("./pages/CreditDebitNoteCreatePage"));
+const ReturnsListPage = lazy(() => import("./pages/ReturnsListPage"));
+const ReturnCreatePage = lazy(() => import("./pages/ReturnCreatePage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage"));
 const InventoryValuationPage = lazy(() => import("./pages/InventoryValuationPage"));
@@ -329,10 +331,10 @@ const App = () => (
                       <Route path="/credit-notes/new" element={<CreditDebitNoteCreatePage noteType="credit" />} />
                       <Route path="/debit-notes" element={<CreditDebitNotesPage noteType="debit" />} />
                       <Route path="/debit-notes/new" element={<CreditDebitNoteCreatePage noteType="debit" />} />
-                      <Route path="/sales/returns" element={<CreditDebitNotesPage noteType="sales_return" />} />
-                      <Route path="/sales/returns/new" element={<CreditDebitNoteCreatePage noteType="sales_return" />} />
-                      <Route path="/purchases/returns" element={<CreditDebitNotesPage noteType="purchase_return" />} />
-                      <Route path="/purchases/returns/new" element={<CreditDebitNoteCreatePage noteType="purchase_return" />} />
+                     <Route path="/sales/returns" element={<ReturnsListPage returnType="sales" />} />
+                     <Route path="/sales/returns/new" element={<ReturnCreatePage returnType="sales" />} />
+                     <Route path="/purchases/returns" element={<ReturnsListPage returnType="purchase" />} />
+                     <Route path="/purchases/returns/new" element={<ReturnCreatePage returnType="purchase" />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/reports/builder" element={<ReportBuilderPage />} />
