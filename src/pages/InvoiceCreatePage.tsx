@@ -390,12 +390,13 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes, invCountRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes, salesCountRes, purchaseCountRes, taxSettingsRes, companyRes, settingsRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("invoice_type", "sale"),
+        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("invoice_type", "purchase"),
         supabase.from("tax_settings").select("registration_type").eq("user_id", user.id).maybeSingle(),
         supabase.from("companies").select("invoice_number_offset").eq("owner_id", user.id).maybeSingle(),
         (supabase.from("company_settings" as any).select("invoice_prefix, purchase_order_prefix").eq("user_id", user.id).maybeSingle() as any),
@@ -463,11 +464,20 @@ const InvoiceCreatePage = () => {
       const salesPrefix = (settingsRow.invoice_prefix || "INV").trim() || "INV";
       const purchasePrefix = (settingsRow.purchase_order_prefix || "PO").trim() || "PO";
       const prefix = form.type === "sales" ? salesPrefix : purchasePrefix;
-      const totalCount = invCountRes.count || 0;
-      const invoiceOffset = (companyRes.data as any)?.invoice_number_offset || 0;
+      const typeCount = form.type === "sales" ? (salesCountRes.count || 0) : (purchaseCountRes.count || 0);
+      // Offset applies only to sales (legacy invoice_number_offset on companies)
+      const invoiceOffset = form.type === "sales" ? ((companyRes.data as any)?.invoice_number_offset || 0) : 0;
       const year = new Date().getFullYear();
-      const nextNum = String(totalCount + 1 + invoiceOffset).padStart(4, "0");
+      const nextNum = String(typeCount + 1 + invoiceOffset).padStart(4, "0");
       setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
+      // Cache counts so the type-toggle effect can recompute without re-fetching
+      typeCountsRef.current = {
+        sales: salesCountRes.count || 0,
+        purchase: purchaseCountRes.count || 0,
+        salesPrefix,
+        purchasePrefix,
+        salesOffset: (companyRes.data as any)?.invoice_number_offset || 0,
+      };
 
       // Resolve duplicate contact after contacts load
       if (fromDuplicate) {
@@ -508,15 +518,20 @@ const InvoiceCreatePage = () => {
     fetchAll().then(() => setDraftReady(true), () => setDraftReady(true));
   }, [user]);
 
-  // Update invoice number prefix when type changes
+  // Recompute the next invoice number whenever the user toggles between sales and purchase.
+  // Each type has its own independent counter (e.g. INV-2026-0001, PO-2026-0001).
   useEffect(() => {
-    setNextInvoiceNumber(prev => {
-      const prefix = form.type === "sales" ? "INV" : "PO";
-      const parts = prev.split("-");
-      if (parts.length === 3) return `${prefix}-${parts[1]}-${parts[2]}`;
-      return prev;
-    });
-  }, [form.type]);
+    if (isEditMode) return;
+    const cache = typeCountsRef.current;
+    if (!cache) return;
+    const isSales = form.type === "sales";
+    const prefix = isSales ? cache.salesPrefix : cache.purchasePrefix;
+    const count = isSales ? cache.sales : cache.purchase;
+    const offset = isSales ? cache.salesOffset : 0;
+    const year = new Date().getFullYear();
+    const nextNum = String(count + 1 + offset).padStart(4, "0");
+    setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
+  }, [form.type, isEditMode]);
 
   useEffect(() => {
     const terms = PAYMENT_TERMS.find(t => t.value === form.paymentTerms);
