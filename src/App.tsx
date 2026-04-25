@@ -165,6 +165,7 @@ const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
 const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
+const CashLiquidityPage = lazy(() => import("./pages/CashLiquidityPage"));
 const VoucherFormPage = lazy(() => import("./pages/VoucherFormPage"));
 const JournalNewPage = lazy(() => import("./pages/JournalNewPage"));
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
