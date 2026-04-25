@@ -43,11 +43,20 @@ export default function RepNewOrderPage() {
       setDay(d);
 
       const [{ data: prods }, { data: cts }] = await Promise.all([
-        (supabase as any).from("products").select("id, name, sku, barcode, sale_price, sell_price, price").eq("user_id", r.user_id).limit(500),
-        (supabase as any).from("contacts").select("id, name").eq("user_id", r.user_id).eq("contact_type", "customer").limit(200),
+        (supabase as any).from("products").select("id, name, sku, barcode, sell_price").eq("user_id", r.user_id).limit(500),
+        (supabase as any)
+          .from("contacts")
+          .select("id, contact_name, contact_type")
+          .eq("user_id", r.user_id)
+          .in("contact_type", ["customer", "both", "عميل", "كلاهما"])
+          .eq("is_active", true)
+          .eq("is_archived", false)
+          .limit(200),
       ]);
       setProducts(prods || []);
-      setContacts(cts || []);
+      // Normalize contact name field
+      setContacts((cts || []).map((c: any) => ({ ...c, name: c.contact_name })));
+      console.log("[Rep] owner_id:", r.user_id, "warehouse:", r.default_warehouse_id, "products:", prods?.length, "contacts:", cts?.length);
       setLoading(false);
     })();
   }, [user?.id]);
@@ -63,7 +72,7 @@ export default function RepNewOrderPage() {
   }, [search, products]);
 
   const addProduct = (p: any) => {
-    const price = Number(p.sale_price ?? p.sell_price ?? p.price ?? 0);
+    const price = Number(p.sell_price ?? 0);
     setItems((prev) => {
       const found = prev.find((i) => i.product_id === p.id);
       if (found) return prev.map((i) => i.product_id === p.id ? { ...i, qty: i.qty + 1 } : i);
