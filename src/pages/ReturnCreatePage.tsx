@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
-import { Loader2, Save, Send, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Save, Send, Plus, Trash2, AlertTriangle, Package, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,19 @@ interface InvoiceLite {
   contact_id: string | null;
   total_amount: number | null;
   invoice_date: string | null;
+}
+
+interface ProductLite {
+  id: string;
+  name: string;
+  sku: string | null;
+  barcode: string | null;
+  category: string | null;
+  sell_price: number | null;
+  buy_price: number | null;
+  unit: string | null;
+  product_type: string | null;
+  quantity: number | null;
 }
 
 interface Props {
@@ -106,6 +119,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkedInvoices, setLinkedInvoices] = useState<InvoiceLite[]>([]);
+  const [products, setProducts] = useState<ProductLite[]>([]);
+  const [productPopoverFor, setProductPopoverFor] = useState<string | null>(null);
   const [contactPopover, setContactPopover] = useState(false);
   const [invoicePopover, setInvoicePopover] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -139,6 +154,19 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       setLoading(false);
     })();
   }, [user, partyType]);
+
+  // Load products (for line-item selection)
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, quantity")
+        .eq("user_id", user.id)
+        .order("name");
+      setProducts((data as ProductLite[]) || []);
+    })();
+  }, [user]);
 
   // Load linked invoices when contact changes
   useEffect(() => {
@@ -281,8 +309,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
     if (!form.contactName.trim()) { toast({ title: `يرجى اختيار ${partyLabel}`, variant: "destructive" }); return false; }
     const finalReason = form.reason === "أخرى" ? form.reasonOther.trim() : form.reason;
     if (!asDraft && !finalReason) { toast({ title: "يرجى تحديد سبب المردود", variant: "destructive" }); return false; }
-    if (!asDraft && form.items.some(it => !it.description.trim() || it.quantity <= 0 || it.unitPrice <= 0)) {
-      toast({ title: "تأكد من تعبئة جميع البنود (الوصف، الكمية، السعر)", variant: "destructive" });
+    if (!asDraft && form.items.some(it => (!it.productId && !it.description.trim()) || it.quantity <= 0 || it.unitPrice <= 0)) {
+      toast({ title: "تأكد من اختيار الصنف وتعبئة الكمية والسعر لكل بند", variant: "destructive" });
       return false;
     }
     if (!asDraft && summary.total <= 0) {
@@ -591,12 +619,69 @@ const ReturnCreatePage = ({ returnType }: Props) => {
           {form.items.map((it, idx) => (
             <div key={it.id} className="grid grid-cols-12 gap-2 items-end p-2 rounded border">
               <div className="col-span-12 md:col-span-4 space-y-1">
-                <Label className="text-xs">الوصف</Label>
-                <Input
-                  value={it.description}
-                  disabled={readonly}
-                  onChange={e => updateItem(it.id, { description: e.target.value })}
-                />
+                <Label className="text-xs flex items-center gap-1">
+                  <Package className="h-3 w-3" /> الصنف <span className="text-destructive">*</span>
+                </Label>
+                <Popover
+                  open={productPopoverFor === it.id}
+                  onOpenChange={(o) => setProductPopoverFor(o ? it.id : null)}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={readonly}
+                      className="w-full justify-between h-9 text-xs font-normal"
+                    >
+                      <span className="truncate">
+                        {it.description || "اختر الصنف..."}
+                      </span>
+                      <Search className="h-3 w-3 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[360px]" align="start">
+                    <Command>
+                      <CommandInput placeholder="ابحث بالاسم / SKU / الباركود / التصنيف..." />
+                      <CommandList>
+                        <CommandEmpty>لا توجد منتجات</CommandEmpty>
+                        <CommandGroup>
+                          {products.map((p) => {
+                            const defaultPrice = isSales ? Number(p.sell_price || 0) : Number(p.buy_price || 0);
+                            const keywords = [p.name, p.sku, p.barcode, p.category].filter(Boolean).join(" ");
+                            return (
+                              <CommandItem
+                                key={p.id}
+                                value={`${keywords} ${p.id}`}
+                                onSelect={() => {
+                                  updateItem(it.id, {
+                                    productId: p.id,
+                                    description: p.name,
+                                    unitPrice: it.unitPrice > 0 ? it.unitPrice : defaultPrice,
+                                  });
+                                  setProductPopoverFor(null);
+                                }}
+                              >
+                                <div className="flex flex-col gap-0.5 w-full">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-medium truncate">{p.name}</span>
+                                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                      ₪{defaultPrice.toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                    {p.sku && <span>SKU: {p.sku}</span>}
+                                    {p.barcode && <span>• {p.barcode}</span>}
+                                    {p.category && <span>• {p.category}</span>}
+                                    {p.product_type === "service" && <span className="text-primary">• خدمة</span>}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="col-span-4 md:col-span-2 space-y-1">
                 <Label className="text-xs">
