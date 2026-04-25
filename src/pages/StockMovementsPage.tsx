@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X, LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Minus, ExternalLink } from "lucide-react";
+import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X, LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Minus, ExternalLink, Warehouse as WarehouseIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
+import SmartSearchableDropdown from "@/components/forms/SmartSearchableDropdown";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 interface Product {
@@ -20,6 +21,8 @@ interface Product {
   name: string;
   category: string;
   unit: string;
+  sku?: string | null;
+  barcode?: string | null;
 }
 
 interface StockMovement {
@@ -29,6 +32,13 @@ interface StockMovement {
   quantity: number;
   reference_note: string | null;
   created_at: string;
+  warehouse_id?: string | null;
+}
+
+interface Warehouse {
+  id: string;
+  name: string;
+  code?: string | null;
 }
 
 // Movement direction: incoming (+), outgoing (-), neutral (0)
@@ -67,10 +77,13 @@ const StockMovementsPage = () => {
 
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
+  const [warehouseFilter, setWarehouseFilter] = useState("all");
+  const [productSearch, setProductSearch] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
@@ -80,12 +93,14 @@ const StockMovementsPage = () => {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [movRes, prodRes] = await Promise.all([
+      const [movRes, prodRes, whRes] = await Promise.all([
         supabase.from("stock_movements").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("products").select("id, name, category, unit").eq("user_id", user.id),
+        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", user.id),
+        supabase.from("warehouses").select("id, name, code").eq("user_id", user.id).eq("is_active", true).order("name"),
       ]);
       setMovements(movRes.data || []);
       setProducts(prodRes.data || []);
+      setWarehouses(whRes.data || []);
       setLoading(false);
     };
     load();
@@ -102,6 +117,11 @@ const StockMovementsPage = () => {
     return movements.filter(mv => {
       if (typeFilter !== "all" && mv.movement_type !== typeFilter) return false;
       if (productFilter !== "all" && mv.product_id !== productFilter) return false;
+      if (warehouseFilter !== "all") {
+        if (warehouseFilter === "__none__") {
+          if (mv.warehouse_id) return false;
+        } else if (mv.warehouse_id !== warehouseFilter) return false;
+      }
       if (q) {
         const prod = productMap.get(mv.product_id);
         const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG")].join(" ");
@@ -109,7 +129,7 @@ const StockMovementsPage = () => {
       }
       return true;
     });
-  }, [movements, searchQuery, typeFilter, productFilter, productMap]);
+  }, [movements, searchQuery, typeFilter, productFilter, warehouseFilter, productMap]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -154,7 +174,24 @@ const StockMovementsPage = () => {
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [searchQuery, typeFilter, productFilter]);
+  useEffect(() => { setPage(1); }, [searchQuery, typeFilter, productFilter, warehouseFilter]);
+
+  const warehouseMap = useMemo(() => {
+    const m = new Map<string, Warehouse>();
+    warehouses.forEach(w => m.set(w.id, w));
+    return m;
+  }, [warehouses]);
+
+  // Filtered products for the searchable dropdown — name / sku / barcode / category
+  const filteredProductOptions = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    const base = products;
+    if (!q) return base.slice(0, 50);
+    return base.filter(p => {
+      const hay = [p.name, p.sku || "", p.barcode || "", p.category || ""].join(" ").toLowerCase();
+      return hay.includes(q);
+    }).slice(0, 50);
+  }, [products, productSearch]);
 
   const totalIn = filtered.filter(m => getMovementDirection(m.movement_type) === "in").reduce((s, m) => s + Math.abs(m.quantity), 0);
   const totalOut = filtered.filter(m => getMovementDirection(m.movement_type) === "out").reduce((s, m) => s + Math.abs(m.quantity), 0);
