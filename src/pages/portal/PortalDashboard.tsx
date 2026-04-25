@@ -300,18 +300,30 @@ export default function PortalDashboard() {
       {/* QUICK STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
         {[
-          { label: 'مبيعات اليوم', value: `₪${animatedSales.toLocaleString()}`, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
-          { label: 'طلبيات جديدة', value: String(homeData?.recentActivity?.filter((a: any) => a.type === 'income').length || 0), color: '#3B82F6', onClick: () => { switchTab('finance'); setFinanceSection('sales'); } },
-          { label: 'السيولة الحالية', value: `₪${animatedCash.toLocaleString()}`, color: '#16A34A', onClick: () => { switchTab('finance'); setFinanceSection('liquidity'); } },
-          { label: 'مهام معلقة', value: '—', color: '#F59E0B', onClick: () => { setShowTasksPage(true); } },
+          { label: 'مبيعات اليوم', value: fmtSigned(animatedSales), valueColor: undefined as string | undefined, color: darkMode ? '#60A5FA' : PRIMARY, onClick: () => { switchTab('finance'); setFinanceSection('sales'); }, badge: undefined as string | undefined },
+          { label: 'الذمم الدائنة (للموردين)', value: fmtSigned(payablesTotal), valueColor: undefined, color: '#DC2626', onClick: () => { switchTab('finance'); setFinanceSection('suppliers'); }, badge: undefined },
+          {
+            label: 'السيولة الحالية',
+            value: fmtSigned(animatedCash),
+            valueColor: animatedCash < 0 ? '#DC2626' : undefined,
+            color: animatedCash < 0 ? '#DC2626' : '#16A34A',
+            onClick: () => { switchTab('finance'); setFinanceSection('liquidity'); },
+            badge: animatedCash < 0 ? 'تنبيه: رصيد سالب' : undefined,
+          },
+          { label: 'مهام معلقة', value: '—', valueColor: undefined, color: '#F59E0B', onClick: () => { setShowTasksPage(true); }, badge: undefined },
         ].map((stat, i) => (
           <div key={i} onClick={stat.onClick} style={{
             background: c.cardBg, borderRadius: 16, padding: 18,
             border: `1px solid ${c.cardBorder}`, position: 'relative', overflow: 'hidden', cursor: 'pointer',
           }}>
             <div style={{ position: 'absolute', top: 0, right: 0, left: 0, height: 3, background: stat.color, borderRadius: '16px 16px 0 0' }} />
-            <div style={{ fontSize: 24, fontWeight: 800, color: c.textPrimary, fontFamily: 'Cairo' }}>{stat.value}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: stat.valueColor || c.textPrimary, fontFamily: 'Cairo' }}>{stat.value}</div>
             <div style={{ fontSize: 12, fontWeight: 500, color: c.textSecondary, marginTop: 2, fontFamily: 'Cairo' }}>{stat.label}</div>
+            {stat.badge && (
+              <div style={{ marginTop: 6, display: 'inline-block', padding: '2px 8px', borderRadius: 8, background: '#FEE2E2', color: '#B91C1C', fontSize: 10, fontWeight: 700, fontFamily: 'Cairo' }}>
+                {stat.badge}
+              </div>
+            )}
           </div>
         ))}
       </div>
