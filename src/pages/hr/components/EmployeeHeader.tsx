@@ -113,7 +113,7 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
 
       <div className="mt-5 pt-5 border-t flex flex-wrap gap-2 justify-end">
         {employee?.auth_user_id ? (
-          <Badge variant="outline" className="gap-1.5 bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+          <Badge variant="outline" className="gap-1.5 bg-primary/5 text-primary border-primary/20">
             <ShieldCheck className="h-3.5 w-3.5" />
             لديه حساب دخول
           </Badge>
