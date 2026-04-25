@@ -9480,6 +9480,7 @@ export type Database = {
           color: string | null
           created_at: string
           description: string | null
+          has_warranty: boolean | null
           id: string
           image_url: string | null
           is_pos_available: boolean | null
@@ -9508,6 +9509,10 @@ export type Database = {
           unit: string
           updated_at: string
           user_id: string
+          warranty_duration: number | null
+          warranty_notes: string | null
+          warranty_type: string | null
+          warranty_unit: string | null
         }
         Insert: {
           barcode?: string | null
@@ -9516,6 +9521,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          has_warranty?: boolean | null
           id?: string
           image_url?: string | null
           is_pos_available?: boolean | null
@@ -9544,6 +9550,10 @@ export type Database = {
           unit?: string
           updated_at?: string
           user_id: string
+          warranty_duration?: number | null
+          warranty_notes?: string | null
+          warranty_type?: string | null
+          warranty_unit?: string | null
         }
         Update: {
           barcode?: string | null
@@ -9552,6 +9562,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          has_warranty?: boolean | null
           id?: string
           image_url?: string | null
           is_pos_available?: boolean | null
@@ -9580,6 +9591,10 @@ export type Database = {
           unit?: string
           updated_at?: string
           user_id?: string
+          warranty_duration?: number | null
+          warranty_notes?: string | null
+          warranty_type?: string | null
+          warranty_unit?: string | null
         }
         Relationships: [
           {
