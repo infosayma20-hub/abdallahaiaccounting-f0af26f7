@@ -750,12 +750,21 @@ const InventoryPage = () => {
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={showProductDialog} onOpenChange={(o) => { setShowProductDialog(o); if (!o) resetForm(); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-background" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editMode ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
             <DialogDescription>{editMode ? "عدّل بيانات المنتج" : "أدخل بيانات المنتج الجديد"}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
+          <Tabs defaultValue="basic" className="mt-2">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="basic">الأساسية</TabsTrigger>
+              <TabsTrigger value="pricing">الأسعار والمخزون</TabsTrigger>
+              <TabsTrigger value="warranty">الكفالة</TabsTrigger>
+              <TabsTrigger value="advanced">إعدادات متقدمة</TabsTrigger>
+            </TabsList>
+
+            {/* ============ TAB 1: Basic ============ */}
+            <TabsContent value="basic" className="space-y-4 mt-4">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">اسم المنتج *</label>
               <Input placeholder="مثال: قميص أبيض" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
