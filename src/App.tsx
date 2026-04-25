@@ -274,6 +274,11 @@ const App = () => (
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/rep" element={<ProtectedRoute><RepLayout /></ProtectedRoute>}>
+                <Route index element={<RepDashboardPage />} />
+                <Route path="new-order" element={<RepNewOrderPage />} />
+                <Route path="orders" element={<RepOrdersPage />} />
+              </Route>
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/share/statement/:token" element={<PublicStatementPage />} />
