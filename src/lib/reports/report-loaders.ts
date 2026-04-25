@@ -111,9 +111,18 @@ export async function loadChequesReport(uid: string, dateFrom: string, dateTo: s
 
 export async function loadTotalSales(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: txns } = await supabase.from("transactions").select("transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
-  const dayMap: Record<string, { date: string; count: number; total: number }> = {};
-  (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
-  setData(Object.values(dayMap));
+  // Sales returns from new returns table (confirmed only) + legacy transactions
+  const { data: rets } = await supabase.from("returns" as any).select("return_date, total, status").eq("user_id", uid).eq("return_type", "sales").gte("return_date", dateFrom).lte("return_date", dateTo);
+  const dayMap: Record<string, { date: string; count: number; total: number; returns: number; net: number }> = {};
+  (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
+  (rets || []).forEach((r: any) => {
+    if (r.status !== "confirmed" && r.status !== "posted") return;
+    const d = r.return_date;
+    if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 };
+    dayMap[d].returns += Number(r.total) || 0;
+  });
+  Object.values(dayMap).forEach(d => { d.net = d.total - d.returns; });
+  setData(Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date)));
 }
 
 export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -308,9 +317,17 @@ export async function loadForeignBalances(uid: string, setData: SetData) {
 
 export async function loadTotalPurchases(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: txns } = await supabase.from("transactions").select("transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
-  const dayMap: Record<string, { date: string; count: number; total: number }> = {};
-  (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
-  setData(Object.values(dayMap));
+  const { data: rets } = await supabase.from("returns" as any).select("return_date, total, status").eq("user_id", uid).eq("return_type", "purchase").gte("return_date", dateFrom).lte("return_date", dateTo);
+  const dayMap: Record<string, { date: string; count: number; total: number; returns: number; net: number }> = {};
+  (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
+  (rets || []).forEach((r: any) => {
+    if (r.status !== "confirmed" && r.status !== "posted") return;
+    const d = r.return_date;
+    if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 };
+    dayMap[d].returns += Number(r.total) || 0;
+  });
+  Object.values(dayMap).forEach(d => { d.net = d.total - d.returns; });
+  setData(Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date)));
 }
 
 export async function loadPurchaseInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
