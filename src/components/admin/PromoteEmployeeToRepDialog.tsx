@@ -54,9 +54,16 @@ export default function PromoteEmployeeToRepDialog({ open, onOpenChange, onDone 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("غير مصرح");
 
-      // Look up existing rep by auth_user_id first (most reliable), fallback to full_name within same owner.
+      // Look up existing rep by employee_id first, then auth_user_id, then full_name within same owner.
       let existingId: string | null = null;
-      if (emp.auth_user_id) {
+      const { data: byEmp } = await (supabase as any)
+        .from("sales_representatives")
+        .select("id")
+        .eq("employee_id", emp.id)
+        .maybeSingle();
+      existingId = byEmp?.id ?? null;
+
+      if (!existingId && emp.auth_user_id) {
         const { data: byAuth } = await (supabase as any)
           .from("sales_representatives")
           .select("id")
@@ -78,6 +85,7 @@ export default function PromoteEmployeeToRepDialog({ open, onOpenChange, onDone 
         full_name: emp.full_name,
         default_warehouse_id: warehouseId,
         cash_box_id: cashBoxId,
+        employee_id: emp.id,
         is_active: true,
       };
       if (emp.auth_user_id) repPayload.auth_user_id = emp.auth_user_id;
