@@ -104,7 +104,10 @@ export default function CashLiquidityPage() {
 
   return (
     <div className="container mx-auto p-4 space-y-4" dir="rtl">
-      <PageHeader title="تفاصيل السيولة النقدية" subtitle="الصناديق والبنوك فقط — لا يشمل الذمم أو المخزون" />
+      <PageHeader title="تفاصيل السيولة النقدية" />
+      <p className="text-sm text-muted-foreground -mt-2">
+        الصناديق والبنوك فقط — لا يشمل الذمم أو المخزون
+      </p>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
