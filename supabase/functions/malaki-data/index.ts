@@ -186,13 +186,16 @@ Deno.serve(async (req) => {
       const netProfit = revenue - expenses;
 
       // Balance sheet (cumulative)
+      // Receivables: only positive (debit) customer balances. Negative net = customer credit, not a receivable.
       const recDr = allTx.filter(t => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
       const recCr = allTx.filter(t => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-      const receivables = recDr - recCr;
+      const receivables = Math.max(0, recDr - recCr);
 
-      const payCr = allTx.filter(t => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-      const payDr = allTx.filter(t => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-      const payables = payCr - payDr;
+      // Payables: amount actually owed to suppliers (account 2110 only; excludes VAT/payroll/other liabilities).
+      // Liability nature = credit balance, so payables = credit - debit. Floor at 0 so prepayments don't flip the sign.
+      const payCr = allTx.filter(t => t.credit_account_code === "2110").reduce((s, t) => s + (t.amount || 0), 0);
+      const payDr = allTx.filter(t => t.debit_account_code === "2110").reduce((s, t) => s + (t.amount || 0), 0);
+      const payables = Math.max(0, payCr - payDr);
 
       const cashDr = allTx.filter(t => t.debit_account_code?.startsWith("111") || t.debit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
       const cashCr = allTx.filter(t => t.credit_account_code?.startsWith("111") || t.credit_account_code?.startsWith("112")).reduce((s, t) => s + (t.amount || 0), 0);
