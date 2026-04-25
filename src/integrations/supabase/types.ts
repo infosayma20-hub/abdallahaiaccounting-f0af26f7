@@ -13616,6 +13616,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "warranty_cards_invoice_item_id_fkey"
+            columns: ["invoice_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_items_returnable"
+            referencedColumns: ["item_id"]
+          },
+          {
             foreignKeyName: "warranty_cards_policy_id_fkey"
             columns: ["policy_id"]
             isOneToOne: false
@@ -14437,6 +14444,27 @@ export type Database = {
           },
         ]
       }
+      invoice_items_returnable: {
+        Row: {
+          already_returned_qty: number | null
+          invoice_id: string | null
+          item_id: string | null
+          original_qty: number | null
+          product_id: string | null
+          product_name: string | null
+          returnable_qty: number | null
+          unit_price: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_warehouse_stock: {
         Row: {
           last_movement_at: string | null
@@ -14602,6 +14630,10 @@ export type Database = {
         Returns: undefined
       }
       ensure_default_warehouse: { Args: { p_user_id: string }; Returns: string }
+      ensure_return_accounts: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       ensure_travel_accounts: {
         Args: { p_user_id: string }
         Returns: undefined
