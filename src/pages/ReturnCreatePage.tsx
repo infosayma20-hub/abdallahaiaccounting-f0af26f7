@@ -119,6 +119,8 @@ const ReturnCreatePage = ({ returnType }: Props) => {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkedInvoices, setLinkedInvoices] = useState<InvoiceLite[]>([]);
+  const [products, setProducts] = useState<ProductLite[]>([]);
+  const [productPopoverFor, setProductPopoverFor] = useState<string | null>(null);
   const [contactPopover, setContactPopover] = useState(false);
   const [invoicePopover, setInvoicePopover] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -152,6 +154,19 @@ const ReturnCreatePage = ({ returnType }: Props) => {
       setLoading(false);
     })();
   }, [user, partyType]);
+
+  // Load products (for line-item selection)
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, barcode, category, sell_price, buy_price, unit, product_type, current_stock")
+        .eq("user_id", user.id)
+        .order("name");
+      setProducts((data as ProductLite[]) || []);
+    })();
+  }, [user]);
 
   // Load linked invoices when contact changes
   useEffect(() => {
