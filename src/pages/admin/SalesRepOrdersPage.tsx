@@ -9,6 +9,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
+// ============================================================================
+// TODO (post-demo): Replace warehouse_id + 'REP-%' inference with explicit
+// invoices.sales_rep_id linkage. See RepNewOrderPage.tsx for full migration plan.
+// Current heuristic groups orders by the rep whose default_warehouse_id matches
+// the invoice warehouse — incorrect when multiple reps share one warehouse.
+// ============================================================================
+
 interface OrderRow {
   id: string;
   invoice_number: string;
