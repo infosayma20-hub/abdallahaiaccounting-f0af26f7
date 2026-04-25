@@ -124,16 +124,12 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
     <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
       <PageHeader
         title={titleAr}
-        breadcrumb={["الرئيسية", isCredit ? "المبيعات" : "المشتريات", titleAr]}
+        breadcrumb={["الرئيسية", isCustomerSide ? "المبيعات" : "المشتريات", titleAr]}
       />
       <div className="flex justify-between items-start gap-3">
-        <p className="text-sm text-muted-foreground">
-          {isCredit
-            ? "إشعارات دائنة للعملاء — تخفيض أو إلغاء جزئي/كلي لفواتير المبيعات"
-            : "إشعارات مدينة للموردين — إرجاع بضاعة أو تخفيض على فواتير المشتريات"}
-        </p>
+        <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
         <Button onClick={() => navigate(newPath)} className="gap-2">
-          <Plus className="h-4 w-4" /> إنشاء {isCredit ? "إشعار دائن" : "إشعار مدين"}
+          <Plus className="h-4 w-4" /> {newButtonLabel}
         </Button>
       </div>
 
@@ -178,7 +174,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
                   <TableRow>
                     <TableHead>رقم الإشعار</TableHead>
                     <TableHead>التاريخ</TableHead>
-                    <TableHead>{isCredit ? "العميل" : "المورد"}</TableHead>
+                    <TableHead>{isCustomerSide ? "العميل" : "المورد"}</TableHead>
                     <TableHead>السبب</TableHead>
                     <TableHead className="text-left">المبلغ</TableHead>
                     <TableHead>الحالة</TableHead>
