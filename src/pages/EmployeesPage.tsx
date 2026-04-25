@@ -846,6 +846,11 @@ const EmployeesPage = () => {
                     <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
                   </label>
                 </div>
+                <SalesRepToggleSection
+                  employeeId={selectedEmployee.id}
+                  employeeName={selectedEmployee.full_name}
+                  authUserId={(selectedEmployee as any).auth_user_id || null}
+                />
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab}>
