@@ -60,26 +60,11 @@ export default function SalesRepsLivePage() {
       const cbMap = new Map<string, string>((cbRes.data || []).map((c: any) => [c.id, c.name]));
       const dayMap = new Map<string, any>((daysRes.data || []).map((d: any) => [d.sales_rep_id, d]));
 
-      // Pull cash vs credit from invoices linked to today's day per rep
-      const dayIds = (daysRes.data || []).map((d: any) => d.id);
-      let invoiceByRep = new Map<string, { cash: number; credit: number }>();
-      if (dayIds.length) {
-        const { data: invs } = await (supabase as any)
-          .from("invoices")
-          .select("sales_rep_id, payment_method, total_amount, amount")
-          .in("van_sales_day_id", dayIds);
-        for (const inv of (invs as any[]) || []) {
-          const cur = invoiceByRep.get(inv.sales_rep_id) || { cash: 0, credit: 0 };
-          const amt = Number(inv.total_amount ?? inv.amount ?? 0);
-          if ((inv.payment_method || "").toLowerCase() === "cash") cur.cash += amt;
-          else cur.credit += amt;
-          invoiceByRep.set(inv.sales_rep_id, cur);
-        }
-      }
-
       const out: RepRow[] = list.map((r) => {
         const day = dayMap.get(r.id);
-        const totals = invoiceByRep.get(r.id) || { cash: 0, credit: 0 };
+        const totalSales = Number(day?.total_sales || 0);
+        const totalCash = Number(day?.total_collections || 0);
+        const totalCredit = Math.max(0, totalSales - totalCash);
         return {
           id: r.id,
           full_name: r.full_name,
@@ -88,8 +73,8 @@ export default function SalesRepsLivePage() {
           cash_box_name: r.cash_box_id ? cbMap.get(r.cash_box_id) || null : null,
           day_status: day?.status || null,
           total_invoices: Number(day?.total_invoices || 0),
-          total_cash: totals.cash,
-          total_credit: totals.credit,
+          total_cash: totalCash,
+          total_credit: totalCredit,
         };
       });
 
