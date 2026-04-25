@@ -81,6 +81,7 @@ const RepDashboardPage = lazy(() => import("./pages/rep/RepDashboardPage"));
 const RepNewOrderPage = lazy(() => import("./pages/rep/RepNewOrderPage"));
 const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
+const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
 const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
 const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
