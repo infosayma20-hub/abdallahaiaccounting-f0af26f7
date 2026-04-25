@@ -136,6 +136,11 @@ const InventoryPage = () => {
     description: "", terms: "",
     product_type: "product" as string,
     service_direction: "" as string,
+    has_warranty: false,
+    warranty_duration: "" as string,
+    warranty_unit: "months" as string,
+    warranty_type: "" as string,
+    warranty_notes: "" as string,
   });
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
