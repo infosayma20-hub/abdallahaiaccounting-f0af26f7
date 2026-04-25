@@ -755,7 +755,7 @@ const InventoryPage = () => {
             <DialogTitle>{editMode ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
             <DialogDescription>{editMode ? "عدّل بيانات المنتج" : "أدخل بيانات المنتج الجديد"}</DialogDescription>
           </DialogHeader>
-          <Tabs defaultValue="basic" className="mt-2">
+          <Tabs defaultValue="basic" className="mt-2" dir="rtl">
             <TabsList className="grid grid-cols-4 w-full">
               <TabsTrigger value="basic">الأساسية</TabsTrigger>
               <TabsTrigger value="pricing">الأسعار والمخزون</TabsTrigger>
