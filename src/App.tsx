@@ -226,13 +226,14 @@ const AuthCheckSpinner = () => (
   </div>
 );
 
-const ProtectedRoute = ({ children, blockCashier, blockStoreTracker }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean }) => {
+const ProtectedRoute = ({ children, blockCashier, blockStoreTracker, blockSalesRep }: { children: React.ReactNode; blockCashier?: boolean; blockStoreTracker?: boolean; blockSalesRep?: boolean }) => {
   const { user, loading } = useAuth();
   const { targetPath, checking } = useRoleRedirect();
-  if (loading || ((blockCashier || blockStoreTracker) && checking)) return <AuthCheckSpinner />;
+  if (loading || ((blockCashier || blockStoreTracker || blockSalesRep) && checking)) return <AuthCheckSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   if (blockStoreTracker && targetPath === "/store-tracker") return <Navigate to="/store-tracker" replace />;
+  if (blockSalesRep && targetPath === "/rep") return <Navigate to="/rep" replace />;
   return <>{children}</>;
 };
 
