@@ -14978,6 +14978,7 @@ export type Database = {
         | "worker"
         | "supervisor"
         | "portal"
+        | "sales_rep"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -15165,6 +15166,7 @@ export const Constants = {
         "worker",
         "supervisor",
         "portal",
+        "sales_rep",
       ],
       cheque_status: [
         "مسجل",
