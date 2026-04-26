@@ -1462,6 +1462,24 @@ const InvoiceCreatePage = () => {
         onDelete={isEditMode ? () => setShowDeleteConfirm(true) : undefined}
         onNewSimilar={isEditMode ? handleNewSimilar : undefined}
         showNavigation={isEditMode}
+        onSaveDraft={() => handleCreate(true)}
+        onSavePost={() => handleCreate(false)}
+        savePostLabel={isEditMode ? "حفظ التعديلات" : "إنشاء الفاتورة"}
+        saving={creating}
+        saveDraftDisabled={creating}
+        savePostDisabled={
+          creating ||
+          !form.contactId ||
+          form.items.length === 0 ||
+          form.items.every(i => !i.productId && !i.description?.trim())
+        }
+        savePostDisabledReason={
+          !form.contactId
+            ? "اختر العميل/المورد أولاً"
+            : (form.items.length === 0 || form.items.every(i => !i.productId && !i.description?.trim()))
+            ? "أضف بنداً واحداً على الأقل"
+            : undefined
+        }
       />
 
       {/* Warranty Cards Action — only in edit mode for sales invoices */}
