@@ -141,7 +141,7 @@ const AccountStatementV2Page = () => {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerRow, setDrawerRow] = useState<StatementRow | null>(null);
-  const [viewOptions, setViewOptions] = useState<StatementViewOptions>(() => loadViewOptions());
+  const [statementOptions, setStatementOptions] = useState<StatementViewOptions>(() => loadViewOptions());
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
@@ -513,10 +513,10 @@ const AccountStatementV2Page = () => {
     type ColDef = { key: string; label: string; width: number; value: (r: typeof filteredRows[number]) => string | number };
     const cols: ColDef[] = [
       { key: "date", label: "التاريخ", width: 12, value: (r) => fmtDate(r.date) },
-      ...(viewOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
+      ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
       { key: "description", label: "البيان", width: 38, value: (r) => r.description },
-      ...(viewOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
-      ...(viewOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
+      ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
+      ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
       { key: "debit", label: `مدين (${currencySymbol})`, width: 16, value: (r) => r.debit || "" },
       { key: "credit", label: `دائن (${currencySymbol})`, width: 16, value: (r) => r.credit || "" },
       { key: "balance", label: `الرصيد (${currencySymbol})`, width: 18, value: (r) => r.balance },
@@ -535,7 +535,7 @@ const AccountStatementV2Page = () => {
     const sheet: (string | number)[][] = [...header, ...data, [], totalsRow];
 
     // Append aging analysis if enabled
-    if (viewOptions.showAging && agingData) {
+    if (statementOptions.showAging && agingData) {
       sheet.push([], ["تحليل التقادم (Aging)"]);
       sheet.push(["جاري", "1-30 يوم", "31-60 يوم", "+60 يوم", "الإجمالي"]);
       sheet.push([agingData.current, agingData.d1_30, agingData.d31_60, agingData.d60plus, agingData.total]);
@@ -604,13 +604,13 @@ const AccountStatementV2Page = () => {
           logo_url: companyInfo.logo_url,
         },
         {
-          showReference: viewOptions.showReference,
-          showDueDate: viewOptions.showDueDate,
-          showType: viewOptions.showType,
-          showLogo: viewOptions.showLogo,
-          showCompanyContact: viewOptions.showCompanyContact,
-          showSignatures: viewOptions.showSignatures,
-          showAging: viewOptions.showAging,
+          showReference: statementOptions.showReference,
+          showDueDate: statementOptions.showDueDate,
+          showType: statementOptions.showType,
+          showLogo: statementOptions.showLogo,
+          showCompanyContact: statementOptions.showCompanyContact,
+          showSignatures: statementOptions.showSignatures,
+          showAging: statementOptions.showAging,
         }
       );
 
@@ -699,7 +699,7 @@ const AccountStatementV2Page = () => {
               <div className="w-px h-4" style={{ background: "#D1D5DB" }} />
               <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
             </div>
-            <StatementViewOptionsPanel value={viewOptions} onChange={setViewOptions} />
+            <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
@@ -863,10 +863,10 @@ const AccountStatementV2Page = () => {
               {(() => {
                 const screenCols: Array<{ key: string; label: string; width: string }> = [
                   { key: "date", label: "التاريخ", width: "10%" },
-                  ...(viewOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
-                  { key: "description", label: "البيان", width: viewOptions.showReference ? "25%" : "38%" },
-                  ...(viewOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
-                  ...(viewOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+                  ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
+                  { key: "description", label: "البيان", width: statementOptions.showReference ? "25%" : "38%" },
+                  ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
+                  ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
                   { key: "debit", label: "مدين (عليه)", width: "11%" },
                   { key: "credit", label: "دائن (له)", width: "11%" },
                   { key: "balance", label: "الرصيد", width: "12%" },
@@ -1031,7 +1031,7 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── COLLAPSIBLE: AGING ─── */}
-            {viewOptions.showAging && agingData && (
+            {statementOptions.showAging && agingData && (
               <Collapsible open={agingOpen} onOpenChange={setAgingOpen} className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold" style={{ color: "#374151" }}>
                   <span>تحليل التقادم (Aging)</span>
@@ -1163,13 +1163,13 @@ const AccountStatementV2Page = () => {
                 dateTo={dateTo}
                 contactCode={selectedEntityCode}
                 statementNumber={stableSOANumber}
-                showLogo={viewOptions.showLogo}
-                showCompanyContact={viewOptions.showCompanyContact}
-                showSignatures={viewOptions.showSignatures}
-                showReference={viewOptions.showReference}
-                showDueDate={viewOptions.showDueDate}
-                showType={viewOptions.showType}
-                showAging={viewOptions.showAging}
+                showLogo={statementOptions.showLogo}
+                showCompanyContact={statementOptions.showCompanyContact}
+                showSignatures={statementOptions.showSignatures}
+                showReference={statementOptions.showReference}
+                showDueDate={statementOptions.showDueDate}
+                showType={statementOptions.showType}
+                showAging={statementOptions.showAging}
                 agingData={agingData}
               />
             </div>
