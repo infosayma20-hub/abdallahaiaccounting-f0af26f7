@@ -503,6 +503,42 @@ const AccountStatementV2Page = () => {
     return () => { cancelled = true; };
   }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo]);
 
+  const statementRowsWithDetails = useMemo(() => {
+    return filteredRows.flatMap((row) => {
+      const nested: StatementRow[] = [];
+      if (statementOptions.showInvoiceDetails) {
+        (detailsMap.invoiceDetailsById[row.reference] || []).forEach((it) => {
+          nested.push({
+            ...row,
+            transaction_id: `${row.transaction_id}-invoice-${nested.length}`,
+            description: `↳ ${it.productName} | الكمية: ${it.quantity}${it.unit ? ` ${it.unit}` : ""} | السعر: ${fmtAmount(it.unitPrice, row.currency)} | الخصم: ${it.discount} | الضريبة: ${it.tax}% | الإجمالي: ${fmtAmount(it.total, row.currency)}`,
+            debit: 0,
+            credit: 0,
+            isLineItem: true,
+            lineItemDetail: "invoice",
+          });
+        });
+      }
+      if (statementOptions.showVoucherDetails) {
+        const detail = detailsMap.voucherDetailsById[row.reference];
+        if (detail) {
+          const parts = [
+            `طريقة الدفع: ${paymentMethodLabel(detail.paymentMethod)}`,
+            detail.cashBox ? `الصندوق: ${detail.cashBox}` : null,
+            detail.bank ? `البنك: ${detail.bank}` : null,
+            detail.chequeNumber ? `شيك: ${detail.chequeNumber}${detail.chequeDate ? ` (${fmtDate(detail.chequeDate)})` : ""}` : null,
+            detail.notes ? `ملاحظات: ${detail.notes}` : null,
+          ].filter(Boolean).join(" | ");
+          if (parts) nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-main`, description: `↳ ${parts}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher" });
+          (detail.accounts || []).forEach((acc, idx) => {
+            nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-account-${idx}`, description: `↳ ${acc.accountCode} — ${acc.accountName} | مدين: ${fmtAmount(acc.debit, row.currency)} | دائن: ${fmtAmount(acc.credit, row.currency)}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher-account" });
+          });
+        }
+      }
+      return [row, ...nested];
+    });
+  }, [filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, detailsMap]);
+
   // ─── YEAR COMPARISON ───
   const yearComparisonData = useMemo(() => {
     if (!showYearComparison || !selectedEntityId || !dateFrom || !dateTo) return null;
