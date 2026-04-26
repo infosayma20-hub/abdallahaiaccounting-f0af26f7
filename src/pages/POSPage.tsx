@@ -222,6 +222,13 @@ interface Terminal {
   company_id: string;
 }
 
+interface CashBoxOption {
+  id: string;
+  name: string;
+  type: string;
+  branch_id?: string | null;
+}
+
 // ── Category config ──
 const CATEGORY_CONFIG: Record<string, { icon: typeof Package; color: string }> = {
   "طعام": { icon: UtensilsCrossed, color: "#16A34A" },
