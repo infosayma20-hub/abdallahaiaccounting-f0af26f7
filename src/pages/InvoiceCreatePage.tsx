@@ -1982,25 +1982,38 @@ const InvoiceCreatePage = () => {
 
                       {/* Product */}
                       <td className="py-1.5 px-2 align-top min-w-[320px] xl:min-w-[380px]">
-                        <InlineProductAutocomplete
-                          value={productSearchByRow[item.id] ?? item.description}
-                          products={products}
-                          invoiceType={form.type}
-                          currencySymbol={currSymbol}
-                          onChange={(value) => {
-                            setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
-                            setForm(prev => ({
-                              ...prev,
-                              items: prev.items.map(it => it.id === item.id ? { ...it, description: value, productId: undefined } : it),
-                            }));
-                          }}
-                          onSelect={(productId) => selectProduct(item.id, productId)}
-                          onQuickAdd={() => setShowQuickAdd(true)}
-                          inputProps={{
-                            "data-invoice-product-input": idx === 0 ? "true" : undefined,
-                            "data-row-id": item.id,
-                          }}
-                        />
+                        <div className="flex items-stretch gap-1">
+                          <div className="flex-1">
+                            <InlineProductAutocomplete
+                              value={productSearchByRow[item.id] ?? item.description}
+                              products={products}
+                              invoiceType={form.type}
+                              currencySymbol={currSymbol}
+                              onChange={(value) => {
+                                setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
+                                setForm(prev => ({
+                                  ...prev,
+                                  items: prev.items.map(it => it.id === item.id ? { ...it, description: value, productId: undefined } : it),
+                                }));
+                              }}
+                              onSelect={(productId) => selectProduct(item.id, productId)}
+                              onQuickAdd={() => setShowQuickAdd(true)}
+                              inputProps={{
+                                "data-invoice-product-input": idx === 0 ? "true" : undefined,
+                                "data-row-id": item.id,
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            title="بحث متقدم عن صنف (Ctrl+K)"
+                            aria-label="بحث متقدم عن صنف"
+                            onClick={() => setProductSearchDialog({ open: true, itemId: item.id })}
+                            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-muted hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors shadow-sm"
+                          >
+                            <Search className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                         {item.productId && (
                           isService ? (
                             <p className="text-[9.5px] text-muted-foreground px-2 mt-1">⚙️ خدمة</p>
