@@ -2076,6 +2076,7 @@ const POSPage = () => {
   // Save order as draft (no payment)
   const handleSaveToTable = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
+    if (!enforceDeviceGuard()) return;
     setSavingToTable(true);
     try {
       // Check if there's already an open order for this table/session
