@@ -222,6 +222,13 @@ interface Terminal {
   company_id: string;
 }
 
+interface CashBoxOption {
+  id: string;
+  name: string;
+  type: string;
+  branch_id?: string | null;
+}
+
 // ── Category config ──
 const CATEGORY_CONFIG: Record<string, { icon: typeof Package; color: string }> = {
   "طعام": { icon: UtensilsCrossed, color: "#16A34A" },
@@ -498,7 +505,7 @@ const POSPage = () => {
   const [closingCash, setClosingCash] = useState("");
   const [closingCashUSD, setClosingCashUSD] = useState("");
   const [closingCashJOD, setClosingCashJOD] = useState("");
-  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [cashBoxes, setCashBoxes] = useState<CashBoxOption[]>([]);
   const [selectedCashBoxId, setSelectedCashBoxId] = useState<string>("");
   const [rememberCashBox, setRememberCashBox] = useState(false);
 
@@ -555,7 +562,29 @@ const POSPage = () => {
   // ── Device-level config (per-machine, stored in localStorage) ──
   const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
   const [terminalBranchId, setTerminalBranchId] = useState<string | null>(null);
+  const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
+  const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
+
+  const selectedCashBox = useMemo(
+    () => cashBoxes.find((box) => box.id === selectedCashBoxId) || null,
+    [cashBoxes, selectedCashBoxId]
+  );
+
+  const guardCashBoxBranchId = useCallback((box?: CashBoxOption | null) => {
+    const targetBox = box ?? selectedCashBox;
+    if (!targetBox || targetBox.id === "__call_center__") return true;
+    if (!targetBox.branch_id) {
+      toast.error("⛔ لا يمكن فتح الوردية: الصندوق غير مربوط بفرع");
+      return false;
+    }
+    if (deviceConfig.branchId && targetBox.branch_id !== deviceConfig.branchId) {
+      setCashBoxBranchId(targetBox.branch_id);
+      toast.error("⛔ تعارض في الفرع: هذا الجهاز مخصص لفرع آخر");
+      return false;
+    }
+    return true;
+  }, [deviceConfig.branchId, selectedCashBox]);
 
   // Re-read device config when changed (other tab / settings page).
   useEffect(() => {
@@ -569,14 +598,19 @@ const POSPage = () => {
     (async () => {
       if (!deviceConfig.terminalId) {
         setTerminalBranchId(null);
+        setTerminalBranchChecked(true);
         return;
       }
+      setTerminalBranchChecked(false);
       const { data } = await supabase
         .from("pos_terminals")
         .select("branch_id")
         .eq("id", deviceConfig.terminalId)
         .maybeSingle();
-      if (!cancelled) setTerminalBranchId(((data as any)?.branch_id as string) || null);
+      if (!cancelled) {
+        setTerminalBranchId(((data as any)?.branch_id as string) || null);
+        setTerminalBranchChecked(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [deviceConfig.terminalId]);
@@ -586,13 +620,17 @@ const POSPage = () => {
     let cancelled = false;
     const boxId = session?.cash_box_id;
     (async () => {
-      if (!boxId) { setCashBoxBranchId(null); return; }
+      if (!boxId) { setCashBoxBranchId(null); setCashBoxBranchChecked(true); return; }
+      setCashBoxBranchChecked(false);
       const { data } = await supabase
         .from("cash_boxes")
         .select("branch_id")
         .eq("id", boxId)
         .maybeSingle();
-      if (!cancelled) setCashBoxBranchId(((data as any)?.branch_id as string) || null);
+      if (!cancelled) {
+        setCashBoxBranchId(((data as any)?.branch_id as string) || null);
+        setCashBoxBranchChecked(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [session?.cash_box_id]);
@@ -603,13 +641,22 @@ const POSPage = () => {
    * Returns true ⇢ proceed. Returns false ⇢ caller MUST early-return.
    */
   const enforceDeviceGuard = useCallback((opts?: { silent?: boolean }) => {
+    if (!terminalBranchChecked || !cashBoxBranchChecked) {
+      if (!opts?.silent) toast.error("⏳ يتم التحقق من فرع الجهاز والصندوق، حاول مرة أخرى");
+      return false;
+    }
     const result = assertDeviceReady({ terminalBranchId, cashBoxBranchId });
     if (!result.ok) {
       if (!opts?.silent) toast.error(`⛔ ${result.reason || "إعداد الجهاز غير مكتمل"}`);
       return false;
     }
     return true;
-  }, [terminalBranchId, cashBoxBranchId]);
+  }, [terminalBranchChecked, cashBoxBranchChecked, terminalBranchId, cashBoxBranchId]);
+
+  const openPaymentModal = useCallback(() => {
+    if (!enforceDeviceGuard()) return;
+    setShowPayment(true);
+  }, [enforceDeviceGuard]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
@@ -939,7 +986,7 @@ const POSPage = () => {
 
         // If action is "pay", auto-open payment dialog
         if (urlAction === "pay" && cartItems.length > 0) {
-          setTimeout(() => setShowPayment(true), 500);
+          setTimeout(() => openPaymentModal(), 500);
         }
       } catch (err) {
         console.error("Error loading order from URL:", err);
@@ -980,14 +1027,26 @@ const POSPage = () => {
       setCompany(comp ? { id: comp.id, name: comp.name, logo_url: comp.logo_url, phone: (comp as any).phone, tax_number: (comp as any).tax_number, address: (comp as any).address } : null);
 
       if (comp) {
-        let { data: terminals } = await supabase
-          .from("pos_terminals")
-          .select("*")
-          .eq("user_id", dataOwnerId)
-          .eq("company_id", comp.id)
-          .limit(1);
-
-        let term = terminals?.[0];
+        let term: any = null;
+        if (deviceConfig.terminalId) {
+          const { data: configuredTerm } = await supabase
+            .from("pos_terminals")
+            .select("*")
+            .eq("id", deviceConfig.terminalId)
+            .eq("user_id", dataOwnerId)
+            .eq("company_id", comp.id)
+            .maybeSingle();
+          term = configuredTerm;
+        }
+        if (!term) {
+          const { data: terminals } = await supabase
+            .from("pos_terminals")
+            .select("*")
+            .eq("user_id", dataOwnerId)
+            .eq("company_id", comp.id)
+            .limit(1);
+          term = terminals?.[0];
+        }
         if (!term) {
           const { data: newTerm } = await supabase
             .from("pos_terminals")
@@ -1123,7 +1182,12 @@ const POSPage = () => {
           const hiddenApps: string[] = (csHidden as any)?.hidden_apps || [];
           const callCenterHidden = hiddenApps.includes("call_center") || hiddenApps.includes("callcenter");
           
-          const boxList = [...(boxes || [])];
+          const deviceBranchId = getDeviceConfig().branchId;
+          const branchSafeBoxes = (boxes || []).filter((box: any) => {
+            if (!deviceBranchId) return false;
+            return box.branch_id === deviceBranchId;
+          });
+          const boxList: CashBoxOption[] = [...branchSafeBoxes];
           const isMalakyAccount = user?.email === "malakybroast@gmail.com";
           if (!callCenterHidden && isMalakyAccount) {
             boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
@@ -1131,11 +1195,13 @@ const POSPage = () => {
           setCashBoxes(boxList);
           // Auto-select from device binding (localStorage)
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
-          if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
+          if (savedBoxId && boxList.some(b => b.id === savedBoxId)) {
             setSelectedCashBoxId(savedBoxId);
             setRememberCashBox(true);
-          } else if (boxes && boxes.length === 1) {
-            setSelectedCashBoxId(boxes[0].id);
+          } else if (boxList.length === 1) {
+            setSelectedCashBoxId(boxList[0].id);
+          } else {
+            setSelectedCashBoxId("");
           }
           setShowOpenShift(true);
         }
@@ -1918,6 +1984,7 @@ const POSPage = () => {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
     }
+    if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
@@ -1971,6 +2038,8 @@ const POSPage = () => {
       // Direct branch_id link (preferred)
       if ((selectedBox as any)?.branch_id) {
         setDetectedBranchId((selectedBox as any).branch_id);
+        setCashBoxBranchId((selectedBox as any).branch_id);
+        setCashBoxBranchChecked(true);
       } else {
         const { data: allBranches } = await supabase
           .from("branches")
@@ -3402,7 +3471,7 @@ const POSPage = () => {
       }
       // F12 = Pay (not for call center)
       if (e.key === "F12" && cart.length > 0 && !isCallCenter) {
-        setShowPayment(true);
+        openPaymentModal();
         e.preventDefault();
         return;
       }
@@ -3423,6 +3492,7 @@ const POSPage = () => {
       // F8 = Print (silent via bridge)
       if (e.key === "F8" && cart.length > 0) {
         console.log("[frontend-print-click] F8");
+        if (!enforceDeviceGuard()) { e.preventDefault(); return; }
         if (shouldThrottlePrint("F8")) { e.preventDefault(); return; }
         const cartHash = buildCartHash(cart as any);
         const f8Order: BridgePrintOrder = {
@@ -3499,7 +3569,7 @@ const POSPage = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [cart, posCategories, products, selectedCategory, addToCart]);
+  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod]);
 
   if (loading) {
     return (
@@ -4683,7 +4753,7 @@ const POSPage = () => {
                   onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#166534'; }}
                   onMouseUp={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
                   disabled={cart.length === 0 || !session}
-                  onClick={() => setShowPayment(true)}
+                  onClick={openPaymentModal}
                 >
                   F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                 </motion.button>
@@ -4774,6 +4844,8 @@ const POSPage = () => {
               <select
                 value={selectedCashBoxId}
                 onChange={(e) => {
+                  const nextBox = cashBoxes.find((box) => box.id === e.target.value) || null;
+                  if (nextBox && !guardCashBoxBranchId(nextBox)) return;
                   setSelectedCashBoxId(e.target.value);
                   if (e.target.value === "__call_center__") {
                     setOpeningCash("0");
@@ -5752,6 +5824,7 @@ const POSPage = () => {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">إغلاق</Button>
             <Button onClick={() => {
+              if (!enforceDeviceGuard()) return;
               if (kitchenTicketData) {
                 const kitchenOrder: BridgePrintOrder = {
                   orderNumber: kitchenTicketData.orderNumber || Date.now().toString(),
