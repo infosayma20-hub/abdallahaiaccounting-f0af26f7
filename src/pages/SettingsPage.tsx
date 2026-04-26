@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/layout/PageHeader";
@@ -47,6 +48,7 @@ const sections = [
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState("company");
   const [search, setSearch] = useState("");
   const [taxOwnerId, setTaxOwnerId] = useState("");
@@ -56,6 +58,11 @@ const SettingsPage = () => {
     if (!user) return;
     supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => setTaxOwnerId(data || user.id));
   }, [user]);
+
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (section && sections.some(s => s.id === section)) setActiveSection(section);
+  }, [searchParams]);
 
   const filteredSections = useMemo(() => {
     if (!search) return sections;
