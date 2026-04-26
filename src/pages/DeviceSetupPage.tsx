@@ -160,7 +160,7 @@ export default function DeviceSetupPage() {
             </p>
           </div>
           {fullyConfigured ? (
-            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">جاهز</Badge>
+            <Badge className="bg-success/10 text-success border-success/30">جاهز</Badge>
           ) : (
             <Badge variant="destructive">غير مكتمل</Badge>
           )}
@@ -192,8 +192,8 @@ export default function DeviceSetupPage() {
             </Button>
           </div>
           {bridgeStatus === "online" && (
-            <div className="flex items-center gap-2 text-xs text-emerald-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <div className="flex items-center gap-2 text-xs text-success">
+              <span className="h-2 w-2 rounded-full bg-success" />
               الجسر يعمل وجاهز
             </div>
           )}
@@ -227,7 +227,7 @@ export default function DeviceSetupPage() {
             </SelectContent>
           </Select>
           {branches.length === 0 && !loading && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-warning">
               لا يوجد فروع نشطة.{" "}
               <Link to="/branches-attendance" className="underline">أنشئ فرعاً أولاً</Link>
             </p>
@@ -285,7 +285,7 @@ export default function DeviceSetupPage() {
           </Button>
         </div>
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3 text-xs text-amber-800 dark:text-amber-200">
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning-foreground">
           ℹ️ هذه الإعدادات تُحفظ في هذا الجهاز فقط. أي جهاز جديد سيحتاج لإعداد منفصل من نفس الشاشة.
         </div>
       </div>
