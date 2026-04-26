@@ -312,6 +312,45 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
+
+  /* ─────────────────────────────────────────────
+   * Accounting Hybrid Layout (Hesabate-style)
+   * ─────────────────────────────────────────────
+   * Use on wrappers around heavy data-entry forms
+   * (journals, invoices, vouchers, credit/debit notes,
+   * cheques, transfers, imports). Keeps fields at their
+   * full readable width and shows a horizontal scrollbar
+   * instead of shrinking inputs — matches accountant UX
+   * standards (Odoo / QuickBooks / Hesabate).
+   *
+   * Min-width: 1280px → comfortable on 13"+ laptops,
+   * scroll appears on tablets & smaller screens.
+   */
+  .accounting-fixed-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+  .accounting-fixed-scroll > .accounting-fixed-inner {
+    min-width: 1280px;
+    width: 100%;
+  }
+  /* Nicer scrollbar for the horizontal accounting bar */
+  .accounting-fixed-scroll::-webkit-scrollbar {
+    height: 10px;
+  }
+  .accounting-fixed-scroll::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.4);
+    border-radius: 8px;
+  }
+  .accounting-fixed-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 8px;
+  }
+  .accounting-fixed-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
 }
 
 /* Global override: Cairo everywhere, replace JetBrains Mono and Tajawal */
