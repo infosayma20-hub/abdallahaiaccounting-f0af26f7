@@ -289,8 +289,8 @@ export default function DeviceSetupPage() {
           </Select>
           {branches.length === 0 && !loading && (
             <p className="text-xs text-warning">
-              لا يوجد فروع نشطة.{" "}
-              <Link to="/branches-attendance" className="underline">أنشئ فرعاً أولاً</Link>
+              {loadError || "لا يوجد فروع نشطة."}{" "}
+              <Link to="/settings?section=branches" className="underline">إدارة الفروع</Link>
               {" · "}
               <button type="button" onClick={loadOptions} className="underline text-primary">إعادة المحاولة</button>
             </p>
