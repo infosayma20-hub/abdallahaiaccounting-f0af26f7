@@ -257,8 +257,15 @@ const StatementPrintViewClean = ({
 
           {/* Data rows */}
           {rows.map((r, i) => (
-            <tr key={r.transaction_id + "-" + i}>
+            <tr key={r.transaction_id + "-" + i} style={r.isLineItem ? { background: "#F9FAFB" } : undefined}>
               {columns.map((c) => {
+                if (r.isLineItem) {
+                  // Sub-row (invoice item / voucher detail): only date + description, hide amounts.
+                  if (c.key === "description") return <td key={c.key} style={{ ...S.td, lineHeight: 1.4, fontSize: 9.5, color: "#4B5563", paddingRight: 18 }}>{r.description}</td>;
+                  if (c.key === "date") return <td key={c.key} style={{ ...S.td, color: "#9CA3AF", fontSize: 9 }}>—</td>;
+                  if (c.key === "balance") return <td key={c.key} style={{ ...S.td, ...S.tdAmount, color: "#9CA3AF" }}>—</td>;
+                  return <td key={c.key} style={{ ...S.td, color: "#9CA3AF" }}>—</td>;
+                }
                 switch (c.key) {
                   case "date": return <td key={c.key} style={S.td}>{fmtDate(r.date)}</td>;
                   case "reference": return <td key={c.key} style={{ ...S.td, fontSize: 9, wordBreak: "break-all", whiteSpace: "normal", lineHeight: 1.3 }}>{r.reference || "—"}</td>;
@@ -299,7 +306,7 @@ const StatementPrintViewClean = ({
 
       {/* ═══ STATS LINE ═══ */}
       <div style={S.statsLine}>
-        إجمالي الحركات: {rows.length} قيود | مدين: {fmt(totalDebit)} | دائن: {fmt(totalCredit)} | الرصيد: {fmt(closingBalance)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدد"})
+        إجمالي الحركات: {rows.filter(r => !r.isLineItem).length} قيود | مدين: {fmt(totalDebit)} | دائن: {fmt(totalCredit)} | الرصيد: {fmt(closingBalance)} ({closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "مسدد"})
       </div>
 
       {/* ═══ AGING ANALYSIS ═══ */}
