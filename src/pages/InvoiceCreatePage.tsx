@@ -191,6 +191,13 @@ const InvoiceCreatePage = () => {
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
+  const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
+  const [lastPrices, setLastPrices] = useState<Record<string, number>>({});
+  const [productSearchDialog, setProductSearchDialog] = useState<{ open: boolean; itemId: string | null }>({
+    open: false,
+    itemId: null,
+  });
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
