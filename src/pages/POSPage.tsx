@@ -2394,6 +2394,7 @@ const POSPage = () => {
   const [quickProcessing, setQuickProcessing] = useState(false);
   const handleQuickSaveAndPrint = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
+    if (!enforceDeviceGuard()) return;
     const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
     const sourceApp = activeOrder.callCenterSourceApp || "";
     
@@ -2436,6 +2437,7 @@ const POSPage = () => {
   const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
+    if (!enforceDeviceGuard()) return;
     // Handle "card:GLCODE" format from delivery app visa accounts
     let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
     let visaGlAccountCode: string | null = null;
