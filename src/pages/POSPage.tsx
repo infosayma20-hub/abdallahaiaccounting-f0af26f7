@@ -4826,6 +4826,8 @@ const POSPage = () => {
               <select
                 value={selectedCashBoxId}
                 onChange={(e) => {
+                  const nextBox = cashBoxes.find((box) => box.id === e.target.value) || null;
+                  if (nextBox && !guardCashBoxBranchId(nextBox)) return;
                   setSelectedCashBoxId(e.target.value);
                   if (e.target.value === "__call_center__") {
                     setOpeningCash("0");
