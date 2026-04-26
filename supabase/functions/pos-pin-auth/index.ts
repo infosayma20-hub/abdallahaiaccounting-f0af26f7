@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
-    const supabase = createClient(
+    const supabase: any = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { autoRefreshToken: false, persistSession: false } }
@@ -308,7 +308,7 @@ function getDefaultPermissions(role: string) {
 }
 
 async function logAudit(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string, companyId: string, actorPosUserId: string | null,
   actionType: string, entityType: string, entityId: string | null,
   metadata: Record<string, unknown>
