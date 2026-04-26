@@ -2516,6 +2516,41 @@ const InvoiceCreatePage = () => {
           invoiceDate={form.date}
         />
       )}
+
+      {/* Advanced product search popup (مثل حساباتي) */}
+      <ProductSearchDialog
+        open={productSearchDialog.open}
+        onOpenChange={(open) =>
+          setProductSearchDialog((prev) => ({ open, itemId: open ? prev.itemId : null }))
+        }
+        products={products as any}
+        warehouseStock={warehouseStock}
+        warehouseName={warehouses.find((w) => w.id === form.warehouseId)?.name || null}
+        invoiceType={form.type}
+        currencySymbol={currSymbol}
+        lastPrices={lastPrices}
+        onSelect={(productId) => {
+          if (productSearchDialog.itemId) {
+            selectProduct(productSearchDialog.itemId, productId);
+            // Stock warning if not enough.
+            const stock = warehouseStock[productId];
+            const prod = products.find((p) => p.id === productId);
+            if (
+              prod &&
+              prod.product_type !== "service" &&
+              form.type === "sales" &&
+              stock !== undefined &&
+              stock <= 0
+            ) {
+              toast({
+                title: "تنبيه مخزون",
+                description: `الكمية غير متوفرة في المستودع المحدد (${prod.name}).`,
+                variant: "destructive",
+              });
+            }
+          }
+        }}
+      />
     </div>
     </SmartFormScope>
     </AccountingShell>
