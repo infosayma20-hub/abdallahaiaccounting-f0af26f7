@@ -55,6 +55,12 @@ export interface PrintOrder {
   stationId?: string;
   /** Station name — used by bridge to map to printer key */
   stationName?: string;
+  /** Marks this print job as a CANCELLATION ticket (to alert kitchen to stop preparation) */
+  isCancellation?: boolean;
+  /** Reason text shown on the cancellation ticket */
+  cancelReason?: string;
+  /** Who cancelled — printed on the ticket */
+  cancelledBy?: string;
 }
 
 export function usePrintBridge() {

@@ -7509,6 +7509,36 @@ export type Database = {
           },
         ]
       }
+      pos_cancel_reasons: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          is_system: boolean
+          reason_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          reason_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          reason_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_categories: {
         Row: {
           color: string
@@ -15020,6 +15050,16 @@ export type Database = {
       verify_task_password: {
         Args: { p_password: string; p_user_id: string }
         Returns: boolean
+      }
+      void_pos_order: {
+        Args: {
+          p_cancelled_by_name: string
+          p_order_id: string
+          p_reason: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
