@@ -508,6 +508,12 @@ const JournalNewPage = () => {
         voucherType="journal"
         currentRef={formRefNumber}
         onPrint={handlePrint}
+        onSaveDraft={() => handleSave("draft")}
+        onSavePost={() => handleSave("posted")}
+        saving={saving}
+        saveDraftDisabled={saving}
+        savePostDisabled={saving || !isBalanced}
+        savePostDisabledReason={!isBalanced ? "القيد غير متوازن — تحقق من المدين والدائن" : undefined}
         onNew={() => {
           setSaved(false);
           setFormDescription("");
