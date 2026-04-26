@@ -505,7 +505,7 @@ const POSPage = () => {
   const [closingCash, setClosingCash] = useState("");
   const [closingCashUSD, setClosingCashUSD] = useState("");
   const [closingCashJOD, setClosingCashJOD] = useState("");
-  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [cashBoxes, setCashBoxes] = useState<CashBoxOption[]>([]);
   const [selectedCashBoxId, setSelectedCashBoxId] = useState<string>("");
   const [rememberCashBox, setRememberCashBox] = useState(false);
 
@@ -563,6 +563,26 @@ const POSPage = () => {
   const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
   const [terminalBranchId, setTerminalBranchId] = useState<string | null>(null);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
+
+  const selectedCashBox = useMemo(
+    () => cashBoxes.find((box) => box.id === selectedCashBoxId) || null,
+    [cashBoxes, selectedCashBoxId]
+  );
+
+  const guardCashBoxBranchId = useCallback((box?: CashBoxOption | null) => {
+    const targetBox = box ?? selectedCashBox;
+    if (!targetBox || targetBox.id === "__call_center__") return true;
+    if (!targetBox.branch_id) {
+      toast.error("⛔ لا يمكن فتح الوردية: الصندوق غير مربوط بفرع");
+      return false;
+    }
+    if (deviceConfig.branchId && targetBox.branch_id !== deviceConfig.branchId) {
+      setCashBoxBranchId(targetBox.branch_id);
+      toast.error("⛔ تعارض في الفرع: هذا الجهاز مخصص لفرع آخر");
+      return false;
+    }
+    return true;
+  }, [deviceConfig.branchId, selectedCashBox]);
 
   // Re-read device config when changed (other tab / settings page).
   useEffect(() => {
