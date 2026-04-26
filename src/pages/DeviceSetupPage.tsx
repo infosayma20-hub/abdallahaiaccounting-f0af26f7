@@ -51,15 +51,21 @@ export default function DeviceSetupPage() {
   const [bridgeError, setBridgeError] = useState<string>("");
 
   useEffect(() => {
-    // Don't block on auth — load options regardless. RLS will filter.
-    // This prevents the page from hanging on a perpetual loading spinner
-    // if the auth session takes a moment to hydrate.
+    // Wait for auth to hydrate before fetching — RLS depends on auth.uid().
+    // If user is null we still attempt (in case of public/anon RLS), but log clearly.
     void loadOptions();
-  }, [user]);
+  }, [user?.id]);
 
   const loadOptions = async () => {
     setLoading(true);
-    console.log("[DeviceSetup] Loading branches & terminals…");
+    console.log("[DeviceSetup] Loading branches & terminals…", { userId: user?.id ?? "(no session)" });
+    // Verify session at the moment of fetch
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      console.log("[DeviceSetup] session.user.id =", sess?.session?.user?.id ?? "(none)");
+    } catch (e) {
+      console.warn("[DeviceSetup] getSession failed", e);
+    }
     // Hard timeout — if Supabase hangs, unblock the UI after 6s.
     const timeout = new Promise<"timeout">(resolve =>
       setTimeout(() => resolve("timeout"), 6000),
@@ -77,8 +83,13 @@ export default function DeviceSetupPage() {
         setTerminals([]);
       } else {
         const [branchesRes, terminalsRes] = result;
-        if (branchesRes.error) console.error("[DeviceSetup] branches error:", branchesRes.error);
+        if (branchesRes.error) {
+          console.error("[DeviceSetup] branches error:", branchesRes.error);
+          toast.error("RLS منع جلب الفروع: " + branchesRes.error.message);
+        }
         if (terminalsRes.error) console.error("[DeviceSetup] terminals error:", terminalsRes.error);
+        console.log("[DeviceSetup] branches data =", branchesRes.data);
+        console.log("[DeviceSetup] terminals data =", terminalsRes.data);
         setBranches((branchesRes.data as Branch[]) || []);
         setTerminals((terminalsRes.data as Terminal[]) || []);
         console.log(
