@@ -47,6 +47,8 @@ import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
+import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
+import { getDeviceConfig, onDeviceConfigChange } from "@/lib/device-config";
 import {
   DndContext,
   closestCenter,
@@ -550,6 +552,50 @@ const POSPage = () => {
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
   const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
+  // ── Device-level config (per-machine, stored in localStorage) ──
+  const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
+  const [terminalBranchId, setTerminalBranchId] = useState<string | null>(null);
+  const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
+
+  // Re-read device config when changed (other tab / settings page).
+  useEffect(() => {
+    const off = onDeviceConfigChange(() => setDeviceConfig(getDeviceConfig()));
+    return off;
+  }, []);
+
+  // Resolve terminal.branch_id from DB whenever the configured terminal changes.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!deviceConfig.terminalId) {
+        setTerminalBranchId(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("pos_terminals")
+        .select("branch_id")
+        .eq("id", deviceConfig.terminalId)
+        .maybeSingle();
+      if (!cancelled) setTerminalBranchId(((data as any)?.branch_id as string) || null);
+    })();
+    return () => { cancelled = true; };
+  }, [deviceConfig.terminalId]);
+
+  // Resolve cash_box.branch_id whenever the active session's cash box changes.
+  useEffect(() => {
+    let cancelled = false;
+    const boxId = session?.cash_box_id;
+    (async () => {
+      if (!boxId) { setCashBoxBranchId(null); return; }
+      const { data } = await supabase
+        .from("cash_boxes")
+        .select("branch_id")
+        .eq("id", boxId)
+        .maybeSingle();
+      if (!cancelled) setCashBoxBranchId(((data as any)?.branch_id as string) || null);
+    })();
+    return () => { cancelled = true; };
+  }, [session?.cash_box_id]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
@@ -3452,6 +3498,12 @@ const POSPage = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
+      {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
+      <POSDeviceGuard
+        config={deviceConfig}
+        terminalBranchId={terminalBranchId}
+        cashBoxBranchId={cashBoxBranchId}
+      />
       {/* ══════ TOP BAR — 52px dark navy ══════ */}
       <header
         className="flex items-center px-3 gap-2 shrink-0 text-white overflow-visible"
