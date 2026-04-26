@@ -640,7 +640,7 @@ export default function InvoiceHistoryDrawer({
   };
 
   const handleCancelConfirm = () => {
-    if (!cancelReason.trim()) { toast.error("أدخل سبب الإلغاء"); return; }
+    if (!cancelReason.trim()) { toast.error("اختر سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
     if (needsManagerForCancel) {
       setPendingManagerAction("cancel");
@@ -664,16 +664,32 @@ export default function InvoiceHistoryDrawer({
 
   const executeCancel = async (order: InvoiceOrder, reason: string, approvedBy: string) => {
     try {
-      await supabase
-        .from("pos_orders")
-        .update({
-          state: "cancelled",
-          cancel_reason: reason,
-          cancelled_by: cashierName,
-          cancelled_approved_by: approvedBy,
-          cancelled_at: new Date().toISOString(),
-        } as any)
-        .eq("id", order.id);
+      const fullReason = cancelNote.trim() ? `${reason} — ${cancelNote.trim()}` : reason;
+
+      // Call RPC: validates session match, creates reverse entry if paid
+      const { data: rpcResult, error: rpcErr } = await (supabase.rpc as any)("void_pos_order", {
+        p_order_id: order.id,
+        p_session_id: sessionId,
+        p_reason: fullReason,
+        p_cancelled_by_name: cashierName,
+        p_user_id: dataOwnerId,
+      });
+
+      if (rpcErr) {
+        toast.error(rpcErr.message || "فشل إلغاء الفاتورة");
+        return;
+      }
+      if (rpcResult && rpcResult.success === false) {
+        toast.error(rpcResult.error || "فشل إلغاء الفاتورة");
+        return;
+      }
+
+      // Update approved_by separately (RPC uses single name)
+      if (approvedBy && approvedBy !== "بدون موافقة مدير") {
+        await supabase.from("pos_orders")
+          .update({ cancelled_approved_by: approvedBy } as any)
+          .eq("id", order.id);
+      }
 
       await supabase.from("pos_audit_log").insert({
         user_id: dataOwnerId,
@@ -681,15 +697,56 @@ export default function InvoiceHistoryDrawer({
         action: "INVOICE_CANCELLED",
         cashier_name: cashierName,
         approved_by: approvedBy,
-        reason: reason,
+        reason: fullReason,
         original_total: order.total,
         terminal_name: terminalName,
       } as any);
 
-      toast.success(`تم إلغاء الفاتورة #${order.order_number || ""}`);
+      // Print KITCHEN CANCEL TICKET (fire-and-forget)
+      try {
+        const { data: lines } = await (supabase
+          .from("pos_order_lines")
+          .select("id, product_id, product_name, qty, unit_price")
+          .eq("order_id", order.id) as any);
+
+        if (Array.isArray(lines) && lines.length > 0) {
+          const printItems: PrintItem[] = lines.map((l: any) => ({
+            id: l.id,
+            name: l.product_name,
+            quantity: Number(l.qty) || 0,
+            price: Number(l.unit_price) || 0,
+          }));
+          const printOrder: PrintOrder = {
+            id: order.id,
+            orderNumber: order.order_number || order.id.slice(0, 8),
+            date: format(new Date(), "yyyy-MM-dd"),
+            time: format(new Date(), "HH:mm"),
+            branchName: terminalName || "",
+            cashier: cashierName,
+            items: printItems,
+            total: order.total,
+            isCancellation: true,
+            cancelReason: fullReason,
+            cancelledBy: cashierName,
+          };
+          sendToBridge("kitchen", printOrder).catch(() => {
+            console.warn("Kitchen cancel ticket: bridge unavailable");
+          });
+        }
+      } catch (printErr) {
+        console.warn("Failed to print kitchen cancel ticket:", printErr);
+      }
+
+      const wasReversed = rpcResult?.reverse_transaction_id;
+      toast.success(
+        `تم إلغاء الفاتورة #${order.order_number || ""}` +
+        (wasReversed ? " — تم إنشاء قيد عكسي" : "") +
+        " — أُرسلت تذكرة إلغاء للمطبخ"
+      );
       setSelectedOrder(null);
       setCancellingOrder(null);
       setCancelReason("");
+      setCancelNote("");
       setPendingManagerAction(null);
       fetchOrders();
     } catch (err) {
