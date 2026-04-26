@@ -1073,6 +1073,7 @@ const InvoiceCreatePage = () => {
         exchange_rate: form.exchangeRate,
         attachments: attachments.length > 0 ? JSON.stringify(attachments) : "[]",
         terms: invoiceTerms.trim() || null,
+        warehouse_id: form.warehouseId || null,
       };
 
       // ─── Accounting routing (credit-only invoices) ───
