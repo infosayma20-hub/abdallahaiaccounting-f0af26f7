@@ -33,7 +33,7 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
 interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
@@ -44,6 +44,10 @@ type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contact
 const EMPTY_COMPANY_SETTINGS = { name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
 const buildEmptyAging = () => ({ current: 0, d1_30: 0, d31_60: 0, d60plus: 0, total: 0 });
 const emptyDetailsMap = (companySettings = EMPTY_COMPANY_SETTINGS): StatementDetailsMap => ({ invoiceDetailsById: {}, voucherDetailsById: {}, agingSummary: null, companySettings });
+const paymentMethodLabel = (method?: string | null) => {
+  const map: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", check: "شيك", transfer: "تحويل", card: "بطاقة", credit: "آجل" };
+  return method ? (map[method] || method) : "—";
+};
 
 // ─── HELPERS ───
 const normalizeCurrency = (c: string): string => {
