@@ -136,6 +136,38 @@ export function isDeviceFullyConfigured(): boolean {
   return Boolean(cfg.bridgeUrl && cfg.branchId && cfg.terminalId);
 }
 
+/**
+ * Central guard used by ANY POS function before saving / printing / posting.
+ * Compares device.branchId to terminal.branch_id and (optionally) cash_box.branch_id
+ * passed by the caller. Returns ok:false with a human reason when blocked.
+ */
+export interface GuardCheckInput {
+  terminalBranchId?: string | null;
+  cashBoxBranchId?: string | null;
+}
+export interface GuardResult {
+  ok: boolean;
+  reason?: string;
+}
+export function assertDeviceReady(input: GuardCheckInput = {}): GuardResult {
+  const cfg = getDeviceConfig();
+  if (!cfg.bridgeUrl) return { ok: false, reason: "هذا الجهاز غير مهيأ — لم يتم إدخال عنوان Print Bridge." };
+  if (!cfg.branchId) return { ok: false, reason: "هذا الجهاز غير مهيأ — لم يتم اختيار الفرع." };
+  if (!cfg.terminalId) return { ok: false, reason: "هذا الجهاز غير مهيأ — لم يتم اختيار محطة POS." };
+
+  const { terminalBranchId, cashBoxBranchId } = input;
+  if (terminalBranchId && terminalBranchId !== cfg.branchId) {
+    return { ok: false, reason: "تعارض: فرع الجهاز يختلف عن فرع Terminal. راجع إعدادات الجهاز." };
+  }
+  if (cashBoxBranchId && cashBoxBranchId !== cfg.branchId) {
+    return { ok: false, reason: "تعارض: فرع الجهاز يختلف عن فرع الصندوق المختار. راجع إعدادات الجهاز." };
+  }
+  if (terminalBranchId && cashBoxBranchId && terminalBranchId !== cashBoxBranchId) {
+    return { ok: false, reason: "تعارض: فرع Terminal يختلف عن فرع الصندوق. راجع إعدادات الجهاز." };
+  }
+  return { ok: true };
+}
+
 // ── Change notifications ────────────────────────────────────
 
 const CHANGE_EVENT = "pos-device-config-changed";
