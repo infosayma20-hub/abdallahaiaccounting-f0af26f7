@@ -189,20 +189,12 @@ export default function NetworkPrintersManager() {
   const testPrinter = async (printer: PrinterConfig) => {
     setTesting(printer.id);
     try {
-      // Use the bridge's /test endpoint which prints a physical test page
-      // Map printer to bridge key: match by IP or fall back to type
-      const bridgeKeyMap: Record<string, string> = {
-        "192.168.1.220": "receipt",
-        "192.168.1.120": "kitchen",
-        "192.168.1.10": "grill",
-        "192.168.1.228": "pizza",
-      };
-      const printerKey = bridgeKeyMap[printer.ip_address] || 
-        ((printer.print_categories || []).includes("receipt") ? "receipt" : "kitchen");
-      const res = await fetch(`${getPrintBridgeUrl()}/test`, {
+      // Bridge /test-printer prints a physical test page directly to the
+      // printer's IP — no hardcoded company/branch maps.
+      const res = await fetch(`${getPrintBridgeUrl()}/test-printer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ printer: printerKey }),
+        body: JSON.stringify({ ip: printer.ip_address, port: printer.port }),
         mode: "cors",
         signal: AbortSignal.timeout(10000),
       });
