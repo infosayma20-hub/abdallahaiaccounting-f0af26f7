@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
-    const supabase = createClient(
+    const supabase: any = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { autoRefreshToken: false, persistSession: false } }
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ users: [], device_id: device.id });
         }
 
-        const posUserIds = accessList.map(a => a.pos_user_id);
+        const posUserIds = accessList.map((a: any) => a.pos_user_id);
         const { data: users } = await supabase
           .from("pos_users")
           .select("id, name, avatar_url, role, is_active, pin_locked_until")
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
           .eq("is_active", true);
 
         return jsonResponse({
-          users: (users || []).map(u => ({
+          users: (users || []).map((u: any) => ({
             ...u,
             is_locked: u.pin_locked_until ? new Date(u.pin_locked_until) > new Date() : false,
           })),
@@ -308,7 +308,7 @@ function getDefaultPermissions(role: string) {
 }
 
 async function logAudit(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string, companyId: string, actorPosUserId: string | null,
   actionType: string, entityType: string, entityId: string | null,
   metadata: Record<string, unknown>
