@@ -39,6 +39,7 @@ import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
+import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 
 // ─── Types ───
