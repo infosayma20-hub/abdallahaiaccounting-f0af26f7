@@ -614,9 +614,9 @@ const AccountStatementV2Page = () => {
           showReference: statementOptions.showReference,
           showDueDate: statementOptions.showDueDate,
           showType: statementOptions.showType,
-          showLogo: statementOptions.showLogo,
-          showCompanyContact: statementOptions.showCompanyContact,
-          showSignatures: statementOptions.showSignatures,
+          showCompanyLogo: statementOptions.showCompanyLogo,
+          showContactInfo: statementOptions.showContactInfo,
+          showSignature: statementOptions.showSignature,
           showAging: statementOptions.showAging,
         }
       );
@@ -1170,9 +1170,9 @@ const AccountStatementV2Page = () => {
                 dateTo={dateTo}
                 contactCode={selectedEntityCode}
                 statementNumber={stableSOANumber}
-                showLogo={statementOptions.showLogo}
-                showCompanyContact={statementOptions.showCompanyContact}
-                showSignatures={statementOptions.showSignatures}
+                showCompanyLogo={statementOptions.showCompanyLogo}
+                showContactInfo={statementOptions.showContactInfo}
+                showSignature={statementOptions.showSignature}
                 showReference={statementOptions.showReference}
                 showDueDate={statementOptions.showDueDate}
                 showType={statementOptions.showType}
