@@ -568,6 +568,59 @@ const InvoiceCreatePage = () => {
     setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
   }, [form.type, isEditMode]);
 
+  // Refresh per-warehouse stock map when warehouse changes (used by autocomplete + popup).
+  useEffect(() => {
+    if (!user || !form.warehouseId) {
+      setWarehouseStock({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("product_warehouse_stock" as any)
+        .select("product_id, quantity_on_hand")
+        .eq("user_id", user.id)
+        .eq("warehouse_id", form.warehouseId);
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      ((data as any[]) || []).forEach((r: any) => {
+        if (r.product_id) map[r.product_id] = Number(r.quantity_on_hand || 0);
+      });
+      setWarehouseStock(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, form.warehouseId]);
+
+  // Last unit price per product (last sale price for sales, last purchase price for purchase).
+  useEffect(() => {
+    if (!user || products.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const targetType = form.type === "sales" ? "sale" : "purchase";
+      const { data } = await supabase
+        .from("invoice_items")
+        .select("product_id, unit_price, created_at, invoices!inner(invoice_type, user_id)")
+        .eq("invoices.user_id", user.id)
+        .eq("invoices.invoice_type", targetType)
+        .not("product_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      ((data as any[]) || []).forEach((row: any) => {
+        if (row.product_id && map[row.product_id] === undefined) {
+          map[row.product_id] = Number(row.unit_price || 0);
+        }
+      });
+      setLastPrices(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, products.length, form.type]);
+
   useEffect(() => {
     const terms = PAYMENT_TERMS.find(t => t.value === form.paymentTerms);
     if (terms && terms.days >= 0) {
