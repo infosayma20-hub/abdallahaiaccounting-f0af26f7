@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft,
-  Search, Plus, Copy, Printer, X, Trash2
+  Search, Plus, Copy, Printer, X, Trash2, Save, CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -26,6 +27,26 @@ interface VoucherNavToolbarProps {
   onDelete?: () => void;
   /** Whether toolbar should show (hide on create-new mode with no saved entry) */
   showNavigation?: boolean;
+  /**
+   * Quick "حفظ كمسودة" — wires to the SAME handler as the bottom draft button.
+   * Omit to hide the top draft action.
+   */
+  onSaveDraft?: () => void;
+  /**
+   * Quick "حفظ وترحيل" / "ترحيل" — wires to the SAME handler as the bottom post button.
+   * Omit to hide the top post action.
+   */
+  onSavePost?: () => void;
+  /** Custom label for the top post button (default: "حفظ وترحيل"). */
+  savePostLabel?: string;
+  /** Disabled flag for the draft action — must mirror the bottom button. */
+  saveDraftDisabled?: boolean;
+  /** Disabled flag for the post action — must mirror the bottom button. */
+  savePostDisabled?: boolean;
+  /** Tooltip shown when post is disabled (e.g. "القيد غير متوازن"). */
+  savePostDisabledReason?: string;
+  /** Show a "جارٍ الحفظ..." state on the post button. */
+  saving?: boolean;
 }
 
 interface VoucherItem {
@@ -45,6 +66,13 @@ const VoucherNavToolbar = ({
   onPrint,
   onDelete,
   showNavigation = true,
+  onSaveDraft,
+  onSavePost,
+  savePostLabel = "حفظ وترحيل",
+  saveDraftDisabled = false,
+  savePostDisabled = false,
+  savePostDisabledReason,
+  saving = false,
 }: VoucherNavToolbarProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -230,6 +258,47 @@ const VoucherNavToolbar = ({
         )}
 
         <div className="flex-1" />
+
+        {/* Top Save (draft) — wired to same bottom handler */}
+        {onSaveDraft && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSaveDraft}
+            disabled={saveDraftDisabled || saving}
+            className="h-8 gap-1.5 text-xs"
+            title="حفظ كمسودة"
+          >
+            <Save className="h-3.5 w-3.5" /> حفظ
+          </Button>
+        )}
+
+        {/* Top Save & Post — wired to same bottom handler */}
+        {onSavePost && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* span wrapper so tooltip works while button is disabled */}
+                <span className="inline-flex">
+                  <Button
+                    size="sm"
+                    onClick={onSavePost}
+                    disabled={savePostDisabled || saving}
+                    className="h-8 gap-1.5 text-xs font-bold"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {saving ? "جارٍ..." : savePostLabel}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {savePostDisabled && savePostDisabledReason && (
+                <TooltipContent side="bottom">
+                  <p className="text-xs">{savePostDisabledReason}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         {/* Delete */}
         {onDelete && currentRef && (

@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Check, Upload, Loader2, Image as ImageIcon, X, Eye } from "lucide-react";
+import { AlertTriangle, Check, Upload, Loader2, Image as ImageIcon, X, Eye, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { usePurchaseInvoices, useSuppliers } from "@/hooks/useProcurement";
 import { useAuth } from "@/hooks/useAuth";
@@ -268,6 +269,32 @@ const ProcurementInvoiceCreatePage = () => {
         </div>
         <h1 className="text-xl font-bold text-foreground">استلام بضاعة وإنشاء فاتورة</h1>
         {orderNumber && <Badge variant="outline" className="font-mono">{orderNumber}</Badge>}
+        <div className="flex-1" />
+        {/* Top quick action — same handler as bottom button */}
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving || lines.length === 0 || !supplierId}
+                  className="h-8 gap-1.5 text-xs font-bold"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  تأكيد وتسجيل
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {(lines.length === 0 || !supplierId) && (
+              <TooltipContent side="bottom">
+                <p className="text-xs">
+                  {!supplierId ? "اختر المورد أولاً" : "أضف بنداً واحداً على الأقل"}
+                </p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {hasDraft && !orderId && (
