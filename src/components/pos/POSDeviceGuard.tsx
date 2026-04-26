@@ -1,5 +1,3 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle, Settings, Monitor, Building2, Boxes, Wifi } from "lucide-react";
 
 interface DeviceConfig {
@@ -24,34 +22,6 @@ interface Props {
  *  2. branch_id of the device, terminal and (optionally) cash_box disagree.
  */
 export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranchId }: Props) {
-  const navigate = useNavigate();
-
-  const goSetup = () => {
-    console.log("[POSDeviceGuard] → navigating to /device-setup");
-    try {
-      navigate("/device-setup");
-      // Fallback: if SPA nav was swallowed for any reason, hard-redirect after a tick.
-      setTimeout(() => {
-        if (window.location.pathname !== "/device-setup") {
-          window.location.assign("/device-setup");
-        }
-      }, 250);
-    } catch {
-      window.location.assign("/device-setup");
-    }
-  };
-
-  const goBack = () => {
-    try {
-      navigate("/apps");
-      setTimeout(() => {
-        if (window.location.pathname !== "/apps") window.location.assign("/apps");
-      }, 250);
-    } catch {
-      window.location.assign("/apps");
-    }
-  };
-
   const missing: string[] = [];
   if (!config.bridgeUrl) missing.push("عنوان Print Bridge");
   if (!config.branchId) missing.push("الفرع");
@@ -139,12 +109,12 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
         </div>
 
         <div className="p-3 border-t border-border bg-muted/20 flex gap-2">
-          <Button onClick={goSetup} type="button" className="flex-1 gap-2">
+          <a href="/device-setup" className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <Settings className="h-4 w-4" /> إعداد الجهاز
-          </Button>
-          <Button variant="outline" onClick={goBack} type="button" className="gap-2">
+          </a>
+          <a href="/apps" className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <Monitor className="h-4 w-4" /> رجوع
-          </Button>
+          </a>
         </div>
       </div>
     </div>
