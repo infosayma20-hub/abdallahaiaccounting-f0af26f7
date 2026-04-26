@@ -16,6 +16,7 @@ import ManagerOverrideDialog from "./ManagerOverrideDialog";
 import ReturnDialog from "./ReturnDialog";
 import { multiWordMatchAny } from "@/lib/utils";
 import { sendToBridge } from "@/lib/print-bridge-client";
+import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import { printReceiptImage } from "@/lib/image-print-service";
 
 // ── Types ──
@@ -164,6 +165,8 @@ export default function InvoiceHistoryDrawer({
   // Cancel flow
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [cancelNote, setCancelNote] = useState("");
+  const [cancelReasons, setCancelReasons] = useState<{ id: string; reason_text: string }[]>([]);
   const [cancellingOrder, setCancellingOrder] = useState<InvoiceOrder | null>(null);
 
   // Return flow
