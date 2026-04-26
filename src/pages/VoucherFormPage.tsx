@@ -2166,6 +2166,29 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             onPrint={handlePrint}
             onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
             showNavigation={isEditMode || saved}
+            onSaveDraft={!isEditMode && !isCancelled ? () => handleSave(true) : undefined}
+            onSavePost={!isCancelled ? () => handleSave(false) : undefined}
+            savePostLabel={isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+            saving={saving}
+            saveDraftDisabled={saving}
+            savePostDisabled={
+              saving ||
+              amountNum <= 0 ||
+              (partyType === "contact" && !selectedContact) ||
+              (partyType === "employee" && !selectedEmployee) ||
+              (partyType === "account" && !selectedGlAccount)
+            }
+            savePostDisabledReason={
+              amountNum <= 0
+                ? "أدخل المبلغ أولاً"
+                : (partyType === "contact" && !selectedContact)
+                ? "اختر العميل/المورد أولاً"
+                : (partyType === "employee" && !selectedEmployee)
+                ? "اختر الموظف أولاً"
+                : (partyType === "account" && !selectedGlAccount)
+                ? "اختر الحساب أولاً"
+                : undefined
+            }
           />
         </div>
         {isEditMode && !isCancelled && editVoucherStatus === "posted" && (
