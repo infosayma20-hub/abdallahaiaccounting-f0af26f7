@@ -11,12 +11,12 @@ export interface StatementViewOptions {
   showDueDate: boolean;
   showType: boolean;
   // Row expansion
-  expandInvoices: boolean;       // show invoice items inline
-  expandVouchers: boolean;       // show payment method / linked invoices inline
+  showInvoiceDetails: boolean;   // show invoice items inline
+  showVoucherDetails: boolean;   // show payment method / linked invoices inline
   // Document/header
-  showLogo: boolean;
-  showCompanyContact: boolean;
-  showSignatures: boolean;
+  showCompanyLogo: boolean;
+  showContactInfo: boolean;
+  showSignature: boolean;
   showAging: boolean;
 }
 
@@ -24,11 +24,11 @@ export const DEFAULT_VIEW_OPTIONS: StatementViewOptions = {
   showReference: true,
   showDueDate: true,
   showType: true,
-  expandInvoices: false,
-  expandVouchers: false,
-  showLogo: true,
-  showCompanyContact: true,
-  showSignatures: true,
+  showInvoiceDetails: false,
+  showVoucherDetails: false,
+  showCompanyLogo: true,
+  showContactInfo: true,
+  showSignature: true,
   showAging: true,
 };
 
@@ -39,7 +39,15 @@ export function loadViewOptions(): StatementViewOptions {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_VIEW_OPTIONS;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_VIEW_OPTIONS, ...parsed };
+    return {
+      ...DEFAULT_VIEW_OPTIONS,
+      ...parsed,
+      showInvoiceDetails: parsed.showInvoiceDetails ?? parsed.expandInvoices ?? DEFAULT_VIEW_OPTIONS.showInvoiceDetails,
+      showVoucherDetails: parsed.showVoucherDetails ?? parsed.expandVouchers ?? DEFAULT_VIEW_OPTIONS.showVoucherDetails,
+      showCompanyLogo: parsed.showCompanyLogo ?? parsed.showLogo ?? DEFAULT_VIEW_OPTIONS.showCompanyLogo,
+      showContactInfo: parsed.showContactInfo ?? parsed.showCompanyContact ?? DEFAULT_VIEW_OPTIONS.showContactInfo,
+      showSignature: parsed.showSignature ?? parsed.showSignatures ?? DEFAULT_VIEW_OPTIONS.showSignature,
+    };
   } catch {
     return DEFAULT_VIEW_OPTIONS;
   }
@@ -69,14 +77,14 @@ const FIELDS: Record<Tab, Array<{ key: keyof StatementViewOptions; label: string
     { key: "showType", label: "إظهار النوع" },
   ],
   details: [
-    { key: "expandInvoices", label: "إظهار تفاصيل الفاتورة", hint: "أصناف، كميات، أسعار، الخصم والضريبة" },
-    { key: "expandVouchers", label: "إظهار تفاصيل السند", hint: "طريقة الدفع، الصندوق/البنك، الفواتير المخصصة" },
+    { key: "showInvoiceDetails", label: "إظهار تفاصيل الفاتورة", hint: "أصناف، كميات، أسعار، الخصم والضريبة" },
+    { key: "showVoucherDetails", label: "إظهار تفاصيل السند", hint: "طريقة الدفع، الصندوق/البنك، الفواتير المخصصة" },
     { key: "showAging", label: "إظهار تحليل التقادم (Aging)" },
   ],
   document: [
-    { key: "showLogo", label: "إظهار شعار الشركة" },
-    { key: "showCompanyContact", label: "إظهار بيانات التواصل" },
-    { key: "showSignatures", label: "إظهار خانات التوقيع والاعتماد" },
+    { key: "showCompanyLogo", label: "إظهار شعار الشركة" },
+    { key: "showContactInfo", label: "إظهار بيانات التواصل" },
+    { key: "showSignature", label: "إظهار خانات التوقيع والاعتماد" },
   ],
 };
 
