@@ -3480,6 +3480,7 @@ const POSPage = () => {
       // F8 = Print (silent via bridge)
       if (e.key === "F8" && cart.length > 0) {
         console.log("[frontend-print-click] F8");
+        if (!enforceDeviceGuard()) { e.preventDefault(); return; }
         if (shouldThrottlePrint("F8")) { e.preventDefault(); return; }
         const cartHash = buildCartHash(cart as any);
         const f8Order: BridgePrintOrder = {
@@ -3556,7 +3557,7 @@ const POSPage = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [cart, posCategories, products, selectedCategory, addToCart]);
+  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod]);
 
   if (loading) {
     return (
