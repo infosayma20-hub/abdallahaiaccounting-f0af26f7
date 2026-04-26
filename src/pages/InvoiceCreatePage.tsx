@@ -1427,6 +1427,7 @@ const InvoiceCreatePage = () => {
   }
 
   return (
+    <AccountingShell>
     <SmartFormScope
       className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
       firstFieldSelector="input[data-smart-first], [data-smart-first] input, [data-smart-first]"
@@ -2373,6 +2374,7 @@ const InvoiceCreatePage = () => {
       )}
     </div>
     </SmartFormScope>
+    </AccountingShell>
   );
 };
 

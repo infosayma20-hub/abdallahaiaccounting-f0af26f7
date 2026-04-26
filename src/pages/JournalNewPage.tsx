@@ -30,6 +30,7 @@ import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker"
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface JournalLine {
   id: string;
