@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Package, ChevronLeft, ChevronRight, Upload, Plus, Trash2, Save, Check, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface ShipmentItem {
   line_number: number;

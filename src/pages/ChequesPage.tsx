@@ -28,6 +28,7 @@ import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import AccountingShell from "@/components/layout/AccountingShell";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 

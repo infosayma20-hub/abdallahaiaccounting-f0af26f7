@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { multiWordMatchAny } from "@/lib/utils";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import AccountingShell from "@/components/layout/AccountingShell";
 type VoucherType = "receipt" | "payment";
 
 interface Props {

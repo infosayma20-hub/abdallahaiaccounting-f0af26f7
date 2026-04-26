@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface InvoiceLine {
   product_id: string | null;
