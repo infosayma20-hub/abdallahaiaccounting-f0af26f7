@@ -562,7 +562,9 @@ const POSPage = () => {
   // ── Device-level config (per-machine, stored in localStorage) ──
   const [deviceConfig, setDeviceConfig] = useState(() => getDeviceConfig());
   const [terminalBranchId, setTerminalBranchId] = useState<string | null>(null);
+  const [terminalBranchChecked, setTerminalBranchChecked] = useState(false);
   const [cashBoxBranchId, setCashBoxBranchId] = useState<string | null>(null);
+  const [cashBoxBranchChecked, setCashBoxBranchChecked] = useState(false);
 
   const selectedCashBox = useMemo(
     () => cashBoxes.find((box) => box.id === selectedCashBoxId) || null,
@@ -596,14 +598,19 @@ const POSPage = () => {
     (async () => {
       if (!deviceConfig.terminalId) {
         setTerminalBranchId(null);
+        setTerminalBranchChecked(true);
         return;
       }
+      setTerminalBranchChecked(false);
       const { data } = await supabase
         .from("pos_terminals")
         .select("branch_id")
         .eq("id", deviceConfig.terminalId)
         .maybeSingle();
-      if (!cancelled) setTerminalBranchId(((data as any)?.branch_id as string) || null);
+      if (!cancelled) {
+        setTerminalBranchId(((data as any)?.branch_id as string) || null);
+        setTerminalBranchChecked(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [deviceConfig.terminalId]);
@@ -613,13 +620,17 @@ const POSPage = () => {
     let cancelled = false;
     const boxId = session?.cash_box_id;
     (async () => {
-      if (!boxId) { setCashBoxBranchId(null); return; }
+      if (!boxId) { setCashBoxBranchId(null); setCashBoxBranchChecked(true); return; }
+      setCashBoxBranchChecked(false);
       const { data } = await supabase
         .from("cash_boxes")
         .select("branch_id")
         .eq("id", boxId)
         .maybeSingle();
-      if (!cancelled) setCashBoxBranchId(((data as any)?.branch_id as string) || null);
+      if (!cancelled) {
+        setCashBoxBranchId(((data as any)?.branch_id as string) || null);
+        setCashBoxBranchChecked(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [session?.cash_box_id]);
