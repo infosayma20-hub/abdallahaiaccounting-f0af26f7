@@ -1830,6 +1830,33 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
+          {/* Warehouse selector — controls where stock is debited/credited and which inventory is shown in the picker */}
+          {warehouses.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                  المستودع
+                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
+                </label>
+                <Select
+                  value={form.warehouseId || ""}
+                  onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
+                >
+                  <SelectTrigger className="rounded-xl text-sm">
+                    <SelectValue placeholder="اختر المستودع..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map(w => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}{w.is_default ? " — الرئيسي" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
             <details className="group rounded-lg border border-border/60 bg-muted/20">
