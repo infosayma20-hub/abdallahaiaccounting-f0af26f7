@@ -259,6 +259,8 @@ export default function DeviceSetupPage() {
             <p className="text-xs text-warning">
               لا يوجد فروع نشطة.{" "}
               <Link to="/branches-attendance" className="underline">أنشئ فرعاً أولاً</Link>
+              {" · "}
+              <button type="button" onClick={loadOptions} className="underline text-primary">إعادة المحاولة</button>
             </p>
           )}
         </section>
