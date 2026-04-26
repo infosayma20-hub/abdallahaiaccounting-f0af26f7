@@ -123,6 +123,15 @@ const ProfitLoss = () => {
   const [showCharts, setShowCharts] = useState(true);
   const [detailLevel, setDetailLevel] = useState(1);
 
+  // Resolve the actual data owner (team owner) so employees/cashiers see the company books
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => {
+      setDataOwnerId((data as string) || user.id);
+    });
+  }, [user?.id]);
+
   // Fetch data from Supabase
   useEffect(() => {
     if (!user) return;
@@ -131,13 +140,13 @@ const ProfitLoss = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const load = async () => {
       setLoading(true);
       try {
         const [txs, accounts] = await Promise.all([
-          fetchTransactions(user.id),
-          fetchAccounts(user.id),
+          fetchTransactions(dataOwnerId),
+          fetchAccounts(dataOwnerId),
         ]);
         const accMap = buildAccountMap(accounts);
         setAllAccounts(accounts);
@@ -166,7 +175,7 @@ const ProfitLoss = () => {
       }
     };
     load();
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const handleQuickPeriod = useCallback((key: string) => {
     setActivePeriod(key);
