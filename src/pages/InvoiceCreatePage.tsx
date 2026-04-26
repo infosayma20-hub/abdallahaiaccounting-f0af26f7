@@ -39,6 +39,7 @@ import TypedDateInput from "@/components/forms/TypedDateInput";
 import useInvoiceKeyboard, { focusNextInvoiceCell } from "@/hooks/useInvoiceKeyboard";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
+import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
 
 // ─── Types ───
@@ -190,6 +191,13 @@ const InvoiceCreatePage = () => {
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
+  const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
+  const [lastPrices, setLastPrices] = useState<Record<string, number>>({});
+  const [productSearchDialog, setProductSearchDialog] = useState<{ open: boolean; itemId: string | null }>({
+    open: false,
+    itemId: null,
+  });
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
@@ -310,6 +318,7 @@ const InvoiceCreatePage = () => {
     salespersonId: null as string | null,
     billingAddress: "",
     taxInclusive: false,
+    warehouseId: null as string | null,
     items: [createEmptyItem()] as InvoiceItem[],
   });
 
@@ -452,6 +461,23 @@ const InvoiceCreatePage = () => {
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
 
+      // ─── Warehouses (used for stock attribution + advanced product picker) ───
+      const { data: whData } = await supabase
+        .from("warehouses")
+        .select("id, name, is_default")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("is_default", { ascending: false })
+        .order("name");
+      const whList = (whData as any[]) || [];
+      setWarehouses(whList);
+      // Default warehouse = is_default flag, else first one.
+      setForm(prev => {
+        if (prev.warehouseId) return prev;
+        const def = whList.find((w: any) => w.is_default) || whList[0];
+        return def ? { ...prev, warehouseId: def.id } : prev;
+      });
+
       // Set default tax category based on registration type
       const regType = (taxSettingsRes.data as any)?.registration_type;
       const detectedTaxCat: TaxCategory = (regType === "exempt" || regType === "unregistered") ? "zero" : "taxable";
@@ -541,6 +567,59 @@ const InvoiceCreatePage = () => {
     const nextNum = String(count + 1 + offset).padStart(4, "0");
     setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
   }, [form.type, isEditMode]);
+
+  // Refresh per-warehouse stock map when warehouse changes (used by autocomplete + popup).
+  useEffect(() => {
+    if (!user || !form.warehouseId) {
+      setWarehouseStock({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("product_warehouse_stock" as any)
+        .select("product_id, quantity_on_hand")
+        .eq("user_id", user.id)
+        .eq("warehouse_id", form.warehouseId);
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      ((data as any[]) || []).forEach((r: any) => {
+        if (r.product_id) map[r.product_id] = Number(r.quantity_on_hand || 0);
+      });
+      setWarehouseStock(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, form.warehouseId]);
+
+  // Last unit price per product (last sale price for sales, last purchase price for purchase).
+  useEffect(() => {
+    if (!user || products.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const targetType = form.type === "sales" ? "sale" : "purchase";
+      const { data } = await supabase
+        .from("invoice_items")
+        .select("product_id, unit_price, created_at, invoices!inner(invoice_type, user_id)")
+        .eq("invoices.user_id", user.id)
+        .eq("invoices.invoice_type", targetType)
+        .not("product_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (cancelled) return;
+      const map: Record<string, number> = {};
+      ((data as any[]) || []).forEach((row: any) => {
+        if (row.product_id && map[row.product_id] === undefined) {
+          map[row.product_id] = Number(row.unit_price || 0);
+        }
+      });
+      setLastPrices(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, products.length, form.type]);
 
   useEffect(() => {
     const terms = PAYMENT_TERMS.find(t => t.value === form.paymentTerms);
@@ -994,6 +1073,7 @@ const InvoiceCreatePage = () => {
         exchange_rate: form.exchangeRate,
         attachments: attachments.length > 0 ? JSON.stringify(attachments) : "[]",
         terms: invoiceTerms.trim() || null,
+        warehouse_id: form.warehouseId || null,
       };
 
       // ─── Accounting routing (credit-only invoices) ───
@@ -1751,6 +1831,33 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
 
+          {/* Warehouse selector — controls where stock is debited/credited and which inventory is shown in the picker */}
+          {warehouses.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                  المستودع
+                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
+                </label>
+                <Select
+                  value={form.warehouseId || ""}
+                  onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
+                >
+                  <SelectTrigger className="rounded-xl text-sm">
+                    <SelectValue placeholder="اختر المستودع..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map(w => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}{w.is_default ? " — الرئيسي" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           {/* Auto-filled contact details - editable on invoice */}
           {selectedContact && (
             <details className="group rounded-lg border border-border/60 bg-muted/20">
@@ -1858,7 +1965,12 @@ const InvoiceCreatePage = () => {
                   const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
                   const diff = item.unitPrice - storedPrice;
                   const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
-                  const stock = prod ? Number(prod.quantity || 0) : 0;
+                  // Per-warehouse stock when a warehouse is selected; falls back to total product qty.
+                  const stock = prod
+                    ? (form.warehouseId && warehouseStock[prod.id] !== undefined
+                        ? Number(warehouseStock[prod.id] || 0)
+                        : Number(prod.quantity || 0))
+                    : 0;
                   const unit = prod?.unit || "قطعة";
                   const isService = prod?.product_type === "service";
                   const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
@@ -1871,25 +1983,38 @@ const InvoiceCreatePage = () => {
 
                       {/* Product */}
                       <td className="py-1.5 px-2 align-top min-w-[320px] xl:min-w-[380px]">
-                        <InlineProductAutocomplete
-                          value={productSearchByRow[item.id] ?? item.description}
-                          products={products}
-                          invoiceType={form.type}
-                          currencySymbol={currSymbol}
-                          onChange={(value) => {
-                            setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
-                            setForm(prev => ({
-                              ...prev,
-                              items: prev.items.map(it => it.id === item.id ? { ...it, description: value, productId: undefined } : it),
-                            }));
-                          }}
-                          onSelect={(productId) => selectProduct(item.id, productId)}
-                          onQuickAdd={() => setShowQuickAdd(true)}
-                          inputProps={{
-                            "data-invoice-product-input": idx === 0 ? "true" : undefined,
-                            "data-row-id": item.id,
-                          }}
-                        />
+                        <div className="flex items-stretch gap-1">
+                          <div className="flex-1">
+                            <InlineProductAutocomplete
+                              value={productSearchByRow[item.id] ?? item.description}
+                              products={products}
+                              invoiceType={form.type}
+                              currencySymbol={currSymbol}
+                              onChange={(value) => {
+                                setProductSearchByRow(prev => ({ ...prev, [item.id]: value }));
+                                setForm(prev => ({
+                                  ...prev,
+                                  items: prev.items.map(it => it.id === item.id ? { ...it, description: value, productId: undefined } : it),
+                                }));
+                              }}
+                              onSelect={(productId) => selectProduct(item.id, productId)}
+                              onQuickAdd={() => setShowQuickAdd(true)}
+                              inputProps={{
+                                "data-invoice-product-input": idx === 0 ? "true" : undefined,
+                                "data-row-id": item.id,
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            title="بحث متقدم عن صنف (Ctrl+K)"
+                            aria-label="بحث متقدم عن صنف"
+                            onClick={() => setProductSearchDialog({ open: true, itemId: item.id })}
+                            className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-muted hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors shadow-sm"
+                          >
+                            <Search className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                         {item.productId && (
                           isService ? (
                             <p className="text-[9.5px] text-muted-foreground px-2 mt-1">⚙️ خدمة</p>
@@ -2391,6 +2516,41 @@ const InvoiceCreatePage = () => {
           invoiceDate={form.date}
         />
       )}
+
+      {/* Advanced product search popup (مثل حساباتي) */}
+      <ProductSearchDialog
+        open={productSearchDialog.open}
+        onOpenChange={(open) =>
+          setProductSearchDialog((prev) => ({ open, itemId: open ? prev.itemId : null }))
+        }
+        products={products as any}
+        warehouseStock={warehouseStock}
+        warehouseName={warehouses.find((w) => w.id === form.warehouseId)?.name || null}
+        invoiceType={form.type}
+        currencySymbol={currSymbol}
+        lastPrices={lastPrices}
+        onSelect={(productId) => {
+          if (productSearchDialog.itemId) {
+            selectProduct(productSearchDialog.itemId, productId);
+            // Stock warning if not enough.
+            const stock = warehouseStock[productId];
+            const prod = products.find((p) => p.id === productId);
+            if (
+              prod &&
+              prod.product_type !== "service" &&
+              form.type === "sales" &&
+              stock !== undefined &&
+              stock <= 0
+            ) {
+              toast({
+                title: "تنبيه مخزون",
+                description: `الكمية غير متوفرة في المستودع المحدد (${prod.name}).`,
+                variant: "destructive",
+              });
+            }
+          }
+        }}
+      />
     </div>
     </SmartFormScope>
     </AccountingShell>
