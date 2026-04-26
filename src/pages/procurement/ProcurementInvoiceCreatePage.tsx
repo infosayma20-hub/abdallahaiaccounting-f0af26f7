@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface InvoiceLine {
   product_id: string | null;
@@ -259,6 +260,7 @@ const ProcurementInvoiceCreatePage = () => {
   if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
 
   return (
+    <AccountingShell>
     <div className="mx-auto max-w-[1180px] p-4 md:p-6 space-y-4" dir="rtl">
       <div className="flex items-center gap-3">
         <div onClick={() => { if (!orderId) clearDraft(); }}>
@@ -506,6 +508,7 @@ const ProcurementInvoiceCreatePage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </AccountingShell>
   );
 };
 

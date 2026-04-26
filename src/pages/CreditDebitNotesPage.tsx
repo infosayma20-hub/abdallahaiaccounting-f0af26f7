@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface NoteRow {
   id: string;
@@ -107,6 +108,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
   };
 
   return (
+    <AccountingShell>
     <div className="container mx-auto p-4 sm:p-6 space-y-4" dir="rtl">
       <PageHeader
         title={titleAr}
@@ -206,6 +208,7 @@ const CreditDebitNotesPage = ({ noteType }: Props) => {
         </CardContent>
       </Card>
     </div>
+    </AccountingShell>
   );
 };
 

@@ -30,6 +30,7 @@ import JournalTemplatesPicker from "@/components/journal/JournalTemplatesPicker"
 import type { JournalTemplate } from "@/hooks/useJournalTemplates";
 import { Bookmark } from "lucide-react";
 import { useSaveJournalVoucher } from "@/hooks/useSaveJournalVoucher";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface JournalLine {
   id: string;
@@ -481,6 +482,7 @@ const JournalNewPage = () => {
   }
 
   return (
+    <AccountingShell>
     <SmartFormScope
       className="max-w-4xl mx-auto space-y-5"
       firstFieldSelector="[data-smart-first]"
@@ -1105,6 +1107,7 @@ const JournalNewPage = () => {
       />
     </div>
     </SmartFormScope>
+    </AccountingShell>
   );
 };
 

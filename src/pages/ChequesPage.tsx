@@ -28,6 +28,7 @@ import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import AccountingShell from "@/components/layout/AccountingShell";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
@@ -781,6 +782,7 @@ const ChequesPage = () => {
   const tabPaged = tabSorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
+    <AccountingShell>
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       {/* ============ HEADER ============ */}
       <div>
@@ -1282,6 +1284,7 @@ const ChequesPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </AccountingShell>
   );
 };
 

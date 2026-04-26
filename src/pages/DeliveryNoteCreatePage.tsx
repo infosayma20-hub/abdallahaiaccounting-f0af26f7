@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DeliveryNotePrintView from "@/components/DeliveryNotePrintView";
 import { createRoot } from "react-dom/client";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface DeliveryItem {
   id?: string;
@@ -351,6 +352,7 @@ const DeliveryNoteCreatePage = () => {
   }
 
   return (
+    <AccountingShell>
     <div style={{ direction: "rtl", padding: "16px 24px 96px", maxWidth: "1200px", margin: "0 auto" }}>
       <PageHeader
         title={isEdit ? `تعديل الإرسالية ${noteNumber}` : "إرسالية مبيعات جديدة"}
@@ -548,6 +550,7 @@ const DeliveryNoteCreatePage = () => {
         </CardContent>
       </Card>
     </div>
+    </AccountingShell>
   );
 };
 

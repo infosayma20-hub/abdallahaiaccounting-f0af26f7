@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Package, ChevronLeft, ChevronRight, Upload, Plus, Trash2, Save, Check, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import AccountingShell from "@/components/layout/AccountingShell";
 
 interface ShipmentItem {
   line_number: number;
@@ -577,6 +578,7 @@ const ImportWizardPage = () => {
   const hasCtnData = items.some(i => i.ctn_qty > 0 || i.ctns > 0);
 
   return (
+    <AccountingShell>
     <div className="p-4 md:p-6 space-y-6" dir="rtl">
       <div className="flex items-center gap-3">
         <BackButton />
@@ -964,6 +966,7 @@ const ImportWizardPage = () => {
         </div>
       )}
     </div>
+    </AccountingShell>
   );
 };
 
