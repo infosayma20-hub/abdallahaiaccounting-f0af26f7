@@ -641,13 +641,17 @@ const POSPage = () => {
    * Returns true ⇢ proceed. Returns false ⇢ caller MUST early-return.
    */
   const enforceDeviceGuard = useCallback((opts?: { silent?: boolean }) => {
+    if (!terminalBranchChecked || !cashBoxBranchChecked) {
+      if (!opts?.silent) toast.error("⏳ يتم التحقق من فرع الجهاز والصندوق، حاول مرة أخرى");
+      return false;
+    }
     const result = assertDeviceReady({ terminalBranchId, cashBoxBranchId });
     if (!result.ok) {
       if (!opts?.silent) toast.error(`⛔ ${result.reason || "إعداد الجهاز غير مكتمل"}`);
       return false;
     }
     return true;
-  }, [terminalBranchId, cashBoxBranchId]);
+  }, [terminalBranchChecked, cashBoxBranchChecked, terminalBranchId, cashBoxBranchId]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
