@@ -1964,7 +1964,12 @@ const InvoiceCreatePage = () => {
                   const showWarning = form.type === "purchase" && storedPrice > 0 && item.unitPrice > storedPrice;
                   const diff = item.unitPrice - storedPrice;
                   const pct = storedPrice > 0 ? ((diff / storedPrice) * 100).toFixed(1) : "0";
-                  const stock = prod ? Number(prod.quantity || 0) : 0;
+                  // Per-warehouse stock when a warehouse is selected; falls back to total product qty.
+                  const stock = prod
+                    ? (form.warehouseId && warehouseStock[prod.id] !== undefined
+                        ? Number(warehouseStock[prod.id] || 0)
+                        : Number(prod.quantity || 0))
+                    : 0;
                   const unit = prod?.unit || "قطعة";
                   const isService = prod?.product_type === "service";
                   const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
