@@ -5812,6 +5812,7 @@ const POSPage = () => {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">إغلاق</Button>
             <Button onClick={() => {
+              if (!enforceDeviceGuard()) return;
               if (kitchenTicketData) {
                 const kitchenOrder: BridgePrintOrder = {
                   orderNumber: kitchenTicketData.orderNumber || Date.now().toString(),
