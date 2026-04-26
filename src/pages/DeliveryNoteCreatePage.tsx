@@ -351,6 +351,7 @@ const DeliveryNoteCreatePage = () => {
   }
 
   return (
+    <AccountingShell>
     <div style={{ direction: "rtl", padding: "16px 24px 96px", maxWidth: "1200px", margin: "0 auto" }}>
       <PageHeader
         title={isEdit ? `تعديل الإرسالية ${noteNumber}` : "إرسالية مبيعات جديدة"}
@@ -548,6 +549,7 @@ const DeliveryNoteCreatePage = () => {
         </CardContent>
       </Card>
     </div>
+    </AccountingShell>
   );
 };
 

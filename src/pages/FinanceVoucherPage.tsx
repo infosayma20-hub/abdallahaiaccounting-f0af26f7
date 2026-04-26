@@ -392,6 +392,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   };
 
   return (
+    <AccountingShell>
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       <PageHeader title={title} breadcrumb={["المالية", title]} />
       {/* Actions */}
@@ -693,6 +694,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         docAmount={deleteTarget?.amount_display}
       />
     </div>
+    </AccountingShell>
   );
 };
 

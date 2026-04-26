@@ -247,6 +247,7 @@ const CashTransferPage = () => {
   }
 
   return (
+    <AccountingShell>
     <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto" dir="rtl">
       <PageHeader title="تحويل بين الصناديق" breadcrumb={["المالية", "الصناديق", "تحويل بين الصناديق"]} />
 
@@ -494,6 +495,7 @@ const CashTransferPage = () => {
         </Card>
       )}
     </div>
+    </AccountingShell>
   );
 };
 

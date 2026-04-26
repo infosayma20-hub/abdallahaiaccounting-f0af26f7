@@ -781,6 +781,7 @@ const ChequesPage = () => {
   const tabPaged = tabSorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
+    <AccountingShell>
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       {/* ============ HEADER ============ */}
       <div>
@@ -1282,6 +1283,7 @@ const ChequesPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </AccountingShell>
   );
 };
 
