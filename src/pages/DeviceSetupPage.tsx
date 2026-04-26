@@ -34,6 +34,7 @@ interface Terminal {
 }
 
 export default function DeviceSetupPage() {
+  console.log("DeviceSetupPage mounted");
   const { user } = useAuth();
   const navigate = useNavigate();
 
