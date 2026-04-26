@@ -146,6 +146,7 @@ const AccountStatementV2Page = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerRow, setDrawerRow] = useState<StatementRow | null>(null);
   const [statementOptions, setStatementOptions] = useState<StatementViewOptions>(() => loadViewOptions());
+  const [detailsMap, setDetailsMap] = useState<StatementDetailsMap>(() => emptyDetailsMap());
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
@@ -201,6 +202,8 @@ const AccountStatementV2Page = () => {
   };
 
   useEffect(() => { fetchData(); }, [user]);
+
+  useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
   // ─── Realtime: auto-refresh on transaction changes ───
   useEffect(() => {
