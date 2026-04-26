@@ -25,17 +25,20 @@ interface Branch {
   id: string;
   name: string;
   is_active: boolean;
+  user_id?: string;
 }
 
 interface Terminal {
   id: string;
   name: string;
   branch_id: string | null;
+  user_id?: string;
+  is_active?: boolean;
 }
 
 export default function DeviceSetupPage() {
   console.log("DeviceSetupPage mounted");
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const initial = getDeviceConfig();
@@ -49,49 +52,66 @@ export default function DeviceSetupPage() {
   const [loading, setLoading] = useState(true);
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "testing" | "online" | "offline">("idle");
   const [bridgeError, setBridgeError] = useState<string>("");
+  const [loadError, setLoadError] = useState<string>("");
 
   useEffect(() => {
-    // Wait for auth to hydrate before fetching — RLS depends on auth.uid().
-    // If user is null we still attempt (in case of public/anon RLS), but log clearly.
+    if (authLoading) return;
     void loadOptions();
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   const loadOptions = async () => {
+    if (authLoading) return;
     setLoading(true);
-    console.log("[DeviceSetup] Loading branches & terminals…", { userId: user?.id ?? "(no session)" });
-    // Verify session at the moment of fetch
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      console.log("[DeviceSetup] session.user.id =", sess?.session?.user?.id ?? "(none)");
-    } catch (e) {
-      console.warn("[DeviceSetup] getSession failed", e);
+    setLoadError("");
+
+    if (!user) {
+      console.warn("[DeviceSetup] blocked: no authenticated user/session");
+      setLoadError("لا توجد جلسة دخول نشطة. سجّل الدخول ثم أعد المحاولة.");
+      setBranches([]);
+      setTerminals([]);
+      setLoading(false);
+      return;
     }
+
+    console.log("[DeviceSetup] Loading branches & terminals…", { userId: user.id });
     // Hard timeout — if Supabase hangs, unblock the UI after 6s.
     const timeout = new Promise<"timeout">(resolve =>
       setTimeout(() => resolve("timeout"), 6000),
     );
     try {
+      const { data: ownerIdRaw, error: ownerErr } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      if (ownerErr) console.error("[DeviceSetup] owner lookup error:", ownerErr);
+      const ownerId = (ownerIdRaw as string | null) || user.id;
+      console.log("[DeviceSetup] team owner id =", ownerId);
+
       const fetchAll = Promise.all([
-        supabase.from("branches").select("id, name, is_active").eq("is_active", true).order("name"),
-        supabase.from("pos_terminals").select("id, name, branch_id").order("name"),
+        supabase.from("branches").select("id, name, is_active, user_id").eq("is_active", true).eq("user_id", ownerId).order("name"),
+        supabase.from("pos_terminals").select("id, name, branch_id, user_id, is_active").eq("is_active", true).eq("user_id", ownerId).order("name"),
       ]);
       const result = await Promise.race([fetchAll, timeout]);
       if (result === "timeout") {
         console.warn("[DeviceSetup] ⚠️ Load timed out after 6s — showing empty UI.");
-        toast.error("تعذّر تحميل الفروع/المحطات خلال المهلة. يمكنك إعادة المحاولة.");
+        setLoadError("تعذّر تحميل الفروع/المحطات خلال المهلة. أعد المحاولة.");
         setBranches([]);
         setTerminals([]);
       } else {
         const [branchesRes, terminalsRes] = result;
         if (branchesRes.error) {
           console.error("[DeviceSetup] branches error:", branchesRes.error);
-          toast.error("RLS منع جلب الفروع: " + branchesRes.error.message);
+          setLoadError("فشل جلب الفروع: " + branchesRes.error.message);
         }
-        if (terminalsRes.error) console.error("[DeviceSetup] terminals error:", terminalsRes.error);
+        if (terminalsRes.error) {
+          console.error("[DeviceSetup] terminals error:", terminalsRes.error);
+          setLoadError(prev => prev || "فشل جلب المحطات: " + terminalsRes.error.message);
+        }
         console.log("[DeviceSetup] branches data =", branchesRes.data);
         console.log("[DeviceSetup] terminals data =", terminalsRes.data);
-        setBranches((branchesRes.data as Branch[]) || []);
+        const nextBranches = (branchesRes.data as Branch[]) || [];
+        setBranches(nextBranches);
         setTerminals((terminalsRes.data as Terminal[]) || []);
+        if (!branchesRes.error && nextBranches.length === 0) {
+          setLoadError("لا توجد فروع نشطة للحساب الحالي. تأكد أنك داخل شركة مطاعم الدجاج الملكي أو حساب كاشير تابع لها.");
+        }
         console.log(
           `[DeviceSetup] ✅ Loaded ${branchesRes.data?.length ?? 0} branches, ${terminalsRes.data?.length ?? 0} terminals`,
         );
