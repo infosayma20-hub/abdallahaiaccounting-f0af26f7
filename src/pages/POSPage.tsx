@@ -986,7 +986,7 @@ const POSPage = () => {
 
         // If action is "pay", auto-open payment dialog
         if (urlAction === "pay" && cartItems.length > 0) {
-          setTimeout(() => setShowPayment(true), 500);
+          setTimeout(() => openPaymentModal(), 500);
         }
       } catch (err) {
         console.error("Error loading order from URL:", err);
@@ -3459,7 +3459,7 @@ const POSPage = () => {
       }
       // F12 = Pay (not for call center)
       if (e.key === "F12" && cart.length > 0 && !isCallCenter) {
-        setShowPayment(true);
+        openPaymentModal();
         e.preventDefault();
         return;
       }
@@ -4740,7 +4740,7 @@ const POSPage = () => {
                   onMouseDown={(e) => { e.currentTarget.style.backgroundColor = '#166534'; }}
                   onMouseUp={(e) => { e.currentTarget.style.backgroundColor = '#15803d'; }}
                   disabled={cart.length === 0 || !session}
-                  onClick={() => setShowPayment(true)}
+                  onClick={openPaymentModal}
                 >
                   F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                 </motion.button>
