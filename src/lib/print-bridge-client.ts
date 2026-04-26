@@ -4,8 +4,7 @@
  */
 
 import type { PrintOrder } from "@/hooks/usePrintBridge";
-
-const BRIDGE_URL = "http://192.168.1.65:3001";
+import { getBridgeUrl } from "@/lib/device-config";
 
 type PrintType = "receipt" | "kitchen" | "both";
 
@@ -33,20 +32,31 @@ function isEmbeddedPreview() {
 }
 
 function getBridgeBlockedMessage() {
+  const url = getBridgeUrl();
   if (isEmbeddedPreview()) {
     return "المعاينة المدمجة داخل Lovable تمنع Chrome من الوصول إلى الشبكة المحلية. افتح التطبيق في تبويب مستقل ثم جرّب الطباعة.";
+  }
+  if (!url) {
+    return "لم يتم إعداد عنوان Print Bridge لهذا الجهاز. اذهب إلى إعدادات الجهاز وأدخل العنوان (مثال: http://192.168.1.65:3001).";
   }
   if (window.isSecureContext) {
     return "Chrome حظر الوصول إلى Print Bridge المحلي. اسمح بالوصول للشبكة المحلية/المحتوى غير الآمن لهذا الموقع ثم أعد المحاولة.";
   }
-  return "تعذر الوصول إلى Print Bridge على 192.168.1.65:3001. تأكد أن الخدمة تعمل على نفس الشبكة والجهاز.";
+  return `تعذر الوصول إلى Print Bridge على ${url}. تأكد أن الخدمة تعمل على نفس الشبكة والجهاز.`;
 }
 
 type BridgeRequestInit = RequestInit & { targetAddressSpace?: string };
 
 async function bridgeFetch(path: string, init: BridgeRequestInit = {}) {
+  const baseUrl = getBridgeUrl();
+  if (!baseUrl) {
+    throw new PrintBridgeConnectionError(
+      "network_failed",
+      "لم يتم إعداد عنوان Print Bridge لهذا الجهاز. افتح إعدادات الجهاز وأدخل العنوان.",
+    );
+  }
   try {
-    return await fetch(`${BRIDGE_URL}${path}`, {
+    return await fetch(`${baseUrl}${path}`, {
       ...init,
       mode: "cors",
     } as RequestInit);
@@ -133,7 +143,7 @@ export async function checkBridgeStatus(): Promise<boolean> {
 }
 
 export function getPrintBridgeUrl() {
-  return BRIDGE_URL;
+  return getBridgeUrl();
 }
 
 export function getPrintBridgeBlockedMessage() {

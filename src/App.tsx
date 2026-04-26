@@ -186,6 +186,7 @@ const TravelBookingDetailPage = lazy(() => import("./pages/travel/TravelBookingD
 const TravelBookingPrintPage = lazy(() => import("./pages/travel/TravelBookingPrintPage"));
 const TravelSettingsPage = lazy(() => import("./pages/travel/TravelSettingsPage"));
 const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
+const DeviceSetupPage = lazy(() => import("./pages/DeviceSetupPage"));
 const PrintTemplatesPage = lazy(() => import("./pages/PrintTemplatesPage"));
 const PrintPreviewPage = lazy(() => import("./pages/PrintPreviewPage"));
 const TaxCenterPage = lazy(() => import("./pages/tax/TaxCenterPage"));
@@ -512,6 +513,7 @@ const App = () => (
                       <Route path="/pos-customers" element={<ModuleGuard><POSCustomerDatabasePage /></ModuleGuard>} />
                       <Route path="/pos-reports" element={<ModuleGuard><POSReportsPage /></ModuleGuard>} />
                       <Route path="/printer-settings" element={<PrinterSettingsPage />} />
+                      <Route path="/device-setup" element={<DeviceSetupPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />

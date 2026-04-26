@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Printer, Wifi, WifiOff, RefreshCw, CheckCircle2, XCircle, TestTube, Settings2 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import { getBridgeUrl } from "@/lib/device-config";
+import { Link } from "react-router-dom";
 
 interface PrinterRecord {
   id: string;
@@ -160,7 +162,10 @@ export default function PrinterSettingsPage() {
               <span className="inline-block h-2 w-2 rounded-full bg-destructive" /> غير متصل
             </Badge>
           )}
-          <span className="text-[10px] text-muted-foreground font-mono mr-auto" dir="ltr">192.168.1.65:3001</span>
+          <span className="text-[10px] text-muted-foreground font-mono mr-auto" dir="ltr">
+            {getBridgeUrl() || "غير معدّ"}
+          </span>
+          <Link to="/device-setup" className="text-[10px] text-primary hover:underline">إعدادات الجهاز</Link>
         </div>
 
         {/* Info banner about Arabic fix */}

@@ -13,8 +13,7 @@
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
-
-const BRIDGE_URL = "http://192.168.1.65:3001";
+import { getBridgeUrl } from "@/lib/device-config";
 
 // ──────────────────────────────────────────
 // Print Mode (raster | text) — persisted in localStorage
@@ -157,7 +156,15 @@ async function bridgeFetch(
   });
   const t0 = performance.now();
   try {
-    const res = await fetch(`${BRIDGE_URL}${path}`, {
+    const baseUrl = getBridgeUrl();
+    if (!baseUrl) {
+      logPrintFinish(logId, 'bridge_unreachable', {
+        durationMs: 0,
+        errorMessage: 'bridge_url_not_configured',
+      });
+      return { success: false, error: 'لم يتم إعداد عنوان Print Bridge لهذا الجهاز.' } as any;
+    }
+    const res = await fetch(`${baseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payloadStr,
@@ -500,7 +507,9 @@ export async function printShiftSummaryImage(data: ShiftSummaryPrintData): Promi
 /** Check if the print bridge is reachable */
 export async function checkBridgeHealth(): Promise<boolean> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/health`, {
+    const baseUrl = getBridgeUrl();
+    if (!baseUrl) return false;
+    const res = await fetch(`${baseUrl}/health`, {
       signal: AbortSignal.timeout(3000),
       mode: 'cors',
     });
