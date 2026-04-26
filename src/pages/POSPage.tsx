@@ -47,6 +47,8 @@ import POSDeliveryPanel from "@/components/pos/POSDeliveryPanel";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
+import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
+import { getDeviceConfig, onDeviceConfigChange } from "@/lib/device-config";
 import {
   DndContext,
   closestCenter,
