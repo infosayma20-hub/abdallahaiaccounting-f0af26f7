@@ -481,6 +481,7 @@ const JournalNewPage = () => {
   }
 
   return (
+    <AccountingShell>
     <SmartFormScope
       className="max-w-4xl mx-auto space-y-5"
       firstFieldSelector="[data-smart-first]"
@@ -1105,6 +1106,7 @@ const JournalNewPage = () => {
       />
     </div>
     </SmartFormScope>
+    </AccountingShell>
   );
 };
 
