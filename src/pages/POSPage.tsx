@@ -1184,7 +1184,10 @@ const POSPage = () => {
           
           const deviceBranchId = getDeviceConfig().branchId;
           const branchSafeBoxes = (boxes || []).filter((box: any) => {
-            if (!deviceBranchId) return false;
+            // Allow generic boxes (no branch link) + boxes that match this device's branch.
+            // Block only boxes explicitly bound to a DIFFERENT branch.
+            if (!box.branch_id) return true;
+            if (!deviceBranchId) return true;
             return box.branch_id === deviceBranchId;
           });
           const boxList: CashBoxOption[] = [...branchSafeBoxes];
