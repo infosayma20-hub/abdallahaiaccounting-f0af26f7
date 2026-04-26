@@ -3747,10 +3747,18 @@ const POSPage = () => {
           {/* Notifications / Pending Orders */}
           <PendingOrdersPanel
             dataOwnerId={dataOwnerId || ""}
-            branchId={detectedBranchId}
+            branchId={deviceConfig.branchId || detectedBranchId}
             sessionId={session?.id || null}
             enabled={!!session && !isCallCenter}
             onAcceptOrder={(order) => {
+              // 🛡️ Hard guard — never accept call-center orders when device isn't ready
+              if (!enforceDeviceGuard()) return;
+              // 🛡️ Branch match — order MUST belong to this device's branch
+              const expectedBranch = deviceConfig.branchId;
+              if (expectedBranch && order.target_branch_id && order.target_branch_id !== expectedBranch) {
+                toast.error("⛔ هذا الطلب موجّه لفرع آخر — لا يمكن قبوله من هذا الجهاز");
+                return;
+              }
               orderCounter.current += 1;
               const newOrder = createNewOrder(orderCounter.current);
               newOrder.customerName = order.customer_name || "";
