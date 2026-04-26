@@ -48,9 +48,9 @@ interface Props {
   statementNumber?: string;
   contactCode?: string;
   /** View options — control which document elements appear in the printed output. */
-  showLogo?: boolean;
-  showCompanyContact?: boolean;
-  showSignatures?: boolean;
+  showCompanyLogo?: boolean;
+  showContactInfo?: boolean;
+  showSignature?: boolean;
   showReference?: boolean;
   showDueDate?: boolean;
   showType?: boolean;
@@ -125,7 +125,7 @@ const S = {
 const StatementPrintViewClean = ({
   company, contact, rows, openingBalance, closingBalance,
   totalDebit, totalCredit, dateFrom, dateTo, statementNumber, contactCode,
-  showLogo = true, showCompanyContact = true, showSignatures = true,
+  showCompanyLogo = true, showContactInfo = true, showSignature = true,
   showReference = true, showDueDate = true, showType = true,
   showAging = true, agingData = null,
 }: Props) => {
@@ -151,20 +151,20 @@ const StatementPrintViewClean = ({
         {/* RIGHT (RTL first column): Company details */}
         <div style={{ textAlign: "right" }}>
           <p style={S.companyName}>{company.name || "AMWALI"}</p>
-          {showCompanyContact && (company.phone || company.email) && (
+          {showContactInfo && (company.phone || company.email) && (
             <p style={S.companySub}>{[company.phone, company.email].filter(Boolean).join(" | ")}</p>
           )}
-          {showCompanyContact && company.address && (
+          {showContactInfo && company.address && (
             <p style={S.companySub}>{company.address}</p>
           )}
-          {showCompanyContact && company.tax_number && (
+          {showContactInfo && company.tax_number && (
             <p style={S.companySub}>الرقم الضريبي: {company.tax_number}</p>
           )}
         </div>
 
         {/* CENTER: Logo only */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-          {showLogo && company.logo_url && (
+          {showCompanyLogo && company.logo_url && (
             <img
               src={company.logo_url}
               alt={company.name || "Logo"}
@@ -324,7 +324,7 @@ const StatementPrintViewClean = ({
       )}
 
       {/* ═══ SIGNATURES ═══ */}
-      {showSignatures && (
+      {showSignature && (
         <div style={S.sigWrap}>
           <div style={S.sigBox}>ختم الشركة وتوقيع المحاسب</div>
           <div style={S.sigBox}>اعتماد العميل</div>

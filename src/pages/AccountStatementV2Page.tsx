@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   Printer, ChevronLeft, ChevronDown, ChevronUp,
@@ -33,9 +33,21 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; }
+interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
+interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
+interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
+interface StatementDetailsMap { invoiceDetailsById: Record<string, StatementInvoiceDetail[]>; voucherDetailsById: Record<string, StatementVoucherDetail>; agingSummary: ReturnType<typeof buildEmptyAging> | null; companySettings: typeof EMPTY_COMPANY_SETTINGS; }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contacts";
+
+const EMPTY_COMPANY_SETTINGS = { name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
+const buildEmptyAging = () => ({ current: 0, d1_30: 0, d31_60: 0, d60plus: 0, total: 0 });
+const emptyDetailsMap = (companySettings = EMPTY_COMPANY_SETTINGS): StatementDetailsMap => ({ invoiceDetailsById: {}, voucherDetailsById: {}, agingSummary: null, companySettings });
+const paymentMethodLabel = (method?: string | null) => {
+  const map: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", check: "شيك", transfer: "تحويل", card: "بطاقة", credit: "آجل" };
+  return method ? (map[method] || method) : "—";
+};
 
 // ─── HELPERS ───
 const normalizeCurrency = (c: string): string => {
@@ -133,7 +145,8 @@ const AccountStatementV2Page = () => {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerRow, setDrawerRow] = useState<StatementRow | null>(null);
-  const [viewOptions, setViewOptions] = useState<StatementViewOptions>(() => loadViewOptions());
+  const [statementOptions, setStatementOptions] = useState<StatementViewOptions>(() => loadViewOptions());
+  const [detailsMap, setDetailsMap] = useState<StatementDetailsMap>(() => emptyDetailsMap());
   const isAccountsTab = activeTab === "accounts";
   const isEmployeesTab = activeTab === "employees";
 
@@ -189,6 +202,8 @@ const AccountStatementV2Page = () => {
   };
 
   useEffect(() => { fetchData(); }, [user]);
+
+  useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
   // ─── Realtime: auto-refresh on transaction changes ───
   useEffect(() => {
@@ -428,6 +443,102 @@ const AccountStatementV2Page = () => {
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
   }, [rows, selectedEntityId, isAccountsTab]);
 
+  useEffect(() => { setDetailsMap(prev => ({ ...prev, agingSummary: agingData, companySettings: companyInfo })); }, [agingData, companyInfo]);
+
+  useEffect(() => {
+    if (!user || filteredRows.length === 0 || (!statementOptions.showInvoiceDetails && !statementOptions.showVoucherDetails)) {
+      setDetailsMap(emptyDetailsMap(companyInfo));
+      return;
+    }
+    let cancelled = false;
+    const loadDetailsMap = async () => {
+      const refs = Array.from(new Set(filteredRows.map(r => r.reference).filter(Boolean)));
+      const invoiceRefs = refs.filter(ref => ref.startsWith("INV-") || ref.startsWith("PO-") || ref.startsWith("PI-"));
+      const voucherRefs = refs.filter(ref => ref.startsWith("REC-") || ref.startsWith("PAY-") || ref.startsWith("PV-") || ref.startsWith("QV-") || ref.startsWith("JV-"));
+      const invoiceDetailsById: Record<string, StatementInvoiceDetail[]> = {};
+      const voucherDetailsById: Record<string, StatementVoucherDetail> = {};
+
+      if (statementOptions.showInvoiceDetails && invoiceRefs.length > 0) {
+        const [{ data: saleInvoices }, { data: purchaseInvoices }] = await Promise.all([
+          supabase.from("invoices").select("id, invoice_number").eq("user_id", user.id).in("invoice_number", invoiceRefs),
+          supabase.from("purchase_invoices").select("id, invoice_number").eq("user_id", user.id).in("invoice_number", invoiceRefs),
+        ]);
+        const saleById: Record<string, string> = {}; (saleInvoices || []).forEach((inv: any) => { saleById[inv.id] = inv.invoice_number; });
+        const purchaseById: Record<string, string> = {}; (purchaseInvoices || []).forEach((inv: any) => { purchaseById[inv.id] = inv.invoice_number; });
+        const [saleItems, purchaseItems] = await Promise.all([
+          Object.keys(saleById).length ? supabase.from("invoice_items").select("invoice_id, product_name, quantity, unit_price, discount, tax_rate, total_amount, unit_of_measure").in("invoice_id", Object.keys(saleById)) : Promise.resolve({ data: [] as any[] }),
+          Object.keys(purchaseById).length ? supabase.from("purchase_invoice_items").select("invoice_id, product_name, quantity, unit_price, discount_pct, tax_pct, total_amount, unit").in("invoice_id", Object.keys(purchaseById)) : Promise.resolve({ data: [] as any[] }),
+        ]);
+        (saleItems.data || []).forEach((it: any) => {
+          const ref = saleById[it.invoice_id]; if (!ref) return;
+          (invoiceDetailsById[ref] ||= []).push({ productName: it.product_name, quantity: Number(it.quantity || 0), unitPrice: Number(it.unit_price || 0), discount: Number(it.discount || 0), tax: Number(it.tax_rate || 0), total: Number(it.total_amount || 0), unit: it.unit_of_measure });
+        });
+        (purchaseItems.data || []).forEach((it: any) => {
+          const ref = purchaseById[it.invoice_id]; if (!ref) return;
+          (invoiceDetailsById[ref] ||= []).push({ productName: it.product_name, quantity: Number(it.quantity || 0), unitPrice: Number(it.unit_price || 0), discount: Number(it.discount_pct || 0), tax: Number(it.tax_pct || 0), total: Number(it.total_amount || 0), unit: it.unit });
+        });
+      }
+
+      if (statementOptions.showVoucherDetails && voucherRefs.length > 0) {
+        const [{ data: receipts }, { data: vouchers }, { data: txLines }] = await Promise.all([
+          supabase.from("receipt_vouchers").select("receipt_number, payment_method, bank_name, check_number, check_date, notes, cash_box_id, bank_account_id").eq("user_id", user.id).in("receipt_number", voucherRefs),
+          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id").eq("user_id", user.id).in("ref_number", voucherRefs),
+          supabase.from("transactions").select("reference, debit_account_code, credit_account_code, amount").eq("user_id", user.id).in("reference", voucherRefs).eq("is_deleted", false),
+        ]);
+        const codes = Array.from(new Set((txLines || []).flatMap((tx: any) => [tx.debit_account_code, tx.credit_account_code]).filter(Boolean)));
+        const { data: accs } = codes.length ? await supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).in("account_code", codes) : { data: [] as any[] };
+        const accMap: Record<string, string> = {}; (accs || []).forEach((a: any) => { accMap[a.account_code] = a.account_name; });
+        (receipts || []).forEach((v: any) => { voucherDetailsById[v.receipt_number] = { paymentMethod: v.payment_method, bank: v.bank_name, cashBox: v.cash_box_id, chequeNumber: v.check_number, chequeDate: v.check_date, notes: v.notes }; });
+        (vouchers || []).forEach((v: any) => { voucherDetailsById[v.ref_number] = { paymentMethod: v.payment_method, bank: v.cheque_bank_name, chequeNumber: v.cheque_number, chequeDate: v.cheque_due_date, notes: v.notes }; });
+        (txLines || []).forEach((tx: any) => {
+          const detail = voucherDetailsById[tx.reference] ||= {};
+          (detail.accounts ||= []).push({ accountCode: tx.debit_account_code, accountName: accMap[tx.debit_account_code] || tx.debit_account_code, debit: Number(tx.amount || 0), credit: 0 });
+          detail.accounts.push({ accountCode: tx.credit_account_code, accountName: accMap[tx.credit_account_code] || tx.credit_account_code, debit: 0, credit: Number(tx.amount || 0) });
+        });
+      }
+
+      if (!cancelled) setDetailsMap({ invoiceDetailsById, voucherDetailsById, agingSummary: agingData, companySettings: companyInfo });
+    };
+    loadDetailsMap();
+    return () => { cancelled = true; };
+  }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo]);
+
+  const statementRowsWithDetails = useMemo(() => {
+    return filteredRows.flatMap((row) => {
+      const nested: StatementRow[] = [];
+      if (statementOptions.showInvoiceDetails) {
+        (detailsMap.invoiceDetailsById[row.reference] || []).forEach((it) => {
+          nested.push({
+            ...row,
+            transaction_id: `${row.transaction_id}-invoice-${nested.length}`,
+            description: `↳ ${it.productName} | الكمية: ${it.quantity}${it.unit ? ` ${it.unit}` : ""} | السعر: ${fmtAmount(it.unitPrice, row.currency)} | الخصم: ${it.discount} | الضريبة: ${it.tax}% | الإجمالي: ${fmtAmount(it.total, row.currency)}`,
+            debit: 0,
+            credit: 0,
+            isLineItem: true,
+            lineItemDetail: "invoice",
+          });
+        });
+      }
+      if (statementOptions.showVoucherDetails) {
+        const detail = detailsMap.voucherDetailsById[row.reference];
+        if (detail) {
+          const parts = [
+            `طريقة الدفع: ${paymentMethodLabel(detail.paymentMethod)}`,
+            detail.cashBox ? `الصندوق: ${detail.cashBox}` : null,
+            detail.bank ? `البنك: ${detail.bank}` : null,
+            detail.chequeNumber ? `شيك: ${detail.chequeNumber}${detail.chequeDate ? ` (${fmtDate(detail.chequeDate)})` : ""}` : null,
+            detail.notes ? `ملاحظات: ${detail.notes}` : null,
+          ].filter(Boolean).join(" | ");
+          if (parts) nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-main`, description: `↳ ${parts}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher" });
+          (detail.accounts || []).forEach((acc, idx) => {
+            nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-account-${idx}`, description: `↳ ${acc.accountCode} — ${acc.accountName} | مدين: ${fmtAmount(acc.debit, row.currency)} | دائن: ${fmtAmount(acc.credit, row.currency)}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher-account" });
+          });
+        }
+      }
+      return [row, ...nested];
+    });
+  }, [filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, detailsMap]);
+
   // ─── YEAR COMPARISON ───
   const yearComparisonData = useMemo(() => {
     if (!showYearComparison || !selectedEntityId || !dateFrom || !dateTo) return null;
@@ -505,17 +616,17 @@ const AccountStatementV2Page = () => {
     type ColDef = { key: string; label: string; width: number; value: (r: typeof filteredRows[number]) => string | number };
     const cols: ColDef[] = [
       { key: "date", label: "التاريخ", width: 12, value: (r) => fmtDate(r.date) },
-      ...(viewOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
+      ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: 18, value: (r) => r.reference || "—" } as ColDef] : []),
       { key: "description", label: "البيان", width: 38, value: (r) => r.description },
-      ...(viewOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
-      ...(viewOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
+      ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: 12, value: (r) => r.dueDate ? fmtDate(r.dueDate) : "—" } as ColDef] : []),
+      ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: 14, value: (r) => getTypeBadge(r.transaction_type) } as ColDef] : []),
       { key: "debit", label: `مدين (${currencySymbol})`, width: 16, value: (r) => r.debit || "" },
       { key: "credit", label: `دائن (${currencySymbol})`, width: 16, value: (r) => r.credit || "" },
       { key: "balance", label: `الرصيد (${currencySymbol})`, width: 18, value: (r) => r.balance },
     ];
 
     const header = [cols.map(c => c.label)];
-    const data = filteredRows.map(r => cols.map(c => c.value(r)));
+    const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
     const totalsRow = cols.map(c => {
       if (c.key === "description") return "الإجمالي";
       if (c.key === "debit") return totalDebit;
@@ -527,7 +638,7 @@ const AccountStatementV2Page = () => {
     const sheet: (string | number)[][] = [...header, ...data, [], totalsRow];
 
     // Append aging analysis if enabled
-    if (viewOptions.showAging && agingData) {
+    if (statementOptions.showAging && agingData) {
       sheet.push([], ["تحليل التقادم (Aging)"]);
       sheet.push(["جاري", "1-30 يوم", "31-60 يوم", "+60 يوم", "الإجمالي"]);
       sheet.push([agingData.current, agingData.d1_30, agingData.d31_60, agingData.d60plus, agingData.total]);
@@ -575,7 +686,7 @@ const AccountStatementV2Page = () => {
           closingBalance,
           totalDebit,
           totalCredit,
-          rows: filteredRows.map(r => ({
+          rows: statementRowsWithDetails.map(r => ({
             date: r.date,
             description: r.description,
             reference: r.reference,
@@ -584,8 +695,10 @@ const AccountStatementV2Page = () => {
             balance: r.balance,
             dueDate: r.dueDate,
             transaction_type: r.transaction_type,
+            isLineItem: r.isLineItem,
           })),
           agingData,
+          detailsMap,
         },
         {
           name: companyInfo.name,
@@ -596,13 +709,13 @@ const AccountStatementV2Page = () => {
           logo_url: companyInfo.logo_url,
         },
         {
-          showReference: viewOptions.showReference,
-          showDueDate: viewOptions.showDueDate,
-          showType: viewOptions.showType,
-          showLogo: viewOptions.showLogo,
-          showCompanyContact: viewOptions.showCompanyContact,
-          showSignatures: viewOptions.showSignatures,
-          showAging: viewOptions.showAging,
+          showReference: statementOptions.showReference,
+          showDueDate: statementOptions.showDueDate,
+          showType: statementOptions.showType,
+          showCompanyLogo: statementOptions.showCompanyLogo,
+          showContactInfo: statementOptions.showContactInfo,
+          showSignature: statementOptions.showSignature,
+          showAging: statementOptions.showAging,
         }
       );
 
@@ -614,7 +727,7 @@ const AccountStatementV2Page = () => {
     } finally {
       setPdfGenerating(false);
     }
-  }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, toast]);
+  }, [selectedEntityId, selectedEntityName, filteredRows, statementRowsWithDetails, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, detailsMap, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, statementOptions, toast]);
 
   const handlePrintStatement = useCallback(() => {
     const printContent = document.getElementById("statement-preview-doc");
@@ -691,7 +804,7 @@ const AccountStatementV2Page = () => {
               <div className="w-px h-4" style={{ background: "#D1D5DB" }} />
               <RtlDateField label="إلى" ariaLabel="إلى تاريخ" value={dateTo} onChange={(v) => { setDateTo(v); setActivePeriod(""); }} />
             </div>
-            <StatementViewOptionsPanel value={viewOptions} onChange={setViewOptions} />
+            <StatementViewOptionsPanel value={statementOptions} onChange={setStatementOptions} />
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
@@ -855,10 +968,10 @@ const AccountStatementV2Page = () => {
               {(() => {
                 const screenCols: Array<{ key: string; label: string; width: string }> = [
                   { key: "date", label: "التاريخ", width: "10%" },
-                  ...(viewOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
-                  { key: "description", label: "البيان", width: viewOptions.showReference ? "25%" : "38%" },
-                  ...(viewOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
-                  ...(viewOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
+                  ...(statementOptions.showReference ? [{ key: "reference", label: "المرجع", width: "13%" }] : []),
+                  { key: "description", label: "البيان", width: statementOptions.showReference ? "25%" : "38%" },
+                  ...(statementOptions.showDueDate ? [{ key: "due", label: "الاستحقاق", width: "9%" }] : []),
+                  ...(statementOptions.showType ? [{ key: "type", label: "النوع", width: "9%" }] : []),
                   { key: "debit", label: "مدين (عليه)", width: "11%" },
                   { key: "credit", label: "دائن (له)", width: "11%" },
                   { key: "balance", label: "الرصيد", width: "12%" },
@@ -895,8 +1008,8 @@ const AccountStatementV2Page = () => {
                   ) : filteredRows.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
-                    filteredRows.map((row, i) => (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer", background: row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
+                    statementRowsWithDetails.map((row, i) => (
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
@@ -912,7 +1025,7 @@ const AccountStatementV2Page = () => {
                               className="hover:underline text-left"
                               style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace", textDecoration: row.isCancelled ? "line-through" : "none" }}
                             >
-                              {row.reference}
+                              {row.isLineItem ? "—" : row.reference}
                             </button>
                           ) : "—"}
                             </td>
@@ -925,7 +1038,7 @@ const AccountStatementV2Page = () => {
                           {row.isCancelled && (
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
                           )}
-                          <span style={{ textDecoration: row.isCancelled ? "line-through" : "none" }}>{row.description}</span>
+                          <span style={{ textDecoration: row.isCancelled ? "line-through" : "none", color: row.isLineItem ? "#4B5563" : undefined, fontWeight: row.isLineItem ? 600 : undefined }}>{row.description}</span>
                             </td>
                           );
                           if (c.key === "due") return (
@@ -1023,7 +1136,7 @@ const AccountStatementV2Page = () => {
             )}
 
             {/* ─── COLLAPSIBLE: AGING ─── */}
-            {viewOptions.showAging && agingData && (
+            {statementOptions.showAging && agingData && (
               <Collapsible open={agingOpen} onOpenChange={setAgingOpen} className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB" }}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold" style={{ color: "#374151" }}>
                   <span>تحليل التقادم (Aging)</span>
@@ -1146,7 +1259,7 @@ const AccountStatementV2Page = () => {
                   address: selectedContact?.address || "",
                   email: selectedContact?.email || "",
                 }}
-                rows={filteredRows}
+                rows={statementRowsWithDetails}
                 openingBalance={openingBalance}
                 closingBalance={closingBalance}
                 totalDebit={totalDebit}
@@ -1155,13 +1268,13 @@ const AccountStatementV2Page = () => {
                 dateTo={dateTo}
                 contactCode={selectedEntityCode}
                 statementNumber={stableSOANumber}
-                showLogo={viewOptions.showLogo}
-                showCompanyContact={viewOptions.showCompanyContact}
-                showSignatures={viewOptions.showSignatures}
-                showReference={viewOptions.showReference}
-                showDueDate={viewOptions.showDueDate}
-                showType={viewOptions.showType}
-                showAging={viewOptions.showAging}
+                showCompanyLogo={statementOptions.showCompanyLogo}
+                showContactInfo={statementOptions.showContactInfo}
+                showSignature={statementOptions.showSignature}
+                showReference={statementOptions.showReference}
+                showDueDate={statementOptions.showDueDate}
+                showType={statementOptions.showType}
+                showAging={statementOptions.showAging}
                 agingData={agingData}
               />
             </div>

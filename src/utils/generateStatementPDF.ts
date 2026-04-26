@@ -30,6 +30,7 @@ export interface StatementPDFData {
   totalDebit: number;
   totalCredit: number;
   rows: StatementPDFRow[];
+  detailsMap?: unknown;
   agingData?: {
     current: number;
     d1_30: number;
@@ -56,9 +57,9 @@ export interface StatementPDFViewOptions {
   showReference?: boolean;
   showDueDate?: boolean;
   showType?: boolean;
-  showLogo?: boolean;
-  showCompanyContact?: boolean;
-  showSignatures?: boolean;
+  showCompanyLogo?: boolean;
+  showContactInfo?: boolean;
+  showSignature?: boolean;
   showAging?: boolean;
 }
 
@@ -66,9 +67,9 @@ const DEFAULT_PDF_VIEW_OPTS: Required<StatementPDFViewOptions> = {
   showReference: true,
   showDueDate: true,
   showType: true,
-  showLogo: true,
-  showCompanyContact: true,
-  showSignatures: true,
+  showCompanyLogo: true,
+  showContactInfo: true,
+  showSignature: true,
   showAging: true,
 };
 
@@ -179,7 +180,7 @@ export const generateStatementPDF = (
   doc.setTextColor(200, 210, 220);
   doc.setFontSize(7);
   doc.setFont('Amiri', 'normal');
-  if (opts.showCompanyContact) {
+  if (opts.showContactInfo) {
     const info = [company.phone, company.email, company.address].filter(Boolean).join('  |  ');
     if (info) doc.text(info, W - margin, 23, { align: 'right' });
     if (company.tax_number) doc.text(`Tax No: ${company.tax_number}`, W - margin, 28, { align: 'right' });
@@ -200,7 +201,7 @@ export const generateStatementPDF = (
   doc.text(data.statementNumber, margin, 30);
 
   // Center: Logo (between company details on right and title on left)
-  if (opts.showLogo && company.logo_url) {
+  if (opts.showCompanyLogo && company.logo_url) {
     try {
       const logoMaxH = 22;
       const logoMaxW = 40;
@@ -516,7 +517,7 @@ export const generateStatementPDF = (
 
   // ══════ SIGNATURES SECTION ══════
   const sigY = Math.max(currentY + 10, H - 60);
-  if (opts.showSignatures && sigY + 30 < H - 20) {
+  if (opts.showSignature && sigY + 30 < H - 20) {
     // Title
     doc.setFontSize(9);
     doc.setFont('Amiri', 'bold');
