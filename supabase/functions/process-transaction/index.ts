@@ -501,7 +501,7 @@ ${contactContext}
     const aiContent = aiData.choices?.[0]?.message?.content || '';
     
     // Parse JSON from AI response with robust extraction
-    let parsed;
+    let parsed: any;
     try {
       parsed = extractJsonFromResponse(aiContent);
     } catch {
@@ -1048,15 +1048,15 @@ ${contactContext}
     }
 
     // Get account names for response (re-fetch if new accounts were created)
-    let debitAcc = accounts.find(a => a.account_code === debitAccountCode);
-    let creditAcc = accounts.find(a => a.account_code === creditAccountCode);
+    let debitAcc: any = accounts.find((a: any) => a.account_code === debitAccountCode);
+    let creditAcc: any = accounts.find((a: any) => a.account_code === creditAccountCode);
     if (!debitAcc || !creditAcc) {
       const { data: freshAccounts } = await supabaseAdmin.from('accounts')
         .select('account_code, account_name').eq('user_id', userId)
         .in('account_code', [debitAccountCode, creditAccountCode].filter(Boolean));
       if (freshAccounts) {
-        if (!debitAcc) debitAcc = freshAccounts.find(a => a.account_code === debitAccountCode);
-        if (!creditAcc) creditAcc = freshAccounts.find(a => a.account_code === creditAccountCode);
+        if (!debitAcc) debitAcc = freshAccounts.find((a: any) => a.account_code === debitAccountCode);
+        if (!creditAcc) creditAcc = freshAccounts.find((a: any) => a.account_code === creditAccountCode);
       }
     }
 
@@ -1083,7 +1083,8 @@ ${contactContext}
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
