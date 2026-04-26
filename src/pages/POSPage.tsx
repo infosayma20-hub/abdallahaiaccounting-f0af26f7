@@ -1165,7 +1165,12 @@ const POSPage = () => {
           const hiddenApps: string[] = (csHidden as any)?.hidden_apps || [];
           const callCenterHidden = hiddenApps.includes("call_center") || hiddenApps.includes("callcenter");
           
-          const boxList = [...(boxes || [])];
+          const deviceBranchId = getDeviceConfig().branchId;
+          const branchSafeBoxes = (boxes || []).filter((box: any) => {
+            if (!deviceBranchId) return false;
+            return box.branch_id === deviceBranchId;
+          });
+          const boxList: CashBoxOption[] = [...branchSafeBoxes];
           const isMalakyAccount = user?.email === "malakybroast@gmail.com";
           if (!callCenterHidden && isMalakyAccount) {
             boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
@@ -1173,11 +1178,13 @@ const POSPage = () => {
           setCashBoxes(boxList);
           // Auto-select from device binding (localStorage)
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
-          if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
+          if (savedBoxId && boxList.some(b => b.id === savedBoxId)) {
             setSelectedCashBoxId(savedBoxId);
             setRememberCashBox(true);
-          } else if (boxes && boxes.length === 1) {
-            setSelectedCashBoxId(boxes[0].id);
+          } else if (boxList.length === 1) {
+            setSelectedCashBoxId(boxList[0].id);
+          } else {
+            setSelectedCashBoxId("");
           }
           setShowOpenShift(true);
         }
