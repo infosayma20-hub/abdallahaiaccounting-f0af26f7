@@ -142,6 +142,20 @@ export default function InvoiceHistoryDrawer({
       setTimeout(() => searchInputRef.current?.focus(), 150);
     }
   }, [open]);
+
+  // Load cancel reasons from DB
+  useEffect(() => {
+    if (!open || !dataOwnerId) return;
+    (async () => {
+      const { data } = await (supabase
+        .from("pos_cancel_reasons" as any)
+        .select("id, reason_text") as any)
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      if (Array.isArray(data)) setCancelReasons(data as any);
+    })();
+  }, [open, dataOwnerId]);
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
