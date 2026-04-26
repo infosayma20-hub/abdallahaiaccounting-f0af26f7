@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ users: [], device_id: device.id });
         }
 
-        const posUserIds = accessList.map(a => a.pos_user_id);
+        const posUserIds = accessList.map((a: any) => a.pos_user_id);
         const { data: users } = await supabase
           .from("pos_users")
           .select("id, name, avatar_url, role, is_active, pin_locked_until")
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
           .eq("is_active", true);
 
         return jsonResponse({
-          users: (users || []).map(u => ({
+          users: (users || []).map((u: any) => ({
             ...u,
             is_locked: u.pin_locked_until ? new Date(u.pin_locked_until) > new Date() : false,
           })),
