@@ -1967,6 +1967,7 @@ const POSPage = () => {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
     }
+    if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
@@ -2020,6 +2021,8 @@ const POSPage = () => {
       // Direct branch_id link (preferred)
       if ((selectedBox as any)?.branch_id) {
         setDetectedBranchId((selectedBox as any).branch_id);
+        setCashBoxBranchId((selectedBox as any).branch_id);
+        setCashBoxBranchChecked(true);
       } else {
         const { data: allBranches } = await supabase
           .from("branches")
