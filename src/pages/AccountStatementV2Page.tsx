@@ -443,6 +443,66 @@ const AccountStatementV2Page = () => {
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
   }, [rows, selectedEntityId, isAccountsTab]);
 
+  useEffect(() => { setDetailsMap(prev => ({ ...prev, agingSummary: agingData, companySettings: companyInfo })); }, [agingData, companyInfo]);
+
+  useEffect(() => {
+    if (!user || filteredRows.length === 0 || (!statementOptions.showInvoiceDetails && !statementOptions.showVoucherDetails)) {
+      setDetailsMap(emptyDetailsMap(companyInfo));
+      return;
+    }
+    let cancelled = false;
+    const loadDetailsMap = async () => {
+      const refs = Array.from(new Set(filteredRows.map(r => r.reference).filter(Boolean)));
+      const invoiceRefs = refs.filter(ref => ref.startsWith("INV-") || ref.startsWith("PO-") || ref.startsWith("PI-"));
+      const voucherRefs = refs.filter(ref => ref.startsWith("REC-") || ref.startsWith("PAY-") || ref.startsWith("PV-") || ref.startsWith("QV-") || ref.startsWith("JV-"));
+      const invoiceDetailsById: Record<string, StatementInvoiceDetail[]> = {};
+      const voucherDetailsById: Record<string, StatementVoucherDetail> = {};
+
+      if (statementOptions.showInvoiceDetails && invoiceRefs.length > 0) {
+        const [{ data: saleInvoices }, { data: purchaseInvoices }] = await Promise.all([
+          supabase.from("invoices").select("id, invoice_number").eq("user_id", user.id).in("invoice_number", invoiceRefs),
+          supabase.from("purchase_invoices").select("id, invoice_number").eq("user_id", user.id).in("invoice_number", invoiceRefs),
+        ]);
+        const saleById: Record<string, string> = {}; (saleInvoices || []).forEach((inv: any) => { saleById[inv.id] = inv.invoice_number; });
+        const purchaseById: Record<string, string> = {}; (purchaseInvoices || []).forEach((inv: any) => { purchaseById[inv.id] = inv.invoice_number; });
+        const [saleItems, purchaseItems] = await Promise.all([
+          Object.keys(saleById).length ? supabase.from("invoice_items").select("invoice_id, product_name, quantity, unit_price, discount, tax_rate, total_amount, unit_of_measure").in("invoice_id", Object.keys(saleById)) : Promise.resolve({ data: [] as any[] }),
+          Object.keys(purchaseById).length ? supabase.from("purchase_invoice_items").select("invoice_id, product_name, quantity, unit_price, discount_pct, tax_pct, total_amount, unit").in("invoice_id", Object.keys(purchaseById)) : Promise.resolve({ data: [] as any[] }),
+        ]);
+        (saleItems.data || []).forEach((it: any) => {
+          const ref = saleById[it.invoice_id]; if (!ref) return;
+          (invoiceDetailsById[ref] ||= []).push({ productName: it.product_name, quantity: Number(it.quantity || 0), unitPrice: Number(it.unit_price || 0), discount: Number(it.discount || 0), tax: Number(it.tax_rate || 0), total: Number(it.total_amount || 0), unit: it.unit_of_measure });
+        });
+        (purchaseItems.data || []).forEach((it: any) => {
+          const ref = purchaseById[it.invoice_id]; if (!ref) return;
+          (invoiceDetailsById[ref] ||= []).push({ productName: it.product_name, quantity: Number(it.quantity || 0), unitPrice: Number(it.unit_price || 0), discount: Number(it.discount_pct || 0), tax: Number(it.tax_pct || 0), total: Number(it.total_amount || 0), unit: it.unit });
+        });
+      }
+
+      if (statementOptions.showVoucherDetails && voucherRefs.length > 0) {
+        const [{ data: receipts }, { data: vouchers }, { data: txLines }] = await Promise.all([
+          supabase.from("receipt_vouchers").select("receipt_number, payment_method, bank_name, check_number, check_date, notes, cash_box_id, bank_account_id").eq("user_id", user.id).in("receipt_number", voucherRefs),
+          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id").eq("user_id", user.id).in("ref_number", voucherRefs),
+          supabase.from("transactions").select("reference, debit_account_code, credit_account_code, amount").eq("user_id", user.id).in("reference", voucherRefs).eq("is_deleted", false),
+        ]);
+        const codes = Array.from(new Set((txLines || []).flatMap((tx: any) => [tx.debit_account_code, tx.credit_account_code]).filter(Boolean)));
+        const { data: accs } = codes.length ? await supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).in("account_code", codes) : { data: [] as any[] };
+        const accMap: Record<string, string> = {}; (accs || []).forEach((a: any) => { accMap[a.account_code] = a.account_name; });
+        (receipts || []).forEach((v: any) => { voucherDetailsById[v.receipt_number] = { paymentMethod: v.payment_method, bank: v.bank_name, cashBox: v.cash_box_id, chequeNumber: v.check_number, chequeDate: v.check_date, notes: v.notes }; });
+        (vouchers || []).forEach((v: any) => { voucherDetailsById[v.ref_number] = { paymentMethod: v.payment_method, bank: v.cheque_bank_name, chequeNumber: v.cheque_number, chequeDate: v.cheque_due_date, notes: v.notes }; });
+        (txLines || []).forEach((tx: any) => {
+          const detail = voucherDetailsById[tx.reference] ||= {};
+          (detail.accounts ||= []).push({ accountCode: tx.debit_account_code, accountName: accMap[tx.debit_account_code] || tx.debit_account_code, debit: Number(tx.amount || 0), credit: 0 });
+          detail.accounts.push({ accountCode: tx.credit_account_code, accountName: accMap[tx.credit_account_code] || tx.credit_account_code, debit: 0, credit: Number(tx.amount || 0) });
+        });
+      }
+
+      if (!cancelled) setDetailsMap({ invoiceDetailsById, voucherDetailsById, agingSummary: agingData, companySettings: companyInfo });
+    };
+    loadDetailsMap();
+    return () => { cancelled = true; };
+  }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo]);
+
   // ─── YEAR COMPARISON ───
   const yearComparisonData = useMemo(() => {
     if (!showYearComparison || !selectedEntityId || !dateFrom || !dateTo) return null;
