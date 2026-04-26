@@ -3498,6 +3498,12 @@ const POSPage = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden pos-container pos-page-root" dir="rtl" data-pos-layout>
+      {/* ⛔ Device-level guard — blocks selling when branch/terminal/bridge are missing or in conflict */}
+      <POSDeviceGuard
+        config={deviceConfig}
+        terminalBranchId={terminalBranchId}
+        cashBoxBranchId={cashBoxBranchId}
+      />
       {/* ══════ TOP BAR — 52px dark navy ══════ */}
       <header
         className="flex items-center px-3 gap-2 shrink-0 text-white overflow-visible"
