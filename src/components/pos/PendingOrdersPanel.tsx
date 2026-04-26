@@ -16,6 +16,7 @@ import {
 interface CallCenterOrder {
   id: string;
   source_app: string;
+  target_branch_id: string | null;
   target_branch_name: string;
   customer_name: string;
   customer_phone: string;

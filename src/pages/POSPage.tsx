@@ -48,7 +48,7 @@ import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
-import { getDeviceConfig, onDeviceConfigChange } from "@/lib/device-config";
+import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady } from "@/lib/device-config";
 import {
   DndContext,
   closestCenter,
@@ -596,6 +596,20 @@ const POSPage = () => {
     })();
     return () => { cancelled = true; };
   }, [session?.cash_box_id]);
+
+  /**
+   * 🛡️ Central enforcement called at the START of every sensitive function:
+   * open shift, save draft, send to kitchen, complete order, print, accept call-center order.
+   * Returns true ⇢ proceed. Returns false ⇢ caller MUST early-return.
+   */
+  const enforceDeviceGuard = useCallback((opts?: { silent?: boolean }) => {
+    const result = assertDeviceReady({ terminalBranchId, cashBoxBranchId });
+    if (!result.ok) {
+      if (!opts?.silent) toast.error(`⛔ ${result.reason || "إعداد الجهاز غير مكتمل"}`);
+      return false;
+    }
+    return true;
+  }, [terminalBranchId, cashBoxBranchId]);
 
   // Derived display name for POS terminal/cash box
   const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
@@ -1898,6 +1912,7 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
+    if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!selectedCashBoxId) {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
@@ -2061,6 +2076,7 @@ const POSPage = () => {
   // Save order as draft (no payment)
   const handleSaveToTable = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
+    if (!enforceDeviceGuard()) return;
     setSavingToTable(true);
     try {
       // Check if there's already an open order for this table/session
@@ -2194,6 +2210,7 @@ const POSPage = () => {
   // Send to kitchen (print kitchen ticket)
   const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
+    if (!enforceDeviceGuard()) return;
 
     const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
     const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
@@ -2377,6 +2394,7 @@ const POSPage = () => {
   const [quickProcessing, setQuickProcessing] = useState(false);
   const handleQuickSaveAndPrint = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
+    if (!enforceDeviceGuard()) return;
     const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
     const sourceApp = activeOrder.callCenterSourceApp || "";
     
@@ -2419,6 +2437,7 @@ const POSPage = () => {
   const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
+    if (!enforceDeviceGuard()) return;
     // Handle "card:GLCODE" format from delivery app visa accounts
     let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
     let visaGlAccountCode: string | null = null;
@@ -3026,6 +3045,7 @@ const POSPage = () => {
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
+    if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
@@ -3727,10 +3747,18 @@ const POSPage = () => {
           {/* Notifications / Pending Orders */}
           <PendingOrdersPanel
             dataOwnerId={dataOwnerId || ""}
-            branchId={detectedBranchId}
+            branchId={deviceConfig.branchId || detectedBranchId}
             sessionId={session?.id || null}
             enabled={!!session && !isCallCenter}
             onAcceptOrder={(order) => {
+              // 🛡️ Hard guard — never accept call-center orders when device isn't ready
+              if (!enforceDeviceGuard()) return;
+              // 🛡️ Branch match — order MUST belong to this device's branch
+              const expectedBranch = deviceConfig.branchId;
+              if (expectedBranch && order.target_branch_id && order.target_branch_id !== expectedBranch) {
+                toast.error("⛔ هذا الطلب موجّه لفرع آخر — لا يمكن قبوله من هذا الجهاز");
+                return;
+              }
               orderCounter.current += 1;
               const newOrder = createNewOrder(orderCounter.current);
               newOrder.customerName = order.customer_name || "";
