@@ -50,19 +50,48 @@ export default function DeviceSetupPage() {
   const [bridgeError, setBridgeError] = useState<string>("");
 
   useEffect(() => {
-    if (!user) return;
+    // Don't block on auth — load options regardless. RLS will filter.
+    // This prevents the page from hanging on a perpetual loading spinner
+    // if the auth session takes a moment to hydrate.
     void loadOptions();
   }, [user]);
 
   const loadOptions = async () => {
     setLoading(true);
-    const [branchesRes, terminalsRes] = await Promise.all([
-      supabase.from("branches").select("id, name, is_active").eq("is_active", true).order("name"),
-      supabase.from("pos_terminals").select("id, name, branch_id").order("name"),
-    ]);
-    setBranches((branchesRes.data as Branch[]) || []);
-    setTerminals((terminalsRes.data as Terminal[]) || []);
-    setLoading(false);
+    console.log("[DeviceSetup] Loading branches & terminals…");
+    // Hard timeout — if Supabase hangs, unblock the UI after 6s.
+    const timeout = new Promise<"timeout">(resolve =>
+      setTimeout(() => resolve("timeout"), 6000),
+    );
+    try {
+      const fetchAll = Promise.all([
+        supabase.from("branches").select("id, name, is_active").eq("is_active", true).order("name"),
+        supabase.from("pos_terminals").select("id, name, branch_id").order("name"),
+      ]);
+      const result = await Promise.race([fetchAll, timeout]);
+      if (result === "timeout") {
+        console.warn("[DeviceSetup] ⚠️ Load timed out after 6s — showing empty UI.");
+        toast.error("تعذّر تحميل الفروع/المحطات خلال المهلة. يمكنك إعادة المحاولة.");
+        setBranches([]);
+        setTerminals([]);
+      } else {
+        const [branchesRes, terminalsRes] = result;
+        if (branchesRes.error) console.error("[DeviceSetup] branches error:", branchesRes.error);
+        if (terminalsRes.error) console.error("[DeviceSetup] terminals error:", terminalsRes.error);
+        setBranches((branchesRes.data as Branch[]) || []);
+        setTerminals((terminalsRes.data as Terminal[]) || []);
+        console.log(
+          `[DeviceSetup] ✅ Loaded ${branchesRes.data?.length ?? 0} branches, ${terminalsRes.data?.length ?? 0} terminals`,
+        );
+      }
+    } catch (err) {
+      console.error("[DeviceSetup] ❌ Load failed:", err);
+      toast.error("فشل تحميل البيانات. تحقق من الاتصال.");
+      setBranches([]);
+      setTerminals([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredTerminals = useMemo(() => {
