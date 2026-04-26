@@ -1,4 +1,5 @@
-import { AlertTriangle, Settings, Monitor, Building2, Boxes, Wifi } from "lucide-react";
+import { AlertTriangle, Settings, Monitor, Building2, Boxes, Wifi, ShieldAlert } from "lucide-react";
+import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 
 interface DeviceConfig {
   bridgeUrl: string;
@@ -22,6 +23,7 @@ interface Props {
  *  2. branch_id of the device, terminal and (optionally) cash_box disagree.
  */
 export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranchId }: Props) {
+  const { isDeviceAdmin } = useIsDeviceAdmin();
   const missing: string[] = [];
   if (!config.bridgeUrl) missing.push("عنوان Print Bridge");
   if (!config.branchId) missing.push("الفرع");
@@ -109,18 +111,24 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
         </div>
 
         <div className="p-3 border-t border-border bg-muted/20 flex gap-2">
-          <a
-            href="/device-setup"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log("[POSDeviceGuard] → /device-setup (hard nav)");
-              window.location.assign("/device-setup");
-            }}
-            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <Settings className="h-4 w-4" /> إعداد الجهاز
-          </a>
+          {isDeviceAdmin ? (
+            <a
+              href="/device-setup"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("[POSDeviceGuard] → /device-setup (hard nav)");
+                window.location.assign("/device-setup");
+              }}
+              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Settings className="h-4 w-4" /> إعداد الجهاز
+            </a>
+          ) : (
+            <div className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-muted px-4 py-2 text-xs font-medium text-muted-foreground border border-border">
+              <ShieldAlert className="h-4 w-4" /> تواصل مع الإدارة لإعداد الجهاز
+            </div>
+          )}
           <a
             href="/apps"
             onClick={(e) => {
