@@ -109,10 +109,27 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
         </div>
 
         <div className="p-3 border-t border-border bg-muted/20 flex gap-2">
-          <a href="/device-setup" className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          <a
+            href="/device-setup"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log("[POSDeviceGuard] → /device-setup (hard nav)");
+              window.location.assign("/device-setup");
+            }}
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             <Settings className="h-4 w-4" /> إعداد الجهاز
           </a>
-          <a href="/apps" className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          <a
+            href="/apps"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.location.assign("/apps");
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             <Monitor className="h-4 w-4" /> رجوع
           </a>
         </div>
