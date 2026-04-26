@@ -26,6 +26,32 @@ interface Props {
 export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranchId }: Props) {
   const navigate = useNavigate();
 
+  const goSetup = () => {
+    console.log("[POSDeviceGuard] → navigating to /device-setup");
+    try {
+      navigate("/device-setup");
+      // Fallback: if SPA nav was swallowed for any reason, hard-redirect after a tick.
+      setTimeout(() => {
+        if (window.location.pathname !== "/device-setup") {
+          window.location.assign("/device-setup");
+        }
+      }, 250);
+    } catch {
+      window.location.assign("/device-setup");
+    }
+  };
+
+  const goBack = () => {
+    try {
+      navigate("/apps");
+      setTimeout(() => {
+        if (window.location.pathname !== "/apps") window.location.assign("/apps");
+      }, 250);
+    } catch {
+      window.location.assign("/apps");
+    }
+  };
+
   const missing: string[] = [];
   if (!config.bridgeUrl) missing.push("عنوان Print Bridge");
   if (!config.branchId) missing.push("الفرع");
@@ -113,10 +139,10 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
         </div>
 
         <div className="p-3 border-t border-border bg-muted/20 flex gap-2">
-          <Button onClick={() => navigate("/device-setup")} className="flex-1 gap-2">
+          <Button onClick={goSetup} type="button" className="flex-1 gap-2">
             <Settings className="h-4 w-4" /> إعداد الجهاز
           </Button>
-          <Button variant="outline" onClick={() => navigate("/apps")} className="gap-2">
+          <Button variant="outline" onClick={goBack} type="button" className="gap-2">
             <Monitor className="h-4 w-4" /> رجوع
           </Button>
         </div>
