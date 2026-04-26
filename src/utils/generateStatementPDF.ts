@@ -30,6 +30,7 @@ export interface StatementPDFData {
   totalDebit: number;
   totalCredit: number;
   rows: StatementPDFRow[];
+  detailsMap?: unknown;
   agingData?: {
     current: number;
     d1_30: number;
