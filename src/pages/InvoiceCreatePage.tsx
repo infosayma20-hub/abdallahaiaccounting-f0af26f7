@@ -461,6 +461,23 @@ const InvoiceCreatePage = () => {
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
 
+      // ─── Warehouses (used for stock attribution + advanced product picker) ───
+      const { data: whData } = await supabase
+        .from("warehouses")
+        .select("id, name, is_default")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("is_default", { ascending: false })
+        .order("name");
+      const whList = (whData as any[]) || [];
+      setWarehouses(whList);
+      // Default warehouse = is_default flag, else first one.
+      setForm(prev => {
+        if (prev.warehouseId) return prev;
+        const def = whList.find((w: any) => w.is_default) || whList[0];
+        return def ? { ...prev, warehouseId: def.id } : prev;
+      });
+
       // Set default tax category based on registration type
       const regType = (taxSettingsRes.data as any)?.registration_type;
       const detectedTaxCat: TaxCategory = (regType === "exempt" || regType === "unregistered") ? "zero" : "taxable";
