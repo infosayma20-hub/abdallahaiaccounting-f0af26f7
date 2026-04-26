@@ -1230,26 +1230,50 @@ export default function InvoiceHistoryDrawer({
           <div className="py-3 space-y-3">
             <p className="text-sm" style={{ color: "#64748B" }}>
               هل أنت متأكد من إلغاء الفاتورة #{cancellingOrder?.order_number}؟
-              <br />سيتم إنشاء قيد عكسي تلقائياً.
+              <br />سيتم إنشاء قيد محاسبي عكسي وإرسال تذكرة إلغاء للمطبخ تلقائياً.
             </p>
+            <div className="space-y-2">
+              <label className="text-xs font-medium" style={{ color: "#475569" }}>سبب الإلغاء (إلزامي)</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {cancelReasons.map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setCancelReason(r.reason_text)}
+                    className="text-xs px-2 py-2 rounded-md border text-right transition-colors"
+                    style={{
+                      borderColor: cancelReason === r.reason_text ? "#DC2626" : "#E2E8F0",
+                      background: cancelReason === r.reason_text ? "#FEE2E2" : "#FFFFFF",
+                      color: cancelReason === r.reason_text ? "#991B1B" : "#0F172A",
+                      fontWeight: cancelReason === r.reason_text ? 600 : 400,
+                    }}
+                  >
+                    {r.reason_text}
+                  </button>
+                ))}
+              </div>
+              {cancelReasons.length === 0 && (
+                <p className="text-xs" style={{ color: "#94A3B8" }}>لا توجد أسباب محفوظة — يرجى إضافتها من الإعدادات.</p>
+              )}
+            </div>
             <textarea
-              value={cancelReason}
-              onChange={e => setCancelReason(e.target.value)}
-              placeholder="سبب الإلغاء (إلزامي)..."
+              value={cancelNote}
+              onChange={e => setCancelNote(e.target.value)}
+              placeholder="ملاحظة إضافية (اختياري)..."
               rows={2}
               className="w-full px-3 py-2 rounded-lg border text-sm resize-none text-black"
               style={{ borderColor: "#E2E8F0" }}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setShowCancelConfirm(false); setCancellingOrder(null); }}>تراجع</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowCancelConfirm(false); setCancellingOrder(null); setCancelReason(""); setCancelNote(""); }}>تراجع</Button>
             <Button
               variant="destructive"
               size="sm"
               disabled={!cancelReason.trim()}
               onClick={handleCancelConfirm}
             >
-              متابعة — يتطلب موافقة المدير
+              {needsManagerForCancel ? "متابعة — يتطلب موافقة المدير" : "تأكيد الإلغاء"}
             </Button>
           </DialogFooter>
         </DialogContent>
