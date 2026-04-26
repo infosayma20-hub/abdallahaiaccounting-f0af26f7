@@ -1008,8 +1008,8 @@ const AccountStatementV2Page = () => {
                   ) : filteredRows.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
-                    filteredRows.map((row, i) => (
-                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: "pointer", background: row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className="hover:bg-gray-50 transition-colors group" onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
+                    statementRowsWithDetails.map((row, i) => (
+                      <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#374151" }}>
@@ -1025,7 +1025,7 @@ const AccountStatementV2Page = () => {
                               className="hover:underline text-left"
                               style={{ color: "#2563EB", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontFamily: "monospace", textDecoration: row.isCancelled ? "line-through" : "none" }}
                             >
-                              {row.reference}
+                              {row.isLineItem ? "—" : row.reference}
                             </button>
                           ) : "—"}
                             </td>
@@ -1038,7 +1038,7 @@ const AccountStatementV2Page = () => {
                           {row.isCancelled && (
                             <span style={{ display: "inline-block", padding: "2px 6px", marginLeft: 6, background: "#9CA3AF", color: "white", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>ملغى</span>
                           )}
-                          <span style={{ textDecoration: row.isCancelled ? "line-through" : "none" }}>{row.description}</span>
+                          <span style={{ textDecoration: row.isCancelled ? "line-through" : "none", color: row.isLineItem ? "#4B5563" : undefined, fontWeight: row.isLineItem ? 600 : undefined }}>{row.description}</span>
                             </td>
                           );
                           if (c.key === "due") return (
