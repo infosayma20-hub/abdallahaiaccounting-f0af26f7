@@ -626,7 +626,7 @@ const AccountStatementV2Page = () => {
     ];
 
     const header = [cols.map(c => c.label)];
-    const data = filteredRows.map(r => cols.map(c => c.value(r)));
+    const data = statementRowsWithDetails.map(r => cols.map(c => c.value(r)));
     const totalsRow = cols.map(c => {
       if (c.key === "description") return "الإجمالي";
       if (c.key === "debit") return totalDebit;
@@ -686,7 +686,7 @@ const AccountStatementV2Page = () => {
           closingBalance,
           totalDebit,
           totalCredit,
-          rows: filteredRows.map(r => ({
+          rows: statementRowsWithDetails.map(r => ({
             date: r.date,
             description: r.description,
             reference: r.reference,
@@ -695,8 +695,10 @@ const AccountStatementV2Page = () => {
             balance: r.balance,
             dueDate: r.dueDate,
             transaction_type: r.transaction_type,
+            isLineItem: r.isLineItem,
           })),
           agingData,
+          detailsMap,
         },
         {
           name: companyInfo.name,
@@ -725,7 +727,7 @@ const AccountStatementV2Page = () => {
     } finally {
       setPdfGenerating(false);
     }
-  }, [selectedEntityId, selectedEntityName, filteredRows, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, toast]);
+  }, [selectedEntityId, selectedEntityName, filteredRows, statementRowsWithDetails, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, detailsMap, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, statementOptions, toast]);
 
   const handlePrintStatement = useCallback(() => {
     const printContent = document.getElementById("statement-preview-doc");
