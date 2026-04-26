@@ -1259,7 +1259,7 @@ const AccountStatementV2Page = () => {
                   address: selectedContact?.address || "",
                   email: selectedContact?.email || "",
                 }}
-                rows={filteredRows}
+                rows={statementRowsWithDetails}
                 openingBalance={openingBalance}
                 closingBalance={closingBalance}
                 totalDebit={totalDebit}
