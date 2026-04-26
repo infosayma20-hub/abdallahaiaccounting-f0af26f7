@@ -1027,14 +1027,26 @@ const POSPage = () => {
       setCompany(comp ? { id: comp.id, name: comp.name, logo_url: comp.logo_url, phone: (comp as any).phone, tax_number: (comp as any).tax_number, address: (comp as any).address } : null);
 
       if (comp) {
-        let { data: terminals } = await supabase
-          .from("pos_terminals")
-          .select("*")
-          .eq("user_id", dataOwnerId)
-          .eq("company_id", comp.id)
-          .limit(1);
-
-        let term = terminals?.[0];
+        let term: any = null;
+        if (deviceConfig.terminalId) {
+          const { data: configuredTerm } = await supabase
+            .from("pos_terminals")
+            .select("*")
+            .eq("id", deviceConfig.terminalId)
+            .eq("user_id", dataOwnerId)
+            .eq("company_id", comp.id)
+            .maybeSingle();
+          term = configuredTerm;
+        }
+        if (!term) {
+          const { data: terminals } = await supabase
+            .from("pos_terminals")
+            .select("*")
+            .eq("user_id", dataOwnerId)
+            .eq("company_id", comp.id)
+            .limit(1);
+          term = terminals?.[0];
+        }
         if (!term) {
           const { data: newTerm } = await supabase
             .from("pos_terminals")
