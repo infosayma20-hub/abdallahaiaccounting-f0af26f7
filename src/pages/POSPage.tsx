@@ -2210,6 +2210,7 @@ const POSPage = () => {
   // Send to kitchen (print kitchen ticket)
   const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
+    if (!enforceDeviceGuard()) return;
 
     const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
     const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
