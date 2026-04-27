@@ -1306,6 +1306,9 @@ const InvoiceCreatePage = () => {
         // ─── Post the GL entry (credit-only invoices) ───
         // Sales: Dr 1130 AR / Cr 4100 Revenue
         // Purchase: Dr 5110 Purchases / Cr 2110 AP
+        const headerWorkshop = form.workshopId
+          ? workshops.find(w => w.id === form.workshopId)
+          : null;
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
@@ -1321,6 +1324,8 @@ const InvoiceCreatePage = () => {
           reference: dbInv.invoice_number,
           payment_method: paymentMethodDb,
           idempotency_key: `INV-${dbInv.id}`,
+          workshop_id: form.workshopId || null,
+          cost_center_name: headerWorkshop?.name || null,
         } as any).select("id").single();
         if (txError) throw txError;
 
