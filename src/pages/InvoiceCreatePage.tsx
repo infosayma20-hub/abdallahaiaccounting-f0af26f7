@@ -322,6 +322,7 @@ const InvoiceCreatePage = () => {
     billingAddress: "",
     taxInclusive: false,
     warehouseId: null as string | null,
+    workshopId: null as string | null,
     items: [createEmptyItem()] as InvoiceItem[],
   });
 
