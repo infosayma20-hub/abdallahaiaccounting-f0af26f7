@@ -1091,6 +1091,7 @@ const InvoiceCreatePage = () => {
         attachments: attachments.length > 0 ? JSON.stringify(attachments) : "[]",
         terms: invoiceTerms.trim() || null,
         warehouse_id: form.warehouseId || null,
+        workshop_id: form.workshopId || null,
       };
 
       // ─── Accounting routing (credit-only invoices) ───
@@ -1117,6 +1118,7 @@ const InvoiceCreatePage = () => {
             tax_rate: item.taxRate,
             total_amount: calcItemSubtotal(item),
             unit_of_measure: item.unitOfMeasure,
+            workshop_id: item.workshopId || form.workshopId || null,
           }));
 
       const syncContactBalance = async (targetContactId: string | null, delta: number) => {
