@@ -63,6 +63,7 @@ interface InvoiceItem {
   taxCategory: TaxCategory;
   unitOfMeasure: string;
   subtotal: number;
+  workshopId?: string | null;
 }
 
 interface Contact {
@@ -112,6 +113,7 @@ const createEmptyItem = (): InvoiceItem => ({
   taxCategory: "taxable",
   unitOfMeasure: "قطعة",
   subtotal: 0,
+  workshopId: null,
 });
 
 const addDays = (dateStr: string, days: number): string => {
@@ -193,6 +195,7 @@ const InvoiceCreatePage = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; is_default: boolean | null }[]>([]);
   const [warehouseStock, setWarehouseStock] = useState<Record<string, number>>({});
+  const [workshops, setWorkshops] = useState<{ id: string; name: string; status: string }[]>([]);
   const [lastPrices, setLastPrices] = useState<Record<string, number>>({});
   const [productSearchDialog, setProductSearchDialog] = useState<{ open: boolean; itemId: string | null }>({
     open: false,
@@ -319,6 +322,7 @@ const InvoiceCreatePage = () => {
     billingAddress: "",
     taxInclusive: false,
     warehouseId: null as string | null,
+    workshopId: null as string | null,
     items: [createEmptyItem()] as InvoiceItem[],
   });
 
@@ -477,6 +481,19 @@ const InvoiceCreatePage = () => {
         const def = whList.find((w: any) => w.is_default) || whList[0];
         return def ? { ...prev, warehouseId: def.id } : prev;
       });
+
+      // ─── Workshops (Cost Centers) ───
+      const { data: wshData } = await supabase
+        .from("workshops")
+        .select("id, name, status")
+        .eq("user_id", user.id)
+        .order("name");
+      const wshList = (wshData as any[]) || [];
+      setWorkshops(wshList);
+      // If invoice was opened from a workshop URL, set it as the default cost center
+      if (workshopId && !isEditMode && !fromDuplicate) {
+        setForm(prev => prev.workshopId ? prev : { ...prev, workshopId: workshopId });
+      }
 
       // Set default tax category based on registration type
       const regType = (taxSettingsRes.data as any)?.registration_type;
@@ -685,6 +702,7 @@ const InvoiceCreatePage = () => {
             taxCategory: item.tax_category || (rate > 0 ? "taxable" : "exempt"),
             unitOfMeasure: item.unit_of_measure || "قطعة",
             subtotal: Number(item.total_amount) || 0,
+            workshopId: item.workshop_id || null,
           };
           normalized.subtotal = calcItemSubtotal(normalized);
           return normalized;
@@ -719,6 +737,7 @@ const InvoiceCreatePage = () => {
           salespersonId: data.salesperson_id || null,
           billingAddress: data.billing_address || "",
           taxInclusive: Boolean(data.tax_inclusive),
+          workshopId: data.workshop_id || null,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
 
@@ -1074,6 +1093,7 @@ const InvoiceCreatePage = () => {
         attachments: attachments.length > 0 ? JSON.stringify(attachments) : "[]",
         terms: invoiceTerms.trim() || null,
         warehouse_id: form.warehouseId || null,
+        workshop_id: form.workshopId || null,
       };
 
       // ─── Accounting routing (credit-only invoices) ───
@@ -1100,6 +1120,7 @@ const InvoiceCreatePage = () => {
             tax_rate: item.taxRate,
             total_amount: calcItemSubtotal(item),
             unit_of_measure: item.unitOfMeasure,
+            workshop_id: item.workshopId || form.workshopId || null,
           }));
 
       const syncContactBalance = async (targetContactId: string | null, delta: number) => {
@@ -1144,6 +1165,9 @@ const InvoiceCreatePage = () => {
         }
 
         if (!asDraft) {
+          const headerWorkshopEdit = form.workshopId
+            ? workshops.find(w => w.id === form.workshopId)
+            : null;
           const txPayload = {
             user_id: user.id,
             transaction_date: form.date,
@@ -1160,6 +1184,8 @@ const InvoiceCreatePage = () => {
             payment_method: paymentMethodDb,
             idempotency_key: `INV-${editInvoiceId}`,
             is_deleted: false,
+            workshop_id: form.workshopId || null,
+            cost_center_name: headerWorkshopEdit?.name || null,
           };
 
           let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
@@ -1287,6 +1313,9 @@ const InvoiceCreatePage = () => {
         // ─── Post the GL entry (credit-only invoices) ───
         // Sales: Dr 1130 AR / Cr 4100 Revenue
         // Purchase: Dr 5110 Purchases / Cr 2110 AP
+        const headerWorkshop = form.workshopId
+          ? workshops.find(w => w.id === form.workshopId)
+          : null;
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
@@ -1302,6 +1331,8 @@ const InvoiceCreatePage = () => {
           reference: dbInv.invoice_number,
           payment_method: paymentMethodDb,
           idempotency_key: `INV-${dbInv.id}`,
+          workshop_id: form.workshopId || null,
+          cost_center_name: headerWorkshop?.name || null,
         } as any).select("id").single();
         if (txError) throw txError;
 
@@ -1832,29 +1863,57 @@ const InvoiceCreatePage = () => {
           </div>
 
           {/* Warehouse selector — controls where stock is debited/credited and which inventory is shown in the picker */}
-          {warehouses.length > 0 && (
+          {(warehouses.length > 0 || workshops.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
-              <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                  المستودع
-                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
-                </label>
-                <Select
-                  value={form.warehouseId || ""}
-                  onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
-                >
-                  <SelectTrigger className="rounded-xl text-sm">
-                    <SelectValue placeholder="اختر المستودع..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map(w => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}{w.is_default ? " — الرئيسي" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {warehouses.length > 0 && (
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                    المستودع
+                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
+                  </label>
+                  <Select
+                    value={form.warehouseId || ""}
+                    onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
+                  >
+                    <SelectTrigger className="rounded-xl text-sm">
+                      <SelectValue placeholder="اختر المستودع..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map(w => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.name}{w.is_default ? " — الرئيسي" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {workshops.length > 0 && (
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                    مركز التكلفة (الورشة)
+                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">(اختياري — لتقارير الربحية)</span>
+                  </label>
+                  <Select
+                    value={form.workshopId || "__none__"}
+                    onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
+                  >
+                    <SelectTrigger className="rounded-xl text-sm">
+                      <SelectValue placeholder="اختر الورشة..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
+                      {workshops
+                        .filter(w => w.status === "active" || w.id === form.workshopId)
+                        .map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
 
