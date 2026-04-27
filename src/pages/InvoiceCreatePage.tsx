@@ -63,6 +63,7 @@ interface InvoiceItem {
   taxCategory: TaxCategory;
   unitOfMeasure: string;
   subtotal: number;
+  workshopId?: string | null;
 }
 
 interface Contact {
@@ -112,6 +113,7 @@ const createEmptyItem = (): InvoiceItem => ({
   taxCategory: "taxable",
   unitOfMeasure: "قطعة",
   subtotal: 0,
+  workshopId: null,
 });
 
 const addDays = (dateStr: string, days: number): string => {
