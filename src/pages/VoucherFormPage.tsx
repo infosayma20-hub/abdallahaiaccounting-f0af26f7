@@ -1008,10 +1008,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       }
     }
     // Validate cheque amounts total
-    if (paymentMethod === "شيك" && cheques.length > 0 && !asDraft) {
-      const chequesTotal = cheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+    if (paymentMethod === "شيك" && !asDraft) {
+      // يجب وجود شيك واحد على الأقل بمعلومات مكتملة (رقم + بنك + مبلغ)
+      const validCheques = cheques.filter(
+        c => c.number && String(c.number).trim() !== "" && c.bank && Number(c.amount) > 0
+      );
+      if (validCheques.length === 0) {
+        toast.error("يجب إدخال بيانات الشيك (الرقم، البنك، والمبلغ) قبل حفظ السند بطريقة دفع شيك");
+        return;
+      }
+      const chequesTotal = validCheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
       const diff = Math.abs(chequesTotal - amountNum);
-      if (diff > 0.01 && cheques.some(c => Number(c.amount) > 0)) {
+      if (diff > 0.01) {
         toast.error(`إجمالي الشيكات (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`);
         return;
       }
