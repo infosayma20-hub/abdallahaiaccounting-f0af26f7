@@ -1863,29 +1863,57 @@ const InvoiceCreatePage = () => {
           </div>
 
           {/* Warehouse selector — controls where stock is debited/credited and which inventory is shown in the picker */}
-          {warehouses.length > 0 && (
+          {(warehouses.length > 0 || workshops.length > 0) && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
-              <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
-                  المستودع
-                  <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
-                </label>
-                <Select
-                  value={form.warehouseId || ""}
-                  onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
-                >
-                  <SelectTrigger className="rounded-xl text-sm">
-                    <SelectValue placeholder="اختر المستودع..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map(w => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}{w.is_default ? " — الرئيسي" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {warehouses.length > 0 && (
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                    المستودع
+                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">(يتم منه الخصم/الإضافة)</span>
+                  </label>
+                  <Select
+                    value={form.warehouseId || ""}
+                    onValueChange={v => setForm(p => ({ ...p, warehouseId: v }))}
+                  >
+                    <SelectTrigger className="rounded-xl text-sm">
+                      <SelectValue placeholder="اختر المستودع..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map(w => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.name}{w.is_default ? " — الرئيسي" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {workshops.length > 0 && (
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                    مركز التكلفة (الورشة)
+                    <span className="text-[9.5px] text-muted-foreground/70 mr-1">(اختياري — لتقارير الربحية)</span>
+                  </label>
+                  <Select
+                    value={form.workshopId || "__none__"}
+                    onValueChange={v => setForm(p => ({ ...p, workshopId: v === "__none__" ? null : v }))}
+                  >
+                    <SelectTrigger className="rounded-xl text-sm">
+                      <SelectValue placeholder="اختر الورشة..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
+                      {workshops
+                        .filter(w => w.status === "active" || w.id === form.workshopId)
+                        .map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}{w.status !== "active" ? ` — (${w.status})` : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
 
