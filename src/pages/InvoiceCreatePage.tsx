@@ -702,6 +702,7 @@ const InvoiceCreatePage = () => {
             taxCategory: item.tax_category || (rate > 0 ? "taxable" : "exempt"),
             unitOfMeasure: item.unit_of_measure || "قطعة",
             subtotal: Number(item.total_amount) || 0,
+            workshopId: item.workshop_id || null,
           };
           normalized.subtotal = calcItemSubtotal(normalized);
           return normalized;
@@ -736,6 +737,7 @@ const InvoiceCreatePage = () => {
           salespersonId: data.salesperson_id || null,
           billingAddress: data.billing_address || "",
           taxInclusive: Boolean(data.tax_inclusive),
+          workshopId: data.workshop_id || null,
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
         }));
 
