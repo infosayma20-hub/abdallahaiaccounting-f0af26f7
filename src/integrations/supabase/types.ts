@@ -5689,6 +5689,7 @@ export type Database = {
           total_amount: number
           unit_of_measure: string | null
           unit_price: number
+          workshop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -5704,6 +5705,7 @@ export type Database = {
           total_amount?: number
           unit_of_measure?: string | null
           unit_price?: number
+          workshop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -5719,6 +5721,7 @@ export type Database = {
           total_amount?: number
           unit_of_measure?: string | null
           unit_price?: number
+          workshop_id?: string | null
         }
         Relationships: [
           {
@@ -5726,6 +5729,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
             referencedColumns: ["id"]
           },
         ]
@@ -5795,6 +5805,7 @@ export type Database = {
           updated_at: string
           user_id: string
           warehouse_id: string | null
+          workshop_id: string | null
         }
         Insert: {
           amount_in_words?: string | null
@@ -5836,6 +5847,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           warehouse_id?: string | null
+          workshop_id?: string | null
         }
         Update: {
           amount_in_words?: string | null
@@ -5877,6 +5889,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           warehouse_id?: string | null
+          workshop_id?: string | null
         }
         Relationships: [
           {
@@ -5905,6 +5918,13 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
             referencedColumns: ["id"]
           },
         ]
