@@ -1163,6 +1163,9 @@ const InvoiceCreatePage = () => {
         }
 
         if (!asDraft) {
+          const headerWorkshopEdit = form.workshopId
+            ? workshops.find(w => w.id === form.workshopId)
+            : null;
           const txPayload = {
             user_id: user.id,
             transaction_date: form.date,
@@ -1179,6 +1182,8 @@ const InvoiceCreatePage = () => {
             payment_method: paymentMethodDb,
             idempotency_key: `INV-${editInvoiceId}`,
             is_deleted: false,
+            workshop_id: form.workshopId || null,
+            cost_center_name: headerWorkshopEdit?.name || null,
           };
 
           let linkedTransactionId = originalInvoiceRef.current?.linkedTransactionId || null;
