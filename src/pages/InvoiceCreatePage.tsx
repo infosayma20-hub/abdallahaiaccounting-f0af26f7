@@ -482,6 +482,19 @@ const InvoiceCreatePage = () => {
         return def ? { ...prev, warehouseId: def.id } : prev;
       });
 
+      // ─── Workshops (Cost Centers) ───
+      const { data: wshData } = await supabase
+        .from("workshops")
+        .select("id, name, status")
+        .eq("user_id", user.id)
+        .order("name");
+      const wshList = (wshData as any[]) || [];
+      setWorkshops(wshList);
+      // If invoice was opened from a workshop URL, set it as the default cost center
+      if (workshopId && !isEditMode && !fromDuplicate) {
+        setForm(prev => prev.workshopId ? prev : { ...prev, workshopId: workshopId });
+      }
+
       // Set default tax category based on registration type
       const regType = (taxSettingsRes.data as any)?.registration_type;
       const detectedTaxCat: TaxCategory = (regType === "exempt" || regType === "unregistered") ? "zero" : "taxable";
