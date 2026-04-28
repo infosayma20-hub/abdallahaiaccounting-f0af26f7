@@ -107,6 +107,23 @@ const EMP_TRANSACTION_CATEGORIES = [
   { value: "أخرى", label: "أخرى", emoji: "📝" },
 ];
 
+// B3.4: Map the Arabic empCategory chosen on the voucher form to the
+// employee_financial_movements.category enum (B3.1).
+// "رواتب" is excluded — payroll postings are out of scope for B3.x.
+function mapEmpCategoryToSubLedger(empCategory: string): string | null {
+  switch (empCategory) {
+    case "سلفة":     return "advance";
+    case "أكل":      return "food";
+    case "عجز":      return "cash_shortage";
+    case "مشتريات":  return "purchase";
+    case "توصيل":    return "transport";
+    case "مخالفة":   return "penalty";
+    case "أخرى":     return "other";
+    case "رواتب":    return null; // do not mirror salary payments here
+    default:          return "other";
+  }
+}
+
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
   { value: "USD", label: "دولار", symbol: "$" },
