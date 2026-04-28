@@ -630,8 +630,40 @@ export default function HRAttendancePage() {
   };
 
   // ------------------ Exports ------------------
-  const exportExcel = (kind: "daily" | "late" | "absent" | "incomplete" = "daily") => {
-    const rows = enriched.filter(x => {
+  // Reports filters
+  const [reportFromDate, setReportFromDate] = useState(selectedDate);
+  const [reportToDate, setReportToDate] = useState(selectedDate);
+  const [reportBranch, setReportBranch] = useState<string>("all");
+  const [reportDepartment, setReportDepartment] = useState<string>("all");
+
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach(e => { if (e.department) set.add(e.department); });
+    return Array.from(set).sort();
+  }, [employees]);
+
+  const exportExcel = async (kind: "daily" | "late" | "absent" | "incomplete" = "daily", useReportFilters = false) => {
+    let workingRows: { row: AttendanceRecord; issue: { text: string; severity: string; lateMin: number }; dayType: DayType }[] = [];
+    if (useReportFilters) {
+      // Fetch range from DB
+      const { data: att } = await supabase
+        .from("attendance_days")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .gte("attendance_date", reportFromDate)
+        .lte("attendance_date", reportToDate)
+        .order("attendance_date", { ascending: true });
+      let rows = (att as any[]) || [];
+      if (reportBranch !== "all") rows = rows.filter(r => r.branch_id === reportBranch);
+      if (reportDepartment !== "all") rows = rows.filter(r => r.employees?.department === reportDepartment);
+      workingRows = rows.map((r: AttendanceRecord) => {
+        const emp = empById.get(r.employee_id);
+        const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+        return { row: r, issue: computeIssue(r, dt), dayType: dt };
+      });
+    } else {
+      workingRows = enriched as any;
+    }
+    const rows = workingRows.filter(x => {
       if (kind === "late") return x.row.status === "late" || x.issue.lateMin >= 5;
       if (kind === "absent") return x.row.status === "absent";
       if (kind === "incomplete") return (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent");
@@ -660,7 +692,8 @@ export default function HRAttendancePage() {
       const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       setNextExportBranding({ title: sheetName });
-      XLSX.writeFile(wb, `${sheetName}_${selectedDate}.xlsx`);
+      const fname = useReportFilters ? `${sheetName}_${reportFromDate}_${reportToDate}.xlsx` : `${sheetName}_${selectedDate}.xlsx`;
+      XLSX.writeFile(wb, fname);
     });
   };
 
