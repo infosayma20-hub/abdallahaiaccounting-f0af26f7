@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHrCommandCenter } from "@/hooks/hr/useHrCommandCenter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -21,17 +20,19 @@ import {
   Receipt,
   HandCoins,
   TrendingUp,
-  Building2,
-  CalendarDays,
-  CalculatorIcon,
   BarChart3,
   AlertCircle,
+  Briefcase,
+  CalendarClock,
+  Banknote,
+  ClipboardList,
 } from "lucide-react";
 import { HrKpiCard } from "./components/HrKpiCard";
 import { HrRiskPanel } from "./components/HrRiskPanel";
 import { HrAttendanceToday } from "./components/HrAttendanceToday";
 import { HrRequestsPanel } from "./components/HrRequestsPanel";
 import { HrCharts } from "./components/HrCharts";
+import { HrSectionCard } from "./components/HrSectionCard";
 
 const fmtShort = (v: number) => {
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
@@ -83,6 +84,7 @@ export default function HrCommandCenter() {
   }
 
   const { totals, employees, filters, pendingRequests, charts } = data;
+  const pendingCount = pendingRequests.leaves.length + pendingRequests.forms.length;
 
   return (
     <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-5" dir="rtl">
@@ -90,10 +92,10 @@ export default function HrCommandCenter() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="text-right">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            مركز قيادة الموارد البشرية
+            الموارد البشرية
           </h1>
           <p className="text-sm text-muted-foreground">
-            رؤية تنفيذية شاملة للموظفين والتكاليف والمخاطر
+            كل شيء في مكان واحد — تعريفات، حضور، طلبات، ورواتب
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -123,6 +125,65 @@ export default function HrCommandCenter() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* SECTION HUB — 4 main areas */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2 text-right">
+          الأقسام الرئيسية
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <HrSectionCard
+            title="التعريفات الأساسية"
+            subtitle="الموظفون والأقسام والفروع"
+            Icon={Briefcase}
+            tone="indigo"
+            badge={totals.active}
+            actions={[
+              { label: "قائمة الموظفين", to: "/employees", count: totals.total },
+              { label: "إعدادات الموارد البشرية", to: "/hr/settings" },
+              { label: "إدارة الفروع", to: "/settings?tab=branches" },
+            ]}
+          />
+          <HrSectionCard
+            title="الوقت والحضور"
+            subtitle="ورديات، بصمات، إجازات رسمية"
+            Icon={CalendarClock}
+            tone="amber"
+            badge={`${Math.round(totals.avgAttendanceRate * 100)}%`}
+            actions={[
+              { label: "لوحة الحضور اليومية", to: "/hr-attendance" },
+              { label: "طلبات تصحيح البصمة", to: "/hr-attendance?tab=corrections" },
+              { label: "إعدادات الورديات", to: "/hr/settings?tab=shifts" },
+            ]}
+          />
+          <HrSectionCard
+            title="الطلبات والحركات"
+            subtitle="إجازات، سلف، خصومات، علاوات"
+            Icon={ClipboardList}
+            tone="emerald"
+            badge={pendingCount > 0 ? pendingCount : null}
+            actions={[
+              { label: "الإجازات", to: "/leaves", count: pendingRequests.leaves.length },
+              { label: "السلف والقروض", to: "/loans" },
+              { label: "الخصومات والعلاوات", to: "/hr-deductions" },
+              { label: "نماذج الموظفين", to: "/employee-forms-management", count: pendingRequests.forms.length },
+            ]}
+          />
+          <HrSectionCard
+            title="الرواتب والمالية"
+            subtitle="مدخلات، احتساب، صرف، تقارير"
+            Icon={Banknote}
+            tone="rose"
+            badge={totals.totalPayrollThisMonth > 0 ? `₪${fmtShort(totals.totalPayrollThisMonth)}` : null}
+            actions={[
+              { label: "تشغيل الرواتب الشهرية", to: "/payroll" },
+              { label: "مدخلات الراتب الشهري", to: "/payroll/inputs" },
+              { label: "إعدادات الرواتب", to: "/payroll-settings" },
+              { label: "تقرير تكلفة الموظفين", to: "/reports/hr-staff-cost" },
+            ]}
+          />
         </div>
       </div>
 
@@ -166,10 +227,10 @@ export default function HrCommandCenter() {
         />
         <HrKpiCard
           label="طلبات معلقة"
-          value={fmtShort(pendingRequests.leaves.length + pendingRequests.forms.length)}
+          value={fmtShort(pendingCount)}
           hint={`${pendingRequests.leaves.length} إجازات · ${pendingRequests.forms.length} نماذج`}
           Icon={FileText}
-          tone={pendingRequests.leaves.length + pendingRequests.forms.length > 0 ? "warning" : "neutral"}
+          tone={pendingCount > 0 ? "warning" : "neutral"}
         />
       </div>
 
@@ -213,39 +274,11 @@ export default function HrCommandCenter() {
       </div>
 
       {/* Requests + Quick Access */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <HrRequestsPanel
-            pendingRequests={pendingRequests}
-            employees={employees.map((e) => ({ id: e.id, name: e.name }))}
-          />
-        </div>
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <h3 className="text-sm font-semibold text-right mb-3">الوصول السريع</h3>
-            <QuickButton Icon={Users} label="قائمة الموظفين" onClick={() => navigate("/employees")} />
-            <QuickButton
-              Icon={CalculatorIcon}
-              label="تشغيل الرواتب"
-              onClick={() => navigate("/payroll")}
-              variant="default"
-            />
-            <QuickButton
-              Icon={Clock}
-              label="لوحة الحضور"
-              onClick={() => navigate("/hr-attendance")}
-            />
-            <QuickButton Icon={CalendarDays} label="إدارة الإجازات" onClick={() => navigate("/leaves")} />
-            <QuickButton Icon={HandCoins} label="القروض" onClick={() => navigate("/loans")} />
-            <QuickButton Icon={Receipt} label="الخصومات" onClick={() => navigate("/hr-deductions")} />
-            <QuickButton Icon={FileText} label="نماذج الموظفين" onClick={() => navigate("/employee-forms-management")} />
-            <QuickButton
-              Icon={Building2}
-              label="مدخلات الراتب الشهرية"
-              onClick={() => navigate("/payroll/inputs")}
-            />
-          </CardContent>
-        </Card>
+      <div>
+        <HrRequestsPanel
+          pendingRequests={pendingRequests}
+          employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+        />
       </div>
 
       {/* CHARTS */}
@@ -257,29 +290,5 @@ export default function HrCommandCenter() {
         <HrCharts charts={charts} />
       </div>
     </div>
-  );
-}
-
-function QuickButton({
-  Icon,
-  label,
-  onClick,
-  variant = "outline",
-}: {
-  Icon: typeof Users;
-  label: string;
-  onClick: () => void;
-  variant?: "outline" | "default";
-}) {
-  return (
-    <Button
-      variant={variant}
-      size="sm"
-      className="w-full justify-between gap-2 h-9"
-      onClick={onClick}
-    >
-      <span className="text-xs">{label}</span>
-      <Icon className="h-4 w-4" />
-    </Button>
   );
 }
