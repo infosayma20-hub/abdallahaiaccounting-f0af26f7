@@ -1319,6 +1319,41 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           broadcastChange("payment_voucher", "updated", editId);
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+
+          // B3.4: refresh sub-ledger mirror for this voucher (delete & recreate).
+          // Only mirrors employee payment vouchers; other voucher types are untouched.
+          await supabase
+            .from("employee_financial_movements")
+            .delete()
+            .eq("source_id", editId)
+            .eq("source_type", "finance_manual");
+          if (isEmployeePaymentEdit && selectedEmployee) {
+            const subCat = mapEmpCategoryToSubLedger(empCategory);
+            if (subCat) {
+              const refNum = refNumber || `PV-${editId.slice(0, 8)}`;
+              const customLabel = empCategory === "أخرى" && empCategoryCustom ? empCategoryCustom : empCategory;
+              const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+              const d = new Date(paymentDate);
+              await supabase.from("employee_financial_movements").insert({
+                user_id: user.id,
+                employee_id: selectedEmployee.id,
+                source_type: "finance_manual",
+                source_id: editId,
+                source_reference: refNum,
+                reference_number: refNum,
+                category: subCat,
+                description: `سند صرف ${customLabel} - ${selectedEmployee.full_name}${violNote}`,
+                amount: amountInILS,
+                movement_type: "debit",
+                status: "approved",
+                movement_date: paymentDate,
+                salary_month: d.getMonth() + 1,
+                salary_year: d.getFullYear(),
+                created_by: user.id,
+                notes: notes || null,
+              } as any);
+            }
+          }
         }
         navigate(listPath);
         return;
