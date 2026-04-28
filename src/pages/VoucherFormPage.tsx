@@ -107,6 +107,23 @@ const EMP_TRANSACTION_CATEGORIES = [
   { value: "أخرى", label: "أخرى", emoji: "📝" },
 ];
 
+// B3.4: Map the Arabic empCategory chosen on the voucher form to the
+// employee_financial_movements.category enum (B3.1).
+// "رواتب" is excluded — payroll postings are out of scope for B3.x.
+function mapEmpCategoryToSubLedger(empCategory: string): string | null {
+  switch (empCategory) {
+    case "سلفة":     return "advance";
+    case "أكل":      return "food";
+    case "عجز":      return "cash_shortage";
+    case "مشتريات":  return "purchase";
+    case "توصيل":    return "transport";
+    case "مخالفة":   return "penalty";
+    case "أخرى":     return "other";
+    case "رواتب":    return null; // do not mirror salary payments here
+    default:          return "other";
+  }
+}
+
 const CURRENCIES = [
   { value: "ILS", label: "شيكل", symbol: "₪" },
   { value: "USD", label: "دولار", symbol: "$" },
@@ -1302,6 +1319,41 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           broadcastChange("payment_voucher", "updated", editId);
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+
+          // B3.4: refresh sub-ledger mirror for this voucher (delete & recreate).
+          // Only mirrors employee payment vouchers; other voucher types are untouched.
+          await supabase
+            .from("employee_financial_movements")
+            .delete()
+            .eq("source_id", editId)
+            .eq("source_type", "finance_manual");
+          if (isEmployeePaymentEdit && selectedEmployee) {
+            const subCat = mapEmpCategoryToSubLedger(empCategory);
+            if (subCat) {
+              const refNum = refNumber || `PV-${editId.slice(0, 8)}`;
+              const customLabel = empCategory === "أخرى" && empCategoryCustom ? empCategoryCustom : empCategory;
+              const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+              const d = new Date(paymentDate);
+              await supabase.from("employee_financial_movements").insert({
+                user_id: user.id,
+                employee_id: selectedEmployee.id,
+                source_type: "finance_manual",
+                source_id: editId,
+                source_reference: refNum,
+                reference_number: refNum,
+                category: subCat,
+                description: `سند صرف ${customLabel} - ${selectedEmployee.full_name}${violNote}`,
+                amount: amountInILS,
+                movement_type: "debit",
+                status: "approved",
+                movement_date: paymentDate,
+                salary_month: d.getMonth() + 1,
+                salary_year: d.getFullYear(),
+                created_by: user.id,
+                notes: notes || null,
+              } as any);
+            }
+          }
         }
         navigate(listPath);
         return;
@@ -1575,6 +1627,45 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         // Update transaction reference with voucher ref number
         if (txId && voucher?.ref_number) {
           await supabase.from("transactions").update({ reference: voucher.ref_number }).eq("id", txId);
+        }
+
+        // B3.4: mirror employee payment voucher into employee_financial_movements.
+        // Posting (transactions row) is unchanged — this is read-only mirroring
+        // for the Sub-Ledger / Payroll Preview.
+        if (isEmpPay && selectedEmployee && !asDraft && voucher?.id) {
+          const subCat = mapEmpCategoryToSubLedger(empCategory);
+          if (subCat) {
+            const refNum = voucher.ref_number || `PV-${voucher.id.slice(0, 8)}`;
+            const customLabel = empCategory === "أخرى" && empCategoryCustom ? empCategoryCustom : empCategory;
+            const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+            // Payment voucher to employee = debit on the employee (he owes / received cash)
+            const movementType: "debit" | "credit" = "debit";
+            const movDate = paymentDate;
+            const d = new Date(movDate);
+            const subLedgerErr = await supabase
+              .from("employee_financial_movements")
+              .insert({
+                user_id: user.id,
+                employee_id: selectedEmployee.id,
+                source_type: "finance_manual",
+                source_id: voucher.id,
+                source_reference: refNum,
+                reference_number: refNum,
+                category: subCat,
+                description: `سند صرف ${customLabel} - ${selectedEmployee.full_name}${violNote}`,
+                amount: amountInILS,
+                movement_type: movementType,
+                status: "approved",
+                movement_date: movDate,
+                salary_month: d.getMonth() + 1,
+                salary_year: d.getFullYear(),
+                created_by: user.id,
+                notes: notes || null,
+              } as any);
+            if (subLedgerErr.error) {
+              console.warn("[B3.4] sub-ledger mirror failed:", subLedgerErr.error.message);
+            }
+          }
         }
 
         if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
@@ -2069,6 +2160,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       setEditVoucherStatus("cancelled");
       setShowCancelModal(false);
       broadcastChange(isReceipt ? "receipt_voucher" : "payment_voucher", "deleted", editId);
+
+      // B3.4: remove the sub-ledger mirror so cancelled vouchers do not
+      // skew Payroll Preview / Employee 360 totals.
+      await supabase
+        .from("employee_financial_movements")
+        .delete()
+        .eq("source_id", editId)
+        .eq("source_type", "finance_manual");
+
       toast.success(`تم إلغاء ${voucherLabel} بنجاح وعكس القيود المرتبطة ✅`);
     } catch (err: any) {
       toast.error(err.message || "فشل إلغاء السند");
