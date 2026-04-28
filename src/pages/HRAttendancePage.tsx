@@ -1344,6 +1344,17 @@ export default function HRAttendancePage() {
         </DialogContent>
       </Dialog>
 
+      {/* HR Message / Penalty Dialog */}
+      <SendHRMessageDialog
+        open={hrMsgOpen}
+        onOpenChange={setHrMsgOpen}
+        authUserId={user?.id || ""}
+        targets={hrMsgTargets}
+        defaultType={hrMsgDefaultType}
+        canIssuePenalty={canIssuePenalty}
+        onSent={() => { fetchData(); clearSelection(); }}
+      />
+
       {/* Bulk Inquiry */}
       <Dialog open={bulkInquiryOpen} onOpenChange={(o) => { if (!bulkInquirySending) setBulkInquiryOpen(o); }}>
         <DialogContent dir="rtl" className="max-w-2xl">
