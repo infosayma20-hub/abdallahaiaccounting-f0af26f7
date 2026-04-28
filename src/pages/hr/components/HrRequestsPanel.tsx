@@ -25,11 +25,21 @@ export function HrRequestsPanel({ pendingRequests, employees }: Props) {
   const empName = (id: string) => employees.find((e) => e.id === id)?.name || "—";
 
   const review = async (
-    table: "leave_requests" | "employee_forms",
+    table: "employee_leaves" | "employee_forms",
     id: string,
     status: "approved" | "rejected",
   ) => {
-    const arabicStatus = status === "approved" ? "معتمد" : "مرفوض";
+    // ✅ Match the Arabic statuses used in LeavesPage / EmployeeLeavesTab
+    // employee_leaves: "موافقة" | "مرفوضة" (LeavesPage standard)
+    // employee_forms : "معتمد"  | "مرفوض"
+    const arabicStatus =
+      table === "employee_leaves"
+        ? status === "approved"
+          ? "موافقة"
+          : "مرفوضة"
+        : status === "approved"
+          ? "معتمد"
+          : "مرفوض";
     const { error } = await (supabase as any)
       .from(table)
       .update({ status: arabicStatus, reviewed_at: new Date().toISOString() })
@@ -43,6 +53,8 @@ export function HrRequestsPanel({ pendingRequests, employees }: Props) {
       description: "تم تحديث حالة الطلب بنجاح",
     });
     qc.invalidateQueries({ queryKey: ["hr-command-center"] });
+    qc.invalidateQueries({ queryKey: ["leaves-all-records"] });
+    qc.invalidateQueries({ queryKey: ["employee-360"] });
   };
 
   return (
@@ -82,7 +94,7 @@ export function HrRequestsPanel({ pendingRequests, employees }: Props) {
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 text-emerald-600 hover:bg-emerald-500/10"
-                        onClick={() => review("leave_requests", r.id, "approved")}
+                        onClick={() => review("employee_leaves", r.id, "approved")}
                       >
                         <Check className="h-4 w-4" />
                       </Button>
@@ -90,7 +102,7 @@ export function HrRequestsPanel({ pendingRequests, employees }: Props) {
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 text-rose-600 hover:bg-rose-500/10"
-                        onClick={() => review("leave_requests", r.id, "rejected")}
+                        onClick={() => review("employee_leaves", r.id, "rejected")}
                       >
                         <X className="h-4 w-4" />
                       </Button>
