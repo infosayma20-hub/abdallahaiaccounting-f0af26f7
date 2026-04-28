@@ -95,6 +95,8 @@ export default function HrDayTypesPage() {
   const [seeding, setSeeding] = useState(false);
   const [dayTypes, setDayTypes] = useState<DayType[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [workWeek, setWorkWeek] = useState<WorkWeekConfig | null>(null);
+  const [savingWW, setSavingWW] = useState(false);
 
   // Day type editor
   const [editing, setEditing] = useState<DayType | null>(null);
@@ -106,12 +108,26 @@ export default function HrDayTypesPage() {
   const fetchAll = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: dt }, { data: hh }] = await Promise.all([
+    const [{ data: dt }, { data: hh }, { data: ww }] = await Promise.all([
       supabase.from("hr_day_types").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }),
       supabase.from("official_holidays").select("*").eq("user_id", user.id).order("holiday_date", { ascending: true }),
+      supabase.from("hr_work_week_config").select("*").eq("user_id", user.id).maybeSingle(),
     ]);
     setDayTypes((dt as DayType[]) || []);
     setHolidays((hh as Holiday[]) || []);
+
+    // Lazy-init work week config if missing
+    if (!ww) {
+      const { data: created } = await supabase
+        .from("hr_work_week_config")
+        .insert({ user_id: user.id } as any)
+        .select()
+        .single();
+      setWorkWeek(created as WorkWeekConfig);
+    } else {
+      setWorkWeek(ww as WorkWeekConfig);
+    }
+
     setLoading(false);
 
     // Auto-seed defaults if empty
