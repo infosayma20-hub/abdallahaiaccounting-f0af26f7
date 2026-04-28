@@ -44,6 +44,8 @@ type EmployeeLite = {
   shift_end: string | null;
   is_active: boolean;
   is_terminated: boolean | null;
+  work_days_per_week: number | null;
+  start_date: string | null;
 };
 
 type AttendanceRecord = {
@@ -71,6 +73,45 @@ type CorrectionReq = {
   created_at: string;
   employees?: { full_name: string };
 };
+
+type LeaveRow = { employee_id: string; start_date: string; end_date: string; leave_type: string };
+type HolidayRow = { holiday_date: string | null; name: string; is_recurring: boolean | null; recurring_month: number | null; recurring_day: number | null };
+
+// Day type for a given date for a given employee
+type DayType = "working" | "weekly_off" | "holiday" | "leave";
+
+// Determine if employee works on a given JS day-of-week (0=Sun..6=Sat)
+// Standard PS workweek: Sun-Thu (5d), Sat-Thu (6d), all 7 = (7d). Friday is the canonical weekly off in PS.
+function isWorkingDay(dow: number, workDaysPerWeek: number | null | undefined): boolean {
+  const wpw = workDaysPerWeek ?? 6;
+  if (wpw >= 7) return true;
+  if (wpw === 6) return dow !== 5; // Fri off
+  if (wpw === 5) return dow !== 5 && dow !== 6; // Fri+Sat off
+  if (wpw === 4) return dow >= 0 && dow <= 3; // Sun-Wed
+  return dow !== 5;
+}
+
+function getDayType(
+  date: string,
+  emp: { id: string; work_days_per_week: number | null; start_date: string | null },
+  holidays: HolidayRow[],
+  leaves: LeaveRow[],
+): DayType {
+  const d = new Date(date + "T00:00:00");
+  // Holiday?
+  const m = d.getMonth() + 1, day = d.getDate();
+  const isHoliday = holidays.some(h =>
+    (h.holiday_date && h.holiday_date === date) ||
+    (h.is_recurring && h.recurring_month === m && h.recurring_day === day)
+  );
+  if (isHoliday) return "holiday";
+  // Leave?
+  const onLeave = leaves.some(l => l.employee_id === emp.id && date >= l.start_date && date <= l.end_date);
+  if (onLeave) return "leave";
+  // Weekly off?
+  if (!isWorkingDay(d.getDay(), emp.work_days_per_week)) return "weekly_off";
+  return "working";
+}
 
 type RowFilter = "all" | "issues" | "present" | "late" | "absent" | "incomplete" | "missing_checkin" | "missing_checkout";
 
@@ -102,8 +143,11 @@ const rowAccentClass = (s: string) => {
   }
 };
 
-// Compute issue text + late minutes
-function computeIssue(r: AttendanceRecord): { text: string; severity: "ok" | "warn" | "err"; lateMin: number } {
+// Compute issue text + late minutes — Logic-driven, day-type-aware
+function computeIssue(
+  r: AttendanceRecord,
+  dayType: DayType = "working",
+): { text: string; severity: "ok" | "warn" | "err"; lateMin: number } {
   const shiftStart = r.employees?.shift_start;
   let lateMin = 0;
   if (r.first_check_in && shiftStart) {
@@ -113,6 +157,11 @@ function computeIssue(r: AttendanceRecord): { text: string; severity: "ok" | "wa
     exp.setHours(h || 0, m || 0, 0, 0);
     lateMin = Math.max(0, Math.round((ci.getTime() - exp.getTime()) / 60000));
   }
+  // Non-working days never count as issues
+  if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
+  if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
+  if (dayType === "weekly_off") return { text: "يوم عطلة أسبوعية", severity: "ok", lateMin: 0 };
+
   if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
   if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
   if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin };
