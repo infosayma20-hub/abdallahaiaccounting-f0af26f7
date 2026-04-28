@@ -292,6 +292,19 @@ export default function HRAttendancePage() {
         .lte("start_date", selectedDate)
         .gte("end_date", selectedDate);
       setLeaves((lv as LeaveRow[]) || []);
+
+      // Work week config (per-company weekly off days)
+      const { data: ww } = await supabase
+        .from("hr_work_week_config")
+        .select("weekly_off_days")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (ww?.weekly_off_days && Array.isArray(ww.weekly_off_days) && ww.weekly_off_days.length > 0) {
+        setWeeklyOffDays(ww.weekly_off_days as number[]);
+      } else {
+        setWeeklyOffDays([5]); // fallback: Friday
+      }
+
       setLastRefreshAt(new Date());
     } catch (e) {
       console.error(e);
