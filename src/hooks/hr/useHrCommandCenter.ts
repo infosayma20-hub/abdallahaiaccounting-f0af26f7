@@ -138,7 +138,7 @@ export function useHrCommandCenter(filters?: {
           .limit(100),
         supabase
           .from("employee_forms")
-          .select("id, employee_id, form_type, status, created_at, review_notes")
+          .select("id, employee_id, form_type, status, created_at, review_notes, form_data, attachment_url")
           .order("created_at", { ascending: false })
           .limit(100),
       ]);
