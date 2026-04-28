@@ -1026,7 +1026,14 @@ export default function HRAttendancePage() {
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
-          <Button variant={isLocked ? "destructive" : "outline"} size="sm" onClick={toggleLockDay} className="gap-1">
+          <Button
+            variant={isLocked ? "destructive" : "outline"}
+            size="sm"
+            onClick={openLockDialog}
+            disabled={!canManageLock}
+            title={!canManageLock ? "متاح فقط لمدير الموارد البشرية أو الأدمن" : (isLocked ? `مقفل: ${dayLock?.reason || "—"}` : "إغلاق اليوم لمنع التعديلات")}
+            className="gap-1"
+          >
             {isLocked ? <><Unlock className="h-4 w-4" /> فتح اليوم</> : <><Lock className="h-4 w-4" /> إغلاق اليوم</>}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1"><Building2 className="h-4 w-4" /> إضافة فرع</Button>
