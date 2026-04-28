@@ -338,6 +338,7 @@ export default function HRAttendancePage() {
   const [lockDialogMode, setLockDialogMode] = useState<"lock" | "unlock">("lock");
   const [lockReasonInput, setLockReasonInput] = useState("");
   const [lockBusy, setLockBusy] = useState(false);
+  const [lockAcknowledged, setLockAcknowledged] = useState(false);
 
   const fetchDayLock = useCallback(async () => {
     if (!user || !selectedDate) { setDayLock(null); return; }
@@ -372,6 +373,7 @@ export default function HRAttendancePage() {
     }
     setLockDialogMode(isLocked ? "unlock" : "lock");
     setLockReasonInput("");
+    setLockAcknowledged(false);
     setLockDialogOpen(true);
   };
 
@@ -379,6 +381,13 @@ export default function HRAttendancePage() {
     if (!user) return;
     if (lockDialogMode === "unlock" && !lockReasonInput.trim()) {
       toast({ title: "السبب مطلوب", description: "الرجاء كتابة سبب فتح اليوم.", variant: "destructive" });
+      return;
+    }
+    // Premature lock guard: today or future
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isPremature = lockDialogMode === "lock" && selectedDate >= todayStr;
+    if (isPremature && !lockAcknowledged) {
+      toast({ title: "يرجى تأكيد الإقرار", description: "اليوم لم ينتهِ بعد. أكّد الإقرار قبل المتابعة.", variant: "destructive" });
       return;
     }
     setLockBusy(true);
