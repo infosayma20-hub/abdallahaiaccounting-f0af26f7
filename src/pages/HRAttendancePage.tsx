@@ -316,6 +316,42 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Fetch user roles for permission gating
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      setUserRoles((data || []).map((r: any) => r.role));
+    });
+  }, [user]);
+
+  const openHRMessageFor = (r: AttendanceRecord, type: "info" | "penalty" | "warning" | "inquiry" = "info") => {
+    setHrMsgTargets([{
+      employee_id: r.employee_id,
+      employee_name: r.employees?.full_name,
+      attendance_date: r.attendance_date,
+    }]);
+    setHrMsgDefaultType(type);
+    setHrMsgOpen(true);
+  };
+
+  const openBulkPenalty = () => {
+    const ids = Array.from(selected);
+    const all = enriched.filter(x => ids.includes(x.row.id));
+    if (all.length === 0) { toast({ title: "لم يتم اختيار موظفين" }); return; }
+    if (!canIssuePenalty) {
+      toast({ title: "غير مسموح", description: "صلاحية الإجراء العقابي لـ admin / hr_manager فقط", variant: "destructive" });
+      return;
+    }
+    setHrMsgTargets(all.map(x => ({
+      employee_id: x.row.employee_id,
+      employee_name: x.row.employees?.full_name,
+      attendance_date: x.row.attendance_date,
+      default_subject: x.issue.text !== "—" ? x.issue.text : undefined,
+    })));
+    setHrMsgDefaultType("penalty");
+    setHrMsgOpen(true);
+  };
+
   // Synthesize "absent/off rows" for active employees with no record on this date.
   // Employees on leave / holiday / weekly off get a synthetic row with the right status (NOT absent).
   const allRows = useMemo(() => {
