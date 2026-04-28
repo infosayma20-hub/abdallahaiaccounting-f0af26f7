@@ -23,6 +23,8 @@ import {
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
+import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
+import { Shield } from "lucide-react";
 
 type Branch = {
   id: string;
@@ -237,6 +239,13 @@ export default function HRAttendancePage() {
   const [bulkInquiryMessage, setBulkInquiryMessage] = useState("");
   const [bulkInquiryTargets, setBulkInquiryTargets] = useState<{ employee_id: string; employee_name?: string; attendance_date: string; issueText: string }[]>([]);
   const [bulkInquirySending, setBulkInquirySending] = useState(false);
+
+  // HR Message / Penalty
+  const [hrMsgOpen, setHrMsgOpen] = useState(false);
+  const [hrMsgTargets, setHrMsgTargets] = useState<SendTarget[]>([]);
+  const [hrMsgDefaultType, setHrMsgDefaultType] = useState<"info" | "penalty" | "warning" | "inquiry">("info");
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const canIssuePenalty = userRoles.includes("admin") || userRoles.includes("hr_manager");
 
   // Day lock (UI-level via localStorage; future: DB-level period lock)
   const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
