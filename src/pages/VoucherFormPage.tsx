@@ -2160,6 +2160,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       setEditVoucherStatus("cancelled");
       setShowCancelModal(false);
       broadcastChange(isReceipt ? "receipt_voucher" : "payment_voucher", "deleted", editId);
+
+      // B3.4: remove the sub-ledger mirror so cancelled vouchers do not
+      // skew Payroll Preview / Employee 360 totals.
+      await supabase
+        .from("employee_financial_movements")
+        .delete()
+        .eq("source_id", editId)
+        .eq("source_type", "finance_manual");
+
       toast.success(`تم إلغاء ${voucherLabel} بنجاح وعكس القيود المرتبطة ✅`);
     } catch (err: any) {
       toast.error(err.message || "فشل إلغاء السند");
