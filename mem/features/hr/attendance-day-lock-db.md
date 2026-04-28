@@ -34,3 +34,10 @@ type: feature
 
 ## Coverage with EmployeeApp / zkteco
 - `attendance_events` trigger is universal — bsamat from EmployeeApp or zkteco-bridge for a locked date will be rejected with the same Arabic error. This is intentional: lock means the day is sealed.
+
+## Premature lock guard (UI) + Employee-friendly error
+- Trigger on `attendance_events` raises Arabic message: "تم إغلاق يوم YYYY-MM-DD من قبل الإدارة. لا يمكن تسجيل البصمة. الرجاء التواصل مع المدير لفتح اليوم."
+- Edge function `attendance` propagates trigger's `err.message` verbatim to the response, so EmployeeApp toast is human-readable.
+- When manager tries to lock today or a future date, dialog shows a yellow AlertTriangle warning explaining: employees can't check in, ZKTeco blocked, no correction requests.
+- Mandatory acknowledgement checkbox for today/future: "أُقرّ بأنني فهمت أن الموظفين لن يتمكنوا من البصمة، وأن الدوام انتهى فعلاً". Lock button stays disabled until checked.
+- Past dates: clean flow without the warning.
