@@ -929,7 +929,7 @@ export default function HRAttendancePage() {
               <div className="ms-auto flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline" className="gap-1" onClick={bulkRecalc} disabled={isLocked}><Calculator className="h-3.5 w-3.5" /> إعادة حساب</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => setBulkNoteOpen(true)} disabled={isLocked}><MessageSquare className="h-3.5 w-3.5" /> ملاحظة جماعية</Button>
-                <Button size="sm" variant="outline" className="gap-1" onClick={bulkSendInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={openBulkInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
                 <Button size="sm" variant="ghost" onClick={clearSelection}><X className="h-3.5 w-3.5" /> إلغاء</Button>
               </div>
             </div>
