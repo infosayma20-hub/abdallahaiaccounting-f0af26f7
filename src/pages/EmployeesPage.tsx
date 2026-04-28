@@ -1021,6 +1021,23 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
             <div>
+              <label className="text-xs text-muted-foreground">القسم (اختياري)</label>
+              <Select
+                value={form.department_id || "_none"}
+                onValueChange={(v) => {
+                  const id = v === "_none" ? null : v;
+                  const label = id ? (departmentsList.find((d) => d.id === id)?.name || form.department || "") : (form.department || "");
+                  setForm({ ...form, department_id: id, department: label });
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">بدون</SelectItem>
+                  {departmentsList.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground">الفرع</label>
               <Select value={form.branch_id || "_none"} onValueChange={v => setForm({ ...form, branch_id: v === "_none" ? undefined : v })}>
                 <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
