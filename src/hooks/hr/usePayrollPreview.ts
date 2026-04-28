@@ -277,6 +277,32 @@ export function usePayrollPreview(
         locks.filter((l: any) => l.status === "locked").map((l: any) => l.attendance_date),
       );
 
+      // --- Build transaction lookup for cross-linking financial movements → voucher numbers ---
+      const txList = (txRes.data as any[]) || [];
+      const txById = new Map<string, any>();
+      for (const t of txList) txById.set(t.id, t);
+      const txTypeLabel = (t: any) => {
+        const k = String(t.transaction_type || "").toLowerCase();
+        if (k === "payment") return `سند صرف ${t.transaction_number || ""}`.trim();
+        if (k === "receipt") return `سند قبض ${t.transaction_number || ""}`.trim();
+        return `${t.transaction_number || "سند"}`.trim();
+      };
+
+      // --- Previous balance from previous month (carry-forward debt) ---
+      // We read employee_financial_movements before period start to compute net carry.
+      const { data: priorMoves } = await supabase
+        .from("employee_financial_movements")
+        .select("amount, movement_type, movement_date, description, source_reference")
+        .eq("employee_id", employeeId)
+        .lt("movement_date", start)
+        .order("movement_date", { ascending: false })
+        .limit(500);
+      let priorBalance = 0; // positive = owed BY employee
+      for (const m of priorMoves || []) {
+        const sign = String(m.movement_type || "").toLowerCase() === "debit" ? 1 : -1;
+        priorBalance += sign * num(m.amount);
+      }
+
       // Period day list (every date in month) → open vs locked
       const allDates: string[] = [];
       for (let d = 1; d <= daysInMonth; d++) {
