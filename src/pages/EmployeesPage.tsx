@@ -230,6 +230,16 @@ const EmployeesPage = () => {
     setBranchesList((data as Branch[]) || []);
   };
 
+  const fetchDefinitions = async () => {
+    if (!user) return;
+    const [dRes, jRes] = await Promise.all([
+      supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
+    ]);
+    setDepartmentsList(((dRes.data as any[]) || []).map((d) => ({ id: d.id, name: d.name_ar || d.name })));
+    setJobTitlesList(((jRes.data as any[]) || []).map((j) => ({ id: j.id, name: j.name_ar || j.name, department_id: j.department_id })));
+  };
+
   const handleAddBranch = async () => {
     if (!user || !newBranchName.trim()) return;
     const { error } = await supabase.from("branches").insert({
@@ -243,7 +253,7 @@ const EmployeesPage = () => {
     fetchBranches();
   };
 
-  useEffect(() => { fetchEmployees(); fetchBranches(); }, [user]);
+  useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user]);
 
   // Deep-link: open employee drawer + (optionally) create-account dialog
   // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
