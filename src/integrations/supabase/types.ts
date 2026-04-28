@@ -4656,9 +4656,12 @@ export type Database = {
         Row: {
           admin_allowance: number | null
           annual_allowance: number | null
+          approved_at: string | null
+          approved_by: string | null
           attendance_bonus: number | null
           attendance_salary: number | null
           base_salary: number
+          batch_id: string | null
           carry_over_balance: number | null
           company_id: string | null
           created_at: string
@@ -4690,7 +4693,11 @@ export type Database = {
           period_month: number
           period_year: number
           regular_hours: number | null
+          rejection_reason: string | null
           special_allowance: number | null
+          status: Database["public"]["Enums"]["payroll_status"]
+          submitted_at: string | null
+          submitted_by: string | null
           total_allowances: number
           total_deductions: number
           total_overtime: number
@@ -4701,9 +4708,12 @@ export type Database = {
         Insert: {
           admin_allowance?: number | null
           annual_allowance?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           attendance_bonus?: number | null
           attendance_salary?: number | null
           base_salary?: number
+          batch_id?: string | null
           carry_over_balance?: number | null
           company_id?: string | null
           created_at?: string
@@ -4735,7 +4745,11 @@ export type Database = {
           period_month: number
           period_year: number
           regular_hours?: number | null
+          rejection_reason?: string | null
           special_allowance?: number | null
+          status?: Database["public"]["Enums"]["payroll_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
           total_allowances?: number
           total_deductions?: number
           total_overtime?: number
@@ -4746,9 +4760,12 @@ export type Database = {
         Update: {
           admin_allowance?: number | null
           annual_allowance?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           attendance_bonus?: number | null
           attendance_salary?: number | null
           base_salary?: number
+          batch_id?: string | null
           carry_over_balance?: number | null
           company_id?: string | null
           created_at?: string
@@ -4780,7 +4797,11 @@ export type Database = {
           period_month?: number
           period_year?: number
           regular_hours?: number | null
+          rejection_reason?: string | null
           special_allowance?: number | null
+          status?: Database["public"]["Enums"]["payroll_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
           total_allowances?: number
           total_deductions?: number
           total_overtime?: number
@@ -7488,6 +7509,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payroll_batches: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          period_month: number
+          period_year: number
+          status: Database["public"]["Enums"]["payroll_status"]
+          submitted_at: string
+          submitted_by: string | null
+          total_employees: number
+          total_net_salary: number
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_month: number
+          period_year: number
+          status?: Database["public"]["Enums"]["payroll_status"]
+          submitted_at?: string
+          submitted_by?: string | null
+          total_employees?: number
+          total_net_salary?: number
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_month?: number
+          period_year?: number
+          status?: Database["public"]["Enums"]["payroll_status"]
+          submitted_at?: string
+          submitted_by?: string | null
+          total_employees?: number
+          total_net_salary?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       payroll_settings: {
         Row: {
@@ -15333,6 +15402,27 @@ export type Database = {
         }
         Returns: string
       }
+      payroll_approve_batch: {
+        Args: {
+          _approver: string
+          _month: number
+          _user_id: string
+          _year: number
+        }
+        Returns: Json
+      }
+      payroll_approve_employee: {
+        Args: { _approver: string; _payroll_id: string }
+        Returns: Json
+      }
+      payroll_reject_employee: {
+        Args: { _approver: string; _payroll_id: string; _reason: string }
+        Returns: Json
+      }
+      payroll_submit_employee: {
+        Args: { _payload: Json; _submitter: string }
+        Returns: Json
+      }
       post_import_shipment_atomic: {
         Args: { p_shipment_id: string; p_user_id: string }
         Returns: Json
@@ -15447,6 +15537,7 @@ export type Database = {
         | "lost"
         | "on_hold"
       crm_priority: "low" | "medium" | "high" | "urgent"
+      payroll_status: "submitted" | "approved" | "paid" | "cancelled"
       product_category:
         | "بضاعة عامة"
         | "مواد خام"
@@ -15640,6 +15731,7 @@ export const Constants = {
         "on_hold",
       ],
       crm_priority: ["low", "medium", "high", "urgent"],
+      payroll_status: ["submitted", "approved", "paid", "cancelled"],
       product_category: [
         "بضاعة عامة",
         "مواد خام",

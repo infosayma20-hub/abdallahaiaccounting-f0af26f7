@@ -8,6 +8,7 @@ import { AlertTriangle, ShieldAlert, Eye, EyeOff, Lock, Unlock, ExternalLink } f
 import { useNavigate } from "react-router-dom";
 import { usePayrollPreview, type PreviewLineItem } from "@/hooks/hr/usePayrollPreview";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "../HRTable";
+import { PayrollApprovalBar } from "../PayrollApprovalBar";
 
 interface Props {
   employeeId: string;
@@ -58,15 +59,37 @@ export function PayrollPreviewTab({ employeeId }: Props) {
   const monthOptions = arabicMonths.map((name, i) => ({ value: i + 1, label: name }));
   const yearOptions = [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1];
 
+  // Snapshot fed into the approval bar — null until preview is computed
+  const previewSnapshot = p
+    ? {
+        base_salary: Number(p.baseSalary || 0),
+        total_allowances: Number(p.totalAdditions || 0),
+        total_deductions: Number(p.totalDeductions || 0),
+        total_overtime: Number(p.totalAdditions || 0),
+        net_salary: Number(p.netEstimated || 0),
+        attendance_salary: Number(p.baseSalary || 0),
+        notes: null,
+      }
+    : null;
+
   return (
     <div className="space-y-4" dir="rtl">
       {/* Header banner — non-binding */}
       <Alert className="border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400 [&>svg]:text-amber-600">
         <ShieldAlert className="h-4 w-4" />
         <AlertDescription className="text-right text-sm font-medium">
-          هذه معاينة تقديرية فقط. لا يتم إنشاء قيود محاسبية، ولا تعديل سجلات الرواتب الفعلية (employee_payroll).
+          هذه معاينة تقديرية. لتحويلها إلى راتب رسمي اضغط <b>«تقديم للاعتماد»</b> ثم <b>«اعتماد»</b>.
+          لا يتم إنشاء قيود محاسبية في هذه المرحلة.
         </AlertDescription>
       </Alert>
+
+      {/* Approval workflow bar */}
+      <PayrollApprovalBar
+        employeeId={employeeId}
+        year={year}
+        month={month}
+        previewSnapshot={previewSnapshot}
+      />
 
       {/* Period selector */}
       <Card>
