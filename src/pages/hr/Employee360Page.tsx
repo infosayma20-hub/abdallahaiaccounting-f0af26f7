@@ -20,6 +20,7 @@ import { LoansTab } from "./components/tabs/LoansTab";
 import { DeductionsTab } from "./components/tabs/DeductionsTab";
 import { FormsTab } from "./components/tabs/FormsTab";
 import { DocumentsTab } from "./components/tabs/DocumentsTab";
+import { MessagesTab } from "./components/tabs/MessagesTab";
 
 export default function Employee360Page() {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +98,7 @@ export default function Employee360Page() {
             <TabsTrigger value="deductions">الخصومات</TabsTrigger>
             <TabsTrigger value="forms">الطلبات</TabsTrigger>
             <TabsTrigger value="documents">المستندات</TabsTrigger>
+            <TabsTrigger value="messages">الرسائل والإجراءات</TabsTrigger>
             <TabsTrigger value="timeline">السجل الزمني</TabsTrigger>
           </TabsList>
         </div>
@@ -124,6 +126,9 @@ export default function Employee360Page() {
         </TabsContent>
         <TabsContent value="documents" className="mt-0">
           <DocumentsTab data={data} />
+        </TabsContent>
+        <TabsContent value="messages" className="mt-0">
+          <MessagesTab data={data} />
         </TabsContent>
         <TabsContent value="timeline" className="mt-0">
           <EmployeeTimeline events={data.timeline} />
