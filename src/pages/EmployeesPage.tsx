@@ -18,7 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import SalesRepToggleSection from "@/components/employees/SalesRepToggleSection";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BackButton from "@/components/BackButton";
-import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
 import EmployeeFinancialMovementsTab from "@/components/hr/EmployeeFinancialMovementsTab";
 import EmployeeDeductionsTab from "@/components/hr/EmployeeDeductionsTab";
 import EmployeeLeavesTab from "@/components/hr/EmployeeLeavesTab";
