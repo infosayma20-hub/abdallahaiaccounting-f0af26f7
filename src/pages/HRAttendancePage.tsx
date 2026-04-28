@@ -220,6 +220,32 @@ export default function HRAttendancePage() {
   const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
 
+  // Day-type sources
+  const [holidays, setHolidays] = useState<HolidayRow[]>([]);
+  const [leaves, setLeaves] = useState<LeaveRow[]>([]);
+
+  // Indicator
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+
+  // Bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
+  const [bulkNote, setBulkNote] = useState("");
+
+  // Day lock (UI-level via localStorage; future: DB-level period lock)
+  const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
+  const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(lockKey) || "[]")); } catch { return new Set(); }
+  });
+  const isLocked = lockedDates.has(selectedDate);
+  const toggleLockDay = () => {
+    const next = new Set(lockedDates);
+    if (next.has(selectedDate)) next.delete(selectedDate); else next.add(selectedDate);
+    setLockedDates(next);
+    localStorage.setItem(lockKey, JSON.stringify(Array.from(next)));
+    toast({ title: next.has(selectedDate) ? "🔒 تم إغلاق اليوم" : "🔓 تم فتح اليوم" });
+  };
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -228,7 +254,7 @@ export default function HRAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
       const { data: emps } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated")
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated, work_days_per_week, start_date")
         .eq("user_id", user.id);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
@@ -249,6 +275,22 @@ export default function HRAttendancePage() {
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       setCorrections((corr as any) || []);
+
+      // Holidays + approved leaves covering selectedDate
+      const { data: hol } = await supabase
+        .from("official_holidays")
+        .select("holiday_date, name, is_recurring, recurring_month, recurring_day")
+        .eq("user_id", user.id);
+      setHolidays((hol as HolidayRow[]) || []);
+      const { data: lv } = await supabase
+        .from("employee_leaves")
+        .select("employee_id, start_date, end_date, leave_type")
+        .eq("user_id", user.id)
+        .eq("status", "approved")
+        .lte("start_date", selectedDate)
+        .gte("end_date", selectedDate);
+      setLeaves((lv as LeaveRow[]) || []);
+      setLastRefreshAt(new Date());
     } catch (e) {
       console.error(e);
     }
@@ -257,13 +299,21 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Synthesize "absent rows" for active employees with no record on this date
+  // Synthesize "absent/off rows" for active employees with no record on this date.
+  // Employees on leave / holiday / weekly off get a synthetic row with the right status (NOT absent).
   const allRows = useMemo(() => {
     const byEmp = new Map(records.map(r => [r.employee_id, r]));
-    const activeEmps = employees.filter(e => e.is_active && !e.is_terminated && (selectedBranch === "all" || e.branch_id === selectedBranch));
+    const activeEmps = employees.filter(e =>
+      e.is_active && !e.is_terminated &&
+      (selectedBranch === "all" || e.branch_id === selectedBranch) &&
+      (!e.start_date || e.start_date <= selectedDate)
+    );
     const synthetic: AttendanceRecord[] = activeEmps
       .filter(e => !byEmp.has(e.id))
-      .map(e => ({
+      .map(e => {
+        const dt = getDayType(selectedDate, e, holidays, leaves);
+        const status = dt === "holiday" ? "holiday" : dt === "leave" ? "leave" : dt === "weekly_off" ? "leave" : "absent";
+        return {
         id: `synthetic-${e.id}`,
         employee_id: e.id,
         attendance_date: selectedDate,
@@ -271,26 +321,35 @@ export default function HRAttendancePage() {
         last_check_out: null,
         total_hours: 0,
         overtime_hours: 0,
-        status: "absent",
+        status,
         branch_id: e.branch_id,
         notes: null,
         is_manually_adjusted: false,
         employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end },
-      }));
+        };
+      });
     return [...records, ...synthetic];
-  }, [records, employees, selectedBranch, selectedDate]);
+  }, [records, employees, selectedBranch, selectedDate, holidays, leaves]);
 
-  const enriched = useMemo(() => allRows.map(r => ({ row: r, issue: computeIssue(r) })), [allRows]);
+  const empById = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
+  const enriched = useMemo(() => allRows.map(r => {
+    const emp = empById.get(r.employee_id);
+    const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+    return { row: r, issue: computeIssue(r, dt), dayType: dt };
+  }), [allRows, empById, holidays, leaves]);
 
   // KPIs
   const kpis = useMemo(() => {
-    const present = enriched.filter(x => x.row.status === "present").length;
-    const late = enriched.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
-    const absent = enriched.filter(x => x.row.status === "absent").length;
-    const incomplete = enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length
-      + enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length;
-    const issues = enriched.filter(x => x.issue.severity !== "ok").length;
-    return { present, late, absent, incomplete, issues, pendingCorrections: corrections.length };
+    // Only working days count toward issue KPIs
+    const working = enriched.filter(x => x.dayType === "working");
+    const present = working.filter(x => x.row.status === "present").length;
+    const late = working.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
+    const absent = working.filter(x => x.row.status === "absent").length;
+    const incomplete = working.filter(x => x.row.first_check_in && !x.row.last_check_out).length
+      + working.filter(x => !x.row.first_check_in && x.row.status !== "absent").length;
+    const issues = working.filter(x => x.issue.severity !== "ok").length;
+    const onLeaveOrOff = enriched.filter(x => x.dayType !== "working").length;
+    return { present, late, absent, incomplete, issues, pendingCorrections: corrections.length, onLeaveOrOff };
   }, [enriched, corrections]);
 
   // Filtered + searched table rows
