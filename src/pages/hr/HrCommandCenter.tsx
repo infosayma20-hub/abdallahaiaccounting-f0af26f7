@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHrCommandCenter } from "@/hooks/hr/useHrCommandCenter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -21,9 +20,6 @@ import {
   Receipt,
   HandCoins,
   TrendingUp,
-  Building2,
-  CalendarDays,
-  CalculatorIcon,
   BarChart3,
   AlertCircle,
   Briefcase,
@@ -294,29 +290,5 @@ export default function HrCommandCenter() {
         <HrCharts charts={charts} />
       </div>
     </div>
-  );
-}
-
-function QuickButton({
-  Icon,
-  label,
-  onClick,
-  variant = "outline",
-}: {
-  Icon: typeof Users;
-  label: string;
-  onClick: () => void;
-  variant?: "outline" | "default";
-}) {
-  return (
-    <Button
-      variant={variant}
-      size="sm"
-      className="w-full justify-between gap-2 h-9"
-      onClick={onClick}
-    >
-      <span className="text-xs">{label}</span>
-      <Icon className="h-4 w-4" />
-    </Button>
   );
 }
