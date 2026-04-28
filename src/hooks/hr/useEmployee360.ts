@@ -338,7 +338,7 @@ export function useEmployee360(employeeId: string | undefined) {
         });
       });
 
-      leaveRequests.forEach((l: any) => {
+      leaveRecords.forEach((l: any) => {
         timeline.push({
           id: `leave-${l.id}`,
           type: "leave",
