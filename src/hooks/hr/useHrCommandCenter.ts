@@ -57,6 +57,7 @@ export type HrCommandCenterData = {
     totalDeductionsThisMonth: number;
     totalLoansOutstanding: number;
     totalPayrollThisMonth: number;
+    incompletePunchesToday: number;
   };
   pendingRequests: {
     leaves: any[];
@@ -111,7 +112,7 @@ export function useHrCommandCenter(filters?: {
           ),
         supabase
           .from("attendance_days")
-          .select("employee_id, attendance_date, status, total_hours, overtime_hours, first_check_in")
+          .select("employee_id, attendance_date, status, total_hours, overtime_hours, first_check_in, last_check_out")
           .gte("attendance_date", since30)
           .order("attendance_date", { ascending: false }),
         supabase
@@ -299,6 +300,15 @@ export function useHrCommandCenter(filters?: {
         })
         .reduce((s, p: any) => s + Number(p.net_salary || 0), 0);
 
+      // ---- Incomplete punches today ----
+      // موظف لديه سجل اليوم لكن بصمة دخول بدون خروج (أو العكس)
+      const incompletePunchesToday = attendanceDays.filter((d: any) => {
+        if (d.attendance_date !== today) return false;
+        const hasIn = !!d.first_check_in;
+        const hasOut = !!d.last_check_out;
+        return (hasIn && !hasOut) || (!hasIn && hasOut);
+      }).length;
+
       // ---- Pending requests ----
       // employee_leaves uses Arabic statuses: "معلقة" / "موافقة" / "مرفوضة"
       const pendingLeaves = leaveReqs.filter(
@@ -378,6 +388,7 @@ export function useHrCommandCenter(filters?: {
             0,
           ),
           totalPayrollThisMonth,
+          incompletePunchesToday,
         },
         pendingRequests: {
           leaves: pendingLeaves,
