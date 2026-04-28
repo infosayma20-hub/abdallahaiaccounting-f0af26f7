@@ -178,10 +178,10 @@ const reqTypeLabel = (t: string) => ({
   missing_checkin: "دخول مفقود",
   missing_checkout: "خروج مفقود",
   wrong_time: "وقت خاطئ",
-  leave_request: "🏖️ طلب إجازة",
-  advance_request: "💰 طلب سلفة",
+  leave_request: "طلب إجازة",
+  advance_request: "طلب سلفة",
   overtime_request: "أوفرتايم",
-  hr_message: "💬 رسالة HR",
+  hr_message: "رسالة HR",
 }[t] || "أخرى");
 
 export default function HRAttendancePage() {
