@@ -991,12 +991,51 @@ export default function HRAttendancePage() {
         </TabsContent>
 
         {/* REPORTS */}
-        <TabsContent value="reports" className="mt-4">
+        <TabsContent value="reports" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">فلاتر التقرير</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">من تاريخ</label>
+                <Input type="date" value={reportFromDate} onChange={e => setReportFromDate(e.target.value)} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ</label>
+                <Input type="date" value={reportToDate} onChange={e => setReportToDate(e.target.value)} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                <Select value={reportBranch} onValueChange={setReportBranch}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل الفروع</SelectItem>
+                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                <Select value={reportDepartment} onValueChange={setReportDepartment}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل الأقسام</SelectItem>
+                    {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير اليومي الشامل" desc="جميع الموظفين مع كل التفاصيل (دخول/خروج/تأخير/مشاكل)" onClick={() => exportExcel("daily")} />
-            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="الموظفون الذين تأخروا اليوم مع مدة التأخير" onClick={() => exportExcel("late")} />
-            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="الموظفون الغائبون لهذا اليوم" onClick={() => exportExcel("absent")} />
-            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="بصمات بدون دخول أو بدون خروج" onClick={() => exportExcel("incomplete")} />
+            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير الشامل (مفلتر)" desc="فترة + فرع + قسم — كل التفاصيل" onClick={() => exportExcel("daily", true)} />
+            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("late", true)} />
+            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("absent", true)} />
+            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("incomplete", true)} />
+          </div>
+          <div className="text-xs text-muted-foreground border-t pt-3">
+            💡 لتقرير اليوم الحالي فقط: استخدم زر "تصدير" بأعلى الصفحة.
           </div>
         </TabsContent>
       </Tabs>
