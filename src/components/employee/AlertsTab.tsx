@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay } from "@/lib/utils";
 import EmployeeHRMessagesSection from "./EmployeeHRMessagesSection";
+import { displayReason } from "@/lib/hrMessages";
 
 type AttendanceDay = {
   id: string;
