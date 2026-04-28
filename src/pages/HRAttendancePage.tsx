@@ -844,6 +844,20 @@ export default function HRAttendancePage() {
             </div>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selected.size > 0 && (
+            <div className="flex items-center gap-2 flex-wrap p-3 rounded-lg border bg-primary/5 border-primary/20">
+              <CheckSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{selected.size} محدد</span>
+              <div className="ms-auto flex gap-2 flex-wrap">
+                <Button size="sm" variant="outline" className="gap-1" onClick={bulkRecalc} disabled={isLocked}><Calculator className="h-3.5 w-3.5" /> إعادة حساب</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setBulkNoteOpen(true)} disabled={isLocked}><MessageSquare className="h-3.5 w-3.5" /> ملاحظة جماعية</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={bulkSendInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
+                <Button size="sm" variant="ghost" onClick={clearSelection}><X className="h-3.5 w-3.5" /> إلغاء</Button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : visibleRows.length === 0 ? (
@@ -857,6 +871,14 @@ export default function HRAttendancePage() {
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted/60 backdrop-blur z-10">
                     <TableRow>
+                      <TableHead className="w-10">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={visibleRows.length > 0 && visibleRows.filter(x => !x.row.id.startsWith("synthetic-")).every(x => selected.has(x.row.id))}
+                          onChange={toggleSelectAllVisible}
+                        />
+                      </TableHead>
                       <TableHead className="text-right whitespace-nowrap">👤 الموظف</TableHead>
                       <TableHead className="text-right whitespace-nowrap">🏢 الفرع</TableHead>
                       <TableHead className="text-right whitespace-nowrap">🧩 القسم</TableHead>
@@ -875,8 +897,14 @@ export default function HRAttendancePage() {
                   <TableBody>
                     {visibleRows.map(({ row: r, issue }) => {
                       const branchName = branches.find(b => b.id === r.branch_id)?.name || "—";
+                      const isSynthetic = r.id.startsWith("synthetic-");
                       return (
                         <TableRow key={r.id} className={cn("hover:bg-muted/30", rowAccentClass(r.status))}>
+                          <TableCell>
+                            {!isSynthetic && (
+                              <input type="checkbox" className="h-4 w-4" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
+                            )}
+                          </TableCell>
                           <TableCell className="font-medium whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary">
