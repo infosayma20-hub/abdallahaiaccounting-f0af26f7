@@ -1606,6 +1606,56 @@ export default function HRAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Day Lock / Unlock Dialog */}
+      <Dialog open={lockDialogOpen} onOpenChange={(o) => !lockBusy && setLockDialogOpen(o)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {lockDialogMode === "lock" ? <><Lock className="h-4 w-4" /> إغلاق يوم الحضور</> : <><Unlock className="h-4 w-4" /> فتح يوم الحضور</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm bg-muted/40 rounded p-2">
+              <div>التاريخ: <span className="font-semibold">{selectedDate}</span></div>
+              {lockDialogMode === "unlock" && dayLock && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  أُغلق في: {format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a")}
+                  {dayLock.reason && <> — السبب: {dayLock.reason}</>}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">
+                {lockDialogMode === "lock" ? "سبب الإغلاق (اختياري)" : "سبب الفتح (إلزامي)"}
+              </label>
+              <Textarea
+                value={lockReasonInput}
+                onChange={(e) => setLockReasonInput(e.target.value)}
+                placeholder={lockDialogMode === "lock" ? "مثال: نهاية شهر — اعتماد الحضور للراتب" : "مثال: تصحيح بصمة منسية للموظف..."}
+                rows={3}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {lockDialogMode === "lock"
+                ? "بعد الإغلاق سيتم منع تعديل/إنشاء بصمات وطلبات تصحيح لهذا اليوم على مستوى قاعدة البيانات."
+                : "سيتم تسجيل هويتك ووقت الفتح والسبب في سجل التدقيق."}
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLockDialogOpen(false)} disabled={lockBusy}>إلغاء</Button>
+            <Button
+              variant={lockDialogMode === "lock" ? "destructive" : "default"}
+              onClick={submitLockAction}
+              disabled={lockBusy || (lockDialogMode === "unlock" && !lockReasonInput.trim())}
+              className="gap-1"
+            >
+              {lockBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (lockDialogMode === "lock" ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />)}
+              {lockDialogMode === "lock" ? "إغلاق اليوم" : "فتح اليوم"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
