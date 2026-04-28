@@ -141,6 +141,7 @@ const LoansPage = lazy(() => import("./pages/LoansPage"));
 const HRDeductionsPage = lazy(() => import("./pages/HRDeductionsPage"));
 const PayrollSettingsPage = lazy(() => import("./pages/PayrollSettingsPage"));
 const PayrollPage = lazy(() => import("./pages/PayrollPage"));
+const PayrollApprovalCenter = lazy(() => import("./pages/hr/PayrollApprovalCenter"));
 const Employee360Page = lazy(() => import("./pages/hr/Employee360Page"));
 const HrCommandCenter = lazy(() => import("./pages/hr/HrCommandCenter"));
 const HrDefinitionsPage = lazy(() => import("./pages/hr/HrDefinitionsPage"));
@@ -417,6 +418,7 @@ const App = () => (
                       <Route path="/hr-deductions" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRDeductionsPage /></RoleGuard>} />
                       <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollPage /></RoleGuard>} />
                       <Route path="/payroll/inputs" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><MonthlyPayrollInputPage /></RoleGuard>} />
+                      <Route path="/payroll/approval" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollApprovalCenter /></RoleGuard>} />
                       <Route path="/leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><LeavesPage /></RoleGuard>} />
                       <Route path="/hr/import-employees" element={<Navigate to="/employees" replace />} />
                       <Route path="/payroll-settings" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollSettingsPage /></RoleGuard>} />
