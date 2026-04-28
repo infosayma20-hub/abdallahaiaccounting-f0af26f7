@@ -1681,7 +1681,11 @@ export default function HRAttendancePage() {
             <Button
               variant={lockDialogMode === "lock" ? "destructive" : "default"}
               onClick={submitLockAction}
-              disabled={lockBusy || (lockDialogMode === "unlock" && !lockReasonInput.trim())}
+              disabled={
+                lockBusy ||
+                (lockDialogMode === "unlock" && !lockReasonInput.trim()) ||
+                (lockDialogMode === "lock" && selectedDate >= new Date().toISOString().split("T")[0] && !lockAcknowledged)
+              }
               className="gap-1"
             >
               {lockBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (lockDialogMode === "lock" ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />)}
