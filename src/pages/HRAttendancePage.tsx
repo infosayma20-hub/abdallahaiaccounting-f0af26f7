@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import { Shield } from "lucide-react";
+import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 
 type Branch = {
   id: string;
@@ -117,11 +118,6 @@ function getDayType(
 
 type RowFilter = "all" | "issues" | "present" | "late" | "absent" | "incomplete" | "missing_checkin" | "missing_checkout";
 
-const statusLabels: Record<string, string> = {
-  present: "حاضر", late: "متأخر", absent: "غائب",
-  incomplete: "بصمة ناقصة", leave: "إجازة", holiday: "عطلة",
-};
-
 const statusBadgeClass = (s: string) => {
   switch (s) {
     case "present": return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -175,16 +171,6 @@ function computeIssue(
   }
   return { text: "—", severity: "ok", lateMin: 0 };
 }
-
-const reqTypeLabel = (t: string) => ({
-  missing_checkin: "دخول مفقود",
-  missing_checkout: "خروج مفقود",
-  wrong_time: "وقت خاطئ",
-  leave_request: "طلب إجازة",
-  advance_request: "طلب سلفة",
-  overtime_request: "أوفرتايم",
-  hr_message: "رسالة HR",
-}[t] || "أخرى");
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
