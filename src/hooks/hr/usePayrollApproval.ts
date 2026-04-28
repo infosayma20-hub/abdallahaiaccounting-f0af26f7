@@ -299,3 +299,117 @@ export function useApprovePayrollBatch() {
     },
   });
 }
+
+/* ------------------------------------------------------------------ */
+/*  B3.7 — Payment (Cash / Bank / Cheque)                             */
+/* ------------------------------------------------------------------ */
+export type PayrollPaymentMethod = "cash" | "bank" | "cheque";
+
+export type PayPayrollInput = {
+  payrollId: string;
+  paymentMethod: PayrollPaymentMethod;
+  bankAccountId?: string | null;
+  chequeNumber?: string | null;
+  chequeDueDate?: string | null;
+  paymentDate?: string | null;
+  employeeId?: string;
+};
+
+export function usePayPayrollEmployee() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (input: PayPayrollInput) => {
+      const { data: u } = await supabase.auth.getUser();
+      const payer = u?.user?.id;
+      if (!payer) throw new Error("غير مصرح");
+
+      const { data, error } = await supabase.rpc("payroll_pay_employee", {
+        _payroll_id: input.payrollId,
+        _payer: payer,
+        _payment_method: input.paymentMethod,
+        _bank_account_id: input.bankAccountId ?? null,
+        _cheque_number: input.chequeNumber ?? null,
+        _cheque_due_date: input.chequeDueDate ?? null,
+        _payment_date: input.paymentDate ?? null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (_d, vars) => {
+      if (vars.employeeId) {
+        qc.invalidateQueries({ queryKey: ["payroll-row", vars.employeeId] });
+      }
+      qc.invalidateQueries({ queryKey: ["payroll-month"] });
+      qc.invalidateQueries({ queryKey: ["employee-movements"] });
+      qc.invalidateQueries({ queryKey: ["vouchers"] });
+      toast({
+        title: "تم الدفع",
+        description: "تم إنشاء سند الصرف والقيد المحاسبي.",
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        variant: "destructive",
+        title: "تعذر الدفع",
+        description: e?.message || "خطأ غير معروف",
+      });
+    },
+  });
+}
+
+export type PayBatchInput = {
+  userId: string;
+  year: number;
+  month: number;
+  paymentMethod: PayrollPaymentMethod;
+  bankAccountId?: string | null;
+  chequeNumber?: string | null;
+  chequeDueDate?: string | null;
+  paymentDate?: string | null;
+};
+
+export function usePayPayrollBatch() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (input: PayBatchInput) => {
+      const { data: u } = await supabase.auth.getUser();
+      const payer = u?.user?.id;
+      if (!payer) throw new Error("غير مصرح");
+
+      const { data, error } = await supabase.rpc("payroll_pay_batch", {
+        _user_id: input.userId,
+        _month: input.month,
+        _year: input.year,
+        _payer: payer,
+        _payment_method: input.paymentMethod,
+        _bank_account_id: input.bankAccountId ?? null,
+        _cheque_number: input.chequeNumber ?? null,
+        _cheque_due_date: input.chequeDueDate ?? null,
+        _payment_date: input.paymentDate ?? null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["payroll-month"] });
+      qc.invalidateQueries({ queryKey: ["payroll-row"] });
+      qc.invalidateQueries({ queryKey: ["employee-movements"] });
+      qc.invalidateQueries({ queryKey: ["vouchers"] });
+      toast({
+        title: "تم دفع الدفعة",
+        description: `تم دفع ${res?.paid_count || 0} راتب بإجمالي ₪${Number(res?.total_amount || 0).toFixed(2)}`,
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        variant: "destructive",
+        title: "تعذر دفع الدفعة",
+        description: e?.message || "خطأ غير معروف",
+      });
+    },
+  });
+}
