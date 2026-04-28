@@ -18,6 +18,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
+  Lock, Unlock, CheckSquare,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -43,6 +44,8 @@ type EmployeeLite = {
   shift_end: string | null;
   is_active: boolean;
   is_terminated: boolean | null;
+  work_days_per_week: number | null;
+  start_date: string | null;
 };
 
 type AttendanceRecord = {
@@ -70,6 +73,45 @@ type CorrectionReq = {
   created_at: string;
   employees?: { full_name: string };
 };
+
+type LeaveRow = { employee_id: string; start_date: string; end_date: string; leave_type: string };
+type HolidayRow = { holiday_date: string | null; name: string; is_recurring: boolean | null; recurring_month: number | null; recurring_day: number | null };
+
+// Day type for a given date for a given employee
+type DayType = "working" | "weekly_off" | "holiday" | "leave";
+
+// Determine if employee works on a given JS day-of-week (0=Sun..6=Sat)
+// Standard PS workweek: Sun-Thu (5d), Sat-Thu (6d), all 7 = (7d). Friday is the canonical weekly off in PS.
+function isWorkingDay(dow: number, workDaysPerWeek: number | null | undefined): boolean {
+  const wpw = workDaysPerWeek ?? 6;
+  if (wpw >= 7) return true;
+  if (wpw === 6) return dow !== 5; // Fri off
+  if (wpw === 5) return dow !== 5 && dow !== 6; // Fri+Sat off
+  if (wpw === 4) return dow >= 0 && dow <= 3; // Sun-Wed
+  return dow !== 5;
+}
+
+function getDayType(
+  date: string,
+  emp: { id: string; work_days_per_week: number | null; start_date: string | null },
+  holidays: HolidayRow[],
+  leaves: LeaveRow[],
+): DayType {
+  const d = new Date(date + "T00:00:00");
+  // Holiday?
+  const m = d.getMonth() + 1, day = d.getDate();
+  const isHoliday = holidays.some(h =>
+    (h.holiday_date && h.holiday_date === date) ||
+    (h.is_recurring && h.recurring_month === m && h.recurring_day === day)
+  );
+  if (isHoliday) return "holiday";
+  // Leave?
+  const onLeave = leaves.some(l => l.employee_id === emp.id && date >= l.start_date && date <= l.end_date);
+  if (onLeave) return "leave";
+  // Weekly off?
+  if (!isWorkingDay(d.getDay(), emp.work_days_per_week)) return "weekly_off";
+  return "working";
+}
 
 type RowFilter = "all" | "issues" | "present" | "late" | "absent" | "incomplete" | "missing_checkin" | "missing_checkout";
 
@@ -101,8 +143,11 @@ const rowAccentClass = (s: string) => {
   }
 };
 
-// Compute issue text + late minutes
-function computeIssue(r: AttendanceRecord): { text: string; severity: "ok" | "warn" | "err"; lateMin: number } {
+// Compute issue text + late minutes — Logic-driven, day-type-aware
+function computeIssue(
+  r: AttendanceRecord,
+  dayType: DayType = "working",
+): { text: string; severity: "ok" | "warn" | "err"; lateMin: number } {
   const shiftStart = r.employees?.shift_start;
   let lateMin = 0;
   if (r.first_check_in && shiftStart) {
@@ -112,6 +157,11 @@ function computeIssue(r: AttendanceRecord): { text: string; severity: "ok" | "wa
     exp.setHours(h || 0, m || 0, 0, 0);
     lateMin = Math.max(0, Math.round((ci.getTime() - exp.getTime()) / 60000));
   }
+  // Non-working days never count as issues
+  if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
+  if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
+  if (dayType === "weekly_off") return { text: "يوم عطلة أسبوعية", severity: "ok", lateMin: 0 };
+
   if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
   if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
   if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin };
@@ -170,6 +220,32 @@ export default function HRAttendancePage() {
   const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
 
+  // Day-type sources
+  const [holidays, setHolidays] = useState<HolidayRow[]>([]);
+  const [leaves, setLeaves] = useState<LeaveRow[]>([]);
+
+  // Indicator
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+
+  // Bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
+  const [bulkNote, setBulkNote] = useState("");
+
+  // Day lock (UI-level via localStorage; future: DB-level period lock)
+  const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
+  const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(lockKey) || "[]")); } catch { return new Set(); }
+  });
+  const isLocked = lockedDates.has(selectedDate);
+  const toggleLockDay = () => {
+    const next = new Set(lockedDates);
+    if (next.has(selectedDate)) next.delete(selectedDate); else next.add(selectedDate);
+    setLockedDates(next);
+    localStorage.setItem(lockKey, JSON.stringify(Array.from(next)));
+    toast({ title: next.has(selectedDate) ? "🔒 تم إغلاق اليوم" : "🔓 تم فتح اليوم" });
+  };
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -178,7 +254,7 @@ export default function HRAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
       const { data: emps } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated")
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated, work_days_per_week, start_date")
         .eq("user_id", user.id);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
@@ -199,6 +275,22 @@ export default function HRAttendancePage() {
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       setCorrections((corr as any) || []);
+
+      // Holidays + approved leaves covering selectedDate
+      const { data: hol } = await supabase
+        .from("official_holidays")
+        .select("holiday_date, name, is_recurring, recurring_month, recurring_day")
+        .eq("user_id", user.id);
+      setHolidays((hol as HolidayRow[]) || []);
+      const { data: lv } = await supabase
+        .from("employee_leaves")
+        .select("employee_id, start_date, end_date, leave_type")
+        .eq("user_id", user.id)
+        .eq("status", "approved")
+        .lte("start_date", selectedDate)
+        .gte("end_date", selectedDate);
+      setLeaves((lv as LeaveRow[]) || []);
+      setLastRefreshAt(new Date());
     } catch (e) {
       console.error(e);
     }
@@ -207,13 +299,21 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Synthesize "absent rows" for active employees with no record on this date
+  // Synthesize "absent/off rows" for active employees with no record on this date.
+  // Employees on leave / holiday / weekly off get a synthetic row with the right status (NOT absent).
   const allRows = useMemo(() => {
     const byEmp = new Map(records.map(r => [r.employee_id, r]));
-    const activeEmps = employees.filter(e => e.is_active && !e.is_terminated && (selectedBranch === "all" || e.branch_id === selectedBranch));
+    const activeEmps = employees.filter(e =>
+      e.is_active && !e.is_terminated &&
+      (selectedBranch === "all" || e.branch_id === selectedBranch) &&
+      (!e.start_date || e.start_date <= selectedDate)
+    );
     const synthetic: AttendanceRecord[] = activeEmps
       .filter(e => !byEmp.has(e.id))
-      .map(e => ({
+      .map(e => {
+        const dt = getDayType(selectedDate, e, holidays, leaves);
+        const status = dt === "holiday" ? "holiday" : dt === "leave" ? "leave" : dt === "weekly_off" ? "leave" : "absent";
+        return {
         id: `synthetic-${e.id}`,
         employee_id: e.id,
         attendance_date: selectedDate,
@@ -221,26 +321,35 @@ export default function HRAttendancePage() {
         last_check_out: null,
         total_hours: 0,
         overtime_hours: 0,
-        status: "absent",
+        status,
         branch_id: e.branch_id,
         notes: null,
         is_manually_adjusted: false,
         employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end },
-      }));
+        };
+      });
     return [...records, ...synthetic];
-  }, [records, employees, selectedBranch, selectedDate]);
+  }, [records, employees, selectedBranch, selectedDate, holidays, leaves]);
 
-  const enriched = useMemo(() => allRows.map(r => ({ row: r, issue: computeIssue(r) })), [allRows]);
+  const empById = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
+  const enriched = useMemo(() => allRows.map(r => {
+    const emp = empById.get(r.employee_id);
+    const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+    return { row: r, issue: computeIssue(r, dt), dayType: dt };
+  }), [allRows, empById, holidays, leaves]);
 
   // KPIs
   const kpis = useMemo(() => {
-    const present = enriched.filter(x => x.row.status === "present").length;
-    const late = enriched.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
-    const absent = enriched.filter(x => x.row.status === "absent").length;
-    const incomplete = enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length
-      + enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length;
-    const issues = enriched.filter(x => x.issue.severity !== "ok").length;
-    return { present, late, absent, incomplete, issues, pendingCorrections: corrections.length };
+    // Only working days count toward issue KPIs
+    const working = enriched.filter(x => x.dayType === "working");
+    const present = working.filter(x => x.row.status === "present").length;
+    const late = working.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
+    const absent = working.filter(x => x.row.status === "absent").length;
+    const incomplete = working.filter(x => x.row.first_check_in && !x.row.last_check_out).length
+      + working.filter(x => !x.row.first_check_in && x.row.status !== "absent").length;
+    const issues = working.filter(x => x.issue.severity !== "ok").length;
+    const onLeaveOrOff = enriched.filter(x => x.dayType !== "working").length;
+    return { present, late, absent, incomplete, issues, pendingCorrections: corrections.length, onLeaveOrOff };
   }, [enriched, corrections]);
 
   // Filtered + searched table rows
@@ -355,6 +464,7 @@ export default function HRAttendancePage() {
 
   // ------------------ Row Actions ------------------
   const openEditRecord = (r: AttendanceRecord) => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", description: "افتح اليوم لإجراء التعديلات", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل بعد", description: "هذا الموظف لم يبصم اليوم. استخدم 'تعديل يدوي' لإنشاء سجل عبر طلب تعديل من الموظف.", variant: "destructive" });
       return;
@@ -400,6 +510,7 @@ export default function HRAttendancePage() {
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) return;
     if (!r.first_check_in || !r.last_check_out) {
       toast({ title: "لا يمكن إعادة الحساب", description: "ينقص الدخول أو الخروج", variant: "destructive" });
@@ -414,6 +525,7 @@ export default function HRAttendancePage() {
   };
 
   const openNote = (r: AttendanceRecord) => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل لإضافة ملاحظة عليه", variant: "destructive" }); return;
     }
@@ -452,9 +564,106 @@ export default function HRAttendancePage() {
     else toast({ title: "تم إرسال الطلب للموظف ✅" });
   };
 
+  // ------------------ Bulk Actions ------------------
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+  };
+  const toggleSelectAllVisible = () => {
+    const visibleIds = visibleRows.map(x => x.row.id).filter(id => !id.startsWith("synthetic-"));
+    if (visibleIds.every(id => selected.has(id)) && visibleIds.length > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(visibleIds));
+    }
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const bulkRecalc = async () => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    const ids = Array.from(selected);
+    const targets = enriched.filter(x => ids.includes(x.row.id) && x.row.first_check_in && x.row.last_check_out);
+    if (targets.length === 0) { toast({ title: "لا يوجد سجلات صالحة لإعادة الحساب" }); return; }
+    let ok = 0;
+    for (const x of targets) {
+      const total = (new Date(x.row.last_check_out!).getTime() - new Date(x.row.first_check_in!).getTime()) / 3600000;
+      const { error } = await supabase.from("attendance_days").update({
+        total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
+      }).eq("id", x.row.id);
+      if (!error) ok++;
+    }
+    toast({ title: `✅ تمت إعادة حساب ${ok} سجل` });
+    clearSelection(); fetchData();
+  };
+
+  const bulkAddNote = async () => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (!bulkNote.trim()) return;
+    const ids = Array.from(selected);
+    let ok = 0;
+    for (const id of ids) {
+      const { error } = await supabase.from("attendance_days").update({ notes: bulkNote }).eq("id", id);
+      if (!error) ok++;
+    }
+    toast({ title: `✅ تم تحديث ملاحظة ${ok} سجل` });
+    setBulkNoteOpen(false); setBulkNote(""); clearSelection(); fetchData();
+  };
+
+  const bulkSendInquiry = async () => {
+    const ids = Array.from(selected);
+    const targets = enriched.filter(x => ids.includes(x.row.id));
+    let ok = 0;
+    for (const x of targets) {
+      const { error } = await supabase.from("correction_requests").insert({
+        employee_id: x.row.employee_id,
+        auth_user_id: user!.id,
+        attendance_date: x.row.attendance_date,
+        request_type: "hr_message",
+        reason: `طلب توضيح من HR: ${x.issue.text}`,
+        status: "pending",
+      });
+      if (!error) ok++;
+    }
+    toast({ title: `📨 تم إرسال ${ok} استفسار` });
+    clearSelection();
+  };
+
   // ------------------ Exports ------------------
-  const exportExcel = (kind: "daily" | "late" | "absent" | "incomplete" = "daily") => {
-    const rows = enriched.filter(x => {
+  // Reports filters
+  const [reportFromDate, setReportFromDate] = useState(selectedDate);
+  const [reportToDate, setReportToDate] = useState(selectedDate);
+  const [reportBranch, setReportBranch] = useState<string>("all");
+  const [reportDepartment, setReportDepartment] = useState<string>("all");
+
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach(e => { if (e.department) set.add(e.department); });
+    return Array.from(set).sort();
+  }, [employees]);
+
+  const exportExcel = async (kind: "daily" | "late" | "absent" | "incomplete" = "daily", useReportFilters = false) => {
+    let workingRows: { row: AttendanceRecord; issue: { text: string; severity: string; lateMin: number }; dayType: DayType }[] = [];
+    if (useReportFilters) {
+      // Fetch range from DB
+      const { data: att } = await supabase
+        .from("attendance_days")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .gte("attendance_date", reportFromDate)
+        .lte("attendance_date", reportToDate)
+        .order("attendance_date", { ascending: true });
+      let rows = (att as any[]) || [];
+      if (reportBranch !== "all") rows = rows.filter(r => r.branch_id === reportBranch);
+      if (reportDepartment !== "all") rows = rows.filter(r => r.employees?.department === reportDepartment);
+      workingRows = rows.map((r: AttendanceRecord) => {
+        const emp = empById.get(r.employee_id);
+        const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+        return { row: r, issue: computeIssue(r, dt), dayType: dt };
+      });
+    } else {
+      workingRows = enriched as any;
+    }
+    const rows = workingRows.filter(x => {
       if (kind === "late") return x.row.status === "late" || x.issue.lateMin >= 5;
       if (kind === "absent") return x.row.status === "absent";
       if (kind === "incomplete") return (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent");
@@ -483,7 +692,8 @@ export default function HRAttendancePage() {
       const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
       setNextExportBranding({ title: sheetName });
-      XLSX.writeFile(wb, `${sheetName}_${selectedDate}.xlsx`);
+      const fname = useReportFilters ? `${sheetName}_${reportFromDate}_${reportToDate}.xlsx` : `${sheetName}_${selectedDate}.xlsx`;
+      XLSX.writeFile(wb, fname);
     });
   };
 
@@ -494,8 +704,19 @@ export default function HRAttendancePage() {
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-2xl font-bold">لوحة إدارة الحضور</h1>
-            <p className="text-muted-foreground text-sm">مركز التشغيل اليومي — متابعة فورية للبصمات والمشاكل</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              لوحة إدارة الحضور
+              {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1"><Lock className="h-3 w-3" /> مغلق</Badge>}
+            </h1>
+            <p className="text-muted-foreground text-sm flex items-center gap-2">
+              مركز التشغيل اليومي — متابعة فورية للبصمات والمشاكل
+              {lastRefreshAt && (
+                <span className="text-xs flex items-center gap-1 text-emerald-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  آخر تحديث: {format(lastRefreshAt, "hh:mm a")}
+                </span>
+              )}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -508,6 +729,9 @@ export default function HRAttendancePage() {
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
+          <Button variant={isLocked ? "destructive" : "outline"} size="sm" onClick={toggleLockDay} className="gap-1">
+            {isLocked ? <><Unlock className="h-4 w-4" /> فتح اليوم</> : <><Lock className="h-4 w-4" /> إغلاق اليوم</>}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1"><Building2 className="h-4 w-4" /> إضافة فرع</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -620,6 +844,20 @@ export default function HRAttendancePage() {
             </div>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selected.size > 0 && (
+            <div className="flex items-center gap-2 flex-wrap p-3 rounded-lg border bg-primary/5 border-primary/20">
+              <CheckSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{selected.size} محدد</span>
+              <div className="ms-auto flex gap-2 flex-wrap">
+                <Button size="sm" variant="outline" className="gap-1" onClick={bulkRecalc} disabled={isLocked}><Calculator className="h-3.5 w-3.5" /> إعادة حساب</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setBulkNoteOpen(true)} disabled={isLocked}><MessageSquare className="h-3.5 w-3.5" /> ملاحظة جماعية</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={bulkSendInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
+                <Button size="sm" variant="ghost" onClick={clearSelection}><X className="h-3.5 w-3.5" /> إلغاء</Button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : visibleRows.length === 0 ? (
@@ -633,6 +871,14 @@ export default function HRAttendancePage() {
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted/60 backdrop-blur z-10">
                     <TableRow>
+                      <TableHead className="w-10">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={visibleRows.length > 0 && visibleRows.filter(x => !x.row.id.startsWith("synthetic-")).every(x => selected.has(x.row.id))}
+                          onChange={toggleSelectAllVisible}
+                        />
+                      </TableHead>
                       <TableHead className="text-right whitespace-nowrap">👤 الموظف</TableHead>
                       <TableHead className="text-right whitespace-nowrap">🏢 الفرع</TableHead>
                       <TableHead className="text-right whitespace-nowrap">🧩 القسم</TableHead>
@@ -651,8 +897,14 @@ export default function HRAttendancePage() {
                   <TableBody>
                     {visibleRows.map(({ row: r, issue }) => {
                       const branchName = branches.find(b => b.id === r.branch_id)?.name || "—";
+                      const isSynthetic = r.id.startsWith("synthetic-");
                       return (
                         <TableRow key={r.id} className={cn("hover:bg-muted/30", rowAccentClass(r.status))}>
+                          <TableCell>
+                            {!isSynthetic && (
+                              <input type="checkbox" className="h-4 w-4" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
+                            )}
+                          </TableCell>
                           <TableCell className="font-medium whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary">
@@ -739,12 +991,51 @@ export default function HRAttendancePage() {
         </TabsContent>
 
         {/* REPORTS */}
-        <TabsContent value="reports" className="mt-4">
+        <TabsContent value="reports" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">فلاتر التقرير</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">من تاريخ</label>
+                <Input type="date" value={reportFromDate} onChange={e => setReportFromDate(e.target.value)} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ</label>
+                <Input type="date" value={reportToDate} onChange={e => setReportToDate(e.target.value)} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                <Select value={reportBranch} onValueChange={setReportBranch}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل الفروع</SelectItem>
+                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                <Select value={reportDepartment} onValueChange={setReportDepartment}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل الأقسام</SelectItem>
+                    {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير اليومي الشامل" desc="جميع الموظفين مع كل التفاصيل (دخول/خروج/تأخير/مشاكل)" onClick={() => exportExcel("daily")} />
-            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="الموظفون الذين تأخروا اليوم مع مدة التأخير" onClick={() => exportExcel("late")} />
-            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="الموظفون الغائبون لهذا اليوم" onClick={() => exportExcel("absent")} />
-            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="بصمات بدون دخول أو بدون خروج" onClick={() => exportExcel("incomplete")} />
+            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير الشامل (مفلتر)" desc="فترة + فرع + قسم — كل التفاصيل" onClick={() => exportExcel("daily", true)} />
+            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("late", true)} />
+            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("absent", true)} />
+            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="ضمن الفترة والفلاتر المختارة" onClick={() => exportExcel("incomplete", true)} />
+          </div>
+          <div className="text-xs text-muted-foreground border-t pt-3">
+            💡 لتقرير اليوم الحالي فقط: استخدم زر "تصدير" بأعلى الصفحة.
           </div>
         </TabsContent>
       </Tabs>
@@ -905,6 +1196,15 @@ export default function HRAttendancePage() {
             <div><label className="text-xs text-muted-foreground mb-1 block">اكتب: <strong>{deletingBranch?.name}</strong></label><Input value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="destructive" onClick={deleteBranch} disabled={deleteConfirmName !== deletingBranch?.name} className="w-full gap-1"><Trash2 className="h-4 w-4" /> حذف</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Note */}
+      <Dialog open={bulkNoteOpen} onOpenChange={setBulkNoteOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> ملاحظة جماعية على {selected.size} سجل</DialogTitle></DialogHeader>
+          <Textarea rows={4} value={bulkNote} onChange={e => setBulkNote(e.target.value)} placeholder="اكتب الملاحظة المشتركة..." />
+          <DialogFooter><Button onClick={bulkAddNote} className="w-full" disabled={!bulkNote.trim()}>تطبيق على الكل</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
