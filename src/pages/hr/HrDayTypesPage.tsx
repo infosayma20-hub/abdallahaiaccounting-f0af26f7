@@ -309,9 +309,71 @@ export default function HrDayTypesPage() {
 
       <Tabs defaultValue="types" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="workweek"><CalendarDays className="ml-1 h-4 w-4" /> أيام الدوام</TabsTrigger>
           <TabsTrigger value="types"><Tag className="ml-1 h-4 w-4" /> أنواع الأيام</TabsTrigger>
           <TabsTrigger value="holidays"><Calendar className="ml-1 h-4 w-4" /> العطل الرسمية</TabsTrigger>
         </TabsList>
+
+        {/* ============ Work Week Config ============ */}
+        <TabsContent value="workweek">
+          <Card className="p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold text-base">أيام الدوام الأسبوعية</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                اختر أيام العمل الرسمية لشركتك. الأيام غير المختارة ستُحسب كعطلة أسبوعية تلقائياً في الحضور والرواتب.
+              </p>
+            </div>
+
+            {loading || !workWeek ? (
+              <div className="flex items-center justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {DOW_LABELS.map(d => {
+                    const isWorking = workWeek.working_days.includes(d.value);
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        disabled={savingWW}
+                        onClick={() => toggleWorkDay(d.value)}
+                        className={`p-3 rounded-lg border-2 transition text-center ${
+                          isWorking
+                            ? "bg-emerald-50 border-emerald-500 text-emerald-700"
+                            : "bg-muted/30 border-muted text-muted-foreground"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">{d.long}</div>
+                        <div className="text-[10px] mt-1">{isWorking ? "دوام" : "عطلة"}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="border-t pt-3 flex flex-wrap items-end gap-3">
+                  <div className="w-40">
+                    <label className="text-xs text-muted-foreground">ساعات الدوام اليومية</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={24}
+                      step={0.5}
+                      defaultValue={workWeek.work_hours_per_day}
+                      onBlur={e => {
+                        const v = parseFloat(e.target.value);
+                        if (v !== workWeek.work_hours_per_day) updateWorkHours(v);
+                      }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
+                    عدد أيام العمل: <strong className="text-foreground">{workWeek.working_days.length}</strong> أسبوعياً —
+                    العطل الأسبوعية: <strong className="text-foreground">{workWeek.weekly_off_days.map(d => DOW_LABELS.find(l => l.value === d)?.long).join(", ") || "لا يوجد"}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+          </Card>
+        </TabsContent>
 
         {/* ============ Day Types ============ */}
         <TabsContent value="types">
