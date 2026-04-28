@@ -229,11 +229,10 @@ export default function HrDayTypesPage() {
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-4" dir="rtl">
       <BackButton />
-      <PageHeader
-        title="أنواع الأيام والعطل الرسمية"
-        description="مرجع موحد لأنواع الأيام (عمل/عطلة/إجازة/غياب) والعطل الرسمية يُستخدم في الحضور والرواتب."
-        icon={Calendar}
-      />
+      <PageHeader title="أنواع الأيام والعطل الرسمية" />
+      <p className="text-sm text-muted-foreground -mt-2">
+        مرجع موحد لأنواع الأيام (عمل/عطلة/إجازة/غياب) والعطل الرسمية — يُستخدم في الحضور والرواتب.
+      </p>
 
       <Tabs defaultValue="types" className="space-y-4">
         <TabsList>
