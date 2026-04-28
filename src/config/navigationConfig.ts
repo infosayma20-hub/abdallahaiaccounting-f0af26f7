@@ -383,10 +383,10 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "إدارة الموارد البشرية",
             children: [
-              { label: "🏠 لوحة قيادة HR", path: "/hr" },
+              { label: "🏠 لوحة الموارد البشرية", path: "/hr" },
               { label: "👥 الموظفون", path: "/hr/people" },
               { label: "بصمتي", path: "/my-attendance" },
-              { label: "⚙️ إعدادات HR", path: "/hr/settings" },
+              { label: "⚙️ إعدادات الموارد البشرية", path: "/hr/settings" },
             ],
           },
           {

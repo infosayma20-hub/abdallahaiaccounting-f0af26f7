@@ -72,13 +72,13 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center", t.iconBg)}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", t.iconBg)}>
             <Icon className={cn("h-5 w-5", t.iconText)} />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-sm font-bold text-foreground">{title}</h3>
-            <p className="text-[11px] text-muted-foreground">{subtitle}</p>
+            <p className="text-[11px] text-muted-foreground leading-tight truncate">{subtitle}</p>
           </div>
         </div>
         {badge != null && badge !== "" && (
@@ -88,7 +88,7 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
         )}
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {actions.map((a) => (
           <button
             key={a.to}
@@ -97,17 +97,17 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
               e.stopPropagation();
               navigate(a.to);
             }}
-            className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-right
+            className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-right
                        hover:bg-muted/60 transition-colors group"
           >
-            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            <div className="flex items-center gap-2 flex-1 justify-end">
+            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors shrink-0" />
+            <div className="flex items-center gap-1.5 justify-end min-w-0">
               {a.count != null && a.count > 0 && (
                 <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md", t.chip, "border-0")}>
                   {a.count}
                 </span>
               )}
-              <span className="text-xs font-medium text-foreground">{a.label}</span>
+              <span className="text-xs font-medium text-foreground truncate">{a.label}</span>
             </div>
           </button>
         ))}
