@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Save, X, Loader2, Calendar, Tag, Trash2, Sparkles } from "lucide-react";
+import { Plus, Pencil, Save, X, Loader2, Calendar, Tag, Trash2, Sparkles, CalendarDays } from "lucide-react";
 import { FIXED_HOLIDAYS } from "@/lib/hr-utils";
 
 type DayType = {
@@ -44,6 +44,26 @@ type Holiday = {
   is_active: boolean;
   notes: string | null;
 };
+
+type WorkWeekConfig = {
+  id: string;
+  user_id: string;
+  working_days: number[];
+  weekly_off_days: number[];
+  work_hours_per_day: number;
+  notes: string | null;
+};
+
+// JS getDay(): 0=Sun .. 6=Sat — Arabic labels
+const DOW_LABELS: { value: number; short: string; long: string }[] = [
+  { value: 6, short: "السبت",   long: "السبت" },
+  { value: 0, short: "الأحد",   long: "الأحد" },
+  { value: 1, short: "الإثنين", long: "الإثنين" },
+  { value: 2, short: "الثلاثاء",long: "الثلاثاء" },
+  { value: 3, short: "الأربعاء",long: "الأربعاء" },
+  { value: 4, short: "الخميس",  long: "الخميس" },
+  { value: 5, short: "الجمعة",  long: "الجمعة" },
+];
 
 // System defaults — seeded once per user on first visit
 const DEFAULT_DAY_TYPES: Omit<DayType, "id" | "user_id">[] = [
