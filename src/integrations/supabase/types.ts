@@ -5285,6 +5285,63 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_day_types: {
+        Row: {
+          affects_salary: boolean
+          category: string
+          code: string
+          color: string
+          counts_as_attendance: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          is_system: boolean
+          name: string
+          notes: string | null
+          requires_approval: boolean
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affects_salary?: boolean
+          category?: string
+          code: string
+          color?: string
+          counts_as_attendance?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          is_system?: boolean
+          name: string
+          notes?: string | null
+          requires_approval?: boolean
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affects_salary?: boolean
+          category?: string
+          code?: string
+          color?: string
+          counts_as_attendance?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          is_system?: boolean
+          name?: string
+          notes?: string | null
+          requires_approval?: boolean
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hr_manager_permissions: {
         Row: {
           can_add_employees: boolean | null
@@ -6760,9 +6817,11 @@ export type Database = {
           created_at: string | null
           holiday_date: string
           id: string
+          is_active: boolean
           is_recurring: boolean | null
           multiplier: number | null
           name: string
+          notes: string | null
           recurring_day: number | null
           recurring_month: number | null
           user_id: string
@@ -6771,9 +6830,11 @@ export type Database = {
           created_at?: string | null
           holiday_date: string
           id?: string
+          is_active?: boolean
           is_recurring?: boolean | null
           multiplier?: number | null
           name: string
+          notes?: string | null
           recurring_day?: number | null
           recurring_month?: number | null
           user_id: string
@@ -6782,9 +6843,11 @@ export type Database = {
           created_at?: string | null
           holiday_date?: string
           id?: string
+          is_active?: boolean
           is_recurring?: boolean | null
           multiplier?: number | null
           name?: string
+          notes?: string | null
           recurring_day?: number | null
           recurring_month?: number | null
           user_id?: string

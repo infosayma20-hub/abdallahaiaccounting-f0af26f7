@@ -279,9 +279,11 @@ export default function HRAttendancePage() {
       // Holidays + approved leaves covering selectedDate
       const { data: hol } = await supabase
         .from("official_holidays")
-        .select("holiday_date, name, is_recurring, recurring_month, recurring_day")
+        .select("holiday_date, name, is_recurring, recurring_month, recurring_day, is_active")
         .eq("user_id", user.id);
-      setHolidays((hol as HolidayRow[]) || []);
+      // Respect is_active when present; fallback to "treat as active" if column missing/null
+      const activeHol = (hol || []).filter((h: any) => h.is_active !== false);
+      setHolidays(activeHol as HolidayRow[]);
       const { data: lv } = await supabase
         .from("employee_leaves")
         .select("employee_id, start_date, end_date, leave_type")
