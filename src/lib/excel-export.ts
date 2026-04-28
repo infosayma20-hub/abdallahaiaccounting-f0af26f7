@@ -218,11 +218,17 @@ function injectBrandingIntoSheet(ws: XLSX.WorkSheet, meta: BrandingMeta): void {
  * the app benefits — provided setNextExportBranding() was called first.
  */
 const _originalWriteFile = XLSX.writeFile;
-(XLSX as any).writeFile = function patchedWriteFile(
+
+/**
+ * Branded writeFile wrapper — يحقن رأس العلامة التجارية قبل الكتابة
+ * إذا تم استدعاء setNextExportBranding() مسبقاً، ثم يكتب الملف.
+ * استخدمها بدلاً من XLSX.writeFile مباشرة عبر النظام.
+ */
+export function writeFileBranded(
   wb: XLSX.WorkBook,
   filename: string,
   opts?: XLSX.WritingOptions
-) {
+): void {
   try {
     if (activeBranding && wb && wb.SheetNames) {
       for (const name of wb.SheetNames) {
@@ -236,4 +242,16 @@ const _originalWriteFile = XLSX.writeFile;
     activeBranding = null;
   }
   return _originalWriteFile.call(XLSX, wb, filename, opts);
-};
+}
+
+// Best-effort monkey-patch: في بعض bundlers يكون XLSX module مجمّداً
+// (frozen ESM namespace) فنتجاهل الفشل بدل كسر التطبيق بالكامل.
+try {
+  Object.defineProperty(XLSX, "writeFile", {
+    configurable: true,
+    writable: true,
+    value: writeFileBranded,
+  });
+} catch {
+  // ESM frozen namespace — استخدم writeFileBranded صراحة بدلاً من ذلك.
+}
