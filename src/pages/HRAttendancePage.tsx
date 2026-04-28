@@ -791,7 +791,7 @@ export default function HRAttendancePage() {
         "إضافي": r.overtime_hours || 0,
         "تأخير (دقيقة)": issue.lateMin,
         "المشكلة": issue.text,
-        "الحالة": statusLabels[r.status] || r.status,
+        "الحالة": tAttendanceStatus(r.status),
         "ملاحظات": r.notes || "",
       }));
       const wb = XLSX.utils.book_new();
@@ -1046,7 +1046,7 @@ export default function HRAttendancePage() {
                           </td>
                           <td className="px-3 py-3">
                             <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
-                              {statusLabels[r.status] || r.status}
+                              {tAttendanceStatus(r.status)}
                             </Badge>
                           </td>
                           <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
@@ -1099,7 +1099,7 @@ export default function HRAttendancePage() {
                     <span className="font-medium">{(req as any).employees?.full_name}</span>
                     <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
                   </div>
-                  <Badge variant="outline">{reqTypeLabel(req.request_type)}</Badge>
+                  <Badge variant="outline">{tRequestType(req.request_type)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{req.reason}</p>
                 <div className="flex gap-2">
