@@ -349,6 +349,31 @@ export default function PayrollApprovalCenter() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch payment dialog */}
+      {data?.ownerId && (
+        <PayrollPaymentDialog
+          open={payOpen}
+          onOpenChange={setPayOpen}
+          title="دفع جماعي للرواتب المعتمدة"
+          summary={`${stats.approvedUnpaid.length} موظف — إجمالي ₪${fmt(stats.totalApprovedUnpaid)}`}
+          isSubmitting={payBatchMut.isPending}
+          onConfirm={(p) => {
+            payBatchMut.mutate(
+              {
+                userId: data.ownerId,
+                year, month,
+                paymentMethod: p.paymentMethod,
+                bankAccountId: p.bankAccountId,
+                chequeNumber: p.chequeNumber,
+                chequeDueDate: p.chequeDueDate,
+                paymentDate: p.paymentDate,
+              },
+              { onSuccess: () => setPayOpen(false) },
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
