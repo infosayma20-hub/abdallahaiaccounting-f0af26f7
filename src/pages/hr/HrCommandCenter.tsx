@@ -139,6 +139,7 @@ export default function HrCommandCenter() {
             actions={[
               { label: "قائمة الموظفين", to: "/employees", count: totals.total },
               { label: "الأقسام والمسميات الوظيفية", to: "/hr/definitions" },
+              { label: "أنواع الأيام والعطل الرسمية", to: "/hr/day-types" },
               { label: "إدارة الفروع", to: "/settings?tab=branches" },
             ]}
           />
