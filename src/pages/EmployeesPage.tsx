@@ -60,6 +60,7 @@ interface Employee {
   work_hours_per_day: number;
   shift_start?: string;
   shift_end?: string;
+  shift_id?: string | null;
   annual_leave_days: number;
   sick_leave_days: number;
   bank_name: string;
@@ -123,6 +124,7 @@ const EmployeesPage = () => {
   const [newBranchName, setNewBranchName] = useState("");
   const [departmentsList, setDepartmentsList] = useState<Array<{ id: string; name: string }>>([]);
   const [jobTitlesList, setJobTitlesList] = useState<Array<{ id: string; name: string; department_id: string | null }>>([]);
+  const [shiftsList, setShiftsList] = useState<Array<{ id: string; name: string; start_time: string; end_time: string }>>([]);
 
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
@@ -232,12 +234,14 @@ const EmployeesPage = () => {
 
   const fetchDefinitions = async () => {
     if (!user) return;
-    const [dRes, jRes] = await Promise.all([
+    const [dRes, jRes, sRes] = await Promise.all([
       supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
       supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("work_shifts").select("id,name,start_time,end_time").eq("user_id", user.id).eq("is_active", true).order("start_time"),
     ]);
     setDepartmentsList(((dRes.data as any[]) || []).map((d) => ({ id: d.id, name: d.name_ar || d.name })));
     setJobTitlesList(((jRes.data as any[]) || []).map((j) => ({ id: j.id, name: j.name_ar || j.name, department_id: j.department_id })));
+    setShiftsList(((sRes.data as any[]) || []).map((s) => ({ id: s.id, name: s.name, start_time: s.start_time, end_time: s.end_time })));
   };
 
   const handleAddBranch = async () => {
@@ -1127,8 +1131,43 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">معدل الساعة</label><Input type="number" value={form.hourly_rate || 0} onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">أيام العمل/أسبوع</label><Input type="number" value={form.work_days_per_week || 6} onChange={e => setForm({ ...form, work_days_per_week: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">ساعات العمل/يوم</label><Input type="number" value={form.work_hours_per_day || 10} onChange={e => setForm({ ...form, work_hours_per_day: Number(e.target.value) })} /></div>
-            <div><label className="text-xs text-muted-foreground">بداية الوردية</label><Input type="time" value={(form as any).shift_start || "08:00"} onChange={e => setForm({ ...form, shift_start: e.target.value })} dir="ltr" /></div>
-            <div><label className="text-xs text-muted-foreground">نهاية الوردية</label><Input type="time" value={(form as any).shift_end || "16:00"} onChange={e => setForm({ ...form, shift_end: e.target.value })} dir="ltr" /></div>
+            <div className="col-span-2">
+              <label className="text-xs text-muted-foreground">الشفت</label>
+              <Select
+                value={form.shift_id || "__none__"}
+                onValueChange={v => {
+                  if (v === "__none__") {
+                    setForm({ ...form, shift_id: null });
+                  } else {
+                    const s = shiftsList.find(x => x.id === v);
+                    setForm({
+                      ...form,
+                      shift_id: v,
+                      // Mirror to legacy shift_start/end so existing reports/UI keep working
+                      shift_start: s?.start_time?.slice(0, 5) || form.shift_start,
+                      shift_end: s?.end_time?.slice(0, 5) || form.shift_end,
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="اختر الشفت" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— بدون شفت —</SelectItem>
+                  {shiftsList.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} ({s.start_time?.slice(0,5)} - {s.end_time?.slice(0,5)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {shiftsList.length === 0 && (
+                <p className="text-[10px] text-amber-600 mt-1">
+                  لا توجد شفتات معرّفة. أضف من <a href="/hr/shifts" className="underline">إدارة الشفتات</a>.
+                </p>
+              )}
+            </div>
+            <div><label className="text-xs text-muted-foreground">بداية الوردية (يدوي - يُستبدل بالشفت)</label><Input type="time" value={(form as any).shift_start || "08:00"} onChange={e => setForm({ ...form, shift_start: e.target.value })} dir="ltr" /></div>
+            <div><label className="text-xs text-muted-foreground">نهاية الوردية (يدوي - يُستبدل بالشفت)</label><Input type="time" value={(form as any).shift_end || "16:00"} onChange={e => setForm({ ...form, shift_end: e.target.value })} dir="ltr" /></div>
             <div className="col-span-2 border-t border-border pt-3 mt-2">
               <h4 className="text-sm font-bold text-foreground mb-2">البدلات اليومية والعائلية</h4>
             </div>

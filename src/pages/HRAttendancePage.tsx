@@ -45,6 +45,8 @@ type EmployeeLite = {
   job_title: string | null;
   shift_start: string | null;
   shift_end: string | null;
+  shift_id?: string | null;
+  shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
   is_active: boolean;
   is_terminated: boolean | null;
   work_days_per_week: number | null;
@@ -63,7 +65,16 @@ type AttendanceRecord = {
   branch_id: string | null;
   notes: string | null;
   is_manually_adjusted: boolean | null;
-  employees?: { full_name: string; branch_id: string | null; department: string | null; job_title: string | null; shift_start: string | null; shift_end: string | null };
+  employees?: {
+    full_name: string;
+    branch_id: string | null;
+    department: string | null;
+    job_title: string | null;
+    shift_start: string | null;
+    shift_end: string | null;
+    shift_id?: string | null;
+    shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
+  };
 };
 
 type CorrectionReq = {
@@ -139,20 +150,77 @@ const rowAccentClass = (s: string) => {
   }
 };
 
-// Compute issue text + late minutes — Logic-driven, day-type-aware
+// Resolve the effective shift times for an employee.
+// Source of truth: employees.shift (FK to work_shifts). Fallback: legacy shift_start/end.
+function resolveShift(emp: AttendanceRecord["employees"]): {
+  start: string | null;
+  end: string | null;
+  graceMin: number;
+  overtimeAfterMin: number;
+} {
+  const sh = emp?.shift;
+  if (sh?.start_time && sh?.end_time) {
+    return {
+      start: sh.start_time.slice(0, 5),
+      end: sh.end_time.slice(0, 5),
+      graceMin: sh.late_tolerance_minutes ?? 0,
+      overtimeAfterMin: sh.overtime_after_minutes ?? 0,
+    };
+  }
+  return {
+    start: emp?.shift_start || null,
+    end: emp?.shift_end || null,
+    graceMin: 0,
+    overtimeAfterMin: 0,
+  };
+}
+
+const fmtMin = (mins: number) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}س ${m}د` : `${m}د`;
+};
+
+// Compute issue text + late/early/overtime minutes — Day-type AND shift aware
 function computeIssue(
   r: AttendanceRecord,
   dayType: DayType = "working",
-): { text: string; severity: "ok" | "warn" | "err"; lateMin: number } {
-  const shiftStart = r.employees?.shift_start;
+): { text: string; severity: "ok" | "warn" | "err"; lateMin: number; earlyLeaveMin?: number; overtimeMin?: number } {
+  const sh = resolveShift(r.employees);
+
+  // Late minutes (vs shift start)
   let lateMin = 0;
-  if (r.first_check_in && shiftStart) {
+  if (r.first_check_in && sh.start) {
     const ci = new Date(r.first_check_in);
-    const [h, m] = shiftStart.split(":").map(Number);
+    const [h, m] = sh.start.split(":").map(Number);
     const exp = new Date(ci);
     exp.setHours(h || 0, m || 0, 0, 0);
     lateMin = Math.max(0, Math.round((ci.getTime() - exp.getTime()) / 60000));
+    // Apply grace
+    if (lateMin <= sh.graceMin) lateMin = 0;
   }
+
+  // Early leave minutes (vs shift end)
+  let earlyLeaveMin = 0;
+  if (r.last_check_out && sh.end) {
+    const co = new Date(r.last_check_out);
+    const [h, m] = sh.end.split(":").map(Number);
+    const exp = new Date(co);
+    exp.setHours(h || 0, m || 0, 0, 0);
+    earlyLeaveMin = Math.max(0, Math.round((exp.getTime() - co.getTime()) / 60000));
+  }
+
+  // Overtime minutes (vs shift end + threshold)
+  let overtimeMin = 0;
+  if (r.last_check_out && sh.end) {
+    const co = new Date(r.last_check_out);
+    const [h, m] = sh.end.split(":").map(Number);
+    const exp = new Date(co);
+    exp.setHours(h || 0, m || 0, 0, 0);
+    const extra = Math.max(0, Math.round((co.getTime() - exp.getTime()) / 60000));
+    if (extra >= sh.overtimeAfterMin) overtimeMin = extra;
+  }
+
   // Non-working days never count as issues
   if (dayType === "holiday") return { text: "عطلة رسمية", severity: "ok", lateMin: 0 };
   if (dayType === "leave") return { text: "إجازة معتمدة", severity: "ok", lateMin: 0 };
@@ -160,14 +228,19 @@ function computeIssue(
 
   if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
   if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
-  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin };
-  if (lateMin >= 5) {
-    const h = Math.floor(lateMin / 60);
-    const mm = lateMin % 60;
-    const t = h > 0 ? `${h}س ${mm}د` : `${mm}د`;
-    return { text: `تأخير ${t}`, severity: "warn", lateMin };
+  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin };
+
+  // Order of precedence in summary text: late > early_leave > overtime > ok
+  if (lateMin > 0) {
+    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin };
   }
-  return { text: "—", severity: "ok", lateMin: 0 };
+  if (earlyLeaveMin >= 5) {
+    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin };
+  }
+  if (overtimeMin > 0) {
+    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
+  }
+  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
 }
 
 export default function HRAttendancePage() {
@@ -254,7 +327,7 @@ export default function HRAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
       const { data: emps } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated, work_days_per_week, start_date")
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes)")
         .eq("user_id", user.id);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
@@ -262,7 +335,7 @@ export default function HRAttendancePage() {
 
       const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes))")
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
       let filtered = (att as any) || [];
@@ -376,7 +449,7 @@ export default function HRAttendancePage() {
         branch_id: e.branch_id,
         notes: null,
         is_manually_adjusted: false,
-        employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end },
+        employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end, shift_id: (e as any).shift_id ?? null, shift: (e as any).shift ?? null },
         };
       });
     return [...records, ...synthetic];
@@ -768,7 +841,7 @@ export default function HRAttendancePage() {
       // Fetch range from DB
       const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes))")
         .gte("attendance_date", reportFromDate)
         .lte("attendance_date", reportToDate)
         .order("attendance_date", { ascending: true });
