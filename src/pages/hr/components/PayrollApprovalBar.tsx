@@ -109,7 +109,7 @@ export function PayrollApprovalBar({
             </span>
           )}
           {row?.rejection_reason && (
-            <span className="text-[11px] text-rose-600">
+            <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
               سبب الإرجاع: {row.rejection_reason}
             </span>
           )}
@@ -154,7 +154,7 @@ export function PayrollApprovalBar({
                 disabled={rejectMut.isPending}
                 className="gap-1 border-rose-300 text-rose-700 hover:bg-rose-50"
               >
-                إرجاع
+                إرجاع للمراجعة
               </Button>
               <Button
                 size="sm"
@@ -164,6 +164,21 @@ export function PayrollApprovalBar({
               >
                 <CheckCircle2 className="h-4 w-4" />
                 اعتماد
+              </Button>
+            </>
+          )}
+
+          {/* Returned → allow editing values & re-submitting */}
+          {row?.status === "returned" && (
+            <>
+              <Button
+                size="sm"
+                onClick={handleSubmit}
+                disabled={!previewSnapshot || submitMut.isPending}
+                className="gap-1"
+              >
+                <Send className="h-4 w-4" />
+                إعادة التقديم
               </Button>
             </>
           )}
@@ -178,7 +193,7 @@ export function PayrollApprovalBar({
               className="gap-1"
             >
               <RotateCcw className="h-4 w-4" />
-              إعادة فتح للمراجعة
+              إرجاع للمراجعة
             </Button>
           )}
 
@@ -196,14 +211,13 @@ export function PayrollApprovalBar({
         <DialogContent dir="rtl" className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {row?.status === "approved" ? "إعادة فتح الراتب" : "إرجاع الراتب للمراجعة"}
+              إرجاع الراتب للمراجعة
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              {row?.status === "approved"
-                ? "سيتم إرجاع الراتب لحالة «قيد الاعتماد» وفك القفل عن قيمه."
-                : "سيتم إلغاء الراتب وإعادته للمعاينة."}
+              سيتم وضع الراتب في حالة «معاد للمراجعة» — قابل للتعديل وإعادة التقديم.
+              هذا ليس إلغاءً نهائياً.
             </p>
             <Textarea
               placeholder="سبب الإرجاع (إجباري)…"
@@ -217,7 +231,7 @@ export function PayrollApprovalBar({
               إلغاء
             </Button>
             <Button
-              variant="destructive"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
               disabled={!reason.trim() || rejectMut.isPending}
               onClick={handleReject}
             >

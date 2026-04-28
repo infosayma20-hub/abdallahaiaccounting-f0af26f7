@@ -15537,7 +15537,12 @@ export type Database = {
         | "lost"
         | "on_hold"
       crm_priority: "low" | "medium" | "high" | "urgent"
-      payroll_status: "submitted" | "approved" | "paid" | "cancelled"
+      payroll_status:
+        | "submitted"
+        | "approved"
+        | "paid"
+        | "cancelled"
+        | "returned"
       product_category:
         | "بضاعة عامة"
         | "مواد خام"
@@ -15731,7 +15736,13 @@ export const Constants = {
         "on_hold",
       ],
       crm_priority: ["low", "medium", "high", "urgent"],
-      payroll_status: ["submitted", "approved", "paid", "cancelled"],
+      payroll_status: [
+        "submitted",
+        "approved",
+        "paid",
+        "cancelled",
+        "returned",
+      ],
       product_category: [
         "بضاعة عامة",
         "مواد خام",

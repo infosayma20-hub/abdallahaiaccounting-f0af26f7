@@ -9,7 +9,12 @@ import { useToast } from "@/hooks/use-toast";
  * No accounting entries here. Posting happens later in B3.7.
  */
 
-export type PayrollStatus = "submitted" | "approved" | "paid" | "cancelled";
+export type PayrollStatus =
+  | "submitted"
+  | "approved"
+  | "paid"
+  | "returned"
+  | "cancelled";
 
 export type EmployeePayrollRow = {
   id: string;
@@ -42,6 +47,7 @@ export const PAYROLL_STATUS_META: Record<
   submitted: { label: "🔵 قيد الاعتماد", tone: "amber" },
   approved: { label: "🟢 معتمد", tone: "emerald" },
   paid: { label: "💰 مدفوع", tone: "primary" },
+  returned: { label: "↩️ معاد للمراجعة", tone: "amber" },
   cancelled: { label: "❌ ملغي", tone: "rose" },
 };
 
