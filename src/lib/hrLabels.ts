@@ -149,3 +149,93 @@ export function formStatusTone(s?: string | null): string {
     return "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30";
   return "";
 }
+
+const PAYROLL_STATUS: Record<string, string> = {
+  paid: "مدفوع",
+  unpaid: "غير مدفوع",
+  pending: "قيد المراجعة",
+  draft: "مسودة",
+  approved: "معتمد",
+  cancelled: "ملغي",
+};
+
+export function tPayrollStatus(s?: string | null | boolean): string {
+  if (s === true) return "مدفوع";
+  if (s === false) return "غير مدفوع";
+  if (!s) return "—";
+  return PAYROLL_STATUS[String(s).toLowerCase()] || String(s);
+}
+
+export function payrollStatusTone(s?: string | null | boolean): string {
+  const k = s === true ? "paid" : s === false ? "unpaid" : String(s || "").toLowerCase();
+  if (["paid", "مدفوع", "approved", "معتمد"].includes(k))
+    return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
+  if (["unpaid", "غير مدفوع", "pending", "قيد المراجعة", "draft", "مسودة"].includes(k))
+    return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30";
+  if (["cancelled", "ملغي"].includes(k))
+    return "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30";
+  return "";
+}
+
+const LEAVE_TYPE: Record<string, string> = {
+  annual: "سنوية",
+  sick: "مرضية",
+  unpaid: "بدون راتب",
+  maternity: "أمومة",
+  emergency: "طارئة",
+  bereavement: "وفاة",
+  hajj: "حج",
+  marriage: "زواج",
+  study: "دراسية",
+  other: "أخرى",
+};
+
+export function tLeaveType(s?: string | null): string {
+  if (!s) return "—";
+  return LEAVE_TYPE[String(s).toLowerCase()] || s;
+}
+
+const DEDUCTION_TYPE: Record<string, string> = {
+  late: "تأخير",
+  absence: "غياب",
+  manual: "خصم يدوي",
+  pos: "خصم نقطة بيع",
+  loan: "قسط قرض",
+  advance: "سلفة",
+  penalty: "إجراء عقابي",
+  insurance: "تأمين",
+  tax: "ضريبة",
+  other: "أخرى",
+};
+
+export function tDeductionType(s?: string | null): string {
+  if (!s) return "—";
+  return DEDUCTION_TYPE[String(s).toLowerCase()] || s;
+}
+
+const DEDUCTION_SOURCE: Record<string, string> = {
+  pos: "نقطة بيع",
+  manual: "يدوي",
+  payroll: "راتب",
+  attendance: "حضور",
+  loan: "قرض",
+  system: "النظام",
+};
+
+export function tDeductionSource(s?: string | null): string {
+  if (!s) return "يدوي";
+  return DEDUCTION_SOURCE[String(s).toLowerCase()] || s;
+}
+
+const LOAN_STATUS: Record<string, string> = {
+  active: "نشط",
+  paid: "مسدد",
+  closed: "مغلق",
+  cancelled: "ملغي",
+  pending: "قيد المراجعة",
+};
+
+export function tLoanStatus(s?: string | null): string {
+  if (!s) return "—";
+  return LOAN_STATUS[String(s).toLowerCase()] || s;
+}

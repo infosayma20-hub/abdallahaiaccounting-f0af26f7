@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "../HRTable";
+import { tDeductionType, tDeductionSource } from "@/lib/hrLabels";
 
 interface Props {
   data: Employee360Data;
@@ -35,7 +37,7 @@ export function DeductionsTab({ data }: Props) {
         </Card>
       </div>
 
-      <Card>
+      <Card dir="rtl" className="overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-right">سجل الخصومات (90 يوم)</CardTitle>
         </CardHeader>
@@ -43,38 +45,34 @@ export function DeductionsTab({ data }: Props) {
           {list.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">لا توجد خصومات.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs text-muted-foreground">
-                  <tr className="text-right">
-                    <th className="px-4 py-2 font-medium">التاريخ</th>
-                    <th className="px-4 py-2 font-medium">النوع</th>
-                    <th className="px-4 py-2 font-medium">الوصف</th>
-                    <th className="px-4 py-2 font-medium">المبلغ</th>
-                    <th className="px-4 py-2 font-medium">المصدر</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((d: any) => (
-                    <tr key={d.id} className="border-t hover:bg-muted/30 text-right">
-                      <td className="px-4 py-2 tabular-nums">{d.deduction_date}</td>
-                      <td className="px-4 py-2">{d.deduction_type || "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground truncate max-w-xs">
-                        {d.description || d.notes || "—"}
-                      </td>
-                      <td className="px-4 py-2 tabular-nums text-rose-600 font-semibold">
-                        ₪{fmt(d.amount)}
-                      </td>
-                      <td className="px-4 py-2">
-                        <Badge variant="outline" className="text-[10px]">
-                          {d.source || d.source_type || "يدوي"}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <HRTable>
+              <HRTHead>
+                <HRTH>التاريخ</HRTH>
+                <HRTH>النوع</HRTH>
+                <HRTH>الوصف</HRTH>
+                <HRTH>المبلغ</HRTH>
+                <HRTH>المصدر</HRTH>
+              </HRTHead>
+              <tbody>
+                {list.map((d: any) => (
+                  <HRTR key={d.id}>
+                    <HRTD numeric>{d.deduction_date}</HRTD>
+                    <HRTD>{tDeductionType(d.deduction_type)}</HRTD>
+                    <HRTD className="text-muted-foreground truncate max-w-xs">
+                      {d.description || d.notes || "—"}
+                    </HRTD>
+                    <HRTD numeric className="text-rose-600 font-semibold">
+                      <HRMoney value={d.amount} />
+                    </HRTD>
+                    <HRTD>
+                      <Badge variant="outline" className="text-[10px]">
+                        {tDeductionSource(d.source || d.source_type)}
+                      </Badge>
+                    </HRTD>
+                  </HRTR>
+                ))}
+              </tbody>
+            </HRTable>
           )}
         </CardContent>
       </Card>

@@ -19,6 +19,7 @@ import {
 import { Search, Filter, MoreHorizontal, Eye, Pencil, MessageSquare, FileText, Send } from "lucide-react";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import { tAttendanceStatus, tEventType, attendanceStatusTone } from "@/lib/hrLabels";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD } from "../HRTable";
 
 interface Props {
   data: Employee360Data;
@@ -196,55 +197,52 @@ export function AttendanceTab({ data }: Props) {
               لا توجد سجلات حضور تطابق الفلاتر.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse" dir="rtl">
-                <thead>
-                  <tr className="bg-primary text-primary-foreground">
-                    <th className="px-3 py-3 text-right text-xs font-semibold">التاريخ</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">دخول</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">خروج</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الساعات</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">إضافي</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold">الملاحظات</th>
-                    <th className="px-3 py-3 text-right text-xs font-semibold w-12">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <HRTable>
+              <HRTHead>
+                <HRTH>التاريخ</HRTH>
+                <HRTH>دخول</HRTH>
+                <HRTH>خروج</HRTH>
+                <HRTH>الساعات</HRTH>
+                <HRTH>إضافي</HRTH>
+                <HRTH>الحالة</HRTH>
+                <HRTH>الملاحظات</HRTH>
+                <HRTH className="w-12">إجراءات</HRTH>
+              </HRTHead>
+              <tbody>
                   {filtered.map((d: any) => (
-                    <tr key={d.id} className="border-t hover:bg-muted/30 text-right">
-                      <td className="px-3 py-2 tabular-nums">{d.attendance_date}</td>
-                      <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                    <HRTR key={d.id}>
+                      <HRTD numeric>{d.attendance_date}</HRTD>
+                      <HRTD numeric className="text-muted-foreground">
                         {d.first_check_in
                           ? new Date(d.first_check_in).toLocaleTimeString("ar", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
                           : "—"}
-                      </td>
-                      <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                      </HRTD>
+                      <HRTD numeric className="text-muted-foreground">
                         {d.last_check_out
                           ? new Date(d.last_check_out).toLocaleTimeString("ar", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
                           : "—"}
-                      </td>
-                      <td className="px-3 py-2 tabular-nums">
+                      </HRTD>
+                      <HRTD numeric>
                         {Number(d.total_hours || 0).toFixed(1)}
-                      </td>
-                      <td className="px-3 py-2 tabular-nums">
+                      </HRTD>
+                      <HRTD numeric>
                         {Number(d.overtime_hours || 0).toFixed(1)}
-                      </td>
-                      <td className="px-3 py-2">
+                      </HRTD>
+                      <HRTD>
                         <Badge variant="outline" className={attendanceStatusTone(d.status)}>
                           {tAttendanceStatus(d.status)}
                         </Badge>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground truncate max-w-[200px]">
+                      </HRTD>
+                      <HRTD className="text-muted-foreground truncate max-w-[200px]">
                         {d.notes || "—"}
-                      </td>
-                      <td className="px-3 py-2">
+                      </HRTD>
+                      <HRTD>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -269,12 +267,11 @@ export function AttendanceTab({ data }: Props) {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </td>
-                    </tr>
+                      </HRTD>
+                    </HRTR>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </HRTable>
           )}
         </CardContent>
       </Card>

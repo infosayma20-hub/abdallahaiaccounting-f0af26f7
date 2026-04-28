@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "../HRTable";
+import { tPayrollStatus, payrollStatusTone } from "@/lib/hrLabels";
 
 interface Props {
   data: Employee360Data;
@@ -49,57 +51,52 @@ export function PayrollTab({ data, cost }: Props) {
           {runs.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">لا توجد قسائم راتب.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs text-muted-foreground">
-                  <tr className="text-right">
-                    <th className="px-4 py-2 font-medium">الفترة</th>
-                    <th className="px-4 py-2 font-medium">الأساسي</th>
-                    <th className="px-4 py-2 font-medium">البدلات</th>
-                    <th className="px-4 py-2 font-medium">الخصومات</th>
-                    <th className="px-4 py-2 font-medium">القروض</th>
-                    <th className="px-4 py-2 font-medium">الصافي</th>
-                    <th className="px-4 py-2 font-medium">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runs.map((r: any) => (
-                    <tr key={r.id} className="border-t hover:bg-muted/30 text-right">
-                      <td className="px-4 py-2 tabular-nums">
-                        {r.period_month}/{r.period_year}
-                      </td>
-                      <td className="px-4 py-2 tabular-nums">₪{fmt(r.base_salary)}</td>
-                      <td className="px-4 py-2 tabular-nums text-emerald-600">
-                        ₪{fmt(
-                          Number(r.total_allowances || 0) +
-                            Number(r.attendance_bonus || 0) +
-                            Number(r.special_allowance || 0),
-                        )}
-                      </td>
-                      <td className="px-4 py-2 tabular-nums text-rose-600">
-                        ₪{fmt(r.total_deductions)}
-                      </td>
-                      <td className="px-4 py-2 tabular-nums text-amber-600">
-                        ₪{fmt(r.loan_deduction)}
-                      </td>
-                      <td className="px-4 py-2 tabular-nums font-bold">₪{fmt(r.net_salary)}</td>
-                      <td className="px-4 py-2">
-                        <Badge
-                          variant="outline"
-                          className={
-                            r.is_paid
-                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                              : "bg-amber-500/10 text-amber-600 border-amber-500/30"
-                          }
-                        >
-                          {r.is_paid ? "مدفوع" : "غير مدفوع"}
+            <HRTable>
+              <HRTHead>
+                <HRTH>الحالة</HRTH>
+                <HRTH>الصافي</HRTH>
+                <HRTH>القروض</HRTH>
+                <HRTH>الخصومات</HRTH>
+                <HRTH>البدلات</HRTH>
+                <HRTH>الأساسي</HRTH>
+                <HRTH>الفترة</HRTH>
+              </HRTHead>
+              <tbody>
+                {runs.map((r: any) => {
+                  const allowances =
+                    Number(r.total_allowances || 0) +
+                    Number(r.attendance_bonus || 0) +
+                    Number(r.special_allowance || 0);
+                  return (
+                    <HRTR key={r.id}>
+                      <HRTD>
+                        <Badge variant="outline" className={payrollStatusTone(!!r.is_paid)}>
+                          {tPayrollStatus(!!r.is_paid)}
                         </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </HRTD>
+                      <HRTD numeric className="font-bold">
+                        <HRMoney value={r.net_salary} />
+                      </HRTD>
+                      <HRTD numeric className="text-amber-600">
+                        <HRMoney value={r.loan_deduction} />
+                      </HRTD>
+                      <HRTD numeric className="text-rose-600">
+                        <HRMoney value={r.total_deductions} />
+                      </HRTD>
+                      <HRTD numeric className="text-emerald-600">
+                        <HRMoney value={allowances} />
+                      </HRTD>
+                      <HRTD numeric>
+                        <HRMoney value={r.base_salary} />
+                      </HRTD>
+                      <HRTD numeric>
+                        {r.period_month}/{r.period_year}
+                      </HRTD>
+                    </HRTR>
+                  );
+                })}
+              </tbody>
+            </HRTable>
           )}
         </CardContent>
       </Card>

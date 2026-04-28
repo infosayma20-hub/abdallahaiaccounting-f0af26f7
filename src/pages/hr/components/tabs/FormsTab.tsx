@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import { tFormType, tFormStatus, formStatusTone } from "@/lib/hrLabels";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD } from "../HRTable";
 
 interface Props {
   data: Employee360Data;
@@ -19,36 +20,32 @@ export function FormsTab({ data }: Props) {
         {forms.length === 0 ? (
           <p className="text-sm text-muted-foreground py-10 text-center">لا توجد طلبات.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse" dir="rtl">
-              <thead>
-                <tr className="bg-primary text-primary-foreground">
-                  <th className="px-3 py-3 text-right text-xs font-semibold">التاريخ</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">نوع الطلب</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">ملاحظات HR</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {forms.map((f: any) => (
-                  <tr key={f.id} className="border-t hover:bg-muted/30 text-right">
-                    <td className="px-3 py-2 tabular-nums">
-                      {f.created_at ? new Date(f.created_at).toLocaleDateString("ar") : "—"}
-                    </td>
-                    <td className="px-3 py-2">{tFormType(f.form_type)}</td>
-                    <td className="px-3 py-2 text-muted-foreground truncate max-w-xs">
-                      {f.review_notes || "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge variant="outline" className={formStatusTone(f.status)}>
-                        {tFormStatus(f.status)}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <HRTable>
+            <HRTHead>
+              <HRTH>التاريخ</HRTH>
+              <HRTH>نوع الطلب</HRTH>
+              <HRTH>ملاحظات HR</HRTH>
+              <HRTH>الحالة</HRTH>
+            </HRTHead>
+            <tbody>
+              {forms.map((f: any) => (
+                <HRTR key={f.id}>
+                  <HRTD numeric>
+                    {f.created_at ? new Date(f.created_at).toLocaleDateString("ar") : "—"}
+                  </HRTD>
+                  <HRTD>{tFormType(f.form_type)}</HRTD>
+                  <HRTD className="text-muted-foreground truncate max-w-xs">
+                    {f.review_notes || "—"}
+                  </HRTD>
+                  <HRTD>
+                    <Badge variant="outline" className={formStatusTone(f.status)}>
+                      {tFormStatus(f.status)}
+                    </Badge>
+                  </HRTD>
+                </HRTR>
+              ))}
+            </tbody>
+          </HRTable>
         )}
       </CardContent>
     </Card>
