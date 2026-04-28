@@ -232,6 +232,12 @@ export default function HRAttendancePage() {
   const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
   const [bulkNote, setBulkNote] = useState("");
 
+  // Bulk inquiry
+  const [bulkInquiryOpen, setBulkInquiryOpen] = useState(false);
+  const [bulkInquiryMessage, setBulkInquiryMessage] = useState("");
+  const [bulkInquiryTargets, setBulkInquiryTargets] = useState<{ employee_id: string; employee_name?: string; attendance_date: string; issueText: string }[]>([]);
+  const [bulkInquirySending, setBulkInquirySending] = useState(false);
+
   // Day lock (UI-level via localStorage; future: DB-level period lock)
   const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
   const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
