@@ -178,10 +178,10 @@ const reqTypeLabel = (t: string) => ({
   missing_checkin: "دخول مفقود",
   missing_checkout: "خروج مفقود",
   wrong_time: "وقت خاطئ",
-  leave_request: "🏖️ طلب إجازة",
-  advance_request: "💰 طلب سلفة",
-  overtime_request: "⏰ أوفرتايم",
-  hr_message: "💬 رسالة HR",
+  leave_request: "طلب إجازة",
+  advance_request: "طلب سلفة",
+  overtime_request: "أوفرتايم",
+  hr_message: "رسالة HR",
 }[t] || "أخرى");
 
 export default function HRAttendancePage() {
@@ -243,7 +243,7 @@ export default function HRAttendancePage() {
     if (next.has(selectedDate)) next.delete(selectedDate); else next.add(selectedDate);
     setLockedDates(next);
     localStorage.setItem(lockKey, JSON.stringify(Array.from(next)));
-    toast({ title: next.has(selectedDate) ? "🔒 تم إغلاق اليوم" : "🔓 تم فتح اليوم" });
+    toast({ title: next.has(selectedDate) ? "تم إغلاق اليوم" : "تم فتح اليوم" });
   };
 
   const fetchData = useCallback(async () => {
@@ -438,7 +438,7 @@ export default function HRAttendancePage() {
       radius_meters: parseInt(editForm.radius_meters) || 100,
     }).eq("id", editingBranch.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تم التحديث ✅" }); setEditingBranch(null); fetchData(); }
+    else { toast({ title: "تم التحديث" }); setEditingBranch(null); fetchData(); }
   };
 
   const deleteBranch = async () => {
@@ -460,13 +460,13 @@ export default function HRAttendancePage() {
       new_values: { status: action, review_notes: reviewNotes },
       changed_by: user!.id, reason: reviewNotes || undefined,
     });
-    toast({ title: action === "approved" ? "تم القبول ✅" : "تم الرفض" });
+    toast({ title: action === "approved" ? "تم القبول" : "تم الرفض" });
     setReviewDialog(null); setReviewNotes(""); fetchData();
   };
 
   // ------------------ Row Actions ------------------
   const openEditRecord = (r: AttendanceRecord) => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", description: "افتح اليوم لإجراء التعديلات", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", description: "افتح اليوم لإجراء التعديلات", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل بعد", description: "هذا الموظف لم يبصم اليوم. استخدم 'تعديل يدوي' لإنشاء سجل عبر طلب تعديل من الموظف.", variant: "destructive" });
       return;
@@ -507,12 +507,12 @@ export default function HRAttendancePage() {
       table_name: "attendance_days", record_id: editRecord.id, action: "update",
       new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
     });
-    toast({ title: "تم التحديث ✅" });
+    toast({ title: "تم التحديث" });
     setEditRecord(null); fetchData();
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) return;
     if (!r.first_check_in || !r.last_check_out) {
       toast({ title: "لا يمكن إعادة الحساب", description: "ينقص الدخول أو الخروج", variant: "destructive" });
@@ -523,11 +523,11 @@ export default function HRAttendancePage() {
       total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
     }).eq("id", r.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تمت إعادة الحساب ✅" }); fetchData(); }
+    else { toast({ title: "تمت إعادة الحساب" }); fetchData(); }
   };
 
   const openNote = (r: AttendanceRecord) => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل لإضافة ملاحظة عليه", variant: "destructive" }); return;
     }
@@ -537,7 +537,7 @@ export default function HRAttendancePage() {
     if (!noteRecord) return;
     const { error } = await supabase.from("attendance_days").update({ notes: noteText || null }).eq("id", noteRecord.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تم حفظ الملاحظة ✅" }); setNoteRecord(null); fetchData(); }
+    else { toast({ title: "تم حفظ الملاحظة" }); setNoteRecord(null); fetchData(); }
   };
 
   const openHistory = async (r: AttendanceRecord) => {
@@ -563,7 +563,7 @@ export default function HRAttendancePage() {
       status: "pending",
     });
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else toast({ title: "تم إرسال الطلب للموظف ✅" });
+    else toast({ title: "تم إرسال الطلب للموظف" });
   };
 
   // ------------------ Bulk Actions ------------------
@@ -583,7 +583,7 @@ export default function HRAttendancePage() {
   const clearSelection = () => setSelected(new Set());
 
   const bulkRecalc = async () => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     const ids = Array.from(selected);
     const targets = enriched.filter(x => ids.includes(x.row.id) && x.row.first_check_in && x.row.last_check_out);
     if (targets.length === 0) { toast({ title: "لا يوجد سجلات صالحة لإعادة الحساب" }); return; }
@@ -595,12 +595,12 @@ export default function HRAttendancePage() {
       }).eq("id", x.row.id);
       if (!error) ok++;
     }
-    toast({ title: `✅ تمت إعادة حساب ${ok} سجل` });
+    toast({ title: `تمت إعادة حساب ${ok} سجل` });
     clearSelection(); fetchData();
   };
 
   const bulkAddNote = async () => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     if (!bulkNote.trim()) return;
     const ids = Array.from(selected);
     let ok = 0;
@@ -608,7 +608,7 @@ export default function HRAttendancePage() {
       const { error } = await supabase.from("attendance_days").update({ notes: bulkNote }).eq("id", id);
       if (!error) ok++;
     }
-    toast({ title: `✅ تم تحديث ملاحظة ${ok} سجل` });
+    toast({ title: `تم تحديث ملاحظة ${ok} سجل` });
     setBulkNoteOpen(false); setBulkNote(""); clearSelection(); fetchData();
   };
 
@@ -627,7 +627,7 @@ export default function HRAttendancePage() {
       });
       if (!error) ok++;
     }
-    toast({ title: `📨 تم إرسال ${ok} استفسار` });
+    toast({ title: `تم إرسال ${ok} استفسار` });
     clearSelection();
   };
 
@@ -741,9 +741,9 @@ export default function HRAttendancePage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportExcel("daily")}>📊 التقرير اليومي الشامل</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportExcel("late")}>⏱️ تقرير المتأخرين</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportExcel("absent")}>❌ تقرير الغياب</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportExcel("incomplete")}>❗ تقرير البصمات الناقصة</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("late")}>تقرير المتأخرين</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("absent")}>تقرير الغياب</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("incomplete")}>تقرير البصمات الناقصة</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -759,9 +759,9 @@ export default function HRAttendancePage() {
             <div>
               <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
               <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
-                {kpis.incomplete > 0 && <span>❗ بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
-                {kpis.late > 0 && <span>⏱️ متأخرون: <b>{kpis.late}</b></span>}
-                {kpis.absent > 0 && <span>❌ غياب: <b>{kpis.absent}</b></span>}
+                {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
+                {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
+                {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
                 {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
               </div>
             </div>
@@ -833,7 +833,7 @@ export default function HRAttendancePage() {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 flex-wrap">
               <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={enriched.length} />
-              <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط ❗" count={kpis.issues} tone="amber" />
+              <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط" count={kpis.issues} tone="amber" />
               <FilterChip active={filter === "present"} onClick={() => setFilter("present")} label="حضور كامل" count={kpis.present} tone="emerald" />
               <FilterChip active={filter === "late"} onClick={() => setFilter("late")} label="متأخرون" count={kpis.late} tone="amber" />
               <FilterChip active={filter === "missing_checkin"} onClick={() => setFilter("missing_checkin")} label="بدون دخول" count={enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length} tone="orange" />
@@ -870,76 +870,76 @@ export default function HRAttendancePage() {
           ) : (
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted/60 backdrop-blur z-10">
-                    <TableRow>
-                      <TableHead className="w-10">
+                <table className="w-full text-sm border-collapse" dir="rtl">
+                  <thead>
+                    <tr className="bg-primary text-primary-foreground">
+                      <th className="px-3 py-3 text-right text-xs font-semibold w-10">
                         <input
                           type="checkbox"
-                          className="h-4 w-4"
+                          className="h-4 w-4 align-middle"
                           checked={visibleRows.length > 0 && visibleRows.filter(x => !x.row.id.startsWith("synthetic-")).every(x => selected.has(x.row.id))}
                           onChange={toggleSelectAllVisible}
                         />
-                      </TableHead>
-                      <TableHead className="text-right whitespace-nowrap">👤 الموظف</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">🏢 الفرع</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">🧩 القسم</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">المسمى</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏰ الدخول</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏰ الخروج</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏱️ الساعات</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏱️ التأخير</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">إضافي</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">❗ المشكلة</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">📝 ملاحظات</TableHead>
-                      <TableHead className="text-right whitespace-nowrap sticky left-0 bg-muted/60">⚙️ إجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px] whitespace-nowrap">الموظف</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الفرع</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">القسم</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المسمى</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الدخول</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الخروج</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الساعات</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">التأخير</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إضافي</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المشكلة</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الحالة</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">ملاحظات</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {visibleRows.map(({ row: r, issue }) => {
                       const branchName = branches.find(b => b.id === r.branch_id)?.name || "—";
                       const isSynthetic = r.id.startsWith("synthetic-");
                       return (
-                        <TableRow key={r.id} className={cn("hover:bg-muted/30", rowAccentClass(r.status))}>
-                          <TableCell>
+                        <tr key={r.id} className={cn("border-b border-border/50 hover:bg-muted/30 transition-colors", rowAccentClass(r.status))}>
+                          <td className="px-3 py-3 align-middle">
                             {!isSynthetic && (
                               <input type="checkbox" className="h-4 w-4" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
                             )}
-                          </TableCell>
-                          <TableCell className="font-medium whitespace-nowrap">
+                          </td>
+                          <td className="px-3 py-3 font-medium whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
                                 {(r.employees?.full_name || "?").slice(0, 1)}
                               </div>
                               <span>{r.employees?.full_name || "—"}</span>
                               {r.is_manually_adjusted && <Badge variant="outline" className="text-[10px] h-4 px-1">معدّل يدوياً</Badge>}
                             </div>
-                          </TableCell>
-                          <TableCell className="text-sm">{branchName}</TableCell>
-                          <TableCell className="text-sm">{r.employees?.department || "—"}</TableCell>
-                          <TableCell className="text-sm">{r.employees?.job_title || "—"}</TableCell>
-                          <TableCell className="tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : <span className="text-red-500">—</span>}</TableCell>
-                          <TableCell className="tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : <span className="text-red-500">—</span>}</TableCell>
-                          <TableCell className="tabular-nums">{r.total_hours?.toFixed(1) || "0"}</TableCell>
-                          <TableCell className={cn("tabular-nums", issue.lateMin > 0 && "text-amber-700 font-semibold")}>
-                            {issue.lateMin > 0 ? `${issue.lateMin}د` : "—"}
-                          </TableCell>
-                          <TableCell className="tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-3 py-3 text-sm">{branchName}</td>
+                          <td className="px-3 py-3 text-sm">{r.employees?.department || "—"}</td>
+                          <td className="px-3 py-3 text-sm">{r.employees?.job_title || "—"}</td>
+                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-3 py-3 tabular-nums">{r.total_hours?.toFixed(1) || "0"}</td>
+                          <td className={cn("px-3 py-3 tabular-nums", issue.lateMin > 0 && "text-amber-700 font-semibold")}>
+                            {issue.lateMin > 0 ? `${issue.lateMin} د` : "—"}
+                          </td>
+                          <td className="px-3 py-3 tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</td>
+                          <td className="px-3 py-3">
                             <span className={cn("text-xs",
                               issue.severity === "err" && "text-red-600 font-medium",
                               issue.severity === "warn" && "text-amber-700 font-medium",
                               issue.severity === "ok" && "text-muted-foreground"
                             )}>{issue.text}</span>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-3 py-3">
                             <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
                               {statusLabels[r.status] || r.status}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</TableCell>
-                          <TableCell className="sticky left-0 bg-background">
+                          </td>
+                          <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
+                          <td className="px-3 py-3">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-7 px-2"><MoreVertical className="h-4 w-4" /></Button>
@@ -953,12 +953,12 @@ export default function HRAttendancePage() {
                                 <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       );
                     })}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             </Card>
           )}
@@ -969,7 +969,7 @@ export default function HRAttendancePage() {
           {corrections.length === 0 ? (
             <Card className="p-10 text-center text-muted-foreground">
               <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500/50" />
-              لا يوجد طلبات تعديل معلقة 🎉
+              لا يوجد طلبات تعديل معلقة
             </Card>
           ) : (
             corrections.map(req => (
@@ -1060,7 +1060,7 @@ export default function HRAttendancePage() {
               if (!navigator.geolocation) return;
               navigator.geolocation.getCurrentPosition(pos => {
                 setBranchForm(p => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
-                toast({ title: "تم تحديد الموقع ✅" });
+                toast({ title: "تم تحديد الموقع" });
               }, () => toast({ title: "تعذر تحديد الموقع", variant: "destructive" }), { enableHighAccuracy: true, timeout: 15000 });
             }}><MapPin className="h-3.5 w-3.5" /> استخدام موقعي</Button>
           </div>
