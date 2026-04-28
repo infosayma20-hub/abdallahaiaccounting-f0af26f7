@@ -18,6 +18,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
+  Lock, Unlock, CheckSquare,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
