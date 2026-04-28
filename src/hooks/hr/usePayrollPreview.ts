@@ -29,6 +29,19 @@ export type PreviewLineItem = {
   reference?: string | null;
   note?: string | null;
   meta?: Record<string, any>;
+  // --- Reconciliation (B2.4): each line is traceable back to its origin ---
+  sourceKind?:
+    | "transaction"
+    | "financial_movement"
+    | "loan_installment"
+    | "loan"
+    | "manual_deduction"
+    | "attendance"
+    | "previous_balance"
+    | "computed";
+  sourceId?: string | null;
+  sourceLabel?: string | null; // e.g. "سند صرف PV-001"
+  sourceTable?: string | null; // for debug / dev
 };
 
 export type PayrollPreviewResult = {
