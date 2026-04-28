@@ -232,6 +232,12 @@ export default function HRAttendancePage() {
   const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
   const [bulkNote, setBulkNote] = useState("");
 
+  // Bulk inquiry
+  const [bulkInquiryOpen, setBulkInquiryOpen] = useState(false);
+  const [bulkInquiryMessage, setBulkInquiryMessage] = useState("");
+  const [bulkInquiryTargets, setBulkInquiryTargets] = useState<{ employee_id: string; employee_name?: string; attendance_date: string; issueText: string }[]>([]);
+  const [bulkInquirySending, setBulkInquirySending] = useState(false);
+
   // Day lock (UI-level via localStorage; future: DB-level period lock)
   const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
   const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
@@ -553,13 +559,30 @@ export default function HRAttendancePage() {
   };
 
   const sendRequestToEmployee = async (r: AttendanceRecord) => {
-    const reasonText = computeIssue(r).text;
+    const issue = computeIssue(r);
+    if (issue.severity === "ok" || !issue.text || issue.text === "—") {
+      toast({ title: "لا توجد مشكلة على هذا السجل", description: "لم يتم إرسال أي استفسار." });
+      return;
+    }
+    // Dedup check: same employee + date + same issue text + pending
+    const { data: existing } = await supabase
+      .from("correction_requests")
+      .select("id, reason")
+      .eq("employee_id", r.employee_id)
+      .eq("attendance_date", r.attendance_date)
+      .eq("status", "pending")
+      .eq("request_type", "hr_message");
+    const dup = (existing || []).some((x: any) => (x.reason || "").includes(issue.text));
+    if (dup) {
+      toast({ title: "يوجد طلب قائم مسبقاً", description: "لنفس الموظف ونفس التاريخ ونفس المشكلة." });
+      return;
+    }
     const { error } = await supabase.from("correction_requests").insert({
       employee_id: r.employee_id,
       auth_user_id: user!.id,
       attendance_date: r.attendance_date,
       request_type: "hr_message",
-      reason: `طلب توضيح من HR: ${reasonText}`,
+      reason: `المشكلة: ${issue.text}\nرسالة HR: يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.`,
       status: "pending",
     });
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -612,23 +635,75 @@ export default function HRAttendancePage() {
     setBulkNoteOpen(false); setBulkNote(""); clearSelection(); fetchData();
   };
 
-  const bulkSendInquiry = async () => {
+  const openBulkInquiry = () => {
     const ids = Array.from(selected);
-    const targets = enriched.filter(x => ids.includes(x.row.id));
-    let ok = 0;
-    for (const x of targets) {
+    const all = enriched.filter(x => ids.includes(x.row.id));
+    const valid = all.filter(x => x.issue.severity !== "ok" && x.issue.text && x.issue.text !== "—");
+    const excluded = all.length - valid.length;
+    if (valid.length === 0) {
+      toast({
+        title: "لا يوجد سجلات تحتوي مشاكل",
+        description: "تم استبعاد الموظفين الذين لا توجد لديهم مشكلة.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (excluded > 0) {
+      toast({ title: `تم استبعاد ${excluded} موظف بدون مشكلة` });
+    }
+    setBulkInquiryTargets(valid.map(x => ({
+      employee_id: x.row.employee_id,
+      employee_name: x.row.employees?.full_name,
+      attendance_date: x.row.attendance_date,
+      issueText: x.issue.text,
+    })));
+    setBulkInquiryMessage("يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.");
+    setBulkInquiryOpen(true);
+  };
+
+  const submitBulkInquiry = async () => {
+    if (bulkInquiryTargets.length === 0) return;
+    const msg = bulkInquiryMessage.trim() || "يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.";
+    setBulkInquirySending(true);
+    // Fetch existing pending requests for these employees in one query for dedup
+    const empIds = Array.from(new Set(bulkInquiryTargets.map(t => t.employee_id)));
+    const dates = Array.from(new Set(bulkInquiryTargets.map(t => t.attendance_date)));
+    const { data: existing } = await supabase
+      .from("correction_requests")
+      .select("employee_id, attendance_date, reason")
+      .in("employee_id", empIds)
+      .in("attendance_date", dates)
+      .eq("status", "pending")
+      .eq("request_type", "hr_message");
+    const existingSet = new Set((existing || []).map((x: any) => `${x.employee_id}|${x.attendance_date}|${x.reason || ""}`));
+    let ok = 0, dup = 0, fail = 0;
+    for (const t of bulkInquiryTargets) {
+      const reason = `المشكلة: ${t.issueText}\nرسالة HR: ${msg}`;
+      const isDup = (existing || []).some((x: any) =>
+        x.employee_id === t.employee_id &&
+        x.attendance_date === t.attendance_date &&
+        (x.reason || "").includes(t.issueText)
+      );
+      if (isDup) { dup++; continue; }
       const { error } = await supabase.from("correction_requests").insert({
-        employee_id: x.row.employee_id,
+        employee_id: t.employee_id,
         auth_user_id: user!.id,
-        attendance_date: x.row.attendance_date,
+        attendance_date: t.attendance_date,
         request_type: "hr_message",
-        reason: `طلب توضيح من HR: ${x.issue.text}`,
+        reason,
         status: "pending",
       });
-      if (!error) ok++;
+      if (!error) ok++; else fail++;
     }
-    toast({ title: `تم إرسال ${ok} استفسار` });
+    setBulkInquirySending(false);
+    setBulkInquiryOpen(false);
+    setBulkInquiryTargets([]);
+    setBulkInquiryMessage("");
     clearSelection();
+    const parts = [`تم إرسال ${ok} استفسار`];
+    if (dup > 0) parts.push(`${dup} مكرر`);
+    if (fail > 0) parts.push(`${fail} فشل`);
+    toast({ title: parts.join(" • ") });
   };
 
   // ------------------ Exports ------------------
@@ -854,7 +929,7 @@ export default function HRAttendancePage() {
               <div className="ms-auto flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline" className="gap-1" onClick={bulkRecalc} disabled={isLocked}><Calculator className="h-3.5 w-3.5" /> إعادة حساب</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => setBulkNoteOpen(true)} disabled={isLocked}><MessageSquare className="h-3.5 w-3.5" /> ملاحظة جماعية</Button>
-                <Button size="sm" variant="outline" className="gap-1" onClick={bulkSendInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={openBulkInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
                 <Button size="sm" variant="ghost" onClick={clearSelection}><X className="h-3.5 w-3.5" /> إلغاء</Button>
               </div>
             </div>
@@ -1207,6 +1282,59 @@ export default function HRAttendancePage() {
           <DialogHeader><DialogTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> ملاحظة جماعية على {selected.size} سجل</DialogTitle></DialogHeader>
           <Textarea rows={4} value={bulkNote} onChange={e => setBulkNote(e.target.value)} placeholder="اكتب الملاحظة المشتركة..." />
           <DialogFooter><Button onClick={bulkAddNote} className="w-full" disabled={!bulkNote.trim()}>تطبيق على الكل</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Inquiry */}
+      <Dialog open={bulkInquiryOpen} onOpenChange={(o) => { if (!bulkInquirySending) setBulkInquiryOpen(o); }}>
+        <DialogContent dir="rtl" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              إرسال استفسار جماعي ({bulkInquiryTargets.length} موظف)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/40 max-h-56 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/70 text-xs">
+                  <tr>
+                    <th className="text-right p-2">الموظف</th>
+                    <th className="text-right p-2">التاريخ</th>
+                    <th className="text-right p-2">المشكلة المكتشفة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkInquiryTargets.map((t, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="p-2">{t.employee_name || "—"}</td>
+                      <td className="p-2 tabular-nums">{t.attendance_date}</td>
+                      <td className="p-2 text-red-700">{t.issueText}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">رسالة HR (اختياري)</label>
+              <Textarea
+                rows={3}
+                value={bulkInquiryMessage}
+                onChange={e => setBulkInquiryMessage(e.target.value)}
+                placeholder="يرجى توضيح السبب أو تقديم طلب تصحيح بصمة."
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                الرسالة النهائية للموظف ستكون: «المشكلة: [نص المشكلة] — رسالة HR: [نصك]»
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setBulkInquiryOpen(false)} disabled={bulkInquirySending}>إلغاء</Button>
+            <Button onClick={submitBulkInquiry} disabled={bulkInquirySending || bulkInquiryTargets.length === 0} className="gap-1">
+              <Send className="h-4 w-4" />
+              {bulkInquirySending ? "جاري الإرسال..." : "إرسال الاستفسارات"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
