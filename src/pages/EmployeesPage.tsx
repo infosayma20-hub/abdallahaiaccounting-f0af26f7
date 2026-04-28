@@ -85,6 +85,8 @@ interface Employee {
   auth_user_id?: string;
   is_manager?: boolean;
   is_hr_manager?: boolean;
+  department_id?: string | null;
+  job_title_id?: string | null;
 }
 
 const emptyEmployee: Partial<Employee> = {
@@ -96,6 +98,7 @@ const emptyEmployee: Partial<Employee> = {
   marital_status: "single", children_count: 0, spouse_allowance_amount: 0,
   child_allowance_per_child: 0, gender: "male", nationality: "", contract_type: "permanent",
   transportation_allowance_per_day: 0, meal_allowance_per_day: 0,
+  department_id: null, job_title_id: null,
 };
 
 type SortField = "full_name" | "department" | "job_title" | "start_date" | "base_salary" | "is_active";
@@ -118,6 +121,8 @@ const EmployeesPage = () => {
   const [branchesList, setBranchesList] = useState<Branch[]>([]);
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranchName, setNewBranchName] = useState("");
+  const [departmentsList, setDepartmentsList] = useState<Array<{ id: string; name: string }>>([]);
+  const [jobTitlesList, setJobTitlesList] = useState<Array<{ id: string; name: string; department_id: string | null }>>([]);
 
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
@@ -225,6 +230,16 @@ const EmployeesPage = () => {
     setBranchesList((data as Branch[]) || []);
   };
 
+  const fetchDefinitions = async () => {
+    if (!user) return;
+    const [dRes, jRes] = await Promise.all([
+      supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
+    ]);
+    setDepartmentsList(((dRes.data as any[]) || []).map((d) => ({ id: d.id, name: d.name_ar || d.name })));
+    setJobTitlesList(((jRes.data as any[]) || []).map((j) => ({ id: j.id, name: j.name_ar || j.name, department_id: j.department_id })));
+  };
+
   const handleAddBranch = async () => {
     if (!user || !newBranchName.trim()) return;
     const { error } = await supabase.from("branches").insert({
@@ -238,7 +253,7 @@ const EmployeesPage = () => {
     fetchBranches();
   };
 
-  useEffect(() => { fetchEmployees(); fetchBranches(); }, [user]);
+  useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user]);
 
   // Deep-link: open employee drawer + (optionally) create-account dialog
   // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
@@ -386,6 +401,20 @@ const EmployeesPage = () => {
     branchesList.forEach(b => { m[b.id] = b.name; });
     return m;
   }, [branchesList]);
+  const deptIdMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    departmentsList.forEach((d) => { m[d.id] = d.name; });
+    return m;
+  }, [departmentsList]);
+  const jobIdMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    jobTitlesList.forEach((j) => { m[j.id] = j.name; });
+    return m;
+  }, [jobTitlesList]);
+  /** الاسم المعروض للمسمى الوظيفي: relation أولاً ثم النص القديم */
+  const displayJobTitle = (e: Employee) => (e.job_title_id && jobIdMap[e.job_title_id]) || e.job_title || e.position || "—";
+  /** الاسم المعروض للقسم */
+  const displayDepartment = (e: Employee) => (e.department_id && deptIdMap[e.department_id]) || e.department || "—";
   const getBranchName = (emp: Employee) => emp.branch_id ? (branchMap[emp.branch_id] || emp.department || "—") : (emp.department || "—");
   const jobs = useMemo(() => [...new Set(employees.filter(e => e.job_title).map(e => e.job_title))], [employees]);
 
@@ -470,7 +499,7 @@ const EmployeesPage = () => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-foreground truncate">{emp.full_name}</p>
-          <p className="text-xs text-muted-foreground truncate">{emp.job_title || emp.position || "—"}</p>
+          <p className="text-xs text-muted-foreground truncate">{displayJobTitle(emp)}</p>
         </div>
         <Badge
           variant={emp.is_active ? "default" : "secondary"}
@@ -515,7 +544,7 @@ const EmployeesPage = () => {
           </div>
         </td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{getBranchName(emp)}</td>
-        <td className="px-3 py-3 text-xs text-muted-foreground">{emp.job_title || emp.position || "—"}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">{displayJobTitle(emp)}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
         <td className="px-3 py-3">
@@ -775,7 +804,7 @@ const EmployeesPage = () => {
                     </div>
                     <div>
                       <SheetTitle className="text-lg">{selectedEmployee.full_name}</SheetTitle>
-                      <p className="text-sm text-muted-foreground">{selectedEmployee.job_title || selectedEmployee.position || "—"}</p>
+                      <p className="text-sm text-muted-foreground">{displayJobTitle(selectedEmployee)}</p>
                     </div>
                   </div>
                   <Badge
@@ -1006,6 +1035,23 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
             <div>
+              <label className="text-xs text-muted-foreground">القسم (اختياري)</label>
+              <Select
+                value={form.department_id || "_none"}
+                onValueChange={(v) => {
+                  const id = v === "_none" ? null : v;
+                  const label = id ? (departmentsList.find((d) => d.id === id)?.name || form.department || "") : (form.department || "");
+                  setForm({ ...form, department_id: id, department: label });
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">بدون</SelectItem>
+                  {departmentsList.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground">الفرع</label>
               <Select value={form.branch_id || "_none"} onValueChange={v => setForm({ ...form, branch_id: v === "_none" ? undefined : v })}>
                 <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
@@ -1035,6 +1081,35 @@ const EmployeesPage = () => {
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">المسمى الوظيفي (مسجَّل)</label>
+              <Select
+                value={form.job_title_id || "_none"}
+                onValueChange={(v) => {
+                  const id = v === "_none" ? null : v;
+                  const job = id ? jobTitlesList.find((j) => j.id === id) : null;
+                  setForm({
+                    ...form,
+                    job_title_id: id,
+                    job_title: job?.name || form.job_title || "",
+                    // إذا للمسمى قسم مرتبط، عَبِّ القسم لو فاضي
+                    department_id: job?.department_id ?? form.department_id ?? null,
+                    department:
+                      job?.department_id
+                        ? (departmentsList.find((d) => d.id === job.department_id)?.name || form.department || "")
+                        : (form.department || ""),
+                  });
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="اختر من القائمة" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">بدون</SelectItem>
+                  {jobTitlesList
+                    .filter((j) => !form.department_id || !j.department_id || j.department_id === form.department_id)
+                    .map((j) => <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">نوع العقد</label>
               <Select value={form.contract_type || "permanent"} onValueChange={v => setForm({ ...form, contract_type: v })}>

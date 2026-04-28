@@ -138,6 +138,7 @@ export default function HrCommandCenter() {
             badge={totals.active}
             actions={[
               { label: "قائمة الموظفين", to: "/employees", count: totals.total },
+              { label: "الأقسام والمسميات الوظيفية", to: "/hr/definitions" },
               { label: "إدارة الفروع", to: "/settings?tab=branches" },
             ]}
           />
