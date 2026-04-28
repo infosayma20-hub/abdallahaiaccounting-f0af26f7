@@ -1052,6 +1052,23 @@ export default function HRAttendancePage() {
       </div>
 
       {/* Action banner */}
+      {isLocked && (
+        <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-red-800">
+            <Lock className="h-4 w-4" />
+            <span className="font-semibold">اليوم مغلق:</span>
+            <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
+            <span className="text-xs text-red-700/80">
+              · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
+            </span>
+          </div>
+          {canManageLock && (
+            <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
+              <Unlock className="h-3.5 w-3.5" /> فتح اليوم
+            </Button>
+          )}
+        </Card>
+      )}
       {kpis.issues > 0 && (
         <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
