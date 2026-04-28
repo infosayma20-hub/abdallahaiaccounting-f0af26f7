@@ -17,6 +17,8 @@ type Props = {
   tone: "indigo" | "amber" | "emerald" | "rose";
   badge?: string | number | null;
   actions: HrSectionAction[];
+  /** الوجهة الرئيسية عند الضغط على البطاقة كاملةً */
+  to: string;
 };
 
 const TONE: Record<Props["tone"], { ring: string; iconBg: string; iconText: string; chip: string }> = {
@@ -46,14 +48,25 @@ const TONE: Record<Props["tone"], { ring: string; iconBg: string; iconText: stri
   },
 };
 
-export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions }: Props) {
+export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to }: Props) {
   const navigate = useNavigate();
   const t = TONE[tone];
 
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(to)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(to);
+        }
+      }}
       className={cn(
-        "relative overflow-hidden p-4 transition-all hover:shadow-md",
+        "relative overflow-hidden p-4 transition-all cursor-pointer",
+        "hover:shadow-lg hover:-translate-y-0.5 hover:border-foreground/20",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         "before:absolute before:right-0 before:top-0 before:h-full before:w-1",
         t.ring,
       )}
@@ -80,7 +93,10 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions }: P
           <button
             key={a.to}
             type="button"
-            onClick={() => navigate(a.to)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(a.to);
+            }}
             className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-right
                        hover:bg-muted/60 transition-colors group"
           >
