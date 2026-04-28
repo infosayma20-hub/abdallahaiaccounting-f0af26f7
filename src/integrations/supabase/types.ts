@@ -14450,6 +14450,7 @@ export type Database = {
         Row: {
           break_duration_minutes: number | null
           created_at: string | null
+          crosses_midnight: boolean
           days_of_week: number[] | null
           end_time: string
           id: string
@@ -14464,6 +14465,7 @@ export type Database = {
         Insert: {
           break_duration_minutes?: number | null
           created_at?: string | null
+          crosses_midnight?: boolean
           days_of_week?: number[] | null
           end_time?: string
           id?: string
@@ -14478,6 +14480,7 @@ export type Database = {
         Update: {
           break_duration_minutes?: number | null
           created_at?: string | null
+          crosses_midnight?: boolean
           days_of_week?: number[] | null
           end_time?: string
           id?: string
