@@ -121,6 +121,8 @@ const EmployeesPage = () => {
   const [branchesList, setBranchesList] = useState<Branch[]>([]);
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranchName, setNewBranchName] = useState("");
+  const [departmentsList, setDepartmentsList] = useState<Array<{ id: string; name: string }>>([]);
+  const [jobTitlesList, setJobTitlesList] = useState<Array<{ id: string; name: string; department_id: string | null }>>([]);
 
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
