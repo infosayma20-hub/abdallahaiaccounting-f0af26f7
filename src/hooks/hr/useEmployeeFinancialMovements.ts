@@ -127,7 +127,7 @@ export function useCreateEmployeeMovement() {
         source_type: "hr_manual",
         user_id: userId,
         created_by: userId,
-        status: "active",
+        status: "approved",
       };
       const { data, error } = await supabase
         .from("employee_financial_movements")
