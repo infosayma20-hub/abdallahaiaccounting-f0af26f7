@@ -210,6 +210,11 @@ function computeIssue(
     const [h, m] = sh.end.split(":").map(Number);
     const exp = new Date(co);
     exp.setHours(h || 0, m || 0, 0, 0);
+    // Shift crosses midnight: end time belongs to the next calendar day
+    if (sh.crossesMidnight && sh.start) {
+      const [sh1] = sh.start.split(":").map(Number);
+      if ((h || 0) < (sh1 || 0)) exp.setDate(exp.getDate() + 1);
+    }
     earlyLeaveMin = Math.max(0, Math.round((exp.getTime() - co.getTime()) / 60000));
   }
 
@@ -220,6 +225,10 @@ function computeIssue(
     const [h, m] = sh.end.split(":").map(Number);
     const exp = new Date(co);
     exp.setHours(h || 0, m || 0, 0, 0);
+    if (sh.crossesMidnight && sh.start) {
+      const [sh1] = sh.start.split(":").map(Number);
+      if ((h || 0) < (sh1 || 0)) exp.setDate(exp.getDate() + 1);
+    }
     const extra = Math.max(0, Math.round((co.getTime() - exp.getTime()) / 60000));
     if (extra >= sh.overtimeAfterMin) overtimeMin = extra;
   }
