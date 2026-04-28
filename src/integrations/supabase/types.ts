@@ -5435,6 +5435,39 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_work_week_config: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          weekly_off_days: number[]
+          work_hours_per_day: number
+          working_days: number[]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_off_days?: number[]
+          work_hours_per_day?: number
+          working_days?: number[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_off_days?: number[]
+          work_hours_per_day?: number
+          working_days?: number[]
+        }
+        Relationships: []
+      }
       import_cost_distribution: {
         Row: {
           allocated_amount: number | null
@@ -6815,6 +6848,7 @@ export type Database = {
       official_holidays: {
         Row: {
           created_at: string | null
+          day_type_id: string | null
           holiday_date: string
           id: string
           is_active: boolean
@@ -6828,6 +6862,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          day_type_id?: string | null
           holiday_date: string
           id?: string
           is_active?: boolean
@@ -6841,6 +6876,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          day_type_id?: string | null
           holiday_date?: string
           id?: string
           is_active?: boolean
@@ -6852,7 +6888,15 @@ export type Database = {
           recurring_month?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "official_holidays_day_type_id_fkey"
+            columns: ["day_type_id"]
+            isOneToOne: false
+            referencedRelation: "hr_day_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opening_balance_batches: {
         Row: {
@@ -15099,6 +15143,25 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      ensure_work_week_config: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          weekly_off_days: number[]
+          work_hours_per_day: number
+          working_days: number[]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hr_work_week_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       expire_trials: { Args: never; Returns: Json }
       generate_return_number: {
         Args: {
@@ -15108,6 +15171,10 @@ export type Database = {
         Returns: string
       }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
+      get_day_type_for_date: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: string
+      }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
