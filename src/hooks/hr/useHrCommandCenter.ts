@@ -130,8 +130,9 @@ export function useHrCommandCenter(filters?: {
           .from("employee_deductions")
           .select("employee_id, amount, deduction_date, deduction_type")
           .gte("deduction_date", monthStartIso),
+        // ✅ Canonical source for leaves — see src/hooks/hr/hrCanonicalSources.ts
         supabase
-          .from("leave_requests")
+          .from("employee_leaves")
           .select("id, employee_id, leave_type, start_date, end_date, days_count, status, created_at")
           .order("created_at", { ascending: false })
           .limit(100),
@@ -299,8 +300,12 @@ export function useHrCommandCenter(filters?: {
         .reduce((s, p: any) => s + Number(p.net_salary || 0), 0);
 
       // ---- Pending requests ----
+      // employee_leaves uses Arabic statuses: "معلقة" / "موافقة" / "مرفوضة"
       const pendingLeaves = leaveReqs.filter(
-        (r: any) => r.status === "pending" || r.status === "قيد المراجعة" || r.status === "معلقة",
+        (r: any) =>
+          r.status === "pending" ||
+          r.status === "قيد المراجعة" ||
+          r.status === "معلقة",
       );
       const pendingForms = forms.filter(
         (f: any) => f.status === "pending" || f.status === "قيد المراجعة" || f.status === "معلقة",
