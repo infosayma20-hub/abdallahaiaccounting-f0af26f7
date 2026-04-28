@@ -143,6 +143,7 @@ const PayrollSettingsPage = lazy(() => import("./pages/PayrollSettingsPage"));
 const PayrollPage = lazy(() => import("./pages/PayrollPage"));
 const Employee360Page = lazy(() => import("./pages/hr/Employee360Page"));
 const HrCommandCenter = lazy(() => import("./pages/hr/HrCommandCenter"));
+const HrDefinitionsPage = lazy(() => import("./pages/hr/HrDefinitionsPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
