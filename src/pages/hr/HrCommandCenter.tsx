@@ -23,6 +23,7 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
 } from "lucide-react";
 import { HrKpiCard } from "./components/HrKpiCard";
 import { HrAttendanceToday } from "./components/HrAttendanceToday";
@@ -184,8 +185,8 @@ export default function HrCommandCenter() {
         </div>
       </div>
 
-      {/* ─── 4 KPIs مختصرة (سطر واحد فقط) ─── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* ─── KPIs مختصرة ─── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <HrKpiCard
           label="إجمالي الموظفين"
           value={fmtShort(totals.total)}
@@ -200,6 +201,15 @@ export default function HrCommandCenter() {
           hint={`متوسط تأخير ${totals.avgDelayMinutes} د`}
           Icon={Clock}
           tone={totals.avgAttendanceRate < 0.8 ? "warning" : "positive"}
+          onClick={() => navigate("/hr-attendance")}
+        />
+        <HrKpiCard
+          label="بصمات غير مكتملة"
+          value={fmtShort(totals.incompletePunchesToday)}
+          hint={totals.incompletePunchesToday > 0 ? "دخول بدون خروج اليوم" : "كل البصمات مكتملة"}
+          Icon={AlertTriangle}
+          tone={totals.incompletePunchesToday > 0 ? "warning" : "positive"}
+          onClick={() => navigate("/hr-attendance")}
         />
         <HrKpiCard
           label="طلبات معلقة"
