@@ -209,6 +209,7 @@ export default function HRAttendancePage() {
   // Day-type sources
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
+  const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([5]); // default Friday
 
   // Indicator
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
