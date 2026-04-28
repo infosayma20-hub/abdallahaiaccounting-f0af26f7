@@ -442,6 +442,7 @@ export default function HRAttendancePage() {
     const reasonText = computeIssue(r).text;
     const { error } = await supabase.from("correction_requests").insert({
       employee_id: r.employee_id,
+      auth_user_id: user!.id,
       attendance_date: r.attendance_date,
       request_type: "hr_message",
       reason: `طلب توضيح من HR: ${reasonText}`,
