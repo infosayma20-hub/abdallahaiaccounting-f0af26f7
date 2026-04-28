@@ -349,7 +349,7 @@ export default function HRAttendancePage() {
     const synthetic: AttendanceRecord[] = activeEmps
       .filter(e => !byEmp.has(e.id))
       .map(e => {
-        const dt = getDayType(selectedDate, e, holidays, leaves);
+        const dt = getDayType(selectedDate, e, holidays, leaves, weeklyOffDays);
         const status = dt === "holiday" ? "holiday" : dt === "leave" ? "leave" : dt === "weekly_off" ? "leave" : "absent";
         return {
         id: `synthetic-${e.id}`,
@@ -372,7 +372,7 @@ export default function HRAttendancePage() {
   const empById = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
   const enriched = useMemo(() => allRows.map(r => {
     const emp = empById.get(r.employee_id);
-    const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+    const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
     return { row: r, issue: computeIssue(r, dt), dayType: dt };
   }), [allRows, empById, holidays, leaves]);
 
@@ -764,7 +764,7 @@ export default function HRAttendancePage() {
       if (reportDepartment !== "all") rows = rows.filter(r => r.employees?.department === reportDepartment);
       workingRows = rows.map((r: AttendanceRecord) => {
         const emp = empById.get(r.employee_id);
-        const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+        const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
         return { row: r, issue: computeIssue(r, dt), dayType: dt };
       });
     } else {
