@@ -704,8 +704,19 @@ export default function HRAttendancePage() {
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-2xl font-bold">لوحة إدارة الحضور</h1>
-            <p className="text-muted-foreground text-sm">مركز التشغيل اليومي — متابعة فورية للبصمات والمشاكل</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              لوحة إدارة الحضور
+              {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1"><Lock className="h-3 w-3" /> مغلق</Badge>}
+            </h1>
+            <p className="text-muted-foreground text-sm flex items-center gap-2">
+              مركز التشغيل اليومي — متابعة فورية للبصمات والمشاكل
+              {lastRefreshAt && (
+                <span className="text-xs flex items-center gap-1 text-emerald-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  آخر تحديث: {format(lastRefreshAt, "hh:mm a")}
+                </span>
+              )}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -718,6 +729,9 @@ export default function HRAttendancePage() {
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
+          <Button variant={isLocked ? "destructive" : "outline"} size="sm" onClick={toggleLockDay} className="gap-1">
+            {isLocked ? <><Unlock className="h-4 w-4" /> فتح اليوم</> : <><Lock className="h-4 w-4" /> إغلاق اليوم</>}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1"><Building2 className="h-4 w-4" /> إضافة فرع</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
