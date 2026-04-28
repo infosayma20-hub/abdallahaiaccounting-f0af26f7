@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, ShieldAlert, Eye, EyeOff, Lock, Unlock } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Eye, EyeOff, Lock, Unlock, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { usePayrollPreview, type PreviewLineItem } from "@/hooks/hr/usePayrollPreview";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "../HRTable";
 
@@ -25,6 +26,32 @@ export function PayrollPreviewTab({ employeeId }: Props) {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [showDetails, setShowDetails] = useState(false);
+  const navigate = useNavigate();
+
+  const openSource = (item: PreviewLineItem) => {
+    if (!item.sourceKind) return;
+    switch (item.sourceKind) {
+      case "transaction":
+        if (item.sourceId) navigate(`/transactions/${item.sourceId}`);
+        break;
+      case "loan_installment":
+      case "loan":
+        navigate(`/loans?employee=${employeeId}`);
+        break;
+      case "manual_deduction":
+        navigate(`/hr-deductions?employee=${employeeId}`);
+        break;
+      case "attendance":
+        navigate(`/hr-attendance?employee=${employeeId}`);
+        break;
+      case "previous_balance":
+      case "financial_movement":
+        navigate(`/employees/${employeeId}?tab=overview`);
+        break;
+      default:
+        break;
+    }
+  };
 
   const { data: p, isLoading, isError, error } = usePayrollPreview(employeeId, year, month);
 
@@ -144,20 +171,20 @@ export function PayrollPreviewTab({ employeeId }: Props) {
               )}
 
               <SectionHeader label="الخصومات المالية" tone="danger" />
-              <FinSubsection title="رصيد سابق مستحق" items={p.financialDeductions.previousBalance} showDetails={showDetails} />
-              <FinSubsection title="السلف" items={p.financialDeductions.advances} showDetails={showDetails} />
-              <FinSubsection title="القروض" items={p.financialDeductions.loans} showDetails={showDetails} />
-              <FinSubsection title="وجبات / أكل" items={p.financialDeductions.meals} showDetails={showDetails} />
-              <FinSubsection title="مواصلات" items={p.financialDeductions.transport} showDetails={showDetails} />
-              <FinSubsection title="مخالفات" items={p.financialDeductions.violations} showDetails={showDetails} />
-              <FinSubsection title="مشتريات على حساب الموظف" items={p.financialDeductions.storePurchases} showDetails={showDetails} />
-              <FinSubsection title="عجز / فائض تسوية" items={p.financialDeductions.settlement} showDetails={showDetails} />
+              <FinSubsection title="رصيد سابق مستحق" items={p.financialDeductions.previousBalance} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="السلف" items={p.financialDeductions.advances} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="القروض" items={p.financialDeductions.loans} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="وجبات / أكل" items={p.financialDeductions.meals} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="مواصلات" items={p.financialDeductions.transport} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="مخالفات" items={p.financialDeductions.violations} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="مشتريات على حساب الموظف" items={p.financialDeductions.storePurchases} showDetails={showDetails} onOpen={openSource} />
+              <FinSubsection title="عجز / فائض تسوية" items={p.financialDeductions.settlement} showDetails={showDetails} onOpen={openSource} />
               {p.financialDeductions.uncategorized.length > 0 && (
                 <div>
                   <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
                     حركات غير مصنفة (تحتاج مراجعة)
                   </div>
-                  <FinSubsection title="" items={p.financialDeductions.uncategorized} showDetails={showDetails} warn />
+                  <FinSubsection title="" items={p.financialDeductions.uncategorized} showDetails={showDetails} warn onOpen={openSource} />
                 </div>
               )}
 
@@ -221,7 +248,19 @@ function Empty({ msg }: { msg: string }) {
   return <div className="text-xs text-muted-foreground py-1">{msg}</div>;
 }
 
-function FinSubsection({ title, items, showDetails, warn }: { title: string; items: PreviewLineItem[]; showDetails: boolean; warn?: boolean }) {
+function FinSubsection({
+  title,
+  items,
+  showDetails,
+  warn,
+  onOpen,
+}: {
+  title: string;
+  items: PreviewLineItem[];
+  showDetails: boolean;
+  warn?: boolean;
+  onOpen?: (item: PreviewLineItem) => void;
+}) {
   if (items.length === 0) return null;
   const total = items.reduce((s, x) => s + x.amount, 0);
   return (
@@ -235,8 +274,9 @@ function FinSubsection({ title, items, showDetails, warn }: { title: string; ite
           <HRTHead>
             <HRTH>التاريخ</HRTH>
             <HRTH>الوصف</HRTH>
-            <HRTH>المرجع</HRTH>
+            <HRTH>المصدر / المرجع</HRTH>
             <HRTH>المبلغ</HRTH>
+            <HRTH>—</HRTH>
           </HRTHead>
           <tbody>
             {items.map((it) => (
@@ -248,9 +288,24 @@ function FinSubsection({ title, items, showDetails, warn }: { title: string; ite
                     {it.note && <span className="text-[10px] text-muted-foreground">{it.note}</span>}
                   </div>
                 </HRTD>
-                <HRTD className="text-muted-foreground text-xs">{it.reference || "—"}</HRTD>
+                <HRTD className="text-xs">
+                  <div className="flex flex-col gap-0.5">
+                    {it.sourceLabel && (
+                      <Badge variant="outline" className="text-[10px] w-fit">{it.sourceLabel}</Badge>
+                    )}
+                    {it.reference && <span className="text-muted-foreground">{it.reference}</span>}
+                    {!it.sourceLabel && !it.reference && <span className="text-muted-foreground">—</span>}
+                  </div>
+                </HRTD>
                 <HRTD numeric className="text-rose-600 font-semibold">
                   <HRMoney value={it.amount} />
+                </HRTD>
+                <HRTD>
+                  {onOpen && it.sourceKind && it.sourceKind !== "computed" && (
+                    <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => onOpen(it)}>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  )}
                 </HRTD>
               </HRTR>
             ))}

@@ -29,6 +29,19 @@ export type PreviewLineItem = {
   reference?: string | null;
   note?: string | null;
   meta?: Record<string, any>;
+  // --- Reconciliation (B2.4): each line is traceable back to its origin ---
+  sourceKind?:
+    | "transaction"
+    | "financial_movement"
+    | "loan_installment"
+    | "loan"
+    | "manual_deduction"
+    | "attendance"
+    | "previous_balance"
+    | "computed";
+  sourceId?: string | null;
+  sourceLabel?: string | null; // e.g. "سند صرف PV-001"
+  sourceTable?: string | null; // for debug / dev
 };
 
 export type PayrollPreviewResult = {
@@ -264,6 +277,32 @@ export function usePayrollPreview(
         locks.filter((l: any) => l.status === "locked").map((l: any) => l.attendance_date),
       );
 
+      // --- Build transaction lookup for cross-linking financial movements → voucher numbers ---
+      const txList = (txRes.data as any[]) || [];
+      const txById = new Map<string, any>();
+      for (const t of txList) txById.set(t.id, t);
+      const txTypeLabel = (t: any) => {
+        const k = String(t.transaction_type || "").toLowerCase();
+        if (k === "payment") return `سند صرف ${t.transaction_number || ""}`.trim();
+        if (k === "receipt") return `سند قبض ${t.transaction_number || ""}`.trim();
+        return `${t.transaction_number || "سند"}`.trim();
+      };
+
+      // --- Previous balance from previous month (carry-forward debt) ---
+      // We read employee_financial_movements before period start to compute net carry.
+      const { data: priorMoves } = await supabase
+        .from("employee_financial_movements")
+        .select("amount, movement_type, movement_date, description, source_reference")
+        .eq("employee_id", employeeId)
+        .lt("movement_date", start)
+        .order("movement_date", { ascending: false })
+        .limit(500);
+      let priorBalance = 0; // positive = owed BY employee
+      for (const m of priorMoves || []) {
+        const sign = String(m.movement_type || "").toLowerCase() === "debit" ? 1 : -1;
+        priorBalance += sign * num(m.amount);
+      }
+
       // Period day list (every date in month) → open vs locked
       const allDates: string[] = [];
       for (let d = 1; d <= daysInMonth; d++) {
@@ -320,6 +359,9 @@ export function usePayrollPreview(
           category: "overtime",
           amount: overtimeAmount,
           note: `${(totalOvertimeMin / 60).toFixed(2)} ساعة × ${overtimeMultiplier}x`,
+          sourceKind: "computed",
+          sourceLabel: "محسوب من سجل الحضور",
+          sourceTable: "attendance_days",
         });
       }
 
@@ -328,9 +370,9 @@ export function usePayrollPreview(
       const earlyLeaveAmount = totalEarlyLeaveMin * minutelyRate;
       const absentAmount = absentDays * dailyRate;
       const attendanceItems: PreviewLineItem[] = [];
-      if (lateAmount > 0) attendanceItems.push({ id: "att-late", label: "تأخير", category: "late", amount: lateAmount, note: `${totalLateMin} دقيقة` });
-      if (earlyLeaveAmount > 0) attendanceItems.push({ id: "att-early", label: "انصراف مبكر", category: "early_leave", amount: earlyLeaveAmount, note: `${totalEarlyLeaveMin} دقيقة` });
-      if (absentAmount > 0) attendanceItems.push({ id: "att-abs", label: "غياب", category: "absent", amount: absentAmount, note: `${absentDays} يوم × ₪${dailyRate.toFixed(2)}` });
+      if (lateAmount > 0) attendanceItems.push({ id: "att-late", label: "تأخير", category: "late", amount: lateAmount, note: `${totalLateMin} دقيقة`, sourceKind: "attendance", sourceLabel: "سجل الحضور — تأخير", sourceTable: "attendance_days" });
+      if (earlyLeaveAmount > 0) attendanceItems.push({ id: "att-early", label: "انصراف مبكر", category: "early_leave", amount: earlyLeaveAmount, note: `${totalEarlyLeaveMin} دقيقة`, sourceKind: "attendance", sourceLabel: "سجل الحضور — انصراف مبكر", sourceTable: "attendance_days" });
+      if (absentAmount > 0) attendanceItems.push({ id: "att-abs", label: "غياب", category: "absent", amount: absentAmount, note: `${absentDays} يوم × ₪${dailyRate.toFixed(2)}`, sourceKind: "attendance", sourceLabel: "سجل الحضور — غياب", sourceTable: "attendance_days" });
 
       // === Financial deductions ===
       const fin = {
@@ -344,6 +386,21 @@ export function usePayrollPreview(
         settlement: [] as PreviewLineItem[],
         uncategorized: [] as PreviewLineItem[],
       };
+
+      // --- Previous month carry-forward (only if employee owes money) ---
+      if (priorBalance > 0.01) {
+        fin.previous_balance.push({
+          id: "prev-bal",
+          label: "رصيد سابق مستحق على الموظف",
+          category: "previous_balance",
+          amount: priorBalance,
+          date: start,
+          note: `محسوب من حركات قبل ${start}`,
+          sourceKind: "previous_balance",
+          sourceLabel: "كشف حساب الموظف",
+          sourceTable: "employee_financial_movements",
+        });
+      }
 
       // From employee_deductions (HR-recorded)
       for (const d of deductionsRes.data || []) {
@@ -367,6 +424,10 @@ export function usePayrollPreview(
           amount: num(d.amount),
           date: d.deduction_date,
           note: d.notes || null,
+          sourceKind: "manual_deduction",
+          sourceId: d.id,
+          sourceLabel: `خصم HR (${d.deduction_type || "يدوي"})`,
+          sourceTable: "employee_deductions",
         });
       }
 
@@ -375,15 +436,27 @@ export function usePayrollPreview(
         if (String(m.movement_type || "").toLowerCase() !== "debit") continue;
         const cat = categorizeMovement(m);
         const bucket = (cat as keyof typeof fin) in fin ? (cat as keyof typeof fin) : "uncategorized";
+        // Cross-link to transaction if source_id matches
+        const linkedTx = m.source_id ? txById.get(m.source_id) : null;
+        const txRef = linkedTx?.transaction_number || m.source_reference || null;
+        const srcLabel = linkedTx
+          ? txTypeLabel(linkedTx)
+          : m.source_type
+          ? `حركة (${m.source_type})`
+          : "حركة مالية";
         fin[bucket].push({
           id: `mov-${m.id}`,
           label: m.description || m.source_type || "حركة مالية",
           category: cat,
           amount: num(m.amount),
           date: m.movement_date,
-          reference: m.source_reference || null,
+          reference: txRef,
           note: m.notes || null,
-          meta: { source_type: m.source_type, source_id: m.source_id },
+          meta: { source_type: m.source_type, source_id: m.source_id, linked_tx: linkedTx?.id || null },
+          sourceKind: linkedTx ? "transaction" : "financial_movement",
+          sourceId: linkedTx?.id || m.id,
+          sourceLabel: srcLabel,
+          sourceTable: linkedTx ? "transactions" : "employee_financial_movements",
         });
       }
 
@@ -396,6 +469,11 @@ export function usePayrollPreview(
           amount: num(inst.installment_amount),
           date: inst.due_date,
           note: `رصيد بعد القسط: ₪${num(inst.balance_after).toFixed(2)}`,
+          sourceKind: "loan_installment",
+          sourceId: inst.loan_id || inst.id,
+          sourceLabel: `قسط رقم ${inst.month_number}`,
+          sourceTable: "loan_installments",
+          meta: { loan_id: inst.loan_id, installment_id: inst.id, due_date: inst.due_date },
         });
       }
 
