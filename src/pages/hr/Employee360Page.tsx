@@ -16,6 +16,7 @@ import { EmployeeTimeline } from "./components/EmployeeTimeline";
 import { OverviewTab } from "./components/tabs/OverviewTab";
 import { AttendanceTab } from "./components/tabs/AttendanceTab";
 import { PayrollTab } from "./components/tabs/PayrollTab";
+import { PayrollPreviewTab } from "./components/tabs/PayrollPreviewTab";
 import { LeavesTab } from "./components/tabs/LeavesTab";
 import { LoansTab } from "./components/tabs/LoansTab";
 import { DeductionsTab } from "./components/tabs/DeductionsTab";
@@ -95,6 +96,7 @@ export default function Employee360Page() {
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="attendance">الحضور</TabsTrigger>
             <TabsTrigger value="payroll">الراتب</TabsTrigger>
+            <TabsTrigger value="payroll-preview">معاينة الراتب</TabsTrigger>
             <TabsTrigger value="leaves">الإجازات</TabsTrigger>
             <TabsTrigger value="loans">القروض</TabsTrigger>
             <TabsTrigger value="deductions">الخصومات</TabsTrigger>
@@ -113,6 +115,9 @@ export default function Employee360Page() {
         </TabsContent>
         <TabsContent value="payroll" className="mt-0">
           <PayrollTab data={data} cost={cost} />
+        </TabsContent>
+        <TabsContent value="payroll-preview" className="mt-0">
+          <PayrollPreviewTab employeeId={data.employee.id} />
         </TabsContent>
         <TabsContent value="leaves" className="mt-0">
           <LeavesTab data={data} />
