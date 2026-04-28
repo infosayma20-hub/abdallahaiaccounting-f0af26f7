@@ -870,76 +870,76 @@ export default function HRAttendancePage() {
           ) : (
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted/60 backdrop-blur z-10">
-                    <TableRow>
-                      <TableHead className="w-10">
+                <table className="w-full text-sm border-collapse" dir="rtl">
+                  <thead>
+                    <tr className="bg-primary text-primary-foreground">
+                      <th className="px-3 py-3 text-right text-xs font-semibold w-10">
                         <input
                           type="checkbox"
-                          className="h-4 w-4"
+                          className="h-4 w-4 align-middle"
                           checked={visibleRows.length > 0 && visibleRows.filter(x => !x.row.id.startsWith("synthetic-")).every(x => selected.has(x.row.id))}
                           onChange={toggleSelectAllVisible}
                         />
-                      </TableHead>
-                      <TableHead className="text-right whitespace-nowrap">👤 الموظف</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">🏢 الفرع</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">🧩 القسم</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">المسمى</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏰ الدخول</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏰ الخروج</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏱️ الساعات</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">⏱️ التأخير</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">إضافي</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">❗ المشكلة</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">📝 ملاحظات</TableHead>
-                      <TableHead className="text-right whitespace-nowrap sticky left-0 bg-muted/60">⚙️ إجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px] whitespace-nowrap">الموظف</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الفرع</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">القسم</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المسمى</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الدخول</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الخروج</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الساعات</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">التأخير</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إضافي</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">المشكلة</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">الحالة</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">ملاحظات</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold whitespace-nowrap">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {visibleRows.map(({ row: r, issue }) => {
                       const branchName = branches.find(b => b.id === r.branch_id)?.name || "—";
                       const isSynthetic = r.id.startsWith("synthetic-");
                       return (
-                        <TableRow key={r.id} className={cn("hover:bg-muted/30", rowAccentClass(r.status))}>
-                          <TableCell>
+                        <tr key={r.id} className={cn("border-b border-border/50 hover:bg-muted/30 transition-colors", rowAccentClass(r.status))}>
+                          <td className="px-3 py-3 align-middle">
                             {!isSynthetic && (
                               <input type="checkbox" className="h-4 w-4" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
                             )}
-                          </TableCell>
-                          <TableCell className="font-medium whitespace-nowrap">
+                          </td>
+                          <td className="px-3 py-3 font-medium whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
                                 {(r.employees?.full_name || "?").slice(0, 1)}
                               </div>
                               <span>{r.employees?.full_name || "—"}</span>
                               {r.is_manually_adjusted && <Badge variant="outline" className="text-[10px] h-4 px-1">معدّل يدوياً</Badge>}
                             </div>
-                          </TableCell>
-                          <TableCell className="text-sm">{branchName}</TableCell>
-                          <TableCell className="text-sm">{r.employees?.department || "—"}</TableCell>
-                          <TableCell className="text-sm">{r.employees?.job_title || "—"}</TableCell>
-                          <TableCell className="tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : <span className="text-red-500">—</span>}</TableCell>
-                          <TableCell className="tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : <span className="text-red-500">—</span>}</TableCell>
-                          <TableCell className="tabular-nums">{r.total_hours?.toFixed(1) || "0"}</TableCell>
-                          <TableCell className={cn("tabular-nums", issue.lateMin > 0 && "text-amber-700 font-semibold")}>
-                            {issue.lateMin > 0 ? `${issue.lateMin}د` : "—"}
-                          </TableCell>
-                          <TableCell className="tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-3 py-3 text-sm">{branchName}</td>
+                          <td className="px-3 py-3 text-sm">{r.employees?.department || "—"}</td>
+                          <td className="px-3 py-3 text-sm">{r.employees?.job_title || "—"}</td>
+                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-3 py-3 tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-3 py-3 tabular-nums">{r.total_hours?.toFixed(1) || "0"}</td>
+                          <td className={cn("px-3 py-3 tabular-nums", issue.lateMin > 0 && "text-amber-700 font-semibold")}>
+                            {issue.lateMin > 0 ? `${issue.lateMin} د` : "—"}
+                          </td>
+                          <td className="px-3 py-3 tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</td>
+                          <td className="px-3 py-3">
                             <span className={cn("text-xs",
                               issue.severity === "err" && "text-red-600 font-medium",
                               issue.severity === "warn" && "text-amber-700 font-medium",
                               issue.severity === "ok" && "text-muted-foreground"
                             )}>{issue.text}</span>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-3 py-3">
                             <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
                               {statusLabels[r.status] || r.status}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</TableCell>
-                          <TableCell className="sticky left-0 bg-background">
+                          </td>
+                          <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
+                          <td className="px-3 py-3">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-7 px-2"><MoreVertical className="h-4 w-4" /></Button>
@@ -953,12 +953,12 @@ export default function HRAttendancePage() {
                                 <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       );
                     })}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             </Card>
           )}
