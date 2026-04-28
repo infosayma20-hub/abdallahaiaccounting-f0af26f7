@@ -23,6 +23,8 @@ import {
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
+import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
+import { Shield } from "lucide-react";
 
 type Branch = {
   id: string;
@@ -238,6 +240,13 @@ export default function HRAttendancePage() {
   const [bulkInquiryTargets, setBulkInquiryTargets] = useState<{ employee_id: string; employee_name?: string; attendance_date: string; issueText: string }[]>([]);
   const [bulkInquirySending, setBulkInquirySending] = useState(false);
 
+  // HR Message / Penalty
+  const [hrMsgOpen, setHrMsgOpen] = useState(false);
+  const [hrMsgTargets, setHrMsgTargets] = useState<SendTarget[]>([]);
+  const [hrMsgDefaultType, setHrMsgDefaultType] = useState<"info" | "penalty" | "warning" | "inquiry">("info");
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const canIssuePenalty = userRoles.includes("admin") || userRoles.includes("hr_manager");
+
   // Day lock (UI-level via localStorage; future: DB-level period lock)
   const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
   const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
@@ -306,6 +315,42 @@ export default function HRAttendancePage() {
   }, [user, selectedDate, selectedBranch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Fetch user roles for permission gating
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      setUserRoles((data || []).map((r: any) => r.role));
+    });
+  }, [user]);
+
+  const openHRMessageFor = (r: AttendanceRecord, type: "info" | "penalty" | "warning" | "inquiry" = "info") => {
+    setHrMsgTargets([{
+      employee_id: r.employee_id,
+      employee_name: r.employees?.full_name,
+      attendance_date: r.attendance_date,
+    }]);
+    setHrMsgDefaultType(type);
+    setHrMsgOpen(true);
+  };
+
+  const openBulkPenalty = () => {
+    const ids = Array.from(selected);
+    const all = enriched.filter(x => ids.includes(x.row.id));
+    if (all.length === 0) { toast({ title: "لم يتم اختيار موظفين" }); return; }
+    if (!canIssuePenalty) {
+      toast({ title: "غير مسموح", description: "صلاحية الإجراء العقابي لـ admin / hr_manager فقط", variant: "destructive" });
+      return;
+    }
+    setHrMsgTargets(all.map(x => ({
+      employee_id: x.row.employee_id,
+      employee_name: x.row.employees?.full_name,
+      attendance_date: x.row.attendance_date,
+      default_subject: x.issue.text !== "—" ? x.issue.text : undefined,
+    })));
+    setHrMsgDefaultType("penalty");
+    setHrMsgOpen(true);
+  };
 
   // Synthesize "absent/off rows" for active employees with no record on this date.
   // Employees on leave / holiday / weekly off get a synthetic row with the right status (NOT absent).
@@ -930,6 +975,11 @@ export default function HRAttendancePage() {
                 <Button size="sm" variant="outline" className="gap-1" onClick={bulkRecalc} disabled={isLocked}><Calculator className="h-3.5 w-3.5" /> إعادة حساب</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => setBulkNoteOpen(true)} disabled={isLocked}><MessageSquare className="h-3.5 w-3.5" /> ملاحظة جماعية</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={openBulkInquiry}><Send className="h-3.5 w-3.5" /> استفسار جماعي</Button>
+                {canIssuePenalty && (
+                  <Button size="sm" variant="destructive" className="gap-1" onClick={openBulkPenalty}>
+                    <Shield className="h-3.5 w-3.5" /> إجراء عقابي جماعي
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={clearSelection}><X className="h-3.5 w-3.5" /> إلغاء</Button>
               </div>
             </div>
@@ -1026,6 +1076,15 @@ export default function HRAttendancePage() {
                                 <DropdownMenuItem onClick={() => openHistory(r)} className="gap-2"><History className="h-3.5 w-3.5" /> سجل بصمات اليوم</DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openHRMessageFor(r, "info")} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إرسال رسالة HR</DropdownMenuItem>
+                                {canIssuePenalty && (
+                                  <DropdownMenuItem
+                                    onClick={() => openHRMessageFor(r, "penalty")}
+                                    className="gap-2 text-red-600 focus:text-red-700"
+                                  >
+                                    <Shield className="h-3.5 w-3.5" /> إصدار إجراء عقابي
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
@@ -1284,6 +1343,17 @@ export default function HRAttendancePage() {
           <DialogFooter><Button onClick={bulkAddNote} className="w-full" disabled={!bulkNote.trim()}>تطبيق على الكل</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* HR Message / Penalty Dialog */}
+      <SendHRMessageDialog
+        open={hrMsgOpen}
+        onOpenChange={setHrMsgOpen}
+        authUserId={user?.id || ""}
+        targets={hrMsgTargets}
+        defaultType={hrMsgDefaultType}
+        canIssuePenalty={canIssuePenalty}
+        onSent={() => { fetchData(); clearSelection(); }}
+      />
 
       {/* Bulk Inquiry */}
       <Dialog open={bulkInquiryOpen} onOpenChange={(o) => { if (!bulkInquirySending) setBulkInquiryOpen(o); }}>
