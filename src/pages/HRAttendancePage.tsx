@@ -1284,6 +1284,59 @@ export default function HRAttendancePage() {
           <DialogFooter><Button onClick={bulkAddNote} className="w-full" disabled={!bulkNote.trim()}>تطبيق على الكل</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Inquiry */}
+      <Dialog open={bulkInquiryOpen} onOpenChange={(o) => { if (!bulkInquirySending) setBulkInquiryOpen(o); }}>
+        <DialogContent dir="rtl" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              إرسال استفسار جماعي ({bulkInquiryTargets.length} موظف)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/40 max-h-56 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/70 text-xs">
+                  <tr>
+                    <th className="text-right p-2">الموظف</th>
+                    <th className="text-right p-2">التاريخ</th>
+                    <th className="text-right p-2">المشكلة المكتشفة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkInquiryTargets.map((t, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="p-2">{t.employee_name || "—"}</td>
+                      <td className="p-2 tabular-nums">{t.attendance_date}</td>
+                      <td className="p-2 text-red-700">{t.issueText}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">رسالة HR (اختياري)</label>
+              <Textarea
+                rows={3}
+                value={bulkInquiryMessage}
+                onChange={e => setBulkInquiryMessage(e.target.value)}
+                placeholder="يرجى توضيح السبب أو تقديم طلب تصحيح بصمة."
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                الرسالة النهائية للموظف ستكون: «المشكلة: [نص المشكلة] — رسالة HR: [نصك]»
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setBulkInquiryOpen(false)} disabled={bulkInquirySending}>إلغاء</Button>
+            <Button onClick={submitBulkInquiry} disabled={bulkInquirySending || bulkInquiryTargets.length === 0} className="gap-1">
+              <Send className="h-4 w-4" />
+              {bulkInquirySending ? "جاري الإرسال..." : "إرسال الاستفسارات"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
