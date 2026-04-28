@@ -3849,6 +3849,45 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          name: string
+          name_ar: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          name: string
+          name_ar?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          name?: string
+          name_ar?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_edit_history: {
         Row: {
           changes: Json | null
@@ -4818,6 +4857,7 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           department: string | null
+          department_id: string | null
           email: string | null
           emergency_contact: string | null
           emergency_phone: string | null
@@ -4835,6 +4875,7 @@ export type Database = {
           is_manager: boolean
           is_terminated: boolean | null
           job_title: string | null
+          job_title_id: string | null
           marital_status: string | null
           meal_allowance_per_day: number | null
           nationality: string | null
@@ -4882,6 +4923,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           department?: string | null
+          department_id?: string | null
           email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
@@ -4899,6 +4941,7 @@ export type Database = {
           is_manager?: boolean
           is_terminated?: boolean | null
           job_title?: string | null
+          job_title_id?: string | null
           marital_status?: string | null
           meal_allowance_per_day?: number | null
           nationality?: string | null
@@ -4946,6 +4989,7 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           department?: string | null
+          department_id?: string | null
           email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
@@ -4963,6 +5007,7 @@ export type Database = {
           is_manager?: boolean
           is_terminated?: boolean | null
           job_title?: string | null
+          job_title_id?: string | null
           marital_status?: string | null
           meal_allowance_per_day?: number | null
           nationality?: string | null
@@ -5013,6 +5058,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_title_id_fkey"
+            columns: ["job_title_id"]
+            isOneToOne: false
+            referencedRelation: "job_titles"
             referencedColumns: ["id"]
           },
           {
@@ -5963,6 +6022,53 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_titles: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          name: string
+          name_ar: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          name: string
+          name_ar?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          name?: string
+          name_ar?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_titles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
