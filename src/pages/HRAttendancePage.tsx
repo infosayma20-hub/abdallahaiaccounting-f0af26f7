@@ -84,21 +84,19 @@ type HolidayRow = { holiday_date: string | null; name: string; is_recurring: boo
 type DayType = "working" | "weekly_off" | "holiday" | "leave";
 
 // Determine if employee works on a given JS day-of-week (0=Sun..6=Sat)
-// Standard PS workweek: Sun-Thu (5d), Sat-Thu (6d), all 7 = (7d). Friday is the canonical weekly off in PS.
-function isWorkingDay(dow: number, workDaysPerWeek: number | null | undefined): boolean {
-  const wpw = workDaysPerWeek ?? 6;
-  if (wpw >= 7) return true;
-  if (wpw === 6) return dow !== 5; // Fri off
-  if (wpw === 5) return dow !== 5 && dow !== 6; // Fri+Sat off
-  if (wpw === 4) return dow >= 0 && dow <= 3; // Sun-Wed
-  return dow !== 5;
+// Source of truth: hr_work_week_config.weekly_off_days (DB-driven, per company)
+// Fallback to Friday-only if config is missing.
+function isWorkingDay(dow: number, weeklyOffDays: number[] | null | undefined): boolean {
+  const off = weeklyOffDays && weeklyOffDays.length > 0 ? weeklyOffDays : [5];
+  return !off.includes(dow);
 }
 
 function getDayType(
   date: string,
-  emp: { id: string; work_days_per_week: number | null; start_date: string | null },
+  emp: { id: string; start_date: string | null },
   holidays: HolidayRow[],
   leaves: LeaveRow[],
+  weeklyOffDays: number[] | null,
 ): DayType {
   const d = new Date(date + "T00:00:00");
   // Holiday?
@@ -112,7 +110,7 @@ function getDayType(
   const onLeave = leaves.some(l => l.employee_id === emp.id && date >= l.start_date && date <= l.end_date);
   if (onLeave) return "leave";
   // Weekly off?
-  if (!isWorkingDay(d.getDay(), emp.work_days_per_week)) return "weekly_off";
+  if (!isWorkingDay(d.getDay(), weeklyOffDays)) return "weekly_off";
   return "working";
 }
 
@@ -211,6 +209,7 @@ export default function HRAttendancePage() {
   // Day-type sources
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
+  const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([5]); // default Friday
 
   // Indicator
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
@@ -293,6 +292,19 @@ export default function HRAttendancePage() {
         .lte("start_date", selectedDate)
         .gte("end_date", selectedDate);
       setLeaves((lv as LeaveRow[]) || []);
+
+      // Work week config (per-company weekly off days)
+      const { data: ww } = await supabase
+        .from("hr_work_week_config")
+        .select("weekly_off_days")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (ww?.weekly_off_days && Array.isArray(ww.weekly_off_days) && ww.weekly_off_days.length > 0) {
+        setWeeklyOffDays(ww.weekly_off_days as number[]);
+      } else {
+        setWeeklyOffDays([5]); // fallback: Friday
+      }
+
       setLastRefreshAt(new Date());
     } catch (e) {
       console.error(e);
@@ -350,7 +362,7 @@ export default function HRAttendancePage() {
     const synthetic: AttendanceRecord[] = activeEmps
       .filter(e => !byEmp.has(e.id))
       .map(e => {
-        const dt = getDayType(selectedDate, e, holidays, leaves);
+        const dt = getDayType(selectedDate, e, holidays, leaves, weeklyOffDays);
         const status = dt === "holiday" ? "holiday" : dt === "leave" ? "leave" : dt === "weekly_off" ? "leave" : "absent";
         return {
         id: `synthetic-${e.id}`,
@@ -373,7 +385,7 @@ export default function HRAttendancePage() {
   const empById = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
   const enriched = useMemo(() => allRows.map(r => {
     const emp = empById.get(r.employee_id);
-    const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+    const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
     return { row: r, issue: computeIssue(r, dt), dayType: dt };
   }), [allRows, empById, holidays, leaves]);
 
@@ -765,7 +777,7 @@ export default function HRAttendancePage() {
       if (reportDepartment !== "all") rows = rows.filter(r => r.employees?.department === reportDepartment);
       workingRows = rows.map((r: AttendanceRecord) => {
         const emp = empById.get(r.employee_id);
-        const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves) : "working";
+        const dt = emp ? getDayType(r.attendance_date, emp, holidays, leaves, weeklyOffDays) : "working";
         return { row: r, issue: computeIssue(r, dt), dayType: dt };
       });
     } else {

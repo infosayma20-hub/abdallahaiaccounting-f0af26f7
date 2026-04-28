@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Save, X, Loader2, Calendar, Tag, Trash2, Sparkles } from "lucide-react";
+import { Plus, Pencil, Save, X, Loader2, Calendar, Tag, Trash2, Sparkles, CalendarDays } from "lucide-react";
 import { FIXED_HOLIDAYS } from "@/lib/hr-utils";
 
 type DayType = {
@@ -45,6 +45,26 @@ type Holiday = {
   notes: string | null;
 };
 
+type WorkWeekConfig = {
+  id: string;
+  user_id: string;
+  working_days: number[];
+  weekly_off_days: number[];
+  work_hours_per_day: number;
+  notes: string | null;
+};
+
+// JS getDay(): 0=Sun .. 6=Sat — Arabic labels
+const DOW_LABELS: { value: number; short: string; long: string }[] = [
+  { value: 6, short: "السبت",   long: "السبت" },
+  { value: 0, short: "الأحد",   long: "الأحد" },
+  { value: 1, short: "الإثنين", long: "الإثنين" },
+  { value: 2, short: "الثلاثاء",long: "الثلاثاء" },
+  { value: 3, short: "الأربعاء",long: "الأربعاء" },
+  { value: 4, short: "الخميس",  long: "الخميس" },
+  { value: 5, short: "الجمعة",  long: "الجمعة" },
+];
+
 // System defaults — seeded once per user on first visit
 const DEFAULT_DAY_TYPES: Omit<DayType, "id" | "user_id">[] = [
   { code: "working",      name: "يوم عمل",          category: "work",     is_paid: true,  affects_salary: false, requires_approval: false, counts_as_attendance: true,  color: "#10b981", is_active: true, is_system: true, sort_order: 1,  notes: null },
@@ -75,6 +95,8 @@ export default function HrDayTypesPage() {
   const [seeding, setSeeding] = useState(false);
   const [dayTypes, setDayTypes] = useState<DayType[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [workWeek, setWorkWeek] = useState<WorkWeekConfig | null>(null);
+  const [savingWW, setSavingWW] = useState(false);
 
   // Day type editor
   const [editing, setEditing] = useState<DayType | null>(null);
@@ -86,12 +108,26 @@ export default function HrDayTypesPage() {
   const fetchAll = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: dt }, { data: hh }] = await Promise.all([
+    const [{ data: dt }, { data: hh }, { data: ww }] = await Promise.all([
       supabase.from("hr_day_types").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }),
       supabase.from("official_holidays").select("*").eq("user_id", user.id).order("holiday_date", { ascending: true }),
+      supabase.from("hr_work_week_config").select("*").eq("user_id", user.id).maybeSingle(),
     ]);
     setDayTypes((dt as DayType[]) || []);
     setHolidays((hh as Holiday[]) || []);
+
+    // Lazy-init work week config if missing
+    if (!ww) {
+      const { data: created } = await supabase
+        .from("hr_work_week_config")
+        .insert({ user_id: user.id } as any)
+        .select()
+        .single();
+      setWorkWeek(created as WorkWeekConfig);
+    } else {
+      setWorkWeek(ww as WorkWeekConfig);
+    }
+
     setLoading(false);
 
     // Auto-seed defaults if empty
@@ -226,6 +262,43 @@ export default function HrDayTypesPage() {
     [dayTypes]
   );
 
+  // ---------- Work Week ----------
+  const toggleWorkDay = async (dow: number) => {
+    if (!workWeek || !user) return;
+    const isWorking = workWeek.working_days.includes(dow);
+    const newWorking = isWorking
+      ? workWeek.working_days.filter(d => d !== dow)
+      : [...workWeek.working_days, dow].sort((a, b) => a - b);
+    const newOff = DOW_LABELS.map(l => l.value).filter(d => !newWorking.includes(d)).sort((a, b) => a - b);
+
+    if (newWorking.length === 0) {
+      toast.error("يجب اختيار يوم عمل واحد على الأقل");
+      return;
+    }
+
+    setSavingWW(true);
+    const { error } = await supabase
+      .from("hr_work_week_config")
+      .update({ working_days: newWorking, weekly_off_days: newOff })
+      .eq("id", workWeek.id);
+    setSavingWW(false);
+    if (error) return toast.error(error.message);
+    setWorkWeek({ ...workWeek, working_days: newWorking, weekly_off_days: newOff });
+    toast.success("تم تحديث أيام الدوام");
+  };
+
+  const updateWorkHours = async (hours: number) => {
+    if (!workWeek) return;
+    const safe = Math.max(1, Math.min(24, hours || 8));
+    const { error } = await supabase
+      .from("hr_work_week_config")
+      .update({ work_hours_per_day: safe })
+      .eq("id", workWeek.id);
+    if (error) return toast.error(error.message);
+    setWorkWeek({ ...workWeek, work_hours_per_day: safe });
+    toast.success("تم تحديث ساعات الدوام");
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-4" dir="rtl">
       <BackButton />
@@ -236,9 +309,71 @@ export default function HrDayTypesPage() {
 
       <Tabs defaultValue="types" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="workweek"><CalendarDays className="ml-1 h-4 w-4" /> أيام الدوام</TabsTrigger>
           <TabsTrigger value="types"><Tag className="ml-1 h-4 w-4" /> أنواع الأيام</TabsTrigger>
           <TabsTrigger value="holidays"><Calendar className="ml-1 h-4 w-4" /> العطل الرسمية</TabsTrigger>
         </TabsList>
+
+        {/* ============ Work Week Config ============ */}
+        <TabsContent value="workweek">
+          <Card className="p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold text-base">أيام الدوام الأسبوعية</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                اختر أيام العمل الرسمية لشركتك. الأيام غير المختارة ستُحسب كعطلة أسبوعية تلقائياً في الحضور والرواتب.
+              </p>
+            </div>
+
+            {loading || !workWeek ? (
+              <div className="flex items-center justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {DOW_LABELS.map(d => {
+                    const isWorking = workWeek.working_days.includes(d.value);
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        disabled={savingWW}
+                        onClick={() => toggleWorkDay(d.value)}
+                        className={`p-3 rounded-lg border-2 transition text-center ${
+                          isWorking
+                            ? "bg-emerald-50 border-emerald-500 text-emerald-700"
+                            : "bg-muted/30 border-muted text-muted-foreground"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">{d.long}</div>
+                        <div className="text-[10px] mt-1">{isWorking ? "دوام" : "عطلة"}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="border-t pt-3 flex flex-wrap items-end gap-3">
+                  <div className="w-40">
+                    <label className="text-xs text-muted-foreground">ساعات الدوام اليومية</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={24}
+                      step={0.5}
+                      defaultValue={workWeek.work_hours_per_day}
+                      onBlur={e => {
+                        const v = parseFloat(e.target.value);
+                        if (v !== workWeek.work_hours_per_day) updateWorkHours(v);
+                      }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
+                    عدد أيام العمل: <strong className="text-foreground">{workWeek.working_days.length}</strong> أسبوعياً —
+                    العطل الأسبوعية: <strong className="text-foreground">{workWeek.weekly_off_days.map(d => DOW_LABELS.find(l => l.value === d)?.long).join(", ") || "لا يوجد"}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+          </Card>
+        </TabsContent>
 
         {/* ============ Day Types ============ */}
         <TabsContent value="types">
