@@ -3375,20 +3375,28 @@ const POSPage = () => {
 
         // Also record in centralized financial movements
         const now = new Date();
+        const shiftRef = `SHIFT-${session.id.slice(0, 8)}`;
+        const variancePct = Math.round((Math.abs(variance) / (expected || 1)) * 10000) / 100;
+        const transparencyNote =
+          `وردية ${session.cashier_name || ""} | المتوقع: ${expected.toFixed(2)} | الفعلي: ${cash.toFixed(2)} | ` +
+          `${isShortage ? "عجز" : "فائض"}: ${Math.abs(variance).toFixed(2)} (${variancePct}%)`;
         await supabase.from("employee_financial_movements").insert({
           user_id: dataOwnerId,
           employee_id: emp.id,
           source_type: "pos_shortage",
           source_id: session.id,
-          source_reference: `SHIFT-${session.id.slice(0, 8)}`,
+          source_reference: shiftRef,
+          reference_number: shiftRef,
+          category: isShortage ? "cash_shortage" : "cash_surplus",
           description: `${isShortage ? "عجز" : "فائض"} صندوق - وردية ${new Date(session.opened_at).toLocaleDateString("ar-PS")}`,
           amount: Math.abs(variance),
           movement_type: isShortage ? "debit" : "credit",
-          status: "pending",
+          status: "approved",
           movement_date: now.toISOString().split("T")[0],
           salary_month: now.getMonth() + 1,
           salary_year: now.getFullYear(),
           created_by: userId,
+          notes: transparencyNote,
         } as any);
       }
     }
