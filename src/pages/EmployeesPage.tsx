@@ -1067,6 +1067,35 @@ const EmployeesPage = () => {
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">المسمى الوظيفي (مسجَّل)</label>
+              <Select
+                value={form.job_title_id || "_none"}
+                onValueChange={(v) => {
+                  const id = v === "_none" ? null : v;
+                  const job = id ? jobTitlesList.find((j) => j.id === id) : null;
+                  setForm({
+                    ...form,
+                    job_title_id: id,
+                    job_title: job?.name || form.job_title || "",
+                    // إذا للمسمى قسم مرتبط، عَبِّ القسم لو فاضي
+                    department_id: job?.department_id ?? form.department_id ?? null,
+                    department:
+                      job?.department_id
+                        ? (departmentsList.find((d) => d.id === job.department_id)?.name || form.department || "")
+                        : (form.department || ""),
+                  });
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="اختر من القائمة" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">بدون</SelectItem>
+                  {jobTitlesList
+                    .filter((j) => !form.department_id || !j.department_id || j.department_id === form.department_id)
+                    .map((j) => <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">نوع العقد</label>
               <Select value={form.contract_type || "permanent"} onValueChange={v => setForm({ ...form, contract_type: v })}>
