@@ -510,6 +510,7 @@ export default function HRAttendancePage() {
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) return;
     if (!r.first_check_in || !r.last_check_out) {
       toast({ title: "لا يمكن إعادة الحساب", description: "ينقص الدخول أو الخروج", variant: "destructive" });
@@ -524,6 +525,7 @@ export default function HRAttendancePage() {
   };
 
   const openNote = (r: AttendanceRecord) => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل لإضافة ملاحظة عليه", variant: "destructive" }); return;
     }
