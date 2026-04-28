@@ -1,0 +1,1 @@
+ALTER TABLE public.work_shifts ADD COLUMN IF NOT EXISTS crosses_midnight boolean NOT NULL DEFAULT false;

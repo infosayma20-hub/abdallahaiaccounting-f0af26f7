@@ -46,7 +46,7 @@ type EmployeeLite = {
   shift_start: string | null;
   shift_end: string | null;
   shift_id?: string | null;
-  shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
+  shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null; crosses_midnight?: boolean | null } | null;
   is_active: boolean;
   is_terminated: boolean | null;
   work_days_per_week: number | null;
@@ -73,7 +73,7 @@ type AttendanceRecord = {
     shift_start: string | null;
     shift_end: string | null;
     shift_id?: string | null;
-    shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
+    shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null; crosses_midnight?: boolean | null } | null;
   };
 };
 
@@ -157,6 +157,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
   end: string | null;
   graceMin: number;
   overtimeAfterMin: number;
+  crossesMidnight: boolean;
 } {
   const sh = emp?.shift;
   if (sh?.start_time && sh?.end_time) {
@@ -165,6 +166,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
       end: sh.end_time.slice(0, 5),
       graceMin: sh.late_tolerance_minutes ?? 0,
       overtimeAfterMin: sh.overtime_after_minutes ?? 0,
+      crossesMidnight: !!sh.crosses_midnight,
     };
   }
   return {
@@ -172,6 +174,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
     end: emp?.shift_end || null,
     graceMin: 0,
     overtimeAfterMin: 0,
+    crossesMidnight: false,
   };
 }
 
@@ -207,6 +210,11 @@ function computeIssue(
     const [h, m] = sh.end.split(":").map(Number);
     const exp = new Date(co);
     exp.setHours(h || 0, m || 0, 0, 0);
+    // Shift crosses midnight: end time belongs to the next calendar day
+    if (sh.crossesMidnight && sh.start) {
+      const [sh1] = sh.start.split(":").map(Number);
+      if ((h || 0) < (sh1 || 0)) exp.setDate(exp.getDate() + 1);
+    }
     earlyLeaveMin = Math.max(0, Math.round((exp.getTime() - co.getTime()) / 60000));
   }
 
@@ -217,6 +225,10 @@ function computeIssue(
     const [h, m] = sh.end.split(":").map(Number);
     const exp = new Date(co);
     exp.setHours(h || 0, m || 0, 0, 0);
+    if (sh.crossesMidnight && sh.start) {
+      const [sh1] = sh.start.split(":").map(Number);
+      if ((h || 0) < (sh1 || 0)) exp.setDate(exp.getDate() + 1);
+    }
     const extra = Math.max(0, Math.round((co.getTime() - exp.getTime()) / 60000));
     if (extra >= sh.overtimeAfterMin) overtimeMin = extra;
   }
@@ -327,7 +339,7 @@ export default function HRAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
       const { data: emps } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes)")
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight)")
         .eq("user_id", user.id);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
@@ -335,7 +347,7 @@ export default function HRAttendancePage() {
 
       const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes))")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
       let filtered = (att as any) || [];
@@ -841,7 +853,7 @@ export default function HRAttendancePage() {
       // Fetch range from DB
       const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes))")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
         .gte("attendance_date", reportFromDate)
         .lte("attendance_date", reportToDate)
         .order("attendance_date", { ascending: true });
