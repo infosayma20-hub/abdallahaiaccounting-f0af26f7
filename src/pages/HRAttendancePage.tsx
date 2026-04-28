@@ -191,45 +191,47 @@ function computeIssue(
 ): { text: string; severity: "ok" | "warn" | "err"; lateMin: number; earlyLeaveMin?: number; overtimeMin?: number } {
   const sh = resolveShift(r.employees);
 
+  // Build expected shift start/end timestamps anchored on the day of check-in.
+  // For overnight shifts (crosses_midnight), the expected END is the next day.
+  let expectedStart: Date | null = null;
+  let expectedEnd: Date | null = null;
+  const anchor = r.first_check_in ? new Date(r.first_check_in) : (r.last_check_out ? new Date(r.last_check_out) : null);
+  if (anchor && sh.start) {
+    const [sh1, sm1] = sh.start.split(":").map(Number);
+    expectedStart = new Date(anchor);
+    expectedStart.setHours(sh1 || 0, sm1 || 0, 0, 0);
+  }
+  if (anchor && sh.end) {
+    const [eh, em] = sh.end.split(":").map(Number);
+    expectedEnd = new Date(anchor);
+    expectedEnd.setHours(eh || 0, em || 0, 0, 0);
+    if (sh.crossesMidnight) {
+      // End is the next calendar day relative to check-in
+      expectedEnd.setDate(expectedEnd.getDate() + 1);
+    }
+  }
+
   // Late minutes (vs shift start)
   let lateMin = 0;
-  if (r.first_check_in && sh.start) {
+  if (r.first_check_in && expectedStart) {
     const ci = new Date(r.first_check_in);
-    const [h, m] = sh.start.split(":").map(Number);
-    const exp = new Date(ci);
-    exp.setHours(h || 0, m || 0, 0, 0);
-    lateMin = Math.max(0, Math.round((ci.getTime() - exp.getTime()) / 60000));
+    lateMin = Math.max(0, Math.round((ci.getTime() - expectedStart.getTime()) / 60000));
     // Apply grace
     if (lateMin <= sh.graceMin) lateMin = 0;
   }
 
   // Early leave minutes (vs shift end)
   let earlyLeaveMin = 0;
-  if (r.last_check_out && sh.end) {
+  if (r.last_check_out && expectedEnd) {
     const co = new Date(r.last_check_out);
-    const [h, m] = sh.end.split(":").map(Number);
-    const exp = new Date(co);
-    exp.setHours(h || 0, m || 0, 0, 0);
-    // Shift crosses midnight: end time belongs to the next calendar day
-    if (sh.crossesMidnight && sh.start) {
-      const [sh1] = sh.start.split(":").map(Number);
-      if ((h || 0) < (sh1 || 0)) exp.setDate(exp.getDate() + 1);
-    }
-    earlyLeaveMin = Math.max(0, Math.round((exp.getTime() - co.getTime()) / 60000));
+    earlyLeaveMin = Math.max(0, Math.round((expectedEnd.getTime() - co.getTime()) / 60000));
   }
 
   // Overtime minutes (vs shift end + threshold)
   let overtimeMin = 0;
-  if (r.last_check_out && sh.end) {
+  if (r.last_check_out && expectedEnd) {
     const co = new Date(r.last_check_out);
-    const [h, m] = sh.end.split(":").map(Number);
-    const exp = new Date(co);
-    exp.setHours(h || 0, m || 0, 0, 0);
-    if (sh.crossesMidnight && sh.start) {
-      const [sh1] = sh.start.split(":").map(Number);
-      if ((h || 0) < (sh1 || 0)) exp.setDate(exp.getDate() + 1);
-    }
-    const extra = Math.max(0, Math.round((co.getTime() - exp.getTime()) / 60000));
+    const extra = Math.max(0, Math.round((co.getTime() - expectedEnd.getTime()) / 60000));
     if (extra >= sh.overtimeAfterMin) overtimeMin = extra;
   }
 
