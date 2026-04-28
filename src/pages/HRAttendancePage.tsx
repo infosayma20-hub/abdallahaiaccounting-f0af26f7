@@ -1071,6 +1071,15 @@ export default function HRAttendancePage() {
                                 <DropdownMenuItem onClick={() => openHistory(r)} className="gap-2"><History className="h-3.5 w-3.5" /> سجل بصمات اليوم</DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openHRMessageFor(r, "info")} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إرسال رسالة HR</DropdownMenuItem>
+                                {canIssuePenalty && (
+                                  <DropdownMenuItem
+                                    onClick={() => openHRMessageFor(r, "penalty")}
+                                    className="gap-2 text-red-600 focus:text-red-700"
+                                  >
+                                    <Shield className="h-3.5 w-3.5" /> إصدار إجراء عقابي
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
