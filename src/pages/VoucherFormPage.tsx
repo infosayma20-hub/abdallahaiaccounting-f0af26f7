@@ -1594,6 +1594,45 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           await supabase.from("transactions").update({ reference: voucher.ref_number }).eq("id", txId);
         }
 
+        // B3.4: mirror employee payment voucher into employee_financial_movements.
+        // Posting (transactions row) is unchanged — this is read-only mirroring
+        // for the Sub-Ledger / Payroll Preview.
+        if (isEmpPay && selectedEmployee && !asDraft && voucher?.id) {
+          const subCat = mapEmpCategoryToSubLedger(empCategory);
+          if (subCat) {
+            const refNum = voucher.ref_number || `PV-${voucher.id.slice(0, 8)}`;
+            const customLabel = empCategory === "أخرى" && empCategoryCustom ? empCategoryCustom : empCategory;
+            const violNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+            // Payment voucher to employee = debit on the employee (he owes / received cash)
+            const movementType: "debit" | "credit" = "debit";
+            const movDate = paymentDate;
+            const d = new Date(movDate);
+            const subLedgerErr = await supabase
+              .from("employee_financial_movements")
+              .insert({
+                user_id: user.id,
+                employee_id: selectedEmployee.id,
+                source_type: "finance_manual",
+                source_id: voucher.id,
+                source_reference: refNum,
+                reference_number: refNum,
+                category: subCat,
+                description: `سند صرف ${customLabel} - ${selectedEmployee.full_name}${violNote}`,
+                amount: amountInILS,
+                movement_type: movementType,
+                status: "approved",
+                movement_date: movDate,
+                salary_month: d.getMonth() + 1,
+                salary_year: d.getFullYear(),
+                created_by: user.id,
+                notes: notes || null,
+              } as any);
+            if (subLedgerErr.error) {
+              console.warn("[B3.4] sub-ledger mirror failed:", subLedgerErr.error.message);
+            }
+          }
+        }
+
         if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
           const chequeRows = cheques.filter(c => c.number).map(c => ({
             user_id: user.id,
