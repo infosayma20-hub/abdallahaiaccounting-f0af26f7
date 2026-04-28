@@ -180,7 +180,7 @@ const reqTypeLabel = (t: string) => ({
   wrong_time: "وقت خاطئ",
   leave_request: "🏖️ طلب إجازة",
   advance_request: "💰 طلب سلفة",
-  overtime_request: "⏰ أوفرتايم",
+  overtime_request: "أوفرتايم",
   hr_message: "💬 رسالة HR",
 }[t] || "أخرى");
 
@@ -243,7 +243,7 @@ export default function HRAttendancePage() {
     if (next.has(selectedDate)) next.delete(selectedDate); else next.add(selectedDate);
     setLockedDates(next);
     localStorage.setItem(lockKey, JSON.stringify(Array.from(next)));
-    toast({ title: next.has(selectedDate) ? "🔒 تم إغلاق اليوم" : "🔓 تم فتح اليوم" });
+    toast({ title: next.has(selectedDate) ? "تم إغلاق اليوم" : "تم فتح اليوم" });
   };
 
   const fetchData = useCallback(async () => {
@@ -438,7 +438,7 @@ export default function HRAttendancePage() {
       radius_meters: parseInt(editForm.radius_meters) || 100,
     }).eq("id", editingBranch.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تم التحديث ✅" }); setEditingBranch(null); fetchData(); }
+    else { toast({ title: "تم التحديث" }); setEditingBranch(null); fetchData(); }
   };
 
   const deleteBranch = async () => {
@@ -460,13 +460,13 @@ export default function HRAttendancePage() {
       new_values: { status: action, review_notes: reviewNotes },
       changed_by: user!.id, reason: reviewNotes || undefined,
     });
-    toast({ title: action === "approved" ? "تم القبول ✅" : "تم الرفض" });
+    toast({ title: action === "approved" ? "تم القبول" : "تم الرفض" });
     setReviewDialog(null); setReviewNotes(""); fetchData();
   };
 
   // ------------------ Row Actions ------------------
   const openEditRecord = (r: AttendanceRecord) => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", description: "افتح اليوم لإجراء التعديلات", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", description: "افتح اليوم لإجراء التعديلات", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل بعد", description: "هذا الموظف لم يبصم اليوم. استخدم 'تعديل يدوي' لإنشاء سجل عبر طلب تعديل من الموظف.", variant: "destructive" });
       return;
@@ -507,12 +507,12 @@ export default function HRAttendancePage() {
       table_name: "attendance_days", record_id: editRecord.id, action: "update",
       new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
     });
-    toast({ title: "تم التحديث ✅" });
+    toast({ title: "تم التحديث" });
     setEditRecord(null); fetchData();
   };
 
   const recalcRecord = async (r: AttendanceRecord) => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) return;
     if (!r.first_check_in || !r.last_check_out) {
       toast({ title: "لا يمكن إعادة الحساب", description: "ينقص الدخول أو الخروج", variant: "destructive" });
@@ -523,11 +523,11 @@ export default function HRAttendancePage() {
       total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
     }).eq("id", r.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تمت إعادة الحساب ✅" }); fetchData(); }
+    else { toast({ title: "تمت إعادة الحساب" }); fetchData(); }
   };
 
   const openNote = (r: AttendanceRecord) => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل لإضافة ملاحظة عليه", variant: "destructive" }); return;
     }
@@ -537,7 +537,7 @@ export default function HRAttendancePage() {
     if (!noteRecord) return;
     const { error } = await supabase.from("attendance_days").update({ notes: noteText || null }).eq("id", noteRecord.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تم حفظ الملاحظة ✅" }); setNoteRecord(null); fetchData(); }
+    else { toast({ title: "تم حفظ الملاحظة" }); setNoteRecord(null); fetchData(); }
   };
 
   const openHistory = async (r: AttendanceRecord) => {
@@ -563,7 +563,7 @@ export default function HRAttendancePage() {
       status: "pending",
     });
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else toast({ title: "تم إرسال الطلب للموظف ✅" });
+    else toast({ title: "تم إرسال الطلب للموظف" });
   };
 
   // ------------------ Bulk Actions ------------------
@@ -583,7 +583,7 @@ export default function HRAttendancePage() {
   const clearSelection = () => setSelected(new Set());
 
   const bulkRecalc = async () => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     const ids = Array.from(selected);
     const targets = enriched.filter(x => ids.includes(x.row.id) && x.row.first_check_in && x.row.last_check_out);
     if (targets.length === 0) { toast({ title: "لا يوجد سجلات صالحة لإعادة الحساب" }); return; }
@@ -595,12 +595,12 @@ export default function HRAttendancePage() {
       }).eq("id", x.row.id);
       if (!error) ok++;
     }
-    toast({ title: `✅ تمت إعادة حساب ${ok} سجل` });
+    toast({ title: `تمت إعادة حساب ${ok} سجل` });
     clearSelection(); fetchData();
   };
 
   const bulkAddNote = async () => {
-    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (isLocked) { toast({ title: "اليوم مغلق", variant: "destructive" }); return; }
     if (!bulkNote.trim()) return;
     const ids = Array.from(selected);
     let ok = 0;
@@ -608,7 +608,7 @@ export default function HRAttendancePage() {
       const { error } = await supabase.from("attendance_days").update({ notes: bulkNote }).eq("id", id);
       if (!error) ok++;
     }
-    toast({ title: `✅ تم تحديث ملاحظة ${ok} سجل` });
+    toast({ title: `تم تحديث ملاحظة ${ok} سجل` });
     setBulkNoteOpen(false); setBulkNote(""); clearSelection(); fetchData();
   };
 
@@ -627,7 +627,7 @@ export default function HRAttendancePage() {
       });
       if (!error) ok++;
     }
-    toast({ title: `📨 تم إرسال ${ok} استفسار` });
+    toast({ title: `تم إرسال ${ok} استفسار` });
     clearSelection();
   };
 
@@ -741,9 +741,9 @@ export default function HRAttendancePage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportExcel("daily")}>📊 التقرير اليومي الشامل</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportExcel("late")}>⏱️ تقرير المتأخرين</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportExcel("absent")}>❌ تقرير الغياب</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportExcel("incomplete")}>❗ تقرير البصمات الناقصة</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("late")}>تقرير المتأخرين</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("absent")}>تقرير الغياب</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("incomplete")}>تقرير البصمات الناقصة</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -759,9 +759,9 @@ export default function HRAttendancePage() {
             <div>
               <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
               <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
-                {kpis.incomplete > 0 && <span>❗ بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
-                {kpis.late > 0 && <span>⏱️ متأخرون: <b>{kpis.late}</b></span>}
-                {kpis.absent > 0 && <span>❌ غياب: <b>{kpis.absent}</b></span>}
+                {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
+                {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
+                {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
                 {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
               </div>
             </div>
@@ -833,7 +833,7 @@ export default function HRAttendancePage() {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 flex-wrap">
               <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={enriched.length} />
-              <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط ❗" count={kpis.issues} tone="amber" />
+              <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط" count={kpis.issues} tone="amber" />
               <FilterChip active={filter === "present"} onClick={() => setFilter("present")} label="حضور كامل" count={kpis.present} tone="emerald" />
               <FilterChip active={filter === "late"} onClick={() => setFilter("late")} label="متأخرون" count={kpis.late} tone="amber" />
               <FilterChip active={filter === "missing_checkin"} onClick={() => setFilter("missing_checkin")} label="بدون دخول" count={enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length} tone="orange" />
@@ -969,7 +969,7 @@ export default function HRAttendancePage() {
           {corrections.length === 0 ? (
             <Card className="p-10 text-center text-muted-foreground">
               <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500/50" />
-              لا يوجد طلبات تعديل معلقة 🎉
+              لا يوجد طلبات تعديل معلقة
             </Card>
           ) : (
             corrections.map(req => (
@@ -1060,7 +1060,7 @@ export default function HRAttendancePage() {
               if (!navigator.geolocation) return;
               navigator.geolocation.getCurrentPosition(pos => {
                 setBranchForm(p => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
-                toast({ title: "تم تحديد الموقع ✅" });
+                toast({ title: "تم تحديد الموقع" });
               }, () => toast({ title: "تعذر تحديد الموقع", variant: "destructive" }), { enableHighAccuracy: true, timeout: 15000 });
             }}><MapPin className="h-3.5 w-3.5" /> استخدام موقعي</Button>
           </div>
