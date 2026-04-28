@@ -168,6 +168,21 @@ function computeDayMinutes(day: any, shift: ReturnType<typeof resolveShift>) {
  * Heuristics are conservative — anything unknown lands in "uncategorized" so HR can review.
  */
 function categorizeMovement(m: any): string {
+  // B3.1: prefer the explicit category column if set
+  const explicit = String(m.category || "").toLowerCase();
+  if (explicit) {
+    // Map DB category names to internal bucket keys used below
+    if (explicit === "food") return "meal";
+    if (explicit === "transport") return "transport";
+    if (explicit === "advance") return "advance";
+    if (explicit === "loan_installment") return "loan";
+    if (explicit === "penalty") return "violation";
+    if (explicit === "purchase") return "store_purchase";
+    if (explicit === "cash_shortage" || explicit === "cash_surplus" || explicit === "adjustment") return "settlement";
+    if (explicit === "previous_balance") return "previous_balance";
+    if (explicit === "other") return "uncategorized";
+  }
+  // Fallback heuristics for legacy rows without category
   const src = String(m.source_type || "").toLowerCase();
   const desc = String(m.description || "").toLowerCase();
   if (src.includes("meal") || src === "pos_meal" || desc.includes("اكل") || desc.includes("وجب")) return "meal";

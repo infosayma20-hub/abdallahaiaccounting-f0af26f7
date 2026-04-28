@@ -4311,6 +4311,7 @@ export type Database = {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          category: string | null
           created_at: string
           created_by: string | null
           description: string
@@ -4320,6 +4321,7 @@ export type Database = {
           movement_date: string
           movement_type: string
           notes: string | null
+          reference_number: string | null
           salary_month: number | null
           salary_year: number | null
           source_id: string | null
@@ -4333,6 +4335,7 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description: string
@@ -4342,6 +4345,7 @@ export type Database = {
           movement_date?: string
           movement_type: string
           notes?: string | null
+          reference_number?: string | null
           salary_month?: number | null
           salary_year?: number | null
           source_id?: string | null
@@ -4355,6 +4359,7 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
@@ -4364,6 +4369,7 @@ export type Database = {
           movement_date?: string
           movement_type?: string
           notes?: string | null
+          reference_number?: string | null
           salary_month?: number | null
           salary_year?: number | null
           source_id?: string | null
