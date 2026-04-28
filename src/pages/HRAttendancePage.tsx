@@ -449,7 +449,7 @@ export default function HRAttendancePage() {
         branch_id: e.branch_id,
         notes: null,
         is_manually_adjusted: false,
-        employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end },
+        employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end, shift_id: (e as any).shift_id ?? null, shift: (e as any).shift ?? null },
         };
       });
     return [...records, ...synthetic];
