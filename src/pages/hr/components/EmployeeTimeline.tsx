@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TimelineEvent } from "@/hooks/hr/useEmployee360";
+import { tTimelineTitle, tFormStatus, tAttendanceStatus } from "@/lib/hrLabels";
 
 const TYPE_META: Record<TimelineEvent["type"], { Icon: LucideIcon; cls: string; label: string }> = {
   payroll: { Icon: Wallet, cls: "bg-primary/10 text-primary", label: "راتب" },
@@ -67,6 +68,12 @@ export function EmployeeTimeline({ events, limit = 50 }: Props) {
                   ? "text-rose-600"
                   : "text-emerald-600"
                 : "";
+            const arabicTitle = tTimelineTitle(ev.title);
+            // Translate status-shaped descriptions on attendance events
+            const arabicDesc =
+              ev.type === "attendance" && ev.status
+                ? `${tAttendanceStatus(ev.status)}${ev.description ? ` — ${ev.description}` : ""}`
+                : ev.description;
             return (
               <li key={ev.id} className="relative flex gap-3 items-start">
                 <div
@@ -84,11 +91,16 @@ export function EmployeeTimeline({ events, limit = 50 }: Props) {
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                           {meta.label}
                         </Badge>
-                        <p className="font-medium text-sm truncate">{ev.title}</p>
+                        <p className="font-medium text-sm truncate">{arabicTitle}</p>
+                        {ev.status && (ev.type === "form" || ev.type === "leave" || ev.type === "loan") && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {tFormStatus(ev.status)}
+                          </Badge>
+                        )}
                       </div>
-                      {ev.description && (
+                      {arabicDesc && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">
-                          {ev.description}
+                          {arabicDesc}
                         </p>
                       )}
                     </div>

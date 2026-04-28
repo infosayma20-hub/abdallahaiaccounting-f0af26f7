@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   label: string;
@@ -8,6 +9,8 @@ interface Props {
   hint?: string;
   Icon: LucideIcon;
   tone?: "neutral" | "positive" | "warning" | "danger" | "primary";
+  onClick?: () => void;
+  tooltip?: string;
 }
 
 const TONES: Record<NonNullable<Props["tone"]>, { wrap: string; ring: string; icon: string; value: string }> = {
@@ -43,10 +46,31 @@ const TONES: Record<NonNullable<Props["tone"]>, { wrap: string; ring: string; ic
   },
 };
 
-export function EmployeeCostCard({ label, value, hint, Icon, tone = "neutral" }: Props) {
+export function EmployeeCostCard({ label, value, hint, Icon, tone = "neutral", onClick, tooltip }: Props) {
   const t = TONES[tone];
-  return (
-    <Card className={cn("ring-1 shadow-sm transition-all hover:shadow-md", t.wrap, t.ring)}>
+  const interactive = !!onClick;
+  const card = (
+    <Card
+      className={cn(
+        "ring-1 shadow-sm transition-all",
+        t.wrap,
+        t.ring,
+        interactive && "cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.99] focus-within:ring-2 focus-within:ring-primary/40",
+      )}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1 text-right flex-1 min-w-0">
@@ -60,5 +84,14 @@ export function EmployeeCostCard({ label, value, hint, Icon, tone = "neutral" }:
         </div>
       </CardContent>
     </Card>
+  );
+  if (!tooltip) return card;
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>{card}</TooltipTrigger>
+        <TooltipContent side="top">{tooltip}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

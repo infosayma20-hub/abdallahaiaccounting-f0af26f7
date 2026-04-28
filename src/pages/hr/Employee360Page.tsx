@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEmployee360 } from "@/hooks/hr/useEmployee360";
 import { useEmployeeCostEngine } from "@/hooks/hr/useEmployeeCostEngine";
@@ -31,6 +32,7 @@ export default function Employee360Page() {
   const cost = useEmployeeCostEngine(data);
   const risk = useEmployeeRiskScore(data, cost);
   const forecast = useEmployeeForecast(data, cost);
+  const [tab, setTab] = useState<string>("overview");
 
   const handleQuickAction = (action: "leave" | "loan" | "deduction" | "salary") => {
     if (!id) return;
@@ -85,9 +87,9 @@ export default function Employee360Page() {
         onQuickAction={handleQuickAction}
       />
 
-      <EmployeeFinancialPanel cost={cost} risk={risk} forecast={forecast} />
+      <EmployeeFinancialPanel cost={cost} risk={risk} forecast={forecast} onNavigateTab={setTab} />
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <div className="overflow-x-auto -mx-1 px-1">
           <TabsList className="inline-flex w-auto min-w-full md:min-w-0 h-auto flex-wrap justify-start gap-1 bg-muted/60 p-1">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>

@@ -9,12 +9,13 @@ interface Props {
   cost: CostEngineResult;
   risk: RiskScoreResult;
   forecast: ForecastResult;
+  onNavigateTab?: (tab: string) => void;
 }
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
-export function EmployeeFinancialPanel({ cost, risk, forecast }: Props) {
+export function EmployeeFinancialPanel({ cost, risk, forecast, onNavigateTab }: Props) {
   const riskTone =
     risk.level === "low" ? "positive" : risk.level === "medium" ? "warning" : "danger";
 
@@ -36,6 +37,8 @@ export function EmployeeFinancialPanel({ cost, risk, forecast }: Props) {
           hint={`الأساسي: ₪${fmt(cost.breakdown.baseSalary)}`}
           Icon={Wallet}
           tone="primary"
+          onClick={() => onNavigateTab?.("payroll")}
+          tooltip="فتح تبويب الراتب"
         />
         <EmployeeCostCard
           label="القروض النشطة"
@@ -47,6 +50,8 @@ export function EmployeeFinancialPanel({ cost, risk, forecast }: Props) {
           }
           Icon={HandCoins}
           tone={cost.ratios.loanBurden >= 0.3 ? "warning" : "neutral"}
+          onClick={() => onNavigateTab?.("loans")}
+          tooltip="فتح تبويب القروض"
         />
         <EmployeeCostCard
           label="خصومات هذا الشهر"
@@ -58,6 +63,8 @@ export function EmployeeFinancialPanel({ cost, risk, forecast }: Props) {
           }
           Icon={Receipt}
           tone={cost.ratios.deductionRatio >= 0.2 ? "warning" : "neutral"}
+          onClick={() => onNavigateTab?.("deductions")}
+          tooltip="فتح تبويب الخصومات"
         />
         <EmployeeCostCard
           label="صافي الراتب المتوقع"
@@ -65,6 +72,8 @@ export function EmployeeFinancialPanel({ cost, risk, forecast }: Props) {
           hint={`متبقي ${forecast.daysRemaining} يوم`}
           Icon={TrendingUp}
           tone={netTone as any}
+          onClick={() => onNavigateTab?.("payroll")}
+          tooltip="عرض تفاصيل الراتب المتوقع"
         />
         <EmployeeCostCard
           label="مؤشر المخاطر"
@@ -72,6 +81,8 @@ export function EmployeeFinancialPanel({ cost, risk, forecast }: Props) {
           hint={`المستوى: ${risk.label}`}
           Icon={ShieldAlert}
           tone={riskTone as any}
+          onClick={() => onNavigateTab?.("overview")}
+          tooltip="تفاصيل تقييم المخاطر"
         />
       </div>
 
