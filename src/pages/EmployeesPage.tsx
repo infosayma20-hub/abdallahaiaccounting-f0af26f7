@@ -499,7 +499,7 @@ const EmployeesPage = () => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-foreground truncate">{emp.full_name}</p>
-          <p className="text-xs text-muted-foreground truncate">{emp.job_title || emp.position || "—"}</p>
+          <p className="text-xs text-muted-foreground truncate">{displayJobTitle(emp)}</p>
         </div>
         <Badge
           variant={emp.is_active ? "default" : "secondary"}
@@ -544,7 +544,7 @@ const EmployeesPage = () => {
           </div>
         </td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{getBranchName(emp)}</td>
-        <td className="px-3 py-3 text-xs text-muted-foreground">{emp.job_title || emp.position || "—"}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">{displayJobTitle(emp)}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
         <td className="px-3 py-3">
@@ -804,7 +804,7 @@ const EmployeesPage = () => {
                     </div>
                     <div>
                       <SheetTitle className="text-lg">{selectedEmployee.full_name}</SheetTitle>
-                      <p className="text-sm text-muted-foreground">{selectedEmployee.job_title || selectedEmployee.position || "—"}</p>
+                      <p className="text-sm text-muted-foreground">{displayJobTitle(selectedEmployee)}</p>
                     </div>
                   </div>
                   <Badge
