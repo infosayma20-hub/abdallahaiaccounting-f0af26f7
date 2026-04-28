@@ -47,6 +47,33 @@ const FORM_STATUS: Record<string, string> = {
   responded: "تم الرد",
 };
 
+const CONTRACT_TYPE: Record<string, string> = {
+  permanent: "دائم",
+  temporary: "مؤقت",
+  seasonal: "موسمي",
+  contract: "عقد",
+  freelance: "بالقطعة",
+  part_time: "دوام جزئي",
+  full_time: "دوام كامل",
+  internship: "تدريب",
+  probation: "تحت التجربة",
+};
+
+const MARITAL_STATUS: Record<string, string> = {
+  single: "أعزب",
+  married: "متزوج",
+  divorced: "مطلق",
+  widowed: "أرمل",
+  engaged: "مخطوب",
+};
+
+const GENDER: Record<string, string> = {
+  male: "ذكر",
+  female: "أنثى",
+  m: "ذكر",
+  f: "أنثى",
+};
+
 export function tAttendanceStatus(s?: string | null): string {
   if (!s) return "—";
   return ATTENDANCE_STATUS[s] || s;
@@ -65,6 +92,21 @@ export function tFormType(s?: string | null): string {
 export function tFormStatus(s?: string | null): string {
   if (!s) return "—";
   return FORM_STATUS[s] || s;
+}
+
+export function tContractType(s?: string | null): string {
+  if (!s) return "—";
+  return CONTRACT_TYPE[s.toLowerCase()] || s;
+}
+
+export function tMaritalStatus(s?: string | null): string {
+  if (!s) return "—";
+  return MARITAL_STATUS[s.toLowerCase()] || s;
+}
+
+export function tGender(s?: string | null): string {
+  if (!s) return "—";
+  return GENDER[s.toLowerCase()] || s;
 }
 
 /** Removes a leading "نموذج: <key>" pattern and replaces with Arabic form type. */
