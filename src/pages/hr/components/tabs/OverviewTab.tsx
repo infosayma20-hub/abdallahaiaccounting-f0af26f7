@@ -25,7 +25,7 @@ export function OverviewTab({ data, cost }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card>
+      <Card dir="rtl">
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-right">المعلومات الأساسية</CardTitle>
         </CardHeader>
@@ -40,7 +40,7 @@ export function OverviewTab({ data, cost }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card dir="rtl">
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-right">معلومات العقد</CardTitle>
         </CardHeader>
