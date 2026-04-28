@@ -12,23 +12,19 @@ import {
 } from "@/components/ui/select";
 import {
   Users,
-  UserCheck,
   Wallet,
   Clock,
-  ShieldAlert,
   FileText,
-  Receipt,
-  HandCoins,
-  TrendingUp,
   BarChart3,
   AlertCircle,
   Briefcase,
   CalendarClock,
   Banknote,
   ClipboardList,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { HrKpiCard } from "./components/HrKpiCard";
-import { HrRiskPanel } from "./components/HrRiskPanel";
 import { HrAttendanceToday } from "./components/HrAttendanceToday";
 import { HrRequestsPanel } from "./components/HrRequestsPanel";
 import { HrCharts } from "./components/HrCharts";
@@ -46,6 +42,7 @@ export default function HrCommandCenter() {
   const navigate = useNavigate();
   const [branchFilter, setBranchFilter] = useState<string>(ALL);
   const [deptFilter, setDeptFilter] = useState<string>(ALL);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
 
   const { data, isLoading, isError, error } = useHrCommandCenter({
     branchId: branchFilter === ALL ? null : branchFilter,
@@ -128,13 +125,11 @@ export default function HrCommandCenter() {
         </div>
       </div>
 
-      {/* SECTION HUB — 4 main areas */}
+      {/* ─── الأقسام الأربعة الرئيسية (الواجهة الأساسية) ─── */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2 text-right">
-          الأقسام الرئيسية
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <HrSectionCard
+            to="/employees"
             title="التعريفات الأساسية"
             subtitle="الموظفون والأقسام والفروع"
             Icon={Briefcase}
@@ -146,6 +141,7 @@ export default function HrCommandCenter() {
             ]}
           />
           <HrSectionCard
+            to="/hr-attendance"
             title="الوقت والحضور"
             subtitle="ورديات، بصمات، إجازات رسمية"
             Icon={CalendarClock}
@@ -153,11 +149,12 @@ export default function HrCommandCenter() {
             badge={`${Math.round(totals.avgAttendanceRate * 100)}%`}
             actions={[
               { label: "لوحة الحضور اليومية", to: "/hr-attendance" },
-              { label: "طلبات تصحيح البصمة", to: "/hr-attendance?tab=corrections" },
+              { label: "طلبات تصحيح البصمة", to: "/employee-forms-management?type=correction_request" },
               { label: "إعدادات الورديات", to: "/hr/settings?tab=shifts" },
             ]}
           />
           <HrSectionCard
+            to="/employee-forms-management"
             title="الطلبات والحركات"
             subtitle="إجازات، سلف، خصومات، علاوات"
             Icon={ClipboardList}
@@ -165,12 +162,13 @@ export default function HrCommandCenter() {
             badge={pendingCount > 0 ? pendingCount : null}
             actions={[
               { label: "الإجازات", to: "/leaves", count: pendingRequests.leaves.length },
-              { label: "السلف والقروض", to: "/loans" },
+              { label: "السلف والقروض", to: "/advances" },
               { label: "الخصومات والعلاوات", to: "/hr-deductions" },
               { label: "نماذج الموظفين", to: "/employee-forms-management", count: pendingRequests.forms.length },
             ]}
           />
           <HrSectionCard
+            to="/payroll"
             title="الرواتب والمالية"
             subtitle="مدخلات، احتساب، صرف، تقارير"
             Icon={Banknote}
@@ -179,50 +177,29 @@ export default function HrCommandCenter() {
             actions={[
               { label: "تشغيل الرواتب الشهرية", to: "/payroll" },
               { label: "مدخلات الراتب الشهري", to: "/payroll/inputs" },
-              { label: "إعدادات الرواتب", to: "/hr/settings" },
+              { label: "إعدادات الرواتب", to: "/payroll-settings" },
               { label: "تقرير تكلفة الموظفين", to: "/reports/hr-staff-cost" },
             ]}
           />
         </div>
       </div>
 
-      {/* TOP KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* ─── 4 KPIs مختصرة (سطر واحد فقط) ─── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <HrKpiCard
           label="إجمالي الموظفين"
           value={fmtShort(totals.total)}
-          hint={`${totals.active} نشط · ${totals.inactive} موقوف`}
+          hint={`${totals.active} نشط`}
           Icon={Users}
           tone="primary"
           onClick={() => navigate("/employees")}
         />
         <HrKpiCard
-          label="موظفون نشطون"
-          value={fmtShort(totals.active)}
-          hint={`من أصل ${totals.total}`}
-          Icon={UserCheck}
-          tone="positive"
-        />
-        <HrKpiCard
-          label="التكلفة الشهرية"
-          value={`₪${fmtShort(totals.totalMonthlyCost)}`}
-          hint={`متوسط ₪${fmtShort(totals.avgCostPerEmployee)} / موظف`}
-          Icon={Wallet}
-          tone="primary"
-        />
-        <HrKpiCard
-          label="متوسط التأخير"
-          value={`${totals.avgDelayMinutes} د`}
-          hint={`نسبة حضور ${Math.round(totals.avgAttendanceRate * 100)}%`}
+          label="نسبة الحضور"
+          value={`${Math.round(totals.avgAttendanceRate * 100)}%`}
+          hint={`متوسط تأخير ${totals.avgDelayMinutes} د`}
           Icon={Clock}
-          tone={totals.avgDelayMinutes > 30 ? "warning" : "neutral"}
-        />
-        <HrKpiCard
-          label="موظفون عاليو الخطر"
-          value={fmtShort(totals.highRiskCount)}
-          hint={`${totals.mediumRiskCount} متوسط الخطر`}
-          Icon={ShieldAlert}
-          tone={totals.highRiskCount > 0 ? "danger" : "positive"}
+          tone={totals.avgAttendanceRate < 0.8 ? "warning" : "positive"}
         />
         <HrKpiCard
           label="طلبات معلقة"
@@ -230,63 +207,55 @@ export default function HrCommandCenter() {
           hint={`${pendingRequests.leaves.length} إجازات · ${pendingRequests.forms.length} نماذج`}
           Icon={FileText}
           tone={pendingCount > 0 ? "warning" : "neutral"}
+          onClick={() => navigate("/employee-forms-management")}
+        />
+        <HrKpiCard
+          label="رواتب هذا الشهر"
+          value={`₪${fmtShort(totals.totalPayrollThisMonth)}`}
+          hint={`متوسط ₪${fmtShort(totals.avgCostPerEmployee)} / موظف`}
+          Icon={Wallet}
+          tone="primary"
+          onClick={() => navigate("/payroll")}
         />
       </div>
 
-      {/* FINANCIAL OVERVIEW */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2 text-right">
-          النظرة المالية
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <HrKpiCard
-            label="إجمالي الرواتب — هذا الشهر"
-            value={`₪${fmtShort(totals.totalPayrollThisMonth)}`}
-            Icon={Wallet}
-            tone="primary"
-          />
-          <HrKpiCard
-            label="إجمالي الخصومات"
-            value={`₪${fmtShort(totals.totalDeductionsThisMonth)}`}
-            Icon={Receipt}
-            tone={totals.totalDeductionsThisMonth > 0 ? "danger" : "neutral"}
-          />
-          <HrKpiCard
-            label="القروض المستحقة"
-            value={`₪${fmtShort(totals.totalLoansOutstanding)}`}
-            Icon={HandCoins}
-            tone={totals.totalLoansOutstanding > 0 ? "warning" : "neutral"}
-          />
-          <HrKpiCard
-            label="متوسط التكلفة / موظف"
-            value={`₪${fmtShort(totals.avgCostPerEmployee)}`}
-            Icon={TrendingUp}
-            tone="neutral"
-          />
-        </div>
-      </div>
+      {/* ─── ملخص سريع: قابل للطي ─── */}
+      <div className="border-t pt-4">
+        <button
+          type="button"
+          onClick={() => setShowDetails((v) => !v)}
+          className="w-full flex items-center justify-between text-right hover:opacity-80 transition-opacity"
+        >
+          <span className="flex items-center gap-2 text-muted-foreground text-xs">
+            {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showDetails ? "إخفاء" : "عرض"}
+          </span>
+          <h2 className="text-sm font-semibold text-foreground">
+            ملخص سريع — حضور اليوم، الطلبات، التحليلات
+          </h2>
+        </button>
 
-      {/* MAIN GRID: Risk + Attendance Today */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <HrRiskPanel employees={employees} />
-        <HrAttendanceToday employees={employees} />
-      </div>
+        {showDetails && (
+          <div className="mt-4 space-y-5">
+            {/* حضور اليوم + الطلبات المعلقة */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <HrAttendanceToday employees={employees} />
+              <HrRequestsPanel
+                pendingRequests={pendingRequests}
+                employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
+              />
+            </div>
 
-      {/* Requests + Quick Access */}
-      <div>
-        <HrRequestsPanel
-          pendingRequests={pendingRequests}
-          employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
-        />
-      </div>
-
-      {/* CHARTS */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2 text-right flex items-center justify-end gap-2">
-          <BarChart3 className="h-4 w-4" />
-          التحليلات
-        </h2>
-        <HrCharts charts={charts} />
+            {/* التحليلات */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-right flex items-center justify-end gap-2">
+                <BarChart3 className="h-4 w-4" />
+                التحليلات
+              </h3>
+              <HrCharts charts={charts} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
