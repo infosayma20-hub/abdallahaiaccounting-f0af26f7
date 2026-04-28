@@ -338,6 +338,7 @@ export default function HRAttendancePage() {
   const [lockDialogMode, setLockDialogMode] = useState<"lock" | "unlock">("lock");
   const [lockReasonInput, setLockReasonInput] = useState("");
   const [lockBusy, setLockBusy] = useState(false);
+  const [lockAcknowledged, setLockAcknowledged] = useState(false);
 
   const fetchDayLock = useCallback(async () => {
     if (!user || !selectedDate) { setDayLock(null); return; }
@@ -372,6 +373,7 @@ export default function HRAttendancePage() {
     }
     setLockDialogMode(isLocked ? "unlock" : "lock");
     setLockReasonInput("");
+    setLockAcknowledged(false);
     setLockDialogOpen(true);
   };
 
@@ -379,6 +381,13 @@ export default function HRAttendancePage() {
     if (!user) return;
     if (lockDialogMode === "unlock" && !lockReasonInput.trim()) {
       toast({ title: "السبب مطلوب", description: "الرجاء كتابة سبب فتح اليوم.", variant: "destructive" });
+      return;
+    }
+    // Premature lock guard: today or future
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isPremature = lockDialogMode === "lock" && selectedDate >= todayStr;
+    if (isPremature && !lockAcknowledged) {
+      toast({ title: "يرجى تأكيد الإقرار", description: "اليوم لم ينتهِ بعد. أكّد الإقرار قبل المتابعة.", variant: "destructive" });
       return;
     }
     setLockBusy(true);
@@ -1625,6 +1634,31 @@ export default function HRAttendancePage() {
                 </div>
               )}
             </div>
+            {lockDialogMode === "lock" && selectedDate >= new Date().toISOString().split("T")[0] && (
+              <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-3 text-sm space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 font-semibold">
+                  <AlertTriangle className="h-4 w-4" />
+                  تنبيه: اليوم {selectedDate === new Date().toISOString().split("T")[0] ? "الحالي" : "مستقبلي"}!
+                </div>
+                <p className="text-amber-800 text-xs leading-relaxed">
+                  إذا أغلقت هذا اليوم الآن:
+                  <br />• <strong>الموظفون لن يستطيعوا تسجيل البصمة</strong> من تطبيق الموظف.
+                  <br />• <strong>أجهزة ZKTeco لن تستطيع إرسال بصمات</strong> لهذا اليوم.
+                  <br />• لن يستطيعوا إنشاء طلبات تصحيح.
+                  <br /><br />
+                  يُفضّل قفل اليوم <strong>بعد انتهاء الدوام فقط</strong>.
+                </p>
+                <label className="flex items-start gap-2 text-xs text-amber-900 cursor-pointer pt-1 border-t border-amber-300">
+                  <input
+                    type="checkbox"
+                    checked={lockAcknowledged}
+                    onChange={(e) => setLockAcknowledged(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>أُقرّ بأنني فهمت أن الموظفين لن يتمكنوا من البصمة، وأن الدوام انتهى فعلاً.</span>
+                </label>
+              </div>
+            )}
             <div>
               <label className="text-xs text-muted-foreground">
                 {lockDialogMode === "lock" ? "سبب الإغلاق (اختياري)" : "سبب الفتح (إلزامي)"}
@@ -1647,7 +1681,11 @@ export default function HRAttendancePage() {
             <Button
               variant={lockDialogMode === "lock" ? "destructive" : "default"}
               onClick={submitLockAction}
-              disabled={lockBusy || (lockDialogMode === "unlock" && !lockReasonInput.trim())}
+              disabled={
+                lockBusy ||
+                (lockDialogMode === "unlock" && !lockReasonInput.trim()) ||
+                (lockDialogMode === "lock" && selectedDate >= new Date().toISOString().split("T")[0] && !lockAcknowledged)
+              }
               className="gap-1"
             >
               {lockBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (lockDialogMode === "lock" ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />)}
