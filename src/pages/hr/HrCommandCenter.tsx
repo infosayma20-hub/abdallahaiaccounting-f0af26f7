@@ -276,7 +276,7 @@ export default function HrCommandCenter() {
       <div>
         <HrRequestsPanel
           pendingRequests={pendingRequests}
-          employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+          employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
         />
       </div>
 
