@@ -163,7 +163,7 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
                     <Badge variant={st.variant} className="text-[10px]">{st.text}</Badge>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">{req.reason}</p>
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{displayReason(req.reason)}</p>
                 {req.review_notes && (
                   <p className="text-xs text-primary bg-primary/5 rounded-lg p-2">
                     💬 ملاحظة HR: {req.review_notes}
