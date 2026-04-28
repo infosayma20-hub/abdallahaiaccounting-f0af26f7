@@ -12,6 +12,7 @@ import { ar } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay } from "@/lib/utils";
+import EmployeeHRMessagesSection from "./EmployeeHRMessagesSection";
 
 type AttendanceDay = {
   id: string;
@@ -69,6 +70,13 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
 
   return (
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* HR Messages & Disciplinary Actions */}
+      <EmployeeHRMessagesSection
+        corrections={corrections as any}
+        onRefresh={onRefresh}
+        onOpenCorrectionForm={(date) => { setForm({ date, type: "missing_checkout", reason: "" }); setShowForm(true); }}
+      />
+
       {/* Incomplete days */}
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm flex items-center gap-2">
