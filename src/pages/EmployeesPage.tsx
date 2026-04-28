@@ -401,6 +401,20 @@ const EmployeesPage = () => {
     branchesList.forEach(b => { m[b.id] = b.name; });
     return m;
   }, [branchesList]);
+  const deptIdMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    departmentsList.forEach((d) => { m[d.id] = d.name; });
+    return m;
+  }, [departmentsList]);
+  const jobIdMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    jobTitlesList.forEach((j) => { m[j.id] = j.name; });
+    return m;
+  }, [jobTitlesList]);
+  /** الاسم المعروض للمسمى الوظيفي: relation أولاً ثم النص القديم */
+  const displayJobTitle = (e: Employee) => (e.job_title_id && jobIdMap[e.job_title_id]) || e.job_title || e.position || "—";
+  /** الاسم المعروض للقسم */
+  const displayDepartment = (e: Employee) => (e.department_id && deptIdMap[e.department_id]) || e.department || "—";
   const getBranchName = (emp: Employee) => emp.branch_id ? (branchMap[emp.branch_id] || emp.department || "—") : (emp.department || "—");
   const jobs = useMemo(() => [...new Set(employees.filter(e => e.job_title).map(e => e.job_title))], [employees]);
 
