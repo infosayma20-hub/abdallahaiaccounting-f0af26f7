@@ -37,6 +37,25 @@ const FORM_TYPE: Record<string, string> = {
   general: "طلب عام",
 };
 
+/** Sub-types used by Attendance Center correction_requests */
+const REQUEST_TYPE: Record<string, string> = {
+  missing_checkin: "دخول مفقود",
+  missing_checkout: "خروج مفقود",
+  wrong_time: "وقت خاطئ",
+  leave_request: "طلب إجازة",
+  advance_request: "طلب سلفة",
+  overtime_request: "ساعات إضافية",
+  hr_message: "رسالة HR",
+  penalty: "إجراء عقابي",
+  correction_request: "طلب تصحيح بصمة",
+  attendance_correction: "طلب تصحيح بصمة",
+};
+
+export function tRequestType(s?: string | null): string {
+  if (!s) return "—";
+  return REQUEST_TYPE[String(s).toLowerCase()] || tFormType(s);
+}
+
 const FORM_STATUS: Record<string, string> = {
   pending: "قيد المراجعة",
   approved: "معتمد",
