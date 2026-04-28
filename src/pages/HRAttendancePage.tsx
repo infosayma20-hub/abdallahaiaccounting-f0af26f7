@@ -564,6 +564,71 @@ export default function HRAttendancePage() {
     else toast({ title: "تم إرسال الطلب للموظف ✅" });
   };
 
+  // ------------------ Bulk Actions ------------------
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+  };
+  const toggleSelectAllVisible = () => {
+    const visibleIds = visibleRows.map(x => x.row.id).filter(id => !id.startsWith("synthetic-"));
+    if (visibleIds.every(id => selected.has(id)) && visibleIds.length > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(visibleIds));
+    }
+  };
+  const clearSelection = () => setSelected(new Set());
+
+  const bulkRecalc = async () => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    const ids = Array.from(selected);
+    const targets = enriched.filter(x => ids.includes(x.row.id) && x.row.first_check_in && x.row.last_check_out);
+    if (targets.length === 0) { toast({ title: "لا يوجد سجلات صالحة لإعادة الحساب" }); return; }
+    let ok = 0;
+    for (const x of targets) {
+      const total = (new Date(x.row.last_check_out!).getTime() - new Date(x.row.first_check_in!).getTime()) / 3600000;
+      const { error } = await supabase.from("attendance_days").update({
+        total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
+      }).eq("id", x.row.id);
+      if (!error) ok++;
+    }
+    toast({ title: `✅ تمت إعادة حساب ${ok} سجل` });
+    clearSelection(); fetchData();
+  };
+
+  const bulkAddNote = async () => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", variant: "destructive" }); return; }
+    if (!bulkNote.trim()) return;
+    const ids = Array.from(selected);
+    let ok = 0;
+    for (const id of ids) {
+      const { error } = await supabase.from("attendance_days").update({ notes: bulkNote }).eq("id", id);
+      if (!error) ok++;
+    }
+    toast({ title: `✅ تم تحديث ملاحظة ${ok} سجل` });
+    setBulkNoteOpen(false); setBulkNote(""); clearSelection(); fetchData();
+  };
+
+  const bulkSendInquiry = async () => {
+    const ids = Array.from(selected);
+    const targets = enriched.filter(x => ids.includes(x.row.id));
+    let ok = 0;
+    for (const x of targets) {
+      const { error } = await supabase.from("correction_requests").insert({
+        employee_id: x.row.employee_id,
+        auth_user_id: user!.id,
+        attendance_date: x.row.attendance_date,
+        request_type: "hr_message",
+        reason: `طلب توضيح من HR: ${x.issue.text}`,
+        status: "pending",
+      });
+      if (!error) ok++;
+    }
+    toast({ title: `📨 تم إرسال ${ok} استفسار` });
+    clearSelection();
+  };
+
   // ------------------ Exports ------------------
   const exportExcel = (kind: "daily" | "late" | "absent" | "incomplete" = "daily") => {
     const rows = enriched.filter(x => {
