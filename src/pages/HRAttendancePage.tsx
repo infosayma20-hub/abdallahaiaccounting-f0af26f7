@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,22 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { fmtDateDisplay } from "@/lib/utils";
+import { fmtDateDisplay, cn } from "@/lib/utils";
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
-  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer
+  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
+  Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
-
 import { setNextExportBranding } from "@/lib/excel-export";
+
 type Branch = {
   id: string;
   name: string;
@@ -31,6 +31,18 @@ type Branch = {
   longitude: number;
   radius_meters: number;
   is_active: boolean;
+};
+
+type EmployeeLite = {
+  id: string;
+  full_name: string;
+  branch_id: string | null;
+  department: string | null;
+  job_title: string | null;
+  shift_start: string | null;
+  shift_end: string | null;
+  is_active: boolean;
+  is_terminated: boolean | null;
 };
 
 type AttendanceRecord = {
@@ -43,7 +55,9 @@ type AttendanceRecord = {
   overtime_hours: number;
   status: string;
   branch_id: string | null;
-  employees?: { full_name: string; branch_id: string | null };
+  notes: string | null;
+  is_manually_adjusted: boolean | null;
+  employees?: { full_name: string; branch_id: string | null; department: string | null; job_title: string | null; shift_start: string | null; shift_end: string | null };
 };
 
 type CorrectionReq = {
@@ -57,66 +71,134 @@ type CorrectionReq = {
   employees?: { full_name: string };
 };
 
+type RowFilter = "all" | "issues" | "present" | "late" | "absent" | "incomplete" | "missing_checkin" | "missing_checkout";
+
 const statusLabels: Record<string, string> = {
   present: "حاضر", late: "متأخر", absent: "غائب",
-  incomplete: "ناقص", leave: "إجازة", holiday: "عطلة",
+  incomplete: "بصمة ناقصة", leave: "إجازة", holiday: "عطلة",
 };
+
+const statusBadgeClass = (s: string) => {
+  switch (s) {
+    case "present": return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "late": return "bg-amber-50 text-amber-700 border-amber-200";
+    case "absent": return "bg-red-50 text-red-700 border-red-200";
+    case "incomplete": return "bg-orange-50 text-orange-700 border-orange-200";
+    case "leave": return "bg-blue-50 text-blue-700 border-blue-200";
+    case "holiday": return "bg-purple-50 text-purple-700 border-purple-200";
+    default: return "bg-muted text-muted-foreground";
+  }
+};
+
+const rowAccentClass = (s: string) => {
+  switch (s) {
+    case "present": return "border-r-4 border-r-emerald-500";
+    case "late": return "border-r-4 border-r-amber-500";
+    case "absent": return "border-r-4 border-r-red-500 bg-red-50/30";
+    case "incomplete": return "border-r-4 border-r-orange-500 bg-orange-50/30";
+    case "leave": return "border-r-4 border-r-blue-400";
+    default: return "";
+  }
+};
+
+// Compute issue text + late minutes
+function computeIssue(r: AttendanceRecord): { text: string; severity: "ok" | "warn" | "err"; lateMin: number } {
+  const shiftStart = r.employees?.shift_start;
+  let lateMin = 0;
+  if (r.first_check_in && shiftStart) {
+    const ci = new Date(r.first_check_in);
+    const [h, m] = shiftStart.split(":").map(Number);
+    const exp = new Date(ci);
+    exp.setHours(h || 0, m || 0, 0, 0);
+    lateMin = Math.max(0, Math.round((ci.getTime() - exp.getTime()) / 60000));
+  }
+  if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
+  if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
+  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin };
+  if (lateMin >= 5) {
+    const h = Math.floor(lateMin / 60);
+    const mm = lateMin % 60;
+    const t = h > 0 ? `${h}س ${mm}د` : `${mm}د`;
+    return { text: `تأخير ${t}`, severity: "warn", lateMin };
+  }
+  return { text: "—", severity: "ok", lateMin: 0 };
+}
+
+const reqTypeLabel = (t: string) => ({
+  missing_checkin: "دخول مفقود",
+  missing_checkout: "خروج مفقود",
+  wrong_time: "وقت خاطئ",
+  leave_request: "🏖️ طلب إجازة",
+  advance_request: "💰 طلب سلفة",
+  overtime_request: "⏰ أوفرتايم",
+  hr_message: "💬 رسالة HR",
+}[t] || "أخرى");
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [employees, setEmployees] = useState<EmployeeLite[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [corrections, setCorrections] = useState<CorrectionReq[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<RowFilter>("all");
+  const [activeTab, setActiveTab] = useState<"live" | "corrections" | "reports">("live");
+
+  // Branch dialogs
   const [showBranchDialog, setShowBranchDialog] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [selectedBranchForQR, setSelectedBranchForQR] = useState<Branch | null>(null);
   const [qrToken, setQrToken] = useState("");
   const [branchForm, setBranchForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "100" });
-  const [reviewDialog, setReviewDialog] = useState<CorrectionReq | null>(null);
-  const [reviewNotes, setReviewNotes] = useState("");
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "" });
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
+  // Correction review
+  const [reviewDialog, setReviewDialog] = useState<CorrectionReq | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+
+  // Row action dialogs
+  const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
+  const [editRecordForm, setEditRecordForm] = useState({ first_check_in: "", last_check_out: "", status: "present", notes: "" });
+  const [noteRecord, setNoteRecord] = useState<AttendanceRecord | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [historyRecord, setHistoryRecord] = useState<AttendanceRecord | null>(null);
+  const [historyEvents, setHistoryEvents] = useState<any[]>([]);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
+      // branches with employees
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
-      // Only show branches that have employees linked to them
-      const { data: empBranches } = await supabase
+      const { data: emps } = await supabase
         .from("employees")
-        .select("branch_id")
-        .eq("user_id", user.id)
-        .not("branch_id", "is", null);
-      const usedBranchIds = new Set((empBranches || []).map(e => e.branch_id));
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated")
+        .eq("user_id", user.id);
+      setEmployees((emps as EmployeeLite[]) || []);
+      const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
-      // Fetch attendance for date - join with employees
-      let query = supabase
+      const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id)")
-        .eq("attendance_date", selectedDate);
-      // Note: We filter by user's employees
-      const { data: att } = await query.order("attendance_date", { ascending: false });
-      
-      let filtered = att || [];
-      if (selectedBranch !== "all") {
-        filtered = filtered.filter(r => r.branch_id === selectedBranch);
-      }
-      setRecords(filtered as any);
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .eq("attendance_date", selectedDate)
+        .order("first_check_in", { ascending: true, nullsFirst: false });
+      let filtered = (att as any) || [];
+      if (selectedBranch !== "all") filtered = filtered.filter((r: any) => r.branch_id === selectedBranch);
+      setRecords(filtered);
 
-      // Corrections
       const { data: corr } = await supabase
         .from("correction_requests")
         .select("*, employees!inner(full_name)")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
-      setCorrections(corr as any || []);
+      setCorrections((corr as any) || []);
     } catch (e) {
       console.error(e);
     }
@@ -125,22 +207,75 @@ export default function HRAttendancePage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Synthesize "absent rows" for active employees with no record on this date
+  const allRows = useMemo(() => {
+    const byEmp = new Map(records.map(r => [r.employee_id, r]));
+    const activeEmps = employees.filter(e => e.is_active && !e.is_terminated && (selectedBranch === "all" || e.branch_id === selectedBranch));
+    const synthetic: AttendanceRecord[] = activeEmps
+      .filter(e => !byEmp.has(e.id))
+      .map(e => ({
+        id: `synthetic-${e.id}`,
+        employee_id: e.id,
+        attendance_date: selectedDate,
+        first_check_in: null,
+        last_check_out: null,
+        total_hours: 0,
+        overtime_hours: 0,
+        status: "absent",
+        branch_id: e.branch_id,
+        notes: null,
+        is_manually_adjusted: false,
+        employees: { full_name: e.full_name, branch_id: e.branch_id, department: e.department, job_title: e.job_title, shift_start: e.shift_start, shift_end: e.shift_end },
+      }));
+    return [...records, ...synthetic];
+  }, [records, employees, selectedBranch, selectedDate]);
+
+  const enriched = useMemo(() => allRows.map(r => ({ row: r, issue: computeIssue(r) })), [allRows]);
+
+  // KPIs
+  const kpis = useMemo(() => {
+    const present = enriched.filter(x => x.row.status === "present").length;
+    const late = enriched.filter(x => x.row.status === "late" || x.issue.lateMin >= 5).length;
+    const absent = enriched.filter(x => x.row.status === "absent").length;
+    const incomplete = enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length
+      + enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length;
+    const issues = enriched.filter(x => x.issue.severity !== "ok").length;
+    return { present, late, absent, incomplete, issues, pendingCorrections: corrections.length };
+  }, [enriched, corrections]);
+
+  // Filtered + searched table rows
+  const visibleRows = useMemo(() => {
+    let rows = enriched;
+    if (filter === "issues") rows = rows.filter(x => x.issue.severity !== "ok");
+    else if (filter === "present") rows = rows.filter(x => x.row.status === "present");
+    else if (filter === "late") rows = rows.filter(x => x.row.status === "late" || x.issue.lateMin >= 5);
+    else if (filter === "absent") rows = rows.filter(x => x.row.status === "absent");
+    else if (filter === "incomplete") rows = rows.filter(x => (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent"));
+    else if (filter === "missing_checkin") rows = rows.filter(x => !x.row.first_check_in && x.row.status !== "absent");
+    else if (filter === "missing_checkout") rows = rows.filter(x => x.row.first_check_in && !x.row.last_check_out);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(x =>
+        (x.row.employees?.full_name || "").toLowerCase().includes(q) ||
+        (x.row.employees?.department || "").toLowerCase().includes(q) ||
+        (x.row.employees?.job_title || "").toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  }, [enriched, filter, search]);
+
+  // ------------------ Branch CRUD (kept) ------------------
   const createBranch = async () => {
     if (!branchForm.name || !branchForm.latitude || !branchForm.longitude) {
-      toast({ title: "خطأ", description: "الاسم والإحداثيات مطلوبة", variant: "destructive" });
-      return;
+      toast({ title: "خطأ", description: "الاسم والإحداثيات مطلوبة", variant: "destructive" }); return;
     }
     const { error } = await supabase.from("branches").insert({
-      user_id: user!.id,
-      name: branchForm.name,
-      address: branchForm.address || null,
-      latitude: parseFloat(branchForm.latitude),
-      longitude: parseFloat(branchForm.longitude),
+      user_id: user!.id, name: branchForm.name, address: branchForm.address || null,
+      latitude: parseFloat(branchForm.latitude), longitude: parseFloat(branchForm.longitude),
       radius_meters: parseInt(branchForm.radius_meters) || 100,
     });
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    } else {
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else {
       toast({ title: "تم إنشاء الفرع بنجاح" });
       setShowBranchDialog(false);
       setBranchForm({ name: "", address: "", latitude: "", longitude: "", radius_meters: "100" });
@@ -154,225 +289,279 @@ export default function HRAttendancePage() {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
-
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/branch-qr?action=generate&branch_id=${branch.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
       );
       const data = await response.json();
-      if (!response.ok) {
-        toast({ title: "خطأ", description: data.error || "حدث خطأ", variant: "destructive" });
-        return;
-      }
-      setQrToken(data.qr_payload);
-      setShowQRDialog(true);
+      if (!response.ok) { toast({ title: "خطأ", description: data.error || "حدث خطأ", variant: "destructive" }); return; }
+      setQrToken(data.qr_payload); setShowQRDialog(true);
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message, variant: "destructive" });
     }
   };
 
-  const openDisplayPage = (branchId: string) => {
-    window.open(`/branch-display/${branchId}`, "_blank");
-  };
+  const openDisplayPage = (branchId: string) => window.open(`/branch-display/${branchId}`, "_blank");
 
   const printQRCode = (branchName: string, qrPayload: string) => {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(qrPayload)}&format=svg&margin=2`;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html>
-<html dir="rtl"><head><meta charset="utf-8">
-<title>QR Code - ${branchName}</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap');
-* { margin: 0; padding: 0; box-sizing: border-box; }
-@page { size: A4; margin: 0; }
-body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Tajawal', sans-serif; background: white; }
-.container { text-align: center; padding: 20mm; }
-.title { font-size: 36pt; font-weight: 800; color: #1B3A5C; margin-bottom: 8mm; }
-.subtitle { font-size: 16pt; color: #666; margin-bottom: 15mm; }
-.qr-frame { display: inline-block; padding: 10mm; border: 3px solid #1B3A5C; border-radius: 8mm; background: white; margin-bottom: 12mm; }
-.qr-frame img { width: 100mm; height: 100mm; }
-.instructions { font-size: 18pt; color: #1B3A5C; font-weight: 700; margin-bottom: 5mm; }
-.sub-instructions { font-size: 12pt; color: #888; }
-.badge { display: inline-block; margin-top: 10mm; padding: 3mm 8mm; background: #f0f4f8; border-radius: 4mm; font-size: 10pt; color: #666; }
-</style></head><body>
-<div class="container">
-  <div class="title">${branchName}</div>
-  <div class="subtitle">نظام تسجيل الحضور والانصراف</div>
-  <div class="qr-frame"><img src="${qrUrl}" alt="QR Code" /></div>
-  <div class="instructions">📱 امسح الرمز لتسجيل الحضور</div>
-  <div class="sub-instructions">افتح تطبيق الموظف → اضغط "تسجيل حضور" → وجّه الكاميرا نحو الرمز</div>
-  <div class="badge">🔒 رمز ثابت — لا يتغير</div>
-</div>
-<script>window.onload = () => { /* QR print page — view only */ }</script>
-</body></html>`);
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>QR - ${branchName}</title>
+<style>@page{size:A4;margin:0}body{width:210mm;height:297mm;display:flex;align-items:center;justify-content:center;font-family:'Tajawal',sans-serif}
+.c{text-align:center}.t{font-size:32pt;font-weight:800;color:#1B3A5C;margin-bottom:8mm}.f{display:inline-block;padding:10mm;border:3px solid #1B3A5C;border-radius:8mm;margin:8mm}.f img{width:100mm;height:100mm}</style></head>
+<body><div class="c"><div class="t">${branchName}</div><div class="f"><img src="${qrUrl}"/></div><div>📱 امسح الرمز لتسجيل الحضور</div></div></body></html>`);
     printWindow.document.close();
-  };
-
-  const handleCorrection = async (id: string, action: "approved" | "rejected") => {
-    const { error } = await supabase
-      .from("correction_requests")
-      .update({
-        status: action,
-        reviewed_by: user!.id,
-        review_notes: reviewNotes || null,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    } else {
-      // Log audit
-      await supabase.from("attendance_audit_logs").insert({
-        table_name: "correction_requests",
-        record_id: id,
-        action: action === "approved" ? "approve" : "reject",
-        new_values: { status: action, review_notes: reviewNotes },
-        changed_by: user!.id,
-        reason: reviewNotes || undefined,
-      });
-      toast({ title: action === "approved" ? "تم القبول ✅" : "تم الرفض" });
-      setReviewDialog(null);
-      setReviewNotes("");
-      fetchData();
-    }
-  };
-
-  const exportExcel = () => {
-    if (records.length === 0) return;
-    import("xlsx").then(XLSX => {
-      // Sheet 1: Summary
-      const summaryData = records.map(r => ({
-        "الموظف": (r as any).employees?.full_name || "—",
-        "التاريخ": r.attendance_date,
-        "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
-        "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
-        "ساعات العمل": r.total_hours || 0,
-        "ساعات إضافية": r.overtime_hours || 0,
-        "الحالة": statusLabels[r.status] || r.status,
-      }));
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(summaryData);
-      ws["!cols"] = [
-        { wch: 25 }, { wch: 12 }, { wch: 12 },
-        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-      ];
-      XLSX.utils.book_append_sheet(wb, ws, "سجل الحضور");
-      setNextExportBranding({ title: "سجل الحضور" });
-      XLSX.writeFile(wb, `سجل_الحضور_${selectedDate}.xlsx`);
-    });
   };
 
   const openEditBranch = (b: Branch) => {
     setEditingBranch(b);
-    setEditForm({
-      name: b.name,
-      address: b.address || "",
-      latitude: String(b.latitude),
-      longitude: String(b.longitude),
-      radius_meters: String(b.radius_meters),
-    });
+    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters) });
   };
 
   const updateBranch = async () => {
     if (!editingBranch || !editForm.name || !editForm.latitude || !editForm.longitude) return;
-    const { error } = await supabase
-      .from("branches")
-      .update({
-        name: editForm.name,
-        address: editForm.address || null,
-        latitude: parseFloat(editForm.latitude),
-        longitude: parseFloat(editForm.longitude),
-        radius_meters: parseInt(editForm.radius_meters) || 100,
-      })
-      .eq("id", editingBranch.id);
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "تم تحديث الفرع بنجاح ✅" });
-      setEditingBranch(null);
-      fetchData();
-    }
+    const { error } = await supabase.from("branches").update({
+      name: editForm.name, address: editForm.address || null,
+      latitude: parseFloat(editForm.latitude), longitude: parseFloat(editForm.longitude),
+      radius_meters: parseInt(editForm.radius_meters) || 100,
+    }).eq("id", editingBranch.id);
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else { toast({ title: "تم التحديث ✅" }); setEditingBranch(null); fetchData(); }
   };
 
   const deleteBranch = async () => {
     if (!deletingBranch || deleteConfirmName !== deletingBranch.name) return;
-    const { error } = await supabase
-      .from("branches")
-      .update({ is_active: false })
-      .eq("id", deletingBranch.id);
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "تم حذف الفرع" });
-      setDeletingBranch(null);
-      setDeleteConfirmName("");
-      fetchData();
-    }
+    const { error } = await supabase.from("branches").update({ is_active: false }).eq("id", deletingBranch.id);
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else { toast({ title: "تم حذف الفرع" }); setDeletingBranch(null); setDeleteConfirmName(""); fetchData(); }
   };
 
-  const presentCount = records.filter(r => r.status === "present" || r.status === "late").length;
-  const absentCount = records.filter(r => r.status === "absent").length;
-  const lateCount = records.filter(r => r.status === "late").length;
-  const incompleteCount = records.filter(r => r.status === "incomplete").length;
+  // ------------------ Correction handling ------------------
+  const handleCorrection = async (id: string, action: "approved" | "rejected") => {
+    const { error } = await supabase.from("correction_requests").update({
+      status: action, reviewed_by: user!.id, review_notes: reviewNotes || null, reviewed_at: new Date().toISOString(),
+    }).eq("id", id);
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
+    await supabase.from("attendance_audit_logs").insert({
+      table_name: "correction_requests", record_id: id,
+      action: action === "approved" ? "approve" : "reject",
+      new_values: { status: action, review_notes: reviewNotes },
+      changed_by: user!.id, reason: reviewNotes || undefined,
+    });
+    toast({ title: action === "approved" ? "تم القبول ✅" : "تم الرفض" });
+    setReviewDialog(null); setReviewNotes(""); fetchData();
+  };
+
+  // ------------------ Row Actions ------------------
+  const openEditRecord = (r: AttendanceRecord) => {
+    if (r.id.startsWith("synthetic-")) {
+      toast({ title: "لا يوجد سجل بعد", description: "هذا الموظف لم يبصم اليوم. استخدم 'تعديل يدوي' لإنشاء سجل عبر طلب تعديل من الموظف.", variant: "destructive" });
+      return;
+    }
+    setEditRecord(r);
+    setEditRecordForm({
+      first_check_in: r.first_check_in ? format(new Date(r.first_check_in), "HH:mm") : "",
+      last_check_out: r.last_check_out ? format(new Date(r.last_check_out), "HH:mm") : "",
+      status: r.status,
+      notes: r.notes || "",
+    });
+  };
+
+  const saveEditRecord = async () => {
+    if (!editRecord) return;
+    const buildTs = (hhmm: string) => {
+      if (!hhmm) return null;
+      const [h, m] = hhmm.split(":").map(Number);
+      const d = new Date(editRecord.attendance_date);
+      d.setHours(h || 0, m || 0, 0, 0);
+      return d.toISOString();
+    };
+    const ci = buildTs(editRecordForm.first_check_in);
+    const co = buildTs(editRecordForm.last_check_out);
+    let total = 0;
+    if (ci && co) total = Math.max(0, (new Date(co).getTime() - new Date(ci).getTime()) / 3600000);
+    const { error } = await supabase.from("attendance_days").update({
+      first_check_in: ci,
+      last_check_out: co,
+      total_hours: Number(total.toFixed(2)),
+      status: editRecordForm.status,
+      notes: editRecordForm.notes || null,
+      is_manually_adjusted: true,
+      updated_at: new Date().toISOString(),
+    }).eq("id", editRecord.id);
+    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return; }
+    await supabase.from("attendance_audit_logs").insert({
+      table_name: "attendance_days", record_id: editRecord.id, action: "update",
+      new_values: { ...editRecordForm }, changed_by: user!.id, reason: "تعديل يدوي من HR",
+    });
+    toast({ title: "تم التحديث ✅" });
+    setEditRecord(null); fetchData();
+  };
+
+  const recalcRecord = async (r: AttendanceRecord) => {
+    if (r.id.startsWith("synthetic-")) return;
+    if (!r.first_check_in || !r.last_check_out) {
+      toast({ title: "لا يمكن إعادة الحساب", description: "ينقص الدخول أو الخروج", variant: "destructive" });
+      return;
+    }
+    const total = Math.max(0, (new Date(r.last_check_out).getTime() - new Date(r.first_check_in).getTime()) / 3600000);
+    const { error } = await supabase.from("attendance_days").update({
+      total_hours: Number(total.toFixed(2)), updated_at: new Date().toISOString(),
+    }).eq("id", r.id);
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else { toast({ title: "تمت إعادة الحساب ✅" }); fetchData(); }
+  };
+
+  const openNote = (r: AttendanceRecord) => {
+    if (r.id.startsWith("synthetic-")) {
+      toast({ title: "لا يوجد سجل لإضافة ملاحظة عليه", variant: "destructive" }); return;
+    }
+    setNoteRecord(r); setNoteText(r.notes || "");
+  };
+  const saveNote = async () => {
+    if (!noteRecord) return;
+    const { error } = await supabase.from("attendance_days").update({ notes: noteText || null }).eq("id", noteRecord.id);
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else { toast({ title: "تم حفظ الملاحظة ✅" }); setNoteRecord(null); fetchData(); }
+  };
+
+  const openHistory = async (r: AttendanceRecord) => {
+    setHistoryRecord(r); setHistoryEvents([]);
+    const { data } = await supabase
+      .from("attendance_events")
+      .select("event_type, event_time, branch_id, notes, status")
+      .eq("employee_id", r.employee_id)
+      .gte("event_time", `${r.attendance_date}T00:00:00`)
+      .lte("event_time", `${r.attendance_date}T23:59:59`)
+      .order("event_time", { ascending: true });
+    setHistoryEvents(data || []);
+  };
+
+  const sendRequestToEmployee = async (r: AttendanceRecord) => {
+    const reasonText = computeIssue(r).text;
+    const { error } = await supabase.from("correction_requests").insert({
+      employee_id: r.employee_id,
+      attendance_date: r.attendance_date,
+      request_type: "hr_message",
+      reason: `طلب توضيح من HR: ${reasonText}`,
+      status: "pending",
+    });
+    if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    else toast({ title: "تم إرسال الطلب للموظف ✅" });
+  };
+
+  // ------------------ Exports ------------------
+  const exportExcel = (kind: "daily" | "late" | "absent" | "incomplete" = "daily") => {
+    const rows = enriched.filter(x => {
+      if (kind === "late") return x.row.status === "late" || x.issue.lateMin >= 5;
+      if (kind === "absent") return x.row.status === "absent";
+      if (kind === "incomplete") return (x.row.first_check_in && !x.row.last_check_out) || (!x.row.first_check_in && x.row.status !== "absent");
+      return true;
+    });
+    if (rows.length === 0) { toast({ title: "لا توجد بيانات للتصدير" }); return; }
+    import("xlsx").then(XLSX => {
+      const data = rows.map(({ row: r, issue }) => ({
+        "الموظف": r.employees?.full_name || "—",
+        "القسم": r.employees?.department || "—",
+        "المسمى": r.employees?.job_title || "—",
+        "الفرع": branches.find(b => b.id === r.branch_id)?.name || "—",
+        "التاريخ": r.attendance_date,
+        "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
+        "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
+        "الساعات": r.total_hours || 0,
+        "إضافي": r.overtime_hours || 0,
+        "تأخير (دقيقة)": issue.lateMin,
+        "المشكلة": issue.text,
+        "الحالة": statusLabels[r.status] || r.status,
+        "ملاحظات": r.notes || "",
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+      ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 30 }];
+      const sheetName = { daily: "الحضور اليومي", late: "متأخرون", absent: "غائبون", incomplete: "بصمات ناقصة" }[kind];
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      setNextExportBranding({ title: sheetName });
+      XLSX.writeFile(wb, `${sheetName}_${selectedDate}.xlsx`);
+    });
+  };
 
   return (
-    <div className="space-y-6 p-4 max-w-6xl mx-auto" dir="rtl">
+    <div className="space-y-4 p-3 md:p-5 w-full max-w-none" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
             <h1 className="text-2xl font-bold">لوحة إدارة الحضور</h1>
-            <p className="text-muted-foreground text-sm">إدارة حضور وانصراف الموظفين</p>
+            <p className="text-muted-foreground text-sm">مركز التشغيل اليومي — متابعة فورية للبصمات والمشاكل</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1">
-            <Building2 className="h-3.5 w-3.5" /> إضافة فرع
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> تصدير Excel
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto" dir="ltr" />
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الفروع</SelectItem>
+              {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1"><Building2 className="h-4 w-4" /> إضافة فرع</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1"><Download className="h-4 w-4" /> تصدير</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportExcel("daily")}>📊 التقرير اليومي الشامل</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("late")}>⏱️ تقرير المتأخرين</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("absent")}>❌ تقرير الغياب</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportExcel("incomplete")}>❗ تقرير البصمات الناقصة</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-4 text-center">
-          <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-emerald-600" />
-          <div className="text-2xl font-bold">{presentCount}</div>
-          <div className="text-xs text-muted-foreground">حاضرون</div>
+      {/* Action banner */}
+      {kpis.issues > 0 && (
+        <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
+              <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
+                {kpis.incomplete > 0 && <span>❗ بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
+                {kpis.late > 0 && <span>⏱️ متأخرون: <b>{kpis.late}</b></span>}
+                {kpis.absent > 0 && <span>❌ غياب: <b>{kpis.absent}</b></span>}
+                {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => { setActiveTab("live"); setFilter("issues"); }}>عرض المشاكل</Button>
+            {kpis.pendingCorrections > 0 && (
+              <Button size="sm" onClick={() => setActiveTab("corrections")}>مراجعة الطلبات ({kpis.pendingCorrections})</Button>
+            )}
+          </div>
         </Card>
-        <Card className="p-4 text-center">
-          <XCircle className="h-5 w-5 mx-auto mb-1 text-red-500" />
-          <div className="text-2xl font-bold">{absentCount}</div>
-          <div className="text-xs text-muted-foreground">غائبون</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <Clock className="h-5 w-5 mx-auto mb-1 text-amber-500" />
-          <div className="text-2xl font-bold">{lateCount}</div>
-          <div className="text-xs text-muted-foreground">متأخرون</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <AlertTriangle className="h-5 w-5 mx-auto mb-1 text-orange-500" />
-          <div className="text-2xl font-bold">{incompleteCount}</div>
-          <div className="text-xs text-muted-foreground">بصمة ناقصة</div>
-        </Card>
+      )}
+
+      {/* KPIs (clickable) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <KpiCard active={filter === "present"} onClick={() => { setActiveTab("live"); setFilter("present"); }} icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />} value={kpis.present} label="حضور كامل" tone="emerald" />
+        <KpiCard active={filter === "late"} onClick={() => { setActiveTab("live"); setFilter("late"); }} icon={<Clock className="h-5 w-5 text-amber-600" />} value={kpis.late} label="متأخرون" tone="amber" />
+        <KpiCard active={filter === "incomplete"} onClick={() => { setActiveTab("live"); setFilter("incomplete"); }} icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} value={kpis.incomplete} label="بصمات غير مكتملة" tone="orange" />
+        <KpiCard active={filter === "absent"} onClick={() => { setActiveTab("live"); setFilter("absent"); }} icon={<XCircle className="h-5 w-5 text-red-600" />} value={kpis.absent} label="غياب" tone="red" />
+        <KpiCard active={activeTab === "corrections"} onClick={() => setActiveTab("corrections")} icon={<FileText className="h-5 w-5 text-blue-600" />} value={kpis.pendingCorrections} label="طلبات تعديل معلقة" tone="blue" />
       </div>
 
-      {/* Branches Quick View */}
+      {/* Branches strip */}
       {branches.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {branches.map(b => (
-            <Card key={b.id} className="min-w-[220px] p-3 hover:border-primary/50 transition-colors">
+            <Card key={b.id} className="min-w-[230px] p-3 hover:border-primary/50 transition-colors">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-primary" />
@@ -380,142 +569,162 @@ body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><MoreVertical className="h-3.5 w-3.5" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEditBranch(b)} className="gap-2">
-                      <Pencil className="h-3.5 w-3.5" /> تعديل الفرع
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setDeletingBranch(b)} className="gap-2 text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" /> حذف الفرع
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditBranch(b)} className="gap-2"><Pencil className="h-3.5 w-3.5" /> تعديل</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDeletingBranch(b)} className="gap-2 text-destructive"><Trash2 className="h-3.5 w-3.5" /> حذف</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                <span>{b.address || "—"}</span>
-              </div>
-              <div className="flex gap-1 mt-2">
-                <Button size="sm" variant="outline" className="gap-1 text-xs flex-1" onClick={() => generateQRToken(b)}>
-                  <QrCode className="h-3 w-3" /> عرض QR
-                </Button>
-                <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1" onClick={() => openDisplayPage(b.id)}>
-                  <Eye className="h-3 w-3" /> شاشة العرض
-                </Button>
-                <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => {
-                  generateQRToken(b).then(() => {});
-                  // We'll print from the dialog after QR is loaded
-                }}>
-                  <Printer className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2"><MapPin className="h-3 w-3" /><span className="truncate">{b.address || "—"}</span></div>
+              <div className="flex gap-1">
+                <Button size="sm" variant="outline" className="gap-1 text-xs flex-1" onClick={() => generateQRToken(b)}><QrCode className="h-3 w-3" /> QR</Button>
+                <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1" onClick={() => openDisplayPage(b.id)}><Eye className="h-3 w-3" /> شاشة</Button>
               </div>
             </Card>
           ))}
         </div>
       )}
 
-      <Tabs defaultValue="live" className="w-full">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
         <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="live" className="gap-1">
-            <Eye className="h-3.5 w-3.5" /> العرض المباشر
-          </TabsTrigger>
+          <TabsTrigger value="live" className="gap-1"><Eye className="h-3.5 w-3.5" /> العرض المباشر</TabsTrigger>
           <TabsTrigger value="corrections" className="gap-1 relative">
             <FileText className="h-3.5 w-3.5" /> طلبات التعديل
-            {corrections.length > 0 && (
-              <span className="absolute -top-1 -left-1 h-4 w-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">
-                {corrections.length}
-              </span>
+            {kpis.pendingCorrections > 0 && (
+              <span className="absolute -top-1 -left-1 h-4 w-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center">{kpis.pendingCorrections}</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="reports" className="gap-1">
-            <Calendar className="h-3.5 w-3.5" /> التقارير
-          </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-1"><Calendar className="h-3.5 w-3.5" /> التقارير</TabsTrigger>
         </TabsList>
 
-        {/* Live View */}
+        {/* LIVE */}
         <TabsContent value="live" className="mt-4 space-y-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="w-auto"
-              dir="ltr"
-            />
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">كل الفروع</SelectItem>
-                {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1">
-              <RefreshCw className="h-3.5 w-3.5" /> تحديث
-            </Button>
+          {/* Filter chips + search */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1 flex-wrap">
+              <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="الكل" count={enriched.length} />
+              <FilterChip active={filter === "issues"} onClick={() => setFilter("issues")} label="مشاكل فقط ❗" count={kpis.issues} tone="amber" />
+              <FilterChip active={filter === "present"} onClick={() => setFilter("present")} label="حضور كامل" count={kpis.present} tone="emerald" />
+              <FilterChip active={filter === "late"} onClick={() => setFilter("late")} label="متأخرون" count={kpis.late} tone="amber" />
+              <FilterChip active={filter === "missing_checkin"} onClick={() => setFilter("missing_checkin")} label="بدون دخول" count={enriched.filter(x => !x.row.first_check_in && x.row.status !== "absent").length} tone="orange" />
+              <FilterChip active={filter === "missing_checkout"} onClick={() => setFilter("missing_checkout")} label="بدون خروج" count={enriched.filter(x => x.row.first_check_in && !x.row.last_check_out).length} tone="orange" />
+              <FilterChip active={filter === "absent"} onClick={() => setFilter("absent")} label="غائبون" count={kpis.absent} tone="red" />
+            </div>
+            <div className="relative ms-auto">
+              <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم الموظف، القسم، المسمى..." className="ps-2 pe-8 w-[280px]" />
+            </div>
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
-          ) : records.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">لا يوجد سجلات لهذا التاريخ</p>
+            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : visibleRows.length === 0 ? (
+            <Card className="p-10 text-center text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              لا يوجد موظفون يطابقون الفلتر الحالي
+            </Card>
           ) : (
-            <div className="border rounded-xl overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">الموظف</TableHead>
-                    <TableHead className="text-right">الدخول</TableHead>
-                    <TableHead className="text-right">الخروج</TableHead>
-                    <TableHead className="text-right">الساعات</TableHead>
-                    <TableHead className="text-right">إضافي</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.map(r => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{(r as any).employees?.full_name || "—"}</TableCell>
-                      <TableCell>{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—"}</TableCell>
-                      <TableCell>{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—"}</TableCell>
-                      <TableCell className="tabular-nums">{r.total_hours?.toFixed(1) || "0"}</TableCell>
-                      <TableCell className="tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {statusLabels[r.status] || r.status}
-                        </Badge>
-                      </TableCell>
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-muted/60 backdrop-blur z-10">
+                    <TableRow>
+                      <TableHead className="text-right whitespace-nowrap">👤 الموظف</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">🏢 الفرع</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">🧩 القسم</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">المسمى</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">⏰ الدخول</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">⏰ الخروج</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">⏱️ الساعات</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">⏱️ التأخير</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">إضافي</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">❗ المشكلة</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">📝 ملاحظات</TableHead>
+                      <TableHead className="text-right whitespace-nowrap sticky left-0 bg-muted/60">⚙️ إجراءات</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleRows.map(({ row: r, issue }) => {
+                      const branchName = branches.find(b => b.id === r.branch_id)?.name || "—";
+                      return (
+                        <TableRow key={r.id} className={cn("hover:bg-muted/30", rowAccentClass(r.status))}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary">
+                                {(r.employees?.full_name || "?").slice(0, 1)}
+                              </div>
+                              <span>{r.employees?.full_name || "—"}</span>
+                              {r.is_manually_adjusted && <Badge variant="outline" className="text-[10px] h-4 px-1">معدّل يدوياً</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">{branchName}</TableCell>
+                          <TableCell className="text-sm">{r.employees?.department || "—"}</TableCell>
+                          <TableCell className="text-sm">{r.employees?.job_title || "—"}</TableCell>
+                          <TableCell className="tabular-nums whitespace-nowrap">{r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : <span className="text-red-500">—</span>}</TableCell>
+                          <TableCell className="tabular-nums whitespace-nowrap">{r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : <span className="text-red-500">—</span>}</TableCell>
+                          <TableCell className="tabular-nums">{r.total_hours?.toFixed(1) || "0"}</TableCell>
+                          <TableCell className={cn("tabular-nums", issue.lateMin > 0 && "text-amber-700 font-semibold")}>
+                            {issue.lateMin > 0 ? `${issue.lateMin}د` : "—"}
+                          </TableCell>
+                          <TableCell className="tabular-nums">{r.overtime_hours?.toFixed(1) || "0"}</TableCell>
+                          <TableCell>
+                            <span className={cn("text-xs",
+                              issue.severity === "err" && "text-red-600 font-medium",
+                              issue.severity === "warn" && "text-amber-700 font-medium",
+                              issue.severity === "ok" && "text-muted-foreground"
+                            )}>{issue.text}</span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
+                              {statusLabels[r.status] || r.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</TableCell>
+                          <TableCell className="sticky left-0 bg-background">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-7 px-2"><MoreVertical className="h-4 w-4" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditRecord(r)} className="gap-2"><Pencil className="h-3.5 w-3.5" /> تعديل يدوي</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => recalcRecord(r)} className="gap-2"><Calculator className="h-3.5 w-3.5" /> إعادة حساب الساعات</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openNote(r)} className="gap-2"><MessageSquare className="h-3.5 w-3.5" /> إضافة/تعديل ملاحظة</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openHistory(r)} className="gap-2"><History className="h-3.5 w-3.5" /> سجل بصمات اليوم</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => sendRequestToEmployee(r)} className="gap-2"><Send className="h-3.5 w-3.5" /> إرسال استفسار للموظف</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
           )}
         </TabsContent>
 
-        {/* Corrections Queue */}
+        {/* CORRECTIONS */}
         <TabsContent value="corrections" className="mt-4 space-y-2">
           {corrections.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">لا يوجد طلبات تعديل معلقة 🎉</p>
+            <Card className="p-10 text-center text-muted-foreground">
+              <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500/50" />
+              لا يوجد طلبات تعديل معلقة 🎉
+            </Card>
           ) : (
             corrections.map(req => (
               <Card key={req.id} className="p-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                   <div>
                     <span className="font-medium">{(req as any).employees?.full_name}</span>
                     <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
                   </div>
-                  <Badge variant="outline">
-                    {req.request_type === "missing_checkin" ? "دخول مفقود" :
-                     req.request_type === "missing_checkout" ? "خروج مفقود" :
-                     req.request_type === "wrong_time" ? "وقت خاطئ" :
-                     req.request_type === "leave_request" ? "🏖️ طلب إجازة" :
-                     req.request_type === "advance_request" ? "💰 طلب سلفة" :
-                     req.request_type === "overtime_request" ? "⏰ أوفرتايم" :
-                     req.request_type === "hr_message" ? "💬 رسالة HR" : "أخرى"}
-                  </Badge>
+                  <Badge variant="outline">{reqTypeLabel(req.request_type)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{req.reason}</p>
                 <div className="flex gap-2">
@@ -528,252 +737,231 @@ body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align
           )}
         </TabsContent>
 
-        {/* Reports */}
+        {/* REPORTS */}
         <TabsContent value="reports" className="mt-4">
-          <Card className="p-6 text-center">
-            <Calendar className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-            <h3 className="font-medium mb-1">التقارير الشهرية</h3>
-            <p className="text-sm text-muted-foreground mb-4">استخدم أزرار التصدير لتنزيل تقارير مفصلة</p>
-            <Button variant="outline" onClick={exportExcel} className="gap-1">
-              <Download className="h-4 w-4" /> تصدير تقرير Excel
-            </Button>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <ReportCard icon={<FileText className="h-5 w-5" />} title="التقرير اليومي الشامل" desc="جميع الموظفين مع كل التفاصيل (دخول/خروج/تأخير/مشاكل)" onClick={() => exportExcel("daily")} />
+            <ReportCard icon={<Clock className="h-5 w-5 text-amber-600" />} title="تقرير المتأخرين" desc="الموظفون الذين تأخروا اليوم مع مدة التأخير" onClick={() => exportExcel("late")} />
+            <ReportCard icon={<XCircle className="h-5 w-5 text-red-600" />} title="تقرير الغياب" desc="الموظفون الغائبون لهذا اليوم" onClick={() => exportExcel("absent")} />
+            <ReportCard icon={<AlertTriangle className="h-5 w-5 text-orange-600" />} title="تقرير البصمات الناقصة" desc="بصمات بدون دخول أو بدون خروج" onClick={() => exportExcel("incomplete")} />
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* Add Branch Dialog */}
+      {/* ============== Dialogs ============== */}
+
+      {/* Add Branch */}
       <Dialog open={showBranchDialog} onOpenChange={setShowBranchDialog}>
         <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              إضافة فرع جديد
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /> إضافة فرع جديد</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">اسم الفرع *</label>
-              <Input value={branchForm.name} onChange={e => setBranchForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: الفرع الرئيسي" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">العنوان</label>
-              <Input value={branchForm.address} onChange={e => setBranchForm(p => ({ ...p, address: e.target.value }))} placeholder="مثال: رام الله - شارع الإرسال" />
-            </div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">اسم الفرع *</label><Input value={branchForm.name} onChange={e => setBranchForm(p => ({ ...p, name: e.target.value }))} /></div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">العنوان</label><Input value={branchForm.address} onChange={e => setBranchForm(p => ({ ...p, address: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">خط العرض (Latitude) *</label>
-                <Input type="number" step="any" value={branchForm.latitude} onChange={e => setBranchForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" placeholder="31.9038" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">خط الطول (Longitude) *</label>
-                <Input type="number" step="any" value={branchForm.longitude} onChange={e => setBranchForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" placeholder="35.2034" />
-              </div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">Latitude *</label><Input type="number" step="any" value={branchForm.latitude} onChange={e => setBranchForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">Longitude *</label><Input type="number" step="any" value={branchForm.longitude} onChange={e => setBranchForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" /></div>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">نطاق السياج الجغرافي (بالأمتار)</label>
-              <Input type="number" value={branchForm.radius_meters} onChange={e => setBranchForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" placeholder="100" />
-            </div>
-            <Button onClick={() => {
-              if (!navigator.geolocation) {
-                toast({ title: "المتصفح لا يدعم تحديد الموقع", variant: "destructive" });
-                return;
-              }
-              navigator.geolocation.getCurrentPosition(
-                pos => {
-                  setBranchForm(p => ({
-                    ...p,
-                    latitude: pos.coords.latitude.toFixed(6),
-                    longitude: pos.coords.longitude.toFixed(6),
-                  }));
-                  toast({ title: "تم تحديد الموقع بنجاح ✅" });
-                },
-                err => {
-                  console.error("Geolocation error:", err);
-                  const msgs: Record<number, string> = {
-                    1: "تم رفض إذن الموقع. يرجى السماح بالوصول للموقع من إعدادات المتصفح.",
-                    2: "تعذّر تحديد الموقع. تأكد من تفعيل GPS وحاول مرة أخرى.",
-                    3: "انتهت مهلة تحديد الموقع. حاول مرة أخرى.",
-                  };
-                  toast({ title: msgs[err.code] || "خطأ في تحديد الموقع", variant: "destructive" });
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-              );
-            }} variant="outline" size="sm" className="w-full gap-1">
-              <MapPin className="h-3.5 w-3.5" /> استخدام موقعي الحالي
-            </Button>
+            <div><label className="text-xs text-muted-foreground mb-1 block">النطاق (متر)</label><Input type="number" value={branchForm.radius_meters} onChange={e => setBranchForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" /></div>
+            <Button variant="outline" size="sm" className="w-full gap-1" onClick={() => {
+              if (!navigator.geolocation) return;
+              navigator.geolocation.getCurrentPosition(pos => {
+                setBranchForm(p => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
+                toast({ title: "تم تحديد الموقع ✅" });
+              }, () => toast({ title: "تعذر تحديد الموقع", variant: "destructive" }), { enableHighAccuracy: true, timeout: 15000 });
+            }}><MapPin className="h-3.5 w-3.5" /> استخدام موقعي</Button>
           </div>
-          <DialogFooter>
-            <Button onClick={createBranch} className="w-full">إنشاء الفرع</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={createBranch} className="w-full">إنشاء الفرع</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* QR Token Dialog */}
+      {/* QR */}
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
         <DialogContent dir="rtl" className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-primary" />
-              رمز QR الديناميكي
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-center">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><QrCode className="h-5 w-5 text-primary" /> رمز QR</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-center">
             <p className="text-sm font-medium">{selectedBranchForQR?.name}</p>
-            <div className="bg-white rounded-xl p-4 shadow-inner">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrToken)}&format=svg`}
-                alt="رمز QR"
-                className="w-[250px] h-[250px] mx-auto"
-              />
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-[10px] text-muted-foreground mb-1">الرمز يتجدد تلقائياً - لا يحتاج تدخل يدوي</p>
-              <code className="text-xs font-mono break-all select-all">{qrToken}</code>
+            <div className="bg-white rounded-xl p-4">
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrToken)}&format=svg`} alt="QR" className="w-[250px] h-[250px] mx-auto" />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 gap-1" onClick={() => {
-                navigator.clipboard.writeText(qrToken);
-                toast({ title: "تم النسخ" });
-              }}>
-                <Copy className="h-3.5 w-3.5" /> نسخ
-              </Button>
-              <Button variant="outline" className="flex-1 gap-1" onClick={() => selectedBranchForQR && openDisplayPage(selectedBranchForQR.id)}>
-                <Eye className="h-3.5 w-3.5" /> شاشة عرض
-              </Button>
+              <Button variant="outline" className="flex-1 gap-1" onClick={() => { navigator.clipboard.writeText(qrToken); toast({ title: "تم النسخ" }); }}><Copy className="h-3.5 w-3.5" /> نسخ</Button>
+              <Button variant="outline" className="flex-1 gap-1" onClick={() => selectedBranchForQR && openDisplayPage(selectedBranchForQR.id)}><Eye className="h-3.5 w-3.5" /> شاشة</Button>
             </div>
-            <Button variant="default" className="w-full gap-1" onClick={() => {
-              if (selectedBranchForQR && qrToken) {
-                printQRCode(selectedBranchForQR.name, qrToken);
-              }
-            }}>
-              <Printer className="h-3.5 w-3.5" /> طباعة QR على ورقة A4
-            </Button>
-            <p className="text-[10px] text-muted-foreground">🔒 مشفر بتقنية HMAC-SHA256 ويتجدد تلقائياً</p>
+            <Button className="w-full gap-1" onClick={() => selectedBranchForQR && qrToken && printQRCode(selectedBranchForQR.name, qrToken)}><Printer className="h-3.5 w-3.5" /> طباعة A4</Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Review Correction Dialog */}
+      {/* Review */}
       <Dialog open={!!reviewDialog} onOpenChange={() => setReviewDialog(null)}>
         <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle>مراجعة طلب التعديل</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>مراجعة طلب التعديل</DialogTitle></DialogHeader>
           {reviewDialog && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">الموظف</p>
-                  <p className="font-medium">{(reviewDialog as any).employees?.full_name}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">التاريخ</p>
-                  <p className="font-medium">{fmtDateDisplay(reviewDialog.attendance_date)}</p>
-                </div>
+                <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">الموظف</p><p className="font-medium">{(reviewDialog as any).employees?.full_name}</p></div>
+                <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">التاريخ</p><p className="font-medium">{fmtDateDisplay(reviewDialog.attendance_date)}</p></div>
               </div>
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground">السبب</p>
-                <p className="text-sm">{reviewDialog.reason}</p>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">ملاحظات HR</label>
-                <Textarea
-                  value={reviewNotes}
-                  onChange={e => setReviewNotes(e.target.value)}
-                  placeholder="أضف ملاحظة..."
-                  rows={2}
-                />
-              </div>
+              <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">السبب</p><p className="text-sm">{reviewDialog.reason}</p></div>
+              <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} placeholder="ملاحظات HR..." rows={2} />
             </div>
           )}
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" className="gap-1 flex-1 text-red-600 border-red-200 hover:bg-red-50" onClick={() => reviewDialog && handleCorrection(reviewDialog.id, "rejected")}>
-              <X className="h-4 w-4" /> رفض
-            </Button>
-            <Button className="gap-1 flex-1" onClick={() => reviewDialog && handleCorrection(reviewDialog.id, "approved")}>
-              <Check className="h-4 w-4" /> قبول
-            </Button>
+            <Button variant="outline" className="gap-1 flex-1 text-red-600 border-red-200" onClick={() => reviewDialog && handleCorrection(reviewDialog.id, "rejected")}><X className="h-4 w-4" /> رفض</Button>
+            <Button className="gap-1 flex-1" onClick={() => reviewDialog && handleCorrection(reviewDialog.id, "approved")}><Check className="h-4 w-4" /> قبول</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Branch Dialog */}
+      {/* Edit record */}
+      <Dialog open={!!editRecord} onOpenChange={(o) => !o && setEditRecord(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> تعديل سجل {editRecord?.employees?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-muted-foreground mb-1 block">الدخول</label><Input type="time" value={editRecordForm.first_check_in} onChange={e => setEditRecordForm(p => ({ ...p, first_check_in: e.target.value }))} dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">الخروج</label><Input type="time" value={editRecordForm.last_check_out} onChange={e => setEditRecordForm(p => ({ ...p, last_check_out: e.target.value }))} dir="ltr" /></div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الحالة</label>
+              <Select value={editRecordForm.status} onValueChange={(v) => setEditRecordForm(p => ({ ...p, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="present">حاضر</SelectItem>
+                  <SelectItem value="late">متأخر</SelectItem>
+                  <SelectItem value="incomplete">بصمة ناقصة</SelectItem>
+                  <SelectItem value="absent">غائب</SelectItem>
+                  <SelectItem value="leave">إجازة</SelectItem>
+                  <SelectItem value="holiday">عطلة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label><Textarea rows={2} value={editRecordForm.notes} onChange={e => setEditRecordForm(p => ({ ...p, notes: e.target.value }))} /></div>
+            <div className="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800 flex gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> سيتم وسم السجل كمُعدَّل يدوياً وحفظ تغيير في سجل التدقيق.
+            </div>
+          </div>
+          <DialogFooter><Button onClick={saveEditRecord} className="w-full">حفظ التعديل</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Note */}
+      <Dialog open={!!noteRecord} onOpenChange={(o) => !o && setNoteRecord(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> ملاحظة على سجل {noteRecord?.employees?.full_name}</DialogTitle></DialogHeader>
+          <Textarea rows={4} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="اكتب الملاحظة هنا..." />
+          <DialogFooter><Button onClick={saveNote} className="w-full">حفظ</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History */}
+      <Dialog open={!!historyRecord} onOpenChange={(o) => !o && setHistoryRecord(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><History className="h-5 w-5 text-primary" /> سجل بصمات {historyRecord?.employees?.full_name} - {historyRecord && fmtDateDisplay(historyRecord.attendance_date)}</DialogTitle></DialogHeader>
+          {historyEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">لا توجد بصمات مسجلة لهذا اليوم</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {historyEvents.map((e, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={e.event_type === "check_in" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}>
+                      {e.event_type === "check_in" ? "دخول" : "خروج"}
+                    </Badge>
+                    <span className="font-mono text-sm">{format(new Date(e.event_time), "hh:mm:ss a")}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{e.notes || e.status || ""}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Branch */}
       <Dialog open={!!editingBranch} onOpenChange={(o) => !o && setEditingBranch(null)}>
         <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-primary" />
-              تعديل فرع {editingBranch?.name}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> تعديل {editingBranch?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">اسم الفرع *</label>
-              <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">العنوان</label>
-              <Input value={editForm.address} onChange={e => setEditForm(p => ({ ...p, address: e.target.value }))} />
-            </div>
+            <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} placeholder="اسم الفرع" />
+            <Input value={editForm.address} onChange={e => setEditForm(p => ({ ...p, address: e.target.value }))} placeholder="العنوان" />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">خط العرض (Latitude) *</label>
-                <Input type="number" step="any" value={editForm.latitude} onChange={e => setEditForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">خط الطول (Longitude) *</label>
-                <Input type="number" step="any" value={editForm.longitude} onChange={e => setEditForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" />
-              </div>
+              <Input type="number" step="any" value={editForm.latitude} onChange={e => setEditForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" placeholder="Latitude" />
+              <Input type="number" step="any" value={editForm.longitude} onChange={e => setEditForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" placeholder="Longitude" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">النطاق (بالأمتار)</label>
-              <Input type="number" value={editForm.radius_meters} onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" />
-            </div>
-            <Button onClick={() => {
-              navigator.geolocation.getCurrentPosition(
-                pos => {
-                  setEditForm(p => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
-                  toast({ title: "تم تحديد الموقع ✅" });
-                },
-                () => toast({ title: "تعذر تحديد الموقع", variant: "destructive" }),
-                { enableHighAccuracy: true, timeout: 15000 }
-              );
-            }} variant="outline" size="sm" className="w-full gap-1">
-              <MapPin className="h-3.5 w-3.5" /> استخدام موقعي الحالي
-            </Button>
+            <Input type="number" value={editForm.radius_meters} onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" placeholder="النطاق" />
           </div>
-          <DialogFooter>
-            <Button onClick={updateBranch} className="w-full">حفظ التعديلات</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={updateBranch} className="w-full">حفظ</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Branch Dialog */}
+      {/* Delete Branch */}
       <Dialog open={!!deletingBranch} onOpenChange={(o) => { if (!o) { setDeletingBranch(null); setDeleteConfirmName(""); } }}>
         <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              حذف فرع {deletingBranch?.name}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> حذف {deletingBranch?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="bg-destructive/10 rounded-lg p-4 text-sm">
-              <p className="font-semibold mb-1">⚠️ تحذير</p>
-              <p>حذف الفرع سيؤثر على سجلات الحضور المرتبطة به. لن يتم حذف السجلات السابقة لكن لن يمكن استخدام الفرع بعد الآن.</p>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">اكتب اسم الفرع للتأكيد: <strong>{deletingBranch?.name}</strong></label>
-              <Input value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} placeholder={deletingBranch?.name} />
-            </div>
+            <div className="bg-destructive/10 rounded-lg p-3 text-sm">⚠️ سيتم تعطيل الفرع. السجلات السابقة لن تُحذف.</div>
+            <div><label className="text-xs text-muted-foreground mb-1 block">اكتب: <strong>{deletingBranch?.name}</strong></label><Input value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} /></div>
           </div>
-          <DialogFooter>
-            <Button variant="destructive" onClick={deleteBranch} disabled={deleteConfirmName !== deletingBranch?.name} className="w-full gap-1">
-              <Trash2 className="h-4 w-4" /> حذف نهائي
-            </Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="destructive" onClick={deleteBranch} disabled={deleteConfirmName !== deletingBranch?.name} className="w-full gap-1"><Trash2 className="h-4 w-4" /> حذف</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ---------------- Subcomponents ----------------
+
+function KpiCard({ icon, value, label, onClick, active, tone }: { icon: React.ReactNode; value: number; label: string; onClick: () => void; active?: boolean; tone: "emerald" | "amber" | "orange" | "red" | "blue" }) {
+  const toneRing = {
+    emerald: "ring-emerald-400",
+    amber: "ring-amber-400",
+    orange: "ring-orange-400",
+    red: "ring-red-400",
+    blue: "ring-blue-400",
+  }[tone];
+  return (
+    <button onClick={onClick} className={cn(
+      "text-right rounded-xl border bg-card p-4 transition-all hover:shadow-md hover:-translate-y-0.5",
+      active && `ring-2 ${toneRing}`
+    )}>
+      <div className="flex items-center justify-between mb-1">
+        {icon}
+        <span className="text-2xl font-bold tabular-nums">{value}</span>
+      </div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </button>
+  );
+}
+
+function FilterChip({ active, onClick, label, count, tone }: { active: boolean; onClick: () => void; label: string; count: number; tone?: "emerald" | "amber" | "orange" | "red" }) {
+  const toneClass = active ? {
+    emerald: "bg-emerald-600 text-white border-emerald-600",
+    amber: "bg-amber-600 text-white border-amber-600",
+    orange: "bg-orange-600 text-white border-orange-600",
+    red: "bg-red-600 text-white border-red-600",
+  }[tone || "emerald"] : "";
+  return (
+    <button onClick={onClick} className={cn(
+      "px-3 py-1.5 rounded-full text-xs border transition-colors",
+      active ? (tone ? toneClass : "bg-primary text-primary-foreground border-primary") : "bg-muted/50 hover:bg-muted text-foreground border-border"
+    )}>
+      {label} <span className="opacity-70">({count})</span>
+    </button>
+  );
+}
+
+function ReportCard({ icon, title, desc, onClick }: { icon: React.ReactNode; title: string; desc: string; onClick: () => void }) {
+  return (
+    <Card className="p-4 hover:shadow-md transition-all cursor-pointer" onClick={onClick}>
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">{icon}</div>
+        <div className="flex-1">
+          <div className="font-semibold mb-0.5">{title}</div>
+          <div className="text-xs text-muted-foreground mb-2">{desc}</div>
+          <Button size="sm" variant="outline" className="gap-1"><Download className="h-3.5 w-3.5" /> تصدير</Button>
+        </div>
+      </div>
+    </Card>
   );
 }
