@@ -142,7 +142,6 @@ export default function HrCommandCenter() {
             badge={totals.active}
             actions={[
               { label: "قائمة الموظفين", to: "/employees", count: totals.total },
-              { label: "إعدادات الموارد البشرية", to: "/hr/settings" },
               { label: "إدارة الفروع", to: "/settings?tab=branches" },
             ]}
           />
@@ -180,7 +179,7 @@ export default function HrCommandCenter() {
             actions={[
               { label: "تشغيل الرواتب الشهرية", to: "/payroll" },
               { label: "مدخلات الراتب الشهري", to: "/payroll/inputs" },
-              { label: "إعدادات الرواتب", to: "/payroll-settings" },
+              { label: "إعدادات الرواتب", to: "/hr/settings" },
               { label: "تقرير تكلفة الموظفين", to: "/reports/hr-staff-cost" },
             ]}
           />

@@ -38,8 +38,8 @@ export type Employee360Data = {
     last: any | null;
   };
   leaves: {
-    requests: any[];       // leave_requests
-    history: any[];        // employee_leaves
+    requests: any[];       // ✅ employee_leaves (canonical) — kept name for UI back-compat
+    history: any[];        // ✅ employee_leaves (canonical) — same source
     pendingCount: number;
     approvedCount: number;
   };
@@ -150,7 +150,6 @@ export function useEmployee360(employeeId: string | undefined) {
 
       const [
         allowancesRes,
-        leaveReqRes,
         leaveHistRes,
         loansRes,
       ] = await Promise.all([
@@ -159,12 +158,7 @@ export function useEmployee360(employeeId: string | undefined) {
           .select("*")
           .eq("employee_id", employeeId)
           .eq("is_active", true),
-        supabase
-          .from("leave_requests")
-          .select("*")
-          .eq("employee_id", employeeId)
-          .order("created_at", { ascending: false })
-          .limit(50),
+        // ✅ Canonical source for leaves — see src/hooks/hr/hrCanonicalSources.ts
         supabase
           .from("employee_leaves")
           .select("*")
@@ -239,8 +233,8 @@ export function useEmployee360(employeeId: string | undefined) {
       const payrollRuns = payrollRunsRes.data || [];
       const payrollInputs = payrollInputsRes.data || [];
       const allowances = allowancesRes.data || [];
-      const leaveRequests = leaveReqRes.data || [];
-      const leaveHistory = leaveHistRes.data || [];
+      // Single source of truth: employee_leaves
+      const leaveRecords = leaveHistRes.data || [];
       const loans = loansRes.data || [];
       const deductions = deductionsRes.data || [];
       const forms = formsRes.data || [];
@@ -314,12 +308,19 @@ export function useEmployee360(employeeId: string | undefined) {
         .filter((d: any) => d.deduction_date >= since30)
         .reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
 
-      // ---- Leave aggregates ----
-      const pendingCount = leaveRequests.filter(
-        (r: any) => r.status === "pending" || r.status === "قيد المراجعة"
+      // ---- Leave aggregates (employee_leaves uses Arabic statuses) ----
+      const pendingCount = leaveRecords.filter(
+        (r: any) =>
+          r.status === "pending" ||
+          r.status === "قيد المراجعة" ||
+          r.status === "معلقة",
       ).length;
-      const approvedCount = leaveRequests.filter(
-        (r: any) => r.status === "approved" || r.status === "معتمد"
+      const approvedCount = leaveRecords.filter(
+        (r: any) =>
+          r.status === "approved" ||
+          r.status === "معتمد" ||
+          r.status === "موافقة" ||
+          r.status === "معتمدة",
       ).length;
 
       // ---- Build unified timeline ----
@@ -337,7 +338,7 @@ export function useEmployee360(employeeId: string | undefined) {
         });
       });
 
-      leaveRequests.forEach((l: any) => {
+      leaveRecords.forEach((l: any) => {
         timeline.push({
           id: `leave-${l.id}`,
           type: "leave",
@@ -455,8 +456,8 @@ export function useEmployee360(employeeId: string | undefined) {
           last: payrollRuns[0] ?? null,
         },
         leaves: {
-          requests: leaveRequests,
-          history: leaveHistory,
+          requests: leaveRecords,
+          history: leaveRecords,
           pendingCount,
           approvedCount,
         },
