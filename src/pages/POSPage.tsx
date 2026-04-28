@@ -2794,21 +2794,57 @@ const POSPage = () => {
         const now = new Date();
         const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
         const noteStr = employeeNote.trim() ? ` | ${employeeNote.trim()}` : "";
-        await supabase.from("employee_financial_movements").insert({
-          user_id: dataOwnerId,
-          employee_id: selectedEmployee.id,
-          source_type: "pos_meal",
-          source_id: orderId,
-          source_reference: res.order_number,
-          description: `مسحوبات POS - ${itemsSummary}${noteStr}`.slice(0, 250),
-          amount: cartTotals.total,
-          movement_type: "debit",
-          status: "approved",
-          movement_date: now.toISOString().split("T")[0],
-          salary_month: now.getMonth() + 1,
-          salary_year: now.getFullYear(),
-          created_by: userId,
-        } as any);
+
+        // B3.2: read employee meal share % from payroll_settings (default 50%)
+        // The full ticket is paid by the company; only a portion is deducted from employee.
+        let employeeSharePct = 50;
+        try {
+          const { data: company } = await supabase
+            .from("companies")
+            .select("id")
+            .eq("owner_id", dataOwnerId)
+            .maybeSingle();
+          if (company?.id) {
+            const { data: psettings } = await supabase
+              .from("payroll_settings" as any)
+              .select("food_individual_percentage")
+              .eq("company_id", company.id)
+              .maybeSingle();
+            const pct = (psettings as any)?.food_individual_percentage;
+            if (pct !== null && pct !== undefined && !isNaN(Number(pct))) {
+              employeeSharePct = Math.max(0, Math.min(100, Number(pct)));
+            }
+          }
+        } catch (e) {
+          console.warn("[POS B3.2] Failed to read meal share %, using default 50%", e);
+        }
+
+        const fullAmount = Number(cartTotals.total) || 0;
+        const calculatedAmount = Math.round((fullAmount * employeeSharePct / 100) * 100) / 100;
+
+        // Only record a deduction if the employee actually owes something.
+        if (calculatedAmount > 0) {
+          const transparencyNote =
+            `إجمالي الفاتورة: ${fullAmount.toFixed(2)} | نسبة خصم الموظف: ${employeeSharePct}% | الخصم الفعلي: ${calculatedAmount.toFixed(2)}`;
+          await supabase.from("employee_financial_movements").insert({
+            user_id: dataOwnerId,
+            employee_id: selectedEmployee.id,
+            source_type: "pos_meal",
+            source_id: orderId,
+            source_reference: res.order_number,
+            reference_number: res.order_number,
+            category: "food",
+            description: `وجبة POS - ${itemsSummary}${noteStr}`.slice(0, 250),
+            amount: calculatedAmount,
+            movement_type: "debit",
+            status: "approved",
+            movement_date: now.toISOString().split("T")[0],
+            salary_month: now.getMonth() + 1,
+            salary_year: now.getFullYear(),
+            created_by: userId,
+            notes: transparencyNote,
+          } as any);
+        }
       }
 
       // Save POS rate override if cashier edited the rate
