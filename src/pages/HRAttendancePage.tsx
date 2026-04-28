@@ -327,7 +327,7 @@ export default function HRAttendancePage() {
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
       const { data: emps } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, is_active, is_terminated, work_days_per_week, start_date")
+        .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes)")
         .eq("user_id", user.id);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
@@ -335,7 +335,7 @@ export default function HRAttendancePage() {
 
       const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes))")
         .eq("attendance_date", selectedDate)
         .order("first_check_in", { ascending: true, nullsFirst: false });
       let filtered = (att as any) || [];
@@ -841,7 +841,7 @@ export default function HRAttendancePage() {
       // Fetch range from DB
       const { data: att } = await supabase
         .from("attendance_days")
-        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end)")
+        .select("*, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes))")
         .gte("attendance_date", reportFromDate)
         .lte("attendance_date", reportToDate)
         .order("attendance_date", { ascending: true });
