@@ -85,6 +85,8 @@ interface Employee {
   auth_user_id?: string;
   is_manager?: boolean;
   is_hr_manager?: boolean;
+  department_id?: string | null;
+  job_title_id?: string | null;
 }
 
 const emptyEmployee: Partial<Employee> = {
@@ -96,6 +98,7 @@ const emptyEmployee: Partial<Employee> = {
   marital_status: "single", children_count: 0, spouse_allowance_amount: 0,
   child_allowance_per_child: 0, gender: "male", nationality: "", contract_type: "permanent",
   transportation_allowance_per_day: 0, meal_allowance_per_day: 0,
+  department_id: null, job_title_id: null,
 };
 
 type SortField = "full_name" | "department" | "job_title" | "start_date" | "base_salary" | "is_active";
