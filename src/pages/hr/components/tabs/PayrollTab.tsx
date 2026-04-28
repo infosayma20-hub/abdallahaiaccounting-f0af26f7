@@ -53,13 +53,13 @@ export function PayrollTab({ data, cost }: Props) {
           ) : (
             <HRTable>
               <HRTHead>
-                <HRTH>الحالة</HRTH>
-                <HRTH>الصافي</HRTH>
-                <HRTH>القروض</HRTH>
-                <HRTH>الخصومات</HRTH>
-                <HRTH>البدلات</HRTH>
-                <HRTH>الأساسي</HRTH>
                 <HRTH>الفترة</HRTH>
+                <HRTH>الأساسي</HRTH>
+                <HRTH>البدلات</HRTH>
+                <HRTH>الخصومات</HRTH>
+                <HRTH>القروض</HRTH>
+                <HRTH>الصافي</HRTH>
+                <HRTH>الحالة</HRTH>
               </HRTHead>
               <tbody>
                 {runs.map((r: any) => {
@@ -69,28 +69,28 @@ export function PayrollTab({ data, cost }: Props) {
                     Number(r.special_allowance || 0);
                   return (
                     <HRTR key={r.id}>
-                      <HRTD>
-                        <Badge variant="outline" className={payrollStatusTone(!!r.is_paid)}>
-                          {tPayrollStatus(!!r.is_paid)}
-                        </Badge>
-                      </HRTD>
-                      <HRTD numeric className="font-bold">
-                        <HRMoney value={r.net_salary} />
-                      </HRTD>
-                      <HRTD numeric className="text-amber-600">
-                        <HRMoney value={r.loan_deduction} />
-                      </HRTD>
-                      <HRTD numeric className="text-rose-600">
-                        <HRMoney value={r.total_deductions} />
-                      </HRTD>
-                      <HRTD numeric className="text-emerald-600">
-                        <HRMoney value={allowances} />
+                      <HRTD numeric>
+                        {r.period_month}/{r.period_year}
                       </HRTD>
                       <HRTD numeric>
                         <HRMoney value={r.base_salary} />
                       </HRTD>
-                      <HRTD numeric>
-                        {r.period_month}/{r.period_year}
+                      <HRTD numeric className="text-emerald-600">
+                        <HRMoney value={allowances} />
+                      </HRTD>
+                      <HRTD numeric className="text-rose-600">
+                        <HRMoney value={r.total_deductions} />
+                      </HRTD>
+                      <HRTD numeric className="text-amber-600">
+                        <HRMoney value={r.loan_deduction} />
+                      </HRTD>
+                      <HRTD numeric className="font-bold">
+                        <HRMoney value={r.net_salary} />
+                      </HRTD>
+                      <HRTD>
+                        <Badge variant="outline" className={payrollStatusTone(!!r.is_paid)}>
+                          {tPayrollStatus(!!r.is_paid)}
+                        </Badge>
                       </HRTD>
                     </HRTR>
                   );
