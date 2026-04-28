@@ -262,6 +262,43 @@ export default function HrDayTypesPage() {
     [dayTypes]
   );
 
+  // ---------- Work Week ----------
+  const toggleWorkDay = async (dow: number) => {
+    if (!workWeek || !user) return;
+    const isWorking = workWeek.working_days.includes(dow);
+    const newWorking = isWorking
+      ? workWeek.working_days.filter(d => d !== dow)
+      : [...workWeek.working_days, dow].sort((a, b) => a - b);
+    const newOff = DOW_LABELS.map(l => l.value).filter(d => !newWorking.includes(d)).sort((a, b) => a - b);
+
+    if (newWorking.length === 0) {
+      toast.error("يجب اختيار يوم عمل واحد على الأقل");
+      return;
+    }
+
+    setSavingWW(true);
+    const { error } = await supabase
+      .from("hr_work_week_config")
+      .update({ working_days: newWorking, weekly_off_days: newOff })
+      .eq("id", workWeek.id);
+    setSavingWW(false);
+    if (error) return toast.error(error.message);
+    setWorkWeek({ ...workWeek, working_days: newWorking, weekly_off_days: newOff });
+    toast.success("تم تحديث أيام الدوام");
+  };
+
+  const updateWorkHours = async (hours: number) => {
+    if (!workWeek) return;
+    const safe = Math.max(1, Math.min(24, hours || 8));
+    const { error } = await supabase
+      .from("hr_work_week_config")
+      .update({ work_hours_per_day: safe })
+      .eq("id", workWeek.id);
+    if (error) return toast.error(error.message);
+    setWorkWeek({ ...workWeek, work_hours_per_day: safe });
+    toast.success("تم تحديث ساعات الدوام");
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-4" dir="rtl">
       <BackButton />
