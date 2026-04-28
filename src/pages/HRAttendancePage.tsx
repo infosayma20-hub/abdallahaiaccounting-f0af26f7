@@ -46,7 +46,7 @@ type EmployeeLite = {
   shift_start: string | null;
   shift_end: string | null;
   shift_id?: string | null;
-  shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
+  shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null; crosses_midnight?: boolean | null } | null;
   is_active: boolean;
   is_terminated: boolean | null;
   work_days_per_week: number | null;
@@ -73,7 +73,7 @@ type AttendanceRecord = {
     shift_start: string | null;
     shift_end: string | null;
     shift_id?: string | null;
-    shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
+    shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null; crosses_midnight?: boolean | null } | null;
   };
 };
 
@@ -157,6 +157,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
   end: string | null;
   graceMin: number;
   overtimeAfterMin: number;
+  crossesMidnight: boolean;
 } {
   const sh = emp?.shift;
   if (sh?.start_time && sh?.end_time) {
@@ -165,6 +166,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
       end: sh.end_time.slice(0, 5),
       graceMin: sh.late_tolerance_minutes ?? 0,
       overtimeAfterMin: sh.overtime_after_minutes ?? 0,
+      crossesMidnight: !!sh.crosses_midnight,
     };
   }
   return {
@@ -172,6 +174,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
     end: emp?.shift_end || null,
     graceMin: 0,
     overtimeAfterMin: 0,
+    crossesMidnight: false,
   };
 }
 
