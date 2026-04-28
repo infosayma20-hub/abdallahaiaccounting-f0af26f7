@@ -125,3 +125,24 @@ export const STATUS_LABELS: Record<string, string> = {
   approved: "معتمد",
   rejected: "مرفوض",
 };
+
+/**
+ * Strip the internal HRMSG JSON tag from a reason string for display.
+ * If the reason has structured meta, returns a clean human-readable summary.
+ * Otherwise returns the original string.
+ */
+export function displayReason(reason: string | null | undefined): string {
+  if (!reason) return "";
+  const meta = decodeHRMessage(reason);
+  if (meta) {
+    return [
+      `[${typeLabel(meta.type)}] ${meta.subject}`,
+      meta.body,
+      meta.penalty_kind ? `نوع الإجراء: ${penaltyLabel(meta.penalty_kind)}` : "",
+    ].filter(Boolean).join("\n");
+  }
+  // Defensive: hide any stray HRMSG tags
+  const start = reason.indexOf(TAG_OPEN);
+  if (start >= 0) return reason.slice(0, start).trim();
+  return reason;
+}

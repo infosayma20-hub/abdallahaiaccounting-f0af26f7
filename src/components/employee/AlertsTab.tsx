@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay } from "@/lib/utils";
 import EmployeeHRMessagesSection from "./EmployeeHRMessagesSection";
+import { displayReason } from "@/lib/hrMessages";
 
 type AttendanceDay = {
   id: string;
@@ -138,7 +139,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
                   {req.status === "pending" ? "قيد المراجعة" : req.status === "approved" ? "مقبول" : "مرفوض"}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground">{req.reason}</p>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{displayReason(req.reason)}</p>
               {req.review_notes && (
                 <p className="text-xs text-primary">ملاحظة HR: {req.review_notes}</p>
               )}
