@@ -5285,6 +5285,69 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_attendance_locks: {
+        Row: {
+          attendance_date: string
+          auth_user_id: string
+          branch_id: string | null
+          created_at: string
+          id: string
+          locked_at: string
+          locked_by: string
+          reason: string | null
+          status: string
+          unlock_reason: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          attendance_date: string
+          auth_user_id: string
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          locked_at?: string
+          locked_by: string
+          reason?: string | null
+          status?: string
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attendance_date?: string
+          auth_user_id?: string
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          locked_at?: string
+          locked_by?: string
+          reason?: string | null
+          status?: string
+          unlock_reason?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_attendance_locks_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_attendance_locks_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_day_types: {
         Row: {
           affects_salary: boolean
@@ -15190,6 +15253,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_attendance_day_locked: {
+        Args: { _branch?: string; _date: string; _owner: string }
         Returns: boolean
       }
       is_module_enabled: {
