@@ -45,6 +45,8 @@ type EmployeeLite = {
   job_title: string | null;
   shift_start: string | null;
   shift_end: string | null;
+  shift_id?: string | null;
+  shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
   is_active: boolean;
   is_terminated: boolean | null;
   work_days_per_week: number | null;
