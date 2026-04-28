@@ -464,6 +464,7 @@ export default function HRAttendancePage() {
 
   // ------------------ Row Actions ------------------
   const openEditRecord = (r: AttendanceRecord) => {
+    if (isLocked) { toast({ title: "اليوم مغلق 🔒", description: "افتح اليوم لإجراء التعديلات", variant: "destructive" }); return; }
     if (r.id.startsWith("synthetic-")) {
       toast({ title: "لا يوجد سجل بعد", description: "هذا الموظف لم يبصم اليوم. استخدم 'تعديل يدوي' لإنشاء سجل عبر طلب تعديل من الموظف.", variant: "destructive" });
       return;
