@@ -359,6 +359,9 @@ export function usePayrollPreview(
           category: "overtime",
           amount: overtimeAmount,
           note: `${(totalOvertimeMin / 60).toFixed(2)} ساعة × ${overtimeMultiplier}x`,
+          sourceKind: "computed",
+          sourceLabel: "محسوب من سجل الحضور",
+          sourceTable: "attendance_days",
         });
       }
 
