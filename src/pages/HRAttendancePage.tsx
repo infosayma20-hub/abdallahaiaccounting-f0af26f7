@@ -559,13 +559,30 @@ export default function HRAttendancePage() {
   };
 
   const sendRequestToEmployee = async (r: AttendanceRecord) => {
-    const reasonText = computeIssue(r).text;
+    const issue = computeIssue(r);
+    if (issue.severity === "ok" || !issue.text || issue.text === "—") {
+      toast({ title: "لا توجد مشكلة على هذا السجل", description: "لم يتم إرسال أي استفسار." });
+      return;
+    }
+    // Dedup check: same employee + date + same issue text + pending
+    const { data: existing } = await supabase
+      .from("correction_requests")
+      .select("id, reason")
+      .eq("employee_id", r.employee_id)
+      .eq("attendance_date", r.attendance_date)
+      .eq("status", "pending")
+      .eq("request_type", "hr_message");
+    const dup = (existing || []).some((x: any) => (x.reason || "").includes(issue.text));
+    if (dup) {
+      toast({ title: "يوجد طلب قائم مسبقاً", description: "لنفس الموظف ونفس التاريخ ونفس المشكلة." });
+      return;
+    }
     const { error } = await supabase.from("correction_requests").insert({
       employee_id: r.employee_id,
       auth_user_id: user!.id,
       attendance_date: r.attendance_date,
       request_type: "hr_message",
-      reason: `طلب توضيح من HR: ${reasonText}`,
+      reason: `المشكلة: ${issue.text}\nرسالة HR: يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.`,
       status: "pending",
     });
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -618,23 +635,75 @@ export default function HRAttendancePage() {
     setBulkNoteOpen(false); setBulkNote(""); clearSelection(); fetchData();
   };
 
-  const bulkSendInquiry = async () => {
+  const openBulkInquiry = () => {
     const ids = Array.from(selected);
-    const targets = enriched.filter(x => ids.includes(x.row.id));
-    let ok = 0;
-    for (const x of targets) {
+    const all = enriched.filter(x => ids.includes(x.row.id));
+    const valid = all.filter(x => x.issue.severity !== "ok" && x.issue.text && x.issue.text !== "—");
+    const excluded = all.length - valid.length;
+    if (valid.length === 0) {
+      toast({
+        title: "لا يوجد سجلات تحتوي مشاكل",
+        description: "تم استبعاد الموظفين الذين لا توجد لديهم مشكلة.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (excluded > 0) {
+      toast({ title: `تم استبعاد ${excluded} موظف بدون مشكلة` });
+    }
+    setBulkInquiryTargets(valid.map(x => ({
+      employee_id: x.row.employee_id,
+      employee_name: x.row.employees?.full_name,
+      attendance_date: x.row.attendance_date,
+      issueText: x.issue.text,
+    })));
+    setBulkInquiryMessage("يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.");
+    setBulkInquiryOpen(true);
+  };
+
+  const submitBulkInquiry = async () => {
+    if (bulkInquiryTargets.length === 0) return;
+    const msg = bulkInquiryMessage.trim() || "يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.";
+    setBulkInquirySending(true);
+    // Fetch existing pending requests for these employees in one query for dedup
+    const empIds = Array.from(new Set(bulkInquiryTargets.map(t => t.employee_id)));
+    const dates = Array.from(new Set(bulkInquiryTargets.map(t => t.attendance_date)));
+    const { data: existing } = await supabase
+      .from("correction_requests")
+      .select("employee_id, attendance_date, reason")
+      .in("employee_id", empIds)
+      .in("attendance_date", dates)
+      .eq("status", "pending")
+      .eq("request_type", "hr_message");
+    const existingSet = new Set((existing || []).map((x: any) => `${x.employee_id}|${x.attendance_date}|${x.reason || ""}`));
+    let ok = 0, dup = 0, fail = 0;
+    for (const t of bulkInquiryTargets) {
+      const reason = `المشكلة: ${t.issueText}\nرسالة HR: ${msg}`;
+      const isDup = (existing || []).some((x: any) =>
+        x.employee_id === t.employee_id &&
+        x.attendance_date === t.attendance_date &&
+        (x.reason || "").includes(t.issueText)
+      );
+      if (isDup) { dup++; continue; }
       const { error } = await supabase.from("correction_requests").insert({
-        employee_id: x.row.employee_id,
+        employee_id: t.employee_id,
         auth_user_id: user!.id,
-        attendance_date: x.row.attendance_date,
+        attendance_date: t.attendance_date,
         request_type: "hr_message",
-        reason: `طلب توضيح من HR: ${x.issue.text}`,
+        reason,
         status: "pending",
       });
-      if (!error) ok++;
+      if (!error) ok++; else fail++;
     }
-    toast({ title: `تم إرسال ${ok} استفسار` });
+    setBulkInquirySending(false);
+    setBulkInquiryOpen(false);
+    setBulkInquiryTargets([]);
+    setBulkInquiryMessage("");
     clearSelection();
+    const parts = [`تم إرسال ${ok} استفسار`];
+    if (dup > 0) parts.push(`${dup} مكرر`);
+    if (fail > 0) parts.push(`${fail} فشل`);
+    toast({ title: parts.join(" • ") });
   };
 
   // ------------------ Exports ------------------
