@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Employee360Data } from "@/hooks/hr/useEmployee360";
 import type { CostEngineResult } from "@/hooks/hr/useEmployeeCostEngine";
+import { tContractType, tMaritalStatus } from "@/lib/hrLabels";
 
 interface Props {
   data: Employee360Data;
@@ -34,7 +35,7 @@ export function OverviewTab({ data, cost }: Props) {
           <Field label="الهاتف" value={e?.phone} />
           <Field label="البريد الإلكتروني" value={e?.email} />
           <Field label="تاريخ الميلاد" value={e?.birth_date ? new Date(e.birth_date).toLocaleDateString("ar") : null} />
-          <Field label="الحالة الاجتماعية" value={e?.marital_status} />
+          <Field label="الحالة الاجتماعية" value={tMaritalStatus(e?.marital_status)} />
           <Field label="عدد الأبناء" value={e?.children_count} />
         </CardContent>
       </Card>
@@ -46,7 +47,7 @@ export function OverviewTab({ data, cost }: Props) {
         <CardContent className="text-right">
           <Field label="الوظيفة" value={e?.job_title} />
           <Field label="القسم" value={e?.department} />
-          <Field label="نوع العقد" value={e?.contract_type} />
+          <Field label="نوع العقد" value={tContractType(e?.contract_type)} />
           <Field label="تاريخ التعيين" value={e?.hire_date ? new Date(e.hire_date).toLocaleDateString("ar") : null} />
           <Field label="الراتب الأساسي" value={`₪${fmt(cost.breakdown.baseSalary)}`} />
           <Field label="إجمالي البدلات" value={`₪${fmt(cost.breakdown.totalAdditions - cost.breakdown.bonuses - cost.breakdown.overtime)}`} />
