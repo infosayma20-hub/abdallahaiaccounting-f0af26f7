@@ -319,18 +319,108 @@ export default function HRAttendancePage() {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const canIssuePenalty = userRoles.includes("admin") || userRoles.includes("hr_manager");
 
-  // Day lock (UI-level via localStorage; future: DB-level period lock)
-  const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
-  const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(lockKey) || "[]")); } catch { return new Set(); }
-  });
-  const isLocked = lockedDates.has(selectedDate);
-  const toggleLockDay = () => {
-    const next = new Set(lockedDates);
-    if (next.has(selectedDate)) next.delete(selectedDate); else next.add(selectedDate);
-    setLockedDates(next);
-    localStorage.setItem(lockKey, JSON.stringify(Array.from(next)));
-    toast({ title: next.has(selectedDate) ? "تم إغلاق اليوم" : "تم فتح اليوم" });
+  // Day lock — DB-backed via hr_attendance_locks (B2.2.1)
+  type DayLock = {
+    id: string;
+    attendance_date: string;
+    status: "locked" | "unlocked";
+    locked_by: string;
+    locked_at: string;
+    reason: string | null;
+    unlocked_by: string | null;
+    unlocked_at: string | null;
+    unlock_reason: string | null;
+  };
+  const [dayLock, setDayLock] = useState<DayLock | null>(null);
+  const isLocked = !!dayLock && dayLock.status === "locked";
+  const canManageLock = userRoles.includes("admin") || userRoles.includes("hr_manager");
+  const [lockDialogOpen, setLockDialogOpen] = useState(false);
+  const [lockDialogMode, setLockDialogMode] = useState<"lock" | "unlock">("lock");
+  const [lockReasonInput, setLockReasonInput] = useState("");
+  const [lockBusy, setLockBusy] = useState(false);
+
+  const fetchDayLock = useCallback(async () => {
+    if (!user || !selectedDate) { setDayLock(null); return; }
+    const { data } = await supabase
+      .from("hr_attendance_locks")
+      .select("id, attendance_date, status, locked_by, locked_at, reason, unlocked_by, unlocked_at, unlock_reason")
+      .eq("attendance_date", selectedDate)
+      .order("locked_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setDayLock((data as any) || null);
+  }, [user, selectedDate]);
+
+  useEffect(() => { fetchDayLock(); }, [fetchDayLock]);
+
+  // Realtime: any lock change for current date refreshes UI from any device
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel(`hr-locks-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_attendance_locks" }, (payload: any) => {
+        const row = payload.new || payload.old;
+        if (row?.attendance_date === selectedDate) fetchDayLock();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, selectedDate, fetchDayLock]);
+
+  const openLockDialog = () => {
+    if (!canManageLock) {
+      toast({ title: "غير مصرح", description: "إغلاق/فتح اليوم متاح فقط لمدير الموارد البشرية أو الأدمن.", variant: "destructive" });
+      return;
+    }
+    setLockDialogMode(isLocked ? "unlock" : "lock");
+    setLockReasonInput("");
+    setLockDialogOpen(true);
+  };
+
+  const submitLockAction = async () => {
+    if (!user) return;
+    if (lockDialogMode === "unlock" && !lockReasonInput.trim()) {
+      toast({ title: "السبب مطلوب", description: "الرجاء كتابة سبب فتح اليوم.", variant: "destructive" });
+      return;
+    }
+    setLockBusy(true);
+    try {
+      if (lockDialogMode === "lock") {
+        // Upsert: if a previously-unlocked row exists, flip it back to locked; else insert new
+        if (dayLock) {
+          const { error } = await supabase.from("hr_attendance_locks").update({
+            status: "locked", locked_by: user.id, locked_at: new Date().toISOString(),
+            reason: lockReasonInput.trim() || null,
+            unlocked_by: null, unlocked_at: null, unlock_reason: null,
+          }).eq("id", dayLock.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("hr_attendance_locks").insert({
+            auth_user_id: user.id,
+            attendance_date: selectedDate,
+            status: "locked",
+            locked_by: user.id,
+            reason: lockReasonInput.trim() || null,
+          } as any);
+          if (error) throw error;
+        }
+        toast({ title: "تم إغلاق اليوم", description: "لا يمكن تعديل بصمات أو طلبات لهذا اليوم حتى يتم فتحه." });
+      } else {
+        if (!dayLock) return;
+        const { error } = await supabase.from("hr_attendance_locks").update({
+          status: "unlocked",
+          unlocked_by: user.id,
+          unlocked_at: new Date().toISOString(),
+          unlock_reason: lockReasonInput.trim(),
+        }).eq("id", dayLock.id);
+        if (error) throw error;
+        toast({ title: "تم فتح اليوم", description: "يمكن الآن تعديل بصمات وطلبات هذا اليوم." });
+      }
+      setLockDialogOpen(false);
+      await fetchDayLock();
+    } catch (e: any) {
+      toast({ title: "تعذّر التنفيذ", description: e.message || String(e), variant: "destructive" });
+    } finally {
+      setLockBusy(false);
+    }
   };
 
   const fetchData = useCallback(async () => {
