@@ -1198,6 +1198,15 @@ export default function HRAttendancePage() {
           <DialogFooter><Button variant="destructive" onClick={deleteBranch} disabled={deleteConfirmName !== deletingBranch?.name} className="w-full gap-1"><Trash2 className="h-4 w-4" /> حذف</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Note */}
+      <Dialog open={bulkNoteOpen} onOpenChange={setBulkNoteOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> ملاحظة جماعية على {selected.size} سجل</DialogTitle></DialogHeader>
+          <Textarea rows={4} value={bulkNote} onChange={e => setBulkNote(e.target.value)} placeholder="اكتب الملاحظة المشتركة..." />
+          <DialogFooter><Button onClick={bulkAddNote} className="w-full" disabled={!bulkNote.trim()}>تطبيق على الكل</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
