@@ -29,14 +29,17 @@ import {
   ExternalLink,
   AlertTriangle,
   Lock,
+  Banknote,
 } from "lucide-react";
 import {
   usePayrollMonth,
   useApprovePayrollBatch,
   useApprovePayroll,
+  usePayPayrollBatch,
   PAYROLL_STATUS_META,
   type PayrollStatus,
 } from "@/hooks/hr/usePayrollApproval";
+import { PayrollPaymentDialog } from "@/components/hr/payroll/PayrollPaymentDialog";
 
 const arabicMonths = [
   "يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -65,10 +68,12 @@ export default function PayrollApprovalCenter() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   const { data, isLoading, isError, error } = usePayrollMonth(year, month);
   const approveBatchMut = useApprovePayrollBatch();
   const approveOneMut = useApprovePayroll();
+  const payBatchMut = usePayPayrollBatch();
 
   const rows = data?.rows ?? [];
   const batch = data?.batch ?? null;
@@ -78,6 +83,11 @@ export default function PayrollApprovalCenter() {
     const approved = rows.filter((r: any) => r.status === "approved");
     const paid = rows.filter((r: any) => r.status === "paid");
     const cancelled = rows.filter((r: any) => r.status === "cancelled");
+    const approvedUnpaid = approved.filter((r: any) => !r.is_paid);
+    const totalApprovedUnpaid = approvedUnpaid.reduce(
+      (s: number, r: any) => s + Number(r.net_salary || 0),
+      0,
+    );
     const totalNetSubmitted = submitted.reduce(
       (s: number, r: any) => s + Number(r.net_salary || 0),
       0,
@@ -88,6 +98,7 @@ export default function PayrollApprovalCenter() {
     );
     return {
       submitted, approved, paid, cancelled,
+      approvedUnpaid, totalApprovedUnpaid,
       totalNetSubmitted, totalNetAll,
       total: rows.length,
     };
@@ -224,6 +235,17 @@ export default function PayrollApprovalCenter() {
                 اعتماد كل قيد الاعتماد ({stats.submitted.length})
               </Button>
             )}
+            {stats.approvedUnpaid.length > 0 && (
+              <Button
+                size="sm"
+                onClick={() => setPayOpen(true)}
+                disabled={payBatchMut.isPending}
+                className="gap-1 bg-primary hover:bg-primary/90"
+              >
+                <Banknote className="h-4 w-4" />
+                دفع جماعي ({stats.approvedUnpaid.length})
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <Table>
@@ -327,6 +349,31 @@ export default function PayrollApprovalCenter() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch payment dialog */}
+      {data?.ownerId && (
+        <PayrollPaymentDialog
+          open={payOpen}
+          onOpenChange={setPayOpen}
+          title="دفع جماعي للرواتب المعتمدة"
+          summary={`${stats.approvedUnpaid.length} موظف — إجمالي ₪${fmt(stats.totalApprovedUnpaid)}`}
+          isSubmitting={payBatchMut.isPending}
+          onConfirm={(p) => {
+            payBatchMut.mutate(
+              {
+                userId: data.ownerId,
+                year, month,
+                paymentMethod: p.paymentMethod,
+                bankAccountId: p.bankAccountId,
+                chequeNumber: p.chequeNumber,
+                chequeDueDate: p.chequeDueDate,
+                paymentDate: p.paymentDate,
+              },
+              { onSuccess: () => setPayOpen(false) },
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

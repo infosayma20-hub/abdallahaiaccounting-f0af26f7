@@ -4690,6 +4690,7 @@ export type Database = {
           other_allowances_val: number | null
           overtime_hours_val: number | null
           paid_date: string | null
+          payment_method: string | null
           period_month: number
           period_year: number
           regular_hours: number | null
@@ -4703,6 +4704,7 @@ export type Database = {
           total_overtime: number
           user_id: string
           vacation_hours_paid: number | null
+          voucher_id: string | null
           working_days: number | null
         }
         Insert: {
@@ -4742,6 +4744,7 @@ export type Database = {
           other_allowances_val?: number | null
           overtime_hours_val?: number | null
           paid_date?: string | null
+          payment_method?: string | null
           period_month: number
           period_year: number
           regular_hours?: number | null
@@ -4755,6 +4758,7 @@ export type Database = {
           total_overtime?: number
           user_id: string
           vacation_hours_paid?: number | null
+          voucher_id?: string | null
           working_days?: number | null
         }
         Update: {
@@ -4794,6 +4798,7 @@ export type Database = {
           other_allowances_val?: number | null
           overtime_hours_val?: number | null
           paid_date?: string | null
+          payment_method?: string | null
           period_month?: number
           period_year?: number
           regular_hours?: number | null
@@ -4807,6 +4812,7 @@ export type Database = {
           total_overtime?: number
           user_id?: string
           vacation_hours_paid?: number | null
+          voucher_id?: string | null
           working_days?: number | null
         }
         Relationships: [
@@ -4829,6 +4835,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_payroll_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -7517,6 +7530,9 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_method: string | null
           period_month: number
           period_year: number
           status: Database["public"]["Enums"]["payroll_status"]
@@ -7532,6 +7548,9 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_method?: string | null
           period_month: number
           period_year: number
           status?: Database["public"]["Enums"]["payroll_status"]
@@ -7547,6 +7566,9 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_method?: string | null
           period_month?: number
           period_year?: number
           status?: Database["public"]["Enums"]["payroll_status"]
@@ -15133,6 +15155,18 @@ export type Database = {
       }
     }
     Functions: {
+      _payroll_post_payment: {
+        Args: {
+          _bank_account_id: string
+          _cheque_due_date: string
+          _cheque_number: string
+          _payer: string
+          _payment_date: string
+          _payment_method: string
+          _payroll_id: string
+        }
+        Returns: Json
+      }
       approve_procurement_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
@@ -15413,6 +15447,32 @@ export type Database = {
       }
       payroll_approve_employee: {
         Args: { _approver: string; _payroll_id: string }
+        Returns: Json
+      }
+      payroll_pay_batch: {
+        Args: {
+          _bank_account_id?: string
+          _cheque_due_date?: string
+          _cheque_number?: string
+          _month: number
+          _payer: string
+          _payment_date?: string
+          _payment_method: string
+          _user_id: string
+          _year: number
+        }
+        Returns: Json
+      }
+      payroll_pay_employee: {
+        Args: {
+          _bank_account_id?: string
+          _cheque_due_date?: string
+          _cheque_number?: string
+          _payer: string
+          _payment_date?: string
+          _payment_method: string
+          _payroll_id: string
+        }
         Returns: Json
       }
       payroll_reject_employee: {

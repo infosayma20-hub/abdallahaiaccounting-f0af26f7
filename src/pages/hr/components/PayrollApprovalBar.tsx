@@ -10,15 +10,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Lock, Send, CheckCircle2, RotateCcw, Info } from "lucide-react";
+import { Lock, Send, CheckCircle2, RotateCcw, Info, Banknote } from "lucide-react";
 import {
   PAYROLL_STATUS_META,
   useEmployeePayrollRow,
   useSubmitPayroll,
   useApprovePayroll,
   useRejectPayroll,
+  usePayPayrollEmployee,
   type SubmitPayrollInput,
 } from "@/hooks/hr/usePayrollApproval";
+import { PayrollPaymentDialog } from "@/components/hr/payroll/PayrollPaymentDialog";
 
 interface Props {
   employeeId: string;
@@ -43,9 +45,11 @@ export function PayrollApprovalBar({
   const submitMut = useSubmitPayroll();
   const approveMut = useApprovePayroll();
   const rejectMut = useRejectPayroll();
+  const payMut = usePayPayrollEmployee();
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [payOpen, setPayOpen] = useState(false);
 
   const status: keyof typeof PAYROLL_STATUS_META = row?.status ?? "preview";
   const meta = PAYROLL_STATUS_META[status];
@@ -185,16 +189,27 @@ export function PayrollApprovalBar({
 
           {/* Approved → Re-open (reject back to submitted) */}
           {row?.status === "approved" && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setRejectOpen(true)}
-              disabled={rejectMut.isPending}
-              className="gap-1"
-            >
-              <RotateCcw className="h-4 w-4" />
-              إرجاع للمراجعة
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRejectOpen(true)}
+                disabled={rejectMut.isPending}
+                className="gap-1"
+              >
+                <RotateCcw className="h-4 w-4" />
+                إرجاع للمراجعة
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPayOpen(true)}
+                disabled={payMut.isPending}
+                className="gap-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Banknote className="h-4 w-4" />
+                دفع الراتب
+              </Button>
+            </>
           )}
 
           {row?.status === "paid" && (
@@ -240,6 +255,31 @@ export function PayrollApprovalBar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment dialog */}
+      {row && (
+        <PayrollPaymentDialog
+          open={payOpen}
+          onOpenChange={setPayOpen}
+          title="دفع راتب الموظف"
+          summary={`صافي الراتب: ₪${fmt(row.net_salary)} — ${row.period_month}/${row.period_year}`}
+          isSubmitting={payMut.isPending}
+          onConfirm={(p) => {
+            payMut.mutate(
+              {
+                payrollId: row.id,
+                paymentMethod: p.paymentMethod,
+                bankAccountId: p.bankAccountId,
+                chequeNumber: p.chequeNumber,
+                chequeDueDate: p.chequeDueDate,
+                paymentDate: p.paymentDate,
+                employeeId,
+              },
+              { onSuccess: () => setPayOpen(false) },
+            );
+          }}
+        />
+      )}
     </Card>
   );
 }
