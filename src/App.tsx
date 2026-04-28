@@ -145,6 +145,7 @@ const Employee360Page = lazy(() => import("./pages/hr/Employee360Page"));
 const HrCommandCenter = lazy(() => import("./pages/hr/HrCommandCenter"));
 const HrDefinitionsPage = lazy(() => import("./pages/hr/HrDefinitionsPage"));
 const HrDayTypesPage = lazy(() => import("./pages/hr/HrDayTypesPage"));
+const HrWorkShiftsPage = lazy(() => import("./pages/hr/HrWorkShiftsPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
@@ -391,6 +392,7 @@ const App = () => (
                       <Route path="/hr/people" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/definitions" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrDefinitionsPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/day-types" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrDayTypesPage /></RoleGuard></ModuleGuard>} />
+                      <Route path="/hr/shifts" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrWorkShiftsPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/settings" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollSettingsPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/employee/:id" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard>} />
                       <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
