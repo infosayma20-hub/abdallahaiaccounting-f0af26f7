@@ -319,18 +319,108 @@ export default function HRAttendancePage() {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const canIssuePenalty = userRoles.includes("admin") || userRoles.includes("hr_manager");
 
-  // Day lock (UI-level via localStorage; future: DB-level period lock)
-  const lockKey = `hr-attendance-lock-${user?.id || "anon"}`;
-  const [lockedDates, setLockedDates] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(lockKey) || "[]")); } catch { return new Set(); }
-  });
-  const isLocked = lockedDates.has(selectedDate);
-  const toggleLockDay = () => {
-    const next = new Set(lockedDates);
-    if (next.has(selectedDate)) next.delete(selectedDate); else next.add(selectedDate);
-    setLockedDates(next);
-    localStorage.setItem(lockKey, JSON.stringify(Array.from(next)));
-    toast({ title: next.has(selectedDate) ? "تم إغلاق اليوم" : "تم فتح اليوم" });
+  // Day lock — DB-backed via hr_attendance_locks (B2.2.1)
+  type DayLock = {
+    id: string;
+    attendance_date: string;
+    status: "locked" | "unlocked";
+    locked_by: string;
+    locked_at: string;
+    reason: string | null;
+    unlocked_by: string | null;
+    unlocked_at: string | null;
+    unlock_reason: string | null;
+  };
+  const [dayLock, setDayLock] = useState<DayLock | null>(null);
+  const isLocked = !!dayLock && dayLock.status === "locked";
+  const canManageLock = userRoles.includes("admin") || userRoles.includes("hr_manager");
+  const [lockDialogOpen, setLockDialogOpen] = useState(false);
+  const [lockDialogMode, setLockDialogMode] = useState<"lock" | "unlock">("lock");
+  const [lockReasonInput, setLockReasonInput] = useState("");
+  const [lockBusy, setLockBusy] = useState(false);
+
+  const fetchDayLock = useCallback(async () => {
+    if (!user || !selectedDate) { setDayLock(null); return; }
+    const { data } = await supabase
+      .from("hr_attendance_locks")
+      .select("id, attendance_date, status, locked_by, locked_at, reason, unlocked_by, unlocked_at, unlock_reason")
+      .eq("attendance_date", selectedDate)
+      .order("locked_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setDayLock((data as any) || null);
+  }, [user, selectedDate]);
+
+  useEffect(() => { fetchDayLock(); }, [fetchDayLock]);
+
+  // Realtime: any lock change for current date refreshes UI from any device
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel(`hr-locks-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_attendance_locks" }, (payload: any) => {
+        const row = payload.new || payload.old;
+        if (row?.attendance_date === selectedDate) fetchDayLock();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, selectedDate, fetchDayLock]);
+
+  const openLockDialog = () => {
+    if (!canManageLock) {
+      toast({ title: "غير مصرح", description: "إغلاق/فتح اليوم متاح فقط لمدير الموارد البشرية أو الأدمن.", variant: "destructive" });
+      return;
+    }
+    setLockDialogMode(isLocked ? "unlock" : "lock");
+    setLockReasonInput("");
+    setLockDialogOpen(true);
+  };
+
+  const submitLockAction = async () => {
+    if (!user) return;
+    if (lockDialogMode === "unlock" && !lockReasonInput.trim()) {
+      toast({ title: "السبب مطلوب", description: "الرجاء كتابة سبب فتح اليوم.", variant: "destructive" });
+      return;
+    }
+    setLockBusy(true);
+    try {
+      if (lockDialogMode === "lock") {
+        // Upsert: if a previously-unlocked row exists, flip it back to locked; else insert new
+        if (dayLock) {
+          const { error } = await supabase.from("hr_attendance_locks").update({
+            status: "locked", locked_by: user.id, locked_at: new Date().toISOString(),
+            reason: lockReasonInput.trim() || null,
+            unlocked_by: null, unlocked_at: null, unlock_reason: null,
+          }).eq("id", dayLock.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("hr_attendance_locks").insert({
+            auth_user_id: user.id,
+            attendance_date: selectedDate,
+            status: "locked",
+            locked_by: user.id,
+            reason: lockReasonInput.trim() || null,
+          } as any);
+          if (error) throw error;
+        }
+        toast({ title: "تم إغلاق اليوم", description: "لا يمكن تعديل بصمات أو طلبات لهذا اليوم حتى يتم فتحه." });
+      } else {
+        if (!dayLock) return;
+        const { error } = await supabase.from("hr_attendance_locks").update({
+          status: "unlocked",
+          unlocked_by: user.id,
+          unlocked_at: new Date().toISOString(),
+          unlock_reason: lockReasonInput.trim(),
+        }).eq("id", dayLock.id);
+        if (error) throw error;
+        toast({ title: "تم فتح اليوم", description: "يمكن الآن تعديل بصمات وطلبات هذا اليوم." });
+      }
+      setLockDialogOpen(false);
+      await fetchDayLock();
+    } catch (e: any) {
+      toast({ title: "تعذّر التنفيذ", description: e.message || String(e), variant: "destructive" });
+    } finally {
+      setLockBusy(false);
+    }
   };
 
   const fetchData = useCallback(async () => {
@@ -936,7 +1026,14 @@ export default function HRAttendancePage() {
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
-          <Button variant={isLocked ? "destructive" : "outline"} size="sm" onClick={toggleLockDay} className="gap-1">
+          <Button
+            variant={isLocked ? "destructive" : "outline"}
+            size="sm"
+            onClick={openLockDialog}
+            disabled={!canManageLock}
+            title={!canManageLock ? "متاح فقط لمدير الموارد البشرية أو الأدمن" : (isLocked ? `مقفل: ${dayLock?.reason || "—"}` : "إغلاق اليوم لمنع التعديلات")}
+            className="gap-1"
+          >
             {isLocked ? <><Unlock className="h-4 w-4" /> فتح اليوم</> : <><Lock className="h-4 w-4" /> إغلاق اليوم</>}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1"><Building2 className="h-4 w-4" /> إضافة فرع</Button>
@@ -955,6 +1052,23 @@ export default function HRAttendancePage() {
       </div>
 
       {/* Action banner */}
+      {isLocked && (
+        <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-red-800">
+            <Lock className="h-4 w-4" />
+            <span className="font-semibold">اليوم مغلق:</span>
+            <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
+            <span className="text-xs text-red-700/80">
+              · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
+            </span>
+          </div>
+          {canManageLock && (
+            <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
+              <Unlock className="h-3.5 w-3.5" /> فتح اليوم
+            </Button>
+          )}
+        </Card>
+      )}
       {kpis.issues > 0 && (
         <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
@@ -1488,6 +1602,56 @@ export default function HRAttendancePage() {
             <Button onClick={submitBulkInquiry} disabled={bulkInquirySending || bulkInquiryTargets.length === 0} className="gap-1">
               <Send className="h-4 w-4" />
               {bulkInquirySending ? "جاري الإرسال..." : "إرسال الاستفسارات"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Day Lock / Unlock Dialog */}
+      <Dialog open={lockDialogOpen} onOpenChange={(o) => !lockBusy && setLockDialogOpen(o)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {lockDialogMode === "lock" ? <><Lock className="h-4 w-4" /> إغلاق يوم الحضور</> : <><Unlock className="h-4 w-4" /> فتح يوم الحضور</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm bg-muted/40 rounded p-2">
+              <div>التاريخ: <span className="font-semibold">{selectedDate}</span></div>
+              {lockDialogMode === "unlock" && dayLock && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  أُغلق في: {format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a")}
+                  {dayLock.reason && <> — السبب: {dayLock.reason}</>}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">
+                {lockDialogMode === "lock" ? "سبب الإغلاق (اختياري)" : "سبب الفتح (إلزامي)"}
+              </label>
+              <Textarea
+                value={lockReasonInput}
+                onChange={(e) => setLockReasonInput(e.target.value)}
+                placeholder={lockDialogMode === "lock" ? "مثال: نهاية شهر — اعتماد الحضور للراتب" : "مثال: تصحيح بصمة منسية للموظف..."}
+                rows={3}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {lockDialogMode === "lock"
+                ? "بعد الإغلاق سيتم منع تعديل/إنشاء بصمات وطلبات تصحيح لهذا اليوم على مستوى قاعدة البيانات."
+                : "سيتم تسجيل هويتك ووقت الفتح والسبب في سجل التدقيق."}
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLockDialogOpen(false)} disabled={lockBusy}>إلغاء</Button>
+            <Button
+              variant={lockDialogMode === "lock" ? "destructive" : "default"}
+              onClick={submitLockAction}
+              disabled={lockBusy || (lockDialogMode === "unlock" && !lockReasonInput.trim())}
+              className="gap-1"
+            >
+              {lockBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (lockDialogMode === "lock" ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />)}
+              {lockDialogMode === "lock" ? "إغلاق اليوم" : "فتح اليوم"}
             </Button>
           </DialogFooter>
         </DialogContent>
