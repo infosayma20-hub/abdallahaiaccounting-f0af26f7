@@ -378,38 +378,19 @@ export const navigationSections: NavSection[] = [
         id: "hr", label: "الموارد البشرية", description: "لوحة قيادة، موظفون، إعدادات", module: "hr", icon: Users,
         color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/hr",
         enableSetting: "has_employees",
-        keywords: ["موظف", "حضور", "رواتب", "موارد", "hr"],
+        keywords: [
+          "موظف", "حضور", "رواتب", "موارد", "hr",
+          "إجازات", "سلف", "قروض", "خصومات", "بصمة", "بصمتي",
+          "مدخلات الرواتب", "إعدادات الرواتب", "إعدادات HR",
+        ],
         groups: [
           {
-            groupLabel: "إدارة الموارد البشرية",
+            groupLabel: "أساسيات HR",
             children: [
-              { label: "🏠 لوحة الموارد البشرية", path: "/hr" },
-              { label: "👥 الموظفون", path: "/hr/people" },
-              { label: "بصمتي", path: "/my-attendance" },
-              { label: "⚙️ إعدادات الموارد البشرية", path: "/hr/settings" },
-            ],
-          },
-          {
-            groupLabel: "الحضور والانصراف",
-            children: [
-              { label: "🕐 لوحة إدارة الحضور", path: "/hr-attendance" },
-              { label: "📅 الإجازات", path: "/leaves" },
-            ],
-          },
-          {
-            groupLabel: "الرواتب",
-            children: [
+              { label: "👥 الموظفون", path: "/employees" },
+              { label: "🕐 الحضور", path: "/hr-attendance" },
+              { label: "📝 الطلبات", path: "/employee-forms-management" },
               { label: "💵 الرواتب", path: "/payroll" },
-              { label: "📝 مدخلات الرواتب الشهرية", path: "/payroll/inputs" },
-              { label: "⚙️ إعدادات الرواتب", path: "/payroll-settings" },
-            ],
-          },
-          {
-            groupLabel: "السلف والقروض والخصومات",
-            children: [
-              { label: "💸 السلف", path: "/advances" },
-              { label: "🏦 القروض", path: "/loans" },
-              { label: "➖ الخصومات", path: "/hr-deductions" },
             ],
           },
         ],
