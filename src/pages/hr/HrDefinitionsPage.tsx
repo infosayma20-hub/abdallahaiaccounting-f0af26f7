@@ -218,7 +218,7 @@ export default function HrDefinitionsPage() {
   return (
     <div className="container max-w-5xl mx-auto p-4 md:p-6 space-y-4" dir="rtl">
       <BackButton />
-      <PageHeader title="الأقسام والمسميات الوظيفية" subtitle="إدارة التعريفات الأساسية للموارد البشرية" />
+      <PageHeader title="الأقسام والمسميات الوظيفية" />
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
