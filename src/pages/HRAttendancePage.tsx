@@ -65,7 +65,16 @@ type AttendanceRecord = {
   branch_id: string | null;
   notes: string | null;
   is_manually_adjusted: boolean | null;
-  employees?: { full_name: string; branch_id: string | null; department: string | null; job_title: string | null; shift_start: string | null; shift_end: string | null };
+  employees?: {
+    full_name: string;
+    branch_id: string | null;
+    department: string | null;
+    job_title: string | null;
+    shift_start: string | null;
+    shift_end: string | null;
+    shift_id?: string | null;
+    shift?: { id: string; name: string; start_time: string; end_time: string; late_tolerance_minutes: number | null; overtime_after_minutes: number | null } | null;
+  };
 };
 
 type CorrectionReq = {
