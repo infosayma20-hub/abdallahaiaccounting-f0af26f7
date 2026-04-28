@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import { Shield } from "lucide-react";
+import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 
 type Branch = {
   id: string;
@@ -117,11 +118,6 @@ function getDayType(
 
 type RowFilter = "all" | "issues" | "present" | "late" | "absent" | "incomplete" | "missing_checkin" | "missing_checkout";
 
-const statusLabels: Record<string, string> = {
-  present: "حاضر", late: "متأخر", absent: "غائب",
-  incomplete: "بصمة ناقصة", leave: "إجازة", holiday: "عطلة",
-};
-
 const statusBadgeClass = (s: string) => {
   switch (s) {
     case "present": return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -175,16 +171,6 @@ function computeIssue(
   }
   return { text: "—", severity: "ok", lateMin: 0 };
 }
-
-const reqTypeLabel = (t: string) => ({
-  missing_checkin: "دخول مفقود",
-  missing_checkout: "خروج مفقود",
-  wrong_time: "وقت خاطئ",
-  leave_request: "طلب إجازة",
-  advance_request: "طلب سلفة",
-  overtime_request: "أوفرتايم",
-  hr_message: "رسالة HR",
-}[t] || "أخرى");
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
@@ -805,7 +791,7 @@ export default function HRAttendancePage() {
         "إضافي": r.overtime_hours || 0,
         "تأخير (دقيقة)": issue.lateMin,
         "المشكلة": issue.text,
-        "الحالة": statusLabels[r.status] || r.status,
+        "الحالة": tAttendanceStatus(r.status),
         "ملاحظات": r.notes || "",
       }));
       const wb = XLSX.utils.book_new();
@@ -1060,7 +1046,7 @@ export default function HRAttendancePage() {
                           </td>
                           <td className="px-3 py-3">
                             <Badge variant="outline" className={cn("text-xs", statusBadgeClass(r.status))}>
-                              {statusLabels[r.status] || r.status}
+                              {tAttendanceStatus(r.status)}
                             </Badge>
                           </td>
                           <td className="px-3 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={r.notes || ""}>{r.notes || "—"}</td>
@@ -1113,7 +1099,7 @@ export default function HRAttendancePage() {
                     <span className="font-medium">{(req as any).employees?.full_name}</span>
                     <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
                   </div>
-                  <Badge variant="outline">{reqTypeLabel(req.request_type)}</Badge>
+                  <Badge variant="outline">{tRequestType(req.request_type)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{req.reason}</p>
                 <div className="flex gap-2">
