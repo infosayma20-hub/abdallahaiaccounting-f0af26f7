@@ -48,6 +48,7 @@ import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
 import POSBarcodeScanner from "@/components/pos/POSBarcodeScanner";
 import POSDeviceGuard from "@/components/pos/POSDeviceGuard";
+import PrintingNotReadyBanner from "@/components/pos/PrintingNotReadyBanner";
 import { getDeviceConfig, onDeviceConfigChange, assertDeviceReady } from "@/lib/device-config";
 import {
   DndContext,
@@ -3641,6 +3642,8 @@ const POSPage = () => {
         terminalBranchId={terminalBranchId}
         cashBoxBranchId={cashBoxBranchId}
       />
+      {/* ⚠️ Soft banner — printing unavailable. Selling continues to work. */}
+      <PrintingNotReadyBanner />
       {/* ══════ TOP BAR — 52px dark navy ══════ */}
       <header
         className="flex items-center px-3 gap-2 shrink-0 text-white overflow-visible"
