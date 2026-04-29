@@ -1988,10 +1988,6 @@ const POSPage = () => {
     if (!userId || !company || !terminal) return;
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
-    if (!selectedCashBoxId) {
-      toast.error("يجب اختيار الصندوق قبل فتح الوردية");
-      return;
-    }
     if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
@@ -4912,7 +4908,7 @@ const POSPage = () => {
                 }}
                 className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
               >
-                <option value="">-- اختر الصندوق --</option>
+                <option value="">بدون صندوق مؤقتاً</option>
                 {cashBoxes.map(box => (
                   <option key={box.id} value={box.id}>{box.name}</option>
                 ))}
