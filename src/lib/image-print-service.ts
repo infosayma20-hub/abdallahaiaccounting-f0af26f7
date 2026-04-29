@@ -389,6 +389,7 @@ export async function printAllImage(
   order: PrintOrder,
   companyInfo?: { name?: string; phone?: string; address?: string; taxNumber?: string; terminalName?: string },
   kitchenJobs?: KitchenJob[],
+  options?: { skipReceipt?: boolean },
 ): Promise<PrintImageResult> {
   const dedupeKey = `all|${order.orderNumber}|${order.id || 'noid'}`;
   console.log(`[frontend-print-click] all key=${dedupeKey}`);
@@ -406,12 +407,18 @@ export async function printAllImage(
     const receiptMeta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
     const kitchenMeta = (key: string) => buildMeta(`kitchen_${key}`, { itemsCount });
 
-    // ── RECEIPT job (always) ──
-    const jobs: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [
-      bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
-        .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
-        .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
-    ];
+    // ── RECEIPT job ──
+    // Skipped for delivery orders (kitchen-only printing).
+    const jobs: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [];
+    if (!options?.skipReceipt) {
+      jobs.push(
+        bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
+          .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
+          .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
+      );
+    } else {
+      console.log(`[frontend-print-skip-receipt] all key=${dedupeKey} reason=delivery`);
+    }
 
     // ── KITCHEN jobs ──
     // If filtered kitchenJobs are provided, send ONLY those (one per station, filtered items).
