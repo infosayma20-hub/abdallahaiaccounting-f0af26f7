@@ -1,4 +1,4 @@
-import { AlertTriangle, Settings, Monitor, Building2, Boxes, Wifi, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Settings, Monitor, Building2, Boxes, ShieldAlert } from "lucide-react";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
 
 interface DeviceConfig {
@@ -25,7 +25,8 @@ interface Props {
 export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranchId }: Props) {
   const { isDeviceAdmin } = useIsDeviceAdmin();
   const missing: string[] = [];
-  if (!config.bridgeUrl) missing.push("عنوان Print Bridge");
+  // ⚠️ Print Bridge is NOT a blocker. Selling must keep working even
+  // when printing is unavailable — a soft banner handles that case.
   if (!config.branchId) missing.push("الفرع");
   if (!config.terminalId) missing.push("محطة POS");
 
@@ -70,11 +71,6 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">العناصر الناقصة:</p>
               <ul className="space-y-1.5">
-                {missing.includes("عنوان Print Bridge") && (
-                  <li className="flex items-center gap-2 text-foreground">
-                    <Wifi className="h-4 w-4 text-warning" /> عنوان Print Bridge
-                  </li>
-                )}
                 {missing.includes("الفرع") && (
                   <li className="flex items-center gap-2 text-foreground">
                     <Building2 className="h-4 w-4 text-warning" /> الفرع التابع له هذا الجهاز
