@@ -15155,18 +15155,32 @@ export type Database = {
       }
     }
     Functions: {
-      _payroll_post_payment: {
-        Args: {
-          _bank_account_id: string
-          _cheque_due_date: string
-          _cheque_number: string
-          _payer: string
-          _payment_date: string
-          _payment_method: string
-          _payroll_id: string
-        }
-        Returns: Json
-      }
+      _payroll_post_payment:
+        | {
+            Args: {
+              _bank_account_id: string
+              _cheque_due_date: string
+              _cheque_number: string
+              _payer: string
+              _payment_date: string
+              _payment_method: string
+              _payroll_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _bank_account_id: string
+              _cheque_due_date: string
+              _cheque_number: string
+              _payer: string
+              _payment_account_code?: string
+              _payment_date: string
+              _payment_method: string
+              _payroll_id: string
+            }
+            Returns: Json
+          }
       approve_procurement_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
@@ -15449,32 +15463,62 @@ export type Database = {
         Args: { _approver: string; _payroll_id: string }
         Returns: Json
       }
-      payroll_pay_batch: {
-        Args: {
-          _bank_account_id?: string
-          _cheque_due_date?: string
-          _cheque_number?: string
-          _month: number
-          _payer: string
-          _payment_date?: string
-          _payment_method: string
-          _user_id: string
-          _year: number
-        }
-        Returns: Json
-      }
-      payroll_pay_employee: {
-        Args: {
-          _bank_account_id?: string
-          _cheque_due_date?: string
-          _cheque_number?: string
-          _payer: string
-          _payment_date?: string
-          _payment_method: string
-          _payroll_id: string
-        }
-        Returns: Json
-      }
+      payroll_pay_batch:
+        | {
+            Args: {
+              _bank_account_id?: string
+              _cheque_due_date?: string
+              _cheque_number?: string
+              _month: number
+              _payer: string
+              _payment_date?: string
+              _payment_method: string
+              _user_id: string
+              _year: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _bank_account_id?: string
+              _cheque_due_date?: string
+              _cheque_number?: string
+              _month: number
+              _payer: string
+              _payment_account_code?: string
+              _payment_date?: string
+              _payment_method: string
+              _user_id: string
+              _year: number
+            }
+            Returns: Json
+          }
+      payroll_pay_employee:
+        | {
+            Args: {
+              _bank_account_id?: string
+              _cheque_due_date?: string
+              _cheque_number?: string
+              _payer: string
+              _payment_date?: string
+              _payment_method: string
+              _payroll_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _bank_account_id?: string
+              _cheque_due_date?: string
+              _cheque_number?: string
+              _payer: string
+              _payment_account_code?: string
+              _payment_date?: string
+              _payment_method: string
+              _payroll_id: string
+            }
+            Returns: Json
+          }
       payroll_reject_employee: {
         Args: { _approver: string; _payroll_id: string; _reason: string }
         Returns: Json
