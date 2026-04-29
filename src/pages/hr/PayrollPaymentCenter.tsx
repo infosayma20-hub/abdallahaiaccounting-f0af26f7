@@ -509,6 +509,7 @@ function SinglePayButton({
         chequeNumber: payload.chequeNumber,
         chequeDueDate: payload.chequeDueDate,
         paymentDate: payload.paymentDate,
+        paymentAccountCode: payload.paymentAccountCode,
       });
       setOpen(false);
       onAfter();

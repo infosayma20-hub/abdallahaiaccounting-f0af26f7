@@ -274,6 +274,7 @@ export function PayrollApprovalBar({
                 chequeDueDate: p.chequeDueDate,
                 paymentDate: p.paymentDate,
                 employeeId,
+                paymentAccountCode: p.paymentAccountCode,
               },
               { onSuccess: () => setPayOpen(false) },
             );
