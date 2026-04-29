@@ -420,7 +420,7 @@ const App = () => (
                       <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollPage /></RoleGuard>} />
                       <Route path="/payroll/inputs" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><MonthlyPayrollInputPage /></RoleGuard>} />
                       <Route path="/payroll/approval" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollApprovalCenter /></RoleGuard>} />
-                      <Route path="/payroll/payment" element={<RoleGuard allowedRoles={["admin", "accountant_senior", "accountant", "cashier"]}><PayrollPaymentCenter /></RoleGuard>} />
+                      <Route path="/payroll/payment" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><PayrollPaymentCenter /></RoleGuard>} />
                       <Route path="/leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><LeavesPage /></RoleGuard>} />
                       <Route path="/hr/import-employees" element={<Navigate to="/employees" replace />} />
                       <Route path="/payroll-settings" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollSettingsPage /></RoleGuard>} />
