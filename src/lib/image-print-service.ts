@@ -423,7 +423,22 @@ export async function printAllImage(
             .map(j => ({ key: j.printerKey, label: j.stationLabel, items: j.items }))
         : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
 
-    for (const station of stationsToPrint) {
+    // ── DEDUPE by printerKey ──
+    // If multiple stations resolve to the same printerKey (e.g. unmapped station IDs
+    // all falling back to 'kitchen'), merge their items into ONE job to avoid
+    // printing the same physical printer multiple times.
+    const mergedByKey = new Map<string, { key: string; label: string; items: PrintItem[] }>();
+    for (const s of stationsToPrint) {
+      const existing = mergedByKey.get(s.key);
+      if (existing) {
+        existing.items = [...existing.items, ...s.items];
+      } else {
+        mergedByKey.set(s.key, { ...s, items: [...s.items] });
+      }
+    }
+    const dedupedStations = Array.from(mergedByKey.values());
+
+    for (const station of dedupedStations) {
       const kitchenOrder = toBridgeKitchenOrder(order, station.items);
       const stationItemsCount = station.items.length;
       jobs.push(
