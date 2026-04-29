@@ -13,7 +13,7 @@
 import type { PrintOrder, PrintItem } from "@/hooks/usePrintBridge";
 import type { ShiftSummaryPrintData } from "@/components/pos/print-templates/ShiftSummaryTemplate";
 import { logPrintStart, logPrintFinish, type PrintMode } from "@/lib/print-diagnostics";
-import { getBridgeUrl } from "@/lib/device-config";
+import { getBridgeUrl, getDeviceBranchId } from "@/lib/device-config";
 
 // ──────────────────────────────────────────
 // Print Mode (raster | text) — persisted in localStorage
@@ -282,6 +282,12 @@ const ALL_STATIONS = [
   { key: 'pizza', label: 'البيتزا' },
 ];
 
+const RAMALLAH_PLAZA_BRANCH_ID = 'f82642e1-ce32-456e-8ef8-e556d8d65af9';
+
+function shouldUseUnifiedKitchenPrinter(order: PrintOrder): boolean {
+  return getDeviceBranchId() === RAMALLAH_PLAZA_BRANCH_ID || order.branchName?.includes('رام الله بلازا');
+}
+
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
   const normalizedType = normalizeOrderType(order.orderType, order.tableNumber);
   return {
@@ -423,12 +429,19 @@ export async function printAllImage(
     // ── KITCHEN jobs ──
     // If filtered kitchenJobs are provided, send ONLY those (one per station, filtered items).
     // Otherwise, fall back to legacy behaviour: send full order to all 3 stations.
-    const stationsToPrint: { key: string; label: string; items: PrintItem[] }[] =
+    const stationsToPrintRaw: { key: string; label: string; items: PrintItem[] }[] =
       kitchenJobs && kitchenJobs.length > 0
         ? kitchenJobs
             .filter(j => j.items && j.items.length > 0)
             .map(j => ({ key: j.printerKey, label: j.stationLabel, items: j.items }))
         : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
+
+    const unifiedKitchenItems = kitchenJobs && kitchenJobs.length > 0
+      ? stationsToPrintRaw.flatMap(s => s.items)
+      : order.items;
+    const stationsToPrint = shouldUseUnifiedKitchenPrinter(order)
+      ? [{ key: 'kitchen', label: 'المطبخ', items: unifiedKitchenItems }]
+      : stationsToPrintRaw;
 
     // ── DEDUPE by printerKey ──
     // If multiple stations resolve to the same printerKey (e.g. unmapped station IDs
