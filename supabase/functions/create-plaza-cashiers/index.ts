@@ -151,10 +151,30 @@ Deno.serve(async (req) => {
           full_name: c.name,
         }).eq("user_id", authUserId);
 
-        // pos_users record (scoped to branch)
-        const { data: posUser, error: posErr } = await supabase
+        // pos_users record (scoped to branch) — manual upsert
+        const { data: existingPos } = await supabase
           .from("pos_users")
-          .upsert({
+          .select("id")
+          .eq("auth_user_id", authUserId)
+          .maybeSingle();
+
+        let posUserId: string;
+        if (existingPos) {
+          await supabase.from("pos_users").update({
+            company_id: POS_COMPANY_ID,
+            branch_id: BRANCH_ID,
+            name: c.name,
+            email: c.email,
+            role: "cashier",
+            is_active: true,
+            has_account: true,
+            account_status: "active",
+            must_change_password: false,
+            is_call_center: false,
+          }).eq("id", existingPos.id);
+          posUserId = existingPos.id;
+        } else {
+          const { data: created2, error: posErr } = await supabase.from("pos_users").insert({
             user_id: userId,
             company_id: POS_COMPANY_ID,
             branch_id: BRANCH_ID,
@@ -168,21 +188,20 @@ Deno.serve(async (req) => {
             account_status: "active",
             must_change_password: false,
             is_call_center: false,
-          }, { onConflict: "auth_user_id" })
-          .select("id")
-          .single();
-
-        if (posErr) { results.push({ email: c.email, status: "error", error: "pos_users: " + posErr.message }); continue; }
+          }).select("id").single();
+          if (posErr) { results.push({ email: c.email, status: "error", error: "pos_users: " + posErr.message }); continue; }
+          posUserId = created2!.id;
+        }
 
         // Restricted permissions
         await supabase.from("pos_user_permissions").upsert({
           user_id: userId,
-          pos_user_id: posUser!.id,
+          pos_user_id: posUserId,
           company_id: POS_COMPANY_ID,
           ...RESTRICTED_PERMS,
         }, { onConflict: "pos_user_id" });
 
-        results.push({ email: c.email, status: "success", auth_user_id: authUserId, pos_user_id: posUser!.id });
+        results.push({ email: c.email, status: "success", auth_user_id: authUserId, pos_user_id: posUserId });
       } catch (e) {
         results.push({ email: c.email, status: "error", error: (e as Error).message });
       }
