@@ -436,8 +436,11 @@ export async function printAllImage(
             .map(j => ({ key: j.printerKey, label: j.stationLabel, items: j.items }))
         : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
 
+    const unifiedKitchenItems = kitchenJobs && kitchenJobs.length > 0
+      ? stationsToPrintRaw.flatMap(s => s.items)
+      : order.items;
     const stationsToPrint = shouldUseUnifiedKitchenPrinter(order)
-      ? [{ key: 'kitchen', label: 'المطبخ', items: stationsToPrintRaw.flatMap(s => s.items) }]
+      ? [{ key: 'kitchen', label: 'المطبخ', items: unifiedKitchenItems }]
       : stationsToPrintRaw;
 
     // ── DEDUPE by printerKey ──
