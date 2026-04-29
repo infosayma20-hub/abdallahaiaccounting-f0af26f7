@@ -4892,6 +4892,11 @@ const POSPage = () => {
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {(!deviceConfig.branchId || !deviceConfig.terminalId) && (
+              <div className="rounded-md border border-warning/30 bg-warning/10 p-2.5 text-[12px] leading-tight text-warning-foreground">
+                ⚠️ الجهاز غير مهيأ بالكامل — تم السماح بالعمل مؤقتاً. يمكن ضبط الفرع والمحطة لاحقاً من إعداد الجهاز.
+              </div>
+            )}
             {/* Cash Box Selector */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
@@ -4937,26 +4942,10 @@ const POSPage = () => {
             )}
           </div>
           <DialogFooter>
-            {(!deviceConfig.branchId || !deviceConfig.terminalId) ? (
-              <div className="w-full space-y-2">
-                <div className="rounded-md border p-2.5 text-[12px] leading-tight" style={{ background: "#fef3c7", borderColor: "#fde68a", color: "#78350f" }}>
-                  ⛔ لا يمكن فتح الوردية — الجهاز غير مهيأ. اختر الفرع ومحطة POS من إعداد الجهاز أولاً.
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => window.location.assign("/device-setup")}
-                  className="w-full h-12 text-base font-bold gap-2"
-                  style={{ background: "#0D1B2E", color: "#fff" }}
-                >
-                  <Settings className="h-5 w-5" /> إعداد الجهاز الآن
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
-                <CheckCircle className="h-5 w-5" />
-                فتح الوردية
-              </Button>
-            )}
+            <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
+              <CheckCircle className="h-5 w-5" />
+              فتح الوردية
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
