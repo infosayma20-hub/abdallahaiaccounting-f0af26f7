@@ -216,6 +216,7 @@ export default function PayrollPaymentCenter() {
           chequeNumber: payload.chequeNumber,
           chequeDueDate: payload.chequeDueDate,
           paymentDate: payload.paymentDate,
+          paymentAccountCode: payload.paymentAccountCode,
         });
         ok += 1;
       } catch (e: any) {
@@ -244,6 +245,7 @@ export default function PayrollPaymentCenter() {
         chequeNumber: payload.chequeNumber,
         chequeDueDate: payload.chequeDueDate,
         paymentDate: payload.paymentDate,
+        paymentAccountCode: payload.paymentAccountCode,
       });
       setSelected(new Set());
     } catch { /* mutation hook toasts */ }
