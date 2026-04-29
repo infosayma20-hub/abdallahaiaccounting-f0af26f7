@@ -1985,7 +1985,11 @@ const POSPage = () => {
 
   // Open session
   const handleOpenShift = async () => {
-    if (!userId || !company || !terminal) return;
+    if (!userId || !company) return;
+    if (!terminal) {
+      toast.error("⛔ لا يوجد محطة POS مهيأة لهذا الجهاز — افتح إعداد الجهاز أولاً");
+      return;
+    }
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!guardCashBoxBranchId()) return;
@@ -2011,7 +2015,8 @@ const POSPage = () => {
       .single();
 
     if (error) {
-      toast.error("خطأ في فتح الوردية");
+      console.error("[open-shift] insert failed:", error);
+      toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
       return;
     }
 
