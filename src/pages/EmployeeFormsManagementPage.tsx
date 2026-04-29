@@ -323,19 +323,19 @@ export default function EmployeeFormsManagementPage() {
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : (
-              <Card className="border-border overflow-hidden">
+              <Card className="border-border overflow-hidden rounded-xl">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">الموظف</TableHead>
-                        <TableHead className="text-right">الفرع</TableHead>
-                        <TableHead className="text-right">النموذج</TableHead>
-                        <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">التفاصيل</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-right">إجراء</TableHead>
+                    <TableHeader className="bg-[#0D1B2E]">
+                      <TableRow className="hover:bg-[#0D1B2E] border-b-0">
+                        <TableHead className="text-right text-white font-semibold">إجراء</TableHead>
+                        <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
+                        <TableHead className="text-right text-white font-semibold">التاريخ</TableHead>
+                        <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
+                        <TableHead className="text-right text-white font-semibold">المبلغ</TableHead>
+                        <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
+                        <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
+                        <TableHead className="text-right text-white font-semibold">الموظف</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -351,47 +351,47 @@ export default function EmployeeFormsManagementPage() {
                           const details = getFormDetails(f);
                           const isPending = f.status === "pending";
                           return (
-                            <TableRow key={f.id}>
-                              <TableCell className="font-medium text-sm whitespace-nowrap">{emp?.name || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{emp?.branch || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
-                              <TableCell className="text-sm font-semibold whitespace-nowrap">
-                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={details}>{details || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                              <TableCell>
-                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
-                              </TableCell>
+                            <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
                               <TableCell>
                                 <div className="flex items-center gap-1">
                                   {isPending && (
                                     <>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
                                         onClick={() => handleAction("approved", f)}
-                                        disabled={!!processing}>
+                                        disabled={!!processing} title="موافقة">
                                         {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                                       </Button>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                         onClick={() => handleAction("rejected", f)}
-                                        disabled={!!processing}>
+                                        disabled={!!processing} title="رفض">
                                         {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
                                       </Button>
                                     </>
                                   )}
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
                                     <Eye className="h-3.5 w-3.5" />
                                   </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/10" onClick={() => setPrintForm(f)}>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/10" title="طباعة" onClick={() => setPrintForm(f)}>
                                     <Printer className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDelete(f)}
-                                    disabled={!!processing}>
+                                    disabled={!!processing} title="حذف">
                                     {processing === f.id + "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                   </Button>
                                 </div>
                               </TableCell>
+                              <TableCell>
+                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-sm font-semibold whitespace-nowrap">
+                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
+                              </TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{emp?.branch || "—"}</TableCell>
+                              <TableCell className="font-medium text-sm whitespace-nowrap">{emp?.name || "—"}</TableCell>
                             </TableRow>
                           );
                         })
