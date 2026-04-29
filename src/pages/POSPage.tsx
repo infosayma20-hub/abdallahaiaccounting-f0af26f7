@@ -3055,7 +3055,13 @@ const POSPage = () => {
         };
 
         // Print receipt + filtered kitchen tickets — all in parallel
-        printAllImage(bridgeOrder, companyPrintInfo, kitchenJobs.length > 0 ? kitchenJobs : undefined)
+        // For DELIVERY orders: skip the cashier receipt and print kitchen tickets only.
+        printAllImage(
+          bridgeOrder,
+          companyPrintInfo,
+          kitchenJobs.length > 0 ? kitchenJobs : undefined,
+          { skipReceipt: activeOrder.orderType === "delivery" },
+        )
           .catch(() => console.warn("Image print failed"));
       } catch (printErr) {
         console.warn("Print bridge error:", printErr);
@@ -3565,7 +3571,7 @@ const POSPage = () => {
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
         printInProgressRef.current = true;
-        printAllImage(f8Order)
+        printAllImage(f8Order, undefined, undefined, { skipReceipt: activeOrder.orderType === "delivery" })
           .catch(() => console.warn("F8 image print failed"))
           .finally(() => { printInProgressRef.current = false; });
         e.preventDefault();
