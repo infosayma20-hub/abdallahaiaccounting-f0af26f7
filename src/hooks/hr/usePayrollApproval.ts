@@ -313,6 +313,7 @@ export type PayPayrollInput = {
   chequeDueDate?: string | null;
   paymentDate?: string | null;
   employeeId?: string;
+  paymentAccountCode?: string | null;
 };
 
 export function usePayPayrollEmployee() {
@@ -333,6 +334,7 @@ export function usePayPayrollEmployee() {
         _cheque_number: input.chequeNumber ?? null,
         _cheque_due_date: input.chequeDueDate ?? null,
         _payment_date: input.paymentDate ?? null,
+        _payment_account_code: input.paymentAccountCode ?? null,
       });
       if (error) throw error;
       return data as any;
@@ -368,6 +370,7 @@ export type PayBatchInput = {
   chequeNumber?: string | null;
   chequeDueDate?: string | null;
   paymentDate?: string | null;
+  paymentAccountCode?: string | null;
 };
 
 export function usePayPayrollBatch() {
@@ -390,6 +393,7 @@ export function usePayPayrollBatch() {
         _cheque_number: input.chequeNumber ?? null,
         _cheque_due_date: input.chequeDueDate ?? null,
         _payment_date: input.paymentDate ?? null,
+        _payment_account_code: input.paymentAccountCode ?? null,
       });
       if (error) throw error;
       return data as any;

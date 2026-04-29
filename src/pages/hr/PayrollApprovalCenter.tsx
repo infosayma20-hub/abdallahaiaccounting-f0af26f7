@@ -369,6 +369,7 @@ export default function PayrollApprovalCenter() {
                 chequeNumber: p.chequeNumber,
                 chequeDueDate: p.chequeDueDate,
                 paymentDate: p.paymentDate,
+                paymentAccountCode: p.paymentAccountCode,
               },
               { onSuccess: () => setPayOpen(false) },
             );
