@@ -272,6 +272,7 @@ function toBridgeReceiptOrder(order: PrintOrder, companyInfo?: {
 export const STATION_TO_PRINTER: Record<string, { key: string; label: string }> = {
   'a09ebd1b-392c-42b2-a8a7-d180fdde1f97': { key: 'kitchen', label: 'المطبخ' },
   '4f64e6b4-89ab-4e22-b935-52f3ec665e54': { key: 'grill', label: 'السخان' },
+  'b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e': { key: 'grill', label: 'السخان' },
   '8ee3d8c7-fdeb-47b2-bc0c-1c5f9750d516': { key: 'pizza', label: 'البيتزا' },
 };
 
