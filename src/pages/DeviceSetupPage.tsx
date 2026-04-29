@@ -159,10 +159,6 @@ export default function DeviceSetupPage() {
 
   const handleSave = async () => {
     const normalized = normalizeBridgeUrl(bridgeInput);
-    if (!normalized) {
-      toast.error("أدخل عنوان Print Bridge");
-      return;
-    }
     if (!branchId) {
       toast.error("اختر الفرع لهذا الجهاز");
       return;
