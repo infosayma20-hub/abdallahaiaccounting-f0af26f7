@@ -4889,7 +4889,7 @@ const POSPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {(!deviceConfig.branchId || !deviceConfig.terminalId) && (
-              <div className="rounded-md border border-warning/30 bg-warning/10 p-2.5 text-[12px] leading-tight text-warning-foreground">
+              <div className="rounded-md border border-warning/40 bg-warning/15 p-2.5 text-[12px] leading-tight text-foreground dark:text-warning">
                 ⚠️ الجهاز غير مهيأ بالكامل — تم السماح بالعمل مؤقتاً. يمكن ضبط الفرع والمحطة لاحقاً من إعداد الجهاز.
               </div>
             )}
