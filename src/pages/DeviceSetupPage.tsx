@@ -344,7 +344,7 @@ export default function DeviceSetupPage() {
           </Button>
         </div>
 
-        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning-foreground">
+        <div className="rounded-lg border border-warning/40 bg-warning/15 p-3 text-xs text-foreground dark:text-warning">
           ℹ️ هذه الإعدادات تُحفظ في هذا الجهاز فقط. أي جهاز جديد سيحتاج لإعداد منفصل من نفس الشاشة.
         </div>
       </div>
