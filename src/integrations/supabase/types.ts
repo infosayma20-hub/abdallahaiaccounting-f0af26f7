@@ -10075,6 +10075,8 @@ export type Database = {
           setup_completed: boolean | null
           smart_accountant_onboarded: boolean | null
           smart_accountant_onboarded_at: string | null
+          trial_welcome_seen: boolean
+          trial_welcome_seen_at: string | null
           updated_at: string
           user_id: string
           work_field: string | null
@@ -10100,6 +10102,8 @@ export type Database = {
           setup_completed?: boolean | null
           smart_accountant_onboarded?: boolean | null
           smart_accountant_onboarded_at?: string | null
+          trial_welcome_seen?: boolean
+          trial_welcome_seen_at?: string | null
           updated_at?: string
           user_id: string
           work_field?: string | null
@@ -10125,6 +10129,8 @@ export type Database = {
           setup_completed?: boolean | null
           smart_accountant_onboarded?: boolean | null
           smart_accountant_onboarded_at?: string | null
+          trial_welcome_seen?: boolean
+          trial_welcome_seen_at?: string | null
           updated_at?: string
           user_id?: string
           work_field?: string | null
