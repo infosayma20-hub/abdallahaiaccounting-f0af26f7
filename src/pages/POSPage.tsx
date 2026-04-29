@@ -1985,7 +1985,11 @@ const POSPage = () => {
 
   // Open session
   const handleOpenShift = async () => {
-    if (!userId || !company || !terminal) return;
+    if (!userId || !company) return;
+    if (!terminal) {
+      toast.error("⛔ لا يوجد محطة POS مهيأة لهذا الجهاز — افتح إعداد الجهاز أولاً");
+      return;
+    }
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!guardCashBoxBranchId()) return;
@@ -2011,7 +2015,8 @@ const POSPage = () => {
       .single();
 
     if (error) {
-      toast.error("خطأ في فتح الوردية");
+      console.error("[open-shift] insert failed:", error);
+      toast.error(`خطأ في فتح الوردية: ${error.message || "سبب غير معروف"}`);
       return;
     }
 
@@ -4895,8 +4900,19 @@ const POSPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {(!deviceConfig.branchId || !deviceConfig.terminalId) && (
-              <div className="rounded-md border border-warning/40 bg-warning/15 p-2.5 text-[12px] leading-tight text-foreground dark:text-warning">
-                ⚠️ الجهاز غير مهيأ بالكامل — تم السماح بالعمل مؤقتاً. يمكن ضبط الفرع والمحطة لاحقاً من إعداد الجهاز.
+              <div className="rounded-md border border-warning/40 bg-warning/15 p-2.5 text-[12px] leading-tight text-foreground dark:text-warning space-y-2">
+                <div>⚠️ الجهاز غير مهيأ بالكامل — يجب ضبط الفرع والمحطة قبل فتح الوردية.</div>
+                {isAdmin && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="w-full h-9"
+                    onClick={() => { setShowOpenShift(false); navigate("/device-setup"); }}
+                  >
+                    🛠️ فتح إعداد الجهاز الآن
+                  </Button>
+                )}
               </div>
             )}
             {/* Cash Box Selector */}
