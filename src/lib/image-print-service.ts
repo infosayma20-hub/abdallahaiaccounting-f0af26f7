@@ -401,25 +401,42 @@ export async function printAllImage(
   try {
     console.log(`[frontend-print-request] all key=${dedupeKey}`);
     const receiptOrder = toBridgeReceiptOrder(order, companyInfo);
-    const kitchenOrder = toBridgeKitchenOrder(order, order.items);
     const itemsCount = order.items?.length || 0;
     const receiptMeta = buildMeta('cashier_receipt', { itemsCount, estimatedHeight: estimateReceiptHeight(itemsCount) });
     const kitchenMeta = (key: string) => buildMeta(`kitchen_${key}`, { itemsCount });
 
-    const results = await Promise.all([
+    // ── RECEIPT job (always) ──
+    const jobs: Promise<{ printerKey: string; name: string; success: boolean; error?: string }>[] = [
       bridgeFetch('/print-receipt', { order: receiptOrder, meta: receiptMeta }, { receiptType: 'cashier_receipt', itemsCount, estimatedHeight: receiptMeta.estimatedHeight })
         .then((r: any) => ({ printerKey: 'receipt', name: 'الوصل', success: r.success, error: r.error }))
         .catch((err: any) => ({ printerKey: 'receipt', name: 'الوصل', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'kitchen', stationLabel: 'المطبخ', meta: kitchenMeta('kitchen') }, { receiptType: 'kitchen_kitchen', itemsCount })
-        .then((r: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: r.success, error: r.error }))
-        .catch((err: any) => ({ printerKey: 'kitchen', name: 'المطبخ', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'grill', stationLabel: 'السخان', meta: kitchenMeta('grill') }, { receiptType: 'kitchen_grill', itemsCount })
-        .then((r: any) => ({ printerKey: 'grill', name: 'السخان', success: r.success, error: r.error }))
-        .catch((err: any) => ({ printerKey: 'grill', name: 'السخان', success: false, error: err.message })),
-      bridgeFetch('/print-kitchen', { order: kitchenOrder, printerKey: 'pizza', stationLabel: 'البيتزا', meta: kitchenMeta('pizza') }, { receiptType: 'kitchen_pizza', itemsCount })
-        .then((r: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: r.success, error: r.error }))
-        .catch((err: any) => ({ printerKey: 'pizza', name: 'البيتزا', success: false, error: err.message })),
-    ]);
+    ];
+
+    // ── KITCHEN jobs ──
+    // If filtered kitchenJobs are provided, send ONLY those (one per station, filtered items).
+    // Otherwise, fall back to legacy behaviour: send full order to all 3 stations.
+    const stationsToPrint: { key: string; label: string; items: PrintItem[] }[] =
+      kitchenJobs && kitchenJobs.length > 0
+        ? kitchenJobs
+            .filter(j => j.items && j.items.length > 0)
+            .map(j => ({ key: j.printerKey, label: j.stationLabel, items: j.items }))
+        : ALL_STATIONS.map(s => ({ key: s.key, label: s.label, items: order.items }));
+
+    for (const station of stationsToPrint) {
+      const kitchenOrder = toBridgeKitchenOrder(order, station.items);
+      const stationItemsCount = station.items.length;
+      jobs.push(
+        bridgeFetch(
+          '/print-kitchen',
+          { order: kitchenOrder, printerKey: station.key, stationLabel: station.label, meta: kitchenMeta(station.key) },
+          { receiptType: `kitchen_${station.key}`, itemsCount: stationItemsCount },
+        )
+          .then((r: any) => ({ printerKey: station.key, name: station.label, success: r.success, error: r.error }))
+          .catch((err: any) => ({ printerKey: station.key, name: station.label, success: false, error: err.message })),
+      );
+    }
+
+    const results = await Promise.all(jobs);
 
     const allOk = results.every(r => r.success);
     if (allOk) console.log(`[frontend-print-success] all key=${dedupeKey}`);
