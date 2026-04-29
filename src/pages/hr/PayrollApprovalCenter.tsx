@@ -238,12 +238,13 @@ export default function PayrollApprovalCenter() {
             {stats.approvedUnpaid.length > 0 && (
               <Button
                 size="sm"
-                onClick={() => setPayOpen(true)}
-                disabled={payBatchMut.isPending}
+                asChild
                 className="gap-1 bg-primary hover:bg-primary/90"
               >
-                <Banknote className="h-4 w-4" />
-                دفع جماعي ({stats.approvedUnpaid.length})
+                <Link to={`/payroll/payment?year=${year}&month=${month}`}>
+                  <Banknote className="h-4 w-4" />
+                  انتقل إلى الدفع ({stats.approvedUnpaid.length})
+                </Link>
               </Button>
             )}
           </CardHeader>
