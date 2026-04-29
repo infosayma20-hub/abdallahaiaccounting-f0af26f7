@@ -573,6 +573,8 @@ const POSPage = () => {
   );
 
   const guardCashBoxBranchId = useCallback((box?: CashBoxOption | null) => {
+    // Emergency POS access: do not block users by branch/cash-box binding for now.
+    return true;
     const targetBox = box ?? selectedCashBox;
     if (!targetBox || targetBox.id === "__call_center__") return true;
     if (!targetBox.branch_id) {
@@ -642,6 +644,8 @@ const POSPage = () => {
    * Returns true ⇢ proceed. Returns false ⇢ caller MUST early-return.
    */
   const enforceDeviceGuard = useCallback((opts?: { silent?: boolean }) => {
+    // Emergency POS access: allow selling while device setup is corrected later.
+    return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
       if (!opts?.silent) toast.error("⏳ يتم التحقق من فرع الجهاز والصندوق، حاول مرة أخرى");
       return false;
