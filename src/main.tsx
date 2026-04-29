@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./lib/excel-export"; // Activates Excel branding interceptor globally
+import { hydrateConfigFromBridge } from "./lib/device-config";
 
 // Force Western Arabic numerals (123) globally instead of Eastern (١٢٣)
 const origNumberToLocaleString = Number.prototype.toLocaleString;
@@ -57,3 +58,8 @@ observer.observe(document.body, { childList: true, subtree: true });
 document.querySelectorAll('input[type="date"]').forEach(inp => inp.setAttribute('lang', 'en-GB'));
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Restore device configuration from the Print Bridge's on-disk copy
+// so the cashier PC keeps its branch/terminal/bridge URL even after
+// a "Clear browsing data" wipe. Fire-and-forget, non-blocking.
+hydrateConfigFromBridge();

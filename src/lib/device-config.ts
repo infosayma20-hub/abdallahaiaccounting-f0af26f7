@@ -23,6 +23,21 @@ const DEFAULT_BRIDGE_PORT = 3001;
 /** Default fallback. Used only if nothing is configured yet. Empty string = unconfigured. */
 const DEFAULT_BRIDGE_URL = "";
 
+/**
+ * The Print Bridge running on the cashier PC also stores a copy of the
+ * device config on disk (c:\print-bridge\device.json) and exposes it at
+ * GET/POST /device-config. This makes the configuration survive ANY
+ * browser-side wipe (clear history, clear site data, new browser, etc.)
+ * because the source of truth is a file on the local PC.
+ *
+ * We probe a small set of well-known local URLs in order to find the bridge
+ * even before the user has set the Bridge URL in localStorage.
+ */
+const BRIDGE_PROBE_URLS = [
+  "http://127.0.0.1:3001",
+  "http://localhost:3001",
+];
+
 function safeGet(key: string): string {
   try {
     return localStorage.getItem(key) ?? "";
@@ -68,6 +83,7 @@ export function getBridgeUrl(): string {
 export function setBridgeUrl(url: string): void {
   safeSet(KEYS.bridgeUrl, normalizeBridgeUrl(url));
   notifyChange();
+  void pushConfigToBridge();
 }
 
 export function isBridgeConfigured(): boolean {
@@ -83,6 +99,7 @@ export function getDeviceBranchId(): string {
 export function setDeviceBranchId(id: string): void {
   safeSet(KEYS.branchId, id);
   notifyChange();
+  void pushConfigToBridge();
 }
 
 // ── Terminal ────────────────────────────────────────────────
@@ -94,6 +111,7 @@ export function getDeviceTerminalId(): string {
 export function setDeviceTerminalId(id: string): void {
   safeSet(KEYS.terminalId, id);
   notifyChange();
+  void pushConfigToBridge();
 }
 
 // ── Label ───────────────────────────────────────────────────
@@ -105,6 +123,7 @@ export function getDeviceLabel(): string {
 export function setDeviceLabel(label: string): void {
   safeSet(KEYS.label, label);
   notifyChange();
+  void pushConfigToBridge();
 }
 
 // ── Bulk operations ─────────────────────────────────────────
@@ -128,6 +147,110 @@ export function getDeviceConfig(): DeviceConfig {
 export function clearDeviceConfig(): void {
   Object.values(KEYS).forEach(k => safeSet(k, ""));
   notifyChange();
+}
+
+// ── Bridge-side persistence (survives browser data wipes) ───
+
+async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 1500): Promise<Response> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Try the configured bridge URL first, then well-known local URLs. */
+function bridgeCandidates(): string[] {
+  const cfg = getBridgeUrl();
+  const list: string[] = [];
+  if (cfg) list.push(cfg);
+  for (const u of BRIDGE_PROBE_URLS) if (!list.includes(u)) list.push(u);
+  return list;
+}
+
+/**
+ * Push the current localStorage config to the bridge so it persists on disk.
+ * Fire-and-forget — never throws.
+ */
+export async function pushConfigToBridge(): Promise<void> {
+  const cfg = getDeviceConfig();
+  // Only push if there is at least one meaningful field set
+  if (!cfg.branchId && !cfg.terminalId && !cfg.bridgeUrl && !cfg.label) return;
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/device-config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cfg),
+      });
+      if (res.ok) return;
+    } catch {
+      /* try next */
+    }
+  }
+}
+
+/**
+ * Read the on-disk config from the bridge. Returns null if no bridge or no config.
+ */
+export async function pullConfigFromBridge(): Promise<DeviceConfig | null> {
+  for (const base of bridgeCandidates()) {
+    try {
+      const res = await fetchWithTimeout(`${base}/device-config`, { method: "GET" });
+      if (!res.ok) continue;
+      const json = (await res.json()) as Partial<DeviceConfig> & { bridgeUrl?: string };
+      if (!json || typeof json !== "object") continue;
+      // If we hit it via a probe URL and no bridgeUrl is stored, remember this base
+      const out: DeviceConfig = {
+        bridgeUrl: normalizeBridgeUrl(json.bridgeUrl || base),
+        branchId: json.branchId || "",
+        terminalId: json.terminalId || "",
+        label: json.label || "",
+      };
+      return out;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+/**
+ * Run once at app boot. If localStorage is missing critical fields
+ * (e.g. user just did "Clear browsing data"), restore them from the
+ * bridge's on-disk copy. If localStorage already has them but the
+ * bridge is empty, push the local copy up so future wipes are safe.
+ *
+ * Safe to call from any context — never throws.
+ */
+export async function hydrateConfigFromBridge(): Promise<void> {
+  try {
+    const local = getDeviceConfig();
+    const remote = await pullConfigFromBridge();
+
+    if (remote && (remote.branchId || remote.terminalId || remote.bridgeUrl)) {
+      let restored = false;
+      // Restore each missing field from the bridge
+      if (!local.bridgeUrl && remote.bridgeUrl) { safeSet(KEYS.bridgeUrl, remote.bridgeUrl); restored = true; }
+      if (!local.branchId && remote.branchId)   { safeSet(KEYS.branchId,   remote.branchId);   restored = true; }
+      if (!local.terminalId && remote.terminalId) { safeSet(KEYS.terminalId, remote.terminalId); restored = true; }
+      if (!local.label && remote.label)         { safeSet(KEYS.label,      remote.label);      restored = true; }
+      if (restored) {
+        try { console.info("[device-config] Restored from Print Bridge after browser wipe"); } catch {}
+        notifyChange();
+      }
+      return;
+    }
+
+    // Bridge has nothing — push our local copy so it's safe next time
+    if (local.branchId || local.terminalId || local.bridgeUrl) {
+      await pushConfigToBridge();
+    }
+  } catch {
+    /* never block app boot */
+  }
 }
 
 /** True only when bridge URL + branch + terminal are all set. */
