@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
+import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, CheckCircle2, X } from "lucide-react";
 
 const LS_KEY = "trial_welcome_shown";
@@ -14,16 +15,49 @@ const TrialWelcomeModal = () => {
   useEffect(() => {
     if (!user?.id || !isTrial || isPaidActive) return;
     const key = `${LS_KEY}_${user.id}`;
-    if (localStorage.getItem(key)) return;
-    // Mark as shown immediately to prevent re-show across tabs/sessions
-    localStorage.setItem(key, "1");
-    const t = setTimeout(() => setOpen(true), 1500);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    let t: ReturnType<typeof setTimeout> | undefined;
+
+    (async () => {
+      // Fast local check first
+      if (localStorage.getItem(key)) return;
+
+      // Authoritative DB check — survives device/browser changes
+      const { data } = await supabase
+        .from("profiles")
+        .select("trial_welcome_seen")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (data?.trial_welcome_seen) {
+        localStorage.setItem(key, "1");
+        return;
+      }
+
+      t = setTimeout(() => {
+        if (!cancelled) setOpen(true);
+      }, 1500);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (t) clearTimeout(t);
+    };
   }, [user?.id, isTrial, isPaidActive]);
 
-  const close = () => {
+  const close = async () => {
     setOpen(false);
-    if (user?.id) localStorage.setItem(`${LS_KEY}_${user.id}`, "1");
+    if (!user?.id) return;
+    localStorage.setItem(`${LS_KEY}_${user.id}`, "1");
+    // Persist in DB so it never appears again on any device
+    await supabase
+      .from("profiles")
+      .update({
+        trial_welcome_seen: true,
+        trial_welcome_seen_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id);
   };
 
   return (
