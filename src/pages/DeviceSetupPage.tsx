@@ -159,10 +159,6 @@ export default function DeviceSetupPage() {
 
   const handleSave = async () => {
     const normalized = normalizeBridgeUrl(bridgeInput);
-    if (!normalized) {
-      toast.error("أدخل عنوان Print Bridge");
-      return;
-    }
     if (!branchId) {
       toast.error("اختر الفرع لهذا الجهاز");
       return;
@@ -236,14 +232,14 @@ export default function DeviceSetupPage() {
             </h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            عنوان IP والمنفذ لخادم الطباعة المحلي على شبكة هذا الفرع. مثال:{" "}
+            اختياري حالياً — عنوان IP والمنفذ لخادم الطباعة المحلي على شبكة هذا الفرع. مثال:{" "}
             <code className="bg-muted px-1 rounded font-mono text-[11px]" dir="ltr">http://192.168.1.65:3001</code>
           </p>
           <div className="flex gap-2">
             <Input
               value={bridgeInput}
               onChange={e => { setBridgeInput(e.target.value); setBridgeStatus("idle"); }}
-              placeholder="http://192.168.x.x:3001"
+              placeholder="اختياري — http://192.168.x.x:3001"
               className="font-mono text-sm"
               dir="ltr"
             />

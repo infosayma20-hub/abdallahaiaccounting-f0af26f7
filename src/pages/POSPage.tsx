@@ -573,6 +573,8 @@ const POSPage = () => {
   );
 
   const guardCashBoxBranchId = useCallback((box?: CashBoxOption | null) => {
+    // Emergency POS access: do not block users by branch/cash-box binding for now.
+    return true;
     const targetBox = box ?? selectedCashBox;
     if (!targetBox || targetBox.id === "__call_center__") return true;
     if (!targetBox.branch_id) {
@@ -642,6 +644,8 @@ const POSPage = () => {
    * Returns true ⇢ proceed. Returns false ⇢ caller MUST early-return.
    */
   const enforceDeviceGuard = useCallback((opts?: { silent?: boolean }) => {
+    // Emergency POS access: allow selling while device setup is corrected later.
+    return true;
     if (!terminalBranchChecked || !cashBoxBranchChecked) {
       if (!opts?.silent) toast.error("⏳ يتم التحقق من فرع الجهاز والصندوق، حاول مرة أخرى");
       return false;
@@ -1984,10 +1988,6 @@ const POSPage = () => {
     if (!userId || !company || !terminal) return;
     if (!enforceDeviceGuard()) return;
     if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
-    if (!selectedCashBoxId) {
-      toast.error("يجب اختيار الصندوق قبل فتح الوردية");
-      return;
-    }
     if (!guardCashBoxBranchId()) return;
     const isCallCenter = selectedCashBoxId === "__call_center__";
     const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
@@ -4888,6 +4888,11 @@ const POSPage = () => {
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {(!deviceConfig.branchId || !deviceConfig.terminalId) && (
+              <div className="rounded-md border border-warning/30 bg-warning/10 p-2.5 text-[12px] leading-tight text-warning-foreground">
+                ⚠️ الجهاز غير مهيأ بالكامل — تم السماح بالعمل مؤقتاً. يمكن ضبط الفرع والمحطة لاحقاً من إعداد الجهاز.
+              </div>
+            )}
             {/* Cash Box Selector */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
@@ -4903,7 +4908,7 @@ const POSPage = () => {
                 }}
                 className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
               >
-                <option value="">-- اختر الصندوق --</option>
+                <option value="">بدون صندوق مؤقتاً</option>
                 {cashBoxes.map(box => (
                   <option key={box.id} value={box.id}>{box.name}</option>
                 ))}
@@ -4933,26 +4938,10 @@ const POSPage = () => {
             )}
           </div>
           <DialogFooter>
-            {(!deviceConfig.branchId || !deviceConfig.terminalId) ? (
-              <div className="w-full space-y-2">
-                <div className="rounded-md border p-2.5 text-[12px] leading-tight" style={{ background: "#fef3c7", borderColor: "#fde68a", color: "#78350f" }}>
-                  ⛔ لا يمكن فتح الوردية — الجهاز غير مهيأ. اختر الفرع ومحطة POS من إعداد الجهاز أولاً.
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => window.location.assign("/device-setup")}
-                  className="w-full h-12 text-base font-bold gap-2"
-                  style={{ background: "#0D1B2E", color: "#fff" }}
-                >
-                  <Settings className="h-5 w-5" /> إعداد الجهاز الآن
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
-                <CheckCircle className="h-5 w-5" />
-                فتح الوردية
-              </Button>
-            )}
+            <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
+              <CheckCircle className="h-5 w-5" />
+              فتح الوردية
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
