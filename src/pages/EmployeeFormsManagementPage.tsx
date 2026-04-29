@@ -275,30 +275,30 @@ export default function EmployeeFormsManagementPage() {
           </div>
         )}
 
-        <Tabs value={policiesTab} onValueChange={setPoliciesTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="forms">الطلبات والنماذج</TabsTrigger>
-            <TabsTrigger value="policies">السياسات واللوائح</TabsTrigger>
+        <Tabs value={policiesTab} onValueChange={setPoliciesTab} className="w-full">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="forms" className="gap-1">
+              <FileText className="h-3.5 w-3.5" /> الطلبات والنماذج
+            </TabsTrigger>
+            <TabsTrigger value="policies" className="gap-1">
+              <FileText className="h-3.5 w-3.5" /> السياسات واللوائح
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="forms" className="space-y-4 mt-4">
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم الموظف..." className="pr-9 rounded-xl" />
+          <TabsContent value="forms" className="mt-4 space-y-3">
+            {/* Filters — same pattern as Attendance toolbar */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="بحث باسم الموظف..."
+                  className="ps-2 pe-8 w-[260px] h-9"
+                />
               </div>
-              <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
-                <SelectTrigger className="w-[180px] rounded-xl"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">الكل</SelectItem>
-                  {Object.entries(formTypeLabels).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-[150px] rounded-xl"><SelectValue placeholder="الحالة" /></SelectTrigger>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="الحالة" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
                   <SelectItem value="pending">قيد المراجعة</SelectItem>
@@ -306,17 +306,26 @@ export default function EmployeeFormsManagementPage() {
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
+                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأنواع</SelectItem>
+                  {Object.entries(formTypeLabels).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {branches.length > 0 && (
                 <Select value={filterBranch} onValueChange={v => { setFilterBranch(v); setPage(1); }}>
-                  <SelectTrigger className="w-[150px] rounded-xl"><SelectValue placeholder="الفرع" /></SelectTrigger>
+                  <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="الفرع" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">كل الفروع</SelectItem>
                     {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
-              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="w-[150px] rounded-xl" placeholder="من تاريخ" dir="ltr" />
-              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="w-[150px] rounded-xl" placeholder="إلى تاريخ" dir="ltr" />
+              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="w-[150px] h-9" dir="ltr" />
+              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="w-[150px] h-9" dir="ltr" />
             </div>
 
             {/* Table */}
