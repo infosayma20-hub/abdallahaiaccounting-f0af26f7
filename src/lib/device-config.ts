@@ -137,6 +137,21 @@ export function isDeviceFullyConfigured(): boolean {
 }
 
 /**
+ * Operational readiness — does NOT require Print Bridge.
+ * If true, the cashier can open POS, add items and complete sales.
+ * Printing may still be unavailable; that's handled separately.
+ */
+export function isDeviceOperationallyReady(): boolean {
+  const cfg = getDeviceConfig();
+  return Boolean(cfg.branchId && cfg.terminalId);
+}
+
+/** Printing readiness — only true when the Print Bridge URL is set. */
+export function isPrintingReady(): boolean {
+  return Boolean(getBridgeUrl());
+}
+
+/**
  * Central guard used by ANY POS function before saving / printing / posting.
  * Compares device.branchId to terminal.branch_id and (optionally) cash_box.branch_id
  * passed by the caller. Returns ok:false with a human reason when blocked.
@@ -151,7 +166,9 @@ export interface GuardResult {
 }
 export function assertDeviceReady(input: GuardCheckInput = {}): GuardResult {
   const cfg = getDeviceConfig();
-  if (!cfg.bridgeUrl) return { ok: false, reason: "هذا الجهاز غير مهيأ — لم يتم إدخال عنوان Print Bridge." };
+  // ⚠️ Print Bridge is intentionally NOT checked here. Printing is a
+  // non-critical capability — it must never block selling. The cashier
+  // can complete sales and we surface a soft warning banner separately.
   if (!cfg.branchId) return { ok: false, reason: "هذا الجهاز غير مهيأ — لم يتم اختيار الفرع." };
   if (!cfg.terminalId) return { ok: false, reason: "هذا الجهاز غير مهيأ — لم يتم اختيار محطة POS." };
 
