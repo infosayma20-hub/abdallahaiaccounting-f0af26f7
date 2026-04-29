@@ -4933,10 +4933,26 @@ const POSPage = () => {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
-              <CheckCircle className="h-5 w-5" />
-              فتح الوردية
-            </Button>
+            {(!deviceConfig.branchId || !deviceConfig.terminalId) ? (
+              <div className="w-full space-y-2">
+                <div className="rounded-md border p-2.5 text-[12px] leading-tight" style={{ background: "#fef3c7", borderColor: "#fde68a", color: "#78350f" }}>
+                  ⛔ لا يمكن فتح الوردية — الجهاز غير مهيأ. اختر الفرع ومحطة POS من إعداد الجهاز أولاً.
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => window.location.assign("/device-setup")}
+                  className="w-full h-12 text-base font-bold gap-2"
+                  style={{ background: "#0D1B2E", color: "#fff" }}
+                >
+                  <Settings className="h-5 w-5" /> إعداد الجهاز الآن
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
+                <CheckCircle className="h-5 w-5" />
+                فتح الوردية
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
