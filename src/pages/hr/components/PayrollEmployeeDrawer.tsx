@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Sheet,
@@ -13,6 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   CheckCircle2,
   Clock,
   CalendarDays,
@@ -25,6 +35,12 @@ import {
   FileText,
   ChevronLeft,
   Lock,
+  Plus,
+  Minus,
+  Equal,
+  Calculator,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { useEmployee360 } from "@/hooks/hr/useEmployee360";
 import { useEmployeeCostEngine } from "@/hooks/hr/useEmployeeCostEngine";
@@ -247,6 +263,65 @@ export default function PayrollEmployeeDrawer({
   const isPaid = payrollRecord?.is_paid;
   const isLocked = isPaid; // Phase 2 will add full Audit Log + unlock workflow
 
+  // ===== Health Status (Smart Employee State) =====
+  const healthStatus = useMemo(() => {
+    const issues: string[] = [];
+    const warnings: string[] = [];
+
+    // Check incomplete days (missing check-out)
+    if (monthStats.incompleteDays > 0) {
+      issues.push(`${monthStats.incompleteDays} يوم بدون تسجيل خروج`);
+    }
+    // Check absent days
+    if (monthStats.absentDays > 0) {
+      warnings.push(`${monthStats.absentDays} يوم غياب`);
+    }
+    // Check pending requests
+    if (pendingRequests.length > 0) {
+      warnings.push(`${pendingRequests.length} طلب معلق بانتظار المراجعة`);
+    }
+    // Check missing payroll record
+    if (!payrollRecord) {
+      warnings.push("لم يتم احتساب راتب لهذا الشهر");
+    }
+
+    let level: "ready" | "review" | "issues" = "ready";
+    if (issues.length > 0) level = "issues";
+    else if (warnings.length > 0) level = "review";
+
+    return { level, issues, warnings };
+  }, [monthStats, pendingRequests, payrollRecord]);
+
+  const healthMeta = {
+    ready: {
+      label: "جاهز للدفع",
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400",
+      Icon: ShieldCheck,
+    },
+    review: {
+      label: "يحتاج مراجعة",
+      cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400",
+      Icon: AlertTriangle,
+    },
+    issues: {
+      label: "فيه مشاكل بصمة",
+      cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400",
+      Icon: ShieldAlert,
+    },
+  }[healthStatus.level];
+
+  // ===== Approval confirmation =====
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const handleApproveClick = () => {
+    if (!payrollRecord || !onApprovePayment) return;
+    // Always show confirmation (with check summary) before approving
+    setConfirmOpen(true);
+  };
+  const handleConfirmApprove = () => {
+    if (payrollRecord && onApprovePayment) onApprovePayment(payrollRecord.id);
+    setConfirmOpen(false);
+  };
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -277,7 +352,13 @@ export default function PayrollEmployeeDrawer({
                           : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
                       )}
                     >
-                      {isPaid ? <><CheckCircle2 className="h-3 w-3 ml-1" /> مدفوع</> : "غير مدفوع"}
+                      {isPaid ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 ml-1" /> مدفوع
+                        </>
+                      ) : (
+                        "غير مدفوع"
+                      )}
                     </Badge>
                     {isLocked && (
                       <Badge variant="outline" className="text-[10px] h-5 bg-slate-50 text-slate-600 border-slate-200">
@@ -286,9 +367,34 @@ export default function PayrollEmployeeDrawer({
                     )}
                   </>
                 )}
+                {!isPaid && (
+                  <>
+                    <span className="text-muted-foreground/50">•</span>
+                    <Badge variant="outline" className={cn("text-[10px] h-5 gap-1", healthMeta.cls)}>
+                      <healthMeta.Icon className="h-3 w-3" />
+                      {healthMeta.label}
+                    </Badge>
+                  </>
+                )}
               </SheetDescription>
             </div>
           </div>
+          {!isPaid && (healthStatus.issues.length > 0 || healthStatus.warnings.length > 0) && (
+            <div className="mt-3 rounded-md border border-border bg-background/50 p-2.5 space-y-1">
+              {healthStatus.issues.map((m, i) => (
+                <div key={`i-${i}`} className="flex items-center gap-2 text-[11px] text-red-700 dark:text-red-400">
+                  <XCircle className="h-3 w-3 shrink-0" />
+                  <span>{m}</span>
+                </div>
+              ))}
+              {healthStatus.warnings.map((m, i) => (
+                <div key={`w-${i}`} className="flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  <span>{m}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </SheetHeader>
 
         {/* Body */}
