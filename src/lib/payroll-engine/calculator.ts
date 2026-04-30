@@ -16,6 +16,7 @@ import type {
   PayslipResult,
 } from './types';
 import { MALAKI_CONSTANTS as M } from './presets/malaki';
+import { calculateStandardPreset, type StandardComponent } from './presets/standard';
 
 /**
  * Master entry point. Routes to preset-specific implementation.
@@ -25,13 +26,18 @@ export function calculatePayslip(
   emp: PayrollEmployeeData,
   input: PayrollMonthInputs,
   period: PayrollPeriod,
-  policy: PayrollPolicy
+  policy: PayrollPolicy,
+  extras?: { components?: StandardComponent[] }
 ): PayslipResult {
   if (policy.preset === 'malaki') {
     return calculateMalakiPreset(emp, input, period, policy);
   }
-  // 'standard' / 'custom' presets will be implemented in later phases.
-  // For now we throw to make accidental misuse impossible.
+  if (policy.preset === 'standard') {
+    return calculateStandardPreset(emp, input, period, policy, {
+      components: extras?.components ?? [],
+    });
+  }
+  // 'custom' preset reserved for later phases.
   throw new Error(
     `[payroll-engine] Preset "${policy.preset}" not yet implemented in S2-A. Only 'malaki' is supported.`
   );

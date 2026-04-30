@@ -15,7 +15,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateMalakiPayslip, type MalakiEmployee, type MalakiMonthInput } from '@/lib/malaki-payroll';
-import { calculatePayslipWithPolicy, loadPolicyForEmployee } from '@/hooks/hr/usePayrollCalculator';
+import { calculatePayslipWithPolicy, loadPolicyForEmployee, loadComponentsForPolicy } from '@/hooks/hr/usePayrollCalculator';
 import type { PayrollEmployeeData, PayrollMonthInputs, PayslipResult } from '@/lib/payroll-engine/types';
 import { buildMonthInputsFromSources, type BuiltMonthInputs } from '@/lib/payroll-engine/buildMonthInputsFromSources';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,11 +117,11 @@ export default function PayrollEngineComparisonPage() {
       const { data, error } = await supabase
         .from('hr_payroll_policies')
         .select('company_id, engine_preset, companies!inner(id, name)')
-        .eq('engine_preset', 'malaki');
+        .in('engine_preset', ['malaki', 'standard']);
       if (error) throw error;
       return (data || []).map((r: any) => ({
         id: r.company_id,
-        name: r.companies?.name ?? r.company_id,
+        name: `${r.companies?.name ?? r.company_id} [${r.engine_preset}]`,
       }));
     },
   });
@@ -242,29 +242,34 @@ export default function PayrollEngineComparisonPage() {
         }
 
         const input = built.input as PayrollMonthInputs & MalakiMonthInput;
-        const malakiSlip = calculateMalakiPayslip(empData, input, year, month);
-        const genericSlip = calculatePayslipWithPolicy(empData, input, { year, month }, policy);
+        // For Malaki preset: full parity comparison vs legacy.
+        // For Standard preset: legacy doesn't apply → run new engine only.
+        const components = policy.preset === 'standard' ? await loadComponentsForPolicy(policy.id) : [];
+        const malakiSlip = policy.preset === 'malaki' ? calculateMalakiPayslip(empData, input, year, month) : null;
+        const genericSlip = calculatePayslipWithPolicy(empData, input, { year, month }, policy, { components });
 
         const diffs: DiffRow[] = [];
-        for (const f of COMPARE_FIELDS) {
-          const a = Number((malakiSlip as any)[f] ?? 0);
-          const b = Number((genericSlip as any)[f] ?? 0);
-          if (Math.abs(a - b) > EPSILON) {
-            diffs.push({
-              employee_id: emp.id,
-              employee_name: emp.full_name,
-              field: f as string,
-              malaki: a,
-              generic: b,
-              diff: b - a,
-            });
+        if (malakiSlip) {
+          for (const f of COMPARE_FIELDS) {
+            const a = Number((malakiSlip as any)[f] ?? 0);
+            const b = Number((genericSlip as any)[f] ?? 0);
+            if (Math.abs(a - b) > EPSILON) {
+              diffs.push({
+                employee_id: emp.id,
+                employee_name: emp.full_name,
+                field: f as string,
+                malaki: a,
+                generic: b,
+                diff: b - a,
+              });
+            }
           }
         }
 
         out.push({
           employee_id: emp.id,
           employee_name: emp.full_name,
-          status: diffs.length === 0 ? 'match' : 'diff',
+          status: malakiSlip ? (diffs.length === 0 ? 'match' : 'diff') : 'match',
           malaki: malakiSlip,
           generic: genericSlip,
           diffs,

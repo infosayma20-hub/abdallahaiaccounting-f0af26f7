@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { calculatePayslip } from '@/lib/payroll-engine/calculator';
+import type { StandardComponent } from '@/lib/payroll-engine/presets/standard';
 import type {
   PayrollEmployeeData,
   PayrollMonthInputs,
@@ -80,9 +81,25 @@ export function calculatePayslipWithPolicy(
   emp: PayrollEmployeeData,
   input: PayrollMonthInputs,
   period: PayrollPeriod,
-  policy: PayrollPolicy
+  policy: PayrollPolicy,
+  extras?: { components?: StandardComponent[] }
 ): PayslipResult {
-  return calculatePayslip(emp, input, period, policy);
+  return calculatePayslip(emp, input, period, policy, extras);
+}
+
+/**
+ * Loads active components for a policy. Returns [] when none exist
+ * (treated by Standard preset as "no allowances/deductions defined").
+ */
+export async function loadComponentsForPolicy(policyId: string): Promise<StandardComponent[]> {
+  const sb: any = supabase;
+  const { data, error } = await sb
+    .from('hr_payroll_components')
+    .select('id, code, name_ar, kind, calculation_type, value, formula_expression, is_attendance_linked, is_active')
+    .eq('policy_id', policyId)
+    .eq('is_active', true);
+  if (error) throw error;
+  return (data ?? []) as StandardComponent[];
 }
 
 /**
