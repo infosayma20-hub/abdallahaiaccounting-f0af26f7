@@ -577,7 +577,7 @@ const EmployeesPage = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-full mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 space-y-5 max-w-full mx-auto hr-themed" dir="rtl">
       <PageHeader title="إدارة الموظفين" breadcrumb={["الموارد البشرية", "الموظفين"]} />
       {/* Actions */}
       <div className="flex items-center justify-between">
