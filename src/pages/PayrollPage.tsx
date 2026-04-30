@@ -182,6 +182,35 @@ const PayrollPage = () => {
           .eq("month", selectedMonth),
       ]);
 
+      // ─── Standard Engine: load policies + components for any linked employees ───
+      // Targeted, additive read — no impact on Malaki path.
+      const linkedPolicyIds = Array.from(
+        new Set(targetEmployees.map((e: any) => e.payroll_policy_id).filter(Boolean))
+      );
+      const policiesById: Record<string, any> = {};
+      const componentsByPolicy: Record<string, StandardComponent[]> = {};
+      if (linkedPolicyIds.length > 0) {
+        const [polRes, compRes] = await Promise.all([
+          supabase.from("hr_payroll_policies").select("*").in("id", linkedPolicyIds),
+          supabase.from("hr_payroll_components").select("*").in("policy_id", linkedPolicyIds).eq("is_active", true).order("sort_order"),
+        ]);
+        for (const p of (polRes.data || [])) policiesById[p.id] = p;
+        for (const c of (compRes.data || [])) {
+          (componentsByPolicy[c.policy_id] ||= []).push({
+            id: c.id,
+            code: c.code,
+            name_ar: c.name_ar,
+            kind: c.kind,
+            calculation_type: c.calculation_type,
+            value: Number(c.value || 0),
+            formula_expression: c.formula_expression,
+            is_attendance_linked: !!c.is_attendance_linked,
+            is_active: !!c.is_active,
+          });
+        }
+      }
+      const engineDebug: Array<{ name: string; engine: 'Standard' | 'Malaki'; warnings?: string[] }> = [];
+
       // ━━━ 1. Aggregate Attendance ━━━
       const attData = attendanceRes.data || [];
       const empAtt: Record<string, { days: number; hours: number; overtime: number; vacHours: number; annual: number; sick: number }> = {};
