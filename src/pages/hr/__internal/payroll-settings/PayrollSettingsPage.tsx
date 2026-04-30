@@ -44,14 +44,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD } from "@/pages/hr/components/HRTable";
 import { Loader2, Plus, Pencil, Trash2, Star, AlertTriangle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
