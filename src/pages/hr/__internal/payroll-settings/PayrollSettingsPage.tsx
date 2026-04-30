@@ -1015,8 +1015,27 @@ function EmployeesTab() {
                 </div>
                 <div>
                   <Label>ساعات العمل</Label>
-                  <Input type="number" value={workingHours}
-                    onChange={(e) => setWorkingHours(Number(e.target.value))} />
+                  <Input
+                    type="number"
+                    value={autoHours ? workingDays * Number(policy.daily_work_hours || 8) : workingHours}
+                    disabled={autoHours}
+                    onChange={(e) => setWorkingHours(Number(e.target.value))}
+                  />
+                  <label className="flex items-center gap-1 mt-1 text-[11px] text-muted-foreground cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoHours}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setAutoHours(next);
+                        if (!next) {
+                          // seed manual value from current auto value so the field stays consistent
+                          setWorkingHours(workingDays * Number(policy.daily_work_hours || 8));
+                        }
+                      }}
+                    />
+                    تلقائي = أيام × {Number(policy.daily_work_hours || 8)}س/يوم
+                  </label>
                 </div>
                 <div>
                   <Label>ساعات إضافية</Label>
