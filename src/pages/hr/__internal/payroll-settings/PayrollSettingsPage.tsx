@@ -242,23 +242,18 @@ export default function PayrollSettingsPage() {
     <div className="container mx-auto p-6 space-y-6" dir="rtl">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">إعدادات الرواتب (Standard Preset)</h1>
+          <h1 className="text-2xl font-bold">إعدادات سياسات الرواتب</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            تعريف السياسات والمكوّنات وملفات الموظفين. هذه الإعدادات Read-only للمحرك حالياً —
-            لا تربط بـ شاشة الرواتب الإنتاجية ولا تكتب في <code>employee_payroll</code>.
+            تعريف سياسات الرواتب، البدلات والخصومات، وربط الموظفين بكل سياسة مع معاينة فورية للراتب.
           </p>
         </div>
-        <Badge variant="outline" className="gap-1">
-          <Info className="h-3 w-3" />
-          S2-A.3 · Internal · Admin
-        </Badge>
       </div>
 
       <Tabs defaultValue="policies" className="w-full">
         <TabsList>
-          <TabsTrigger value="policies">السياسات</TabsTrigger>
-          <TabsTrigger value="components">المكوّنات</TabsTrigger>
-          <TabsTrigger value="employees">ملفات الموظفين + معاينة</TabsTrigger>
+          <TabsTrigger value="policies">سياسات الرواتب</TabsTrigger>
+          <TabsTrigger value="components">البدلات والخصومات</TabsTrigger>
+          <TabsTrigger value="employees">ربط الموظفين والمعاينة</TabsTrigger>
         </TabsList>
 
         <TabsContent value="policies" className="mt-4">
