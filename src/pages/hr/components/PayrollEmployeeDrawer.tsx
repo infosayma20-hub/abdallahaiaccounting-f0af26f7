@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Sheet,
@@ -13,6 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   CheckCircle2,
   Clock,
   CalendarDays,
@@ -25,6 +35,12 @@ import {
   FileText,
   ChevronLeft,
   Lock,
+  Plus,
+  Minus,
+  Equal,
+  Calculator,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { useEmployee360 } from "@/hooks/hr/useEmployee360";
 import { useEmployeeCostEngine } from "@/hooks/hr/useEmployeeCostEngine";
@@ -159,6 +175,46 @@ function MoneyRow({
   );
 }
 
+function FormulaLine({
+  op,
+  label,
+  value,
+  tone,
+  bold,
+}: {
+  op: "+" | "-" | "=";
+  label: string;
+  value: number;
+  tone?: "positive" | "negative";
+  bold?: boolean;
+}) {
+  const opCls =
+    op === "+"
+      ? "text-emerald-600"
+      : op === "-"
+      ? "text-red-600"
+      : "text-primary";
+  const valCls =
+    tone === "positive"
+      ? "text-emerald-700 dark:text-emerald-400"
+      : tone === "negative"
+      ? "text-red-700 dark:text-red-400"
+      : bold
+      ? "text-primary"
+      : "text-foreground";
+  return (
+    <div className={cn("flex items-center justify-between gap-2", bold && "text-sm font-bold")} dir="rtl">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className={cn("inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-bold shrink-0", opCls)}>
+          {op}
+        </span>
+        <span className="text-muted-foreground truncate">{label}</span>
+      </div>
+      <span className={cn("tabular-nums", valCls)}>{fmtCurrency(value)}</span>
+    </div>
+  );
+}
+
 export default function PayrollEmployeeDrawer({
   open,
   onClose,
@@ -247,6 +303,65 @@ export default function PayrollEmployeeDrawer({
   const isPaid = payrollRecord?.is_paid;
   const isLocked = isPaid; // Phase 2 will add full Audit Log + unlock workflow
 
+  // ===== Health Status (Smart Employee State) =====
+  const healthStatus = useMemo(() => {
+    const issues: string[] = [];
+    const warnings: string[] = [];
+
+    // Check incomplete days (missing check-out)
+    if (monthStats.incompleteDays > 0) {
+      issues.push(`${monthStats.incompleteDays} يوم بدون تسجيل خروج`);
+    }
+    // Check absent days
+    if (monthStats.absentDays > 0) {
+      warnings.push(`${monthStats.absentDays} يوم غياب`);
+    }
+    // Check pending requests
+    if (pendingRequests.length > 0) {
+      warnings.push(`${pendingRequests.length} طلب معلق بانتظار المراجعة`);
+    }
+    // Check missing payroll record
+    if (!payrollRecord) {
+      warnings.push("لم يتم احتساب راتب لهذا الشهر");
+    }
+
+    let level: "ready" | "review" | "issues" = "ready";
+    if (issues.length > 0) level = "issues";
+    else if (warnings.length > 0) level = "review";
+
+    return { level, issues, warnings };
+  }, [monthStats, pendingRequests, payrollRecord]);
+
+  const healthMeta = {
+    ready: {
+      label: "جاهز للدفع",
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400",
+      Icon: ShieldCheck,
+    },
+    review: {
+      label: "يحتاج مراجعة",
+      cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400",
+      Icon: AlertTriangle,
+    },
+    issues: {
+      label: "فيه مشاكل بصمة",
+      cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400",
+      Icon: ShieldAlert,
+    },
+  }[healthStatus.level];
+
+  // ===== Approval confirmation =====
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const handleApproveClick = () => {
+    if (!payrollRecord || !onApprovePayment) return;
+    // Always show confirmation (with check summary) before approving
+    setConfirmOpen(true);
+  };
+  const handleConfirmApprove = () => {
+    if (payrollRecord && onApprovePayment) onApprovePayment(payrollRecord.id);
+    setConfirmOpen(false);
+  };
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -277,7 +392,13 @@ export default function PayrollEmployeeDrawer({
                           : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
                       )}
                     >
-                      {isPaid ? <><CheckCircle2 className="h-3 w-3 ml-1" /> مدفوع</> : "غير مدفوع"}
+                      {isPaid ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 ml-1" /> مدفوع
+                        </>
+                      ) : (
+                        "غير مدفوع"
+                      )}
                     </Badge>
                     {isLocked && (
                       <Badge variant="outline" className="text-[10px] h-5 bg-slate-50 text-slate-600 border-slate-200">
@@ -286,9 +407,34 @@ export default function PayrollEmployeeDrawer({
                     )}
                   </>
                 )}
+                {!isPaid && (
+                  <>
+                    <span className="text-muted-foreground/50">•</span>
+                    <Badge variant="outline" className={cn("text-[10px] h-5 gap-1", healthMeta.cls)}>
+                      <healthMeta.Icon className="h-3 w-3" />
+                      {healthMeta.label}
+                    </Badge>
+                  </>
+                )}
               </SheetDescription>
             </div>
           </div>
+          {!isPaid && (healthStatus.issues.length > 0 || healthStatus.warnings.length > 0) && (
+            <div className="mt-3 rounded-md border border-border bg-background/50 p-2.5 space-y-1">
+              {healthStatus.issues.map((m, i) => (
+                <div key={`i-${i}`} className="flex items-center gap-2 text-[11px] text-red-700 dark:text-red-400">
+                  <XCircle className="h-3 w-3 shrink-0" />
+                  <span>{m}</span>
+                </div>
+              ))}
+              {healthStatus.warnings.map((m, i) => (
+                <div key={`w-${i}`} className="flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  <span>{m}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </SheetHeader>
 
         {/* Body */}
@@ -438,10 +584,51 @@ export default function PayrollEmployeeDrawer({
               <TabsContent value="payroll" className="p-4 space-y-3 mt-0">
                 {payrollRecord ? (
                   <>
+                    {/* ===== Salary Formula (How the number was calculated) ===== */}
+                    <Card className="p-3 border-primary/20 bg-primary/[0.03]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calculator className="h-3.5 w-3.5 text-primary" />
+                        <h4 className="text-xs font-semibold text-foreground">معادلة احتساب الراتب</h4>
+                      </div>
+                      <div className="space-y-1 font-mono text-[11px] tabular-nums" dir="ltr">
+                        <FormulaLine
+                          op="="
+                          label="راتب البصمة"
+                          value={Number(payrollRecord.attendance_salary || payrollRecord.base_salary || 0)}
+                        />
+                        {Number(payrollRecord.total_allowances || 0) > 0 && (
+                          <FormulaLine
+                            op="+"
+                            label={`البدلات (طعام/مواصلات/إداري/...)`}
+                            value={Number(payrollRecord.total_allowances || 0)}
+                            tone="positive"
+                          />
+                        )}
+                        {Number(payrollRecord.total_deductions || 0) > 0 && (
+                          <FormulaLine
+                            op="-"
+                            label="الخصومات (سُلف/قروض/مخالفات/...)"
+                            value={Number(payrollRecord.total_deductions || 0)}
+                            tone="negative"
+                          />
+                        )}
+                        <Separator className="my-1" />
+                        <FormulaLine
+                          op="="
+                          label="صافي الراتب"
+                          value={Number(payrollRecord.net_salary || 0)}
+                          bold
+                        />
+                      </div>
+                    </Card>
+
                     <Card className="p-3">
-                      <h4 className="text-xs font-semibold mb-2 text-emerald-700 dark:text-emerald-400">
-                        💰 الإيرادات والبدلات
-                      </h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Plus className="h-3.5 w-3.5 text-emerald-600" />
+                        <h4 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          الإيرادات والبدلات
+                        </h4>
+                      </div>
                       <MoneyRow label="راتب البصمة" value={Number(payrollRecord.attendance_salary || payrollRecord.base_salary || 0)} />
                       <MoneyRow label="بدل طعام ومواصلات (صافي)" value={Number(payrollRecord.food_transport_net || 0)} muted />
                       <MoneyRow label="بدل إداري" value={Number(payrollRecord.admin_allowance || 0)} muted />
@@ -461,9 +648,12 @@ export default function PayrollEmployeeDrawer({
                     </Card>
 
                     <Card className="p-3">
-                      <h4 className="text-xs font-semibold mb-2 text-red-700 dark:text-red-400">
-                        📉 الخصومات والسُلف
-                      </h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Minus className="h-3.5 w-3.5 text-red-600" />
+                        <h4 className="text-xs font-semibold text-red-700 dark:text-red-400">
+                          الخصومات والسُلف
+                        </h4>
+                      </div>
                       <MoneyRow label="رصيد سُلفة سابق" value={Number(payrollRecord.deduction_opening_balance || 0)} muted />
                       <MoneyRow label="قسط قرض" value={Number(payrollRecord.deduction_loan || 0)} muted />
                       <MoneyRow label="سُلفة جديدة" value={Number(payrollRecord.deduction_new_advance || 0)} muted />
@@ -572,7 +762,7 @@ export default function PayrollEmployeeDrawer({
             <Button
               size="sm"
               className="flex-1 min-w-[140px] gap-1.5"
-              onClick={() => onApprovePayment(payrollRecord.id)}
+              onClick={handleApproveClick}
             >
               <CheckCircle2 className="h-4 w-4" />
               اعتماد ودفع الراتب
@@ -606,6 +796,102 @@ export default function PayrollEmployeeDrawer({
           )}
         </div>
       </SheetContent>
+
+      {/* ===== Pre-approval confirmation with health checks ===== */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right flex items-center gap-2">
+              <healthMeta.Icon
+                className={cn(
+                  "h-5 w-5",
+                  healthStatus.level === "ready"
+                    ? "text-emerald-600"
+                    : healthStatus.level === "review"
+                    ? "text-amber-600"
+                    : "text-red-600"
+                )}
+              />
+              تأكيد اعتماد ودفع الراتب
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              راتب {employeeName || data?.employee?.full_name} لشهر {months[month - 1]} {year}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 text-right">
+            {/* Net amount summary */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">صافي الراتب المستحق</span>
+              <span className="text-lg font-bold text-primary tabular-nums">
+                {fmtCurrency(Number(payrollRecord?.net_salary || 0))}
+              </span>
+            </div>
+
+            {/* Issues (blocking-style warnings) */}
+            {healthStatus.issues.length > 0 && (
+              <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-900/40 p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  مشاكل تستدعي الانتباه
+                </p>
+                {healthStatus.issues.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[12px] text-red-700 dark:text-red-400">
+                    <XCircle className="h-3 w-3 shrink-0" />
+                    <span>{m}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Warnings */}
+            {healthStatus.warnings.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/40 p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  تنبيهات للمراجعة
+                </p>
+                {healthStatus.warnings.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[12px] text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    <span>{m}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {healthStatus.level === "ready" && (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900/40 p-3">
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  جميع البيانات سليمة. الراتب جاهز للاعتماد والدفع.
+                </p>
+              </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground">
+              بعد الاعتماد، سيتم قفل السجل ولن يمكن تعديله إلا بصلاحية خاصة.
+            </p>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmApprove}
+              className={cn(
+                healthStatus.level === "issues" && "bg-red-600 hover:bg-red-700",
+                healthStatus.level === "review" && "bg-amber-600 hover:bg-amber-700"
+              )}
+            >
+              {healthStatus.level === "issues"
+                ? "اعتماد رغم المشاكل"
+                : healthStatus.level === "review"
+                ? "اعتماد رغم التنبيهات"
+                : "تأكيد الاعتماد والدفع"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
