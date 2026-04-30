@@ -351,6 +351,73 @@
   .accounting-fixed-scroll::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.55);
   }
+
+  /* ─────────────────────────────────────────────
+   * HR Themed Tables (matches PayrollPreviewAll standard)
+   * ─────────────────────────────────────────────
+   * Add `hr-themed` class on any wrapper around HR pages
+   * (Employees, Attendance, Payroll Settings, Deductions,
+   * Leaves, Loans, Employee 360 tabs). Forces ALL <table>
+   * descendants — both <HRTable> and shadcn <Table> — to
+   * use the unified design:
+   *   • Navy primary header (HRTHead style)
+   *   • RTL alignment
+   *   • Compact padding
+   *   • Subtle row borders + hover
+   *   • Tabular numerics for amounts
+   * Keeps logic untouched; UI-only normalization.
+   */
+  .hr-themed table {
+    width: 100%;
+    border-collapse: collapse;
+    direction: rtl;
+    font-size: 13px;
+  }
+  /* Drop the inline-styled rounded outer border of shadcn Table inside HR */
+  .hr-themed > div > div[style*="border"][style*="border-radius"],
+  .hr-themed div[style*="border-radius: 12px"] {
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+  /* Navy header — applies to BOTH shadcn <thead> (light grey) and HRTHead */
+  .hr-themed thead,
+  .hr-themed thead tr {
+    background: hsl(var(--primary)) !important;
+  }
+  .hr-themed thead th {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    text-align: right !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    padding: 12px !important;
+    white-space: nowrap;
+    border-bottom: 0 !important;
+  }
+  /* Body rows — consistent height, subtle dividers */
+  .hr-themed tbody td {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    text-align: right !important;
+    border-bottom: 1px solid hsl(var(--border) / 0.6) !important;
+    color: hsl(var(--foreground));
+  }
+  .hr-themed tbody tr:hover td {
+    background: hsl(var(--muted) / 0.4);
+  }
+  /* Footer / totals row */
+  .hr-themed tfoot td {
+    padding: 12px !important;
+    font-weight: 700;
+    background: hsl(var(--primary) / 0.05);
+    border-top: 2px solid hsl(var(--primary) / 0.3) !important;
+  }
+  /* Numeric cells stay tabular */
+  .hr-themed .tabular-nums,
+  .hr-themed td:has(.tabular-nums) {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* Global override: Cairo everywhere, replace JetBrains Mono and Tajawal */
