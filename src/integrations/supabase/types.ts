@@ -4656,6 +4656,7 @@ export type Database = {
         Row: {
           admin_allowance: number | null
           annual_allowance: number | null
+          approval_snapshot: Json | null
           approved_at: string | null
           approved_by: string | null
           attendance_bonus: number | null
@@ -4710,6 +4711,7 @@ export type Database = {
         Insert: {
           admin_allowance?: number | null
           annual_allowance?: number | null
+          approval_snapshot?: Json | null
           approved_at?: string | null
           approved_by?: string | null
           attendance_bonus?: number | null
@@ -4764,6 +4766,7 @@ export type Database = {
         Update: {
           admin_allowance?: number | null
           annual_allowance?: number | null
+          approval_snapshot?: Json | null
           approved_at?: string | null
           approved_by?: string | null
           attendance_bonus?: number | null
