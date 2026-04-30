@@ -388,7 +388,52 @@ const PayrollPage = () => {
   };
 
   const handleApproveFromDrawer = async (recordId: string) => {
-    await handleMarkPaid(recordId);
+    // Find the record being approved to build the immutable snapshot
+    const record = (payrollRecords as any[] | undefined)?.find((r) => r.id === recordId) || drawerRecord;
+    if (!record) {
+      await handleMarkPaid(recordId);
+      closeDrawer();
+      return;
+    }
+
+    // Build approval snapshot — frozen values at the moment of approval
+    const snapshot = {
+      version: 1,
+      approved_at: new Date().toISOString(),
+      approved_by: user?.id || null,
+      approved_by_email: user?.email || null,
+      net_salary: Number(record.net_salary || 0),
+      attendance_salary: Number(record.attendance_salary || record.base_salary || 0),
+      total_allowances: Number(record.total_allowances || 0),
+      total_deductions: Number(record.total_deductions || 0),
+      total_overtime: Number(record.total_overtime || 0),
+      working_days: Number(record.working_days || 0),
+      regular_hours: Number(record.regular_hours || 0),
+      overtime_hours_val: Number(record.overtime_hours_val || 0),
+      vacation_hours_paid: Number(record.vacation_hours_paid || 0),
+      carry_over_balance: Number(record.carry_over_balance || 0),
+      period_month: record.period_month,
+      period_year: record.period_year,
+    };
+
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase
+      .from("employee_payroll")
+      .update({
+        is_paid: true,
+        paid_date: nowIso.split("T")[0],
+        approved_by: user?.id || null,
+        approved_at: nowIso,
+        approval_snapshot: snapshot,
+      })
+      .eq("id", recordId);
+
+    if (error) {
+      toast.error("خطأ في الاعتماد");
+      return;
+    }
+    toast.success("تم اعتماد الراتب وتجميد القيم");
+    queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
     closeDrawer();
   };
 
