@@ -422,6 +422,7 @@ const App = () => (
                       <Route path="/hr-deductions" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRDeductionsPage /></RoleGuard>} />
                       <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollPage /></RoleGuard>} />
                       <Route path="/payroll/inputs" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><MonthlyPayrollInputPage /></RoleGuard>} />
+                      <Route path="/payroll/preview-all" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollPreviewAllPage /></RoleGuard>} />
                       <Route path="/payroll/approval" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollApprovalCenter /></RoleGuard>} />
                       <Route path="/payroll/payment" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><PayrollPaymentCenter /></RoleGuard>} />
                       <Route path="/hr/__engine-comparison" element={<RoleGuard allowedRoles={["admin"]}><PayrollEngineComparisonPage /></RoleGuard>} />
