@@ -174,14 +174,14 @@ export default function PayrollEngineComparisonPage() {
           continue;
         }
 
-        const inputQuery: any = supabase
+        const sb: any = supabase;
+        const { data: inputRow } = await sb
           .from('monthly_payroll_inputs')
           .select('*')
           .eq('employee_id', emp.id)
           .eq('period_year', year)
           .eq('period_month', month)
           .maybeSingle();
-        const { data: inputRow } = await inputQuery;
 
         if (!inputRow) {
           out.push({
