@@ -248,12 +248,62 @@ export default function PayrollPreviewAllPage() {
       };
 
       const linkedPolicy = emp.payroll_policy_id ? policiesById[emp.payroll_policy_id] : null;
-      const useStandard = !!linkedPolicy && linkedPolicy.engine_preset === "standard";
+      // ─── Engine routing (HARD RULE) ────────────────────────────
+      // Standard ONLY when the employee is explicitly linked to a Standard
+      // policy belonging to THIS company. Otherwise → no calculation at all,
+      // never fall back to Malaki silently. The accountant must see
+      // "بدون سياسة رواتب" so they can fix the link before payroll runs.
+      const policyBelongsToCompany =
+        !!linkedPolicy && linkedPolicy.company_id === company.id;
+      const useStandard =
+        policyBelongsToCompany && linkedPolicy.engine_preset === "standard";
+      const noPolicy = !policyBelongsToCompany;
 
       let slip: MalakiPayslip;
       const warnings: string[] = [];
 
-      if (useStandard) {
+      if (noPolicy) {
+        // No engine runs. Zeroed payslip. The row will be flagged "بدون سياسة رواتب".
+        warnings.push("no_payroll_policy_assigned");
+        slip = {
+          working_days: malakiInput.working_days,
+          regular_hours: malakiInput.working_hours,
+          overtime_hours: malakiInput.overtime_hours,
+          vacation_hours: 0,
+          annual_leave_days: 0,
+          sick_leave_days: 0,
+          attendance_salary: 0,
+          annual_allowance: 0,
+          admin_allowance: 0,
+          food_transport_base: 0,
+          food_transport_net: 0,
+          family_allowance: 0,
+          other_allowances: 0,
+          gross_fixed: 0,
+          fixed_deduction: 0,
+          net_fixed: 0,
+          attendance_bonus: 0,
+          special_allowance: 0,
+          extra_work_allowance: 0,
+          entitlements: 0,
+          total_earnings: 0,
+          deduction_opening_balance: 0,
+          deduction_loan: 0,
+          deduction_new_advance: 0,
+          deduction_cash_advance: 0,
+          deduction_food_group: 0,
+          deduction_food_individual: 0,
+          deduction_cash_shortage: 0,
+          deduction_cash_surplus: 0,
+          deduction_delivery: 0,
+          deduction_purchases: 0,
+          deduction_other: 0,
+          deduction_violations: 0,
+          total_deductions: 0,
+          net_salary: 0,
+          carry_over_balance: 0,
+        } as MalakiPayslip;
+      } else if (useStandard) {
         const stdEmp: PayrollEmployeeData = {
           id: emp.id,
           full_name: emp.full_name,
@@ -309,7 +359,47 @@ export default function PayrollPreviewAllPage() {
           warnings.push(...(stdResult as any)._engine.warnings);
         }
       } else {
-        slip = calculateMalakiPayslip(toMalakiEmp(emp), malakiInput, year, month);
+        // Linked policy exists but is NOT standard preset — Malaki is
+        // intentionally disabled in this preview. We treat as no policy.
+        warnings.push(`unsupported_engine_preset:${linkedPolicy.engine_preset}`);
+        slip = {
+          working_days: malakiInput.working_days,
+          regular_hours: malakiInput.working_hours,
+          overtime_hours: malakiInput.overtime_hours,
+          vacation_hours: 0,
+          annual_leave_days: 0,
+          sick_leave_days: 0,
+          attendance_salary: 0,
+          annual_allowance: 0,
+          admin_allowance: 0,
+          food_transport_base: 0,
+          food_transport_net: 0,
+          family_allowance: 0,
+          other_allowances: 0,
+          gross_fixed: 0,
+          fixed_deduction: 0,
+          net_fixed: 0,
+          attendance_bonus: 0,
+          special_allowance: 0,
+          extra_work_allowance: 0,
+          entitlements: 0,
+          total_earnings: 0,
+          deduction_opening_balance: 0,
+          deduction_loan: 0,
+          deduction_new_advance: 0,
+          deduction_cash_advance: 0,
+          deduction_food_group: 0,
+          deduction_food_individual: 0,
+          deduction_cash_shortage: 0,
+          deduction_cash_surplus: 0,
+          deduction_delivery: 0,
+          deduction_purchases: 0,
+          deduction_other: 0,
+          deduction_violations: 0,
+          total_deductions: 0,
+          net_salary: 0,
+          carry_over_balance: 0,
+        } as MalakiPayslip;
       }
 
       const baseSalary = Number(emp.base_salary || 0);
@@ -317,7 +407,9 @@ export default function PayrollPreviewAllPage() {
       const noSalary = baseSalary <= 0 && hourlyRate <= 0;
       const noAttendance = att.days <= 0 && att.hours <= 0;
 
-      const status: PreviewRow["status"] = noSalary
+      const status: PreviewRow["status"] = noPolicy
+        ? "no_policy"
+        : noSalary
         ? "no_salary"
         : noAttendance
         ? "no_attendance"
