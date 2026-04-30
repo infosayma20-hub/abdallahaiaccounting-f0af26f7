@@ -297,18 +297,20 @@ describe('Standard Preset — Synthetic Parity', () => {
   it('guard R3: net is floored to 0; carry_over_balance preserves the gap', () => {
     const r = calculateStandardPreset(
       emp({ base_salary: 3000 }),
-      inp({ working_days: 1 }), // earns ~100, then heavy non-attendance deductions
+      // earns 100 (1/30 day), then a huge fixed deduction of 5000 → net would be -4900
+      inp({ working_days: 1 }),
       period,
       policy(),
       {
         components: [
-          // attendance-linked deduction → still applied (R1 only blocks fixed/non-attendance)
+          // Non-attendance fixed deduction is normally skipped only when working_days=0.
+          // Here working_days=1 (>0) so R1 does NOT trigger; deduction applies in full.
           comp({
             code: 'BIG',
             kind: 'deduction',
             calculation_type: 'fixed_amount',
-            value: 500,
-            is_attendance_linked: true,
+            value: 5000,
+            is_attendance_linked: false,
           }),
         ],
       }
