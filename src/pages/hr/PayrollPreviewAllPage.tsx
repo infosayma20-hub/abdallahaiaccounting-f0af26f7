@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, ArrowLeft, Download, ExternalLink, Loader2, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, ExternalLink, Eye, Loader2, Wallet } from "lucide-react";
 import {
   calculateMalakiPayslip,
   fmtCurrency,
@@ -564,14 +564,24 @@ export default function PayrollPreviewAllPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-end">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => navigate(`/hr/employee/${r.id}`)}
-                      title="ملف الموظف 360"
-                    >
-                      <ExternalLink className="h-4 w-4 ms-1" /> ملف 360
-                    </Button>
+                    <div className="flex gap-1 justify-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/hr/employee/${r.id}?tab=payroll`)}
+                        title="معاينة تفاصيل الراتب"
+                      >
+                        <Eye className="h-4 w-4 ms-1" /> معاينة التفاصيل
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/hr/employee/${r.id}`)}
+                        title="ملف الموظف 360"
+                      >
+                        <ExternalLink className="h-4 w-4 ms-1" /> ملف 360
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
