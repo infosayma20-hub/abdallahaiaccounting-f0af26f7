@@ -1068,7 +1068,7 @@ function EmployeesTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>معاينة الراتب — Standard Preset</CardTitle>
+          <CardTitle>معاينة الراتب</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {!selected ? (
@@ -1127,7 +1127,7 @@ function EmployeesTab() {
 
               {previewComponents.length > 0 && (
                 <div className="border rounded p-2 space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">قيم خاصة بالموظف (Override)</div>
+                  <div className="text-xs font-medium text-muted-foreground">قيم خاصة بالموظف</div>
                   {previewComponents.map((c) => {
                     const overrides = (selected.payroll_overrides ?? {}) as Record<string, number>;
                     const current = overrides[c.code] ?? "";
