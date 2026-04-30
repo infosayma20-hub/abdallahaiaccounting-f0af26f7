@@ -96,6 +96,10 @@ interface PreviewRow {
   engine: "Standard" | "Malaki";
   status: "ok" | "no_salary" | "no_attendance" | "warning";
   warnings: string[];
+  policy_name: string | null;
+  has_policy: boolean;
+  breakdown: BreakdownEntry[];
+  overtime_value: number;
 }
 
 export default function PayrollPreviewAllPage() {
