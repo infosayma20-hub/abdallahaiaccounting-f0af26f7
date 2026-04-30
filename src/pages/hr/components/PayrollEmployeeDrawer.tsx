@@ -915,15 +915,16 @@ export default function PayrollEmployeeDrawer({
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmApprove}
+              disabled={!healthStatus.canApprove}
               className={cn(
-                healthStatus.level === "issues" && "bg-red-600 hover:bg-red-700",
-                healthStatus.level === "review" && "bg-amber-600 hover:bg-amber-700"
+                !healthStatus.canApprove && "opacity-50 cursor-not-allowed",
+                healthStatus.canApprove && healthStatus.level === "review" && "bg-amber-600 hover:bg-amber-700"
               )}
             >
-              {healthStatus.level === "issues"
-                ? "اعتماد رغم المشاكل"
+              {!healthStatus.canApprove
+                ? "يجب حل المشاكل أولاً"
                 : healthStatus.level === "review"
-                ? "اعتماد رغم التنبيهات"
+                ? "اعتماد ودفع رغم التنبيهات"
                 : "تأكيد الاعتماد والدفع"}
             </AlertDialogAction>
           </AlertDialogFooter>
