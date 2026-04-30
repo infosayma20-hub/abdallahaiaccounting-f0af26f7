@@ -64,6 +64,89 @@ import type {
   PayrollPolicy,
 } from "@/lib/payroll-engine/types";
 
+// ─────────────────────────── Arabic Labels ────────────────────────
+
+const SALARY_BASIS_AR: Record<string, string> = {
+  monthly: "شهري",
+  daily: "يومي",
+  hourly: "بالساعة",
+};
+
+const MONTH_DAYS_AR: Record<string, string> = {
+  fixed_26: "ثابت 26 يوم",
+  fixed_28: "ثابت 28 يوم",
+  fixed_30: "ثابت 30 يوم",
+  actual: "الفعلي",
+  custom: "مخصّص",
+};
+
+const CALC_TYPE_AR: Record<string, string> = {
+  fixed_amount: "مبلغ ثابت",
+  percent_of_basic: "% من الراتب الأساسي",
+  percent_of_gross: "% من الإجمالي",
+  per_day: "لكل يوم",
+  per_hour: "لكل ساعة",
+  formula: "صيغة (غير مدعومة)",
+};
+
+const KIND_AR: Record<string, string> = {
+  allowance: "بدل",
+  deduction: "خصم",
+};
+
+const ABSENCE_AR: Record<string, string> = {
+  daily_rate: "معدل يومي",
+  hourly_rate: "معدل بالساعة",
+  none: "لا يحتسب",
+};
+
+const LATE_AR: Record<string, string> = {
+  none: "لا يحتسب",
+  per_minute: "لكل دقيقة",
+  hourly_proration: "احتساب بالساعة",
+};
+
+/** Translate engine warning codes into accountant-friendly Arabic sentences. */
+function translateWarning(w: string): string {
+  // Pattern: "skipped_attendance_allowance_zero_base: TRANSPORT"
+  if (w.startsWith("skipped_attendance_allowance_zero_base")) {
+    const code = w.split(":")[1]?.trim();
+    return `تم تجاهل البدل ${code ? `"${code}"` : ""} لأن الراتب الأساسي للموظف صفر.`;
+  }
+  if (w.startsWith("skipped_zero_base_salary")) {
+    const code = w.split(":")[1]?.trim();
+    return `تم تجاهل المكوّن ${code ? `"${code}"` : ""} لأن الراتب الأساسي صفر.`;
+  }
+  if (w.startsWith("skipped_no_attendance")) {
+    const code = w.split(":")[1]?.trim();
+    return `تم تجاهل الخصم ${code ? `"${code}"` : ""} لعدم وجود حضور هذا الشهر.`;
+  }
+  if (w.startsWith("net_floored_to_zero")) {
+    const m = w.match(/raw=(-?\d+(\.\d+)?)/);
+    return `تم منع الصافي من النزول تحت الصفر${m ? ` (الناتج الأصلي: ${m[1]})` : ""}.`;
+  }
+  if (w.startsWith("formula_not_supported_yet")) {
+    return "تم تجاهل مكوّن بصيغة غير مدعومة حالياً.";
+  }
+  return w;
+}
+
+/** Translate component breakdown source codes into Arabic. */
+function translateSource(s: string): string {
+  const map: Record<string, string> = {
+    fixed_amount: "مبلغ ثابت",
+    percent_of_basic: "نسبة من الأساسي",
+    percent_of_gross: "نسبة من الإجمالي",
+    per_day: "لكل يوم",
+    per_hour: "لكل ساعة",
+    skipped_zero_base_salary: "تم التجاهل — الراتب الأساسي صفر",
+    skipped_no_attendance: "تم التجاهل — لا يوجد حضور",
+    formula_not_supported_yet: "صيغة غير مدعومة",
+    override: "قيمة خاصة بالموظف",
+  };
+  return map[s] ?? s;
+}
+
 // ─────────────────────────── Types ────────────────────────────────
 
 interface Policy {
