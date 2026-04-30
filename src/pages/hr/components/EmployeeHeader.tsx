@@ -35,12 +35,13 @@ interface Props {
   cost: CostEngineResult;
   risk: RiskScoreResult;
   onQuickAction: (action: "leave" | "loan" | "deduction" | "salary") => void;
+  onTabChange?: (tab: string) => void;
 }
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v);
 
-export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
+export function EmployeeHeader({ employee, cost, risk, onQuickAction, onTabChange }: Props) {
   const navigate = useNavigate();
   const displayName: string =
     employee?.full_name || employee?.name || "موظف";
@@ -91,7 +92,7 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
             size="sm"
             variant="secondary"
             className="h-8 gap-1.5 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-0"
-            onClick={() => navigate(`/employees?edit=${employee?.id}`)}
+            onClick={() => onTabChange?.("forms")}
           >
             <Pencil className="h-3.5 w-3.5" />
             تعديل البيانات
@@ -100,7 +101,7 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
             size="sm"
             variant="secondary"
             className="h-8 gap-1.5 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-0"
-            onClick={() => navigate(`/hr-attendance?employee=${employee?.id}`)}
+            onClick={() => onTabChange?.("attendance")}
           >
             <Clock className="h-3.5 w-3.5" />
             الحضور
@@ -109,7 +110,7 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
             size="sm"
             variant="secondary"
             className="h-8 gap-1.5 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-0"
-            onClick={() => navigate(`/hr-attendance?employee=${employee?.id}&action=message`)}
+            onClick={() => onTabChange?.("messages")}
           >
             <MessageSquare className="h-3.5 w-3.5" />
             إرسال رسالة
@@ -118,7 +119,7 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
             size="sm"
             variant="default"
             className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-0"
-            onClick={() => onQuickAction("salary")}
+            onClick={() => onTabChange?.("payroll")}
           >
             <Wallet className="h-3.5 w-3.5" />
             الراتب
@@ -135,9 +136,9 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => onQuickAction("leave")}>إضافة إجازة</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onQuickAction("loan")}>إضافة قرض</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onQuickAction("deduction")}>إضافة خصم</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTabChange?.("leaves")}>إضافة إجازة</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTabChange?.("loans")}>إضافة قرض</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTabChange?.("deductions")}>إضافة خصم</DropdownMenuItem>
               <DropdownMenuSeparator />
               {!employee?.auth_user_id && (
                 <DropdownMenuItem onClick={() => navigate(`/employees?openAccount=${employee?.id}`)}>
@@ -147,7 +148,7 @@ export function EmployeeHeader({ employee, cost, risk, onQuickAction }: Props) {
               )}
               <DropdownMenuItem
                 className="text-rose-600 focus:text-rose-700"
-                onClick={() => navigate(`/hr-attendance?employee=${employee?.id}&action=penalty`)}
+                onClick={() => onTabChange?.("deductions")}
               >
                 <Shield className="h-3.5 w-3.5 ms-2" />
                 إجراء عقابي

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEmployee360 } from "@/hooks/hr/useEmployee360";
 import { useEmployeeCostEngine } from "@/hooks/hr/useEmployeeCostEngine";
 import { useEmployeeRiskScore } from "@/hooks/hr/useEmployeeRiskScore";
@@ -29,12 +29,19 @@ export default function Employee360Page() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data, isLoading, isError, error } = useEmployee360(id);
   const cost = useEmployeeCostEngine(data);
   const risk = useEmployeeRiskScore(data, cost);
   const forecast = useEmployeeForecast(data, cost);
-  const [tab, setTab] = useState<string>("overview");
+  const [tab, setTabState] = useState<string>(searchParams.get("tab") || "overview");
+  const setTab = (next: string) => {
+    setTabState(next);
+    const sp = new URLSearchParams(searchParams);
+    sp.set("tab", next);
+    setSearchParams(sp, { replace: true });
+  };
 
   const handleQuickAction = (action: "leave" | "loan" | "deduction" | "salary") => {
     if (!id) return;
@@ -87,6 +94,7 @@ export default function Employee360Page() {
         cost={cost}
         risk={risk}
         onQuickAction={handleQuickAction}
+        onTabChange={setTab}
       />
 
       <EmployeeFinancialPanel cost={cost} risk={risk} forecast={forecast} onNavigateTab={setTab} />
