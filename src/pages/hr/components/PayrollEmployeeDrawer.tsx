@@ -319,6 +319,34 @@ export default function PayrollEmployeeDrawer({
   const isPaid = payrollRecord?.is_paid;
   const isLocked = isPaid; // Phase 2 will add full Audit Log + unlock workflow
 
+  // ===== Approval snapshot (immutable values after approval) =====
+  // If approved, ALL displayed financial values must come from the snapshot,
+  // not from live record fields (which may have changed if attendance was edited).
+  const snapshot = payrollRecord?.approval_snapshot as Record<string, any> | undefined;
+  const view = useMemo(() => {
+    if (isPaid && snapshot) {
+      return {
+        net_salary: Number(snapshot.net_salary || 0),
+        attendance_salary: Number(snapshot.attendance_salary || 0),
+        total_allowances: Number(snapshot.total_allowances || 0),
+        total_deductions: Number(snapshot.total_deductions || 0),
+        carry_over_balance: Number(snapshot.carry_over_balance || 0),
+        fromSnapshot: true,
+      };
+    }
+    return {
+      net_salary: Number(payrollRecord?.net_salary || 0),
+      attendance_salary: Number(payrollRecord?.attendance_salary || payrollRecord?.base_salary || 0),
+      total_allowances: Number(payrollRecord?.total_allowances || 0),
+      total_deductions: Number(payrollRecord?.total_deductions || 0),
+      carry_over_balance: Number(payrollRecord?.carry_over_balance || 0),
+      fromSnapshot: false,
+    };
+  }, [isPaid, snapshot, payrollRecord]);
+
+  const approvedAt = payrollRecord?.approved_at || snapshot?.approved_at;
+  const approvedByEmail = snapshot?.approved_by_email;
+
   // ===== Health Status (Smart Employee State) =====
   // Issues = real blockers (manual review required)
   // Warnings = informational, do NOT block approval
