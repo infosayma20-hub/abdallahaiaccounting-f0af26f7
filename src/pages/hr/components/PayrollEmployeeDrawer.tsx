@@ -544,10 +544,51 @@ export default function PayrollEmployeeDrawer({
               <TabsContent value="payroll" className="p-4 space-y-3 mt-0">
                 {payrollRecord ? (
                   <>
+                    {/* ===== Salary Formula (How the number was calculated) ===== */}
+                    <Card className="p-3 border-primary/20 bg-primary/[0.03]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calculator className="h-3.5 w-3.5 text-primary" />
+                        <h4 className="text-xs font-semibold text-foreground">معادلة احتساب الراتب</h4>
+                      </div>
+                      <div className="space-y-1 font-mono text-[11px] tabular-nums" dir="ltr">
+                        <FormulaLine
+                          op="="
+                          label="راتب البصمة"
+                          value={Number(payrollRecord.attendance_salary || payrollRecord.base_salary || 0)}
+                        />
+                        {Number(payrollRecord.total_allowances || 0) > 0 && (
+                          <FormulaLine
+                            op="+"
+                            label={`البدلات (طعام/مواصلات/إداري/...)`}
+                            value={Number(payrollRecord.total_allowances || 0)}
+                            tone="positive"
+                          />
+                        )}
+                        {Number(payrollRecord.total_deductions || 0) > 0 && (
+                          <FormulaLine
+                            op="-"
+                            label="الخصومات (سُلف/قروض/مخالفات/...)"
+                            value={Number(payrollRecord.total_deductions || 0)}
+                            tone="negative"
+                          />
+                        )}
+                        <Separator className="my-1" />
+                        <FormulaLine
+                          op="="
+                          label="صافي الراتب"
+                          value={Number(payrollRecord.net_salary || 0)}
+                          bold
+                        />
+                      </div>
+                    </Card>
+
                     <Card className="p-3">
-                      <h4 className="text-xs font-semibold mb-2 text-emerald-700 dark:text-emerald-400">
-                        💰 الإيرادات والبدلات
-                      </h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Plus className="h-3.5 w-3.5 text-emerald-600" />
+                        <h4 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          الإيرادات والبدلات
+                        </h4>
+                      </div>
                       <MoneyRow label="راتب البصمة" value={Number(payrollRecord.attendance_salary || payrollRecord.base_salary || 0)} />
                       <MoneyRow label="بدل طعام ومواصلات (صافي)" value={Number(payrollRecord.food_transport_net || 0)} muted />
                       <MoneyRow label="بدل إداري" value={Number(payrollRecord.admin_allowance || 0)} muted />
@@ -567,9 +608,12 @@ export default function PayrollEmployeeDrawer({
                     </Card>
 
                     <Card className="p-3">
-                      <h4 className="text-xs font-semibold mb-2 text-red-700 dark:text-red-400">
-                        📉 الخصومات والسُلف
-                      </h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Minus className="h-3.5 w-3.5 text-red-600" />
+                        <h4 className="text-xs font-semibold text-red-700 dark:text-red-400">
+                          الخصومات والسُلف
+                        </h4>
+                      </div>
                       <MoneyRow label="رصيد سُلفة سابق" value={Number(payrollRecord.deduction_opening_balance || 0)} muted />
                       <MoneyRow label="قسط قرض" value={Number(payrollRecord.deduction_loan || 0)} muted />
                       <MoneyRow label="سُلفة جديدة" value={Number(payrollRecord.deduction_new_advance || 0)} muted />
