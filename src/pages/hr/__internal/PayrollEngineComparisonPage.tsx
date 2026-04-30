@@ -106,18 +106,37 @@ export default function PayrollEngineComparisonPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [limit, setLimit] = useState(15);
+  // A.2: Default to Malaki tenant since it's the only implemented preset
+  const [companyId, setCompanyId] = useState<string>('b4a221be-7b96-4952-8eb8-6ca749b46ca4');
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<RowResult[]>([]);
 
-  const { data: employees, isLoading: empLoading } = useQuery({
-    queryKey: ['cmp-employees', limit],
+  const { data: companies } = useQuery({
+    queryKey: ['cmp-companies'],
     queryFn: async () => {
       const { data, error } = await supabase
+        .from('hr_payroll_policies')
+        .select('company_id, engine_preset, companies!inner(id, name)')
+        .eq('engine_preset', 'malaki');
+      if (error) throw error;
+      return (data || []).map((r: any) => ({
+        id: r.company_id,
+        name: r.companies?.name ?? r.company_id,
+      }));
+    },
+  });
+
+  const { data: employees, isLoading: empLoading } = useQuery({
+    queryKey: ['cmp-employees', limit, companyId],
+    queryFn: async () => {
+      let q = supabase
         .from('employees')
         .select('*')
         .eq('is_active', true)
         .order('full_name')
         .limit(limit);
+      if (companyId) q = q.eq('company_id', companyId);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -131,6 +150,50 @@ export default function PayrollEngineComparisonPage() {
     const error = results.filter((r) => r.status === 'error').length;
     return { total, match, diff, skipped, error };
   }, [results]);
+
+  const downloadReport = () => {
+    const report = {
+      meta: {
+        generated_at: new Date().toISOString(),
+        period: { year, month },
+        company_id: companyId,
+        engine_version: 'S2-A.1',
+        legacy: 'src/lib/malaki-payroll.ts',
+        generic: "calculatePayslip(preset='malaki')",
+        epsilon: EPSILON,
+        sources_used: [
+          'employees',
+          'attendance_days',
+          'employee_payroll(prev → carry_over)',
+          'employee_loans + loan_installments',
+          'employee_deductions',
+          'employee_allowances',
+          'monthly_payroll_inputs (override only, never default)',
+        ],
+        write_operations: 'NONE (read-only)',
+      },
+      summary,
+      rows: results.map((r) => ({
+        employee_id: r.employee_id,
+        employee_name: r.employee_name,
+        status: r.status,
+        message: r.message,
+        inputs: r.built?.input,
+        provenance: r.built?.provenance,
+        reference_employee_payroll_net: r.built?.reference.employee_payroll_current?.net_salary ?? null,
+        legacy_net: r.malaki?.net_salary ?? null,
+        generic_net: r.generic?.net_salary ?? null,
+        diffs: r.diffs,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payroll-parity-${companyId.slice(0, 8)}-${year}-${String(month).padStart(2, '0')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const runComparison = async () => {
     if (!employees) return;
@@ -242,6 +305,20 @@ export default function PayrollEngineComparisonPage() {
           </div>
           <div className="flex gap-3 items-end flex-wrap">
             <div>
+              <label className="text-xs">الشركة (preset=malaki فقط)</label>
+              <select
+                className="w-72 h-9 rounded border bg-background px-2 text-sm"
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+              >
+                {(companies || []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="text-xs">السنة</label>
               <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24" />
             </div>
@@ -256,6 +333,9 @@ export default function PayrollEngineComparisonPage() {
             <Button onClick={runComparison} disabled={running || empLoading || !employees?.length}>
               {running ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
               تشغيل المقارنة
+            </Button>
+            <Button variant="outline" onClick={downloadReport} disabled={results.length === 0}>
+              تنزيل تقرير JSON
             </Button>
           </div>
         </CardContent>
