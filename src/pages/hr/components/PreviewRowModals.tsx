@@ -26,7 +26,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "./HRTable";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
+
+function exportRows(rows: any[], sheetName: string, fileName: string) {
+  if (!rows.length) return;
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!rtl"] = true as any;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 30));
+  XLSX.writeFile(wb, `${fileName}.xlsx`);
+}
+
+function ExportBtn({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <Button size="sm" variant="outline" onClick={onClick} disabled={disabled} className="gap-1">
+      <Download className="h-3.5 w-3.5" /> تصدير Excel
+    </Button>
+  );
+}
 
 const fmtNum = (n: number, d = 1) =>
   new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: d }).format(Number(n || 0));
@@ -81,6 +100,27 @@ export function PunchesModal({
           <DialogTitle>كشف البصمات — {employeeName}</DialogTitle>
           <DialogDescription>المصدر: سجل البصمات الفعلي (attendance_events) — قراءة فقط</DialogDescription>
         </DialogHeader>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            disabled={!events.length}
+            onClick={() =>
+              exportRows(
+                events.map((e: any) => {
+                  const dt = new Date(e.event_time);
+                  return {
+                    "التاريخ": format(dt, "yyyy/MM/dd"),
+                    "الوقت": format(dt, "HH:mm"),
+                    "النوع": e.event_type === "check_in" ? "دخول" : e.event_type === "check_out" ? "خروج" : e.event_type,
+                    "الحالة": e.status || "—",
+                    "ملاحظات": e.notes || "",
+                  };
+                }),
+                "البصمات",
+                `كشف_البصمات_${employeeName}_${year}_${month}`,
+              )
+            }
+          />
+        </div>
         {isLoading ? (
           <div className="flex justify-center py-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin ms-2" /> جاري التحميل...
@@ -197,6 +237,25 @@ export function WorkdaysModal({
           <SummaryChip label="غائب" value={summary.absent} tone="bad" />
           <SummaryChip label="إجازات" value={summary.leave} tone="info" />
         </div>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            disabled={!days.length}
+            onClick={() =>
+              exportRows(
+                days.map((d: any) => ({
+                  "التاريخ": format(new Date(d.attendance_date), "yyyy/MM/dd"),
+                  "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "—",
+                  "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "—",
+                  "ساعات العمل": Number(d.total_hours || 0),
+                  "إضافي": Number(d.overtime_hours || 0),
+                  "الحالة": labelFor(d.status),
+                })),
+                "أيام العمل",
+                `أيام_العمل_${employeeName}_${year}_${month}`,
+              )
+            }
+          />
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-10 text-muted-foreground">
@@ -275,6 +334,26 @@ export function ComponentsModal({
               : "لا توجد سياسة رواتب مرتبطة بهذا الموظف — يستخدم النظام الافتراضي."}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            disabled={!entries.length}
+            onClick={() =>
+              exportRows(
+                entries.map((r) => ({
+                  "النوع": r.kind === "allowance" ? "بدل" : "خصم",
+                  "الكود": r.code,
+                  "البيان": r.name,
+                  "القيمة": r.amount,
+                  "المصدر": r.source,
+                  "مرتبط بالحضور": r.attendance_linked ? "نعم" : "لا",
+                  "مطبّق": r.applied ? "نعم" : "لا",
+                })),
+                "البدلات والخصومات",
+                `بدلات_خصومات_${employeeName}`,
+              )
+            }
+          />
+        </div>
 
         {entries.length === 0 ? (
           <div className="rounded-md border border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
@@ -389,6 +468,27 @@ export function SalaryDetailsModal({
           <DialogTitle>تفاصيل احتساب الراتب — {employeeName}</DialogTitle>
           <DialogDescription>تفصيل لحظي — كل رقم له مصدر</DialogDescription>
         </DialogHeader>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            onClick={() =>
+              exportRows(
+                [
+                  { "البند": "الراتب الأساسي", "القيمة": data.base_salary },
+                  { "البند": "أيام العمل", "القيمة": data.working_days },
+                  { "البند": "ساعات العمل", "القيمة": data.working_hours },
+                  { "البند": "راتب الحضور", "القيمة": data.attendance_salary },
+                  { "البند": "ساعات إضافية", "القيمة": data.overtime_hours },
+                  { "البند": "قيمة الإضافي", "القيمة": data.overtime_value },
+                  { "البند": "إجمالي البدلات", "القيمة": data.total_allowances },
+                  { "البند": "إجمالي الخصومات", "القيمة": data.total_deductions },
+                  { "البند": "الصافي", "القيمة": data.net_salary },
+                ],
+                "تفصيل الراتب",
+                `تفصيل_الراتب_${employeeName}`,
+              )
+            }
+          />
+        </div>
 
         <div className="space-y-1 text-sm">
           <Line label="الراتب الأساسي" value={data.base_salary} />
