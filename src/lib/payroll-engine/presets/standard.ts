@@ -182,10 +182,66 @@ export function calculateStandardPreset(
   let totalDeductions = 0;
 
   // ─── Business safety rules (UX guards, not engine math) ───────
+  //   R0: zero base_salary for monthly/daily basis, OR zero hourly_rate for hourly basis
+  //       → return zero payslip with a single clear warning. No allowance, no deduction,
+  //         no overtime gets calculated. The accountant must define the salary first.
   //   R1: zero attendance → skip fixed deductions (avoid negative net)
   //   R2: zero base_salary → skip attendance-linked allowances
   const zeroAttendance = input.working_days <= 0 && input.working_hours <= 0;
   const zeroBaseSalary = Number(emp.base_salary || 0) <= 0;
+  const zeroHourly = Number(emp.hourly_rate || 0) <= 0;
+  const isHourlyBasis = policy.salary_basis === 'hourly';
+  const undefinedSalary = isHourlyBasis ? zeroHourly : zeroBaseSalary;
+
+  if (undefinedSalary) {
+    warnings.push('undefined_base_salary');
+    rules.push('R0: base_salary undefined → entire payslip zeroed, no components evaluated');
+    // Mark every active component as skipped in the breakdown so the accountant sees why.
+    for (const c of (opts.components || []).filter((c) => c.is_active)) {
+      breakdown.push({ code: c.code, kind: c.kind, amount: 0, source: 'skipped_undefined_base_salary' });
+    }
+    return {
+      working_days: input.working_days,
+      regular_hours: input.working_hours,
+      overtime_hours: input.overtime_hours,
+      vacation_hours: input.vacation_hours,
+      annual_leave_days: input.annual_leave_days,
+      sick_leave_days: input.sick_leave_days,
+      attendance_salary: 0,
+      net_fixed: 0,
+      attendance_bonus: 0,
+      special_allowance: 0,
+      extra_work_allowance: 0,
+      entitlements: 0,
+      annual_allowance: 0,
+      admin_allowance: 0,
+      food_transport_net: 0,
+      family_allowance: 0,
+      other_allowances: 0,
+      total_deductions: 0,
+      deduction_opening_balance: 0,
+      deduction_loan: 0,
+      deduction_new_advance: 0,
+      deduction_cash_advances: 0,
+      deduction_food_total: 0,
+      deduction_food_individual: 0,
+      deduction_cash_shortage: 0,
+      deduction_cash_surplus: 0,
+      deduction_delivery: 0,
+      deduction_purchases: 0,
+      deduction_other: 0,
+      deduction_violations: 0,
+      deduction_notes: input.deduction_notes || '',
+      net_salary: 0,
+      _engine: {
+        preset: 'standard',
+        version: 'S2-A.2',
+        rules_applied: rules,
+        warnings,
+        component_breakdown: breakdown,
+      },
+    } as any;
+  }
 
   for (const c of active) {
     const { amount, warning } = evalComponent(c, {
