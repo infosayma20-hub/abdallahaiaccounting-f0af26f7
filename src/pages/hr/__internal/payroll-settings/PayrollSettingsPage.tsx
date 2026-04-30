@@ -755,7 +755,7 @@ function ComponentForm({
   return (
     <div className="grid grid-cols-2 gap-3">
       <div>
-        <Label>الكود</Label>
+        <Label>الرمز (مثل: TRANSPORT)</Label>
         <Input value={value.code} onChange={(e) => set("code", e.target.value.toUpperCase())} />
       </div>
       <div>
@@ -773,7 +773,7 @@ function ComponentForm({
         <Input value={value.name_ar ?? ""} onChange={(e) => set("name_ar", e.target.value)} />
       </div>
       <div>
-        <Label>الاسم (إنجليزي)</Label>
+        <Label>الاسم (إنجليزي — اختياري)</Label>
         <Input value={value.name_en ?? ""} onChange={(e) => set("name_en", e.target.value)} />
       </div>
       <div>
