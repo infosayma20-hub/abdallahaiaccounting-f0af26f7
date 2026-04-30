@@ -237,6 +237,25 @@ export function WorkdaysModal({
           <SummaryChip label="غائب" value={summary.absent} tone="bad" />
           <SummaryChip label="إجازات" value={summary.leave} tone="info" />
         </div>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            disabled={!days.length}
+            onClick={() =>
+              exportRows(
+                days.map((d: any) => ({
+                  "التاريخ": format(new Date(d.attendance_date), "yyyy/MM/dd"),
+                  "دخول": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "—",
+                  "خروج": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "—",
+                  "ساعات العمل": Number(d.total_hours || 0),
+                  "إضافي": Number(d.overtime_hours || 0),
+                  "الحالة": labelFor(d.status),
+                })),
+                "أيام العمل",
+                `أيام_العمل_${employeeName}_${year}_${month}`,
+              )
+            }
+          />
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-10 text-muted-foreground">
