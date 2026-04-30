@@ -52,7 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Plus, Pencil, Trash2, Star, AlertTriangle, Info, PlayCircle } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Star, AlertTriangle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   calculateStandardPreset,
