@@ -1021,7 +1021,7 @@ function EmployeesTab() {
                   <HRTH>الموظف</HRTH>
                   <HRTH>الراتب الأساسي</HRTH>
                   <HRTH>السياسة</HRTH>
-                  <HRTH></HRTH>
+                  <HRTH>إجراءات</HRTH>
                 </HRTR>
               </HRTHead>
               <tbody>
