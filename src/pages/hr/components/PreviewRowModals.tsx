@@ -468,6 +468,27 @@ export function SalaryDetailsModal({
           <DialogTitle>تفاصيل احتساب الراتب — {employeeName}</DialogTitle>
           <DialogDescription>تفصيل لحظي — كل رقم له مصدر</DialogDescription>
         </DialogHeader>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            onClick={() =>
+              exportRows(
+                [
+                  { "البند": "الراتب الأساسي", "القيمة": data.base_salary },
+                  { "البند": "أيام العمل", "القيمة": data.working_days },
+                  { "البند": "ساعات العمل", "القيمة": data.working_hours },
+                  { "البند": "راتب الحضور", "القيمة": data.attendance_salary },
+                  { "البند": "ساعات إضافية", "القيمة": data.overtime_hours },
+                  { "البند": "قيمة الإضافي", "القيمة": data.overtime_value },
+                  { "البند": "إجمالي البدلات", "القيمة": data.total_allowances },
+                  { "البند": "إجمالي الخصومات", "القيمة": data.total_deductions },
+                  { "البند": "الصافي", "القيمة": data.net_salary },
+                ],
+                "تفصيل الراتب",
+                `تفصيل_الراتب_${employeeName}`,
+              )
+            }
+          />
+        </div>
 
         <div className="space-y-1 text-sm">
           <Line label="الراتب الأساسي" value={data.base_salary} />
