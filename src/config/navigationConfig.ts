@@ -389,8 +389,19 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "👥 الموظفون", path: "/employees" },
               { label: "🕐 الحضور", path: "/hr-attendance" },
-              { label: "📝 الطلبات", path: "/employee-forms-management" },
-              { label: "💵 الرواتب", path: "/payroll" },
+            ],
+          },
+          {
+            groupLabel: "التشغيل",
+            children: [
+              { label: "💵 إدارة الرواتب", path: "/payroll" },
+              { label: "📝 طلبات الموظفين", path: "/employee-forms-management" },
+            ],
+          },
+          {
+            groupLabel: "الإعدادات",
+            children: [
+              { label: "⚙️ إعدادات الرواتب", path: "/hr/__payroll-settings-v2" },
             ],
           },
         ],
