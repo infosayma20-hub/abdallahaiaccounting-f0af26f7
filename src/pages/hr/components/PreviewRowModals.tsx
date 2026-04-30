@@ -149,7 +149,7 @@ export function WorkdaysModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_days")
-        .select("attendance_date,total_hours,overtime_hours,status,first_in,last_out")
+        .select("attendance_date,total_hours,overtime_hours,status,first_check_in,last_check_out")
         .eq("employee_id", employeeId)
         .gte("attendance_date", start)
         .lte("attendance_date", end)
@@ -218,8 +218,8 @@ export function WorkdaysModal({
               {days.map((d: any) => (
                 <HRTR key={d.attendance_date}>
                   <HRTD numeric>{format(new Date(d.attendance_date), "yyyy/MM/dd", { locale: ar })}</HRTD>
-                  <HRTD numeric>{d.first_in ? format(new Date(d.first_in), "HH:mm") : "—"}</HRTD>
-                  <HRTD numeric>{d.last_out ? format(new Date(d.last_out), "HH:mm") : "—"}</HRTD>
+                  <HRTD numeric>{d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "—"}</HRTD>
+                  <HRTD numeric>{d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "—"}</HRTD>
                   <HRTD numeric>{fmtNum(d.total_hours)}</HRTD>
                   <HRTD numeric>{fmtNum(d.overtime_hours)}</HRTD>
                   <HRTD>
