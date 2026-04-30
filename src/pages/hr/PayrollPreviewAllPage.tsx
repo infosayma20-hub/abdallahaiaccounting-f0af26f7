@@ -93,8 +93,8 @@ interface PreviewRow {
   total_allowances: number;
   total_deductions: number;
   net_salary: number;
-  engine: "Standard" | "Malaki";
-  status: "ok" | "no_salary" | "no_attendance" | "warning";
+  engine: "Standard" | "Malaki" | "None";
+  status: "ok" | "no_salary" | "no_attendance" | "no_policy" | "warning";
   warnings: string[];
   policy_name: string | null;
   has_policy: boolean;
@@ -109,7 +109,7 @@ export default function PayrollPreviewAllPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance">("all");
+  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance" | "no_policy">("all");
 
   // ─── Data ─────────────────────────────────────────────
   const { data: employees = [], isLoading: loadingEmp } = useQuery({
@@ -248,12 +248,62 @@ export default function PayrollPreviewAllPage() {
       };
 
       const linkedPolicy = emp.payroll_policy_id ? policiesById[emp.payroll_policy_id] : null;
-      const useStandard = !!linkedPolicy && linkedPolicy.engine_preset === "standard";
+      // ─── Engine routing (HARD RULE) ────────────────────────────
+      // Standard ONLY when the employee is explicitly linked to a Standard
+      // policy belonging to THIS company. Otherwise → no calculation at all,
+      // never fall back to Malaki silently. The accountant must see
+      // "بدون سياسة رواتب" so they can fix the link before payroll runs.
+      const policyBelongsToCompany =
+        !!linkedPolicy && linkedPolicy.company_id === company.id;
+      const useStandard =
+        policyBelongsToCompany && linkedPolicy.engine_preset === "standard";
+      const noPolicy = !policyBelongsToCompany;
 
       let slip: MalakiPayslip;
       const warnings: string[] = [];
 
-      if (useStandard) {
+      if (noPolicy) {
+        // No engine runs. Zeroed payslip. The row will be flagged "بدون سياسة رواتب".
+        warnings.push("no_payroll_policy_assigned");
+        slip = {
+          working_days: malakiInput.working_days,
+          regular_hours: malakiInput.working_hours,
+          overtime_hours: malakiInput.overtime_hours,
+          vacation_hours: 0,
+          annual_leave_days: 0,
+          sick_leave_days: 0,
+          attendance_salary: 0,
+          annual_allowance: 0,
+          admin_allowance: 0,
+          food_transport_base: 0,
+          food_transport_net: 0,
+          family_allowance: 0,
+          other_allowances: 0,
+          gross_fixed: 0,
+          fixed_deduction: 0,
+          net_fixed: 0,
+          attendance_bonus: 0,
+          special_allowance: 0,
+          extra_work_allowance: 0,
+          entitlements: 0,
+          total_earnings: 0,
+          deduction_opening_balance: 0,
+          deduction_loan: 0,
+          deduction_new_advance: 0,
+          deduction_cash_advance: 0,
+          deduction_food_group: 0,
+          deduction_food_individual: 0,
+          deduction_cash_shortage: 0,
+          deduction_cash_surplus: 0,
+          deduction_delivery: 0,
+          deduction_purchases: 0,
+          deduction_other: 0,
+          deduction_violations: 0,
+          total_deductions: 0,
+          net_salary: 0,
+          carry_over_balance: 0,
+        } as MalakiPayslip;
+      } else if (useStandard) {
         const stdEmp: PayrollEmployeeData = {
           id: emp.id,
           full_name: emp.full_name,
@@ -309,7 +359,47 @@ export default function PayrollPreviewAllPage() {
           warnings.push(...(stdResult as any)._engine.warnings);
         }
       } else {
-        slip = calculateMalakiPayslip(toMalakiEmp(emp), malakiInput, year, month);
+        // Linked policy exists but is NOT standard preset — Malaki is
+        // intentionally disabled in this preview. We treat as no policy.
+        warnings.push(`unsupported_engine_preset:${linkedPolicy.engine_preset}`);
+        slip = {
+          working_days: malakiInput.working_days,
+          regular_hours: malakiInput.working_hours,
+          overtime_hours: malakiInput.overtime_hours,
+          vacation_hours: 0,
+          annual_leave_days: 0,
+          sick_leave_days: 0,
+          attendance_salary: 0,
+          annual_allowance: 0,
+          admin_allowance: 0,
+          food_transport_base: 0,
+          food_transport_net: 0,
+          family_allowance: 0,
+          other_allowances: 0,
+          gross_fixed: 0,
+          fixed_deduction: 0,
+          net_fixed: 0,
+          attendance_bonus: 0,
+          special_allowance: 0,
+          extra_work_allowance: 0,
+          entitlements: 0,
+          total_earnings: 0,
+          deduction_opening_balance: 0,
+          deduction_loan: 0,
+          deduction_new_advance: 0,
+          deduction_cash_advance: 0,
+          deduction_food_group: 0,
+          deduction_food_individual: 0,
+          deduction_cash_shortage: 0,
+          deduction_cash_surplus: 0,
+          deduction_delivery: 0,
+          deduction_purchases: 0,
+          deduction_other: 0,
+          deduction_violations: 0,
+          total_deductions: 0,
+          net_salary: 0,
+          carry_over_balance: 0,
+        } as MalakiPayslip;
       }
 
       const baseSalary = Number(emp.base_salary || 0);
@@ -317,7 +407,9 @@ export default function PayrollPreviewAllPage() {
       const noSalary = baseSalary <= 0 && hourlyRate <= 0;
       const noAttendance = att.days <= 0 && att.hours <= 0;
 
-      const status: PreviewRow["status"] = noSalary
+      const status: PreviewRow["status"] = noPolicy
+        ? "no_policy"
+        : noSalary
         ? "no_salary"
         : noAttendance
         ? "no_attendance"
@@ -332,10 +424,9 @@ export default function PayrollPreviewAllPage() {
         slip.extra_work_allowance +
         slip.entitlements;
 
-      // ─── Transparency: build a per-component breakdown ────────
-      // For Standard preset → we already have _engine.component_breakdown.
-      // For Malaki engine   → we synthesize one from the Malaki slip fields
-      //                       so the accountant can see WHERE every figure came from.
+      // ─── Transparency: per-component breakdown ────────────────
+      // ONLY components from the employee's own Standard policy are shown.
+      // No Malaki fallback ever runs in this preview (see engine routing above).
       const breakdown: BreakdownEntry[] = [];
       if (useStandard) {
         const eng = (slip as any)._engine || {};
@@ -351,42 +442,8 @@ export default function PayrollPreviewAllPage() {
             applied: b.amount !== 0 && !b.source.startsWith("skipped"),
           });
         }
-      } else {
-        // Malaki — derive entries from explicit slip fields. Each line is
-        // sourced from a real employee field so the accountant can trace it.
-        const malakiAllowances: Array<[string, string, number, string]> = [
-          ["MAL_ANNUAL", "علاوة سنوية", slip.annual_allowance, "employees.start_date (سنوات الخدمة)"],
-          ["MAL_ADMIN", "بدل إداري", slip.admin_allowance, "employees.admin_allowance"],
-          ["MAL_FOOD_TRANSPORT", "بدل طعام ومواصلات", slip.food_transport_net, "employees.food_transport_override"],
-          ["MAL_FAMILY", "بدل عائلة", slip.family_allowance, "employees.wives_count + children_count"],
-          ["MAL_OTHER", "بدلات أخرى", slip.other_allowances, "employees.other_allowances"],
-          ["MAL_BONUS", "مكافأة المواظبة", slip.attendance_bonus, "حضور كامل (≤4 غياب)"],
-          ["MAL_SPECIAL", "بدل خاص", slip.special_allowance, "monthly_payroll_inputs.special_allowance"],
-          ["MAL_EXTRA", "أعمال إضافية", slip.extra_work_allowance, "monthly_payroll_inputs.extra_work_allowance"],
-        ];
-        const malakiDeductions: Array<[string, string, number, string]> = [
-          ["MAL_FIXED_DED", "خصم الغياب من البدلات", slip.fixed_deduction, "آلية الملكي (28 يوم)"],
-          ["MAL_OPEN_BAL", "رصيد سلفة سابق", slip.deduction_opening_balance, "monthly_payroll_inputs.opening_advance_balance"],
-          ["MAL_LOAN", "قسط قرض", slip.deduction_loan, "monthly_payroll_inputs.loan_installment"],
-          ["MAL_NEW_ADV", "سلفة جديدة", slip.deduction_new_advance, "monthly_payroll_inputs.new_advance"],
-          ["MAL_CASH_ADV", "سلف نقدية", slip.deduction_cash_advance, "monthly_payroll_inputs.cash_advances"],
-          ["MAL_FOOD_GRP", "حصة طعام (90%)", slip.deduction_food_group, "monthly_payroll_inputs.food_total"],
-          ["MAL_FOOD_IND", "طعام فردي (50%)", slip.deduction_food_individual, "monthly_payroll_inputs.food_individual"],
-          ["MAL_SHORT", "عجز نقدي", slip.deduction_cash_shortage, "monthly_payroll_inputs.cash_shortage"],
-          ["MAL_DELIVERY", "توصيل", slip.deduction_delivery, "monthly_payroll_inputs.delivery"],
-          ["MAL_PURCH", "مشتريات شخصية", slip.deduction_purchases, "monthly_payroll_inputs.purchases"],
-          ["MAL_OTHER_DED", "خصومات أخرى", slip.deduction_other, "monthly_payroll_inputs.other_deduction"],
-          ["MAL_VIOL", "مخالفات", slip.deduction_violations, "monthly_payroll_inputs.violations"],
-        ];
-        for (const [code, name, amount, source] of malakiAllowances) {
-          if (Number(amount || 0) === 0) continue; // hide unused → fixes "phantom" allowances
-          breakdown.push({ code, name, kind: "allowance", amount, source, applied: true });
-        }
-        for (const [code, name, amount, source] of malakiDeductions) {
-          if (Number(amount || 0) === 0) continue;
-          breakdown.push({ code, name, kind: "deduction", amount, source, applied: true });
-        }
       }
+      // noPolicy or unsupported preset → empty breakdown (zero everything).
 
       // Approx overtime value (hours × hourly_rate × multiplier 1.5).
       // Display-only, no impact on math.
@@ -405,7 +462,7 @@ export default function PayrollPreviewAllPage() {
         total_allowances: totalAllowances,
         total_deductions: slip.total_deductions,
         net_salary: slip.net_salary,
-        engine: useStandard ? "Standard" : "Malaki",
+        engine: useStandard ? "Standard" : "None",
         status,
         warnings,
         policy_name: linkedPolicy?.name || null,
@@ -430,11 +487,13 @@ export default function PayrollPreviewAllPage() {
   const summary = useMemo(() => {
     const noSalary = rows.filter((r) => r.status === "no_salary").length;
     const noAttendance = rows.filter((r) => r.status === "no_attendance").length;
+    const noPolicy = rows.filter((r) => r.status === "no_policy").length;
     const ok = rows.filter((r) => r.status === "ok" || r.status === "warning").length;
     return {
       count: rows.length,
       noSalary,
       noAttendance,
+      noPolicy,
       ok,
       totalAllowances: rows.reduce((a, r) => a + r.total_allowances, 0),
       totalDeductions: rows.reduce((a, r) => a + r.total_deductions, 0),
@@ -456,7 +515,9 @@ export default function PayrollPreviewAllPage() {
       "الخصومات": r.total_deductions,
       "الصافي": r.net_salary,
       "الحالة":
-        r.status === "no_salary"
+        r.status === "no_policy"
+          ? "بدون سياسة رواتب"
+          : r.status === "no_salary"
           ? "بدون راتب أساسي"
           : r.status === "no_attendance"
           ? "لا يوجد حضور"
@@ -537,14 +598,22 @@ export default function PayrollPreviewAllPage() {
           className="w-[220px]"
         />
         <div className="flex gap-1">
-          {(["all", "ok", "no_salary", "no_attendance"] as const).map((f) => (
+          {(["all", "ok", "no_salary", "no_attendance", "no_policy"] as const).map((f) => (
             <Button
               key={f}
               size="sm"
               variant={filter === f ? "default" : "outline"}
               onClick={() => setFilter(f)}
             >
-              {f === "all" ? "الكل" : f === "ok" ? "سليم" : f === "no_salary" ? "بدون راتب" : "بدون حضور"}
+              {f === "all"
+                ? "الكل"
+                : f === "ok"
+                ? "سليم"
+                : f === "no_salary"
+                ? "بدون راتب"
+                : f === "no_attendance"
+                ? "بدون حضور"
+                : "بدون سياسة"}
             </Button>
           ))}
         </div>
@@ -571,16 +640,21 @@ export default function PayrollPreviewAllPage() {
         <Card className="p-3 border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
           <div className="text-[10px] text-amber-700">يحتاج مراجعة</div>
           <div className="text-sm font-bold text-amber-700">
-            {summary.noSalary + summary.noAttendance}
+            {summary.noSalary + summary.noAttendance + summary.noPolicy}
           </div>
         </Card>
       </div>
 
       {/* Critical warning bar */}
-      {(summary.noSalary > 0 || summary.noAttendance > 0) && (
+      {(summary.noSalary > 0 || summary.noAttendance > 0 || summary.noPolicy > 0) && (
         <Card className="p-3 border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
           <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" />
+            {summary.noPolicy > 0 && (
+              <span className="text-rose-700">
+                <strong>{summary.noPolicy}</strong> موظف بدون سياسة رواتب — لن يُحتسب لهم أي راتب
+              </span>
+            )}
             {summary.noSalary > 0 && (
               <span>
                 <strong>{summary.noSalary}</strong> موظف بدون راتب أساسي
@@ -656,7 +730,11 @@ export default function PayrollPreviewAllPage() {
                     <HRMoney value={r.net_salary} />
                   </HRTD>
                   <HRTD>
-                    {r.status === "no_salary" ? (
+                    {r.status === "no_policy" ? (
+                      <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" /> بدون سياسة رواتب
+                      </Badge>
+                    ) : r.status === "no_salary" ? (
                       <Badge variant="destructive" className="gap-1">
                         <AlertTriangle className="h-3 w-3" /> بدون راتب
                       </Badge>
