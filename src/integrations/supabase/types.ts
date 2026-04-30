@@ -5018,6 +5018,8 @@ export type Database = {
           opening_balance_date: string | null
           opening_balance_type: string | null
           other_allowances: number | null
+          payroll_overrides: Json
+          payroll_policy_id: string | null
           phone: string | null
           photo_url: string | null
           position: string | null
@@ -5084,6 +5086,8 @@ export type Database = {
           opening_balance_date?: string | null
           opening_balance_type?: string | null
           other_allowances?: number | null
+          payroll_overrides?: Json
+          payroll_policy_id?: string | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
@@ -5150,6 +5154,8 @@ export type Database = {
           opening_balance_date?: string | null
           opening_balance_type?: string | null
           other_allowances?: number | null
+          payroll_overrides?: Json
+          payroll_policy_id?: string | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
@@ -5206,6 +5212,13 @@ export type Database = {
             columns: ["job_title_id"]
             isOneToOne: false
             referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_payroll_policy_id_fkey"
+            columns: ["payroll_policy_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_policies"
             referencedColumns: ["id"]
           },
           {
