@@ -598,14 +598,22 @@ export default function PayrollPreviewAllPage() {
           className="w-[220px]"
         />
         <div className="flex gap-1">
-          {(["all", "ok", "no_salary", "no_attendance"] as const).map((f) => (
+          {(["all", "ok", "no_salary", "no_attendance", "no_policy"] as const).map((f) => (
             <Button
               key={f}
               size="sm"
               variant={filter === f ? "default" : "outline"}
               onClick={() => setFilter(f)}
             >
-              {f === "all" ? "الكل" : f === "ok" ? "سليم" : f === "no_salary" ? "بدون راتب" : "بدون حضور"}
+              {f === "all"
+                ? "الكل"
+                : f === "ok"
+                ? "سليم"
+                : f === "no_salary"
+                ? "بدون راتب"
+                : f === "no_attendance"
+                ? "بدون حضور"
+                : "بدون سياسة"}
             </Button>
           ))}
         </div>
@@ -632,16 +640,21 @@ export default function PayrollPreviewAllPage() {
         <Card className="p-3 border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
           <div className="text-[10px] text-amber-700">يحتاج مراجعة</div>
           <div className="text-sm font-bold text-amber-700">
-            {summary.noSalary + summary.noAttendance}
+            {summary.noSalary + summary.noAttendance + summary.noPolicy}
           </div>
         </Card>
       </div>
 
       {/* Critical warning bar */}
-      {(summary.noSalary > 0 || summary.noAttendance > 0) && (
+      {(summary.noSalary > 0 || summary.noAttendance > 0 || summary.noPolicy > 0) && (
         <Card className="p-3 border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
           <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" />
+            {summary.noPolicy > 0 && (
+              <span className="text-rose-700">
+                <strong>{summary.noPolicy}</strong> موظف بدون سياسة رواتب — لن يُحتسب لهم أي راتب
+              </span>
+            )}
             {summary.noSalary > 0 && (
               <span>
                 <strong>{summary.noSalary}</strong> موظف بدون راتب أساسي
