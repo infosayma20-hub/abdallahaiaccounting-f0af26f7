@@ -636,7 +636,7 @@ function ComponentsTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <CardTitle>المكوّنات</CardTitle>
+          <CardTitle>البدلات والخصومات</CardTitle>
           <Select value={effectivePolicyId ?? ""} onValueChange={setPolicyId}>
             <SelectTrigger className="w-64"><SelectValue placeholder="اختر سياسة" /></SelectTrigger>
             <SelectContent>
@@ -651,12 +651,12 @@ function ComponentsTab() {
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditing({ ...blankComponent, id: "", company_id: company.id, policy_id: effectivePolicyId! } as ComponentRow)}>
-              <Plus className="h-4 w-4 ms-1" /> مكوّن جديد
+              <Plus className="h-4 w-4 ms-1" /> بدل أو خصم جديد
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-xl" dir="rtl">
             <DialogHeader>
-              <DialogTitle>{editing?.id ? "تعديل مكوّن" : "مكوّن جديد"}</DialogTitle>
+              <DialogTitle>{editing?.id ? "تعديل بدل/خصم" : "بدل أو خصم جديد"}</DialogTitle>
             </DialogHeader>
             {editing && (
               <ComponentForm
@@ -679,13 +679,13 @@ function ComponentsTab() {
           </div>
         ) : components.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            لا مكوّنات لهذه السياسة بعد.
+            لا توجد بدلات أو خصومات لهذه السياسة بعد.
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الكود</TableHead>
+                <TableHead>الرمز</TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>طريقة الحساب</TableHead>
@@ -704,11 +704,11 @@ function ComponentsTab() {
                     <TableCell>{c.name_ar || c.name_en}</TableCell>
                     <TableCell>
                       <Badge variant={c.kind === "allowance" ? "default" : "destructive"}>
-                        {c.kind === "allowance" ? "بدل" : "خصم"}
+                        {KIND_AR[c.kind] ?? c.kind}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {c.calculation_type}
+                      {CALC_TYPE_AR[c.calculation_type] ?? c.calculation_type}
                       {unsupported && (
                         <Badge variant="outline" className="ms-1 gap-1">
                           <AlertTriangle className="h-3 w-3" /> غير مدعوم
