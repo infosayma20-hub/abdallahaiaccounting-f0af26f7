@@ -334,6 +334,26 @@ export function ComponentsModal({
               : "لا توجد سياسة رواتب مرتبطة بهذا الموظف — يستخدم النظام الافتراضي."}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            disabled={!entries.length}
+            onClick={() =>
+              exportRows(
+                entries.map((r) => ({
+                  "النوع": r.kind === "allowance" ? "بدل" : "خصم",
+                  "الكود": r.code,
+                  "البيان": r.name,
+                  "القيمة": r.amount,
+                  "المصدر": r.source,
+                  "مرتبط بالحضور": r.attendance_linked ? "نعم" : "لا",
+                  "مطبّق": r.applied ? "نعم" : "لا",
+                })),
+                "البدلات والخصومات",
+                `بدلات_خصومات_${employeeName}`,
+              )
+            }
+          />
+        </div>
 
         {entries.length === 0 ? (
           <div className="rounded-md border border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
