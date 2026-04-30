@@ -300,37 +300,74 @@ export default function PayrollEmployeeDrawer({
     );
   }, [data]);
 
+  // Pending attendance correction requests (real blocker)
+  const pendingCorrections = useMemo(() => {
+    if (!data?.forms) return [];
+    return data.forms.filter((f: any) => {
+      if (!["pending", "قيد المراجعة", "معلقة"].includes(f.status)) return false;
+      const t = String(f.form_type || f.type || "").toLowerCase();
+      return (
+        t.includes("correction") ||
+        t.includes("attendance") ||
+        t.includes("تصحيح") ||
+        t.includes("بصمة") ||
+        t.includes("حضور")
+      );
+    });
+  }, [data]);
+
   const isPaid = payrollRecord?.is_paid;
   const isLocked = isPaid; // Phase 2 will add full Audit Log + unlock workflow
 
   // ===== Health Status (Smart Employee State) =====
+  // Issues = real blockers (manual review required)
+  // Warnings = informational, do NOT block approval
   const healthStatus = useMemo(() => {
     const issues: string[] = [];
     const warnings: string[] = [];
 
-    // Check incomplete days (missing check-out)
+    // BLOCKERS:
+    // 1) Incomplete days (missing check-out) — real data quality issue
     if (monthStats.incompleteDays > 0) {
       issues.push(`${monthStats.incompleteDays} يوم بدون تسجيل خروج`);
     }
-    // Check absent days
+    // 2) Pending attendance correction requests — must be resolved first
+    if (pendingCorrections.length > 0) {
+      issues.push(`${pendingCorrections.length} طلب تصحيح بصمة معلق`);
+    }
+    // 3) Missing payroll data
+    if (payrollRecord) {
+      const net = Number(payrollRecord.net_salary || 0);
+      const base = Number(payrollRecord.attendance_salary || payrollRecord.base_salary || 0);
+      // 4) Negative or illogical net salary
+      if (net < 0) {
+        issues.push("صافي الراتب سالب — يحتاج مراجعة");
+      } else if (base <= 0 && Number(payrollRecord.total_allowances || 0) <= 0) {
+        issues.push("بيانات الراتب الأساسية ناقصة");
+      }
+    }
+
+    // WARNINGS (informational only — do NOT block):
+    // Absences are normal in restaurants — already deducted in calculation
     if (monthStats.absentDays > 0) {
-      warnings.push(`${monthStats.absentDays} يوم غياب`);
+      warnings.push(`${monthStats.absentDays} يوم غياب (محسوب ومخصوم)`);
     }
-    // Check pending requests
-    if (pendingRequests.length > 0) {
-      warnings.push(`${pendingRequests.length} طلب معلق بانتظار المراجعة`);
+    // Other pending requests (advances, leaves, etc.) — informational
+    const otherPending = pendingRequests.length - pendingCorrections.length;
+    if (otherPending > 0) {
+      warnings.push(`${otherPending} طلب آخر معلق (سُلف/إجازات)`);
     }
-    // Check missing payroll record
+    // Missing payroll record for this month — info, not a blocker
     if (!payrollRecord) {
-      warnings.push("لم يتم احتساب راتب لهذا الشهر");
+      warnings.push("لم يتم احتساب راتب لهذا الشهر بعد");
     }
 
     let level: "ready" | "review" | "issues" = "ready";
     if (issues.length > 0) level = "issues";
     else if (warnings.length > 0) level = "review";
 
-    return { level, issues, warnings };
-  }, [monthStats, pendingRequests, payrollRecord]);
+    return { level, issues, warnings, canApprove: issues.length === 0 };
+  }, [monthStats, pendingRequests, pendingCorrections, payrollRecord]);
 
   const healthMeta = {
     ready: {
