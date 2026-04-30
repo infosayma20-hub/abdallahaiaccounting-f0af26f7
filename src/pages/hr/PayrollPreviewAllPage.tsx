@@ -472,6 +472,25 @@ export default function PayrollPreviewAllPage() {
 
   const isLoading = loadingEmp;
 
+  // ─── Modal state ─────────────────────────────────────
+  const [punchesFor, setPunchesFor] = useState<{ id: string; name: string } | null>(null);
+  const [workdaysFor, setWorkdaysFor] = useState<{ id: string; name: string } | null>(null);
+  const [componentsFor, setComponentsFor] = useState<PreviewRow | null>(null);
+  const [salaryFor, setSalaryFor] = useState<PreviewRow | null>(null);
+
+  // ─── Aggregated totals (single source of truth, used in footer too) ─
+  const totals = useMemo(
+    () => ({
+      base: filtered.reduce((a, r) => a + r.base_salary, 0),
+      attendance: filtered.reduce((a, r) => a + r.attendance_salary, 0),
+      overtime: filtered.reduce((a, r) => a + r.overtime_value, 0),
+      allowances: filtered.reduce((a, r) => a + r.total_allowances, 0),
+      deductions: filtered.reduce((a, r) => a + r.total_deductions, 0),
+      net: filtered.reduce((a, r) => a + r.net_salary, 0),
+    }),
+    [filtered],
+  );
+
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto pb-10 p-4" dir="rtl">
       {/* Header */}
@@ -558,12 +577,22 @@ export default function PayrollPreviewAllPage() {
       </div>
 
       {/* Critical warning bar */}
-      {summary.noSalary > 0 && (
-        <Card className="p-3 border-red-300 bg-red-50 dark:bg-red-900/10">
-          <div className="flex items-center gap-2 text-red-700 text-sm">
+      {(summary.noSalary > 0 || summary.noAttendance > 0) && (
+        <Card className="p-3 border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" />
-            <span>
-              يوجد <strong>{summary.noSalary}</strong> موظفين بدون راتب أساسي معرّف — لن يتم احتساب أي راتب أو بدل أو خصم لهم. عرّف رواتبهم من ملف الموظف أولاً.
+            {summary.noSalary > 0 && (
+              <span>
+                <strong>{summary.noSalary}</strong> موظف بدون راتب أساسي
+              </span>
+            )}
+            {summary.noAttendance > 0 && (
+              <span>
+                <strong>{summary.noAttendance}</strong> موظف بدون حضور
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              — صحّح بيانات الموظف من ملفه قبل احتساب الرواتب رسمياً.
             </span>
           </div>
         </Card>
@@ -571,114 +600,190 @@ export default function PayrollPreviewAllPage() {
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الموظف</TableHead>
-              <TableHead>القسم</TableHead>
-              <TableHead>الراتب الأساسي</TableHead>
-              <TableHead>أيام العمل</TableHead>
-              <TableHead>ساعات العمل</TableHead>
-              <TableHead>إضافي</TableHead>
-              <TableHead>راتب الحضور</TableHead>
-              <TableHead>البدلات</TableHead>
-              <TableHead>الخصومات</TableHead>
-              <TableHead>الصافي</TableHead>
-              <TableHead>الحالة</TableHead>
-              <TableHead className="text-end">إجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <HRTable>
+          <HRTHead>
+            <HRTH>الموظف</HRTH>
+            <HRTH>القسم</HRTH>
+            <HRTH>الراتب الأساسي</HRTH>
+            <HRTH>أيام العمل</HRTH>
+            <HRTH>ساعات العمل</HRTH>
+            <HRTH>إضافي</HRTH>
+            <HRTH>راتب الحضور</HRTH>
+            <HRTH>البدلات</HRTH>
+            <HRTH>الخصومات</HRTH>
+            <HRTH>الصافي</HRTH>
+            <HRTH>الحالة</HRTH>
+            <HRTH align="center">إجراءات</HRTH>
+          </HRTHead>
+          <tbody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={12}>
+              <tr>
+                <td colSpan={12}>
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin ms-2" /> جاري حساب المعاينة...
                   </div>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={12}>
+              <tr>
+                <td colSpan={12}>
                   <div className="py-8 text-center text-sm text-muted-foreground">
                     لا يوجد موظفون مطابقون.
                   </div>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.department || "—"}</TableCell>
-                  <TableCell className={r.status === "no_salary" ? "text-red-600 font-semibold" : ""}>
-                    {fmtCurrency(r.base_salary)}
-                  </TableCell>
-                  <TableCell>{r.working_days}</TableCell>
-                  <TableCell>{Number(r.working_hours).toFixed(1)}</TableCell>
-                  <TableCell>{Number(r.overtime).toFixed(1)}</TableCell>
-                  <TableCell>{fmtCurrency(r.attendance_salary)}</TableCell>
-                  <TableCell className="text-emerald-600">{fmtCurrency(r.total_allowances)}</TableCell>
-                  <TableCell className="text-red-500">{fmtCurrency(r.total_deductions)}</TableCell>
-                  <TableCell className="font-bold">{fmtCurrency(r.net_salary)}</TableCell>
-                  <TableCell>
+                <HRTR key={r.id}>
+                  <HRTD className="font-medium">{r.name}</HRTD>
+                  <HRTD className="text-xs text-muted-foreground">{r.department || "—"}</HRTD>
+                  <HRTD numeric className={r.status === "no_salary" ? "text-rose-600 font-semibold" : ""}>
+                    <HRMoney value={r.base_salary} />
+                  </HRTD>
+                  <HRTD numeric>{r.working_days}</HRTD>
+                  <HRTD numeric>{Number(r.working_hours).toFixed(1)}</HRTD>
+                  <HRTD numeric>{Number(r.overtime).toFixed(1)}</HRTD>
+                  <HRTD numeric>
+                    <HRMoney value={r.attendance_salary} />
+                  </HRTD>
+                  <HRTD numeric className="text-emerald-700">
+                    <HRMoney value={r.total_allowances} />
+                  </HRTD>
+                  <HRTD numeric className="text-rose-700">
+                    <HRMoney value={r.total_deductions} />
+                  </HRTD>
+                  <HRTD numeric className="font-bold">
+                    <HRMoney value={r.net_salary} />
+                  </HRTD>
+                  <HRTD>
                     {r.status === "no_salary" ? (
                       <Badge variant="destructive" className="gap-1">
                         <AlertTriangle className="h-3 w-3" /> بدون راتب
                       </Badge>
                     ) : r.status === "no_attendance" ? (
                       <Badge variant="secondary">لا حضور</Badge>
-                    ) : r.status === "warning" ? (
-                      <Badge variant="outline" className="border-amber-400 text-amber-700">تحذيرات</Badge>
+                    ) : r.working_days < 3 ? (
+                      <Badge variant="outline" className="border-amber-400 text-amber-700">حضور منخفض</Badge>
                     ) : (
                       <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">سليم</Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="text-end">
-                    <div className="flex gap-1 justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => navigate(`/hr/employee/${r.id}?tab=payroll`)}
-                        title="معاينة تفاصيل الراتب"
-                      >
-                        <Eye className="h-4 w-4 ms-1" /> معاينة التفاصيل
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => navigate(`/hr/employee/${r.id}`)}
-                        title="ملف الموظف 360"
-                      >
-                        <ExternalLink className="h-4 w-4 ms-1" /> ملف 360
-                      </Button>
+                  </HRTD>
+                  <HRTD align="center">
+                    <div className="flex gap-1 justify-center flex-wrap">
+                      <IconBtn title="كشف البصمات" onClick={() => setPunchesFor({ id: r.id, name: r.name })}>
+                        <Fingerprint className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="أيام العمل" onClick={() => setWorkdaysFor({ id: r.id, name: r.name })}>
+                        <ClipboardList className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="البدلات والخصومات" onClick={() => setComponentsFor(r)}>
+                        <Info className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="تفاصيل الراتب" onClick={() => setSalaryFor(r)}>
+                        <Calculator className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="ملف 360" onClick={() => navigate(`/hr/employee/${r.id}`)}>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </IconBtn>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </HRTD>
+                </HRTR>
               ))
             )}
-            {filtered.length > 0 && (
-              <TableRow className="bg-muted/30 font-bold">
-                <TableCell colSpan={6}>
+          </tbody>
+          {filtered.length > 0 && (
+            <tfoot>
+              <tr className="bg-primary/5 border-t-2 border-primary/30 font-bold text-right">
+                <td className="px-3 py-3" colSpan={2}>
                   الإجمالي ({filtered.length} موظف)
-                </TableCell>
-                <TableCell>{fmtCurrency(filtered.reduce((a, r) => a + r.attendance_salary, 0))}</TableCell>
-                <TableCell className="text-emerald-600">
-                  {fmtCurrency(filtered.reduce((a, r) => a + r.total_allowances, 0))}
-                </TableCell>
-                <TableCell className="text-red-500">
-                  {fmtCurrency(filtered.reduce((a, r) => a + r.total_deductions, 0))}
-                </TableCell>
-                <TableCell>{fmtCurrency(filtered.reduce((a, r) => a + r.net_salary, 0))}</TableCell>
-                <TableCell colSpan={2} />
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right">
+                  <HRMoney value={totals.base} />
+                </td>
+                <td className="px-3 py-3" colSpan={2} />
+                <td className="px-3 py-3 tabular-nums text-right">
+                  <HRMoney value={totals.overtime} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right">
+                  <HRMoney value={totals.attendance} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right text-emerald-700">
+                  <HRMoney value={totals.allowances} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right text-rose-700">
+                  <HRMoney value={totals.deductions} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right text-primary">
+                  <HRMoney value={totals.net} />
+                </td>
+                <td className="px-3 py-3" colSpan={2} />
+              </tr>
+            </tfoot>
+          )}
+        </HRTable>
       </Card>
 
       <p className="text-xs text-muted-foreground text-center">
         هذه شاشة معاينة فقط — الأرقام محسوبة لحظياً ولا تُحفظ في قاعدة البيانات. للاعتماد الرسمي اذهب إلى «إدارة الرواتب».
       </p>
+
+      {/* ─── Investigation Modals ─── */}
+      {punchesFor && (
+        <PunchesModal
+          open
+          onClose={() => setPunchesFor(null)}
+          employeeId={punchesFor.id}
+          employeeName={punchesFor.name}
+          year={year}
+          month={month}
+        />
+      )}
+      {workdaysFor && (
+        <WorkdaysModal
+          open
+          onClose={() => setWorkdaysFor(null)}
+          employeeId={workdaysFor.id}
+          employeeName={workdaysFor.name}
+          year={year}
+          month={month}
+        />
+      )}
+      {componentsFor && (
+        <ComponentsModal
+          open
+          onClose={() => setComponentsFor(null)}
+          employeeName={componentsFor.name}
+          policyName={componentsFor.policy_name}
+          entries={componentsFor.breakdown}
+        />
+      )}
+      {salaryFor && (
+        <SalaryDetailsModal
+          open
+          onClose={() => setSalaryFor(null)}
+          employeeName={salaryFor.name}
+          data={{
+            base_salary: salaryFor.base_salary,
+            working_days: salaryFor.working_days,
+            working_hours: salaryFor.working_hours,
+            attendance_salary: salaryFor.attendance_salary,
+            overtime_hours: salaryFor.overtime,
+            overtime_value: salaryFor.overtime_value,
+            total_allowances: salaryFor.total_allowances,
+            total_deductions: salaryFor.total_deductions,
+            net_salary: salaryFor.net_salary,
+            warnings: salaryFor.warnings,
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function IconBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Button size="icon" variant="ghost" className="h-7 w-7" title={title} onClick={onClick}>
+      {children}
+    </Button>
   );
 }
