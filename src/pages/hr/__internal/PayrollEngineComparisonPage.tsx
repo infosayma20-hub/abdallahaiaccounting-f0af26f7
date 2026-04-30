@@ -162,8 +162,8 @@ export default function PayrollEngineComparisonPage() {
     for (const emp of employees) {
       const empData = toEmployeeData(emp);
       try {
-        const loaded = await loadPolicyForEmployee(emp.id);
-        if (!loaded) {
+        const policy = await loadPolicyForEmployee(emp.id);
+        if (!policy) {
           out.push({
             employee_id: emp.id,
             employee_name: emp.full_name,
@@ -196,7 +196,7 @@ export default function PayrollEngineComparisonPage() {
 
         const input = toMonthInput(inputRow);
         const malakiSlip = calculateMalakiPayslip(empData, input, year, month);
-        const genericSlip = calculatePayslipWithPolicy(empData, input, { year, month }, loaded.policy);
+        const genericSlip = calculatePayslipWithPolicy(empData, input, { year, month }, policy);
 
         const diffs: DiffRow[] = [];
         for (const f of COMPARE_FIELDS) {
