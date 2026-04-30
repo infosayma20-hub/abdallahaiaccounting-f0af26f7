@@ -27,15 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "./components/HRTable";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { AlertTriangle, ArrowLeft, Download, ExternalLink, Eye, Loader2, Wallet } from "lucide-react";
+  PunchesModal,
+  WorkdaysModal,
+  ComponentsModal,
+  SalaryDetailsModal,
+  type BreakdownEntry,
+  type SalaryBreakdown,
+} from "./components/PreviewRowModals";
+import { AlertTriangle, ArrowLeft, Calculator, ClipboardList, Download, ExternalLink, Fingerprint, Info, Loader2, Wallet } from "lucide-react";
 import {
   calculateMalakiPayslip,
   fmtCurrency,
