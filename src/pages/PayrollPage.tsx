@@ -638,6 +638,9 @@ const PayrollPage = () => {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => navigate("/payroll/preview-all")}>
+            <Eye className="h-4 w-4 ml-1" /> معاينة كل الرواتب
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/payroll/inputs")}>
             <ClipboardEdit className="h-4 w-4 ml-1" /> إدخال البيانات
           </Button>
