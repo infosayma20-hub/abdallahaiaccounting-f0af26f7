@@ -380,9 +380,9 @@ function PoliciesTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>الاسم</TableHead>
-                <TableHead>الأساس</TableHead>
+                <TableHead>أساس الراتب</TableHead>
                 <TableHead>أيام الشهر</TableHead>
-                <TableHead>OT ×</TableHead>
+                <TableHead>معامل الإضافي</TableHead>
                 <TableHead>افتراضية</TableHead>
                 <TableHead className="text-end">إجراءات</TableHead>
               </TableRow>
@@ -394,9 +394,12 @@ function PoliciesTab() {
                     {p.name}
                     {!p.is_active && <Badge variant="secondary" className="me-2">معطّلة</Badge>}
                   </TableCell>
-                  <TableCell>{p.salary_basis}</TableCell>
-                  <TableCell>{p.month_days_mode}{p.month_days_mode === "custom" ? ` (${p.month_days_custom})` : ""}</TableCell>
-                  <TableCell>{p.overtime_multiplier}</TableCell>
+                  <TableCell>{SALARY_BASIS_AR[p.salary_basis] ?? p.salary_basis}</TableCell>
+                  <TableCell>
+                    {MONTH_DAYS_AR[p.month_days_mode] ?? p.month_days_mode}
+                    {p.month_days_mode === "custom" ? ` (${p.month_days_custom})` : ""}
+                  </TableCell>
+                  <TableCell>×{p.overtime_multiplier}</TableCell>
                   <TableCell>
                     {p.is_default ? (
                       <Badge className="gap-1"><Star className="h-3 w-3" /> نعم</Badge>
