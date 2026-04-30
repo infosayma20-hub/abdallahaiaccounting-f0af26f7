@@ -1187,23 +1187,23 @@ function PreviewResult({ result }: { result: any }) {
       </div>
       {(eng.component_breakdown?.length ?? 0) > 0 && (
         <div className="border rounded">
-          <div className="text-xs font-medium px-2 py-1 bg-muted">تفصيل المكوّنات</div>
+          <div className="text-xs font-medium px-2 py-1 bg-muted">تفصيل البدلات والخصومات</div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الكود</TableHead>
+                <TableHead>الرمز</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>المبلغ</TableHead>
-                <TableHead>المصدر</TableHead>
+                <TableHead>طريقة الحساب</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {eng.component_breakdown.map((b: any, i: number) => (
                 <TableRow key={i}>
                   <TableCell className="font-mono text-xs">{b.code}</TableCell>
-                  <TableCell>{b.kind}</TableCell>
+                  <TableCell>{KIND_AR[b.kind] ?? b.kind}</TableCell>
                   <TableCell>{fmt(b.amount)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{b.source}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{translateSource(b.source)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1215,14 +1215,11 @@ function PreviewResult({ result }: { result: any }) {
           <div className="font-medium flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" /> تحذيرات
           </div>
-          {eng.warnings.map((w: string, i: number) => <div key={i}>• {w}</div>)}
+          {eng.warnings.map((w: string, i: number) => <div key={i}>• {translateWarning(w)}</div>)}
         </div>
       )}
       {(eng.rules_applied?.length ?? 0) > 0 && (
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer">القواعد المطبّقة</summary>
-          <pre className="whitespace-pre-wrap mt-1">{eng.rules_applied.join("\n")}</pre>
-        </details>
+        null
       )}
     </div>
   );
