@@ -1055,7 +1055,7 @@ function EmployeesTab() {
                     <TableCell>
                       <Button size="sm" variant={selectedId === e.id ? "default" : "ghost"}
                         onClick={() => setSelectedId(e.id)}>
-                        <PlayCircle className="h-4 w-4 ms-1" /> معاينة
+                        <PlayCircle className="h-4 w-4 ms-1" /> معاينة الراتب
                       </Button>
                     </TableCell>
                   </TableRow>
