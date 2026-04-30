@@ -1145,8 +1145,9 @@ export default function HRAttendancePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="live" className="gap-1"><Eye className="h-3.5 w-3.5" /> العرض المباشر</TabsTrigger>
+          <TabsTrigger value="monthly" className="gap-1"><Calendar className="h-3.5 w-3.5" /> العرض الشهري</TabsTrigger>
           <TabsTrigger value="corrections" className="gap-1 relative">
             <FileText className="h-3.5 w-3.5" /> طلبات التعديل
             {kpis.pendingCorrections > 0 && (
