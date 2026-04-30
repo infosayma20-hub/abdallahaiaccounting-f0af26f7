@@ -762,7 +762,7 @@ export default function PayrollEmployeeDrawer({
             <Button
               size="sm"
               className="flex-1 min-w-[140px] gap-1.5"
-              onClick={() => onApprovePayment(payrollRecord.id)}
+              onClick={handleApproveClick}
             >
               <CheckCircle2 className="h-4 w-4" />
               اعتماد ودفع الراتب
@@ -796,6 +796,102 @@ export default function PayrollEmployeeDrawer({
           )}
         </div>
       </SheetContent>
+
+      {/* ===== Pre-approval confirmation with health checks ===== */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right flex items-center gap-2">
+              <healthMeta.Icon
+                className={cn(
+                  "h-5 w-5",
+                  healthStatus.level === "ready"
+                    ? "text-emerald-600"
+                    : healthStatus.level === "review"
+                    ? "text-amber-600"
+                    : "text-red-600"
+                )}
+              />
+              تأكيد اعتماد ودفع الراتب
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              راتب {employeeName || data?.employee?.full_name} لشهر {months[month - 1]} {year}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 text-right">
+            {/* Net amount summary */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">صافي الراتب المستحق</span>
+              <span className="text-lg font-bold text-primary tabular-nums">
+                {fmtCurrency(Number(payrollRecord?.net_salary || 0))}
+              </span>
+            </div>
+
+            {/* Issues (blocking-style warnings) */}
+            {healthStatus.issues.length > 0 && (
+              <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-900/40 p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  مشاكل تستدعي الانتباه
+                </p>
+                {healthStatus.issues.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[12px] text-red-700 dark:text-red-400">
+                    <XCircle className="h-3 w-3 shrink-0" />
+                    <span>{m}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Warnings */}
+            {healthStatus.warnings.length > 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/40 p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  تنبيهات للمراجعة
+                </p>
+                {healthStatus.warnings.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[12px] text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    <span>{m}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {healthStatus.level === "ready" && (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900/40 p-3">
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  جميع البيانات سليمة. الراتب جاهز للاعتماد والدفع.
+                </p>
+              </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground">
+              بعد الاعتماد، سيتم قفل السجل ولن يمكن تعديله إلا بصلاحية خاصة.
+            </p>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmApprove}
+              className={cn(
+                healthStatus.level === "issues" && "bg-red-600 hover:bg-red-700",
+                healthStatus.level === "review" && "bg-amber-600 hover:bg-amber-700"
+              )}
+            >
+              {healthStatus.level === "issues"
+                ? "اعتماد رغم المشاكل"
+                : healthStatus.level === "review"
+                ? "اعتماد رغم التنبيهات"
+                : "تأكيد الاعتماد والدفع"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
