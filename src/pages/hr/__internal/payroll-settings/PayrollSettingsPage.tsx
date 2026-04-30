@@ -52,7 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Plus, Pencil, Trash2, Star, AlertTriangle, Info, PlayCircle } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Star, AlertTriangle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   calculateStandardPreset,
@@ -63,6 +63,89 @@ import type {
   PayrollMonthInputs,
   PayrollPolicy,
 } from "@/lib/payroll-engine/types";
+
+// ─────────────────────────── Arabic Labels ────────────────────────
+
+const SALARY_BASIS_AR: Record<string, string> = {
+  monthly: "شهري",
+  daily: "يومي",
+  hourly: "بالساعة",
+};
+
+const MONTH_DAYS_AR: Record<string, string> = {
+  fixed_26: "ثابت 26 يوم",
+  fixed_28: "ثابت 28 يوم",
+  fixed_30: "ثابت 30 يوم",
+  actual: "الفعلي",
+  custom: "مخصّص",
+};
+
+const CALC_TYPE_AR: Record<string, string> = {
+  fixed_amount: "مبلغ ثابت",
+  percent_of_basic: "% من الراتب الأساسي",
+  percent_of_gross: "% من الإجمالي",
+  per_day: "لكل يوم",
+  per_hour: "لكل ساعة",
+  formula: "صيغة (غير مدعومة)",
+};
+
+const KIND_AR: Record<string, string> = {
+  allowance: "بدل",
+  deduction: "خصم",
+};
+
+const ABSENCE_AR: Record<string, string> = {
+  daily_rate: "معدل يومي",
+  hourly_rate: "معدل بالساعة",
+  none: "لا يحتسب",
+};
+
+const LATE_AR: Record<string, string> = {
+  none: "لا يحتسب",
+  per_minute: "لكل دقيقة",
+  hourly_proration: "احتساب بالساعة",
+};
+
+/** Translate engine warning codes into accountant-friendly Arabic sentences. */
+function translateWarning(w: string): string {
+  // Pattern: "skipped_attendance_allowance_zero_base: TRANSPORT"
+  if (w.startsWith("skipped_attendance_allowance_zero_base")) {
+    const code = w.split(":")[1]?.trim();
+    return `تم تجاهل البدل ${code ? `"${code}"` : ""} لأن الراتب الأساسي للموظف صفر.`;
+  }
+  if (w.startsWith("skipped_zero_base_salary")) {
+    const code = w.split(":")[1]?.trim();
+    return `تم تجاهل المكوّن ${code ? `"${code}"` : ""} لأن الراتب الأساسي صفر.`;
+  }
+  if (w.startsWith("skipped_no_attendance")) {
+    const code = w.split(":")[1]?.trim();
+    return `تم تجاهل الخصم ${code ? `"${code}"` : ""} لعدم وجود حضور هذا الشهر.`;
+  }
+  if (w.startsWith("net_floored_to_zero")) {
+    const m = w.match(/raw=(-?\d+(\.\d+)?)/);
+    return `تم منع الصافي من النزول تحت الصفر${m ? ` (الناتج الأصلي: ${m[1]})` : ""}.`;
+  }
+  if (w.startsWith("formula_not_supported_yet")) {
+    return "تم تجاهل مكوّن بصيغة غير مدعومة حالياً.";
+  }
+  return w;
+}
+
+/** Translate component breakdown source codes into Arabic. */
+function translateSource(s: string): string {
+  const map: Record<string, string> = {
+    fixed_amount: "مبلغ ثابت",
+    percent_of_basic: "نسبة من الأساسي",
+    percent_of_gross: "نسبة من الإجمالي",
+    per_day: "لكل يوم",
+    per_hour: "لكل ساعة",
+    skipped_zero_base_salary: "تم التجاهل — الراتب الأساسي صفر",
+    skipped_no_attendance: "تم التجاهل — لا يوجد حضور",
+    formula_not_supported_yet: "صيغة غير مدعومة",
+    override: "قيمة خاصة بالموظف",
+  };
+  return map[s] ?? s;
+}
 
 // ─────────────────────────── Types ────────────────────────────────
 
@@ -159,23 +242,18 @@ export default function PayrollSettingsPage() {
     <div className="container mx-auto p-6 space-y-6" dir="rtl">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">إعدادات الرواتب (Standard Preset)</h1>
+          <h1 className="text-2xl font-bold">إعدادات سياسات الرواتب</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            تعريف السياسات والمكوّنات وملفات الموظفين. هذه الإعدادات Read-only للمحرك حالياً —
-            لا تربط بـ شاشة الرواتب الإنتاجية ولا تكتب في <code>employee_payroll</code>.
+            تعريف سياسات الرواتب، البدلات والخصومات، وربط الموظفين بكل سياسة مع معاينة فورية للراتب.
           </p>
         </div>
-        <Badge variant="outline" className="gap-1">
-          <Info className="h-3 w-3" />
-          S2-A.3 · Internal · Admin
-        </Badge>
       </div>
 
       <Tabs defaultValue="policies" className="w-full">
         <TabsList>
-          <TabsTrigger value="policies">السياسات</TabsTrigger>
-          <TabsTrigger value="components">المكوّنات</TabsTrigger>
-          <TabsTrigger value="employees">ملفات الموظفين + معاينة</TabsTrigger>
+          <TabsTrigger value="policies">سياسات الرواتب</TabsTrigger>
+          <TabsTrigger value="components">البدلات والخصومات</TabsTrigger>
+          <TabsTrigger value="employees">ربط الموظفين والمعاينة</TabsTrigger>
         </TabsList>
 
         <TabsContent value="policies" className="mt-4">
@@ -302,9 +380,9 @@ function PoliciesTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>الاسم</TableHead>
-                <TableHead>الأساس</TableHead>
+                <TableHead>أساس الراتب</TableHead>
                 <TableHead>أيام الشهر</TableHead>
-                <TableHead>OT ×</TableHead>
+                <TableHead>معامل الإضافي</TableHead>
                 <TableHead>افتراضية</TableHead>
                 <TableHead className="text-end">إجراءات</TableHead>
               </TableRow>
@@ -316,9 +394,12 @@ function PoliciesTab() {
                     {p.name}
                     {!p.is_active && <Badge variant="secondary" className="me-2">معطّلة</Badge>}
                   </TableCell>
-                  <TableCell>{p.salary_basis}</TableCell>
-                  <TableCell>{p.month_days_mode}{p.month_days_mode === "custom" ? ` (${p.month_days_custom})` : ""}</TableCell>
-                  <TableCell>{p.overtime_multiplier}</TableCell>
+                  <TableCell>{SALARY_BASIS_AR[p.salary_basis] ?? p.salary_basis}</TableCell>
+                  <TableCell>
+                    {MONTH_DAYS_AR[p.month_days_mode] ?? p.month_days_mode}
+                    {p.month_days_mode === "custom" ? ` (${p.month_days_custom})` : ""}
+                  </TableCell>
+                  <TableCell>×{p.overtime_multiplier}</TableCell>
                   <TableCell>
                     {p.is_default ? (
                       <Badge className="gap-1"><Star className="h-3 w-3" /> نعم</Badge>
@@ -555,7 +636,7 @@ function ComponentsTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <CardTitle>المكوّنات</CardTitle>
+          <CardTitle>البدلات والخصومات</CardTitle>
           <Select value={effectivePolicyId ?? ""} onValueChange={setPolicyId}>
             <SelectTrigger className="w-64"><SelectValue placeholder="اختر سياسة" /></SelectTrigger>
             <SelectContent>
@@ -570,12 +651,12 @@ function ComponentsTab() {
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditing({ ...blankComponent, id: "", company_id: company.id, policy_id: effectivePolicyId! } as ComponentRow)}>
-              <Plus className="h-4 w-4 ms-1" /> مكوّن جديد
+              <Plus className="h-4 w-4 ms-1" /> بدل أو خصم جديد
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-xl" dir="rtl">
             <DialogHeader>
-              <DialogTitle>{editing?.id ? "تعديل مكوّن" : "مكوّن جديد"}</DialogTitle>
+              <DialogTitle>{editing?.id ? "تعديل بدل/خصم" : "بدل أو خصم جديد"}</DialogTitle>
             </DialogHeader>
             {editing && (
               <ComponentForm
@@ -598,13 +679,13 @@ function ComponentsTab() {
           </div>
         ) : components.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            لا مكوّنات لهذه السياسة بعد.
+            لا توجد بدلات أو خصومات لهذه السياسة بعد.
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الكود</TableHead>
+                <TableHead>الرمز</TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>طريقة الحساب</TableHead>
@@ -623,11 +704,11 @@ function ComponentsTab() {
                     <TableCell>{c.name_ar || c.name_en}</TableCell>
                     <TableCell>
                       <Badge variant={c.kind === "allowance" ? "default" : "destructive"}>
-                        {c.kind === "allowance" ? "بدل" : "خصم"}
+                        {KIND_AR[c.kind] ?? c.kind}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {c.calculation_type}
+                      {CALC_TYPE_AR[c.calculation_type] ?? c.calculation_type}
                       {unsupported && (
                         <Badge variant="outline" className="ms-1 gap-1">
                           <AlertTriangle className="h-3 w-3" /> غير مدعوم
@@ -674,7 +755,7 @@ function ComponentForm({
   return (
     <div className="grid grid-cols-2 gap-3">
       <div>
-        <Label>الكود</Label>
+        <Label>الرمز (مثل: TRANSPORT)</Label>
         <Input value={value.code} onChange={(e) => set("code", e.target.value.toUpperCase())} />
       </div>
       <div>
@@ -692,7 +773,7 @@ function ComponentForm({
         <Input value={value.name_ar ?? ""} onChange={(e) => set("name_ar", e.target.value)} />
       </div>
       <div>
-        <Label>الاسم (إنجليزي)</Label>
+        <Label>الاسم (إنجليزي — اختياري)</Label>
         <Input value={value.name_en ?? ""} onChange={(e) => set("name_en", e.target.value)} />
       </div>
       <div>
@@ -974,7 +1055,7 @@ function EmployeesTab() {
                     <TableCell>
                       <Button size="sm" variant={selectedId === e.id ? "default" : "ghost"}
                         onClick={() => setSelectedId(e.id)}>
-                        <PlayCircle className="h-4 w-4 ms-1" /> معاينة
+                        <PlayCircle className="h-4 w-4 ms-1" /> معاينة الراتب
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -987,7 +1068,7 @@ function EmployeesTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>معاينة الراتب — Standard Preset</CardTitle>
+          <CardTitle>معاينة الراتب</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {!selected ? (
@@ -1046,7 +1127,7 @@ function EmployeesTab() {
 
               {previewComponents.length > 0 && (
                 <div className="border rounded p-2 space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">قيم خاصة بالموظف (Override)</div>
+                  <div className="text-xs font-medium text-muted-foreground">قيم خاصة بالموظف</div>
                   {previewComponents.map((c) => {
                     const overrides = (selected.payroll_overrides ?? {}) as Record<string, number>;
                     const current = overrides[c.code] ?? "";
@@ -1106,23 +1187,23 @@ function PreviewResult({ result }: { result: any }) {
       </div>
       {(eng.component_breakdown?.length ?? 0) > 0 && (
         <div className="border rounded">
-          <div className="text-xs font-medium px-2 py-1 bg-muted">تفصيل المكوّنات</div>
+          <div className="text-xs font-medium px-2 py-1 bg-muted">تفصيل البدلات والخصومات</div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الكود</TableHead>
+                <TableHead>الرمز</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>المبلغ</TableHead>
-                <TableHead>المصدر</TableHead>
+                <TableHead>طريقة الحساب</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {eng.component_breakdown.map((b: any, i: number) => (
                 <TableRow key={i}>
                   <TableCell className="font-mono text-xs">{b.code}</TableCell>
-                  <TableCell>{b.kind}</TableCell>
+                  <TableCell>{KIND_AR[b.kind] ?? b.kind}</TableCell>
                   <TableCell>{fmt(b.amount)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{b.source}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{translateSource(b.source)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1134,15 +1215,10 @@ function PreviewResult({ result }: { result: any }) {
           <div className="font-medium flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" /> تحذيرات
           </div>
-          {eng.warnings.map((w: string, i: number) => <div key={i}>• {w}</div>)}
+          {eng.warnings.map((w: string, i: number) => <div key={i}>• {translateWarning(w)}</div>)}
         </div>
       )}
-      {(eng.rules_applied?.length ?? 0) > 0 && (
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer">القواعد المطبّقة</summary>
-          <pre className="whitespace-pre-wrap mt-1">{eng.rules_applied.join("\n")}</pre>
-        </details>
-      )}
+      {/* القواعد التقنية المطبّقة مخفية عن المستخدم النهائي */}
     </div>
   );
 }
