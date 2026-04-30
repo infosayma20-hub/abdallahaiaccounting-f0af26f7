@@ -847,6 +847,8 @@ function EmployeesTab() {
   const previewResult = useMemo(() => {
     if (!selected || !policy) return null;
     try {
+      const dailyHrs = Number(policy.daily_work_hours || 8);
+      const effectiveHours = autoHours ? workingDays * dailyHrs : workingHours;
       const emp: PayrollEmployeeData = {
         id: selected.id,
         full_name: selected.full_name,
@@ -867,7 +869,7 @@ function EmployeesTab() {
       };
       const inputs: PayrollMonthInputs = {
         working_days: workingDays,
-        working_hours: workingHours,
+        working_hours: effectiveHours,
         overtime_hours: overtimeHours,
         holiday_overtime_hours: 0,
         vacation_hours: 0,
@@ -927,7 +929,7 @@ function EmployeesTab() {
     } catch (e: any) {
       return { _error: e.message ?? String(e) } as any;
     }
-  }, [selected, policy, previewComponents, year, month, workingDays, workingHours, overtimeHours]);
+  }, [selected, policy, previewComponents, year, month, workingDays, workingHours, overtimeHours, autoHours]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
