@@ -730,7 +730,11 @@ export default function PayrollPreviewAllPage() {
                     <HRMoney value={r.net_salary} />
                   </HRTD>
                   <HRTD>
-                    {r.status === "no_salary" ? (
+                    {r.status === "no_policy" ? (
+                      <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" /> بدون سياسة رواتب
+                      </Badge>
+                    ) : r.status === "no_salary" ? (
                       <Badge variant="destructive" className="gap-1">
                         <AlertTriangle className="h-3 w-3" /> بدون راتب
                       </Badge>
