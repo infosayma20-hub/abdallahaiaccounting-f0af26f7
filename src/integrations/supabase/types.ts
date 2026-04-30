@@ -4246,6 +4246,50 @@ export type Database = {
           },
         ]
       }
+      employee_component_values: {
+        Row: {
+          company_id: string
+          component_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          employee_id: string
+          id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          company_id: string
+          component_id: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id: string
+          id?: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          company_id?: string
+          component_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string
+          id?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_component_values_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_deductions: {
         Row: {
           amount: number
@@ -4845,6 +4889,53 @@ export type Database = {
             columns: ["voucher_id"]
             isOneToOne: false
             referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_payroll_profile: {
+        Row: {
+          basic_salary: number
+          company_id: string
+          created_at: string
+          effective_from: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          overrides: Json
+          policy_id: string
+          updated_at: string
+        }
+        Insert: {
+          basic_salary?: number
+          company_id: string
+          created_at?: string
+          effective_from?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          overrides?: Json
+          policy_id: string
+          updated_at?: string
+        }
+        Update: {
+          basic_salary?: number
+          company_id?: string
+          created_at?: string
+          effective_from?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          overrides?: Json
+          policy_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_payroll_profile_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_policies"
             referencedColumns: ["id"]
           },
         ]
@@ -5538,6 +5629,155 @@ export type Database = {
           is_active?: boolean | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      hr_payroll_components: {
+        Row: {
+          account_id: string | null
+          affects_eos: boolean
+          calculation_type: string
+          code: string
+          company_id: string
+          created_at: string
+          formula_expression: string | null
+          id: string
+          is_active: boolean
+          is_attendance_linked: boolean
+          is_taxable: boolean
+          kind: string
+          name_ar: string
+          name_en: string | null
+          policy_id: string | null
+          sort_order: number
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          account_id?: string | null
+          affects_eos?: boolean
+          calculation_type: string
+          code: string
+          company_id: string
+          created_at?: string
+          formula_expression?: string | null
+          id?: string
+          is_active?: boolean
+          is_attendance_linked?: boolean
+          is_taxable?: boolean
+          kind: string
+          name_ar: string
+          name_en?: string | null
+          policy_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          account_id?: string | null
+          affects_eos?: boolean
+          calculation_type?: string
+          code?: string
+          company_id?: string
+          created_at?: string
+          formula_expression?: string | null
+          id?: string
+          is_active?: boolean
+          is_attendance_linked?: boolean
+          is_taxable?: boolean
+          kind?: string
+          name_ar?: string
+          name_en?: string | null
+          policy_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_payroll_components_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_payroll_policies: {
+        Row: {
+          absence_calculation: string
+          absence_formula: string | null
+          allowances_attendance_linked: boolean
+          company_id: string
+          created_at: string
+          created_by: string | null
+          daily_work_hours: number
+          deductions_mode: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          late_calculation: string
+          late_formula: string | null
+          late_grace_minutes: number | null
+          late_per_minute_rate: number | null
+          month_days_custom: number | null
+          month_days_mode: string
+          name: string
+          overtime_after_hours: number | null
+          overtime_multiplier: number
+          salary_basis: string
+          updated_at: string
+        }
+        Insert: {
+          absence_calculation?: string
+          absence_formula?: string | null
+          allowances_attendance_linked?: boolean
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          daily_work_hours?: number
+          deductions_mode?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          late_calculation?: string
+          late_formula?: string | null
+          late_grace_minutes?: number | null
+          late_per_minute_rate?: number | null
+          month_days_custom?: number | null
+          month_days_mode?: string
+          name: string
+          overtime_after_hours?: number | null
+          overtime_multiplier?: number
+          salary_basis?: string
+          updated_at?: string
+        }
+        Update: {
+          absence_calculation?: string
+          absence_formula?: string | null
+          allowances_attendance_linked?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          daily_work_hours?: number
+          deductions_mode?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          late_calculation?: string
+          late_formula?: string | null
+          late_grace_minutes?: number | null
+          late_per_minute_rate?: number | null
+          month_days_custom?: number | null
+          month_days_mode?: string
+          name?: string
+          overtime_after_hours?: number | null
+          overtime_multiplier?: number
+          salary_basis?: string
+          updated_at?: string
         }
         Relationships: []
       }
