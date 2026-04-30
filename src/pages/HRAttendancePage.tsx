@@ -1004,7 +1004,7 @@ export default function HRAttendancePage() {
   };
 
   return (
-    <div className="space-y-4 p-3 md:p-5 w-full max-w-none" dir="rtl">
+    <div className="space-y-4 p-3 md:p-5 w-full max-w-none hr-themed" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

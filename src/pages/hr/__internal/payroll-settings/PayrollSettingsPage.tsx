@@ -232,7 +232,7 @@ const blankComponent: Omit<ComponentRow, "id" | "company_id" | "policy_id"> = {
 
 export default function PayrollSettingsPage() {
   return (
-    <div className="container mx-auto p-6 space-y-6" dir="rtl">
+    <div className="container mx-auto p-6 space-y-6 hr-themed" dir="rtl">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">إعدادات سياسات الرواتب</h1>
