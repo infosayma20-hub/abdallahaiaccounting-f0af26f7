@@ -315,7 +315,72 @@ const PayrollPage = () => {
           has_termination_pay: manual?.has_termination_pay || false,
         };
 
-        const slip = calculateMalakiPayslip(malakiEmp, malakiInput, selectedYear, selectedMonth);
+        // ─── Targeted Engine Switch ───
+        // Standard preset only when employee is linked AND policy.engine_preset='standard'.
+        // Otherwise → Malaki (unchanged behaviour for everyone else).
+        const linkedPolicy = emp.payroll_policy_id ? policiesById[emp.payroll_policy_id] : null;
+        const useStandard = !!linkedPolicy && linkedPolicy.engine_preset === 'standard';
+
+        let slip: MalakiPayslip;
+        if (useStandard) {
+          const stdEmp: PayrollEmployeeData = {
+            id: emp.id,
+            full_name: emp.full_name,
+            start_date: emp.start_date,
+            hourly_rate: Number(emp.hourly_rate) || 0,
+            base_salary: Number(emp.base_salary) || 0,
+            admin_allowance: Number(emp.admin_allowance) || 0,
+            transfer_allowance: Number(emp.transfer_allowance) || 0,
+            food_transport_override: emp.food_transport_override != null ? Number(emp.food_transport_override) : null,
+            wives_count: Number(emp.wives_count) || 0,
+            children_count: Number(emp.children_count) || 0,
+            other_allowances: Number(emp.other_allowances) || 0,
+            special_work_allowance: Number(emp.special_work_allowance) || 0,
+            annual_leave_balance: Number(emp.annual_leave_balance) || 0,
+            annual_leave_days: Number(emp.annual_leave_days) || 0,
+            is_terminated: !!emp.is_terminated,
+            terminated_at: emp.terminated_at,
+          };
+          // Apply per-employee overrides on component values (read-only, in-memory).
+          const overrides = (emp.payroll_overrides ?? {}) as Record<string, number>;
+          const baseComps = componentsByPolicy[linkedPolicy.id] || [];
+          const comps: StandardComponent[] = baseComps.map((c) => ({
+            ...c,
+            value: overrides[c.code] != null ? Number(overrides[c.code]) : c.value,
+          }));
+          const stdPolicy: EnginePayrollPolicy = {
+            id: linkedPolicy.id,
+            company_id: linkedPolicy.company_id,
+            name: linkedPolicy.name,
+            preset: 'standard',
+            salary_basis: linkedPolicy.salary_basis,
+            month_days_mode: linkedPolicy.month_days_mode,
+            month_days_custom: linkedPolicy.month_days_custom ?? 0,
+            daily_work_hours: Number(linkedPolicy.daily_work_hours) || 8,
+            overtime_multiplier: Number(linkedPolicy.overtime_multiplier) || 1.5,
+            overtime_after_hours: Number(linkedPolicy.overtime_after_hours) || 0,
+            absence_calculation: linkedPolicy.absence_calculation || '',
+            late_calculation: linkedPolicy.late_calculation || '',
+            late_grace_minutes: Number(linkedPolicy.late_grace_minutes) || 0,
+            late_per_minute_rate: Number(linkedPolicy.late_per_minute_rate) || 0,
+            allowances_attendance_linked: !!linkedPolicy.allowances_attendance_linked,
+            deductions_mode: linkedPolicy.deductions_mode || '',
+            is_default: !!linkedPolicy.is_default,
+          };
+          const stdInput: PayrollMonthInputs = malakiInput as unknown as PayrollMonthInputs;
+          const stdResult = calculateStandardPreset(
+            stdEmp,
+            stdInput,
+            { year: selectedYear, month: selectedMonth },
+            stdPolicy,
+            { components: comps }
+          );
+          slip = stdResult as unknown as MalakiPayslip;
+          engineDebug.push({ name: emp.full_name, engine: 'Standard', warnings: stdResult._engine.warnings });
+        } else {
+          slip = calculateMalakiPayslip(malakiEmp, malakiInput, selectedYear, selectedMonth);
+          engineDebug.push({ name: emp.full_name, engine: 'Malaki' });
+        }
 
         records.push({
           user_id: user.id,
