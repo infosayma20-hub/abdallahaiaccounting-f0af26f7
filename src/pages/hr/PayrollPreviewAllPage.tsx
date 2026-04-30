@@ -27,15 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "./components/HRTable";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { AlertTriangle, ArrowLeft, Download, ExternalLink, Eye, Loader2, Wallet } from "lucide-react";
+  PunchesModal,
+  WorkdaysModal,
+  ComponentsModal,
+  SalaryDetailsModal,
+  type BreakdownEntry,
+  type SalaryBreakdown,
+} from "./components/PreviewRowModals";
+import { AlertTriangle, ArrowLeft, Calculator, ClipboardList, Download, ExternalLink, Fingerprint, Info, Loader2, Wallet } from "lucide-react";
 import {
   calculateMalakiPayslip,
   fmtCurrency,
@@ -95,6 +96,10 @@ interface PreviewRow {
   engine: "Standard" | "Malaki";
   status: "ok" | "no_salary" | "no_attendance" | "warning";
   warnings: string[];
+  policy_name: string | null;
+  has_policy: boolean;
+  breakdown: BreakdownEntry[];
+  overtime_value: number;
 }
 
 export default function PayrollPreviewAllPage() {
@@ -327,6 +332,67 @@ export default function PayrollPreviewAllPage() {
         slip.extra_work_allowance +
         slip.entitlements;
 
+      // ─── Transparency: build a per-component breakdown ────────
+      // For Standard preset → we already have _engine.component_breakdown.
+      // For Malaki engine   → we synthesize one from the Malaki slip fields
+      //                       so the accountant can see WHERE every figure came from.
+      const breakdown: BreakdownEntry[] = [];
+      if (useStandard) {
+        const eng = (slip as any)._engine || {};
+        for (const b of (eng.component_breakdown || []) as Array<{ code: string; kind: string; amount: number; source: string }>) {
+          const meta = (componentsByPolicy[linkedPolicy.id] || []).find((c) => c.code === b.code);
+          breakdown.push({
+            code: b.code,
+            name: meta?.name_ar || b.code,
+            kind: b.kind as "allowance" | "deduction",
+            amount: b.amount,
+            source: b.source,
+            attendance_linked: !!meta?.is_attendance_linked,
+            applied: b.amount !== 0 && !b.source.startsWith("skipped"),
+          });
+        }
+      } else {
+        // Malaki — derive entries from explicit slip fields. Each line is
+        // sourced from a real employee field so the accountant can trace it.
+        const malakiAllowances: Array<[string, string, number, string]> = [
+          ["MAL_ANNUAL", "علاوة سنوية", slip.annual_allowance, "employees.start_date (سنوات الخدمة)"],
+          ["MAL_ADMIN", "بدل إداري", slip.admin_allowance, "employees.admin_allowance"],
+          ["MAL_FOOD_TRANSPORT", "بدل طعام ومواصلات", slip.food_transport_net, "employees.food_transport_override"],
+          ["MAL_FAMILY", "بدل عائلة", slip.family_allowance, "employees.wives_count + children_count"],
+          ["MAL_OTHER", "بدلات أخرى", slip.other_allowances, "employees.other_allowances"],
+          ["MAL_BONUS", "مكافأة المواظبة", slip.attendance_bonus, "حضور كامل (≤4 غياب)"],
+          ["MAL_SPECIAL", "بدل خاص", slip.special_allowance, "monthly_payroll_inputs.special_allowance"],
+          ["MAL_EXTRA", "أعمال إضافية", slip.extra_work_allowance, "monthly_payroll_inputs.extra_work_allowance"],
+        ];
+        const malakiDeductions: Array<[string, string, number, string]> = [
+          ["MAL_FIXED_DED", "خصم الغياب من البدلات", slip.fixed_deduction, "آلية الملكي (28 يوم)"],
+          ["MAL_OPEN_BAL", "رصيد سلفة سابق", slip.deduction_opening_balance, "monthly_payroll_inputs.opening_advance_balance"],
+          ["MAL_LOAN", "قسط قرض", slip.deduction_loan, "monthly_payroll_inputs.loan_installment"],
+          ["MAL_NEW_ADV", "سلفة جديدة", slip.deduction_new_advance, "monthly_payroll_inputs.new_advance"],
+          ["MAL_CASH_ADV", "سلف نقدية", slip.deduction_cash_advance, "monthly_payroll_inputs.cash_advances"],
+          ["MAL_FOOD_GRP", "حصة طعام (90%)", slip.deduction_food_group, "monthly_payroll_inputs.food_total"],
+          ["MAL_FOOD_IND", "طعام فردي (50%)", slip.deduction_food_individual, "monthly_payroll_inputs.food_individual"],
+          ["MAL_SHORT", "عجز نقدي", slip.deduction_cash_shortage, "monthly_payroll_inputs.cash_shortage"],
+          ["MAL_DELIVERY", "توصيل", slip.deduction_delivery, "monthly_payroll_inputs.delivery"],
+          ["MAL_PURCH", "مشتريات شخصية", slip.deduction_purchases, "monthly_payroll_inputs.purchases"],
+          ["MAL_OTHER_DED", "خصومات أخرى", slip.deduction_other, "monthly_payroll_inputs.other_deduction"],
+          ["MAL_VIOL", "مخالفات", slip.deduction_violations, "monthly_payroll_inputs.violations"],
+        ];
+        for (const [code, name, amount, source] of malakiAllowances) {
+          if (Number(amount || 0) === 0) continue; // hide unused → fixes "phantom" allowances
+          breakdown.push({ code, name, kind: "allowance", amount, source, applied: true });
+        }
+        for (const [code, name, amount, source] of malakiDeductions) {
+          if (Number(amount || 0) === 0) continue;
+          breakdown.push({ code, name, kind: "deduction", amount, source, applied: true });
+        }
+      }
+
+      // Approx overtime value (hours × hourly_rate × multiplier 1.5).
+      // Display-only, no impact on math.
+      const overtimeValue =
+        Number(malakiInput.overtime_hours || 0) * (hourlyRate || 9.6) * 1.5;
+
       return {
         id: emp.id,
         name: emp.full_name,
@@ -342,6 +408,10 @@ export default function PayrollPreviewAllPage() {
         engine: useStandard ? "Standard" : "Malaki",
         status,
         warnings,
+        policy_name: linkedPolicy?.name || null,
+        has_policy: !!linkedPolicy,
+        breakdown,
+        overtime_value: overtimeValue,
       };
     });
   }, [employees, policies, components, attendance, monthInputs, year, month]);
@@ -401,6 +471,25 @@ export default function PayrollPreviewAllPage() {
   };
 
   const isLoading = loadingEmp;
+
+  // ─── Modal state ─────────────────────────────────────
+  const [punchesFor, setPunchesFor] = useState<{ id: string; name: string } | null>(null);
+  const [workdaysFor, setWorkdaysFor] = useState<{ id: string; name: string } | null>(null);
+  const [componentsFor, setComponentsFor] = useState<PreviewRow | null>(null);
+  const [salaryFor, setSalaryFor] = useState<PreviewRow | null>(null);
+
+  // ─── Aggregated totals (single source of truth, used in footer too) ─
+  const totals = useMemo(
+    () => ({
+      base: filtered.reduce((a, r) => a + r.base_salary, 0),
+      attendance: filtered.reduce((a, r) => a + r.attendance_salary, 0),
+      overtime: filtered.reduce((a, r) => a + r.overtime_value, 0),
+      allowances: filtered.reduce((a, r) => a + r.total_allowances, 0),
+      deductions: filtered.reduce((a, r) => a + r.total_deductions, 0),
+      net: filtered.reduce((a, r) => a + r.net_salary, 0),
+    }),
+    [filtered],
+  );
 
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto pb-10 p-4" dir="rtl">
@@ -488,12 +577,22 @@ export default function PayrollPreviewAllPage() {
       </div>
 
       {/* Critical warning bar */}
-      {summary.noSalary > 0 && (
-        <Card className="p-3 border-red-300 bg-red-50 dark:bg-red-900/10">
-          <div className="flex items-center gap-2 text-red-700 text-sm">
+      {(summary.noSalary > 0 || summary.noAttendance > 0) && (
+        <Card className="p-3 border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" />
-            <span>
-              يوجد <strong>{summary.noSalary}</strong> موظفين بدون راتب أساسي معرّف — لن يتم احتساب أي راتب أو بدل أو خصم لهم. عرّف رواتبهم من ملف الموظف أولاً.
+            {summary.noSalary > 0 && (
+              <span>
+                <strong>{summary.noSalary}</strong> موظف بدون راتب أساسي
+              </span>
+            )}
+            {summary.noAttendance > 0 && (
+              <span>
+                <strong>{summary.noAttendance}</strong> موظف بدون حضور
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              — صحّح بيانات الموظف من ملفه قبل احتساب الرواتب رسمياً.
             </span>
           </div>
         </Card>
@@ -501,114 +600,190 @@ export default function PayrollPreviewAllPage() {
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الموظف</TableHead>
-              <TableHead>القسم</TableHead>
-              <TableHead>الراتب الأساسي</TableHead>
-              <TableHead>أيام العمل</TableHead>
-              <TableHead>ساعات العمل</TableHead>
-              <TableHead>إضافي</TableHead>
-              <TableHead>راتب الحضور</TableHead>
-              <TableHead>البدلات</TableHead>
-              <TableHead>الخصومات</TableHead>
-              <TableHead>الصافي</TableHead>
-              <TableHead>الحالة</TableHead>
-              <TableHead className="text-end">إجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <HRTable>
+          <HRTHead>
+            <HRTH>الموظف</HRTH>
+            <HRTH>القسم</HRTH>
+            <HRTH>الراتب الأساسي</HRTH>
+            <HRTH>أيام العمل</HRTH>
+            <HRTH>ساعات العمل</HRTH>
+            <HRTH>إضافي</HRTH>
+            <HRTH>راتب الحضور</HRTH>
+            <HRTH>البدلات</HRTH>
+            <HRTH>الخصومات</HRTH>
+            <HRTH>الصافي</HRTH>
+            <HRTH>الحالة</HRTH>
+            <HRTH align="center">إجراءات</HRTH>
+          </HRTHead>
+          <tbody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={12}>
+              <tr>
+                <td colSpan={12}>
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin ms-2" /> جاري حساب المعاينة...
                   </div>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={12}>
+              <tr>
+                <td colSpan={12}>
                   <div className="py-8 text-center text-sm text-muted-foreground">
                     لا يوجد موظفون مطابقون.
                   </div>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.department || "—"}</TableCell>
-                  <TableCell className={r.status === "no_salary" ? "text-red-600 font-semibold" : ""}>
-                    {fmtCurrency(r.base_salary)}
-                  </TableCell>
-                  <TableCell>{r.working_days}</TableCell>
-                  <TableCell>{Number(r.working_hours).toFixed(1)}</TableCell>
-                  <TableCell>{Number(r.overtime).toFixed(1)}</TableCell>
-                  <TableCell>{fmtCurrency(r.attendance_salary)}</TableCell>
-                  <TableCell className="text-emerald-600">{fmtCurrency(r.total_allowances)}</TableCell>
-                  <TableCell className="text-red-500">{fmtCurrency(r.total_deductions)}</TableCell>
-                  <TableCell className="font-bold">{fmtCurrency(r.net_salary)}</TableCell>
-                  <TableCell>
+                <HRTR key={r.id}>
+                  <HRTD className="font-medium">{r.name}</HRTD>
+                  <HRTD className="text-xs text-muted-foreground">{r.department || "—"}</HRTD>
+                  <HRTD numeric className={r.status === "no_salary" ? "text-rose-600 font-semibold" : ""}>
+                    <HRMoney value={r.base_salary} />
+                  </HRTD>
+                  <HRTD numeric>{r.working_days}</HRTD>
+                  <HRTD numeric>{Number(r.working_hours).toFixed(1)}</HRTD>
+                  <HRTD numeric>{Number(r.overtime).toFixed(1)}</HRTD>
+                  <HRTD numeric>
+                    <HRMoney value={r.attendance_salary} />
+                  </HRTD>
+                  <HRTD numeric className="text-emerald-700">
+                    <HRMoney value={r.total_allowances} />
+                  </HRTD>
+                  <HRTD numeric className="text-rose-700">
+                    <HRMoney value={r.total_deductions} />
+                  </HRTD>
+                  <HRTD numeric className="font-bold">
+                    <HRMoney value={r.net_salary} />
+                  </HRTD>
+                  <HRTD>
                     {r.status === "no_salary" ? (
                       <Badge variant="destructive" className="gap-1">
                         <AlertTriangle className="h-3 w-3" /> بدون راتب
                       </Badge>
                     ) : r.status === "no_attendance" ? (
                       <Badge variant="secondary">لا حضور</Badge>
-                    ) : r.status === "warning" ? (
-                      <Badge variant="outline" className="border-amber-400 text-amber-700">تحذيرات</Badge>
+                    ) : r.working_days < 3 ? (
+                      <Badge variant="outline" className="border-amber-400 text-amber-700">حضور منخفض</Badge>
                     ) : (
                       <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">سليم</Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="text-end">
-                    <div className="flex gap-1 justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => navigate(`/hr/employee/${r.id}?tab=payroll`)}
-                        title="معاينة تفاصيل الراتب"
-                      >
-                        <Eye className="h-4 w-4 ms-1" /> معاينة التفاصيل
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => navigate(`/hr/employee/${r.id}`)}
-                        title="ملف الموظف 360"
-                      >
-                        <ExternalLink className="h-4 w-4 ms-1" /> ملف 360
-                      </Button>
+                  </HRTD>
+                  <HRTD align="center">
+                    <div className="flex gap-1 justify-center flex-wrap">
+                      <IconBtn title="كشف البصمات" onClick={() => setPunchesFor({ id: r.id, name: r.name })}>
+                        <Fingerprint className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="أيام العمل" onClick={() => setWorkdaysFor({ id: r.id, name: r.name })}>
+                        <ClipboardList className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="البدلات والخصومات" onClick={() => setComponentsFor(r)}>
+                        <Info className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="تفاصيل الراتب" onClick={() => setSalaryFor(r)}>
+                        <Calculator className="h-3.5 w-3.5" />
+                      </IconBtn>
+                      <IconBtn title="ملف 360" onClick={() => navigate(`/hr/employee/${r.id}`)}>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </IconBtn>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </HRTD>
+                </HRTR>
               ))
             )}
-            {filtered.length > 0 && (
-              <TableRow className="bg-muted/30 font-bold">
-                <TableCell colSpan={6}>
+          </tbody>
+          {filtered.length > 0 && (
+            <tfoot>
+              <tr className="bg-primary/5 border-t-2 border-primary/30 font-bold text-right">
+                <td className="px-3 py-3" colSpan={2}>
                   الإجمالي ({filtered.length} موظف)
-                </TableCell>
-                <TableCell>{fmtCurrency(filtered.reduce((a, r) => a + r.attendance_salary, 0))}</TableCell>
-                <TableCell className="text-emerald-600">
-                  {fmtCurrency(filtered.reduce((a, r) => a + r.total_allowances, 0))}
-                </TableCell>
-                <TableCell className="text-red-500">
-                  {fmtCurrency(filtered.reduce((a, r) => a + r.total_deductions, 0))}
-                </TableCell>
-                <TableCell>{fmtCurrency(filtered.reduce((a, r) => a + r.net_salary, 0))}</TableCell>
-                <TableCell colSpan={2} />
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right">
+                  <HRMoney value={totals.base} />
+                </td>
+                <td className="px-3 py-3" colSpan={2} />
+                <td className="px-3 py-3 tabular-nums text-right">
+                  <HRMoney value={totals.overtime} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right">
+                  <HRMoney value={totals.attendance} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right text-emerald-700">
+                  <HRMoney value={totals.allowances} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right text-rose-700">
+                  <HRMoney value={totals.deductions} />
+                </td>
+                <td className="px-3 py-3 tabular-nums text-right text-primary">
+                  <HRMoney value={totals.net} />
+                </td>
+                <td className="px-3 py-3" colSpan={2} />
+              </tr>
+            </tfoot>
+          )}
+        </HRTable>
       </Card>
 
       <p className="text-xs text-muted-foreground text-center">
         هذه شاشة معاينة فقط — الأرقام محسوبة لحظياً ولا تُحفظ في قاعدة البيانات. للاعتماد الرسمي اذهب إلى «إدارة الرواتب».
       </p>
+
+      {/* ─── Investigation Modals ─── */}
+      {punchesFor && (
+        <PunchesModal
+          open
+          onClose={() => setPunchesFor(null)}
+          employeeId={punchesFor.id}
+          employeeName={punchesFor.name}
+          year={year}
+          month={month}
+        />
+      )}
+      {workdaysFor && (
+        <WorkdaysModal
+          open
+          onClose={() => setWorkdaysFor(null)}
+          employeeId={workdaysFor.id}
+          employeeName={workdaysFor.name}
+          year={year}
+          month={month}
+        />
+      )}
+      {componentsFor && (
+        <ComponentsModal
+          open
+          onClose={() => setComponentsFor(null)}
+          employeeName={componentsFor.name}
+          policyName={componentsFor.policy_name}
+          entries={componentsFor.breakdown}
+        />
+      )}
+      {salaryFor && (
+        <SalaryDetailsModal
+          open
+          onClose={() => setSalaryFor(null)}
+          employeeName={salaryFor.name}
+          data={{
+            base_salary: salaryFor.base_salary,
+            working_days: salaryFor.working_days,
+            working_hours: salaryFor.working_hours,
+            attendance_salary: salaryFor.attendance_salary,
+            overtime_hours: salaryFor.overtime,
+            overtime_value: salaryFor.overtime_value,
+            total_allowances: salaryFor.total_allowances,
+            total_deductions: salaryFor.total_deductions,
+            net_salary: salaryFor.net_salary,
+            warnings: salaryFor.warnings,
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function IconBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Button size="icon" variant="ghost" className="h-7 w-7" title={title} onClick={onClick}>
+      {children}
+    </Button>
   );
 }
