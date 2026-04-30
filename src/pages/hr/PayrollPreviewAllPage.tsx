@@ -332,6 +332,67 @@ export default function PayrollPreviewAllPage() {
         slip.extra_work_allowance +
         slip.entitlements;
 
+      // ─── Transparency: build a per-component breakdown ────────
+      // For Standard preset → we already have _engine.component_breakdown.
+      // For Malaki engine   → we synthesize one from the Malaki slip fields
+      //                       so the accountant can see WHERE every figure came from.
+      const breakdown: BreakdownEntry[] = [];
+      if (useStandard) {
+        const eng = (slip as any)._engine || {};
+        for (const b of (eng.component_breakdown || []) as Array<{ code: string; kind: string; amount: number; source: string }>) {
+          const meta = (componentsByPolicy[linkedPolicy.id] || []).find((c) => c.code === b.code);
+          breakdown.push({
+            code: b.code,
+            name: meta?.name_ar || b.code,
+            kind: b.kind as "allowance" | "deduction",
+            amount: b.amount,
+            source: b.source,
+            attendance_linked: !!meta?.is_attendance_linked,
+            applied: b.amount !== 0 && !b.source.startsWith("skipped"),
+          });
+        }
+      } else {
+        // Malaki — derive entries from explicit slip fields. Each line is
+        // sourced from a real employee field so the accountant can trace it.
+        const malakiAllowances: Array<[string, string, number, string]> = [
+          ["MAL_ANNUAL", "علاوة سنوية", slip.annual_allowance, "employees.start_date (سنوات الخدمة)"],
+          ["MAL_ADMIN", "بدل إداري", slip.admin_allowance, "employees.admin_allowance"],
+          ["MAL_FOOD_TRANSPORT", "بدل طعام ومواصلات", slip.food_transport_net, "employees.food_transport_override"],
+          ["MAL_FAMILY", "بدل عائلة", slip.family_allowance, "employees.wives_count + children_count"],
+          ["MAL_OTHER", "بدلات أخرى", slip.other_allowances, "employees.other_allowances"],
+          ["MAL_BONUS", "مكافأة المواظبة", slip.attendance_bonus, "حضور كامل (≤4 غياب)"],
+          ["MAL_SPECIAL", "بدل خاص", slip.special_allowance, "monthly_payroll_inputs.special_allowance"],
+          ["MAL_EXTRA", "أعمال إضافية", slip.extra_work_allowance, "monthly_payroll_inputs.extra_work_allowance"],
+        ];
+        const malakiDeductions: Array<[string, string, number, string]> = [
+          ["MAL_FIXED_DED", "خصم الغياب من البدلات", slip.fixed_deduction, "آلية الملكي (28 يوم)"],
+          ["MAL_OPEN_BAL", "رصيد سلفة سابق", slip.deduction_opening_balance, "monthly_payroll_inputs.opening_advance_balance"],
+          ["MAL_LOAN", "قسط قرض", slip.deduction_loan, "monthly_payroll_inputs.loan_installment"],
+          ["MAL_NEW_ADV", "سلفة جديدة", slip.deduction_new_advance, "monthly_payroll_inputs.new_advance"],
+          ["MAL_CASH_ADV", "سلف نقدية", slip.deduction_cash_advance, "monthly_payroll_inputs.cash_advances"],
+          ["MAL_FOOD_GRP", "حصة طعام (90%)", slip.deduction_food_group, "monthly_payroll_inputs.food_total"],
+          ["MAL_FOOD_IND", "طعام فردي (50%)", slip.deduction_food_individual, "monthly_payroll_inputs.food_individual"],
+          ["MAL_SHORT", "عجز نقدي", slip.deduction_cash_shortage, "monthly_payroll_inputs.cash_shortage"],
+          ["MAL_DELIVERY", "توصيل", slip.deduction_delivery, "monthly_payroll_inputs.delivery"],
+          ["MAL_PURCH", "مشتريات شخصية", slip.deduction_purchases, "monthly_payroll_inputs.purchases"],
+          ["MAL_OTHER_DED", "خصومات أخرى", slip.deduction_other, "monthly_payroll_inputs.other_deduction"],
+          ["MAL_VIOL", "مخالفات", slip.deduction_violations, "monthly_payroll_inputs.violations"],
+        ];
+        for (const [code, name, amount, source] of malakiAllowances) {
+          if (Number(amount || 0) === 0) continue; // hide unused → fixes "phantom" allowances
+          breakdown.push({ code, name, kind: "allowance", amount, source, applied: true });
+        }
+        for (const [code, name, amount, source] of malakiDeductions) {
+          if (Number(amount || 0) === 0) continue;
+          breakdown.push({ code, name, kind: "deduction", amount, source, applied: true });
+        }
+      }
+
+      // Approx overtime value (hours × hourly_rate × multiplier 1.5).
+      // Display-only, no impact on math.
+      const overtimeValue =
+        Number(malakiInput.overtime_hours || 0) * (hourlyRate || 9.6) * 1.5;
+
       return {
         id: emp.id,
         name: emp.full_name,
@@ -347,6 +408,10 @@ export default function PayrollPreviewAllPage() {
         engine: useStandard ? "Standard" : "Malaki",
         status,
         warnings,
+        policy_name: linkedPolicy?.name || null,
+        has_policy: !!linkedPolicy,
+        breakdown,
+        overtime_value: overtimeValue,
       };
     });
   }, [employees, policies, components, attendance, monthInputs, year, month]);
