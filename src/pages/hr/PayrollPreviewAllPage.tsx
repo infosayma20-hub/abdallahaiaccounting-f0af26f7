@@ -487,11 +487,13 @@ export default function PayrollPreviewAllPage() {
   const summary = useMemo(() => {
     const noSalary = rows.filter((r) => r.status === "no_salary").length;
     const noAttendance = rows.filter((r) => r.status === "no_attendance").length;
+    const noPolicy = rows.filter((r) => r.status === "no_policy").length;
     const ok = rows.filter((r) => r.status === "ok" || r.status === "warning").length;
     return {
       count: rows.length,
       noSalary,
       noAttendance,
+      noPolicy,
       ok,
       totalAllowances: rows.reduce((a, r) => a + r.total_allowances, 0),
       totalDeductions: rows.reduce((a, r) => a + r.total_deductions, 0),
@@ -513,7 +515,9 @@ export default function PayrollPreviewAllPage() {
       "الخصومات": r.total_deductions,
       "الصافي": r.net_salary,
       "الحالة":
-        r.status === "no_salary"
+        r.status === "no_policy"
+          ? "بدون سياسة رواتب"
+          : r.status === "no_salary"
           ? "بدون راتب أساسي"
           : r.status === "no_attendance"
           ? "لا يوجد حضور"
