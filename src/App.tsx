@@ -151,6 +151,7 @@ const HrWorkShiftsPage = lazy(() => import("./pages/hr/HrWorkShiftsPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
 const PayrollEngineComparisonPage = lazy(() => import("./pages/hr/__internal/PayrollEngineComparisonPage"));
 const PayrollSettingsV2Page = lazy(() => import("./pages/hr/__internal/payroll-settings/PayrollSettingsPage"));
+const PayrollPreviewAllPage = lazy(() => import("./pages/hr/PayrollPreviewAllPage"));
 const LeavesPage = lazy(() => import("./pages/LeavesPage"));
 const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
 const PurchaseOrderCreatePage = lazy(() => import("./pages/procurement/PurchaseOrderCreatePage"));
