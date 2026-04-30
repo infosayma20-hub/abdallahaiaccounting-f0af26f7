@@ -26,7 +26,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { HRTable, HRTHead, HRTH, HRTR, HRTD, HRMoney } from "./HRTable";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
+
+function exportRows(rows: any[], sheetName: string, fileName: string) {
+  if (!rows.length) return;
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!rtl"] = true as any;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 30));
+  XLSX.writeFile(wb, `${fileName}.xlsx`);
+}
+
+function ExportBtn({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <Button size="sm" variant="outline" onClick={onClick} disabled={disabled} className="gap-1">
+      <Download className="h-3.5 w-3.5" /> تصدير Excel
+    </Button>
+  );
+}
 
 const fmtNum = (n: number, d = 1) =>
   new Intl.NumberFormat("ar", { minimumFractionDigits: 0, maximumFractionDigits: d }).format(Number(n || 0));
