@@ -359,7 +359,7 @@ function PoliciesTab() {
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin" />
