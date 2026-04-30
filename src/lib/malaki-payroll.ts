@@ -251,6 +251,52 @@ export function calculateMalakiPayslip(
 ): MalakiPayslip {
   const payrollDate = new Date(year, month - 1, 28);
 
+  // ━━━ R0 SAFETY: Undefined salary → return a fully zeroed payslip ━━━
+  // Prevents nonsense payslips like "INSURANCE = 50, base = 0, net = -50"
+  // when the accountant has not yet defined the employee's salary.
+  const baseSalary = Number(emp.base_salary || 0);
+  const hourlyRate = Number(emp.hourly_rate || 0);
+  if (baseSalary <= 0 && hourlyRate <= 0) {
+    return {
+      working_days: input.working_days,
+      regular_hours: input.working_hours,
+      overtime_hours: input.overtime_hours,
+      vacation_hours: input.vacation_hours,
+      annual_leave_days: input.annual_leave_days,
+      sick_leave_days: input.sick_leave_days,
+      attendance_salary: 0,
+      annual_allowance: 0,
+      admin_allowance: 0,
+      food_transport_base: 0,
+      food_transport_net: 0,
+      family_allowance: 0,
+      other_allowances: 0,
+      gross_fixed: 0,
+      fixed_deduction: 0,
+      net_fixed: 0,
+      attendance_bonus: 0,
+      special_allowance: 0,
+      extra_work_allowance: 0,
+      entitlements: 0,
+      total_earnings: 0,
+      deduction_opening_balance: 0,
+      deduction_loan: 0,
+      deduction_new_advance: 0,
+      deduction_cash_advance: 0,
+      deduction_food_group: 0,
+      deduction_food_individual: 0,
+      deduction_cash_shortage: 0,
+      deduction_cash_surplus: 0,
+      deduction_delivery: 0,
+      deduction_purchases: 0,
+      deduction_other: 0,
+      deduction_violations: 0,
+      total_deductions: 0,
+      net_salary: 0,
+      carry_over_balance: 0,
+    } as MalakiPayslip;
+  }
+
   // 1. Hourly salary
   const hourly = calculateHourlySalary(emp, input);
 
