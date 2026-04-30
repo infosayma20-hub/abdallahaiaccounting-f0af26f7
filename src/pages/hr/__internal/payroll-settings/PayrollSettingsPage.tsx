@@ -332,7 +332,7 @@ function PoliciesTab() {
   });
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>سياسات الرواتب</CardTitle>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
@@ -359,7 +359,7 @@ function PoliciesTab() {
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -1007,11 +1007,11 @@ function EmployeesTab() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>ربط الموظفين بالسياسات</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {employees.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">لا يوجد موظفون نشطون.</p>
           ) : (
