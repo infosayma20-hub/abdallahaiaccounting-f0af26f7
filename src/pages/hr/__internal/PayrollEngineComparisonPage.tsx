@@ -356,6 +356,79 @@ export default function PayrollEngineComparisonPage() {
         </Card>
       )}
 
+      {results.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>نظرة سريعة (أول 20 نتيجة)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full text-sm border">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="p-2 text-right">#</th>
+                  <th className="p-2 text-right">الموظف</th>
+                  <th className="p-2 text-right">الحالة</th>
+                  <th className="p-2 text-right">Malaki Net</th>
+                  <th className="p-2 text-right">Generic Net</th>
+                  <th className="p-2 text-right">عدد الفروقات</th>
+                  <th className="p-2 text-right">السبب / الرسالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.slice(0, 20).map((r, i) => {
+                  const isDiff = r.status === 'diff';
+                  const isErr = r.status === 'error';
+                  const isSkip = r.status === 'no-policy' || r.status === 'no-data';
+                  const rowClass = isDiff
+                    ? 'bg-red-50 dark:bg-red-950/30'
+                    : isErr
+                    ? 'bg-red-100 dark:bg-red-950/50'
+                    : isSkip
+                    ? 'bg-amber-50 dark:bg-amber-950/30'
+                    : '';
+                  return (
+                    <tr key={r.employee_id} className={`border-t ${rowClass}`}>
+                      <td className="p-2 text-xs">{i + 1}</td>
+                      <td className="p-2">{r.employee_name}</td>
+                      <td className="p-2">
+                        <Badge
+                          className={
+                            r.status === 'match'
+                              ? 'bg-emerald-600'
+                              : isDiff
+                              ? 'bg-red-600'
+                              : isErr
+                              ? 'bg-red-700'
+                              : 'bg-amber-500'
+                          }
+                        >
+                          {r.status}
+                        </Badge>
+                      </td>
+                      <td className="p-2 font-mono text-xs">
+                        {r.malaki ? Number(r.malaki.net_salary).toFixed(2) : '—'}
+                      </td>
+                      <td className="p-2 font-mono text-xs">
+                        {r.generic ? Number(r.generic.net_salary).toFixed(2) : '—'}
+                      </td>
+                      <td className={`p-2 font-bold ${r.diffs.length > 0 ? 'text-red-600' : ''}`}>
+                        {r.diffs.length}
+                      </td>
+                      <td className="p-2 text-xs text-muted-foreground">{r.message ?? '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {results.length > 20 && (
+              <div className="text-xs text-muted-foreground mt-2">
+                يتم عرض أول 20 من أصل {results.length}. التفاصيل الكاملة في تقرير JSON.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-3">
         {results.map((r) => (
           <Card key={r.employee_id}>
