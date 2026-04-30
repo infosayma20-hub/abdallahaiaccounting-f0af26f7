@@ -758,6 +758,8 @@ function EmployeesTab() {
   const [workingDays, setWorkingDays] = useState(26);
   const [workingHours, setWorkingHours] = useState(208);
   const [overtimeHours, setOvertimeHours] = useState(0);
+  // When true, working_hours is auto-derived from working_days × policy.daily_work_hours
+  const [autoHours, setAutoHours] = useState(true);
 
   const { data: employees = [] } = useQuery({
     queryKey: ["payroll-settings-employees", company.id],
