@@ -100,6 +100,27 @@ export function PunchesModal({
           <DialogTitle>كشف البصمات — {employeeName}</DialogTitle>
           <DialogDescription>المصدر: سجل البصمات الفعلي (attendance_events) — قراءة فقط</DialogDescription>
         </DialogHeader>
+        <div className="flex justify-start mb-2">
+          <ExportBtn
+            disabled={!events.length}
+            onClick={() =>
+              exportRows(
+                events.map((e: any) => {
+                  const dt = new Date(e.event_time);
+                  return {
+                    "التاريخ": format(dt, "yyyy/MM/dd"),
+                    "الوقت": format(dt, "HH:mm"),
+                    "النوع": e.event_type === "check_in" ? "دخول" : e.event_type === "check_out" ? "خروج" : e.event_type,
+                    "الحالة": e.status || "—",
+                    "ملاحظات": e.notes || "",
+                  };
+                }),
+                "البصمات",
+                `كشف_البصمات_${employeeName}_${year}_${month}`,
+              )
+            }
+          />
+        </div>
         {isLoading ? (
           <div className="flex justify-center py-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin ms-2" /> جاري التحميل...
