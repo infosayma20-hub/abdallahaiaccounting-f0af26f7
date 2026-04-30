@@ -646,34 +646,85 @@ export default function PayrollEmployeeDrawer({
               </TabsContent>
 
               {/* ===== TAB 2: PAYROLL DETAILS ===== */}
-              <TabsContent value="payroll" className="p-4 space-y-3 mt-0">
+              <TabsContent
+                value="payroll"
+                className={cn(
+                  "p-4 space-y-3 mt-0",
+                  isPaid && "bg-muted/20 [&_*]:select-text"
+                )}
+              >
                 {payrollRecord ? (
                   <>
+                    {/* ===== Approval Banner (shown when approved) ===== */}
+                    {isPaid && (
+                      <Card className="p-3 border-emerald-300 bg-emerald-50/70 dark:bg-emerald-900/20 dark:border-emerald-900/40">
+                        <div className="flex items-start gap-2.5">
+                          <Lock className="h-4 w-4 text-emerald-700 dark:text-emerald-400 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0 text-right">
+                            <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                              تم اعتماد الراتب — القيم مجمّدة
+                            </p>
+                            <div className="mt-1 space-y-0.5 text-[11px] text-emerald-700 dark:text-emerald-400/90">
+                              {approvedAt && (
+                                <p>
+                                  تاريخ الاعتماد:{" "}
+                                  <span className="font-medium tabular-nums">
+                                    {new Date(approvedAt).toLocaleString("ar", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </p>
+                              )}
+                              {approvedByEmail && (
+                                <p>
+                                  المعتمد: <span className="font-medium">{approvedByEmail}</span>
+                                </p>
+                              )}
+                              {view.fromSnapshot && (
+                                <p className="text-[10px] opacity-80">
+                                  القيم المعروضة من نسخة الاعتماد المجمّدة، لا تتأثر بأي تعديل لاحق على البصمات.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+
                     {/* ===== Salary Formula (How the number was calculated) ===== */}
                     <Card className="p-3 border-primary/20 bg-primary/[0.03]">
                       <div className="flex items-center gap-2 mb-2">
                         <Calculator className="h-3.5 w-3.5 text-primary" />
                         <h4 className="text-xs font-semibold text-foreground">معادلة احتساب الراتب</h4>
+                        {isPaid && (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 ms-auto bg-emerald-50 text-emerald-700 border-emerald-200">
+                            مجمّد
+                          </Badge>
+                        )}
                       </div>
                       <div className="space-y-1 font-mono text-[11px] tabular-nums" dir="ltr">
                         <FormulaLine
                           op="="
                           label="راتب البصمة"
-                          value={Number(payrollRecord.attendance_salary || payrollRecord.base_salary || 0)}
+                          value={view.attendance_salary}
                         />
-                        {Number(payrollRecord.total_allowances || 0) > 0 && (
+                        {view.total_allowances > 0 && (
                           <FormulaLine
                             op="+"
                             label={`البدلات (طعام/مواصلات/إداري/...)`}
-                            value={Number(payrollRecord.total_allowances || 0)}
+                            value={view.total_allowances}
                             tone="positive"
                           />
                         )}
-                        {Number(payrollRecord.total_deductions || 0) > 0 && (
+                        {view.total_deductions > 0 && (
                           <FormulaLine
                             op="-"
                             label="الخصومات (سُلف/قروض/مخالفات/...)"
-                            value={Number(payrollRecord.total_deductions || 0)}
+                            value={view.total_deductions}
                             tone="negative"
                           />
                         )}
@@ -681,7 +732,7 @@ export default function PayrollEmployeeDrawer({
                         <FormulaLine
                           op="="
                           label="صافي الراتب"
-                          value={Number(payrollRecord.net_salary || 0)}
+                          value={view.net_salary}
                           bold
                         />
                       </div>
@@ -743,15 +794,15 @@ export default function PayrollEmployeeDrawer({
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">صافي الراتب</p>
                           <p className="text-2xl font-bold text-primary tabular-nums">
-                            {fmtCurrency(Number(payrollRecord.net_salary || 0))}
+                            {fmtCurrency(view.net_salary)}
                           </p>
                         </div>
                         <Wallet className="h-10 w-10 text-primary/30" />
                       </div>
-                      {Number(payrollRecord.carry_over_balance || 0) > 0 && (
+                      {view.carry_over_balance > 0 && (
                         <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-2 flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
-                          رصيد مرحّل للشهر القادم: {fmtCurrency(Number(payrollRecord.carry_over_balance))}
+                          رصيد مرحّل للشهر القادم: {fmtCurrency(view.carry_over_balance)}
                         </p>
                       )}
                     </Card>
