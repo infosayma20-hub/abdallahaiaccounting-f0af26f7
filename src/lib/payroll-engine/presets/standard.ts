@@ -181,6 +181,12 @@ export function calculateStandardPreset(
   let totalAllowances = 0;
   let totalDeductions = 0;
 
+  // ─── Business safety rules (UX guards, not engine math) ───────
+  //   R1: zero attendance → skip fixed deductions (avoid negative net)
+  //   R2: zero base_salary → skip attendance-linked allowances
+  const zeroAttendance = input.working_days <= 0 && input.working_hours <= 0;
+  const zeroBaseSalary = Number(emp.base_salary || 0) <= 0;
+
   for (const c of active) {
     const { amount, warning } = evalComponent(c, {
       base_salary: Number(emp.base_salary || 0),
@@ -189,6 +195,20 @@ export function calculateStandardPreset(
       gross_so_far: attendance_salary + totalAllowances,
     });
     if (warning) warnings.push(warning);
+
+    // R1: skip fixed (non-attendance) deductions when employee did not work at all
+    if (c.kind === 'deduction' && !c.is_attendance_linked && zeroAttendance) {
+      warnings.push(`skipped_fixed_deduction_zero_attendance: ${c.code}`);
+      breakdown.push({ code: c.code, kind: c.kind, amount: 0, source: 'skipped_zero_attendance' });
+      continue;
+    }
+
+    // R2: skip attendance-linked allowances when employee has no base salary
+    if (c.kind === 'allowance' && c.is_attendance_linked && zeroBaseSalary) {
+      warnings.push(`skipped_attendance_allowance_zero_base: ${c.code}`);
+      breakdown.push({ code: c.code, kind: c.kind, amount: 0, source: 'skipped_zero_base_salary' });
+      continue;
+    }
 
     const finalAmount = c.is_attendance_linked ? amount * attendanceRatio : amount;
     const sourceTag = warning
@@ -224,7 +244,12 @@ export function calculateStandardPreset(
   const extra_work_allowance = Number(input.extra_work_allowance || 0);
 
   const total_earnings = attendance_salary + totalAllowances + special_allowance + extra_work_allowance;
-  const net_salary = total_earnings - total_deductions;
+  const raw_net = total_earnings - total_deductions;
+  // R3: floor net at 0 (carry the negative as carry_over so audit trail stays)
+  const net_salary = raw_net < 0 ? 0 : raw_net;
+  if (raw_net < 0) {
+    warnings.push(`net_floored_to_zero: raw=${raw_net.toFixed(2)}`);
+  }
 
   return {
     working_days: input.working_days,
@@ -269,7 +294,7 @@ export function calculateStandardPreset(
     total_deductions,
 
     net_salary,
-    carry_over_balance: net_salary < 0 ? Math.abs(net_salary) : 0,
+    carry_over_balance: raw_net < 0 ? Math.abs(raw_net) : 0,
 
     _engine: {
       preset: 'standard',
