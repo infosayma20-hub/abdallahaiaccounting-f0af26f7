@@ -451,7 +451,20 @@ const PayrollPage = () => {
           .in("id", loanInstIds);
       }
 
-      toast.success(`تم احتساب رواتب ${records.length} موظف تلقائياً`);
+      // ─── Engine usage summary (Targeted Switch debug) ───
+      const stdCount = engineDebug.filter((d) => d.engine === 'Standard').length;
+      const malCount = engineDebug.length - stdCount;
+      console.table(engineDebug);
+      toast.success(
+        `تم احتساب رواتب ${records.length} موظف — Standard: ${stdCount} · Malaki: ${malCount}`
+      );
+      const allWarnings = engineDebug
+        .filter((d) => d.warnings && d.warnings.length)
+        .flatMap((d) => d.warnings!.map((w) => `${d.name}: ${w}`));
+      if (allWarnings.length) {
+        console.warn('[Standard Engine Warnings]', allWarnings);
+        toast.warning(`${allWarnings.length} تحذير من المحرك — راجع الكونسول`);
+      }
       queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-inputs"] });
     } catch (e: any) {
