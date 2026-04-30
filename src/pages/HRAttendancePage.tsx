@@ -269,7 +269,7 @@ export default function HRAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RowFilter>("all");
-  const [activeTab, setActiveTab] = useState<"live" | "corrections" | "reports">("live");
+  const [activeTab, setActiveTab] = useState<"live" | "monthly" | "corrections" | "reports">("live");
 
   // Branch dialogs
   const [showBranchDialog, setShowBranchDialog] = useState(false);
