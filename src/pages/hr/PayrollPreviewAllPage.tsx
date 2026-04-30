@@ -157,12 +157,11 @@ export default function PayrollPreviewAllPage() {
       const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       const { data, error } = await supabase
         .from("attendance_days")
-        .select("employee_id,total_hours,overtime_hours,day_status")
-        .eq("company_id", company.id)
+        .select("employee_id,total_hours,overtime_hours,status")
         .gte("attendance_date", start)
         .lte("attendance_date", end);
       if (error) throw error;
-      return data || [];
+      return (data as Array<{ employee_id: string; total_hours: number | null; overtime_hours: number | null; status: string }>) || [];
     },
     enabled: !!company.id,
   });
@@ -192,7 +191,7 @@ export default function PayrollPreviewAllPage() {
         id: c.id,
         code: c.code,
         name_ar: c.name_ar,
-        kind: c.kind,
+        kind: c.kind as "allowance" | "deduction",
         calculation_type: c.calculation_type,
         value: Number(c.value || 0),
         formula_expression: c.formula_expression,
@@ -204,7 +203,7 @@ export default function PayrollPreviewAllPage() {
     const attByEmp: Record<string, { days: number; hours: number; overtime: number }> = {};
     for (const a of attendance) {
       if (!attByEmp[a.employee_id]) attByEmp[a.employee_id] = { days: 0, hours: 0, overtime: 0 };
-      const isPresent = a.day_status === "present" || a.day_status === "partial";
+      const isPresent = a.status === "present" || a.status === "late" || a.status === "incomplete";
       if (isPresent) attByEmp[a.employee_id].days += 1;
       attByEmp[a.employee_id].hours += Number(a.total_hours || 0);
       attByEmp[a.employee_id].overtime += Number(a.overtime_hours || 0);
