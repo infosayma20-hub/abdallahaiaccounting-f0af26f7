@@ -13,6 +13,11 @@ import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import MalakiPayslipDialog from "@/components/hr/MalakiPayslipDialog";
 import { calculateMalakiPayslip, fmtCurrency, type MalakiEmployee, type MalakiMonthInput, type MalakiPayslip } from "@/lib/malaki-payroll";
+// ─── Standard Engine (Targeted Switch — Lemon & Mint pilot only) ─────
+// Routing rule: if employee.payroll_policy_id exists AND policy.engine_preset === 'standard'
+// → use Standard preset; otherwise fallback to Malaki. NO global change.
+import { calculateStandardPreset, type StandardComponent } from "@/lib/payroll-engine/presets/standard";
+import type { PayrollEmployeeData, PayrollMonthInputs, PayrollPolicy as EnginePayrollPolicy } from "@/lib/payroll-engine/types";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import PayrollEmployeeDrawer from "@/pages/hr/components/PayrollEmployeeDrawer";
@@ -177,6 +182,35 @@ const PayrollPage = () => {
           .eq("month", selectedMonth),
       ]);
 
+      // ─── Standard Engine: load policies + components for any linked employees ───
+      // Targeted, additive read — no impact on Malaki path.
+      const linkedPolicyIds = Array.from(
+        new Set(targetEmployees.map((e: any) => e.payroll_policy_id).filter(Boolean))
+      );
+      const policiesById: Record<string, any> = {};
+      const componentsByPolicy: Record<string, StandardComponent[]> = {};
+      if (linkedPolicyIds.length > 0) {
+        const [polRes, compRes] = await Promise.all([
+          supabase.from("hr_payroll_policies").select("*").in("id", linkedPolicyIds),
+          supabase.from("hr_payroll_components").select("*").in("policy_id", linkedPolicyIds).eq("is_active", true).order("sort_order"),
+        ]);
+        for (const p of (polRes.data || [])) policiesById[p.id] = p;
+        for (const c of (compRes.data || [])) {
+          (componentsByPolicy[c.policy_id] ||= []).push({
+            id: c.id,
+            code: c.code,
+            name_ar: c.name_ar,
+            kind: c.kind as 'allowance' | 'deduction',
+            calculation_type: c.calculation_type as string,
+            value: Number(c.value || 0),
+            formula_expression: c.formula_expression,
+            is_attendance_linked: !!c.is_attendance_linked,
+            is_active: !!c.is_active,
+          });
+        }
+      }
+      const engineDebug: Array<{ name: string; engine: 'Standard' | 'Malaki'; warnings?: string[] }> = [];
+
       // ━━━ 1. Aggregate Attendance ━━━
       const attData = attendanceRes.data || [];
       const empAtt: Record<string, { days: number; hours: number; overtime: number; vacHours: number; annual: number; sick: number }> = {};
@@ -281,7 +315,72 @@ const PayrollPage = () => {
           has_termination_pay: manual?.has_termination_pay || false,
         };
 
-        const slip = calculateMalakiPayslip(malakiEmp, malakiInput, selectedYear, selectedMonth);
+        // ─── Targeted Engine Switch ───
+        // Standard preset only when employee is linked AND policy.engine_preset='standard'.
+        // Otherwise → Malaki (unchanged behaviour for everyone else).
+        const linkedPolicy = emp.payroll_policy_id ? policiesById[emp.payroll_policy_id] : null;
+        const useStandard = !!linkedPolicy && linkedPolicy.engine_preset === 'standard';
+
+        let slip: MalakiPayslip;
+        if (useStandard) {
+          const stdEmp: PayrollEmployeeData = {
+            id: emp.id,
+            full_name: emp.full_name,
+            start_date: emp.start_date,
+            hourly_rate: Number(emp.hourly_rate) || 0,
+            base_salary: Number(emp.base_salary) || 0,
+            admin_allowance: Number(emp.admin_allowance) || 0,
+            transfer_allowance: Number(emp.transfer_allowance) || 0,
+            food_transport_override: emp.food_transport_override != null ? Number(emp.food_transport_override) : null,
+            wives_count: Number(emp.wives_count) || 0,
+            children_count: Number(emp.children_count) || 0,
+            other_allowances: Number(emp.other_allowances) || 0,
+            special_work_allowance: Number(emp.special_work_allowance) || 0,
+            annual_leave_balance: Number(emp.annual_leave_balance) || 0,
+            annual_leave_days: Number(emp.annual_leave_days) || 0,
+            is_terminated: !!emp.is_terminated,
+            terminated_at: emp.terminated_at,
+          };
+          // Apply per-employee overrides on component values (read-only, in-memory).
+          const overrides = (emp.payroll_overrides ?? {}) as Record<string, number>;
+          const baseComps = componentsByPolicy[linkedPolicy.id] || [];
+          const comps: StandardComponent[] = baseComps.map((c) => ({
+            ...c,
+            value: overrides[c.code] != null ? Number(overrides[c.code]) : c.value,
+          }));
+          const stdPolicy: EnginePayrollPolicy = {
+            id: linkedPolicy.id,
+            company_id: linkedPolicy.company_id,
+            name: linkedPolicy.name,
+            preset: 'standard',
+            salary_basis: linkedPolicy.salary_basis,
+            month_days_mode: linkedPolicy.month_days_mode,
+            month_days_custom: linkedPolicy.month_days_custom ?? 0,
+            daily_work_hours: Number(linkedPolicy.daily_work_hours) || 8,
+            overtime_multiplier: Number(linkedPolicy.overtime_multiplier) || 1.5,
+            overtime_after_hours: Number(linkedPolicy.overtime_after_hours) || 0,
+            absence_calculation: linkedPolicy.absence_calculation || '',
+            late_calculation: linkedPolicy.late_calculation || '',
+            late_grace_minutes: Number(linkedPolicy.late_grace_minutes) || 0,
+            late_per_minute_rate: Number(linkedPolicy.late_per_minute_rate) || 0,
+            allowances_attendance_linked: !!linkedPolicy.allowances_attendance_linked,
+            deductions_mode: linkedPolicy.deductions_mode || '',
+            is_default: !!linkedPolicy.is_default,
+          };
+          const stdInput: PayrollMonthInputs = malakiInput as unknown as PayrollMonthInputs;
+          const stdResult = calculateStandardPreset(
+            stdEmp,
+            stdInput,
+            { year: selectedYear, month: selectedMonth },
+            stdPolicy,
+            { components: comps }
+          );
+          slip = stdResult as unknown as MalakiPayslip;
+          engineDebug.push({ name: emp.full_name, engine: 'Standard', warnings: stdResult._engine.warnings });
+        } else {
+          slip = calculateMalakiPayslip(malakiEmp, malakiInput, selectedYear, selectedMonth);
+          engineDebug.push({ name: emp.full_name, engine: 'Malaki' });
+        }
 
         records.push({
           user_id: user.id,
@@ -352,7 +451,20 @@ const PayrollPage = () => {
           .in("id", loanInstIds);
       }
 
-      toast.success(`تم احتساب رواتب ${records.length} موظف تلقائياً`);
+      // ─── Engine usage summary (Targeted Switch debug) ───
+      const stdCount = engineDebug.filter((d) => d.engine === 'Standard').length;
+      const malCount = engineDebug.length - stdCount;
+      console.table(engineDebug);
+      toast.success(
+        `تم احتساب رواتب ${records.length} موظف — Standard: ${stdCount} · Malaki: ${malCount}`
+      );
+      const allWarnings = engineDebug
+        .filter((d) => d.warnings && d.warnings.length)
+        .flatMap((d) => d.warnings!.map((w) => `${d.name}: ${w}`));
+      if (allWarnings.length) {
+        console.warn('[Standard Engine Warnings]', allWarnings);
+        toast.warning(`${allWarnings.length} تحذير من المحرك — راجع الكونسول`);
+      }
       queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-inputs"] });
     } catch (e: any) {
