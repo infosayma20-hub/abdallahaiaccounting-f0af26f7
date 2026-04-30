@@ -179,8 +179,8 @@ export default function PayrollEngineComparisonPage() {
           .from('monthly_payroll_inputs')
           .select('*')
           .eq('employee_id', emp.id)
-          .eq('period_year', year)
-          .eq('period_month', month)
+          .eq('year', year)
+          .eq('month', month)
           .maybeSingle();
 
         if (!inputRow) {
