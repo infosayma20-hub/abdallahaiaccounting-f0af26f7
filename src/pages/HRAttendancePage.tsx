@@ -1308,6 +1308,11 @@ export default function HRAttendancePage() {
           )}
         </TabsContent>
 
+        {/* MONTHLY VIEW */}
+        <TabsContent value="monthly" className="mt-4">
+          <MonthlyAttendanceTab employees={employees} />
+        </TabsContent>
+
         {/* CORRECTIONS */}
         <TabsContent value="corrections" className="mt-4 space-y-2">
           {corrections.length === 0 ? (
