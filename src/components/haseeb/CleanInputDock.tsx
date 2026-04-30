@@ -222,8 +222,27 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
           toast({ title: `تمت إضافة "${name}" ✅` });
         }
       } else if (category === 'employee') {
+        // Resolve user's company_id (required for multi-tenant isolation)
+        const { data: company } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (!company?.id) {
+          toast({ title: "خطأ", description: "لا توجد شركة مرتبطة بالمستخدم", variant: "destructive" });
+          return;
+        }
         const { data, error } = await supabase.from('employees').insert({
-          full_name: name, user_id: user.id, job_title: 'موظف', base_salary: 0, hourly_rate: 0, start_date: new Date().toISOString().split('T')[0], annual_leave_days: 14,
+          full_name: name,
+          user_id: user.id,
+          company_id: company.id,
+          job_title: 'موظف',
+          base_salary: 0,
+          hourly_rate: 0,
+          start_date: new Date().toISOString().split('T')[0],
+          annual_leave_days: 14,
         }).select('id, full_name, job_title').single();
         if (!error && data) {
           const newItem: MentionItem = { id: data.id, name: data.full_name, type: data.job_title || 'موظف', category: 'employee' };
