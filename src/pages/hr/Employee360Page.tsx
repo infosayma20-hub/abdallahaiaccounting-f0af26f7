@@ -88,7 +88,7 @@ export default function Employee360Page() {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-4" dir="rtl">
+    <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-4 hr-themed" dir="rtl">
       <EmployeeHeader
         employee={data.employee}
         cost={cost}
