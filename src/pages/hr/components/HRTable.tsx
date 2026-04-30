@@ -11,7 +11,7 @@ import { ReactNode } from "react";
 
 export function HRTable({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-md border">
       <table className="w-full text-sm border-collapse" dir="rtl">
         {children}
       </table>
@@ -46,7 +46,7 @@ export function HRTH({
 
 export function HRTR({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <tr className={`border-t hover:bg-muted/30 text-right ${className}`}>{children}</tr>
+    <tr className={`border-t border-border/60 hover:bg-muted/40 odd:bg-muted/10 text-right ${className}`}>{children}</tr>
   );
 }
 
