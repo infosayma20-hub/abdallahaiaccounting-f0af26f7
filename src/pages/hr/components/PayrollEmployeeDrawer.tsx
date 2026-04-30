@@ -940,7 +940,7 @@ export default function PayrollEmployeeDrawer({
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">صافي الراتب المستحق</span>
               <span className="text-lg font-bold text-primary tabular-nums">
-                {fmtCurrency(Number(payrollRecord?.net_salary || 0))}
+                {fmtCurrency(view.net_salary)}
               </span>
             </div>
 
