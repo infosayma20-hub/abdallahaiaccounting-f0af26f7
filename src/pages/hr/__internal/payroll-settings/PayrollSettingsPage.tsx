@@ -220,7 +220,7 @@ function PoliciesTab() {
       const payload = { ...p, company_id: company.id };
       const { error } = p.id
         ? await supabase.from("hr_payroll_policies").update(payload).eq("id", p.id)
-        : await supabase.from("hr_payroll_policies").insert(payload);
+        : await supabase.from("hr_payroll_policies").insert([payload]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -518,7 +518,7 @@ function ComponentsTab() {
       const payload = { ...c, company_id: company.id, policy_id: effectivePolicyId };
       const { error } = c.id
         ? await supabase.from("hr_payroll_components").update(payload).eq("id", c.id)
-        : await supabase.from("hr_payroll_components").insert(payload);
+        : await supabase.from("hr_payroll_components").insert([payload]);
       if (error) throw error;
     },
     onSuccess: () => {
