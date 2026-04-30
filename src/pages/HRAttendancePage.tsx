@@ -26,6 +26,7 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
+import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
 
 type Branch = {
   id: string;
