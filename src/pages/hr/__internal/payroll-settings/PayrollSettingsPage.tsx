@@ -242,8 +242,8 @@ export default function PayrollSettingsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="policies" className="w-full">
-        <TabsList>
+      <Tabs defaultValue="policies" className="w-full" dir="rtl">
+        <TabsList dir="rtl">
           <TabsTrigger value="policies">سياسات الرواتب</TabsTrigger>
           <TabsTrigger value="components">البدلات والخصومات</TabsTrigger>
           <TabsTrigger value="employees">ربط الموظفين والمعاينة</TabsTrigger>
