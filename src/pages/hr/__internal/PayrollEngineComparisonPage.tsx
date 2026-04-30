@@ -1,11 +1,14 @@
 /**
- * Payroll Engine Comparison Tool (S2-A — Internal/Admin only)
- * 
+ * Payroll Engine Comparison Tool (S2-A.1 — Internal/Admin only)
+ *
  * Route: /hr/__engine-comparison
  * Purpose: Validate that the new generic engine produces IDENTICAL output
- *          to calculateMalakiPayslip for real employee data.
- * 
- * Read-only. No mutations. Not linked from any nav.
+ *          to calculateMalakiPayslip on REAL canonical sources
+ *          (attendance_days + employees + loans + deductions + allowances),
+ *          NOT the empty `monthly_payroll_inputs` placeholder.
+ *
+ * STRICT: Read-only. No DB writes. Not linked from any nav.
+ * employee_payroll is shown as a *reference snapshot* only, never as an input.
  */
 
 import { useState, useMemo } from 'react';
@@ -14,11 +17,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateMalakiPayslip, type MalakiEmployee, type MalakiMonthInput } from '@/lib/malaki-payroll';
 import { calculatePayslipWithPolicy, loadPolicyForEmployee } from '@/hooks/hr/usePayrollCalculator';
 import type { PayrollEmployeeData, PayrollMonthInputs, PayslipResult } from '@/lib/payroll-engine/types';
+import { buildMonthInputsFromSources, type BuiltMonthInputs } from '@/lib/payroll-engine/buildMonthInputsFromSources';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Info } from 'lucide-react';
 
 type DiffRow = {
   employee_id: string;
@@ -32,11 +36,12 @@ type DiffRow = {
 type RowResult = {
   employee_id: string;
   employee_name: string;
-  status: 'match' | 'diff' | 'error' | 'no-policy' | 'no-input';
+  status: 'match' | 'diff' | 'error' | 'no-policy' | 'no-data';
   message?: string;
   malaki?: any;
   generic?: PayslipResult;
   diffs: DiffRow[];
+  built?: BuiltMonthInputs;
 };
 
 function toEmployeeData(emp: any): PayrollEmployeeData & MalakiEmployee {
@@ -60,33 +65,7 @@ function toEmployeeData(emp: any): PayrollEmployeeData & MalakiEmployee {
   };
 }
 
-function toMonthInput(row: any): PayrollMonthInputs & MalakiMonthInput {
-  return {
-    working_days: Number(row?.working_days ?? 0),
-    working_hours: Number(row?.working_hours ?? 0),
-    overtime_hours: Number(row?.overtime_hours ?? 0),
-    holiday_overtime_hours: Number(row?.holiday_overtime_hours ?? 0),
-    vacation_hours: Number(row?.vacation_hours ?? 0),
-    annual_leave_days: Number(row?.annual_leave_days ?? 0),
-    sick_leave_days: Number(row?.sick_leave_days ?? 0),
-    opening_advance_balance: Number(row?.opening_advance_balance ?? 0),
-    loan_installment: Number(row?.loan_installment ?? 0),
-    new_advance: Number(row?.new_advance ?? 0),
-    cash_advances: Number(row?.cash_advances ?? 0),
-    food_total: Number(row?.food_total ?? 0),
-    food_individual: Number(row?.food_individual ?? 0),
-    cash_shortage: Number(row?.cash_shortage ?? 0),
-    cash_surplus: Number(row?.cash_surplus ?? 0),
-    delivery: Number(row?.delivery ?? 0),
-    purchases: Number(row?.purchases ?? 0),
-    other_deduction: Number(row?.other_deduction ?? 0),
-    violations: Number(row?.violations ?? 0),
-    deduction_notes: row?.deduction_notes ?? '',
-    special_allowance: Number(row?.special_allowance ?? 0),
-    extra_work_allowance: Number(row?.extra_work_allowance ?? 0),
-    has_termination_pay: !!row?.has_termination_pay,
-  };
-}
+// (toMonthInput removed — replaced by buildMonthInputsFromSources)
 
 const COMPARE_FIELDS: (keyof PayslipResult)[] = [
   'attendance_salary',
@@ -148,7 +127,7 @@ export default function PayrollEngineComparisonPage() {
     const total = results.length;
     const match = results.filter((r) => r.status === 'match').length;
     const diff = results.filter((r) => r.status === 'diff').length;
-    const skipped = results.filter((r) => r.status === 'no-policy' || r.status === 'no-input').length;
+    const skipped = results.filter((r) => r.status === 'no-policy' || r.status === 'no-data').length;
     const error = results.filter((r) => r.status === 'error').length;
     return { total, match, diff, skipped, error };
   }, [results]);
@@ -174,27 +153,32 @@ export default function PayrollEngineComparisonPage() {
           continue;
         }
 
-        const sb: any = supabase;
-        const { data: inputRow } = await sb
-          .from('monthly_payroll_inputs')
-          .select('*')
-          .eq('employee_id', emp.id)
-          .eq('year', year)
-          .eq('month', month)
-          .maybeSingle();
+        // Build month inputs from canonical sources (NOT monthly_payroll_inputs)
+        const built = await buildMonthInputsFromSources({
+          employeeId: emp.id,
+          year,
+          month,
+        });
 
-        if (!inputRow) {
+        const noSignal =
+          built.input.working_days === 0 &&
+          built.input.working_hours === 0 &&
+          built.input.overtime_hours === 0 &&
+          !built.reference.monthly_payroll_inputs_present;
+
+        if (noSignal) {
           out.push({
             employee_id: emp.id,
             employee_name: emp.full_name,
-            status: 'no-input',
-            message: `No monthly_payroll_inputs row for ${year}-${month}`,
+            status: 'no-data',
+            message: `لا يوجد حضور أو أي input لشهر ${year}-${month}`,
             diffs: [],
+            built,
           });
           continue;
         }
 
-        const input = toMonthInput(inputRow);
+        const input = built.input as PayrollMonthInputs & MalakiMonthInput;
         const malakiSlip = calculateMalakiPayslip(empData, input, year, month);
         const genericSlip = calculatePayslipWithPolicy(empData, input, { year, month }, policy);
 
@@ -221,6 +205,7 @@ export default function PayrollEngineComparisonPage() {
           malaki: malakiSlip,
           generic: genericSlip,
           diffs,
+          built,
         });
       } catch (e: any) {
         out.push({
@@ -242,7 +227,7 @@ export default function PayrollEngineComparisonPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            🧪 Payroll Engine Comparison (S2-A) — Read-Only
+            🧪 Payroll Engine Comparison (S2-A.1) — Read-Only
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -250,6 +235,11 @@ export default function PayrollEngineComparisonPage() {
             تقارن نتائج <code className="bg-muted px-1 rounded">calculateMalakiPayslip</code> مع المحرك الجديد{' '}
             <code className="bg-muted px-1 rounded">calculatePayslipWithPolicy</code> على نفس البيانات الفعلية. الفرق المسموح: ±0.01 ₪.
           </p>
+          <div className="text-xs bg-muted/50 border rounded p-2 leading-relaxed">
+            <strong>مصادر البيانات (Read-Only):</strong> employees + attendance_days + employee_payroll(prev) + employee_loans + loan_installments + employee_deductions + employee_allowances.
+            <br />
+            <code>monthly_payroll_inputs</code> = override اختياري فقط، و <code>employee_payroll</code> الحالي = مرجع للمقارنة (ليس مصدر حساب).
+          </div>
           <div className="flex gap-3 items-end flex-wrap">
             <div>
               <label className="text-xs">السنة</label>
@@ -293,7 +283,7 @@ export default function PayrollEngineComparisonPage() {
               <div className="flex items-center gap-2">
                 {r.status === 'match' && <CheckCircle2 className="h-5 w-5 text-emerald-600" />}
                 {r.status === 'diff' && <XCircle className="h-5 w-5 text-red-600" />}
-                {(r.status === 'no-policy' || r.status === 'no-input') && (
+                {(r.status === 'no-policy' || r.status === 'no-data') && (
                   <AlertTriangle className="h-5 w-5 text-amber-500" />
                 )}
                 {r.status === 'error' && <XCircle className="h-5 w-5 text-red-700" />}
@@ -302,6 +292,24 @@ export default function PayrollEngineComparisonPage() {
               <Badge variant={r.status === 'match' ? 'default' : 'destructive'}>{r.status}</Badge>
             </CardHeader>
             {r.message && <CardContent className="text-sm text-muted-foreground">{r.message}</CardContent>}
+            {r.built && (r.status === 'match' || r.status === 'diff') && (
+              <CardContent className="text-xs space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Info className="h-3.5 w-3.5" />
+                  <span>
+                    Inputs: أيام={r.built.input.working_days}، ساعات={r.built.input.working_hours}، إضافي={r.built.input.overtime_hours}، قسط قرض={r.built.input.loan_installment}، رصيد سابق={r.built.input.opening_advance_balance}
+                  </span>
+                </div>
+                {r.built.reference.employee_payroll_current && (
+                  <div className="text-muted-foreground">
+                    Snapshot in employee_payroll: net={Number(r.built.reference.employee_payroll_current.net_salary).toFixed(2)} (مرجع فقط)
+                  </div>
+                )}
+                {r.built.warnings.length > 0 && (
+                  <div className="text-amber-600">⚠ {r.built.warnings.join(' | ')}</div>
+                )}
+              </CardContent>
+            )}
             {r.diffs.length > 0 && (
               <CardContent>
                 <table className="w-full text-sm border">
