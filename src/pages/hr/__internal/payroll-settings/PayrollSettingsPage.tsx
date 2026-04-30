@@ -369,31 +369,31 @@ function PoliciesTab() {
             لا توجد سياسات. أنشئ سياسة لتبدأ.
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الاسم</TableHead>
-                <TableHead>أساس الراتب</TableHead>
-                <TableHead>أيام الشهر</TableHead>
-                <TableHead>معامل الإضافي</TableHead>
-                <TableHead>افتراضية</TableHead>
-                <TableHead className="text-end">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <HRTable>
+            <HRTHead>
+              <HRTR>
+                <HRTH>الاسم</HRTH>
+                <HRTH>أساس الراتب</HRTH>
+                <HRTH>أيام الشهر</HRTH>
+                <HRTH>معامل الإضافي</HRTH>
+                <HRTH>افتراضية</HRTH>
+                <HRTH className="text-end">إجراءات</HRTH>
+              </HRTR>
+            </HRTHead>
+            <tbody>
               {policies.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">
+                <HRTR key={p.id}>
+                  <HRTD className="font-medium">
                     {p.name}
                     {!p.is_active && <Badge variant="secondary" className="me-2">معطّلة</Badge>}
-                  </TableCell>
-                  <TableCell>{SALARY_BASIS_AR[p.salary_basis] ?? p.salary_basis}</TableCell>
-                  <TableCell>
+                  </HRTD>
+                  <HRTD>{SALARY_BASIS_AR[p.salary_basis] ?? p.salary_basis}</HRTD>
+                  <HRTD>
                     {MONTH_DAYS_AR[p.month_days_mode] ?? p.month_days_mode}
                     {p.month_days_mode === "custom" ? ` (${p.month_days_custom})` : ""}
-                  </TableCell>
-                  <TableCell>×{p.overtime_multiplier}</TableCell>
-                  <TableCell>
+                  </HRTD>
+                  <HRTD>×{p.overtime_multiplier}</HRTD>
+                  <HRTD>
                     {p.is_default ? (
                       <Badge className="gap-1"><Star className="h-3 w-3" /> نعم</Badge>
                     ) : (
@@ -401,8 +401,8 @@ function PoliciesTab() {
                         تعيين كافتراضية
                       </Button>
                     )}
-                  </TableCell>
-                  <TableCell className="text-end space-x-1 space-x-reverse">
+                  </HRTD>
+                  <HRTD className="text-end space-x-1 space-x-reverse">
                     <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -415,11 +415,11 @@ function PoliciesTab() {
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
-                  </TableCell>
-                </TableRow>
+                  </HRTD>
+                </HRTR>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </HRTable>
         )}
       </CardContent>
     </Card>
@@ -675,43 +675,43 @@ function ComponentsTab() {
             لا توجد بدلات أو خصومات لهذه السياسة بعد.
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الرمز</TableHead>
-                <TableHead>الاسم</TableHead>
-                <TableHead>النوع</TableHead>
-                <TableHead>طريقة الحساب</TableHead>
-                <TableHead>القيمة</TableHead>
-                <TableHead>مرتبط بالحضور</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead className="text-end">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <HRTable>
+            <HRTHead>
+              <HRTR>
+                <HRTH>الرمز</HRTH>
+                <HRTH>الاسم</HRTH>
+                <HRTH>النوع</HRTH>
+                <HRTH>طريقة الحساب</HRTH>
+                <HRTH>القيمة</HRTH>
+                <HRTH>مرتبط بالحضور</HRTH>
+                <HRTH>الحالة</HRTH>
+                <HRTH className="text-end">إجراءات</HRTH>
+              </HRTR>
+            </HRTHead>
+            <tbody>
               {components.map((c) => {
                 const unsupported = c.calculation_type === "formula";
                 return (
-                  <TableRow key={c.id} className={unsupported ? "bg-yellow-500/5" : ""}>
-                    <TableCell className="font-mono text-xs">{c.code}</TableCell>
-                    <TableCell>{c.name_ar || c.name_en}</TableCell>
-                    <TableCell>
+                  <HRTR key={c.id} className={unsupported ? "bg-yellow-500/5" : ""}>
+                    <HRTD className="font-mono text-xs">{c.code}</HRTD>
+                    <HRTD>{c.name_ar || c.name_en}</HRTD>
+                    <HRTD>
                       <Badge variant={c.kind === "allowance" ? "default" : "destructive"}>
                         {KIND_AR[c.kind] ?? c.kind}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">
+                    </HRTD>
+                    <HRTD className="text-xs">
                       {CALC_TYPE_AR[c.calculation_type] ?? c.calculation_type}
                       {unsupported && (
                         <Badge variant="outline" className="ms-1 gap-1">
                           <AlertTriangle className="h-3 w-3" /> غير مدعوم
                         </Badge>
                       )}
-                    </TableCell>
-                    <TableCell>{c.value}</TableCell>
-                    <TableCell>{c.is_attendance_linked ? "نعم" : "—"}</TableCell>
-                    <TableCell>{c.is_active ? "مفعّل" : "معطّل"}</TableCell>
-                    <TableCell className="text-end space-x-1 space-x-reverse">
+                    </HRTD>
+                    <HRTD>{c.value}</HRTD>
+                    <HRTD>{c.is_attendance_linked ? "نعم" : "—"}</HRTD>
+                    <HRTD>{c.is_active ? "مفعّل" : "معطّل"}</HRTD>
+                    <HRTD className="text-end space-x-1 space-x-reverse">
                       <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -720,12 +720,12 @@ function ComponentsTab() {
                       }}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </HRTD>
+                  </HRTR>
                 );
               })}
-            </TableBody>
-          </Table>
+            </tbody>
+          </HRTable>
         )}
       </CardContent>
     </Card>
@@ -1015,21 +1015,21 @@ function EmployeesTab() {
           {employees.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">لا يوجد موظفون نشطون.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>الموظف</TableHead>
-                  <TableHead>الراتب الأساسي</TableHead>
-                  <TableHead>السياسة</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <HRTable>
+              <HRTHead>
+                <HRTR>
+                  <HRTH>الموظف</HRTH>
+                  <HRTH>الراتب الأساسي</HRTH>
+                  <HRTH>السياسة</HRTH>
+                  <HRTH></HRTH>
+                </HRTR>
+              </HRTHead>
+              <tbody>
                 {employees.map((e) => (
-                  <TableRow key={e.id} className={selectedId === e.id ? "bg-muted/50" : ""}>
-                    <TableCell className="font-medium">{e.full_name}</TableCell>
-                    <TableCell>{Number(e.base_salary || 0).toFixed(2)}</TableCell>
-                    <TableCell>
+                  <HRTR key={e.id} className={selectedId === e.id ? "bg-muted/50" : ""}>
+                    <HRTD className="font-medium">{e.full_name}</HRTD>
+                    <HRTD>{Number(e.base_salary || 0).toFixed(2)}</HRTD>
+                    <HRTD>
                       <Select
                         value={e.payroll_policy_id ?? "__none"}
                         onValueChange={(v) =>
@@ -1044,17 +1044,17 @@ function EmployeesTab() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
+                    </HRTD>
+                    <HRTD>
                       <Button size="sm" variant={selectedId === e.id ? "default" : "ghost"}
                         onClick={() => setSelectedId(e.id)}>
                         <PlayCircle className="h-4 w-4 ms-1" /> معاينة الراتب
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </HRTD>
+                  </HRTR>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </HRTable>
           )}
         </CardContent>
       </Card>
@@ -1181,26 +1181,26 @@ function PreviewResult({ result }: { result: any }) {
       {(eng.component_breakdown?.length ?? 0) > 0 && (
         <div className="border rounded">
           <div className="text-xs font-medium px-2 py-1 bg-muted">تفصيل البدلات والخصومات</div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الرمز</TableHead>
-                <TableHead>النوع</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>طريقة الحساب</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <HRTable>
+            <HRTHead>
+              <HRTR>
+                <HRTH>الرمز</HRTH>
+                <HRTH>النوع</HRTH>
+                <HRTH>المبلغ</HRTH>
+                <HRTH>طريقة الحساب</HRTH>
+              </HRTR>
+            </HRTHead>
+            <tbody>
               {eng.component_breakdown.map((b: any, i: number) => (
-                <TableRow key={i}>
-                  <TableCell className="font-mono text-xs">{b.code}</TableCell>
-                  <TableCell>{KIND_AR[b.kind] ?? b.kind}</TableCell>
-                  <TableCell>{fmt(b.amount)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{translateSource(b.source)}</TableCell>
-                </TableRow>
+                <HRTR key={i}>
+                  <HRTD className="font-mono text-xs">{b.code}</HRTD>
+                  <HRTD>{KIND_AR[b.kind] ?? b.kind}</HRTD>
+                  <HRTD>{fmt(b.amount)}</HRTD>
+                  <HRTD className="text-xs text-muted-foreground">{translateSource(b.source)}</HRTD>
+                </HRTR>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </HRTable>
         </div>
       )}
       {(eng.warnings?.length ?? 0) > 0 && (
