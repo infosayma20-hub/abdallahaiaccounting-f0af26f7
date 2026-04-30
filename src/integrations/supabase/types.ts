@@ -5714,6 +5714,7 @@ export type Database = {
           daily_work_hours: number
           deductions_mode: string
           description: string | null
+          engine_preset: string
           id: string
           is_active: boolean
           is_default: boolean
@@ -5739,6 +5740,7 @@ export type Database = {
           daily_work_hours?: number
           deductions_mode?: string
           description?: string | null
+          engine_preset?: string
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -5764,6 +5766,7 @@ export type Database = {
           daily_work_hours?: number
           deductions_mode?: string
           description?: string | null
+          engine_preset?: string
           id?: string
           is_active?: boolean
           is_default?: boolean
