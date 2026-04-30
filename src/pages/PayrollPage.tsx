@@ -352,7 +352,7 @@ const PayrollPage = () => {
           .in("id", loanInstIds);
       }
 
-      toast.success(`✅ تم احتساب رواتب ${records.length} موظف تلقائياً`);
+      toast.success(`تم احتساب رواتب ${records.length} موظف تلقائياً`);
       queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
       queryClient.invalidateQueries({ queryKey: ["payroll-inputs"] });
     } catch (e: any) {
