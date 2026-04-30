@@ -1007,11 +1007,11 @@ function EmployeesTab() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>ربط الموظفين بالسياسات</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {employees.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">لا يوجد موظفون نشطون.</p>
           ) : (
