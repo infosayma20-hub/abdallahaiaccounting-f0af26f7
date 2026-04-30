@@ -13,6 +13,11 @@ import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import MalakiPayslipDialog from "@/components/hr/MalakiPayslipDialog";
 import { calculateMalakiPayslip, fmtCurrency, type MalakiEmployee, type MalakiMonthInput, type MalakiPayslip } from "@/lib/malaki-payroll";
+// ─── Standard Engine (Targeted Switch — Lemon & Mint pilot only) ─────
+// Routing rule: if employee.payroll_policy_id exists AND policy.engine_preset === 'standard'
+// → use Standard preset; otherwise fallback to Malaki. NO global change.
+import { calculateStandardPreset, type StandardComponent } from "@/lib/payroll-engine/presets/standard";
+import type { PayrollEmployeeData, PayrollMonthInputs, PayrollPolicy as EnginePayrollPolicy } from "@/lib/payroll-engine/types";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import PayrollEmployeeDrawer from "@/pages/hr/components/PayrollEmployeeDrawer";
