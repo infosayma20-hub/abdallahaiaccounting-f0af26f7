@@ -93,8 +93,8 @@ interface PreviewRow {
   total_allowances: number;
   total_deductions: number;
   net_salary: number;
-  engine: "Standard" | "Malaki";
-  status: "ok" | "no_salary" | "no_attendance" | "warning";
+  engine: "Standard" | "Malaki" | "None";
+  status: "ok" | "no_salary" | "no_attendance" | "no_policy" | "warning";
   warnings: string[];
   policy_name: string | null;
   has_policy: boolean;
