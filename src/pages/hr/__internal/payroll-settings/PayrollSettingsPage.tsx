@@ -1218,9 +1218,7 @@ function PreviewResult({ result }: { result: any }) {
           {eng.warnings.map((w: string, i: number) => <div key={i}>• {translateWarning(w)}</div>)}
         </div>
       )}
-      {(eng.rules_applied?.length ?? 0) > 0 && (
-        null
-      )}
+      {/* القواعد التقنية المطبّقة مخفية عن المستخدم النهائي */}
     </div>
   );
 }
