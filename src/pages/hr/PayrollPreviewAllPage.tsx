@@ -109,7 +109,7 @@ export default function PayrollPreviewAllPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance">("all");
+  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance" | "no_policy">("all");
 
   // ─── Data ─────────────────────────────────────────────
   const { data: employees = [], isLoading: loadingEmp } = useQuery({
