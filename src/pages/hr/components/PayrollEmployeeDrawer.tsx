@@ -175,6 +175,46 @@ function MoneyRow({
   );
 }
 
+function FormulaLine({
+  op,
+  label,
+  value,
+  tone,
+  bold,
+}: {
+  op: "+" | "-" | "=";
+  label: string;
+  value: number;
+  tone?: "positive" | "negative";
+  bold?: boolean;
+}) {
+  const opCls =
+    op === "+"
+      ? "text-emerald-600"
+      : op === "-"
+      ? "text-red-600"
+      : "text-primary";
+  const valCls =
+    tone === "positive"
+      ? "text-emerald-700 dark:text-emerald-400"
+      : tone === "negative"
+      ? "text-red-700 dark:text-red-400"
+      : bold
+      ? "text-primary"
+      : "text-foreground";
+  return (
+    <div className={cn("flex items-center justify-between gap-2", bold && "text-sm font-bold")} dir="rtl">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className={cn("inline-flex h-4 w-4 items-center justify-center rounded text-[10px] font-bold shrink-0", opCls)}>
+          {op}
+        </span>
+        <span className="text-muted-foreground truncate">{label}</span>
+      </div>
+      <span className={cn("tabular-nums", valCls)}>{fmtCurrency(value)}</span>
+    </div>
+  );
+}
+
 export default function PayrollEmployeeDrawer({
   open,
   onClose,
