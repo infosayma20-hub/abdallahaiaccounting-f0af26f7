@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, DollarSign, TrendingDown, Wallet, Users, Loader2, Eye, CheckCircle2, ClipboardEdit, Play, Zap } from "lucide-react";
+import { Download, DollarSign, TrendingDown, Wallet, Users, Loader2, Eye, CheckCircle2, ClipboardEdit, Play, Zap, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import MalakiPayslipDialog from "@/components/hr/MalakiPayslipDialog";
 import { calculateMalakiPayslip, fmtCurrency, type MalakiEmployee, type MalakiMonthInput, type MalakiPayslip } from "@/lib/malaki-payroll";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
+import PayrollEmployeeDrawer from "@/pages/hr/components/PayrollEmployeeDrawer";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const months = [
@@ -35,6 +36,9 @@ const PayrollPage = () => {
   const [slipOpen, setSlipOpen] = useState(false);
   const [selectedSlipData, setSelectedSlipData] = useState<{ slip: MalakiPayslip; emp: any } | null>(null);
   const [runningPayroll, setRunningPayroll] = useState(false);
+  const [drawerEmployeeId, setDrawerEmployeeId] = useState<string | null>(null);
+  const [drawerRecord, setDrawerRecord] = useState<any | null>(null);
+  const [drawerEmpName, setDrawerEmpName] = useState<string>("");
 
   const { data: employees, isLoading: loadingEmp } = useQuery({
     queryKey: ["payroll-employees"],
@@ -365,6 +369,29 @@ const PayrollPage = () => {
     queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
   };
 
+  const openWorkspace = (record: any) => {
+    setDrawerEmployeeId(record.employee_id);
+    setDrawerRecord(record);
+    setDrawerEmpName(record.employees?.full_name || "موظف");
+  };
+
+  const openWorkspaceForEmployee = (emp: any) => {
+    setDrawerEmployeeId(emp.id);
+    setDrawerRecord(null);
+    setDrawerEmpName(emp.full_name || "موظف");
+  };
+
+  const closeDrawer = () => {
+    setDrawerEmployeeId(null);
+    setDrawerRecord(null);
+    setDrawerEmpName("");
+  };
+
+  const handleApproveFromDrawer = async (recordId: string) => {
+    await handleMarkPaid(recordId);
+    closeDrawer();
+  };
+
   const handleViewSlip = (record: any) => {
     const emp = employees?.find((e: any) => e.id === record.employee_id);
     if (!emp) return;
@@ -537,8 +564,17 @@ const PayrollPage = () => {
               ) : (
                 <>
                   {filtered.map((p: any) => (
-                    <tr key={p.id} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 font-medium text-foreground">{p.employees?.full_name || "-"}</td>
+                    <tr
+                      key={p.id}
+                      className="border-b border-border/40 hover:bg-primary/5 cursor-pointer transition-colors"
+                      onClick={() => openWorkspace(p)}
+                    >
+                      <td className="p-3 font-medium text-foreground">
+                        <span className="hover:text-primary inline-flex items-center gap-1.5">
+                          <Layers className="h-3 w-3 text-muted-foreground" />
+                          {p.employees?.full_name || "-"}
+                        </span>
+                      </td>
                       <td className="p-3 text-muted-foreground">{p.employees?.department || "-"}</td>
                       <td className="p-3">{fmtCurrency(Number(p.attendance_salary || p.base_salary || 0))}</td>
                       <td className="p-3 text-emerald-600">{fmtCurrency(Number(p.total_allowances))}</td>
@@ -549,8 +585,11 @@ const PayrollPage = () => {
                           {p.is_paid ? "مدفوع" : "غير مدفوع"}
                         </Badge>
                       </td>
-                      <td className="p-3 text-center">
+                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => openWorkspace(p)} title="ملف الراتب الشامل">
+                            <Layers className="h-3.5 w-3.5" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewSlip(p)} title="قسيمة الراتب">
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
@@ -588,6 +627,20 @@ const PayrollPage = () => {
           year={selectedYear}
         />
       )}
+
+      <PayrollEmployeeDrawer
+        open={!!drawerEmployeeId}
+        onClose={closeDrawer}
+        employeeId={drawerEmployeeId}
+        employeeName={drawerEmpName}
+        payrollRecord={drawerRecord}
+        month={selectedMonth}
+        year={selectedYear}
+        onApprovePayment={handleApproveFromDrawer}
+        onViewPayslip={(rec) => {
+          handleViewSlip(rec);
+        }}
+      />
     </div>
   );
 };
