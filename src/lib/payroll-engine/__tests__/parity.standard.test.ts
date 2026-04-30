@@ -250,4 +250,71 @@ describe('Standard Preset — Synthetic Parity', () => {
     expect(r.other_allowances).toBe(0);
     expect(r._engine.warnings.some((w) => w.includes('formula_not_supported_yet'))).toBe(true);
   });
+
+  // ─── Business safety guards (Critical Fixes — 2026-04-30) ───
+
+  it('guard R1: zero attendance skips fixed deductions (no negative net)', () => {
+    const r = calculateStandardPreset(
+      emp({ base_salary: 3000 }),
+      inp({ working_days: 0, working_hours: 0 }),
+      period,
+      policy(),
+      {
+        components: [
+          comp({ code: 'INSURANCE', kind: 'deduction', calculation_type: 'fixed_amount', value: 50 }),
+        ],
+      }
+    );
+    expect(r.attendance_salary).toBeCloseTo(0, 2);
+    expect(r.total_deductions).toBeCloseTo(0, 2);
+    expect(r.net_salary).toBeCloseTo(0, 2);
+    expect(r._engine.warnings.some((w) => w.includes('skipped_fixed_deduction_zero_attendance'))).toBe(true);
+  });
+
+  it('guard R2: zero base_salary skips attendance-linked allowances', () => {
+    const r = calculateStandardPreset(
+      emp({ base_salary: 0 }),
+      inp({ working_days: 26 }),
+      period,
+      policy(),
+      {
+        components: [
+          comp({
+            code: 'TRANSPORT',
+            kind: 'allowance',
+            calculation_type: 'per_day',
+            value: 10,
+            is_attendance_linked: true,
+          }),
+        ],
+      }
+    );
+    expect(r.other_allowances).toBeCloseTo(0, 2);
+    expect(r.net_salary).toBeCloseTo(0, 2);
+    expect(r._engine.warnings.some((w) => w.includes('skipped_attendance_allowance_zero_base'))).toBe(true);
+  });
+
+  it('guard R3: net is floored to 0; carry_over_balance preserves the gap', () => {
+    const r = calculateStandardPreset(
+      emp({ base_salary: 3000 }),
+      inp({ working_days: 1 }), // earns ~100, then heavy non-attendance deductions
+      period,
+      policy(),
+      {
+        components: [
+          // attendance-linked deduction → still applied (R1 only blocks fixed/non-attendance)
+          comp({
+            code: 'BIG',
+            kind: 'deduction',
+            calculation_type: 'fixed_amount',
+            value: 500,
+            is_attendance_linked: true,
+          }),
+        ],
+      }
+    );
+    expect(r.net_salary).toBeGreaterThanOrEqual(0);
+    expect(r.carry_over_balance).toBeGreaterThan(0);
+    expect(r._engine.warnings.some((w) => w.includes('net_floored_to_zero'))).toBe(true);
+  });
 });
