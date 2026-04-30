@@ -19,17 +19,17 @@ import type {
   PayslipResult,
 } from '@/lib/payroll-engine/types';
 
-function detectPreset(policyName: string, companyName: string | null): 'malaki' | 'standard' | 'custom' {
-  const haystack = `${policyName} ${companyName ?? ''}`.toLowerCase();
-  if (haystack.includes('malaki') || haystack.includes('ملكي')) return 'malaki';
-  return 'standard';
-}
+const VALID_PRESETS = ['standard', 'malaki', 'custom'] as const;
+type EnginePreset = (typeof VALID_PRESETS)[number];
 
-async function loadPolicyForEmployee(employeeId: string): Promise<{
-  policy: PayrollPolicy;
-  companyName: string | null;
-} | null> {
-  const { data: profile, error: pErr } = await supabase
+/**
+ * Loads the policy for an employee. Preset is read EXCLUSIVELY from
+ * hr_payroll_policies.engine_preset — never inferred from any name.
+ * Throws if the DB value is not one of the allowed presets (defensive).
+ */
+async function loadPolicyForEmployee(employeeId: string): Promise<PayrollPolicy | null> {
+  const sb: any = supabase;
+  const { data: profile, error: pErr } = await sb
     .from('employee_payroll_profile')
     .select('policy_id')
     .eq('employee_id', employeeId)
@@ -37,37 +37,38 @@ async function loadPolicyForEmployee(employeeId: string): Promise<{
   if (pErr) throw pErr;
   if (!profile?.policy_id) return null;
 
-  const { data: policy, error: polErr } = await supabase
+  const { data: policy, error: polErr } = await sb
     .from('hr_payroll_policies')
-    .select('*, companies:company_id(name)')
+    .select('*')
     .eq('id', profile.policy_id)
     .single();
   if (polErr) throw polErr;
 
-  const companyName = (policy as any).companies?.name ?? null;
-  const preset = detectPreset(policy.name, companyName);
+  const rawPreset = (policy as any).engine_preset;
+  if (!VALID_PRESETS.includes(rawPreset)) {
+    throw new Error(
+      `[payroll-engine] Policy "${policy.id}" has invalid engine_preset="${rawPreset}". Expected one of: ${VALID_PRESETS.join(', ')}.`
+    );
+  }
 
   return {
-    policy: {
-      id: policy.id,
-      company_id: policy.company_id,
-      name: policy.name,
-      preset,
-      salary_basis: policy.salary_basis as PayrollPolicy['salary_basis'],
-      month_days_mode: policy.month_days_mode as PayrollPolicy['month_days_mode'],
-      month_days_custom: Number(policy.month_days_custom ?? 0),
-      daily_work_hours: Number(policy.daily_work_hours ?? 8),
-      overtime_multiplier: Number(policy.overtime_multiplier ?? 1.5),
-      overtime_after_hours: Number(policy.overtime_after_hours ?? 0),
-      absence_calculation: policy.absence_calculation ?? '',
-      late_calculation: policy.late_calculation ?? '',
-      late_grace_minutes: Number(policy.late_grace_minutes ?? 0),
-      late_per_minute_rate: Number(policy.late_per_minute_rate ?? 0),
-      allowances_attendance_linked: !!policy.allowances_attendance_linked,
-      deductions_mode: policy.deductions_mode ?? '',
-      is_default: !!policy.is_default,
-    },
-    companyName,
+    id: policy.id,
+    company_id: policy.company_id,
+    name: policy.name,
+    preset: rawPreset as EnginePreset,
+    salary_basis: policy.salary_basis as PayrollPolicy['salary_basis'],
+    month_days_mode: policy.month_days_mode as PayrollPolicy['month_days_mode'],
+    month_days_custom: Number(policy.month_days_custom ?? 0),
+    daily_work_hours: Number(policy.daily_work_hours ?? 8),
+    overtime_multiplier: Number(policy.overtime_multiplier ?? 1.5),
+    overtime_after_hours: Number(policy.overtime_after_hours ?? 0),
+    absence_calculation: policy.absence_calculation ?? '',
+    late_calculation: policy.late_calculation ?? '',
+    late_grace_minutes: Number(policy.late_grace_minutes ?? 0),
+    late_per_minute_rate: Number(policy.late_per_minute_rate ?? 0),
+    allowances_attendance_linked: !!policy.allowances_attendance_linked,
+    deductions_mode: policy.deductions_mode ?? '',
+    is_default: !!policy.is_default,
   };
 }
 
@@ -98,9 +99,9 @@ export function usePayrollCalculator(
     enabled: !!emp && !!input,
     queryFn: async (): Promise<PayslipResult | null> => {
       if (!emp || !input) return null;
-      const loaded = await loadPolicyForEmployee(emp.id);
-      if (!loaded) return null;
-      return calculatePayslip(emp, input, period, loaded.policy);
+      const policy = await loadPolicyForEmployee(emp.id);
+      if (!policy) return null;
+      return calculatePayslip(emp, input, period, policy);
     },
   });
 }
