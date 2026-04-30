@@ -4986,7 +4986,7 @@ export type Database = {
           branch_id: string | null
           child_allowance_per_child: number | null
           children_count: number | null
-          company_id: string | null
+          company_id: string
           contract_type: string | null
           created_at: string
           date_of_birth: string | null
@@ -5052,7 +5052,7 @@ export type Database = {
           branch_id?: string | null
           child_allowance_per_child?: number | null
           children_count?: number | null
-          company_id?: string | null
+          company_id: string
           contract_type?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -5118,7 +5118,7 @@ export type Database = {
           branch_id?: string | null
           child_allowance_per_child?: number | null
           children_count?: number | null
-          company_id?: string | null
+          company_id?: string
           contract_type?: string | null
           created_at?: string
           date_of_birth?: string | null
