@@ -308,6 +308,10 @@ const ContactDetailPage = () => {
           <ReceivablesAnalysisTab contact={contact} transactions={transactions} cheques={cheques} />
         </TabsContent>
 
+        <TabsContent value="allocations">
+          <AllocationsPanel contactId={contact.id} contactName={contact.contact_name} />
+        </TabsContent>
+
         <TabsContent value="analysis">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
