@@ -1425,6 +1425,12 @@ const InvoicesPage = () => {
                 </Select>
               </div>
 
+              {/* Phase 5J — cross-link panel */}
+              <RelatedJournalPanel
+                invoiceId={selectedInvoice.id}
+                invoiceNumber={selectedInvoice.invoiceNumber}
+              />
+
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
                 <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
               </div>
