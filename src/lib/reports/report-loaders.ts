@@ -145,12 +145,16 @@ export async function loadChequesReport(uid: string, dateFrom: string, dateTo: s
   setData(cheques || []);
 }
 
-export async function loadTotalSales(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+export async function loadTotalSales(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
+  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  let q = supabase.from("transactions").select("id, transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+  const { data: txns } = await q;
+  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
+  dbg("totalSales", { source, txnCount: filtered.length, total: filtered.reduce((s, t) => s + t.amount, 0) });
   // Sales returns from new returns table (confirmed only) + legacy transactions
   const { data: rets } = await supabase.from("returns" as any).select("return_date, total, status").eq("user_id", uid).eq("return_type", "sales").gte("return_date", dateFrom).lte("return_date", dateTo);
   const dayMap: Record<string, { date: string; count: number; total: number; returns: number; net: number }> = {};
-  (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
+  filtered.forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
   (rets || []).forEach((r: any) => {
     if (r.status !== "confirmed" && r.status !== "posted") return;
     const d = r.return_date;
@@ -161,10 +165,13 @@ export async function loadTotalSales(uid: string, dateFrom: string, dateTo: stri
   setData(Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date)));
 }
 
-export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
+  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id) || t.transaction_type === "return") : (txns || []);
+  dbg("dailySales", { source, total: filtered.length });
   const dayMap: Record<string, { date: string; count: number; sales: number; returns: number }> = {};
-  (txns || []).forEach(tx => {
+  filtered.forEach(tx => {
     const d = tx.transaction_date;
     if (!dayMap[d]) dayMap[d] = { date: d, count: 0, sales: 0, returns: 0 };
     if (tx.transaction_type?.startsWith("sale") || tx.transaction_type === "pos_sale") { dayMap[d].count++; dayMap[d].sales += tx.amount; }
@@ -173,17 +180,22 @@ export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo
   setData(Object.values(dayMap).map(d => ({ ...d, net: d.sales - d.returns })));
 }
 
-export async function loadInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+export async function loadInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
+  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
   const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, transaction_type, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
-  setData(txns || []);
+  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
+  dbg("invoiceRegister", { source, count: filtered.length });
+  setData(filtered);
 }
 
-export async function loadByCustomer(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+export async function loadByCustomer(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
+  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const { data: txns } = await supabase.from("transactions").select("id, contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).eq("contact_type", "عميل");
   const cMap = new Map((contacts || []).map(c => [c.id, c]));
   const custMap: Record<string, { name: string; cls: string; count: number; total: number; lastDate: string }> = {};
-  (txns || []).forEach(tx => {
+  filtered.forEach(tx => {
     if (!tx.contact_id) return;
     const c = cMap.get(tx.contact_id);
     const key = tx.contact_id;
@@ -191,6 +203,7 @@ export async function loadByCustomer(uid: string, dateFrom: string, dateTo: stri
     custMap[key].count++; custMap[key].total += tx.amount;
     if (tx.transaction_date > custMap[key].lastDate) custMap[key].lastDate = tx.transaction_date;
   });
+  dbg("byCustomer", { source, customers: Object.keys(custMap).length });
   setData(Object.values(custMap).sort((a, b) => b.total - a.total));
 }
 
