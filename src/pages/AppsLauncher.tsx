@@ -22,7 +22,7 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command } from "lucide-react";
+import { Star, Command, ChevronDown } from "lucide-react";
 
 const appSections = getAppSections();
 
@@ -48,6 +48,12 @@ const AppsLauncher = () => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
+  const [favCollapsed, setFavCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("amwali:apps:section:favorites:collapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("amwali:apps:section:favorites:collapsed", favCollapsed ? "1" : "0"); } catch {}
+  }, [favCollapsed]);
   // expandedApp removed in Phase 1 — apps now navigate directly
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
@@ -294,7 +300,12 @@ const AppsLauncher = () => {
             {/* ⭐ Favorites group (only when "all" + has favorites + no search) */}
             {groupedApps.showFavoritesGroup && categoryFilter === "all" && groupedApps.favoritesList.length > 0 && (
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3 px-1">
+                <button
+                  type="button"
+                  onClick={() => setFavCollapsed((c) => !c)}
+                  aria-expanded={!favCollapsed}
+                  className="flex items-center gap-2 mb-3 px-1 py-1 w-full bg-transparent border-none cursor-pointer rounded-lg hover:bg-slate-50 transition-colors"
+                >
                   <div
                     className="flex items-center justify-center"
                     style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(245,158,11,0.12)" }}
@@ -305,8 +316,17 @@ const AppsLauncher = () => {
                     المفضلة
                   </h3>
                   <span style={{ fontSize: 11, color: "#94a3b8" }}>({groupedApps.favoritesList.length})</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <ChevronDown
+                    size={16}
+                    style={{
+                      color: "#94a3b8",
+                      marginInlineStart: "auto",
+                      transition: "transform 0.2s",
+                      transform: favCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    }}
+                  />
+                </button>
+                {!favCollapsed && <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {groupedApps.favoritesList.map((app, idx) => {
                     const meta = getAppMeta(app.id)!;
                     const pendingActivation = isAppDisabled(app);
@@ -326,7 +346,7 @@ const AppsLauncher = () => {
                       />
                     );
                   })}
-                </div>
+                </div>}
               </div>
             )}
 
