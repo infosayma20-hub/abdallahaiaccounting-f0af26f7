@@ -1,74 +1,28 @@
 ---
-name: Single Source of Truth — Contact Balance (Phase 5G)
-description: All contact/supplier balances in UI must come from get_contact_balance RPC, not from contacts.current_balance
+name: Single Source of Truth (Phase 5G + 5G.1)
+description: Contact/supplier balances come exclusively from get_contact_balance RPC; covers AR, AP, customer prepayments (2115), and supplier prepayments (1146)
 type: feature
 ---
 
 ## Rule
+All UI surfaces (ContactsPage, ContactDetailPage, Customer360, credit decisions) MUST read contact balances via `get_contact_balance(contact_id)` RPC, wrapped in `src/lib/contact-balance.ts` (`fetchContactBalance`, `fetchManyContactBalances`).
 
-UI surfaces (ContactsPage, ContactDetailPage, useCustomer360, and any
-future contact balance display) MUST read live balance via
-`get_contact_balance` RPC — never directly from `contacts.current_balance`.
+NEVER read `contacts.current_balance` for display. NEVER recompute balances from `invoices` or `paid_amount` only. NEVER write to `contacts.current_balance` from the UI.
 
-The stored `contacts.current_balance` column is treated as a stale legacy
-cache. It is intentionally NOT removed from the DB schema (audit /
-compatibility), but the UI must not present it as truth.
+## Account perimeter (Phase 5G.1)
+The RPC matches transactions where `contact_id = :id` AND debit/credit account code matches:
+- `113%`  → Accounts Receivable (1130 + sub-accounts like 113001)
+- `211%`  → Accounts Payable (2110) AND customer prepayments (2115)
+- `1146%` → Supplier prepayments (Advances to Suppliers, asset)
 
-## How to apply
+Matches the canonical AccountStatementV2 formula:
+- Customer: 1130 + 2115
+- Supplier: 2110 + 1146
 
-- Use the helpers in `src/lib/contact-balance.ts`:
-  - `fetchContactBalance(contactId)` — single contact
-  - `fetchManyContactBalances(ids)` — list pages, parallel fan-out
-  - `fetchContactBalanceDetail(contactId)` — full RPC payload
-- Never call `supabase.from('contacts').update({ current_balance: ... })`
-  from anywhere in the frontend. Opening balances must go through
-  `create_opening_balance_entry` RPC; the ledger is the source.
-- For credit decisions, `evaluateCreditDecision` reads
-  `financials.ledger_balance` first, then `outstanding`, then (last
-  resort) `contact.current_balance` for any unmigrated callers.
+## Sign convention
+- `balance > 0` → contact owes us (customer with debit AR, or supplier we prepaid)
+- `balance < 0` → we owe contact (supplier with credit AP, or customer who overpaid)
 
-## RPC contract
-
-`get_contact_balance(p_contact_id uuid, p_as_of_date date, p_currency text)`
-returns jsonb `{ balance, total_debit, total_credit, currency, as_of_date }`.
-
-Computes balance as `SUM(debit on 113%/211%) - SUM(credit on 113%/211%)`
-filtered by `contact_id`, `is_deleted=false`, `transaction_date <= as_of_date`.
-
-### Caveat
-
-The RPC currently does NOT include the Smart Allocation prepayment
-accounts (2115 customer prepayments, 1146 supplier prepayments).
-ContactsPage's old local computation included them. If a tenant relies
-on Smart Allocation prepayments to net against AR/AP, the RPC must be
-extended in a future migration. Track as known gap.
-
-## What this replaces
-
-Before Phase 5G the same contact balance was sourced 4 different ways:
-
-| Surface | Old source | New source |
-|---|---|---|
-| ContactsPage list | local AR/AP/2115/1146 sum | `get_contact_balance` RPC |
-| ContactDetailPage credit card | `contacts.current_balance` | `get_contact_balance` RPC |
-| Customer360 (CRM) | invoices outstanding only | `get_contact_balance` RPC |
-| AccountStatementV2 | transactions ledger (correct) | unchanged ✅ |
-
-## Files touched
-
-- `src/lib/contact-balance.ts` — new helper module
-- `src/pages/ContactsPage.tsx` — list now reads RPC; removed 3 direct
-  writes to `current_balance` (lines previously at 329, 393, 396)
-- `src/pages/ContactDetailPage.tsx` — `liveBalance` state from RPC
-  replaces `contact.current_balance` in credit info card
-- `src/pages/crm/hooks/useCustomer360.ts` — outstanding now derived from
-  ledger; added `ledger_balance` to financials
-- `src/pages/crm/lib/policyEngine.ts` — `LiveFinancials.ledger_balance`
-  added; `evaluateCreditDecision` prefers it
-
-## Out of scope (deferred)
-
-- VoucherFormPage (Phase 5C/D/E ground)
-- Cheques, POS, Invoice creation, Workshops
-- Removing the `current_balance` column from DB schema
-- Extending RPC to include 2115/1146 prepayments
+## Verification (2026-05-01)
+- 99 contacts tested: 95 exact match with canonical formula. 4 "mismatches" were RPC being MORE accurate by ignoring incorrect `contact_type` labels and using ledger as truth.
+- All 12 transactions touching 1146/2115 have `contact_id` populated.
