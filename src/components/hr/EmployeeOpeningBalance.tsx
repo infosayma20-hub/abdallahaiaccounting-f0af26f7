@@ -58,30 +58,24 @@ export default function EmployeeOpeningBalance({ employee, userId, onSaved }: Pr
       const empAccountCode = accs?.[0]?.account_code;
 
       if (empAccountCode && amount > 0) {
-        // 3. Delete any previous opening balance transactions for this employee
         const obRef = `OB-EMP-${employee.id.slice(0, 8)}`;
-        await supabase.from("transactions").update({ is_deleted: true } as any)
-          .eq("user_id", userId)
-          .eq("reference", obRef);
-
-        // 4. Create opening balance transaction
         const debitCode = balType === "debit" ? empAccountCode : "3110";
         const creditCode = balType === "debit" ? "3110" : empAccountCode;
-
-        const { error: txErr } = await supabase.from("transactions").insert({
-          user_id: userId,
-          transaction_date: balDate,
-          description: `رصيد افتتاحي - ${employee.full_name}`,
-          debit_account_code: debitCode,
-          credit_account_code: creditCode,
-          amount: amount,
-          currency: "شيكل",
-          transaction_type: "opening_balance",
-          reference: obRef,
-          is_opening_balance: true,
-          is_deleted: false,
+        const { data: rpcRes, error: txErr } = await supabase.rpc("create_opening_balance_entry", {
+          p_user_id: userId,
+          p_debit_account_code: debitCode,
+          p_credit_account_code: creditCode,
+          p_amount: amount,
+          p_balance_date: balDate,
+          p_description: `رصيد افتتاحي - ${employee.full_name}`,
+          p_currency: "شيكل",
+          p_contact_id: null,
+          p_reference: obRef,
+          p_replace_existing: true,
+          p_idempotency_key: `${obRef}-${Date.now()}`,
         });
-        if (txErr) throw txErr;
+        const r = rpcRes as any;
+        if (txErr || !r?.success) throw new Error(txErr?.message || r?.error || "فشل حفظ الرصيد الافتتاحي");
       }
 
       toast.success("تم حفظ الرصيد الافتتاحي ✅");

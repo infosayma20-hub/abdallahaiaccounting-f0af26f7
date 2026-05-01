@@ -194,17 +194,18 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
             .in("id", oldTxs.map(t => t.id));
         }
       }
-      await supabase.from("transactions").insert({
-        user_id: user.id,
-        transaction_date: openingDate,
-        description: `رصيد افتتاحي — ${name.trim()}`,
-        debit_account_code: finalGlCode,
-        credit_account_code: "3200",
-        amount: obAmount,
-        currency: obCurrency,
-        transaction_type: "opening_balance",
-        is_opening_balance: true,
-        idempotency_key: `OB-CASHBOX-${finalGlCode}-${Date.now()}`,
+      await supabase.rpc("create_opening_balance_entry", {
+        p_user_id: user.id,
+        p_debit_account_code: finalGlCode,
+        p_credit_account_code: "3200",
+        p_amount: obAmount,
+        p_balance_date: openingDate,
+        p_description: `رصيد افتتاحي — ${name.trim()}`,
+        p_currency: obCurrency,
+        p_contact_id: null,
+        p_reference: `OB-CASHBOX-${finalGlCode}`,
+        p_replace_existing: false,
+        p_idempotency_key: `OB-CASHBOX-${finalGlCode}-${Date.now()}`,
       });
     } else if (editBox && finalGlCode && obAmount === 0) {
       // If opening balance removed during edit, soft-delete old transaction
