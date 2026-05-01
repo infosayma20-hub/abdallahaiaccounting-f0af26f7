@@ -930,6 +930,20 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           <span className="text-xs text-muted-foreground">إلى</span>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 w-36 text-xs" />
         </div>
+        {showSourceFilter && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">نوع العملية</span>
+            <Select value={salesSource} onValueChange={(v) => setSalesSource(v as any)}>
+              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">الكل</SelectItem>
+                <SelectItem value="rep">مبيعات مندوب</SelectItem>
+                <SelectItem value="pos">نقطة بيع</SelectItem>
+                <SelectItem value="invoice">فواتير عادية</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <Button variant="outline" size="sm" onClick={loadReport} className="text-xs h-8">تحديث</Button>
       </Card>
 
