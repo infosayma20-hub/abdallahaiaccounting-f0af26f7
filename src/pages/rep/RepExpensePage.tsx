@@ -167,7 +167,7 @@ export default function RepExpensePage() {
         amount: amt,
         paymentMethod: "rep_expense",
         currency: "شيكل",
-        cashAccountCode: "1110",
+        cashAccountCode: rep.cash_account_code,
         contactAccountCode: accountCode,
         description: `مصروف مندوب — ${currentType.label}${notes ? ` — ${notes}` : ""}`,
         reference,
