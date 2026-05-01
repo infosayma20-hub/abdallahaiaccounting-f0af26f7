@@ -16143,21 +16143,36 @@ export type Database = {
         }
         Returns: Json
       }
-      create_rep_sale_atomic: {
-        Args: {
-          p_contact_id: string
-          p_contact_name: string
-          p_idempotency_key: string
-          p_invoice_number?: string
-          p_items: Json
-          p_payment_method: string
-          p_sales_rep_id: string
-          p_user_id: string
-          p_van_day_id: string
-          p_warehouse_id: string
-        }
-        Returns: Json
-      }
+      create_rep_sale_atomic:
+        | {
+            Args: {
+              p_contact_id: string
+              p_contact_name: string
+              p_idempotency_key: string
+              p_invoice_number: string
+              p_items: Json
+              p_payment_method: string
+              p_sales_rep_id: string
+              p_user_id: string
+              p_warehouse_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_contact_id: string
+              p_contact_name: string
+              p_idempotency_key: string
+              p_invoice_number?: string
+              p_items: Json
+              p_payment_method: string
+              p_sales_rep_id: string
+              p_user_id: string
+              p_van_day_id: string
+              p_warehouse_id: string
+            }
+            Returns: Json
+          }
       create_return_with_entry: {
         Args: {
           p_amount: number
