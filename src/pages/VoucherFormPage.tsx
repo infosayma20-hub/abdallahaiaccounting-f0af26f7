@@ -40,6 +40,7 @@ import {
   classifyVoucher as engineClassify,
   computeSummary as engineSummary,
 } from "@/lib/voucher-allocation";
+import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 
 interface Contact {
   id: string;
