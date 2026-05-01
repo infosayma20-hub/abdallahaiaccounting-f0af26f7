@@ -34,6 +34,12 @@ export interface LiveFinancials {
   total_ytd: number;
   invoices_count: number;
   last_sale_date: string | null;
+  /**
+   * Phase 5G — authoritative balance from `get_contact_balance` RPC.
+   * Always present after the hook resolves. Use this (not
+   * `contact.current_balance`) for credit decisions and badges.
+   */
+  ledger_balance: number;
 }
 
 export type RiskLevel = "excellent" | "good" | "average" | "delayed" | "high_risk" | "new";
@@ -149,7 +155,15 @@ export function evaluateCreditDecision(
     Number(policy?.credit_limit_default ?? 0) ||
     0;
 
-  const used = Number(financials?.outstanding ?? contact?.current_balance ?? 0);
+  // Phase 5G — Single Source of Truth.
+  // Prefer the ledger balance; fall back to outstanding (also ledger-derived
+  // in the new useCustomer360); only use stored current_balance as a last
+  // resort for legacy callers that haven't been migrated yet.
+  const used = Number(
+    financials?.ledger_balance ??
+    financials?.outstanding ??
+    contact?.current_balance ?? 0,
+  );
   const newTotal = used + Number(proposedAmount || 0);
   const available = Math.max(0, effectiveLimit - used);
   const utilizationPct = effectiveLimit > 0 ? (newTotal / effectiveLimit) * 100 : 0;
