@@ -265,13 +265,12 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "van-sales", label: "البائع المتجول", description: "دورة البيع الميداني، العمولات، وتقارير المندوبين", module: "inventory", icon: Truck,
-        color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/van",
+        color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/rep",
         keywords: ["بائع", "متجول", "ميداني", "مندوب", "van", "توزيع"],
         groups: [
           {
             groupLabel: "العمليات",
             children: [
-              { label: "وضع البائع المتجول", path: "/van" },
               { label: "تطبيق المندوب (موبايل)", path: "/rep" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
