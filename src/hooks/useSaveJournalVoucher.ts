@@ -137,6 +137,24 @@ async function checkFiscalPeriodLock(userId: string, date: string): Promise<stri
   return null;
 }
 
+/**
+ * Phase 5E — fetch the `vouchers_use_rpc` feature flag for this user from
+ * company_settings. Returns false on any error so the legacy path is taken.
+ */
+async function fetchVouchersRpcFlag(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("feature_flags")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !data) return false;
+    return isVouchersRpcEnabled({ feature_flags: (data as any).feature_flags });
+  } catch {
+    return false;
+  }
+}
+
 export function useSaveJournalVoucher() {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
