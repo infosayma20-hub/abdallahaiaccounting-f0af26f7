@@ -16,6 +16,7 @@ export default function RepDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [openDay, setOpenDay] = useState<any>(null);
   const [stats, setStats] = useState({ count: 0, total: 0, cash: 0 });
+  const [profit, setProfit] = useState<number | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
   const [closingCash, setClosingCash] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,7 +42,7 @@ export default function RepDashboardPage() {
     if (day) {
       const { data: invs } = await (supabase as any)
         .from("invoices")
-        .select("total_amount, payment_method")
+        .select("id, total_amount, payment_method")
         .eq("user_id", rep.user_id)
         .eq("warehouse_id", day.warehouse_id)
         .gte("created_at", day.opened_at)
@@ -52,6 +53,20 @@ export default function RepDashboardPage() {
         total: list.reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
         cash: list.filter((i: any) => i.payment_method === "cash").reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
       });
+
+      // Phase 7: aggregate line_profit for the day's invoices
+      if (list.length > 0) {
+        const ids = list.map((i: any) => i.id);
+        const { data: lines } = await (supabase as any)
+          .from("invoice_items")
+          .select("invoice_id, line_profit")
+          .in("invoice_id", ids);
+        const rows = lines || [];
+        const hasAnyCost = rows.some((r: any) => r.line_profit != null);
+        setProfit(hasAnyCost ? rows.reduce((s: number, r: any) => s + Number(r.line_profit || 0), 0) : null);
+      } else {
+        setProfit(0);
+      }
     }
     setLoading(false);
   };
@@ -156,7 +171,15 @@ export default function RepDashboardPage() {
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.count}</div><div className="text-xs text-muted-foreground">طلبات اليوم</div></Card>
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
         <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
-        <Card className="p-4 space-y-1"><Package className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{Number(openDay.opening_cash || 0).toFixed(2)}</div><div className="text-xs text-muted-foreground">العهدة الافتتاحية</div></Card>
+        <Card className="p-4 space-y-1">
+          <Package className="w-5 h-5 text-primary" />
+          <div className="text-2xl font-bold">
+            {profit == null ? "—" : profit.toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {profit == null ? "تكلفة غير محددة" : "ربح اليوم (₪)"}
+          </div>
+        </Card>
       </div>
 
       <Button className="w-full h-12 text-base" onClick={() => navigate("/rep/new-order")}>
