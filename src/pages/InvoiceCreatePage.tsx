@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { isInvoicesRpcEnabled, callCreateInvoiceLedgerRpc } from "@/lib/invoice-rpc";
 import { useCompany } from "@/hooks/useCompanyContext";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import CreateWarrantyCardsDialog from "@/components/warranty/CreateWarrantyCardsDialog";
@@ -1311,11 +1312,39 @@ const InvoiceCreatePage = () => {
         }
 
         // ─── Post the GL entry (credit-only invoices) ───
-        // Sales: Dr 1130 AR / Cr 4100 Revenue
-        // Purchase: Dr 5110 Purchases / Cr 2110 AP
+        // Sales: Dr 1130 AR / Cr 4100 Revenue (legacy direct)
+        // Purchase: Dr 5110 Purchases / Cr 2110 AP (legacy direct)
+        // Phase 5H: when invoices_use_rpc is ON, route through
+        // create_invoice_with_entry which validates parent accounts
+        // and uses tenant sub-accounts (1115/1131/2111/4110/5111).
         const headerWorkshop = form.workshopId
           ? workshops.find(w => w.id === form.workshopId)
           : null;
+        const useInvoiceRpc = isInvoicesRpcEnabled(companySettings);
+        let txDataId: string;
+        if (useInvoiceRpc) {
+          const rpcRes = await callCreateInvoiceLedgerRpc({
+            userId: user.id,
+            contactId: contactId || null,
+            contactName: form.contactName,
+            amount: amountILS,
+            description: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number} - ${form.contactName}`,
+            paymentMethod: paymentMethodDb,
+            currency: form.currency,
+            idempotencyKey: `INV-${dbInv.id}`,
+            invoiceType: form.type === "sales" ? "sales" : "purchase",
+            transactionDate: form.date,
+            foreignAmount: isForeign ? summary.total : null,
+            exchangeRate: isForeign ? form.exchangeRate : null,
+            reference: dbInv.invoice_number,
+            workshopId: form.workshopId || null,
+            costCenterName: headerWorkshop?.name || null,
+          });
+          if (!rpcRes.success || !rpcRes.transaction_id) {
+            throw new Error(rpcRes.error || "Invoice ledger RPC failed");
+          }
+          txDataId = rpcRes.transaction_id;
+        } else {
         const { data: txData, error: txError } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: form.date,
@@ -1335,14 +1364,16 @@ const InvoiceCreatePage = () => {
           cost_center_name: headerWorkshop?.name || null,
         } as any).select("id").single();
         if (txError) throw txError;
+          txDataId = txData.id;
+        }
 
-        const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txData.id } as any).eq("id", dbInv.id).eq("user_id", user.id);
+        const { error: linkError } = await supabase.from("invoices").update({ linked_transaction_id: txDataId } as any).eq("id", dbInv.id).eq("user_id", user.id);
         if (linkError) console.error("Failed to link transaction to invoice:", linkError);
         if (form.type === "sales") {
           await syncContactBalance(contactId, Number(summary.remainingAmount || 0));
         }
         originalInvoiceRef.current = {
-          linkedTransactionId: txData.id,
+          linkedTransactionId: txDataId,
           contactId: contactId || null,
           remainingAmount: Number(summary.remainingAmount || 0),
           invoiceNumber: dbInv.invoice_number,
