@@ -479,8 +479,25 @@ export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo
 }
 
 export async function loadPurchaseReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.purchase_return,transaction_type.eq.debit_note,description.ilike.%مرتجع شراء%,description.ilike.%مردود مشتريات%").order("transaction_date", { ascending: false });
-  setData(txns || []);
+  // Source of truth: `returns` table (return_type='purchases'). No more description LIKE heuristics.
+  const { data: rets } = await supabase
+    .from("returns" as any)
+    .select("id, return_date, return_number, contact_name, total_amount, status, reason, related_invoice_id")
+    .eq("user_id", uid)
+    .eq("return_type", "purchases")
+    .eq("is_deleted", false)
+    .gte("return_date", dateFrom)
+    .lte("return_date", dateTo)
+    .order("return_date", { ascending: false });
+  setData((rets || []).map((r: any) => ({
+    id: r.id,
+    transaction_date: r.return_date,
+    description: `${r.return_number || ""} — ${r.contact_name || ""}${r.reason ? " — " + r.reason : ""}`,
+    amount: Number(r.total_amount) || 0,
+    contact_id: null,
+    reference: r.related_invoice_id,
+    status: r.status,
+  })));
 }
 
 export async function loadSupplierComparison(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
