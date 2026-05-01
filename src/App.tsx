@@ -170,6 +170,7 @@ const SetupPage = lazy(() => import("./pages/SetupPage"));
 const FinanceHomePage = lazy(() => import("./pages/FinanceHomePage"));
 const FinanceVoucherPage = lazy(() => import("./pages/FinanceVoucherPage"));
 const FinanceJournalPage = lazy(() => import("./pages/FinanceJournalPage"));
+const AccountingCenterPage = lazy(() => import("./pages/AccountingCenterPage"));
 const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
 const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
 const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
@@ -377,6 +378,7 @@ const App = () => (
                       <Route path="/bills" element={<InvoicesPage />} />
                       <Route path="/payments" element={<Navigate to="/finance/payments" replace />} />
                       <Route path="/finance" element={<Navigate to="/finance/receipts" replace />} />
+                      <Route path="/accounting-center" element={<AccountingCenterPage />} />
                       <Route path="/finance/receipts" element={<FinanceVoucherPage voucherType="receipt" />} />
                       <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />

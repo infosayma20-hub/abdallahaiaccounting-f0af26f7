@@ -16247,6 +16247,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_accounting_center_snapshot: { Args: never; Returns: Json }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_contact_balance: {
         Args: {
