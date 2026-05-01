@@ -19,6 +19,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { fetchManyContactBalances } from "@/lib/contact-balance";
 
 interface Contact {
   id: string;
@@ -209,34 +210,25 @@ const ContactsPage = () => {
       const txs = txData || [];
       setTransactions(txs);
 
-      // Compute balances from transactions for each contact
-      const balanceMap: Record<string, number> = {};
+      // Phase 5G — Single Source of Truth.
+      // Balances now come from the canonical `get_contact_balance` RPC
+      // (same source the Account Statement uses). The local AR/AP/2115/1146
+      // computation below is kept ONLY for `last_transaction_date` tracking.
+      // We no longer trust `contacts.current_balance` for display.
       const lastTxMap: Record<string, string> = {};
       for (const tx of txs) {
         if (!tx.contact_id) continue;
-        if (!balanceMap[tx.contact_id]) balanceMap[tx.contact_id] = 0;
-        // For customers (1130): debit increases balance (money owed to us), credit decreases
-        // For suppliers (2110): credit increases balance (money we owe), debit decreases
-        if (tx.debit_account_code === "1130") balanceMap[tx.contact_id] += (tx.amount || 0);
-        if (tx.credit_account_code === "1130") balanceMap[tx.contact_id] -= (tx.amount || 0);
-        if (tx.credit_account_code === "2110") balanceMap[tx.contact_id] -= (tx.amount || 0);
-        if (tx.debit_account_code === "2110") balanceMap[tx.contact_id] += (tx.amount || 0);
-        // Smart Allocation advance accounts:
-        //   2115 = دفعات مقدمة من العملاء (liability) → credit reduces what
-        //          customer owes (treat as if credit on 1130).
-        //   1146 = دفعات مقدمة للموردين (asset) → debit reduces what we owe
-        //          (treat as if debit on 2110).
-        if (tx.credit_account_code === "2115") balanceMap[tx.contact_id] -= (tx.amount || 0);
-        if (tx.debit_account_code === "2115")  balanceMap[tx.contact_id] += (tx.amount || 0);
-        if (tx.debit_account_code === "1146")  balanceMap[tx.contact_id] -= (tx.amount || 0);
-        if (tx.credit_account_code === "1146") balanceMap[tx.contact_id] += (tx.amount || 0);
         // Track last transaction date
         if (!lastTxMap[tx.contact_id] || tx.transaction_date > lastTxMap[tx.contact_id]) {
           lastTxMap[tx.contact_id] = tx.transaction_date;
         }
       }
 
-      // Enrich contacts with computed balances
+      // Fetch authoritative balances in parallel via RPC (single source).
+      const ids = (contactData || []).map((c: any) => c.id);
+      const balanceMap = await fetchManyContactBalances(ids);
+
+      // Enrich contacts: balance from RPC overrides any stale stored value.
       const enriched = (contactData || []).map((c: any) => ({
         ...c,
         current_balance: balanceMap[c.id] ?? c.current_balance ?? 0,
