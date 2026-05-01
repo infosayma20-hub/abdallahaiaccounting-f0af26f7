@@ -213,24 +213,47 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
 }
 
 export async function loadSalesReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.return,transaction_type.eq.sales_return,transaction_type.eq.sale_return,description.ilike.%مرتجع%,description.ilike.%مردود%").order("transaction_date", { ascending: false });
-  setData(txns || []);
+  // Source of truth: `returns` table (return_type='sales'). No more description LIKE heuristics.
+  const { data: rets } = await supabase
+    .from("returns" as any)
+    .select("id, return_date, return_number, contact_name, total_amount, status, reason, related_invoice_id")
+    .eq("user_id", uid)
+    .eq("return_type", "sales")
+    .eq("is_deleted", false)
+    .gte("return_date", dateFrom)
+    .lte("return_date", dateTo)
+    .order("return_date", { ascending: false });
+  dbg("salesReturns", { count: (rets || []).length });
+  setData((rets || []).map((r: any) => ({
+    id: r.id,
+    transaction_date: r.return_date,
+    description: `${r.return_number || ""} — ${r.contact_name || ""}${r.reason ? " — " + r.reason : ""}`,
+    amount: Number(r.total_amount) || 0,
+    contact_id: null,
+    reference: r.related_invoice_id,
+    status: r.status,
+  })));
 }
 
-export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
+  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const { data: txns } = await supabase.from("transactions").select("id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  const cur = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
   const daysDiff = differenceInDays(new Date(dateTo), new Date(dateFrom));
   const prevFrom = format(subDays(new Date(dateFrom), daysDiff + 1), "yyyy-MM-dd");
   const prevTo = format(subDays(new Date(dateFrom), 1), "yyyy-MM-dd");
-  const { data: prevTxns } = await supabase.from("transactions").select("amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", prevFrom).lte("transaction_date", prevTo);
-  const total = (txns || []).reduce((s, t) => s + t.amount, 0);
-  const prevTotal = (prevTxns || []).reduce((s, t) => s + t.amount, 0);
+  const prevIds = await getInvoiceTxnIdsBySource(uid, source, prevFrom, prevTo);
+  const { data: prevTxns } = await supabase.from("transactions").select("id, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", prevFrom).lte("transaction_date", prevTo);
+  const prev = prevIds ? (prevTxns || []).filter(t => prevIds.has(t.id)) : (prevTxns || []);
+  const total = cur.reduce((s, t) => s + t.amount, 0);
+  const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
   const growth = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100) : 0;
-  const count = (txns || []).length;
+  const count = cur.length;
   const avgTicket = count > 0 ? total / count : 0;
   const dayMap: Record<string, number> = {};
-  (txns || []).forEach(t => { dayMap[t.transaction_date] = (dayMap[t.transaction_date] || 0) + t.amount; });
+  cur.forEach(t => { dayMap[t.transaction_date] = (dayMap[t.transaction_date] || 0) + t.amount; });
   const bestDay = Object.entries(dayMap).sort((a, b) => b[1] - a[1])[0];
+  dbg("salesPerformance", { source, total, count, prevTotal });
   setData([
     { label: "إجمالي المبيعات", value: fmtAmt(total), color: "#059669" },
     { label: "عدد الفواتير", value: count.toString(), color: "#0070F2" },
@@ -241,17 +264,36 @@ export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo
   ]);
 }
 
-export async function loadSalesByProductReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
-  if (!orders?.length) { setData([]); return; }
-  const orderIds = orders.map(o => o.id);
-  const { data: lines } = await supabase.from("pos_order_lines").select("product_name, qty, total, cost_price, order_id").in("order_id", orderIds);
-  const pm: Record<string, { name: string; qty: number; revenue: number; cost: number }> = {};
-  (lines || []).forEach(l => {
-    if (!pm[l.product_name]) pm[l.product_name] = { name: l.product_name, qty: 0, revenue: 0, cost: 0 };
-    pm[l.product_name].qty += l.qty; pm[l.product_name].revenue += l.total; pm[l.product_name].cost += (l.cost_price || 0) * l.qty;
+// Sales by Product — single source of truth: invoice_items (covers rep/pos/invoice unified)
+export async function loadSalesByProductReport(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
+  // 1) get invoices in range (filtered by source if any)
+  let invQ = supabase.from("invoices").select("id, source").eq("user_id", uid).gte("invoice_date", dateFrom).lte("invoice_date", dateTo).neq("status", "void");
+  if (source !== "all") invQ = invQ.eq("source", source);
+  const { data: invoices } = await invQ;
+  if (!invoices?.length) { dbg("salesByProduct", { source, invoices: 0 }); setData([]); return; }
+  const invIds = invoices.map(i => i.id);
+  // 2) get items
+  const { data: items } = await supabase.from("invoice_items").select("product_name, quantity, total_amount, cost_price, line_profit").in("invoice_id", invIds);
+  const pm: Record<string, { name: string; qty: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
+  (items || []).forEach(it => {
+    const name = it.product_name || "—";
+    if (!pm[name]) pm[name] = { name, qty: 0, revenue: 0, cost: 0, profit: 0, missingCost: false };
+    const q = Number(it.quantity) || 0;
+    pm[name].qty += q;
+    pm[name].revenue += Number(it.total_amount) || 0;
+    if (it.cost_price == null) {
+      pm[name].missingCost = true;
+    } else {
+      pm[name].cost += Number(it.cost_price) * q;
+      pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * q);
+    }
   });
-  setData(Object.values(pm).sort((a, b) => b.revenue - a.revenue));
+  dbg("salesByProduct", { source, invoices: invoices.length, items: (items || []).length, products: Object.keys(pm).length });
+  setData(Object.values(pm).map(p => ({
+    ...p,
+    margin: p.revenue > 0 ? (p.profit / p.revenue * 100) : 0,
+    profitDisplay: p.missingCost ? "تكلفة غير محددة" : p.profit,
+  })).sort((a, b) => b.revenue - a.revenue));
 }
 
 export async function loadDeadStockReport(uid: string, setData: SetData) {
@@ -273,13 +315,45 @@ export async function loadDeadStockReport(uid: string, setData: SetData) {
   }).filter(p => p.days >= 90 && p.qty > 0).sort((a, b) => b.value - a.value));
 }
 
-export async function loadProductProfitability(uid: string, setData: SetData) {
-  const { data: products } = await supabase.from("products").select("id, name, buy_price, sell_price, quantity").eq("user_id", uid);
-  setData((products || []).map(p => ({
-    name: p.name, buyPrice: p.buy_price || 0, sellPrice: p.sell_price || 0,
-    margin: p.sell_price && p.buy_price ? ((p.sell_price - p.buy_price) / p.sell_price * 100) : 0,
-    profit: (p.sell_price || 0) - (p.buy_price || 0), stock: p.quantity || 0,
-  })).sort((a, b) => b.margin - a.margin));
+// Product profitability — REAL profit from invoice_items.line_profit (no more buy/sell price guesses)
+export async function loadProductProfitability(uid: string, setData: SetData, dateFrom?: string, dateTo?: string, source: SalesSourceFilter = "all") {
+  // default to last 90 days if no range provided
+  const to = dateTo || format(new Date(), "yyyy-MM-dd");
+  const from = dateFrom || format(subDays(new Date(), 90), "yyyy-MM-dd");
+  let invQ = supabase.from("invoices").select("id, source").eq("user_id", uid).gte("invoice_date", from).lte("invoice_date", to).neq("status", "void");
+  if (source !== "all") invQ = invQ.eq("source", source);
+  const { data: invoices } = await invQ;
+  const invIds = (invoices || []).map(i => i.id);
+  const { data: items } = invIds.length
+    ? await supabase.from("invoice_items").select("product_name, quantity, unit_price, total_amount, cost_price, line_profit").in("invoice_id", invIds)
+    : { data: [] as any[] };
+  const { data: products } = await supabase.from("products").select("id, name, quantity").eq("user_id", uid);
+  const stockMap = new Map((products || []).map(p => [p.name, p.quantity || 0]));
+
+  const pm: Record<string, { name: string; qtySold: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
+  (items || []).forEach(it => {
+    const name = it.product_name || "—";
+    if (!pm[name]) pm[name] = { name, qtySold: 0, revenue: 0, cost: 0, profit: 0, missingCost: false };
+    const q = Number(it.quantity) || 0;
+    pm[name].qtySold += q;
+    pm[name].revenue += Number(it.total_amount) || 0;
+    if (it.cost_price == null) pm[name].missingCost = true;
+    else {
+      pm[name].cost += Number(it.cost_price) * q;
+      pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * q);
+    }
+  });
+  dbg("productProfitability", { source, from, to, products: Object.keys(pm).length });
+  setData(Object.values(pm).map(p => ({
+    name: p.name,
+    qtySold: p.qtySold,
+    revenue: p.revenue,
+    cost: p.cost,
+    profit: p.profit,
+    profitDisplay: p.missingCost ? "تكلفة غير محددة" : p.profit,
+    margin: p.revenue > 0 ? (p.profit / p.revenue * 100) : 0,
+    stock: stockMap.get(p.name) || 0,
+  })).sort((a, b) => b.profit - a.profit));
 }
 
 export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
