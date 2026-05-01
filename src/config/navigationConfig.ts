@@ -272,6 +272,7 @@ export const navigationSections: NavSection[] = [
             groupLabel: "العمليات",
             children: [
               { label: "وضع البائع المتجول", path: "/van" },
+              { label: "تطبيق المندوب (موبايل)", path: "/rep" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
               { label: "طلبيات المندوبين", path: "/admin/sales-rep-orders" },
