@@ -15951,6 +15951,22 @@ export type Database = {
         }
         Returns: Json
       }
+      create_opening_balance_entry: {
+        Args: {
+          p_amount: number
+          p_balance_date?: string
+          p_contact_id?: string
+          p_credit_account_code: string
+          p_currency?: string
+          p_debit_account_code: string
+          p_description?: string
+          p_idempotency_key?: string
+          p_reference?: string
+          p_replace_existing?: boolean
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_payment_with_entry: {
         Args: {
           p_amount: number
