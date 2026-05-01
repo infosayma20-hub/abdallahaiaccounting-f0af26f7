@@ -73,5 +73,5 @@ export async function callCreateInvoiceLedgerRpc(
   } as any);
 
   if (error) return { success: false, error: error.message };
-  return (data as InvoiceLedgerRpcResult) ?? { success: false, error: "empty response" };
+  return (data as unknown as InvoiceLedgerRpcResult) ?? { success: false, error: "empty response" };
 }
