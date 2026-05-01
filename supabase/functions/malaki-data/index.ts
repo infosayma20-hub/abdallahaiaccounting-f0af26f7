@@ -1062,30 +1062,26 @@ Deno.serve(async (req) => {
         .order("full_name");
 
       const repList = (reps || []) as any[];
+      const repIdToRep = new Map<string, any>();
       const warehouseToRep = new Map<string, any>();
       for (const r of repList) {
+        repIdToRep.set(r.id, r);
         if (r.default_warehouse_id) warehouseToRep.set(r.default_warehouse_id, r);
       }
 
-      // Restrict to warehouses owned by reps; optionally narrow to one rep
-      let warehouseIds = repList.map((r) => r.default_warehouse_id).filter(Boolean);
-      if (repId) {
-        const single = repList.find((r) => r.id === repId);
-        warehouseIds = single?.default_warehouse_id ? [single.default_warehouse_id] : [];
+      const repIds = repList.map((r) => r.id);
+      if (repIds.length === 0) {
+        return respond({ success: true, reps: [], orders: [], totals: { count: 0, total: 0, cash: 0, credit: 0 } });
       }
 
-      if (warehouseIds.length === 0) {
-        return respond({ success: true, reps: repList.map((r) => ({ id: r.id, name: r.full_name })), orders: [], totals: { count: 0, total: 0, cash: 0, credit: 0 } });
-      }
-
+      // Phase 7.3: المصدر الموحد = invoices.salesperson_id (لا is_deleted على invoices)
+      // Backfill أعاد ربط الفواتير القديمة REP-% بالمندوب الصحيح.
       let q = supabase
         .from("invoices")
-        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, contact_id, contact_name, warehouse_id, created_at")
+        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, contact_id, contact_name, warehouse_id, salesperson_id, created_at")
         .eq("user_id", linkedUserId)
         .eq("invoice_type", "sale")
-        .eq("is_deleted", false)
-        .in("warehouse_id", warehouseIds)
-        .like("invoice_number", "REP-%")
+        .in("salesperson_id", repId ? [repId] : repIds)
         .order("created_at", { ascending: false })
         .limit(2000);
 
@@ -1110,7 +1106,7 @@ Deno.serve(async (req) => {
       const cbMap = new Map<string, string>(((cbRes.data as any[]) || []).map((c: any) => [c.id, c.name]));
 
       const orders = invoices.map((inv: any) => {
-        const rep = warehouseToRep.get(inv.warehouse_id);
+        const rep = (inv.salesperson_id && repIdToRep.get(inv.salesperson_id)) || warehouseToRep.get(inv.warehouse_id);
         return {
           id: inv.id,
           invoice_number: inv.invoice_number,
