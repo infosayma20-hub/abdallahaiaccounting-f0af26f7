@@ -221,7 +221,7 @@ const InvoicesPage = () => {
 
       const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
         id: inv.id,
-        type: inv.invoice_type === 'sale' ? 'sales' : 'purchase',
+        type: (inv.invoice_type === 'sale' || inv.invoice_type === 'sales') ? 'sales' : 'purchase',
         invoiceNumber: inv.invoice_number || '',
         date: inv.invoice_date || '',
         dueDate: inv.due_date || undefined,
