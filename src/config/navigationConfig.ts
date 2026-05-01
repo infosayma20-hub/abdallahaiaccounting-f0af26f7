@@ -2,6 +2,7 @@ import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
   Puzzle, ArrowLeftRight, ClipboardList, Plane, Truck, LayoutGrid, Sparkles, Receipt, Shield, UserPlus,
+  Activity, PieChart, Scale, LayoutDashboard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -69,6 +70,13 @@ export const navigationSections: NavSection[] = [
   {
     sectionTitle: "المالية والمحاسبة",
     items: [
+      {
+        id: "accounting-center", label: "مركز المحاسبة", description: "نظرة موحّدة على النشاط المالي اليومي والمؤشرات الحيوية",
+        module: "accounting", icon: Activity,
+        color: "text-emerald-600", bgColor: "bg-emerald-500/10",
+        path: "/accounting-center", isDirect: true, isNew: true,
+        keywords: ["مركز", "محاسبة", "لوحة", "مالي", "نظرة عامة", "accounting center"],
+      },
       {
         id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", module: "accounting", icon: DollarSign,
         color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/finance/receipts",
@@ -264,6 +272,7 @@ export const navigationSections: NavSection[] = [
             groupLabel: "العمليات",
             children: [
               { label: "وضع البائع المتجول", path: "/van" },
+              { label: "تطبيق المندوب (موبايل)", path: "/rep" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
               { label: "طلبيات المندوبين", path: "/admin/sales-rep-orders" },
@@ -364,8 +373,32 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", module: "reports", icon: BarChart3,
-        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports", isDirect: true,
-        keywords: ["تقارير", "تحليل"],
+        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
+        keywords: ["تقارير", "تحليل", "أرباح", "خسائر", "ميزانية"],
+        groups: [
+          {
+            groupLabel: "القوائم المالية",
+            children: [
+              { label: "الأرباح والخسائر", path: "/profit-loss" },
+              { label: "الميزانية العمومية", path: "/balance-sheet" },
+              { label: "ميزان المراجعة", path: "/trial-balance" },
+            ],
+          },
+          {
+            groupLabel: "كل التقارير",
+            children: [
+              { label: "مكتبة التقارير", path: "/reports" },
+              { label: "منشئ التقارير", path: "/reports/builder" },
+              { label: "تقاريري المحفوظة", path: "/reports/my-reports" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "dashboards", label: "لوحات التحكم", description: "لوحات قابلة للتخصيص والمشاركة", module: "dashboard", icon: LayoutDashboard,
+        color: "text-indigo-500", bgColor: "bg-indigo-500/10",
+        path: "/dashboards", isDirect: true,
+        keywords: ["لوحات", "تحكم", "widgets", "dashboards", "مخصص"],
       },
     ],
   },
