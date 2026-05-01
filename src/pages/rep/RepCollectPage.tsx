@@ -69,12 +69,13 @@ export default function RepCollectPage() {
     setLoadingBalance(true);
     setBalance(null);
     try {
-      const { data } = await (supabase as any)
+      const { data, error: txErr } = await (supabase as any)
         .from("transactions")
         .select("amount, debit_account_code, credit_account_code")
         .eq("user_id", rep.user_id)
         .eq("contact_id", id)
         .eq("is_deleted", false);
+      if (txErr) throw txErr;
       const rows = data || [];
       // ذمم عملاء (1130): مدين يزيد الرصيد، دائن ينقصه
       const debit = rows.filter((t: any) => t.debit_account_code?.startsWith("1130")).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);

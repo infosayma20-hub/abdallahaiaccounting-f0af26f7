@@ -131,7 +131,7 @@ export default function RepNewOrderPage() {
         if (!result.success) throw new Error(result.error || "فشل تنفيذ البيع");
         const profitTxt = result.total_profit != null ? ` — ربح: ${Number(result.total_profit).toFixed(2)} ₪` : "";
         toast({ title: result.duplicate ? "هذا الطلب موجود مسبقاً" : "تم حفظ الطلب", description: `الإجمالي: ${total.toFixed(2)} ₪${profitTxt}` });
-        navigate("/rep");
+        navigate("/rep/orders");
         return;
       }
 

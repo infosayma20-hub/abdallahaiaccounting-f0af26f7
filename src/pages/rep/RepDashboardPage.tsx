@@ -40,13 +40,15 @@ export default function RepDashboardPage() {
     setOpenDay(day);
 
     if (day) {
-      const { data: invs } = await (supabase as any)
+      // المصدر الموحد: invoices مرتبطة بالمندوب صراحةً عبر salesperson_id
+      // (invoices لا يحوي عمود is_deleted — لا تستخدمه)
+      const { data: invs, error: invErr } = await (supabase as any)
         .from("invoices")
         .select("id, total_amount, payment_method")
         .eq("user_id", rep.user_id)
-        .eq("warehouse_id", day.warehouse_id)
-        .gte("created_at", day.opened_at)
-        .eq("is_deleted", false);
+        .eq("salesperson_id", rep.id)
+        .gte("created_at", day.opened_at);
+      if (invErr) console.error("[RepDashboard] invoices query error:", invErr);
       const list = invs || [];
       setStats({
         count: list.length,
