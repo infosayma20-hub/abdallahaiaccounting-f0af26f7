@@ -2099,6 +2099,8 @@ export type Database = {
           print_decorative_ornaments: boolean | null
           purchase_order_prefix: string | null
           receipt_prefix: string | null
+          rep_allow_negative_stock: boolean
+          rep_disable_stock_deduction: boolean
           reset_numbering_yearly: boolean | null
           security_2fa_enabled: boolean | null
           security_allowed_ips: string | null
@@ -2240,6 +2242,8 @@ export type Database = {
           print_decorative_ornaments?: boolean | null
           purchase_order_prefix?: string | null
           receipt_prefix?: string | null
+          rep_allow_negative_stock?: boolean
+          rep_disable_stock_deduction?: boolean
           reset_numbering_yearly?: boolean | null
           security_2fa_enabled?: boolean | null
           security_allowed_ips?: string | null
@@ -2381,6 +2385,8 @@ export type Database = {
           print_decorative_ornaments?: boolean | null
           purchase_order_prefix?: string | null
           receipt_prefix?: string | null
+          rep_allow_negative_stock?: boolean
+          rep_disable_stock_deduction?: boolean
           reset_numbering_yearly?: boolean | null
           security_2fa_enabled?: boolean | null
           security_allowed_ips?: string | null
@@ -16480,6 +16486,11 @@ export type Database = {
       }
       reject_procurement_request: {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
+        Returns: Json
+      }
+      rep_invoice_post_now: { Args: { p_invoice_id: string }; Returns: Json }
+      rep_invoice_void_legacy: {
+        Args: { p_invoice_id: string; p_reason?: string }
         Returns: Json
       }
       set_task_user_password: {
