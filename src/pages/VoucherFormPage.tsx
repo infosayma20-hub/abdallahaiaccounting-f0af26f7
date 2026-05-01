@@ -1822,23 +1822,41 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         const selectedInvoices = effectiveInvoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
-          // Save payment_invoice_links for payment vouchers too (for cancel reversal)
-          const links = selectedInvoices.map(inv => ({
-            payment_id: voucher.id,
-            invoice_id: inv.id,
-            allocated_amount: inv.allocatedAmount || 0,
-          }));
-          await supabase.from("payment_invoice_links").insert(links);
+          if (vouchersRpcOn && !asDraft && txId) {
+            // Phase 5D: atomic allocation through RPC, keyed by
+            // transaction_id (since payment vouchers live in `vouchers`,
+            // not `receipt_vouchers`). The RPC will also recalc invoice
+            // status server-side.
+            await callAllocateVoucherRpc({
+              userId: user.id,
+              transactionId: txId,
+              voucherAmount: amountNum,
+              allocations: selectedInvoices.map(inv => ({
+                invoice_id: inv.id,
+                amount: inv.allocatedAmount || 0,
+              })),
+              allowOverpay: false,
+            });
+          } else {
+            // LEGACY path — unchanged. Saves payment_invoice_links keyed
+            // to vouchers.id for cancel reversal.
+            const links = selectedInvoices.map(inv => ({
+              payment_id: voucher.id,
+              invoice_id: inv.id,
+              allocated_amount: inv.allocatedAmount || 0,
+            }));
+            await supabase.from("payment_invoice_links").insert(links);
 
-          for (const inv of selectedInvoices) {
-            if (!asDraft) {
-              const newPaid = (inv.paid_amount || 0) + (inv.allocatedAmount || 0);
-              const newRemaining = inv.total_amount - newPaid;
-              await supabase.from("invoices").update({
-                paid_amount: newPaid,
-                remaining_amount: newRemaining,
-                payment_status: newRemaining <= 0 ? "paid" : "partial",
-              }).eq("id", inv.id);
+            for (const inv of selectedInvoices) {
+              if (!asDraft) {
+                const newPaid = (inv.paid_amount || 0) + (inv.allocatedAmount || 0);
+                const newRemaining = inv.total_amount - newPaid;
+                await supabase.from("invoices").update({
+                  paid_amount: newPaid,
+                  remaining_amount: newRemaining,
+                  payment_status: newRemaining <= 0 ? "paid" : "partial",
+                }).eq("id", inv.id);
+              }
             }
           }
         }
