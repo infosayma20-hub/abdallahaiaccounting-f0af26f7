@@ -94,7 +94,7 @@ export async function callCreateReceiptRpc(
     p_notes: p.notes ?? null,
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
-    p_allocations: p.allocations ?? null,
+    p_allocations: (p.allocations ?? null) as any,
   });
   if (error) throw error;
   return data as unknown as VoucherRpcResult;
@@ -124,7 +124,7 @@ export async function callCreatePaymentRpc(
     p_notes: p.notes ?? null,
     p_employee_id: p.employeeId ?? null,
     p_workshop_id: p.workshopId ?? null,
-    p_allocations: p.allocations ?? null,
+    p_allocations: (p.allocations ?? null) as any,
   });
   if (error) throw error;
   return data as unknown as VoucherRpcResult;
