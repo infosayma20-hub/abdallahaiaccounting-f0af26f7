@@ -162,7 +162,7 @@ export default function SalesRepsLivePage() {
   }, [load]);
 
   const hasAnyActivity = rows.some(
-    (r) => r.day_status === "open" || r.total_invoices > 0 || r.total_cash > 0 || r.total_credit > 0
+    (r) => r.day_status === "open" || r.total_invoices > 0 || r.total_cash > 0 || r.total_credit > 0 || r.total_expenses > 0
   );
 
   return (
