@@ -80,6 +80,7 @@ const RepLayout = lazy(() => import("./pages/rep/RepLayout"));
 const RepDashboardPage = lazy(() => import("./pages/rep/RepDashboardPage"));
 const RepNewOrderPage = lazy(() => import("./pages/rep/RepNewOrderPage"));
 const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
+const RepCollectPage = lazy(() => import("./pages/rep/RepCollectPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
 const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
@@ -292,6 +293,7 @@ const App = () => (
               <Route path="/rep" element={<ProtectedRoute><RepLayout /></ProtectedRoute>}>
                 <Route index element={<RepDashboardPage />} />
                 <Route path="new-order" element={<RepNewOrderPage />} />
+                <Route path="collect" element={<RepCollectPage />} />
                 <Route path="orders" element={<RepOrdersPage />} />
               </Route>
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
