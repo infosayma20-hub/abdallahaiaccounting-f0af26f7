@@ -4,6 +4,42 @@ import { fmtAmt } from "./report-helpers";
 
 type SetData = (data: any[]) => void;
 
+// ── Debug Mode (toggle from Developer Settings) ──
+// Set localStorage.setItem("amwali:reports:debug", "1") to enable verbose logs
+export const reportsDebugEnabled = () => {
+  try { return typeof window !== "undefined" && localStorage.getItem("amwali:reports:debug") === "1"; }
+  catch { return false; }
+};
+const dbg = (label: string, payload: Record<string, any>) => {
+  if (reportsDebugEnabled()) {
+    // eslint-disable-next-line no-console
+    console.log(`[reports:${label}]`, payload);
+  }
+};
+
+// ── Source filter helper ──
+// sourceFilter: "all" | "rep" | "pos" | "invoice"
+// Returns set of transaction IDs (i.e. invoices.linked_transaction_id) that match.
+// Used to filter `transactions` rows where the source is invoice-driven.
+export type SalesSourceFilter = "all" | "rep" | "pos" | "invoice";
+
+async function getInvoiceTxnIdsBySource(
+  uid: string,
+  source: SalesSourceFilter,
+  dateFrom: string,
+  dateTo: string,
+): Promise<Set<string> | null> {
+  if (source === "all") return null; // null => no filter
+  const { data } = await supabase
+    .from("invoices")
+    .select("linked_transaction_id, source")
+    .eq("user_id", uid)
+    .eq("source", source)
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+  return new Set((data || []).map(r => r.linked_transaction_id).filter(Boolean) as string[]);
+}
+
 // ── General / Accounting Loaders ──
 
 export async function loadAgingReport(uid: string, contactType: string, setData: SetData) {
