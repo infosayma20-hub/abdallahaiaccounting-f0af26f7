@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
+import { fetchContactBalance } from "@/lib/contact-balance";
 
 const classConfig: Record<string, { color: string; bg: string; label: string }> = {
   A: { color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40", label: "زبون مميز" },
@@ -25,6 +26,9 @@ const ContactDetailPage = () => {
   const [cheques, setCheques] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("invoices");
+  // Phase 5G — Single Source of Truth: live balance from get_contact_balance.
+  // Replaces all reads of `contact.current_balance` for display.
+  const [liveBalance, setLiveBalance] = useState<number>(0);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -74,6 +78,14 @@ const ContactDetailPage = () => {
         .eq('user_id', user.id)
         .order('cheque_date', { ascending: false });
       setCheques((chequeData as any[]) || []);
+
+      // Fetch authoritative balance from the ledger (same source as
+      // AccountStatement). This must always match what the user sees there.
+      if (id) {
+        const bal = await fetchContactBalance(id);
+        setLiveBalance(bal);
+      }
+
       setLoading(false);
     };
     fetchData();
