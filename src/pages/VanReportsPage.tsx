@@ -1,114 +1,46 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowRight, BarChart3, TrendingUp, Wallet, Package, Calculator,
-  Truck, Loader2, Download, FileText,
-} from "lucide-react";
+import { ArrowRight, Download, TrendingUp, Wallet, Calculator, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from "xlsx";
+import { setNextExportBranding } from "@/lib/excel-export";
+import { format } from "date-fns";
 
-interface SalesRep {
-  id: string;
-  full_name: string;
-  default_warehouse_id: string | null;
-}
+interface SalesRep { id: string; full_name: string; default_warehouse_id: string | null; }
+interface RepPerformance { rep_id: string; rep_name: string; warehouse_id: string | null; invoices_count: number; total_sales: number; total_collections: number; commissions_due: number; commissions_paid: number; }
+interface ProfitRow { rep_id: string; rep_name: string; sales: number; cogs: number; profit: number; margin_pct: number; }
+interface DayRow { id: string; day_number: string; day_date: string; status: string; rep_name: string; total_sales: number; total_collections: number; expected_cash: number | null; actual_cash_collected: number | null; cash_variance: number | null; }
+interface StockMoveRow { product_name: string; in_qty: number; out_qty: number; net: number; }
+interface CommissionLedgerRow { id: string; rep_name: string; commission_type: string; base_amount: number; commission_rate: number; commission_amount: number; is_paid: boolean; paid_date: string | null; created_at: string; reference_description: string | null; }
 
-interface RepPerformance {
-  rep_id: string;
-  rep_name: string;
-  warehouse_id: string | null;
-  invoices_count: number;
-  total_sales: number;
-  total_collections: number;
-  commissions_due: number;
-  commissions_paid: number;
-}
-
-interface ProfitRow {
-  rep_id: string;
-  rep_name: string;
-  sales: number;
-  cogs: number;
-  profit: number;
-  margin_pct: number;
-}
-
-interface DayRow {
-  id: string;
-  day_number: string;
-  day_date: string;
-  status: string;
-  rep_name: string;
-  total_sales: number;
-  total_collections: number;
-  expected_cash: number | null;
-  actual_cash_collected: number | null;
-  cash_variance: number | null;
-}
-
-interface StockMoveRow {
-  product_name: string;
-  in_qty: number;
-  out_qty: number;
-  net: number;
-}
-
-interface CommissionLedgerRow {
-  id: string;
-  rep_name: string;
-  commission_type: string;
-  base_amount: number;
-  commission_rate: number;
-  commission_amount: number;
-  is_paid: boolean;
-  paid_date: string | null;
-  created_at: string;
-  reference_description: string | null;
-}
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat("ar", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
-
-const monthStart = () => {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-};
+const fmt = (n: number) => new Intl.NumberFormat("ar", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+const monthStart = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-function downloadCSV(filename: string, rows: Record<string, any>[]) {
-  if (rows.length === 0) return;
-  const headers = Object.keys(rows[0]);
-  const csv = [
-    headers.join(","),
-    ...rows.map((r) =>
-      headers.map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",")
-    ),
-  ].join("\n");
-  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+function exportExcel(filename: string, sheetName: string, rows: Record<string, any>[]) {
+  if (!rows.length) return;
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 16 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  setNextExportBranding({ title: sheetName });
+  XLSX.writeFile(wb, filename);
 }
 
 export default function VanReportsPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const [from, setFrom] = useState<string>(monthStart());
   const [to, setTo] = useState<string>(todayISO());
   const [loading, setLoading] = useState(false);
   const [reps, setReps] = useState<SalesRep[]>([]);
-
   const [performance, setPerformance] = useState<RepPerformance[]>([]);
   const [profit, setProfit] = useState<ProfitRow[]>([]);
   const [days, setDays] = useState<DayRow[]>([]);
@@ -120,7 +52,6 @@ export default function VanReportsPage() {
     if (!user) return;
     setLoading(true);
 
-    // Load reps
     const { data: repsData } = await supabase
       .from("sales_representatives")
       .select("id, full_name, default_warehouse_id")
@@ -135,28 +66,11 @@ export default function VanReportsPage() {
     repsList.forEach((r) => r.default_warehouse_id && repByWh.set(r.default_warehouse_id, r));
     const warehouseIds = repsList.map((r) => r.default_warehouse_id).filter(Boolean) as string[];
 
-    // === Report 1 + 2: Performance & Profit ===
     const perfMap = new Map<string, RepPerformance>();
     const profitMap = new Map<string, ProfitRow>();
     repsList.forEach((r) => {
-      perfMap.set(r.id, {
-        rep_id: r.id,
-        rep_name: r.full_name,
-        warehouse_id: r.default_warehouse_id,
-        invoices_count: 0,
-        total_sales: 0,
-        total_collections: 0,
-        commissions_due: 0,
-        commissions_paid: 0,
-      });
-      profitMap.set(r.id, {
-        rep_id: r.id,
-        rep_name: r.full_name,
-        sales: 0,
-        cogs: 0,
-        profit: 0,
-        margin_pct: 0,
-      });
+      perfMap.set(r.id, { rep_id: r.id, rep_name: r.full_name, warehouse_id: r.default_warehouse_id, invoices_count: 0, total_sales: 0, total_collections: 0, commissions_due: 0, commissions_paid: 0 });
+      profitMap.set(r.id, { rep_id: r.id, rep_name: r.full_name, sales: 0, cogs: 0, profit: 0, margin_pct: 0 });
     });
 
     if (warehouseIds.length > 0) {
@@ -180,20 +94,16 @@ export default function VanReportsPage() {
           const p = perfMap.get(rep.id)!;
           p.invoices_count += 1;
           p.total_sales += Number(i.total_amount || 0);
-          const pf = profitMap.get(rep.id)!;
-          pf.sales += Number(i.total_amount || 0);
+          profitMap.get(rep.id)!.sales += Number(i.total_amount || 0);
         }
       });
 
-      // COGS via products.cost_price
       if (invIds.length > 0) {
         const { data: items } = await supabase
           .from("invoice_items")
           .select("invoice_id, product_id, quantity")
           .in("invoice_id", invIds);
-        const productIds = Array.from(
-          new Set((items || []).map((it: any) => it.product_id).filter(Boolean))
-        );
+        const productIds = Array.from(new Set((items || []).map((it: any) => it.product_id).filter(Boolean)));
         const { data: prods } = await supabase
           .from("products")
           .select("id, cost_price")
@@ -210,15 +120,7 @@ export default function VanReportsPage() {
         });
       }
 
-      // Collections: receipts linked to contacts whose invoices are in each rep's warehouse
       const customerByRep = new Map<string, Set<string>>();
-      (invs || []).forEach((i: any) => {
-        const rep = repByWh.get(i.warehouse_id);
-        if (!rep) return;
-        if (!customerByRep.has(rep.id)) customerByRep.set(rep.id, new Set());
-        // Need contact_id - refetch with contact_id
-      });
-      // Refetch invoices with contact_id for collection mapping
       const { data: invsWithContact } = await supabase
         .from("invoices")
         .select("contact_id, warehouse_id")
@@ -233,9 +135,7 @@ export default function VanReportsPage() {
         if (!customerByRep.has(rep.id)) customerByRep.set(rep.id, new Set());
         customerByRep.get(rep.id)!.add(i.contact_id);
       });
-      const allContactIds = Array.from(
-        new Set(Array.from(customerByRep.values()).flatMap((s) => Array.from(s)))
-      );
+      const allContactIds = Array.from(new Set(Array.from(customerByRep.values()).flatMap((s) => Array.from(s))));
       if (allContactIds.length > 0) {
         const { data: rcps } = await supabase
           .from("transactions")
@@ -255,13 +155,11 @@ export default function VanReportsPage() {
       }
     }
 
-    // Compute profit margins
     profitMap.forEach((p) => {
       p.profit = p.sales - p.cogs;
       p.margin_pct = p.sales > 0 ? (p.profit / p.sales) * 100 : 0;
     });
 
-    // === Report 5: Commissions ledger ===
     const { data: comms } = await supabase
       .from("commissions")
       .select("id, representative_id, commission_type, base_amount, commission_rate, commission_amount, is_paid, paid_date, created_at, reference_description")
@@ -283,7 +181,6 @@ export default function VanReportsPage() {
       reference_description: c.reference_description,
     }));
     setLedger(ledgerRows);
-    // Aggregate into perfMap
     ledgerRows.forEach((c) => {
       const rep = repsList.find((r) => r.full_name === c.rep_name);
       if (!rep) return;
@@ -296,7 +193,6 @@ export default function VanReportsPage() {
     setPerformance(Array.from(perfMap.values()));
     setProfit(Array.from(profitMap.values()));
 
-    // === Report 3: Days ===
     const { data: daysData } = await supabase
       .from("van_sales_days")
       .select("id, day_number, day_date, status, sales_rep_id, total_sales, total_collections, expected_cash, actual_cash_collected, cash_variance")
@@ -304,36 +200,22 @@ export default function VanReportsPage() {
       .gte("day_date", from)
       .lte("day_date", to)
       .order("day_date", { ascending: false });
-    setDays(
-      (daysData || []).map((d: any) => ({
-        id: d.id,
-        day_number: d.day_number,
-        day_date: d.day_date,
-        status: d.status,
-        rep_name: repNameById.get(d.sales_rep_id) || "—",
-        total_sales: Number(d.total_sales || 0),
-        total_collections: Number(d.total_collections || 0),
-        expected_cash: d.expected_cash,
-        actual_cash_collected: d.actual_cash_collected,
-        cash_variance: d.cash_variance,
-      }))
-    );
+    setDays((daysData || []).map((d: any) => ({
+      id: d.id, day_number: d.day_number, day_date: d.day_date, status: d.status,
+      rep_name: repNameById.get(d.sales_rep_id) || "—",
+      total_sales: Number(d.total_sales || 0), total_collections: Number(d.total_collections || 0),
+      expected_cash: d.expected_cash, actual_cash_collected: d.actual_cash_collected, cash_variance: d.cash_variance,
+    })));
 
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadAll();
-  }, [user, from, to]);
+  useEffect(() => { loadAll(); }, [user, from, to]);
 
-  // Stock movement per selected rep
   useEffect(() => {
     if (!user || !stockRepId) return;
     const rep = reps.find((r) => r.id === stockRepId);
-    if (!rep?.default_warehouse_id) {
-      setStock([]);
-      return;
-    }
+    if (!rep?.default_warehouse_id) { setStock([]); return; }
     (async () => {
       const { data: moves } = await supabase
         .from("stock_movements")
@@ -343,325 +225,250 @@ export default function VanReportsPage() {
         .lte("created_at", `${to}T23:59:59`);
       const productIds = Array.from(new Set((moves || []).map((m: any) => m.product_id)));
       const { data: prods } = await supabase
-        .from("products")
-        .select("id, name")
+        .from("products").select("id, name")
         .in("id", productIds.length > 0 ? productIds : ["00000000-0000-0000-0000-000000000000"]);
       const nameMap = new Map((prods || []).map((p: any) => [p.id, p.name]));
       const agg = new Map<string, StockMoveRow>();
       (moves || []).forEach((m: any) => {
         const key = m.product_id;
-        if (!agg.has(key)) {
-          agg.set(key, { product_name: nameMap.get(key) || "—", in_qty: 0, out_qty: 0, net: 0 });
-        }
+        if (!agg.has(key)) agg.set(key, { product_name: nameMap.get(key) || "—", in_qty: 0, out_qty: 0, net: 0 });
         const row = agg.get(key)!;
         const qty = Number(m.quantity || 0);
-        // movement_type enum has 'in' / 'out' style values in this codebase
         if (String(m.movement_type).toLowerCase().includes("in") || String(m.movement_type).includes("وارد") || String(m.movement_type).includes("transfer_in")) {
           row.in_qty += qty;
-        } else {
-          row.out_qty += qty;
-        }
+        } else { row.out_qty += qty; }
         row.net = row.in_qty - row.out_qty;
       });
       setStock(Array.from(agg.values()).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)));
     })();
   }, [stockRepId, from, to, user, reps]);
 
-  const totalsKpi = useMemo(() => {
-    return {
-      sales: performance.reduce((s, p) => s + p.total_sales, 0),
-      collections: performance.reduce((s, p) => s + p.total_collections, 0),
-      profit: profit.reduce((s, p) => s + p.profit, 0),
-      due: performance.reduce((s, p) => s + p.commissions_due, 0),
-    };
-  }, [performance, profit]);
+  const totalsKpi = useMemo(() => ({
+    sales: performance.reduce((s, p) => s + p.total_sales, 0),
+    collections: performance.reduce((s, p) => s + p.total_collections, 0),
+    profit: profit.reduce((s, p) => s + p.profit, 0),
+    due: performance.reduce((s, p) => s + p.commissions_due, 0),
+  }), [performance, profit]);
+
+  const dateRangeLabel = `${from}_${to}`;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
-        <div className="container max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-bold">تقارير البائعين المتجولين</h1>
-            </div>
-          </div>
-          {loading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+    <div className="space-y-5 max-w-[1200px] mx-auto pb-10" dir="rtl">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+            <ArrowRight className="h-5 w-5 text-foreground" />
+          </button>
+          <h1 className="text-xl font-bold text-foreground">تقارير البائعين المتجولين</h1>
         </div>
+        {loading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
       </div>
 
-      <div className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Date filter */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-lg border bg-card">
-          <div>
-            <Label>من تاريخ</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>إلى تاريخ</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
-          <div className="flex items-end">
-            <Button className="w-full" onClick={loadAll} disabled={loading}>
-              تحديث
-            </Button>
-          </div>
+      {/* Date filter */}
+      <div className="flex gap-3 flex-wrap items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">من</span>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-[150px] h-9 text-xs" />
         </div>
-
-        {/* Top KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="إجمالي المبيعات" value={fmt(totalsKpi.sales)} tone="emerald" />
-          <Kpi icon={<Wallet className="h-5 w-5" />} label="إجمالي التحصيلات" value={fmt(totalsKpi.collections)} tone="violet" />
-          <Kpi icon={<Calculator className="h-5 w-5" />} label="صافي الربح" value={fmt(totalsKpi.profit)} tone="blue" />
-          <Kpi icon={<FileText className="h-5 w-5" />} label="عمولات مستحقة" value={fmt(totalsKpi.due)} tone="amber" />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">إلى</span>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-[150px] h-9 text-xs" />
         </div>
+        <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>تحديث</Button>
+      </div>
 
-        {/* Reports tabs */}
-        <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
-            <TabsTrigger value="performance">أداء البائعين</TabsTrigger>
-            <TabsTrigger value="profit">الربحية</TabsTrigger>
-            <TabsTrigger value="days">أيام البائعين</TabsTrigger>
-            <TabsTrigger value="stock">حركة المخزون</TabsTrigger>
-            <TabsTrigger value="commissions">العمولات</TabsTrigger>
-          </TabsList>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "إجمالي المبيعات", value: fmt(totalsKpi.sales), icon: TrendingUp, color: "text-emerald-500" },
+          { label: "إجمالي التحصيلات", value: fmt(totalsKpi.collections), icon: Wallet, color: "text-violet-500" },
+          { label: "صافي الربح", value: fmt(totalsKpi.profit), icon: Calculator, color: "text-blue-500" },
+          { label: "عمولات مستحقة", value: fmt(totalsKpi.due), icon: FileText, color: "text-amber-500" },
+        ].map((s, i) => (
+          <Card key={i} className="p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <s.icon className={`h-4 w-4 ${s.color}`} />
+              <span className="text-[10px] text-muted-foreground">{s.label}</span>
+            </div>
+            <p className="text-sm font-bold text-foreground">{s.value}</p>
+          </Card>
+        ))}
+      </div>
 
-          {/* 1. Performance */}
-          <TabsContent value="performance" className="space-y-3">
-            <SectionHeader
-              title="أداء البائعين"
-              onExport={() => downloadCSV("rep_performance.csv", performance.map((p) => ({
-                البائع: p.rep_name,
-                "عدد الفواتير": p.invoices_count,
-                المبيعات: p.total_sales.toFixed(2),
-                التحصيلات: p.total_collections.toFixed(2),
-                "عمولات مستحقة": p.commissions_due.toFixed(2),
-                "عمولات مدفوعة": p.commissions_paid.toFixed(2),
-              })))}
-            />
-            <Table
-              headers={["البائع", "الفواتير", "المبيعات", "التحصيلات", "عمولات مستحقة", "عمولات مدفوعة"]}
-              rows={performance.map((p) => [
-                p.rep_name,
-                String(p.invoices_count),
-                fmt(p.total_sales),
-                fmt(p.total_collections),
-                fmt(p.commissions_due),
-                fmt(p.commissions_paid),
-              ])}
-            />
-          </TabsContent>
+      {/* Tabs */}
+      <Tabs defaultValue="performance" className="w-full" dir="rtl">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+          <TabsTrigger value="performance">أداء البائعين</TabsTrigger>
+          <TabsTrigger value="profit">الربحية</TabsTrigger>
+          <TabsTrigger value="days">أيام البائعين</TabsTrigger>
+          <TabsTrigger value="stock">حركة المخزون</TabsTrigger>
+          <TabsTrigger value="commissions">العمولات</TabsTrigger>
+        </TabsList>
 
-          {/* 2. Profit */}
-          <TabsContent value="profit" className="space-y-3">
-            <SectionHeader
-              title="ربحية مستودع كل بائع"
-              note="تكلفة البضاعة محسوبة من سعر التكلفة في بطاقة الصنف (تقريبية)"
-              onExport={() => downloadCSV("rep_profit.csv", profit.map((p) => ({
-                البائع: p.rep_name,
-                المبيعات: p.sales.toFixed(2),
-                "تكلفة البضاعة": p.cogs.toFixed(2),
-                "صافي الربح": p.profit.toFixed(2),
-                "هامش %": p.margin_pct.toFixed(2),
-              })))}
-            />
-            <Table
-              headers={["البائع", "المبيعات", "تكلفة البضاعة", "صافي الربح", "هامش %"]}
-              rows={profit.map((p) => [
-                p.rep_name,
-                fmt(p.sales),
-                fmt(p.cogs),
-                fmt(p.profit),
-                `${p.margin_pct.toFixed(2)}%`,
-              ])}
-            />
-          </TabsContent>
+        {/* Performance */}
+        <TabsContent value="performance" className="space-y-3 mt-3">
+          <SectionBar title="أداء البائعين" onExport={() => exportExcel(`أداء_البائعين_${dateRangeLabel}.xlsx`, "أداء البائعين", performance.map(p => ({
+            "البائع": p.rep_name, "الفواتير": p.invoices_count,
+            "المبيعات": Number(p.total_sales.toFixed(2)), "التحصيلات": Number(p.total_collections.toFixed(2)),
+            "عمولات مستحقة": Number(p.commissions_due.toFixed(2)), "عمولات مدفوعة": Number(p.commissions_paid.toFixed(2)),
+          })))} />
+          <DataTable
+            headers={["البائع", "الفواتير", "المبيعات", "التحصيلات", "عمولات مستحقة", "عمولات مدفوعة"]}
+            rows={performance.map(p => [p.rep_name, String(p.invoices_count), fmt(p.total_sales), fmt(p.total_collections), fmt(p.commissions_due), fmt(p.commissions_paid)])}
+            loading={loading}
+          />
+        </TabsContent>
 
-          {/* 3. Days */}
-          <TabsContent value="days" className="space-y-3">
-            <SectionHeader
-              title="أيام البائعين والفروقات النقدية"
-              onExport={() => downloadCSV("van_days.csv", days.map((d) => ({
-                "رقم اليوم": d.day_number,
-                التاريخ: d.day_date,
-                البائع: d.rep_name,
-                الحالة: d.status,
-                المبيعات: d.total_sales.toFixed(2),
-                التحصيلات: d.total_collections.toFixed(2),
-                "نقدية متوقعة": (d.expected_cash || 0).toFixed(2),
-                "نقدية فعلية": (d.actual_cash_collected || 0).toFixed(2),
-                "الفرق": (d.cash_variance || 0).toFixed(2),
-              })))}
-            />
-            <div className="rounded-md border overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    {["رقم اليوم", "التاريخ", "البائع", "الحالة", "المبيعات", "التحصيلات", "الفرق النقدي"].map((h) => (
-                      <th key={h} className="px-3 py-2 text-right font-semibold">{h}</th>
+        {/* Profit */}
+        <TabsContent value="profit" className="space-y-3 mt-3">
+          <SectionBar title="ربحية مستودع كل بائع" note="تكلفة البضاعة محسوبة من سعر التكلفة في بطاقة الصنف (تقريبية)" onExport={() => exportExcel(`ربحية_البائعين_${dateRangeLabel}.xlsx`, "الربحية", profit.map(p => ({
+            "البائع": p.rep_name, "المبيعات": Number(p.sales.toFixed(2)),
+            "تكلفة البضاعة": Number(p.cogs.toFixed(2)), "صافي الربح": Number(p.profit.toFixed(2)),
+            "هامش %": Number(p.margin_pct.toFixed(2)),
+          })))} />
+          <DataTable
+            headers={["البائع", "المبيعات", "تكلفة البضاعة", "صافي الربح", "هامش %"]}
+            rows={profit.map(p => [p.rep_name, fmt(p.sales), fmt(p.cogs), fmt(p.profit), `${p.margin_pct.toFixed(2)}%`])}
+            loading={loading}
+          />
+        </TabsContent>
+
+        {/* Days */}
+        <TabsContent value="days" className="space-y-3 mt-3">
+          <SectionBar title="أيام البائعين والفروقات النقدية" onExport={() => exportExcel(`أيام_البائعين_${dateRangeLabel}.xlsx`, "أيام البائعين", days.map(d => ({
+            "رقم اليوم": d.day_number, "التاريخ": d.day_date, "البائع": d.rep_name, "الحالة": d.status,
+            "المبيعات": Number(d.total_sales.toFixed(2)), "التحصيلات": Number(d.total_collections.toFixed(2)),
+            "نقدية متوقعة": Number((d.expected_cash || 0).toFixed(2)),
+            "نقدية فعلية": Number((d.actual_cash_collected || 0).toFixed(2)),
+            "الفرق": Number((d.cash_variance || 0).toFixed(2)),
+          })))} />
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    {["رقم اليوم", "التاريخ", "البائع", "الحالة", "المبيعات", "التحصيلات", "الفرق النقدي"].map(h => (
+                      <th key={h} className="p-3 text-right font-semibold text-muted-foreground">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {days.length === 0 ? (
-                    <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
+                  {loading ? (
+                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">جاري التحميل...</td></tr>
+                  ) : days.length === 0 ? (
+                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
                   ) : days.map((d) => {
                     const v = Number(d.cash_variance || 0);
                     const tone = v === 0 ? "default" : v > 0 ? "secondary" : "destructive";
                     const label = v === 0 ? "مطابق" : v > 0 ? `فائض ${fmt(v)}` : `عجز ${fmt(Math.abs(v))}`;
                     return (
-                      <tr key={d.id} className="border-t">
-                        <td className="px-3 py-2 font-mono text-xs">{d.day_number}</td>
-                        <td className="px-3 py-2">{d.day_date}</td>
-                        <td className="px-3 py-2">{d.rep_name}</td>
-                        <td className="px-3 py-2">
-                          <Badge variant={d.status === "open" ? "default" : "outline"}>{d.status}</Badge>
-                        </td>
-                        <td className="px-3 py-2">{fmt(d.total_sales)}</td>
-                        <td className="px-3 py-2">{fmt(d.total_collections)}</td>
-                        <td className="px-3 py-2">
-                          {d.status === "closed" ? <Badge variant={tone as any}>{label}</Badge> : "—"}
-                        </td>
+                      <tr key={d.id} className="border-b border-border/40 hover:bg-muted/20">
+                        <td className="p-3 font-mono text-[11px]">{d.day_number}</td>
+                        <td className="p-3">{d.day_date}</td>
+                        <td className="p-3 font-medium text-foreground">{d.rep_name}</td>
+                        <td className="p-3"><Badge variant={d.status === "open" ? "default" : "outline"}>{d.status === "open" ? "مفتوح" : "مغلق"}</Badge></td>
+                        <td className="p-3">{fmt(d.total_sales)}</td>
+                        <td className="p-3">{fmt(d.total_collections)}</td>
+                        <td className="p-3">{d.status === "closed" ? <Badge variant={tone as any}>{label}</Badge> : "—"}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-          </TabsContent>
+          </Card>
+        </TabsContent>
 
-          {/* 4. Stock */}
-          <TabsContent value="stock" className="space-y-3">
-            <div className="flex items-end gap-3">
-              <div className="flex-1 max-w-xs">
-                <Label>اختر البائع</Label>
-                <select
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={stockRepId}
-                  onChange={(e) => setStockRepId(e.target.value)}
-                >
-                  {reps.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.full_name}{!r.default_warehouse_id && " (بدون مستودع)"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <SectionHeader
-                title=""
-                onExport={() => downloadCSV("stock_movement.csv", stock.map((s) => ({
-                  الصنف: s.product_name,
-                  "وارد (تحميل)": s.in_qty,
-                  "صادر (بيع/إرجاع)": s.out_qty,
-                  الصافي: s.net,
-                })))}
-              />
+        {/* Stock */}
+        <TabsContent value="stock" className="space-y-3 mt-3">
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="flex-1 max-w-xs">
+              <span className="text-xs text-muted-foreground">اختر البائع</span>
+              <select className="w-full h-9 px-3 rounded-md border bg-background text-xs" value={stockRepId} onChange={(e) => setStockRepId(e.target.value)}>
+                {reps.map(r => <option key={r.id} value={r.id}>{r.full_name}{!r.default_warehouse_id && " (بدون مستودع)"}</option>)}
+              </select>
             </div>
-            <Table
-              headers={["الصنف", "وارد (تحميل)", "صادر (بيع/إرجاع)", "الصافي"]}
-              rows={stock.map((s) => [s.product_name, fmt(s.in_qty), fmt(s.out_qty), fmt(s.net)])}
-            />
-          </TabsContent>
+            <Button variant="outline" size="sm" onClick={() => exportExcel(`حركة_المخزون_${dateRangeLabel}.xlsx`, "حركة المخزون", stock.map(s => ({
+              "الصنف": s.product_name, "وارد (تحميل)": s.in_qty, "صادر (بيع/إرجاع)": s.out_qty, "الصافي": s.net,
+            })))} disabled={!stock.length}>
+              <Download className="h-4 w-4 ml-1" /> Excel
+            </Button>
+          </div>
+          <DataTable
+            headers={["الصنف", "وارد (تحميل)", "صادر (بيع/إرجاع)", "الصافي"]}
+            rows={stock.map(s => [s.product_name, fmt(s.in_qty), fmt(s.out_qty), fmt(s.net)])}
+            loading={loading}
+          />
+        </TabsContent>
 
-          {/* 5. Commissions */}
-          <TabsContent value="commissions" className="space-y-3">
-            <SectionHeader
-              title="كشف العمولات"
-              onExport={() => downloadCSV("commissions_ledger.csv", ledger.map((c) => ({
-                التاريخ: new Date(c.created_at).toLocaleDateString("ar"),
-                البائع: c.rep_name,
-                النوع: c.commission_type,
-                "الأساس": c.base_amount.toFixed(2),
-                "النسبة": c.commission_rate.toFixed(2),
-                "العمولة": c.commission_amount.toFixed(2),
-                "الحالة": c.is_paid ? `مدفوعة ${c.paid_date || ""}` : "مستحقة",
-                البيان: c.reference_description || "",
-              })))}
-            />
-            <Table
-              headers={["التاريخ", "البائع", "النوع", "الأساس", "النسبة", "العمولة", "الحالة"]}
-              rows={ledger.map((c) => [
-                new Date(c.created_at).toLocaleDateString("ar"),
-                c.rep_name,
-                c.commission_type,
-                fmt(c.base_amount),
-                `${c.commission_rate}%`,
-                fmt(c.commission_amount),
-                c.is_paid ? `مدفوعة ${c.paid_date || ""}` : "مستحقة",
-              ])}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+        {/* Commissions */}
+        <TabsContent value="commissions" className="space-y-3 mt-3">
+          <SectionBar title="كشف العمولات" onExport={() => exportExcel(`كشف_العمولات_${dateRangeLabel}.xlsx`, "العمولات", ledger.map(c => ({
+            "التاريخ": format(new Date(c.created_at), "yyyy-MM-dd"),
+            "البائع": c.rep_name, "النوع": c.commission_type,
+            "الأساس": Number(c.base_amount.toFixed(2)), "النسبة": Number(c.commission_rate.toFixed(2)),
+            "العمولة": Number(c.commission_amount.toFixed(2)),
+            "الحالة": c.is_paid ? `مدفوعة ${c.paid_date || ""}` : "مستحقة",
+            "البيان": c.reference_description || "",
+          })))} />
+          <DataTable
+            headers={["التاريخ", "البائع", "النوع", "الأساس", "النسبة", "العمولة", "الحالة"]}
+            rows={ledger.map(c => [
+              format(new Date(c.created_at), "yyyy-MM-dd"),
+              c.rep_name, c.commission_type,
+              fmt(c.base_amount), `${c.commission_rate}%`, fmt(c.commission_amount),
+              c.is_paid ? `مدفوعة ${c.paid_date || ""}` : "مستحقة",
+            ])}
+            loading={loading}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
-function Kpi({
-  icon, label, value, tone,
-}: { icon: React.ReactNode; label: string; value: string; tone: "blue" | "emerald" | "violet" | "amber" }) {
-  const tones: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300",
-    emerald: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
-    violet: "bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300",
-    amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
-  };
+function SectionBar({ title, note, onExport }: { title: string; note?: string; onExport: () => void }) {
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`h-8 w-8 rounded-md flex items-center justify-center ${tones[tone]}`}>{icon}</div>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <div className="text-xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ title, note, onExport }: { title: string; note?: string; onExport: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 flex-wrap">
       <div>
-        {title && <h3 className="font-bold">{title}</h3>}
-        {note && <p className="text-xs text-muted-foreground">{note}</p>}
+        {title && <h3 className="font-bold text-sm text-foreground">{title}</h3>}
+        {note && <p className="text-[10px] text-muted-foreground">{note}</p>}
       </div>
       <Button variant="outline" size="sm" onClick={onExport}>
-        <Download className="h-4 w-4 ml-1" />
-        CSV
+        <Download className="h-4 w-4 ml-1" /> Excel
       </Button>
     </div>
   );
 }
 
-function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
+function DataTable({ headers, rows, loading }: { headers: string[]; rows: string[][]; loading?: boolean }) {
   return (
-    <div className="rounded-md border overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} className="px-3 py-2 text-right font-semibold">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={headers.length} className="px-3 py-8 text-center text-muted-foreground">
-                لا توجد بيانات
-              </td>
-            </tr>
-          ) : rows.map((r, idx) => (
-            <tr key={idx} className="border-t">
-              {r.map((c, i) => (
-                <td key={i} className="px-3 py-2">{c}</td>
+    <Card className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border bg-muted/50">
+              {headers.map(h => (
+                <th key={h} className="p-3 text-right font-semibold text-muted-foreground">{h}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={headers.length} className="p-8 text-center text-muted-foreground">جاري التحميل...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={headers.length} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
+            ) : rows.map((r, idx) => (
+              <tr key={idx} className="border-b border-border/40 hover:bg-muted/20">
+                {r.map((c, i) => (
+                  <td key={i} className={`p-3 ${i === 0 ? "font-medium text-foreground" : ""}`}>{c}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }

@@ -271,11 +271,9 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "العمليات",
             children: [
-              { label: "تطبيق المندوب (موبايل)", path: "/rep" },
               { label: "دورة يوم البائع المتجول", path: "/van-days" },
               { label: "مندوبين المبيعات", path: "/sales-reps" },
               { label: "طلبيات المندوبين", path: "/admin/sales-rep-orders" },
-              { label: "طلبات غير مرحّلة", path: "/admin/rep-unposted-orders" },
             ],
           },
           {
