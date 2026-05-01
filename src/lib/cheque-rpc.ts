@@ -85,5 +85,5 @@ export async function callChequeLifecycleRpc(
     p_reason: params.reason ?? null,
   });
   if (error) throw error;
-  return data as ChequeRpcResult;
+  return data as unknown as ChequeRpcResult;
 }
