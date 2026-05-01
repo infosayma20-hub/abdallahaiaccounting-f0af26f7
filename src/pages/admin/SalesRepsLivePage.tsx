@@ -25,6 +25,7 @@ export default function SalesRepsLivePage() {
   const [rows, setRows] = useState<RepRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [openPromote, setOpenPromote] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,7 +42,7 @@ export default function SalesRepsLivePage() {
 
       const today = new Date().toISOString().slice(0, 10);
 
-      const [whRes, cbRes, daysRes] = await Promise.all([
+      const [whRes, cbRes, daysRes, invRes] = await Promise.all([
         whIds.length
           ? (supabase as any).from("warehouses").select("id, name").in("id", whIds)
           : Promise.resolve({ data: [] }),
@@ -55,17 +56,38 @@ export default function SalesRepsLivePage() {
               .in("sales_rep_id", repIds)
               .eq("day_date", today)
           : Promise.resolve({ data: [] }),
+        repIds.length
+          ? (supabase as any)
+              .from("invoices")
+              .select("id, salesperson_id, payment_method, total_amount, status, invoice_date")
+              .eq("source", "rep")
+              .eq("invoice_date", today)
+              .in("salesperson_id", repIds)
+          : Promise.resolve({ data: [] }),
       ]);
 
       const whMap = new Map<string, string>((whRes.data || []).map((w: any) => [w.id, w.name]));
       const cbMap = new Map<string, string>((cbRes.data || []).map((c: any) => [c.id, c.name]));
       const dayMap = new Map<string, any>((daysRes.data || []).map((d: any) => [d.sales_rep_id, d]));
 
+      // Aggregate KPIs straight from invoices (source='rep') — single source of truth.
+      const kpiMap = new Map<string, { count: number; cash: number; credit: number }>();
+      for (const inv of (invRes.data as any[]) || []) {
+        const sid = inv.salesperson_id as string | null;
+        if (!sid) continue;
+        if ((inv.status || "").toString().toLowerCase() === "void") continue;
+        const amt = Number(inv.total_amount || 0);
+        const pm = (inv.payment_method || "").toString().toLowerCase();
+        const cur = kpiMap.get(sid) || { count: 0, cash: 0, credit: 0 };
+        cur.count += 1;
+        if (pm === "cash" || pm === "نقد" || pm === "نقدي") cur.cash += amt;
+        else cur.credit += amt;
+        kpiMap.set(sid, cur);
+      }
+
       const out: RepRow[] = list.map((r) => {
         const day = dayMap.get(r.id);
-        const totalSales = Number(day?.total_sales || 0);
-        const totalCash = Number(day?.total_collections || 0);
-        const totalCredit = Math.max(0, totalSales - totalCash);
+        const k = kpiMap.get(r.id) || { count: 0, cash: 0, credit: 0 };
         return {
           id: r.id,
           full_name: r.employee?.full_name || r.full_name,
@@ -73,20 +95,49 @@ export default function SalesRepsLivePage() {
           warehouse_name: r.default_warehouse_id ? whMap.get(r.default_warehouse_id) || null : null,
           cash_box_name: r.cash_box_id ? cbMap.get(r.cash_box_id) || null : null,
           day_status: day?.status || null,
-          total_invoices: Number(day?.total_invoices || 0),
-          total_cash: totalCash,
-          total_credit: totalCredit,
+          total_invoices: k.count,
+          total_cash: k.cash,
+          total_credit: k.credit,
           employee_id: r.employee_id || null,
         };
       });
 
       setRows(out);
+      setLastUpdated(new Date());
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Auto refetch every 10s
+  useEffect(() => {
+    const t = setInterval(() => { load(); }, 10000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  // Realtime: any change to rep invoices or van_sales_days triggers refetch
+  useEffect(() => {
+    const channel = (supabase as any)
+      .channel("rep-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "invoices", filter: "source=eq.rep" },
+        () => load()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "van_sales_days" },
+        () => load()
+      )
+      .subscribe();
+    return () => { (supabase as any).removeChannel(channel); };
+  }, [load]);
+
+  const hasAnyActivity = rows.some(
+    (r) => r.day_status === "open" || r.total_invoices > 0 || r.total_cash > 0 || r.total_credit > 0
+  );
 
   return (
     <div dir="rtl" className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
@@ -95,7 +146,12 @@ export default function SalesRepsLivePage() {
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Truck className="w-6 h-6 text-primary" /> متابعة المندوبين المباشرة
           </h1>
-          <p className="text-sm text-muted-foreground">حالة يوم البيع وإجماليات النقد والآجل لكل مندوب</p>
+          <p className="text-sm text-muted-foreground">
+            حالة يوم البيع وإجماليات النقد والآجل لكل مندوب
+            {lastUpdated && (
+              <span className="mx-2">• آخر تحديث: {lastUpdated.toLocaleTimeString("ar-EG")}</span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={load} disabled={loading}>
@@ -112,6 +168,14 @@ export default function SalesRepsLivePage() {
       ) : rows.length === 0 ? (
         <Card><CardContent className="py-10 text-center text-muted-foreground">لا يوجد مندوبون. ابدأ بترقية موظف.</CardContent></Card>
       ) : (
+        <>
+        {!hasAnyActivity && (
+          <Card>
+            <CardContent className="py-6 text-center text-muted-foreground">
+              لا يوجد نشاط اليوم — لم يتم فتح يوم بيع أو تسجيل أي طلب حتى الآن.
+            </CardContent>
+          </Card>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           {rows.map((r) => (
             <Card key={r.id} className="hover:shadow-md transition-shadow">
@@ -121,7 +185,7 @@ export default function SalesRepsLivePage() {
                   <div className="flex items-center gap-2">
                     {!r.is_active && <Badge variant="outline">موقوف</Badge>}
                     {!r.employee_id && <Badge variant="outline" className="border-amber-300 text-amber-700">غير مرتبط بموظف</Badge>}
-                    {r.day_status === "open" && <Badge>يوم مفتوح</Badge>}
+                    {r.day_status === "open" && <Badge>نشط — يوم مفتوح</Badge>}
                     {r.day_status === "closed" && <Badge variant="secondary">يوم مغلق</Badge>}
                     {!r.day_status && <Badge variant="outline">لم يبدأ اليوم</Badge>}
                   </div>
@@ -156,6 +220,7 @@ export default function SalesRepsLivePage() {
             </Card>
           ))}
         </div>
+        </>
       )}
 
       <PromoteEmployeeToRepDialog open={openPromote} onOpenChange={setOpenPromote} onDone={load} />
