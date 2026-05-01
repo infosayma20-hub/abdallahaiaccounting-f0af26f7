@@ -1,25 +1,17 @@
 /**
- * Phase 7 — Rep Sale RPC adapter (atomic).
+ * Rep Sale RPC adapter (atomic, mandatory).
  *
  * Wraps `create_rep_sale_atomic` which performs in ONE DB transaction:
- *   1) create invoice header + GL entry (via create_invoice_with_entry, Phase 5H)
+ *   1) create invoice header + GL entry (via create_invoice_with_entry)
  *   2) insert invoice_items with cost_price + line_profit snapshot
- *   3) write stock_movements (rep warehouse) + decrement_stock_safe
- *   4) (cash only) create receipt voucher (via create_receipt_with_entry)
+ *   3) write stock_movements + decrement product quantity
+ *      (skipped only if rep_disable_stock_deduction = true)
  *
- * Gated by `rep_use_rpc` feature flag in company_settings.feature_flags.
- * When OFF, RepNewOrderPage falls back to the legacy direct-insert path.
+ * This is the ONLY supported path for /rep/new-order.
+ * The DB trigger `trg_guard_rep_invoice` rejects any direct insert into
+ * invoices with source='rep' and linked_transaction_id IS NULL.
  */
 import { supabase } from "@/integrations/supabase/client";
-
-export function isRepRpcEnabled(settings: any): boolean {
-  try {
-    const flags = settings?.feature_flags;
-    return !!(flags && typeof flags === "object" && flags.rep_use_rpc === true);
-  } catch {
-    return false;
-  }
-}
 
 export interface RepSaleItem {
   product_id: string;
@@ -46,9 +38,11 @@ export interface RepSaleResult {
   duplicate?: boolean;
   invoice_id?: string;
   invoice_number?: string;
+  transaction_id?: string;
   total?: number;
   total_cost?: number;
   total_profit?: number;
+  stock_deducted?: boolean;
   error?: string;
 }
 
