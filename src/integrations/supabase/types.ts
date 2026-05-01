@@ -7749,21 +7749,30 @@ export type Database = {
           created_at: string | null
           id: string
           invoice_id: string
-          payment_id: string
+          payment_id: string | null
+          source: string
+          transaction_id: string | null
+          user_id: string | null
         }
         Insert: {
           allocated_amount?: number
           created_at?: string | null
           id?: string
           invoice_id: string
-          payment_id: string
+          payment_id?: string | null
+          source?: string
+          transaction_id?: string | null
+          user_id?: string | null
         }
         Update: {
           allocated_amount?: number
           created_at?: string | null
           id?: string
           invoice_id?: string
-          payment_id?: string
+          payment_id?: string | null
+          source?: string
+          transaction_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -7785,6 +7794,41 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "receipt_vouchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_idempotency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_no_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_same_account"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_drift_tx_zero_amount"
             referencedColumns: ["id"]
           },
         ]
@@ -15830,6 +15874,17 @@ export type Database = {
             }
             Returns: Json
           }
+      allocate_voucher_to_invoices_atomic: {
+        Args: {
+          p_allocations: Json
+          p_allow_overpay?: boolean
+          p_payment_id: string
+          p_transaction_id: string
+          p_user_id: string
+          p_voucher_amount: number
+        }
+        Returns: Json
+      }
       approve_procurement_request: {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
@@ -15966,6 +16021,21 @@ export type Database = {
         }
         Returns: Json
       }
+      create_journal_entry_multi_party_atomic: {
+        Args: {
+          p_currency?: string
+          p_description: string
+          p_entry_date: string
+          p_exchange_rate?: number
+          p_idempotency_key?: string
+          p_lines: Json
+          p_notes?: string
+          p_reference?: string
+          p_source?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_opening_balance_entry: {
         Args: {
           p_amount: number
@@ -15984,6 +16054,7 @@ export type Database = {
       }
       create_payment_with_entry: {
         Args: {
+          p_allocations?: Json
           p_amount: number
           p_cash_account_code?: string
           p_contact_account_code?: string
@@ -15991,6 +16062,7 @@ export type Database = {
           p_contact_name: string
           p_currency?: string
           p_description?: string
+          p_employee_id?: string
           p_exchange_rate?: number
           p_idempotency_key?: string
           p_notes?: string
@@ -15998,6 +16070,7 @@ export type Database = {
           p_reference?: string
           p_user_id: string
           p_voucher_date?: string
+          p_workshop_id?: string
         }
         Returns: Json
       }
@@ -16016,6 +16089,7 @@ export type Database = {
       }
       create_receipt_with_entry: {
         Args: {
+          p_allocations?: Json
           p_amount: number
           p_cash_account_code?: string
           p_contact_account_code?: string
@@ -16023,6 +16097,7 @@ export type Database = {
           p_contact_name: string
           p_currency?: string
           p_description?: string
+          p_employee_id?: string
           p_exchange_rate?: number
           p_idempotency_key?: string
           p_notes?: string
@@ -16030,6 +16105,7 @@ export type Database = {
           p_reference?: string
           p_user_id: string
           p_voucher_date?: string
+          p_workshop_id?: string
         }
         Returns: Json
       }
@@ -16350,6 +16426,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalc_invoice_payment_status: {
+        Args: { p_invoice_id: string }
+        Returns: Json
+      }
       recreate_invoice_transaction: {
         Args: { p_invoice_id: string }
         Returns: string
@@ -16365,6 +16445,7 @@ export type Database = {
       update_last_seen: { Args: never; Returns: undefined }
       update_voucher_atomic: {
         Args: {
+          p_allocations?: Json
           p_amount: number
           p_cash_account_code?: string
           p_contact_account_code?: string
@@ -16372,8 +16453,10 @@ export type Database = {
           p_contact_name?: string
           p_currency: string
           p_description: string
+          p_employee_id?: string
           p_exchange_rate?: number
           p_idempotency_key?: string
+          p_journal_lines?: Json
           p_kind: string
           p_notes?: string
           p_payment_method: string
@@ -16381,6 +16464,7 @@ export type Database = {
           p_transaction_id: string
           p_user_id: string
           p_voucher_date: string
+          p_workshop_id?: string
         }
         Returns: Json
       }
