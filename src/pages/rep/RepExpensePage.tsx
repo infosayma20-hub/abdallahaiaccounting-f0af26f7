@@ -8,8 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Receipt, Coffee, Car, Utensils, Wallet, FileText, MoreHorizontal } from "lucide-react";
+import { Loader2, Save, Receipt, Coffee, Car, Utensils, Wallet, FileText, MoreHorizontal, Check, ChevronsUpDown, Search } from "lucide-react";
 import { callCreatePaymentRpc } from "@/lib/voucher-rpc";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+// أكواد الحسابات الأكثر استخداماً للمندوب (Quick-pick)
+const QUICK_PICK_CODES: Array<{ code: string; label: string }> = [
+  { code: "5530", label: "نقل" },
+  { code: "5520", label: "ضيافة" },
+  { code: "5900", label: "نثرية" },
+];
 
 /**
  * Rep Expense — تسجيل سند صرف مصروف يومي للمندوب.
@@ -127,6 +137,41 @@ export default function RepExpensePage() {
   }, [user?.id]);
 
   const currentType = EXPENSE_TYPES.find((t) => t.key === typeKey)!;
+
+  // Searchable account picker state
+  const [accPickerOpen, setAccPickerOpen] = useState(false);
+  const [accSearch, setAccSearch] = useState("");
+
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.account_code === accountCode) || null,
+    [accounts, accountCode]
+  );
+
+  // فلترة + حد أعلى 10 نتائج، وتبدأ بعد حرفين
+  const filteredAccounts = useMemo(() => {
+    const q = accSearch.trim();
+    if (q.length < 2) return [] as any[];
+    const ql = q.toLowerCase();
+    const out: any[] = [];
+    for (const a of accounts) {
+      const code = String(a.account_code || "");
+      const name = String(a.account_name || "");
+      if (code.toLowerCase().includes(ql) || name.toLowerCase().includes(ql)) {
+        out.push(a);
+        if (out.length >= 10) break;
+      }
+    }
+    return out;
+  }, [accounts, accSearch]);
+
+  const quickPickAccounts = useMemo(() => {
+    return QUICK_PICK_CODES
+      .map((q) => {
+        const a = accounts.find((x) => x.account_code === q.code);
+        return a ? { ...a, quickLabel: q.label } : null;
+      })
+      .filter(Boolean) as any[];
+  }, [accounts]);
 
   // ضبط الحساب الافتراضي عند تغيير النوع
   useEffect(() => {
@@ -280,18 +325,98 @@ export default function RepExpensePage() {
 
         <div className="space-y-2">
           <Label>الحساب المحاسبي</Label>
-          <select
-            value={accountCode}
-            onChange={(e) => setAccountCode(e.target.value)}
-            className="w-full h-11 px-3 rounded-md border border-border bg-background text-sm"
-          >
-            <option value="">— اختر حساب مصروف —</option>
-            {accounts.map((a) => (
-              <option key={a.account_code} value={a.account_code}>
-                {a.account_code} — {a.account_name}
-              </option>
-            ))}
-          </select>
+
+          {quickPickAccounts.length > 0 && (
+            <div className="flex flex-wrap gap-2 pb-1">
+              <span className="text-xs text-muted-foreground self-center">الأكثر استخداماً:</span>
+              {quickPickAccounts.map((a) => {
+                const active = accountCode === a.account_code;
+                return (
+                  <button
+                    key={a.account_code}
+                    type="button"
+                    onClick={() => setAccountCode(a.account_code)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-xs border transition",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card border-border text-foreground hover:border-primary/40"
+                    )}
+                  >
+                    {a.quickLabel}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <Popover open={accPickerOpen} onOpenChange={setAccPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={accPickerOpen}
+                className="w-full h-11 justify-between font-normal"
+              >
+                {selectedAccount ? (
+                  <span className="truncate">
+                    <span className="font-mono text-xs text-muted-foreground ml-1">{selectedAccount.account_code}</span>
+                    <span>— {selectedAccount.account_name}</span>
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">— اختر حساب مصروف —</span>
+                )}
+                <ChevronsUpDown className="w-4 h-4 opacity-50 shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+              <Command shouldFilter={false}>
+                <div className="flex items-center border-b px-3">
+                  <Search className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                  <CommandInput
+                    value={accSearch}
+                    onValueChange={setAccSearch}
+                    placeholder="ابحث بالاسم أو الرقم (مثال: نقل أو 5530)"
+                    className="h-10"
+                  />
+                </div>
+                <CommandList>
+                  {accSearch.trim().length < 2 ? (
+                    <div className="py-6 text-center text-xs text-muted-foreground">
+                      اكتب حرفين على الأقل للبحث…
+                    </div>
+                  ) : filteredAccounts.length === 0 ? (
+                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                  ) : (
+                    <CommandGroup heading={`أعلى ${filteredAccounts.length} نتيجة`}>
+                      {filteredAccounts.map((a) => (
+                        <CommandItem
+                          key={a.account_code}
+                          value={a.account_code}
+                          onSelect={() => {
+                            setAccountCode(a.account_code);
+                            setAccPickerOpen(false);
+                            setAccSearch("");
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check
+                            className={cn(
+                              "w-4 h-4",
+                              accountCode === a.account_code ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="font-mono text-xs text-muted-foreground w-14">{a.account_code}</span>
+                          <span className="truncate">{a.account_name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="space-y-2">
