@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -105,7 +105,20 @@ export default function VanSalesReportsPage() {
   const [productFilter, setProductFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all"); // all|cash|credit
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [tab, setTab] = useState<string>("daily");
+  const [tab, setTab] = useState<string>(() => {
+    const h = (typeof window !== "undefined" ? window.location.hash : "").replace("#", "");
+    return ["daily", "rep", "product", "customer", "supplier", "orders"].includes(h) ? h : "daily";
+  });
+
+  // Sync hash → tab when user navigates between cards on /reports
+  useEffect(() => {
+    const onHash = () => {
+      const h = window.location.hash.replace("#", "");
+      if (["daily", "rep", "product", "customer", "supplier", "orders"].includes(h)) setTab(h);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   /* Reps list (for filter) */
   const { data: repsList } = useQuery<RepRow[]>({
