@@ -57,10 +57,6 @@ export default function RepOrdersPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id, filter]);
 
-  const isDraft = (o: any) => !o.linked_transaction_id_fetched
-    ? false
-    : false;
-
   const deleteDraft = async (o: any) => {
     if (!confirm(`حذف المسودة ${o.invoice_number}؟`)) return;
     setBusyId(o.id);
