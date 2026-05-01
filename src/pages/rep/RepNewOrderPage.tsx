@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, Search, Save } from "lucide-react";
-import { callCreateRepSaleAtomic, isRepRpcEnabled } from "@/lib/rep-sale-rpc";
+import { callCreateRepSaleAtomic } from "@/lib/rep-sale-rpc";
 
 // ============================================================================
 // TODO (post-demo): Add explicit `invoices.sales_rep_id` column and set it here.
@@ -106,61 +106,26 @@ export default function RepNewOrderPage() {
     setSaving(true);
     try {
       const invoiceNumber = `REP-${Date.now()}`;
-
-      // ---- Phase 7: feature-flag gated atomic path ----
-      const { data: cs } = await (supabase as any)
-        .from("company_settings")
-        .select("feature_flags")
-        .eq("user_id", rep.user_id)
-        .maybeSingle();
-
-      if (isRepRpcEnabled(cs)) {
-        const selectedContact = contacts.find((c) => c.id === contactId);
-        const result = await callCreateRepSaleAtomic({
-          userId: rep.user_id,
-          salesRepId: rep.id,
-          warehouseId: rep.default_warehouse_id,
-          vanDayId: day.id,
-          contactId: paymentMethod === "credit" ? contactId : null,
-          contactName: paymentMethod === "credit" ? (selectedContact?.name ?? null) : "بيع نقدي - مندوب",
-          paymentMethod,
-          items: items.map((i) => ({ product_id: i.product_id, name: i.name, qty: i.qty, price: i.price })),
-          idempotencyKey: invoiceNumber,
-          invoiceNumber,
-        });
-        if (!result.success) throw new Error(result.error || "فشل تنفيذ البيع");
-        const profitTxt = result.total_profit != null ? ` — ربح: ${Number(result.total_profit).toFixed(2)} ₪` : "";
-        toast({ title: result.duplicate ? "هذا الطلب موجود مسبقاً" : "تم حفظ الطلب", description: `الإجمالي: ${total.toFixed(2)} ₪${profitTxt}` });
-        navigate("/rep/orders");
-        return;
-      }
-
-      // ---- Legacy path (flag OFF) ----
-      const { data: inv, error: invErr } = await (supabase as any).from("invoices").insert({
-        user_id: rep.user_id,
-        warehouse_id: rep.default_warehouse_id,
-        contact_id: paymentMethod === "credit" ? contactId : null,
-        invoice_number: invoiceNumber,
-        invoice_type: "sale",
-        status: "posted",
-        payment_method: paymentMethod,
-        total_amount: total,
-      }).select("id").single();
-      if (invErr) throw invErr;
-
-      const itemRows = items.map((i) => ({
-        invoice_id: inv.id,
-        product_id: i.product_id,
-        product_name: i.name,
-        quantity: i.qty,
-        unit_price: i.price,
-        total_amount: i.qty * i.price,
-      }));
-      const { error: itErr } = await (supabase as any).from("invoice_items").insert(itemRows);
-      if (itErr) throw itErr;
-
-      toast({ title: "تم حفظ الطلب", description: `الإجمالي: ${total.toFixed(2)} ₪` });
-      navigate("/rep");
+      const selectedContact = contacts.find((c) => c.id === contactId);
+      const result = await callCreateRepSaleAtomic({
+        userId: rep.user_id,
+        salesRepId: rep.id,
+        warehouseId: rep.default_warehouse_id,
+        vanDayId: day.id,
+        contactId: paymentMethod === "credit" ? contactId : null,
+        contactName: paymentMethod === "credit" ? (selectedContact?.name ?? null) : "بيع نقدي - مندوب",
+        paymentMethod,
+        items: items.map((i) => ({ product_id: i.product_id, name: i.name, qty: i.qty, price: i.price })),
+        idempotencyKey: invoiceNumber,
+        invoiceNumber,
+      });
+      if (!result.success) throw new Error(result.error || "فشل تنفيذ البيع");
+      const profitTxt = result.total_profit != null ? ` — ربح: ${Number(result.total_profit).toFixed(2)} ₪` : "";
+      toast({
+        title: result.duplicate ? "هذا الطلب موجود مسبقاً" : "تم حفظ الطلب",
+        description: `الإجمالي: ${total.toFixed(2)} ₪${profitTxt}`,
+      });
+      navigate("/rep/orders");
     } catch (e: any) {
       toast({ title: "تعذّر الحفظ", description: e.message, variant: "destructive" });
     } finally { setSaving(false); }
