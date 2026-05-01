@@ -10,10 +10,12 @@
  * (no schema change) but the UI must not present it as truth.
  *
  * Notes / caveats:
- * - The DB function only counts AR (113%) and AP (211%) accounts.
- *   Customer prepayments (2115) and supplier prepayments (1146) are NOT
- *   currently included in `get_contact_balance`. If those need to be
- *   reflected they must be added in the SQL function (out of scope here).
+ * - Phase 5G.1: the DB function counts the full commercial perimeter:
+ *     113%   → Accounts Receivable (1130) + sub-accounts
+ *     211%   → Accounts Payable (2110) + customer prepayments (2115)
+ *     1146%  → supplier prepayments (Advances to Suppliers, asset)
+ *   This matches AccountStatementV2's canonical formula
+ *   (customer = 1130 + 2115, supplier = 2110 + 1146).
  * - `balance` sign convention:
  *     positive  → contact owes us (AR debit > credit) OR we paid a supplier
  *     negative  → we owe contact (AP credit > debit) OR customer overpaid
