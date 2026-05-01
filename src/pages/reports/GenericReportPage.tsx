@@ -6,6 +6,7 @@ import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/repor
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -53,6 +54,15 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  // "نوع العملية" filter — applies to sales-driven reports only
+  const [salesSource, setSalesSource] = useState<"all" | "rep" | "pos" | "invoice">("all");
+
+  // Reports that support the source filter
+  const SOURCE_FILTERED_REPORTS = new Set([
+    "total-sales", "daily-sales", "invoice-register", "by-customer",
+    "sales-performance", "sales-by-product", "order-performance", "product-profitability",
+  ]);
+  const showSourceFilter = SOURCE_FILTERED_REPORTS.has(reportKey);
 
   useEffect(() => {
     if (!user) return;
@@ -61,7 +71,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   useEffect(() => {
     if (ownerId) loadReport();
-  }, [ownerId, dateFrom, dateTo, reportKey]);
+  }, [ownerId, dateFrom, dateTo, reportKey, salesSource]);
 
   const uid = ownerId || user?.id || "";
 
@@ -72,22 +82,22 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       switch (reportKey) {
         case "ar-aging": case "ap-aging": await loadAgingReport(uid, reportKey === "ar-aging" ? "عميل" : "مورد", setData); break;
         case "cash-flow": await loadCashFlowReport(uid, dateFrom, dateTo, setData); break;
-        case "daily-sales": await loadDailySalesReport(uid, dateFrom, dateTo, setData); break;
-        case "sales-by-product": case "order-performance": await loadSalesByProductReport(uid, dateFrom, dateTo, setData); break;
+        case "daily-sales": await loadDailySalesReport(uid, dateFrom, dateTo, setData, salesSource); break;
+        case "sales-by-product": case "order-performance": await loadSalesByProductReport(uid, dateFrom, dateTo, setData, salesSource); break;
         case "dead-stock": await loadDeadStockReport(uid, setData); break;
-        case "product-profitability": await loadProductProfitability(uid, setData); break;
+        case "product-profitability": await loadProductProfitability(uid, setData, dateFrom, dateTo, salesSource); break;
         case "financial-kpi": await loadFinancialKPIs(uid, dateFrom, dateTo, setData); break;
         case "month-comparison": await loadMonthComparison(uid, setData); break;
         case "foreign-balances": await loadForeignBalances(uid, setData); break;
         case "cash-movement": await loadAccountMovement(uid, "1110", dateFrom, dateTo, setData); break;
         case "bank-movement": await loadAccountMovement(uid, "1120", dateFrom, dateTo, setData); break;
         case "cheques": await loadChequesReport(uid, dateFrom, dateTo, setData); break;
-        case "total-sales": await loadTotalSales(uid, dateFrom, dateTo, setData); break;
-        case "invoice-register": await loadInvoiceRegister(uid, dateFrom, dateTo, setData); break;
-        case "by-customer": await loadByCustomer(uid, dateFrom, dateTo, setData); break;
+        case "total-sales": await loadTotalSales(uid, dateFrom, dateTo, setData, salesSource); break;
+        case "invoice-register": await loadInvoiceRegister(uid, dateFrom, dateTo, setData, salesSource); break;
+        case "by-customer": await loadByCustomer(uid, dateFrom, dateTo, setData, salesSource); break;
         case "collections": await loadCollections(uid, dateFrom, dateTo, setData); break;
         case "sales-returns": await loadSalesReturns(uid, dateFrom, dateTo, setData); break;
-        case "sales-performance": await loadSalesPerformance(uid, dateFrom, dateTo, setData); break;
+        case "sales-performance": await loadSalesPerformance(uid, dateFrom, dateTo, setData, salesSource); break;
         case "total-purchases": await loadTotalPurchases(uid, dateFrom, dateTo, setData); break;
         case "purchase-invoice-register": await loadPurchaseInvoiceRegister(uid, dateFrom, dateTo, setData); break;
         case "by-supplier": await loadBySupplier(uid, dateFrom, dateTo, setData); break;
