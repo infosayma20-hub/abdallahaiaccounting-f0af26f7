@@ -201,6 +201,20 @@ const sections: ReportSection[] = [
     ],
   },
   {
+    id: "van-sales",
+    label: "تقارير البائع المتجول",
+    icon: Truck,
+    color: "#0D1B2E",
+    reports: [
+      { slug: "van-sales-daily", label: "ملخص يومي", description: "مبيعات اليوم، النقد، الآجل، التكلفة، الربح، والهامش", icon: BarChart3, path: "/reports/van-sales#daily", available: true, isNew: true },
+      { slug: "van-sales-by-rep", label: "ربحية حسب المندوب", description: "أداء كل مندوب: المبيعات، التكلفة، الربح، التحصيل", icon: Users, path: "/reports/van-sales#rep", available: true, isNew: true },
+      { slug: "van-sales-by-product", label: "ربحية حسب الصنف", description: "الكمية، المبيعات، الربح، الهامش، وأكثر مندوب باعه", icon: Package, path: "/reports/van-sales#product", available: true, isNew: true },
+      { slug: "van-sales-by-customer", label: "ربحية حسب الزبون", description: "عدد الطلبات، المبيعات، الربح، ومتوسط الفاتورة والرصيد", icon: Users, path: "/reports/van-sales#customer", available: true, isNew: true },
+      { slug: "van-sales-by-supplier", label: "ربحية حسب المورد", description: "ربحية الموردين بناءً على المنتجات المباعة", icon: Building2, path: "/reports/van-sales#supplier", available: true, isNew: true },
+      { slug: "van-sales-orders", label: "تقرير الطلبات", description: "كل طلبات المندوبين مع الربح وزر فتح الفاتورة", icon: Receipt, path: "/reports/van-sales#orders", available: true, isNew: true },
+    ],
+  },
+  {
     id: "management",
     label: "تقارير إدارية",
     icon: PieChart,
