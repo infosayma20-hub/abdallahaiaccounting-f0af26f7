@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowRight, Loader2, Pencil, Phone, Mail, MapPin, Globe, Building2, FileText, CreditCard, BarChart3, History, AlertTriangle, CheckCircle, Clock, PieChart } from "lucide-react";
+import { ArrowRight, Loader2, Pencil, Phone, Mail, MapPin, Globe, Building2, FileText, CreditCard, BarChart3, History, AlertTriangle, CheckCircle, Clock, PieChart, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
 import { fetchContactBalance } from "@/lib/contact-balance";
+import AllocationsPanel from "@/components/accounting/AllocationsPanel";
 
 const classConfig: Record<string, { color: string; bg: string; label: string }> = {
   A: { color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40", label: "زبون مميز" },
@@ -228,9 +229,10 @@ const ContactDetailPage = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-5">
+        <TabsList className="w-full grid grid-cols-6">
           <TabsTrigger value="invoices" className="gap-1 text-xs"><FileText className="h-3.5 w-3.5" /> الفواتير</TabsTrigger>
           <TabsTrigger value="payments" className="gap-1 text-xs"><CreditCard className="h-3.5 w-3.5" /> المدفوعات</TabsTrigger>
+          <TabsTrigger value="allocations" className="gap-1 text-xs"><Link2 className="h-3.5 w-3.5" /> التخصيصات</TabsTrigger>
           <TabsTrigger value="receivables" className="gap-1 text-xs"><PieChart className="h-3.5 w-3.5" /> تحليل الذمم</TabsTrigger>
           <TabsTrigger value="analysis" className="gap-1 text-xs"><BarChart3 className="h-3.5 w-3.5" /> التحليل</TabsTrigger>
           <TabsTrigger value="history" className="gap-1 text-xs"><History className="h-3.5 w-3.5" /> السجل</TabsTrigger>
