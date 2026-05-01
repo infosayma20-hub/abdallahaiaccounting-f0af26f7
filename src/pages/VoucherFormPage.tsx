@@ -1377,26 +1377,62 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         allocationIntent === "reverse_settlement";
       const useDirectTransaction = isAccountPayment || currency !== "ILS" || intentNeedsDirect;
 
-      if (!asDraft && isReceipt && !useDirectTransaction) {
-        const { data: txResult, error: rpcError } = await supabase.rpc("create_receipt_with_entry", {
-          p_user_id: user.id,
-          p_contact_id: selectedContact!.id,
-          p_contact_name: selectedContact!.contact_name,
-          p_amount: amountNum,
-          p_payment_method: paymentMethod === "شيك" ? "شيك" : paymentMethod === "تحويل" ? "بنك" : "نقدي",
-          p_description: notes || `سند قبض من ${selectedContact!.contact_name}`,
-          p_currency: currencyLabel,
-          p_idempotency_key: `RCV-NEW-${Date.now()}`,
-        });
-        if (rpcError) throw rpcError;
-        txId = (txResult as any)?.transaction_id || null;
+      // Phase 5C: feature-flagged routing through the canonical wide RPCs.
+      // Only applies to the SIMPLEST contact-based, ILS, no-cheque flow so
+      // we never disturb employee / account / foreign / cheque / multi-line
+      // paths in this phase. Default OFF for all tenants.
+      const vouchersRpcOn = isVouchersRpcEnabled(settings);
+      const isSimpleContactVoucher =
+        partyType === "contact" &&
+        !!selectedContact &&
+        !isAccountPayment &&
+        !isEmployeePayment &&
+        currency === "ILS" &&
+        paymentMethod !== "شيك" &&
+        !intentNeedsDirect;
 
-        // Update deposit account and workshop if needed
-        if (txId) {
-          const txUpdates: any = {};
-          if (depositAccountCode !== "1110") txUpdates.debit_account_code = depositAccountCode;
-          if (selectedWorkshop) { txUpdates.workshop_id = selectedWorkshop.id; txUpdates.cost_center_name = selectedWorkshop.name; }
-          if (Object.keys(txUpdates).length > 0) await supabase.from("transactions").update(txUpdates).eq("id", txId);
+      if (!asDraft && isReceipt && !useDirectTransaction) {
+        if (vouchersRpcOn && isSimpleContactVoucher) {
+          // NEW canonical path — passes deposit account, voucher_date and
+          // notes directly to the RPC so we no longer have to mutate
+          // transactions after the fact.
+          const result = await callCreateReceiptRpc({
+            userId: user.id,
+            contactId: selectedContact!.id,
+            contactName: selectedContact!.contact_name,
+            amount: amountNum,
+            paymentMethod: paymentMethod === "تحويل" ? "بنك" : "نقدي",
+            description: notes || `سند قبض من ${selectedContact!.contact_name}`,
+            currency: currencyLabel,
+            idempotencyKey: `RCV-NEW-${Date.now()}`,
+            voucherDate: paymentDate,
+            cashAccountCode: depositAccountCode,
+            notes: notes || null,
+            workshopId: selectedWorkshop?.id || null,
+          });
+          txId = result?.transaction_id || null;
+        } else {
+          // LEGACY path — unchanged behaviour for all existing tenants.
+          const { data: txResult, error: rpcError } = await supabase.rpc("create_receipt_with_entry", {
+            p_user_id: user.id,
+            p_contact_id: selectedContact!.id,
+            p_contact_name: selectedContact!.contact_name,
+            p_amount: amountNum,
+            p_payment_method: paymentMethod === "شيك" ? "شيك" : paymentMethod === "تحويل" ? "بنك" : "نقدي",
+            p_description: notes || `سند قبض من ${selectedContact!.contact_name}`,
+            p_currency: currencyLabel,
+            p_idempotency_key: `RCV-NEW-${Date.now()}`,
+          });
+          if (rpcError) throw rpcError;
+          txId = (txResult as any)?.transaction_id || null;
+
+          // Update deposit account and workshop if needed
+          if (txId) {
+            const txUpdates: any = {};
+            if (depositAccountCode !== "1110") txUpdates.debit_account_code = depositAccountCode;
+            if (selectedWorkshop) { txUpdates.workshop_id = selectedWorkshop.id; txUpdates.cost_center_name = selectedWorkshop.name; }
+            if (Object.keys(txUpdates).length > 0) await supabase.from("transactions").update(txUpdates).eq("id", txId);
+          }
         }
       } else if (!asDraft && isReceipt && useDirectTransaction) {
         // Direct transaction for account party type or foreign currency
