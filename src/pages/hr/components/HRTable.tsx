@@ -21,8 +21,8 @@ export function HRTable({ children }: { children: ReactNode }) {
 
 export function HRTHead({ children }: { children: ReactNode }) {
   return (
-    <thead>
-      <tr className="bg-primary text-primary-foreground">{children}</tr>
+    <thead className="bg-primary text-primary-foreground [&_tr]:bg-primary [&_tr]:hover:bg-primary [&_tr]:border-0">
+      {children}
     </thead>
   );
 }
