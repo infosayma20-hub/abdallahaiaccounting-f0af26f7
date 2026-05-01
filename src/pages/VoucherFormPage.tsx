@@ -2433,6 +2433,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         )}
       </div>
 
+      {/* Phase 5J — cross-link panel (edit mode only) */}
+      {isEditMode && refNumber && (
+        <RelatedJournalPanel voucherNumber={refNumber} />
+      )}
+
       {/* Row 1: Basic Info */}
       <Card>
         <CardContent className="p-5 space-y-4">
