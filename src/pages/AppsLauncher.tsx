@@ -22,7 +22,7 @@ import AppsHero from "@/pages/Apps/components/AppsHero";
 import CategoryPills, { type CategoryFilter } from "@/pages/Apps/components/CategoryPills";
 import CommandPalette from "@/pages/Apps/components/CommandPalette";
 import { useFavoriteApps } from "@/hooks/useFavoriteApps";
-import { Star, Command } from "lucide-react";
+import { Star, Command, ChevronDown } from "lucide-react";
 
 const appSections = getAppSections();
 
@@ -48,6 +48,12 @@ const AppsLauncher = () => {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { favorites, isFavorite, toggleFavorite } = useFavoriteApps();
+  const [favCollapsed, setFavCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("amwali:apps:section:favorites:collapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("amwali:apps:section:favorites:collapsed", favCollapsed ? "1" : "0"); } catch {}
+  }, [favCollapsed]);
   // expandedApp removed in Phase 1 — apps now navigate directly
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
