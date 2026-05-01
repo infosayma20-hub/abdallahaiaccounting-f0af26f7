@@ -325,19 +325,22 @@ const ContactDetailPage = () => {
               <CardHeader className="pb-2"><CardTitle className="text-sm">معلومات الائتمان</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-xs"><span className="text-muted-foreground">سقف الائتمان</span><span className="font-semibold tabular-nums">₪{(contact.credit_limit || 0).toLocaleString()}</span></div>
-                <div className="flex justify-between text-xs"><span className="text-muted-foreground">الرصيد الحالي</span><span className="font-semibold tabular-nums">₪{(contact.current_balance || 0).toLocaleString()}</span></div>
-                <div className="flex justify-between text-xs"><span className="text-muted-foreground">المتاح</span><span className="font-semibold tabular-nums text-emerald-600">₪{Math.max(0, (contact.credit_limit || 0) - (contact.current_balance || 0)).toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">الرصيد الحالي <span className="text-[9px] opacity-60">(حسب كشف الحساب)</span></span>
+                  <span className="font-semibold tabular-nums">₪{liveBalance.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs"><span className="text-muted-foreground">المتاح</span><span className="font-semibold tabular-nums text-emerald-600">₪{Math.max(0, (contact.credit_limit || 0) - liveBalance).toLocaleString()}</span></div>
                 {contact.credit_limit > 0 && (
                   <>
                     <div className="h-px bg-border" />
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${((contact.current_balance || 0) / contact.credit_limit) > 1 ? 'bg-red-500' : ((contact.current_balance || 0) / contact.credit_limit) > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                        style={{ width: `${Math.min(((contact.current_balance || 0) / contact.credit_limit) * 100, 100)}%` }}
+                        className={`h-full rounded-full ${(liveBalance / contact.credit_limit) > 1 ? 'bg-red-500' : (liveBalance / contact.credit_limit) > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${Math.min((liveBalance / contact.credit_limit) * 100, 100)}%` }}
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center">
-                      {Math.round(((contact.current_balance || 0) / contact.credit_limit) * 100)}% مستخدم
+                      {Math.round((liveBalance / contact.credit_limit) * 100)}% مستخدم
                     </p>
                   </>
                 )}
