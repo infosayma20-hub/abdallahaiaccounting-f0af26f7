@@ -145,6 +145,21 @@ export default function RepCollectPage() {
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
 
+  if (rep && !rep.cash_account_code) {
+    return (
+      <div className="p-4">
+        <Card className="p-6 space-y-3 text-center">
+          <DollarSign className="w-10 h-10 text-destructive mx-auto" />
+          <h3 className="font-bold text-foreground">لا يوجد صندوق نقدي مرتبط</h3>
+          <p className="text-sm text-muted-foreground">
+            يرجى ربط المندوب بصندوق نقدي من الإدارة قبل استخدام التحصيل أو المصاريف.
+          </p>
+          <Button variant="outline" className="w-full" onClick={() => navigate("/rep")}>رجوع</Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-4">
       <Card className="p-4 space-y-3">
