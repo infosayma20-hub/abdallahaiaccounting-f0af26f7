@@ -529,6 +529,7 @@ const App = () => (
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
                       <Route path="/reports/periodic" element={<PeriodicReportsPage />} />
+                      <Route path="/reports/van-sales" element={<VanSalesReportsPage />} />
                       <Route path="/customization" element={<CustomizationPage />} />
                       <Route path="/customization/templates" element={<IndustryTemplatesPage />} />
                       <Route path="/customization/request" element={<CustomizationRequestPage />} />
