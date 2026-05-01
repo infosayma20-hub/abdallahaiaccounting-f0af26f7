@@ -1511,6 +1511,28 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           txContactId = null;
         }
 
+        // Phase 5C: when the flag is ON and we're on the simplest contact
+        // payment path (ILS, no cheque, no employee, no account, no
+        // smart-routing intent), route through the canonical RPC instead of
+        // direct insert. The RPC writes to transactions atomically with the
+        // correct journal lines.
+        if (vouchersRpcOn && isSimpleContactVoucher) {
+          const result = await callCreatePaymentRpc({
+            userId: user.id,
+            contactId: selectedContact!.id,
+            contactName: selectedContact!.contact_name,
+            amount: amountNum,
+            paymentMethod: paymentMethod === "تحويل" ? "بنك" : "نقدي",
+            description: txDescription,
+            currency: currencyLabel,
+            idempotencyKey: `PAY-NEW-${Date.now()}`,
+            voucherDate: paymentDate,
+            cashAccountCode: depositAccountCode,
+            notes: notes || null,
+            workshopId: selectedWorkshop?.id || null,
+          });
+          txId = result?.transaction_id || null;
+        } else {
         const { data: txData } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: paymentDate,
@@ -1530,6 +1552,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           cost_center_name: selectedWorkshop?.name || null,
         } as any).select("id").single();
         txId = txData?.id || null;
+        }
       }
 
       if (isReceipt) {
