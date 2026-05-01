@@ -467,7 +467,37 @@ export function useSaveJournalVoucher() {
           if (cl.remaining <= 0.0001) ci++;
         }
 
-        if (txns.length > 0) {
+        // Phase 5E: same RPC routing for the update path. The legacy delete
+        // by reference above already cleaned the old txns, so the RPC will
+        // recreate them atomically with stable idempotency keys.
+        const vouchersRpcOnU = await fetchVouchersRpcFlag(user.id);
+        if (vouchersRpcOnU && txns.length > 0) {
+          const rpcLines: RpcJournalLine[] = txns.map((t) => ({
+            debit_account_code: t.debit_account_code,
+            credit_account_code: t.credit_account_code,
+            amount: t.amount,
+            description: t.description,
+            contact_id: t.contact_id,
+          }));
+          const result = await callCreateJournalMultiPartyRpc({
+            userId: user.id,
+            entryDate: input.date,
+            description: input.description.trim(),
+            lines: rpcLines,
+            currency: "ILS",
+            reference: existing.ref_number,
+            idempotencyKey: `VOUCHER-${voucherId}-${Date.now()}`,
+            source: "journal_voucher_edit",
+            notes: input.notes || null,
+          });
+          const firstTxId = result?.transaction_id || null;
+          if (firstTxId) {
+            await supabase
+              .from("vouchers")
+              .update({ linked_transaction_id: firstTxId })
+              .eq("id", voucherId);
+          }
+        } else if (txns.length > 0) {
           const { data: txData, error: tErr } = await supabase
             .from("transactions")
             .insert(txns)
