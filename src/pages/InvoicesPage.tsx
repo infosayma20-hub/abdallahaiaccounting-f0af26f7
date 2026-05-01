@@ -28,6 +28,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
+import useFocusHighlight from "@/hooks/useFocusHighlight";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
@@ -107,6 +108,8 @@ const InvoicesPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  // Phase 5J.1 — focus & highlight from ?focus=<invoice_id>
+  const focusedInvoiceId = useFocusHighlight();
   const { settings: companySettings } = useCompanySettings();
   const { canEdit, canDelete } = useDocumentPermissions();
   const printRef = useRef<HTMLDivElement>(null);
@@ -1204,8 +1207,14 @@ const InvoicesPage = () => {
               <TableBody>
                 {paginated.map(inv => {
                   const st = statusConfig[inv.status] || fallbackStatus;
+                  const isFocused = focusedInvoiceId === inv.id;
                   return (
-                    <TableRow key={inv.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                    <TableRow
+                      key={inv.id}
+                      data-focus-id={inv.id}
+                      className={`hover:bg-muted/20 cursor-pointer transition-all duration-500 ${isFocused ? "bg-primary/10 ring-2 ring-primary/60" : ""}`}
+                      onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}
+                    >
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
                       <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>
                       <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>
