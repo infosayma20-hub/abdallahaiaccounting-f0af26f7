@@ -16,6 +16,7 @@ interface RepRow {
   total_invoices: number;
   total_cash: number;
   total_credit: number;
+  total_expenses: number;
   employee_id: string | null;
 }
 
@@ -42,7 +43,7 @@ export default function SalesRepsLivePage() {
 
       const today = new Date().toISOString().slice(0, 10);
 
-      const [whRes, cbRes, daysRes, invRes] = await Promise.all([
+      const [whRes, cbRes, daysRes, invRes, expRes] = await Promise.all([
         whIds.length
           ? (supabase as any).from("warehouses").select("id, name").in("id", whIds)
           : Promise.resolve({ data: [] }),
@@ -64,11 +65,30 @@ export default function SalesRepsLivePage() {
               .eq("invoice_date", today)
               .in("salesperson_id", repIds)
           : Promise.resolve({ data: [] }),
+        repIds.length
+          ? (supabase as any)
+              .from("transactions")
+              .select("amount, notes")
+              .eq("payment_method", "rep_expense")
+              .eq("is_deleted", false)
+              .eq("transaction_date", today)
+          : Promise.resolve({ data: [] }),
       ]);
 
       const whMap = new Map<string, string>((whRes.data || []).map((w: any) => [w.id, w.name]));
       const cbMap = new Map<string, string>((cbRes.data || []).map((c: any) => [c.id, c.name]));
       const dayMap = new Map<string, any>((daysRes.data || []).map((d: any) => [d.sales_rep_id, d]));
+
+      // مصاريف المندوبين اليوم — group by rep_id من notes JSON
+      const expMap = new Map<string, number>();
+      for (const t of (expRes.data as any[]) || []) {
+        try {
+          const n = JSON.parse(t.notes || "{}");
+          if (n?.rep_id && repIds.includes(n.rep_id)) {
+            expMap.set(n.rep_id, (expMap.get(n.rep_id) || 0) + Number(t.amount || 0));
+          }
+        } catch {}
+      }
 
       // Aggregate KPIs straight from invoices (source='rep') — single source of truth.
       const kpiMap = new Map<string, { count: number; cash: number; credit: number }>();
@@ -98,6 +118,7 @@ export default function SalesRepsLivePage() {
           total_invoices: k.count,
           total_cash: k.cash,
           total_credit: k.credit,
+          total_expenses: expMap.get(r.id) || 0,
           employee_id: r.employee_id || null,
         };
       });
@@ -129,6 +150,11 @@ export default function SalesRepsLivePage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "van_sales_days" },
+        () => load()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions", filter: "payment_method=eq.rep_expense" },
         () => load()
       )
       .subscribe();
@@ -202,7 +228,7 @@ export default function SalesRepsLivePage() {
                     <span className="truncate">{r.cash_box_name || "—"}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border">
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground">طلبات اليوم</div>
                     <div className="font-bold text-lg">{r.total_invoices}</div>
@@ -214,6 +240,10 @@ export default function SalesRepsLivePage() {
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground">إجمالي الآجل</div>
                     <div className="font-bold text-lg text-destructive">{fmt(r.total_credit)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">مصاريف اليوم</div>
+                    <div className="font-bold text-lg text-destructive">{fmt(r.total_expenses)}</div>
                   </div>
                 </div>
               </CardContent>
