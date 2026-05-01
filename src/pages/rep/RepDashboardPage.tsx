@@ -16,6 +16,7 @@ export default function RepDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [openDay, setOpenDay] = useState<any>(null);
   const [stats, setStats] = useState({ count: 0, total: 0, cash: 0 });
+  const [expenses, setExpenses] = useState(0);
   const [profit, setProfit] = useState<number | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
   const [closingCash, setClosingCash] = useState("");
@@ -56,6 +57,19 @@ export default function RepDashboardPage() {
         cash: list.filter((i: any) => i.payment_method === "cash").reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
       });
 
+      // مصاريف اليوم — payment_method='rep_expense' و notes يحوي rep_id
+      const { data: txs } = await (supabase as any)
+        .from("transactions")
+        .select("amount, notes")
+        .eq("user_id", rep.user_id)
+        .eq("payment_method", "rep_expense")
+        .eq("is_deleted", false)
+        .gte("transaction_date", new Date(day.opened_at).toISOString().slice(0, 10));
+      const myExp = ((txs as any[]) || []).filter((t) => {
+        try { return JSON.parse(t.notes || "{}")?.rep_id === rep.id; } catch { return false; }
+      });
+      setExpenses(myExp.reduce((s, t) => s + Number(t.amount || 0), 0));
+
       // Phase 7: aggregate line_profit for the day's invoices
       if (list.length > 0) {
         const ids = list.map((i: any) => i.id);
@@ -69,6 +83,8 @@ export default function RepDashboardPage() {
       } else {
         setProfit(0);
       }
+    } else {
+      setExpenses(0);
     }
     setLoading(false);
   };
@@ -113,7 +129,7 @@ export default function RepDashboardPage() {
     setBusy(true);
     try {
       const actual = Number(closingCash) || 0;
-      const expected = Number(openDay.opening_cash || 0) + stats.cash;
+      const expected = Number(openDay.opening_cash || 0) + stats.cash - expenses;
       const variance = actual - expected;
       const { error } = await (supabase as any).from("van_sales_days").update({
         status: "closed",
@@ -173,6 +189,7 @@ export default function RepDashboardPage() {
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.count}</div><div className="text-xs text-muted-foreground">طلبات اليوم</div></Card>
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
         <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
+        <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-destructive" /><div className="text-2xl font-bold text-destructive">{expenses.toFixed(2)}</div><div className="text-xs text-muted-foreground">مصاريف اليوم (₪)</div></Card>
         <Card className="p-4 space-y-1">
           <Package className="w-5 h-5 text-primary" />
           <div className="text-2xl font-bold">
@@ -190,7 +207,12 @@ export default function RepDashboardPage() {
 
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2"><StopCircle className="w-5 h-5 text-destructive" /><h3 className="font-bold">إغلاق اليوم</h3></div>
-        <div className="text-xs text-muted-foreground">المتوقع: {(Number(openDay.opening_cash || 0) + stats.cash).toFixed(2)} ₪</div>
+        <div className="text-xs text-muted-foreground space-y-0.5">
+          <div>عهدة افتتاحية: {Number(openDay.opening_cash || 0).toFixed(2)} ₪</div>
+          <div>+ كاش مبيعات: {stats.cash.toFixed(2)} ₪</div>
+          <div>− مصاريف: {expenses.toFixed(2)} ₪</div>
+          <div className="font-bold text-foreground pt-1 border-t border-border">المتوقع: {(Number(openDay.opening_cash || 0) + stats.cash - expenses).toFixed(2)} ₪</div>
+        </div>
         <div className="space-y-2">
           <Label>الكاش الفعلي معك الآن</Label>
           <Input type="number" inputMode="decimal" value={closingCash} onChange={(e) => setClosingCash(e.target.value)} />
