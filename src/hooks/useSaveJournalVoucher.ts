@@ -275,7 +275,36 @@ export function useSaveJournalVoucher() {
           if (cl.remaining <= 0.0001) ci++;
         }
 
-        if (txns.length > 0) {
+        // Phase 5E: route through canonical multi-party RPC when the flag
+        // is ON. Same pair-matching algorithm — only the writer changes.
+        const vouchersRpcOn = await fetchVouchersRpcFlag(user.id);
+        if (vouchersRpcOn && txns.length > 0) {
+          const rpcLines: RpcJournalLine[] = txns.map((t) => ({
+            debit_account_code: t.debit_account_code,
+            credit_account_code: t.credit_account_code,
+            amount: t.amount,
+            description: t.description,
+            contact_id: t.contact_id,
+          }));
+          const result = await callCreateJournalMultiPartyRpc({
+            userId: user.id,
+            entryDate: input.date,
+            description: input.description.trim(),
+            lines: rpcLines,
+            currency: "ILS",
+            reference: voucher.ref_number,
+            idempotencyKey: `VOUCHER-${voucher.id}`,
+            source: "journal_voucher",
+            notes: input.notes || null,
+          });
+          const firstTxId = result?.transaction_id || null;
+          if (firstTxId) {
+            await supabase
+              .from("vouchers")
+              .update({ linked_transaction_id: firstTxId })
+              .eq("id", voucher.id);
+          }
+        } else if (txns.length > 0) {
           const { data: txData, error: tErr } = await supabase
             .from("transactions")
             .insert(txns)
