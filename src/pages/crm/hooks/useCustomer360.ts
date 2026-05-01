@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchContactBalance } from "@/lib/contact-balance";
 import type {
   ContactSnapshot,
   PolicySnapshot,
@@ -24,6 +25,7 @@ const EMPTY_FIN: LiveFinancials = {
   total_ytd: 0,
   invoices_count: 0,
   last_sale_date: null,
+  ledger_balance: 0,
 };
 
 export function useCustomer360(contactId: string | null | undefined): Customer360Data & { refetch: () => void } {
@@ -85,9 +87,14 @@ export function useCustomer360(contactId: string | null | undefined): Customer36
         .neq("status", "cancelled");
 
       const list = (invs as any[]) || [];
-      const outstanding = list
-        .filter((i) => i.status !== "paid")
-        .reduce((s, i) => s + (Number(i.total_amount || 0) - Number(i.paid_amount || 0)), 0);
+      // Phase 5G — Single Source of Truth.
+      // `outstanding` (and the credit decisions that depend on it) must come
+      // from the ledger via get_contact_balance, NOT from invoices alone.
+      // Invoices ignore on-account payments, refunds, and journal adjustments.
+      const ledgerBalance = await fetchContactBalance(contactId);
+      // For customers, a positive ledger balance == outstanding receivable.
+      // For suppliers, the same convention reads as "we owe them" (positive).
+      const outstanding = Math.max(0, ledgerBalance);
       const overdue = list
         .filter((i) => i.status !== "paid" && i.due_date && i.due_date < today)
         .reduce((s, i) => s + (Number(i.total_amount || 0) - Number(i.paid_amount || 0)), 0);
@@ -102,6 +109,7 @@ export function useCustomer360(contactId: string | null | undefined): Customer36
         total_ytd,
         invoices_count: list.length,
         last_sale_date: sortedDates[0] ?? null,
+        ledger_balance: ledgerBalance,
       });
     } catch (e: any) {
       setError(e?.message ?? "تعذر تحميل بيانات العميل");
