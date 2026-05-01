@@ -203,16 +203,18 @@ const BankAccountsPage = () => {
       // Create opening balance transaction for new bank accounts
       if (isNew && Number(openingBalance) > 0 && glAccountCode) {
         const obDate = openingBalanceDate || new Date().toISOString().split("T")[0];
-        await supabase.from("transactions").insert({
-          user_id: user.id,
-          transaction_date: obDate,
-          description: `رصيد افتتاحي — ${accountName}`,
-          debit_account_code: glAccountCode,
-          credit_account_code: "3200",
-          amount: Number(openingBalance),
-          currency: currency || "ILS",
-          transaction_type: "opening_balance",
-          idempotency_key: `BANK-OB-${Date.now()}`,
+        await supabase.rpc("create_opening_balance_entry", {
+          p_user_id: user.id,
+          p_debit_account_code: glAccountCode,
+          p_credit_account_code: "3200",
+          p_amount: Number(openingBalance),
+          p_balance_date: obDate,
+          p_description: `رصيد افتتاحي — ${accountName}`,
+          p_currency: currency || "ILS",
+          p_contact_id: null,
+          p_reference: `BANK-OB-${glAccountCode}`,
+          p_replace_existing: false,
+          p_idempotency_key: `BANK-OB-${glAccountCode}-${Date.now()}`,
         });
       }
       toast({ title: isNew ? `✅ تم إضافة حساب ${finalBankName} بنجاح` : `✅ تم تعديل حساب ${finalBankName} بنجاح` });
