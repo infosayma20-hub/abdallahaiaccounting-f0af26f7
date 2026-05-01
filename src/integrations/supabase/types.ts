@@ -15891,35 +15891,22 @@ export type Database = {
         }
         Returns: Json
       }
-      create_cheque_lifecycle_event:
-        | {
-            Args: {
-              p_bank_account_code?: string
-              p_cheque_id: string
-              p_event: string
-              p_event_date?: string
-              p_idempotency_key?: string
-              p_notes?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_bank_account_code?: string
-              p_bank_fees?: number
-              p_bank_fees_account_code?: string
-              p_cheque_id: string
-              p_endorsed_to_contact_id?: string
-              p_event: string
-              p_event_date?: string
-              p_idempotency_key?: string
-              p_notes?: string
-              p_reason?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
+      create_cheque_lifecycle_event: {
+        Args: {
+          p_bank_account_code?: string
+          p_bank_fees?: number
+          p_bank_fees_account_code?: string
+          p_cheque_id: string
+          p_endorsed_to_contact_id?: string
+          p_event: string
+          p_event_date?: string
+          p_idempotency_key?: string
+          p_notes?: string
+          p_reason?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_credit_note_atomic: {
         Args: {
           p_amount: number
@@ -15995,39 +15982,25 @@ export type Database = {
         }
         Returns: Json
       }
-      create_payment_with_entry:
-        | {
-            Args: {
-              p_amount: number
-              p_contact_id: string
-              p_contact_name: string
-              p_currency?: string
-              p_description?: string
-              p_idempotency_key?: string
-              p_payment_method?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_cash_account_code?: string
-              p_contact_account_code?: string
-              p_contact_id: string
-              p_contact_name: string
-              p_currency?: string
-              p_description?: string
-              p_exchange_rate?: number
-              p_idempotency_key?: string
-              p_notes?: string
-              p_payment_method?: string
-              p_reference?: string
-              p_user_id: string
-              p_voucher_date?: string
-            }
-            Returns: Json
-          }
+      create_payment_with_entry: {
+        Args: {
+          p_amount: number
+          p_cash_account_code?: string
+          p_contact_account_code?: string
+          p_contact_id: string
+          p_contact_name: string
+          p_currency?: string
+          p_description?: string
+          p_exchange_rate?: number
+          p_idempotency_key?: string
+          p_notes?: string
+          p_payment_method?: string
+          p_reference?: string
+          p_user_id: string
+          p_voucher_date?: string
+        }
+        Returns: Json
+      }
       create_purchase_with_entry: {
         Args: {
           p_amount: number
@@ -16041,39 +16014,25 @@ export type Database = {
         }
         Returns: Json
       }
-      create_receipt_with_entry:
-        | {
-            Args: {
-              p_amount: number
-              p_contact_id: string
-              p_contact_name: string
-              p_currency?: string
-              p_description?: string
-              p_idempotency_key?: string
-              p_payment_method?: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_cash_account_code?: string
-              p_contact_account_code?: string
-              p_contact_id: string
-              p_contact_name: string
-              p_currency?: string
-              p_description?: string
-              p_exchange_rate?: number
-              p_idempotency_key?: string
-              p_notes?: string
-              p_payment_method?: string
-              p_reference?: string
-              p_user_id: string
-              p_voucher_date?: string
-            }
-            Returns: Json
-          }
+      create_receipt_with_entry: {
+        Args: {
+          p_amount: number
+          p_cash_account_code?: string
+          p_contact_account_code?: string
+          p_contact_id: string
+          p_contact_name: string
+          p_currency?: string
+          p_description?: string
+          p_exchange_rate?: number
+          p_idempotency_key?: string
+          p_notes?: string
+          p_payment_method?: string
+          p_reference?: string
+          p_user_id: string
+          p_voucher_date?: string
+        }
+        Returns: Json
+      }
       create_return_with_entry: {
         Args: {
           p_amount: number
