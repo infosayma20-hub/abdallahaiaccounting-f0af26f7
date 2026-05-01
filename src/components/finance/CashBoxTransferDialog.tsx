@@ -61,21 +61,20 @@ export default function CashBoxTransferDialog({ open, onOpenChange, boxes, balan
       const ref = `TRF-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       const desc = `تحويل من ${fromBox.name} إلى ${toBox.name}${notes ? ` - ${notes}` : ""}`;
 
-      // Create journal entry transaction
-      const { error: txErr } = await supabase.from("transactions").insert({
-        user_id: userId,
-        transaction_date: new Date().toISOString().split("T")[0],
-        description: desc,
-        debit_account_code: toBox.gl_account_code,
-        credit_account_code: fromBox.gl_account_code,
-        amount: amt,
-        currency: currency === "ILS" ? "شيكل" : currency === "USD" ? "دولار" : currency === "JOD" ? "دينار" : currency,
-        transaction_type: "cash_transfer",
-        reference: ref,
-        payment_method: "نقدي",
-        idempotency_key: `TRF-${Date.now()}`,
+      // Atomic RPC: paired debit+credit posting in a single DB transaction
+      const { data: rpcRes, error: txErr } = await supabase.rpc("create_cash_transfer_atomic", {
+        p_user_id: userId,
+        p_from_account_code: fromBox.gl_account_code,
+        p_to_account_code: toBox.gl_account_code,
+        p_amount: amt,
+        p_currency: currency === "ILS" ? "شيكل" : currency === "USD" ? "دولار" : currency === "JOD" ? "دينار" : currency,
+        p_transfer_date: new Date().toISOString().split("T")[0],
+        p_description: desc,
+        p_idempotency_key: `TRF-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+        p_source: "manual",
       });
-      if (txErr) throw txErr;
+      const r = rpcRes as any;
+      if (txErr || !r?.success) throw new Error(txErr?.message || r?.error || "فشل التحويل");
 
       // Record in cash_transfers audit
       await supabase.from("cash_transfers").insert({

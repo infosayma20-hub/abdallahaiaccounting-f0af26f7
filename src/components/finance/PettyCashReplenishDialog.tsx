@@ -55,22 +55,20 @@ export default function PettyCashReplenishDialog({ open, onOpenChange, boxes, on
       const desc = `تغذية نثرية - من ${fromBox.name} إلى ${toBox.name}${notes ? ` - ${notes}` : ""}`;
       const idempotencyKey = `PETTY-REPLENISH-${Date.now()}`;
 
-      // Create accounting transaction: debit petty cash, credit source
-      const { error: txError } = await supabase.from("transactions").insert({
-        user_id: userId,
-        transaction_date: new Date().toISOString().split("T")[0],
-        description: desc,
-        debit_account_code: toBox.gl_account_code,
-        credit_account_code: fromBox.gl_account_code,
-        amount: amountNum,
-        currency: "شيكل",
-        transaction_type: "cash_transfer",
-        reference: `PETTY-${toBox.gl_account_code}`,
-        payment_method: "نقدي",
-        idempotency_key: idempotencyKey,
+      // Atomic RPC: petty cash replenishment is a cash transfer
+      const { data: rpcRes, error: txError } = await supabase.rpc("create_cash_transfer_atomic", {
+        p_user_id: userId,
+        p_from_account_code: fromBox.gl_account_code,
+        p_to_account_code: toBox.gl_account_code,
+        p_amount: amountNum,
+        p_currency: "شيكل",
+        p_transfer_date: new Date().toISOString().split("T")[0],
+        p_description: desc,
+        p_idempotency_key: idempotencyKey,
+        p_source: "manual",
       });
-
-      if (txError) throw txError;
+      const r = rpcRes as any;
+      if (txError || !r?.success) throw new Error(txError?.message || r?.error || "فشل التغذية");
 
       // Record cash transfer
       await supabase.from("cash_transfers").insert({

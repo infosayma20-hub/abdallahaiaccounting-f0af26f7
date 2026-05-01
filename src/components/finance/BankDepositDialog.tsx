@@ -82,30 +82,20 @@ export default function BankDepositDialog({ open, onOpenChange, boxes, onSuccess
     setSaving(true);
     try {
       const desc = `إيداع بنكي من ${fromBox.name} إلى ${bankAccount.name} (${bankAccount.bank_name})`;
-      const idempotencyKey = `DEP-${Date.now()}`;
+      const idempotencyKey = `DEP-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 
-      const insertData: any = {
-        user_id: userId,
-        transaction_date: new Date().toISOString().split("T")[0],
-        description: notes ? `${desc} - ${notes}` : desc,
-        debit_account_code: bankGl,
-        credit_account_code: fromBox.gl_account_code,
-        amount: Number(amount),
-        currency: curInfo?.arLabel || "شيكل",
-        transaction_type: "bank_deposit",
-        reference: depositRef || `DEP-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-        payment_method: "تحويل",
-        idempotency_key: idempotencyKey,
-      };
-
-      // If foreign currency, track it
-      if (currency !== "ILS") {
-        insertData.foreign_amount = Number(amount);
-        insertData.exchange_rate = 1; // Same currency deposit, rate = 1
-      }
-
-      const { error } = await supabase.from("transactions").insert(insertData);
-      if (error) throw error;
+      const { data: rpcRes, error } = await supabase.rpc("create_bank_deposit_atomic", {
+        p_user_id: userId,
+        p_cash_account_code: fromBox.gl_account_code,
+        p_bank_account_code: bankGl,
+        p_amount: Number(amount),
+        p_currency: curInfo?.arLabel || "شيكل",
+        p_deposit_date: new Date().toISOString().split("T")[0],
+        p_description: notes ? `${desc} - ${notes}` : desc,
+        p_idempotency_key: idempotencyKey,
+      });
+      const r = rpcRes as any;
+      if (error || !r?.success) throw new Error(error?.message || r?.error || "فشل الإيداع");
 
       // Also record as cash transfer for audit trail
       await supabase.from("cash_transfers").insert({
