@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { SECTION_ACCENTS, SECTION_LABELS, type AppSection as SectionKey } from "../data/appsRegistry";
 
 interface Props {
@@ -10,11 +11,29 @@ interface Props {
 export default function AppSection({ section, isPremium, children }: Props) {
   const accent = SECTION_ACCENTS[section];
   const { title, description } = SECTION_LABELS[section];
+  const storageKey = `amwali:apps:section:${section}:collapsed`;
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(storageKey) === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(storageKey, collapsed ? "1" : "0"); } catch {}
+  }, [collapsed, storageKey]);
 
   return (
     <section style={{ padding: "18px 0 8px" }}>
       {/* Section header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "0 4px" }}>
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+        style={{
+          display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "4px 6px",
+          width: "100%", background: "transparent", border: "none", cursor: "pointer",
+          borderRadius: 8, transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(13,27,46,0.04)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
         <div
           aria-hidden="true"
           style={{
@@ -63,10 +82,19 @@ export default function AppSection({ section, isPremium, children }: Props) {
             {description}
           </span>
         )}
-      </div>
+        <ChevronDown
+          size={16}
+          style={{
+            color: "#94a3b8",
+            marginInlineStart: "auto",
+            transition: "transform 0.2s",
+            transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
 
       {/* Apps grid */}
-      <div
+      {!collapsed && <div
         style={{
           display: "grid",
           gap: 10,
@@ -75,7 +103,7 @@ export default function AppSection({ section, isPremium, children }: Props) {
         className="amwali-apps-grid"
       >
         {children}
-      </div>
+      </div>}
 
       <style>{`
         @media (min-width: 768px) {
