@@ -102,3 +102,37 @@ export async function fetchManyContactBalances(
   );
   return Object.fromEntries(results);
 }
+
+/**
+ * Phase 5I — UX unification.
+ * Convert a numeric balance into a clear Arabic label so users never have to
+ * interpret a +/- sign. The numeric value is preserved verbatim.
+ *
+ *   balance > 0  → "مدين علينا 500"  (contact owes us / we paid supplier in advance)
+ *   balance < 0  → "له عندنا 300"     (we owe contact / customer overpaid)
+ *   balance = 0  → "مُسوّى"
+ *
+ * Pass `contactType` ("عميل" | "مورد") to flip phrasing slightly when known.
+ */
+export function describeBalance(
+  balance: number,
+  contactType?: string | null,
+): { label: string; tone: "debit" | "credit" | "zero"; absolute: number } {
+  const n = Number(balance) || 0;
+  if (Math.abs(n) < 0.005) {
+    return { label: "مُسوّى", tone: "zero", absolute: 0 };
+  }
+  const isSupplier = contactType === "مورد" || contactType === "supplier";
+  if (n > 0) {
+    return {
+      label: isSupplier ? `سلفة لدى المورد ${n.toFixed(2)}` : `مدين علينا ${n.toFixed(2)}`,
+      tone: "debit",
+      absolute: n,
+    };
+  }
+  return {
+    label: isSupplier ? `له عندنا ${Math.abs(n).toFixed(2)}` : `دفعة مقدمة ${Math.abs(n).toFixed(2)}`,
+    tone: "credit",
+    absolute: Math.abs(n),
+  };
+}
