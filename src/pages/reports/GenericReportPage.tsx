@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Bug } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -63,6 +64,22 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     "sales-performance", "sales-by-product", "order-performance", "product-profitability",
   ]);
   const showSourceFilter = SOURCE_FILTERED_REPORTS.has(reportKey);
+
+  // Debug mode (persisted in localStorage; logs surface in browser console for every loader)
+  const [debugMode, setDebugMode] = useState<boolean>(() => {
+    try { return typeof window !== "undefined" && localStorage.getItem("amwali:reports:debug") === "1"; }
+    catch { return false; }
+  });
+  const toggleDebug = () => {
+    const next = !debugMode;
+    setDebugMode(next);
+    try { localStorage.setItem("amwali:reports:debug", next ? "1" : "0"); } catch {}
+    if (next) {
+      // eslint-disable-next-line no-console
+      console.log("%c[reports] Debug mode ON — counts & sources will be logged on each load.", "color:#0070F2;font-weight:bold");
+    }
+    loadReport();
+  };
 
   useEffect(() => {
     if (!user) return;
