@@ -373,8 +373,32 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", module: "reports", icon: BarChart3,
-        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports", isDirect: true,
-        keywords: ["تقارير", "تحليل"],
+        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
+        keywords: ["تقارير", "تحليل", "أرباح", "خسائر", "ميزانية"],
+        groups: [
+          {
+            groupLabel: "القوائم المالية",
+            children: [
+              { label: "الأرباح والخسائر", path: "/profit-loss" },
+              { label: "الميزانية العمومية", path: "/balance-sheet" },
+              { label: "ميزان المراجعة", path: "/trial-balance" },
+            ],
+          },
+          {
+            groupLabel: "كل التقارير",
+            children: [
+              { label: "مكتبة التقارير", path: "/reports" },
+              { label: "منشئ التقارير", path: "/reports/builder" },
+              { label: "تقاريري المحفوظة", path: "/reports/my-reports" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "dashboards", label: "لوحات التحكم", description: "لوحات قابلة للتخصيص والمشاركة", module: "dashboard", icon: LayoutDashboard,
+        color: "text-indigo-500", bgColor: "bg-indigo-500/10",
+        path: "/dashboards", isDirect: true,
+        keywords: ["لوحات", "تحكم", "widgets", "dashboards", "مخصص"],
       },
     ],
   },
