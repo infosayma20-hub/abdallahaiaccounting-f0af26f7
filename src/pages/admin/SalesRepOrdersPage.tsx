@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Truck, X, Receipt, Package, Wallet } from "lucide-react";
+import { Loader2, RefreshCw, Truck, X, Receipt, Package, Wallet, Trash2, XCircle } from "lucide-react";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import { useToast } from "@/hooks/use-toast";
+import { supabase as sb } from "@/integrations/supabase/client";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -48,6 +50,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function SalesRepOrdersPage() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [reps, setReps] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,7 @@ export default function SalesRepOrdersPage() {
   // Detail modal
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,6 +119,54 @@ export default function SalesRepOrdersPage() {
     () => Boolean(repId || dateFrom || dateTo || paymentMethod || status),
     [repId, dateFrom, dateTo, paymentMethod, status]
   );
+
+  const isDraftStatus = (s?: string) =>
+    ["draft", "pending", "مسودة"].includes((s || "").toLowerCase());
+  const isCancelledStatus = (s?: string) =>
+    ["cancelled", "void", "ملغي", "ملغى"].includes((s || "").toLowerCase());
+
+  const deleteDraft = async (id: string) => {
+    if (!confirm("حذف المسودة نهائياً؟")) return;
+    setActionBusy(true);
+    try {
+      const { data: inv } = await (sb as any)
+        .from("invoices").select("linked_transaction_id").eq("id", id).maybeSingle();
+      if (inv?.linked_transaction_id) {
+        toast({ title: "لا يمكن الحذف", description: "الطلب مرحّل. استخدم إلغاء الطلب.", variant: "destructive" });
+        return;
+      }
+      await (sb as any).from("invoice_items").delete().eq("invoice_id", id);
+      const { error } = await (sb as any).from("invoices").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "تم حذف المسودة" });
+      setDetail(null);
+      await load();
+    } catch (e: any) {
+      toast({ title: "فشل الحذف", description: e.message, variant: "destructive" });
+    } finally { setActionBusy(false); }
+  };
+
+  const cancelOrder = async (id: string) => {
+    const reason = prompt("سبب إلغاء الطلب (إلزامي):");
+    if (!reason || reason.trim().length < 3) {
+      toast({ title: "السبب مطلوب (3 حروف على الأقل)", variant: "destructive" });
+      return;
+    }
+    setActionBusy(true);
+    try {
+      const { data, error } = await (sb as any).rpc("void_rep_sale_atomic", {
+        p_invoice_id: id,
+        p_reason: reason.trim(),
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "فشل الإلغاء");
+      toast({ title: "تم إلغاء الطلب", description: `قيد عكسي: ${String(data.reverse_transaction_id || "").slice(0,8)}…` });
+      setDetail(null);
+      await load();
+    } catch (e: any) {
+      toast({ title: "فشل الإلغاء", description: e.message, variant: "destructive" });
+    } finally { setActionBusy(false); }
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-4" dir="rtl">
@@ -300,9 +352,28 @@ export default function SalesRepOrdersPage() {
                   {detail?.order?.invoice_number || "تفاصيل الطلب"}
                 </h3>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setDetail(null)}>
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {detail?.order && !isCancelledStatus(detail.order.status) && (
+                  isDraftStatus(detail.order.status) ? (
+                    <Button variant="outline" size="sm" disabled={actionBusy}
+                      onClick={() => deleteDraft(detail.order.id)}
+                      className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                      {actionBusy ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <Trash2 className="w-4 h-4 ml-1" />}
+                      حذف
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" disabled={actionBusy}
+                      onClick={() => cancelOrder(detail.order.id)}
+                      className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                      {actionBusy ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <XCircle className="w-4 h-4 ml-1" />}
+                      إلغاء الطلب
+                    </Button>
+                  )
+                )}
+                <Button variant="ghost" size="icon" onClick={() => setDetail(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             {detailLoading ? (
               <div className="flex items-center justify-center p-12">
