@@ -6,7 +6,7 @@ import {
   Sparkles, PieChart, Wallet, DollarSign, Building2, TrendingUp,
   Briefcase, Calculator, ArrowLeftRight, ShoppingCart, ClipboardList,
   Clock, AlertTriangle, Activity, BookOpen, CreditCard,
-  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard,
+  ArrowRight, Monitor, Layers, CalendarRange, LayoutDashboard, Truck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -198,6 +198,20 @@ const sections: ReportSection[] = [
       { slug: "pos-credit-sales", label: "بطاقات الائتمان والمديونيات", description: "المبيعات الآجلة ومديونيات العملاء", icon: CreditCard, path: "/reports/pos-credit-sales", available: true, isNew: true },
       { slug: "pos-product-movement", label: "حركة أصناف POS", description: "الكميات المباعة والمرتجعة لكل صنف", icon: Package, path: "/reports/pos-product-movement", available: true, isNew: true },
       { slug: "pos-category-totals", label: "مجاميع حركات الأصناف", description: "إجماليات المبيعات حسب الفئة", icon: Layers, path: "/reports/pos-category-totals", available: true, isNew: true },
+    ],
+  },
+  {
+    id: "van-sales",
+    label: "تقارير البائع المتجول",
+    icon: Truck,
+    color: "#0D1B2E",
+    reports: [
+      { slug: "van-sales-daily", label: "ملخص يومي", description: "مبيعات اليوم، النقد، الآجل، التكلفة، الربح، والهامش", icon: BarChart3, path: "/reports/van-sales#daily", available: true, isNew: true },
+      { slug: "van-sales-by-rep", label: "ربحية حسب المندوب", description: "أداء كل مندوب: المبيعات، التكلفة، الربح، التحصيل", icon: Users, path: "/reports/van-sales#rep", available: true, isNew: true },
+      { slug: "van-sales-by-product", label: "ربحية حسب الصنف", description: "الكمية، المبيعات، الربح، الهامش، وأكثر مندوب باعه", icon: Package, path: "/reports/van-sales#product", available: true, isNew: true },
+      { slug: "van-sales-by-customer", label: "ربحية حسب الزبون", description: "عدد الطلبات، المبيعات، الربح، ومتوسط الفاتورة والرصيد", icon: Users, path: "/reports/van-sales#customer", available: true, isNew: true },
+      { slug: "van-sales-by-supplier", label: "ربحية حسب المورد", description: "ربحية الموردين بناءً على المنتجات المباعة", icon: Building2, path: "/reports/van-sales#supplier", available: true, isNew: true },
+      { slug: "van-sales-orders", label: "تقرير الطلبات", description: "كل طلبات المندوبين مع الربح وزر فتح الفاتورة", icon: Receipt, path: "/reports/van-sales#orders", available: true, isNew: true },
     ],
   },
   {

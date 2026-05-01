@@ -65,6 +65,7 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/smart-report": { title: "تقرير ذكي", icon: "pie" },
   "/reports/builder": { title: "منشئ التقارير", icon: "pie" },
   "/reports/my-reports": { title: "تقاريري", icon: "pie" },
+  "/reports/van-sales": { title: "تقارير البائع المتجول", icon: "pie" },
   "/dashboards": { title: "لوحات المعلومات", icon: "dashboard" },
   "/cheques": { title: "الشيكات", icon: "credit" },
   "/hr": { title: "الموارد البشرية", icon: "users" },

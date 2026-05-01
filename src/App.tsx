@@ -104,6 +104,7 @@ const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDas
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
 const ReportBuilderPage = lazy(() => import("./pages/reports/ReportBuilderPage"));
 const MyReportsPage = lazy(() => import("./pages/reports/MyReportsPage"));
+const VanSalesReportsPage = lazy(() => import("./pages/reports/VanSalesReportsPage"));
 const DashboardsPage = lazy(() => import("./pages/dashboards/DashboardsPage"));
 const DashboardViewPage = lazy(() => import("./pages/dashboards/DashboardViewPage"));
 const PublicDashboardPage = lazy(() => import("./pages/dashboards/PublicDashboardPage"));
@@ -528,6 +529,7 @@ const App = () => (
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
                       <Route path="/reports/periodic" element={<PeriodicReportsPage />} />
+                      <Route path="/reports/van-sales" element={<VanSalesReportsPage />} />
                       <Route path="/customization" element={<CustomizationPage />} />
                       <Route path="/customization/templates" element={<IndustryTemplatesPage />} />
                       <Route path="/customization/request" element={<CustomizationRequestPage />} />
