@@ -160,23 +160,21 @@ const CashTransferPage = () => {
       const rate = Number(rateVal) || (transferCurrency === "USD" ? 3.6 : transferCurrency === "JOD" ? 5.0 : 1);
       const ilsEquivalent = amountNum * rate;
 
-      // Create journal entry with foreign_amount
-      const { error: txErr } = await supabase.from("transactions").insert({
-        user_id: user.id,
-        transaction_date: transferDate,
-        description: description || `تحويل ${transferCurrency}: ${fromBox.name} → ${toBox.name}`,
-        debit_account_code: targetAccount,
-        credit_account_code: fromBox.gl_account_code,
-        amount: ilsEquivalent,
-        currency: transferCurrency === "USD" ? "دولار" : transferCurrency === "JOD" ? "دينار" : transferCurrency,
-        transaction_type: "cash_transfer",
-        idempotency_key: `CASH-TRANSFER-FX-${Date.now()}`,
-        foreign_amount: amountNum,
-        exchange_rate: rate,
+      // Atomic RPC: cash transfer (FX leg uses currency_exchange RPC for proper bookkeeping)
+      const { data: rpcRes, error: txErr } = await supabase.rpc("create_cash_transfer_atomic", {
+        p_user_id: user.id,
+        p_from_account_code: fromBox.gl_account_code,
+        p_to_account_code: targetAccount,
+        p_amount: ilsEquivalent,
+        p_currency: transferCurrency === "USD" ? "دولار" : transferCurrency === "JOD" ? "دينار" : transferCurrency,
+        p_transfer_date: transferDate,
+        p_description: description || `تحويل ${transferCurrency}: ${fromBox.name} → ${toBox.name}`,
+        p_idempotency_key: `CASH-TRANSFER-FX-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+        p_source: "manual",
       });
-
-      if (txErr) {
-        toast({ title: "خطأ", description: txErr.message, variant: "destructive" });
+      const fxResult = rpcRes as any;
+      if (txErr || !fxResult?.success) {
+        toast({ title: "خطأ", description: txErr?.message || fxResult?.error || "فشل التحويل", variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -197,21 +195,21 @@ const CashTransferPage = () => {
 
       toast({ title: `✅ تم تحويل ${currencySymbol}${fmt(amountNum)} من ${fromBox.name}` });
     } else {
-      // ILS transfer (existing logic)
-      const { error: txErr } = await supabase.from("transactions").insert({
-        user_id: user.id,
-        transaction_date: transferDate,
-        description: description || `تحويل نقدي: ${fromBox.name} → ${toBox.name}`,
-        debit_account_code: toBox.gl_account_code,
-        credit_account_code: fromBox.gl_account_code,
-        amount: amountNum,
-        currency: "شيكل",
-        transaction_type: "cash_transfer",
-        idempotency_key: `CASH-TRANSFER-${Date.now()}`,
+      // Atomic RPC for ILS transfer
+      const { data: rpcRes, error: txErr } = await supabase.rpc("create_cash_transfer_atomic", {
+        p_user_id: user.id,
+        p_from_account_code: fromBox.gl_account_code,
+        p_to_account_code: toBox.gl_account_code,
+        p_amount: amountNum,
+        p_currency: "شيكل",
+        p_transfer_date: transferDate,
+        p_description: description || `تحويل نقدي: ${fromBox.name} → ${toBox.name}`,
+        p_idempotency_key: `CASH-TRANSFER-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+        p_source: "manual",
       });
-
-      if (txErr) {
-        toast({ title: "خطأ", description: txErr.message, variant: "destructive" });
+      const ilsResult = rpcRes as any;
+      if (txErr || !ilsResult?.success) {
+        toast({ title: "خطأ", description: txErr?.message || ilsResult?.error || "فشل التحويل", variant: "destructive" });
         setSaving(false);
         return;
       }
