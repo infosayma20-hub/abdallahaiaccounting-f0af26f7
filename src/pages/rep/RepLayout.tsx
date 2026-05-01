@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { Home, ShoppingCart, ClipboardList, DollarSign, LogOut } from "lucide-react";
+import { Home, ShoppingCart, ClipboardList, DollarSign, LogOut, Receipt } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +61,7 @@ export default function RepLayout() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-30">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           <NavLink to="/rep" end className={({ isActive }) =>
             `flex flex-col items-center justify-center py-2.5 gap-1 ${isActive ? "text-primary" : "text-muted-foreground"}`
           }>
@@ -79,6 +79,12 @@ export default function RepLayout() {
           }>
             <DollarSign className="w-5 h-5" />
             <span className="text-xs">تحصيل</span>
+          </NavLink>
+          <NavLink to="/rep/expense" className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-2.5 gap-1 ${isActive ? "text-primary" : "text-muted-foreground"}`
+          }>
+            <Receipt className="w-5 h-5" />
+            <span className="text-xs">مصروف</span>
           </NavLink>
           <NavLink to="/rep/orders" className={({ isActive }) =>
             `flex flex-col items-center justify-center py-2.5 gap-1 ${isActive ? "text-primary" : "text-muted-foreground"}`
