@@ -59,7 +59,6 @@ const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentatives
 const WarehousesPage = lazy(() => import("./pages/WarehousesPage"));
 const StockTransfersPage = lazy(() => import("./pages/StockTransfersPage"));
 const VanDaysPage = lazy(() => import("./pages/VanDaysPage"));
-const VanModePage = lazy(() => import("./pages/VanModePage"));
 const VanCommissionsPage = lazy(() => import("./pages/VanCommissionsPage"));
 const VanReportsPage = lazy(() => import("./pages/VanReportsPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
@@ -295,6 +294,8 @@ const App = () => (
                 <Route path="new-order" element={<RepNewOrderPage />} />
                 <Route path="collect" element={<RepCollectPage />} />
                 <Route path="orders" element={<RepOrdersPage />} />
+                {/* alias: إغلاق اليوم موجود ضمن لوحة /rep الرئيسية */}
+                <Route path="close-day" element={<Navigate to="/rep" replace />} />
               </Route>
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
@@ -411,7 +412,8 @@ const App = () => (
                       <Route path="/warehouses" element={<WarehousesPage />} />
                       <Route path="/stock-transfers" element={<StockTransfersPage />} />
                       <Route path="/van-days" element={<VanDaysPage />} />
-                      <Route path="/van" element={<VanModePage />} />
+                      {/* /van أصبح alias قديم — يوجّه إلى تطبيق المندوب الموحد /rep */}
+                      <Route path="/van" element={<Navigate to="/rep" replace />} />
                       <Route path="/van-commissions" element={<VanCommissionsPage />} />
                       <Route path="/van-reports" element={<VanReportsPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
