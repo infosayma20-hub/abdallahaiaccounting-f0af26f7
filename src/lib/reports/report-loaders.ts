@@ -503,19 +503,36 @@ export async function loadInventoryValuation(uid: string, setData: SetData) {
   })).sort((a, b) => b.value - a.value));
 }
 
+// Stock movement — single source of truth: stock_movements (covers POS + invoices + purchases + manual)
 export async function loadStockMovement(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: orders } = await supabase.from("pos_orders").select("id, created_at, state").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
-  if (!orders?.length) { setData([]); return; }
-  const { data: lines } = await supabase.from("pos_order_lines").select("product_name, qty, order_id").in("order_id", orders.map(o => o.id));
-  const orderStateMap = new Map(orders.map(o => [o.id, o]));
-  setData((lines || []).map(l => {
-    const order = orderStateMap.get(l.order_id);
-    return {
-      date: order?.created_at?.split("T")[0] || "", product: l.product_name,
-      type: order?.state === "paid" ? "بيع" : "مرتجع",
-      qty: order?.state === "paid" ? -l.qty : l.qty, ref: l.order_id.substring(0, 8),
-    };
-  }));
+  const { data: moves } = await supabase
+    .from("stock_movements")
+    .select("id, created_at, product_id, movement_type, quantity, reference_note, warehouse_id")
+    .eq("user_id", uid)
+    .gte("created_at", dateFrom)
+    .lte("created_at", dateTo + "T23:59:59")
+    .order("created_at", { ascending: false });
+
+  const productIds = Array.from(new Set((moves || []).map(m => m.product_id).filter(Boolean) as string[]));
+  const { data: products } = productIds.length
+    ? await supabase.from("products").select("id, name").in("id", productIds)
+    : { data: [] as any[] };
+  const nameMap = new Map((products || []).map(p => [p.id, p.name]));
+
+  const typeLabel: Record<string, string> = {
+    sale: "بيع", purchase: "شراء", return_in: "مرتجع وارد", return_out: "مرتجع صادر",
+    adjustment: "تسوية", transfer: "تحويل", pos_sale: "بيع POS", pos_return: "مرتجع POS",
+    opening: "رصيد افتتاحي", waste: "تالف",
+  };
+
+  dbg("stockMovement", { count: (moves || []).length });
+  setData((moves || []).map(m => ({
+    date: (m.created_at || "").split("T")[0],
+    product: nameMap.get(m.product_id || "") || "—",
+    type: typeLabel[m.movement_type as string] || m.movement_type,
+    qty: Number(m.quantity) || 0,
+    ref: m.reference_note || "",
+  })));
 }
 
 export async function loadBelowReorder(uid: string, setData: SetData) {
