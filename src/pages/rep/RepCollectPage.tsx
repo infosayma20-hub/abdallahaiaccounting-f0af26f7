@@ -39,10 +39,23 @@ export default function RepCollectPage() {
     (async () => {
       const { data: r } = await (supabase as any)
         .from("sales_representatives")
-        .select("id, user_id")
+        .select("id, user_id, full_name, cash_box_id")
         .eq("auth_user_id", user.id).maybeSingle();
       if (!r) { setLoading(false); return; }
-      setRep(r);
+      let cashAccountCode: string | null = null;
+      let cashBoxName: string | null = null;
+      if (r.cash_box_id) {
+        const { data: cb } = await (supabase as any)
+          .from("cash_boxes")
+          .select("id, name, gl_account_code, is_active")
+          .eq("id", r.cash_box_id)
+          .maybeSingle();
+        if (cb && cb.is_active && cb.gl_account_code) {
+          cashAccountCode = cb.gl_account_code;
+          cashBoxName = cb.name;
+        }
+      }
+      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName });
       const { data: cts } = await (supabase as any)
         .from("contacts")
         .select("id, contact_name, contact_type")
@@ -96,6 +109,10 @@ export default function RepCollectPage() {
 
   const save = async () => {
     if (!rep) return;
+    if (!rep.cash_account_code) {
+      toast({ title: "لا يوجد صندوق نقدي مرتبط", description: "يرجى ربط المندوب بصندوق نقدي من الإدارة قبل استخدام التحصيل أو المصاريف.", variant: "destructive" });
+      return;
+    }
     if (!contactId) { toast({ title: "اختر عميلاً", variant: "destructive" }); return; }
     const amt = Number(amount);
     if (!amt || amt <= 0) { toast({ title: "أدخل مبلغاً صحيحاً", variant: "destructive" }); return; }
@@ -109,7 +126,7 @@ export default function RepCollectPage() {
         amount: amt,
         paymentMethod: "نقدي",
         currency: "شيكل",
-        cashAccountCode: "1110",
+        cashAccountCode: rep.cash_account_code,
         contactAccountCode: "1130",
         description: `تحصيل من ${selectedContact?.name ?? "عميل"} — مندوب`,
         idempotencyKey,
@@ -127,6 +144,21 @@ export default function RepCollectPage() {
   };
 
   if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+
+  if (rep && !rep.cash_account_code) {
+    return (
+      <div className="p-4">
+        <Card className="p-6 space-y-3 text-center">
+          <DollarSign className="w-10 h-10 text-destructive mx-auto" />
+          <h3 className="font-bold text-foreground">لا يوجد صندوق نقدي مرتبط</h3>
+          <p className="text-sm text-muted-foreground">
+            يرجى ربط المندوب بصندوق نقدي من الإدارة قبل استخدام التحصيل أو المصاريف.
+          </p>
+          <Button variant="outline" className="w-full" onClick={() => navigate("/rep")}>رجوع</Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-4">
