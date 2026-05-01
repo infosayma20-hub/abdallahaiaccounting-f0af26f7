@@ -18,6 +18,11 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  isVouchersRpcEnabled,
+  callCreateJournalMultiPartyRpc,
+  type JournalLine as RpcJournalLine,
+} from "@/lib/voucher-rpc";
 
 export interface JournalSaveLine {
   account_code: string;
@@ -130,6 +135,24 @@ async function checkFiscalPeriodLock(userId: string, date: string): Promise<stri
     return `لا يمكن الحفظ: التاريخ ${date} يقع ضمن فترة مقفلة (${p.period_name}). افتح الفترة من إعدادات الفترات المحاسبية أو غيّر التاريخ.`;
   }
   return null;
+}
+
+/**
+ * Phase 5E — fetch the `vouchers_use_rpc` feature flag for this user from
+ * company_settings. Returns false on any error so the legacy path is taken.
+ */
+async function fetchVouchersRpcFlag(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("feature_flags")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !data) return false;
+    return isVouchersRpcEnabled({ feature_flags: (data as any).feature_flags });
+  } catch {
+    return false;
+  }
 }
 
 export function useSaveJournalVoucher() {
@@ -252,7 +275,36 @@ export function useSaveJournalVoucher() {
           if (cl.remaining <= 0.0001) ci++;
         }
 
-        if (txns.length > 0) {
+        // Phase 5E: route through canonical multi-party RPC when the flag
+        // is ON. Same pair-matching algorithm — only the writer changes.
+        const vouchersRpcOn = await fetchVouchersRpcFlag(user.id);
+        if (vouchersRpcOn && txns.length > 0) {
+          const rpcLines: RpcJournalLine[] = txns.map((t) => ({
+            debit_account_code: t.debit_account_code,
+            credit_account_code: t.credit_account_code,
+            amount: t.amount,
+            description: t.description,
+            contact_id: t.contact_id,
+          }));
+          const result = await callCreateJournalMultiPartyRpc({
+            userId: user.id,
+            entryDate: input.date,
+            description: input.description.trim(),
+            lines: rpcLines,
+            currency: "ILS",
+            reference: voucher.ref_number,
+            idempotencyKey: `VOUCHER-${voucher.id}`,
+            source: "journal_voucher",
+            notes: input.notes || null,
+          });
+          const firstTxId = result?.transaction_id || null;
+          if (firstTxId) {
+            await supabase
+              .from("vouchers")
+              .update({ linked_transaction_id: firstTxId })
+              .eq("id", voucher.id);
+          }
+        } else if (txns.length > 0) {
           const { data: txData, error: tErr } = await supabase
             .from("transactions")
             .insert(txns)
@@ -415,7 +467,37 @@ export function useSaveJournalVoucher() {
           if (cl.remaining <= 0.0001) ci++;
         }
 
-        if (txns.length > 0) {
+        // Phase 5E: same RPC routing for the update path. The legacy delete
+        // by reference above already cleaned the old txns, so the RPC will
+        // recreate them atomically with stable idempotency keys.
+        const vouchersRpcOnU = await fetchVouchersRpcFlag(user.id);
+        if (vouchersRpcOnU && txns.length > 0) {
+          const rpcLines: RpcJournalLine[] = txns.map((t) => ({
+            debit_account_code: t.debit_account_code,
+            credit_account_code: t.credit_account_code,
+            amount: t.amount,
+            description: t.description,
+            contact_id: t.contact_id,
+          }));
+          const result = await callCreateJournalMultiPartyRpc({
+            userId: user.id,
+            entryDate: input.date,
+            description: input.description.trim(),
+            lines: rpcLines,
+            currency: "ILS",
+            reference: existing.ref_number,
+            idempotencyKey: `VOUCHER-${voucherId}-${Date.now()}`,
+            source: "journal_voucher_edit",
+            notes: input.notes || null,
+          });
+          const firstTxId = result?.transaction_id || null;
+          if (firstTxId) {
+            await supabase
+              .from("vouchers")
+              .update({ linked_transaction_id: firstTxId })
+              .eq("id", voucherId);
+          }
+        } else if (txns.length > 0) {
           const { data: txData, error: tErr } = await supabase
             .from("transactions")
             .insert(txns)
