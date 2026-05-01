@@ -61,11 +61,24 @@ export default function RepExpensePage() {
     (async () => {
       const { data: r } = await (supabase as any)
         .from("sales_representatives")
-        .select("id, user_id, full_name")
+        .select("id, user_id, full_name, cash_box_id")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (!r) { setLoading(false); return; }
-      setRep(r);
+      let cashAccountCode: string | null = null;
+      let cashBoxName: string | null = null;
+      if (r.cash_box_id) {
+        const { data: cb } = await (supabase as any)
+          .from("cash_boxes")
+          .select("id, name, gl_account_code, is_active")
+          .eq("id", r.cash_box_id)
+          .maybeSingle();
+        if (cb && cb.is_active && cb.gl_account_code) {
+          cashAccountCode = cb.gl_account_code;
+          cashBoxName = cb.name;
+        }
+      }
+      setRep({ ...r, cash_account_code: cashAccountCode, cash_box_name: cashBoxName });
 
       const { data: day } = await (supabase as any)
         .from("van_sales_days")
