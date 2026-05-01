@@ -30,6 +30,7 @@ import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 interface Contact {
   id: string;
   contact_name: string;
