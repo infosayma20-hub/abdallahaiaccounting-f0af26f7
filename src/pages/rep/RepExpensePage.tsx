@@ -384,7 +384,7 @@ export default function RepExpensePage() {
                 <CommandList>
                   {accSearch.trim().length < 2 ? (
                     <div className="py-6 text-center text-xs text-muted-foreground">
-                      اكتب حرفين على الأقل للبحث…
+                      اكتب رقم أو اسم الحساب
                     </div>
                   ) : filteredAccounts.length === 0 ? (
                     <CommandEmpty>لا توجد نتائج</CommandEmpty>
