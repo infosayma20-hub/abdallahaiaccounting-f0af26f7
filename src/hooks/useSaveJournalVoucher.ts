@@ -18,6 +18,11 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  isVouchersRpcEnabled,
+  callCreateJournalMultiPartyRpc,
+  type JournalLine as RpcJournalLine,
+} from "@/lib/voucher-rpc";
 
 export interface JournalSaveLine {
   account_code: string;
