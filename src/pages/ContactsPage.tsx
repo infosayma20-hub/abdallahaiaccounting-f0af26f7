@@ -316,9 +316,10 @@ const ContactsPage = () => {
             p_replace_existing: true,
             p_idempotency_key: `OB-CONTACT-${newC.id}`,
           });
-          // Update contact current_balance
-          const balanceVal = isDebit ? obAmount : -obAmount;
-          await supabase.from('contacts').update({ current_balance: balanceVal }).eq('id', newC.id);
+          // Phase 5G: do NOT mirror balance into contacts.current_balance.
+          // The opening balance entry above writes to the ledger; the UI
+          // reads via get_contact_balance. Keeping the stored column stale
+          // is intentional — it's no longer the source of truth.
         }
       }
 
@@ -381,12 +382,11 @@ const ContactsPage = () => {
           p_replace_existing: true,
           p_idempotency_key: `OB-CONTACT-${editContact.id}-${Date.now()}`,
         });
-        const balanceVal = isDebit ? obAmount : -obAmount;
-        await supabase.from('contacts').update({ current_balance: balanceVal }).eq('id', editContact.id);
-      } else {
-        // Reset balance if OB removed
-        await supabase.from('contacts').update({ current_balance: 0 }).eq('id', editContact.id);
+        // Phase 5G: ledger is the source of truth — no mirror to current_balance.
       }
+      // Phase 5G: removed the "reset to 0" branch as well — balance is always
+      // computed from the ledger, so soft-deleting the OB transactions above
+      // already reflects the change without touching contacts.current_balance.
 
       toast({ title: "تم تعديل جهة الاتصال بنجاح" });
       setEditContact(null);
