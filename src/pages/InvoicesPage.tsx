@@ -30,6 +30,7 @@ import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
 import { setNextExportBranding } from "@/lib/excel-export";
+import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 interface Contact {
   id: string;
   contact_name: string;
@@ -1423,6 +1424,12 @@ const InvoicesPage = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Phase 5J — cross-link panel */}
+              <RelatedJournalPanel
+                invoiceId={selectedInvoice.id}
+                invoiceNumber={selectedInvoice.invoiceNumber}
+              />
 
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
                 <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />

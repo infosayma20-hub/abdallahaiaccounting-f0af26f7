@@ -40,6 +40,7 @@ import {
   classifyVoucher as engineClassify,
   computeSummary as engineSummary,
 } from "@/lib/voucher-allocation";
+import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
 
 interface Contact {
   id: string;
@@ -2431,6 +2432,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </button>
         )}
       </div>
+
+      {/* Phase 5J — cross-link panel (edit mode only) */}
+      {isEditMode && refNumber && (
+        <RelatedJournalPanel voucherNumber={refNumber} />
+      )}
 
       {/* Row 1: Basic Info */}
       <Card>
