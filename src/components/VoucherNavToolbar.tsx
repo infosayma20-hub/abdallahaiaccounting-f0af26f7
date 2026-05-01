@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft,
-  Search, Plus, Copy, Printer, X, Trash2, Save, CheckCircle2
+  Search, Plus, Copy, Printer, X, Trash2, Save, CheckCircle2, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,8 @@ interface VoucherNavToolbarProps {
   onNewSimilar?: () => void;
   /** Called when user clicks print */
   onPrint?: () => void;
+  /** Called when user clicks preview (opens preview dialog without printing). */
+  onPreview?: () => void;
   /** Called when user clicks delete */
   onDelete?: () => void;
   /** Whether toolbar should show (hide on create-new mode with no saved entry) */
@@ -64,6 +66,7 @@ const VoucherNavToolbar = ({
   onNew,
   onNewSimilar,
   onPrint,
+  onPreview,
   onDelete,
   showNavigation = true,
   onSaveDraft,
@@ -254,6 +257,14 @@ const VoucherNavToolbar = ({
           <Button variant="outline" size="sm" onClick={onPrint}
             className="h-8 gap-1.5 text-xs">
             <Printer className="h-3.5 w-3.5" /> طباعة
+          </Button>
+        )}
+
+        {/* Preview */}
+        {onPreview && (
+          <Button variant="outline" size="sm" onClick={onPreview}
+            className="h-8 gap-1.5 text-xs">
+            <Eye className="h-3.5 w-3.5" /> معاينة
           </Button>
         )}
 

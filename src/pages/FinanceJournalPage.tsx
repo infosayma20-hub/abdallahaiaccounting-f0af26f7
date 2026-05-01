@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import useFocusHighlight from "@/hooks/useFocusHighlight";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,8 @@ interface JournalLine {
 const FinanceJournalPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // Phase 5J.1 — focus & highlight from ?focus=<voucher_id>
+  const focusedVoucherId = useFocusHighlight();
   const { user } = useAuth();
   const { toast } = useToast();
   const { save: saveJournalVoucher, update: updateJournalVoucher, remove: removeJournalVoucher } = useSaveJournalVoucher();
@@ -501,7 +504,8 @@ const FinanceJournalPage = () => {
                   return (
                     <tr
                       key={v.id}
-                      className={`border-b border-border/50 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`}
+                      data-focus-id={v.id}
+                      className={`border-b border-border/50 transition-all duration-500 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5 ${focusedVoucherId === v.id ? "!bg-primary/10 ring-2 ring-primary/60" : ""}`}
                     >
                       <td className="px-3 py-3">
                         <button
