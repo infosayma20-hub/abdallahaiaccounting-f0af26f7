@@ -29,6 +29,7 @@ import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import AccountingShell from "@/components/layout/AccountingShell";
+import { isChequesRpcEnabled, callChequeLifecycleRpc, type ChequeRpcEvent } from "@/lib/cheque-rpc";
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
@@ -341,6 +342,92 @@ const ChequesPage = () => {
       const updatePayload: Record<string, any> = { status: newStatus };
       let txId: string | null = null;
       const cheque = actionTarget;
+
+      // ─────────────────────────────────────────────────────────────
+      // Phase 6 — RPC PATH (gated by feature flag `cheques_use_rpc`).
+      // Default OFF. When ON, lifecycle accounting goes through the
+      // single `create_cheque_lifecycle_event` RPC instead of direct
+      // inserts. Status update + history are still written below using
+      // the legacy code path so UI behavior remains identical.
+      // ─────────────────────────────────────────────────────────────
+      const useRpc = isChequesRpcEnabled(settings);
+      if (useRpc) {
+        const eventMap: Record<ActionType, ChequeRpcEvent | null> = {
+          deposit: 'deposit',
+          collected: 'collect',
+          bounced: 'bounce',
+          endorse: 'endorse',
+          cancel: 'cancel_with_reverse',
+          cashed: 'cashed',
+          outgoing_bounced: 'outgoing_bounced',
+          recover: 'recover',
+          return_to_customer: 'return_to_customer',
+        } as any;
+        const evt = eventMap[data.action];
+        if (evt) {
+          // Resolve bank account code where the event needs one
+          let bankCode: string | null = null;
+          if (data.action === 'deposit') {
+            const bank = bankAccounts.find(b => b.id === data.bankAccountId);
+            bankCode = bank?.gl_account_code || null;
+            if (data.bankAccountId) updatePayload.deposit_bank_account_id = data.bankAccountId;
+            if (data.depositDate) updatePayload.deposit_date = data.depositDate;
+            if (bankCode) updatePayload.linked_account = bankCode;
+          } else if (data.action === 'collected') {
+            const bank = bankAccounts.find(b => b.id === cheque.deposit_bank_account_id);
+            bankCode = bank?.gl_account_code || '1120';
+            if (data.collectionDate) updatePayload.collection_date = data.collectionDate;
+          } else if (data.action === 'cashed') {
+            const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
+            bankCode = sb?.gl_account_code || '1120';
+            if (data.cashedDate) updatePayload.cashed_date = data.cashedDate;
+          } else if (data.action === 'bounced' || data.action === 'outgoing_bounced') {
+            if (data.bounceDate) updatePayload.bounce_date = data.bounceDate;
+            if (data.bounceReason) updatePayload.bounce_reason = data.bounceReason;
+            updatePayload.bank_fees = data.bankFees || 0;
+          } else if (data.action === 'endorse') {
+            updatePayload.endorsed_to_name = data.endorsedToName;
+            updatePayload.endorsed_to_contact_id = data.endorsedToContactId;
+          }
+
+          const eventDate =
+            data.depositDate || data.collectionDate || data.bounceDate || data.cashedDate ||
+            new Date().toISOString().split('T')[0];
+
+          const reason =
+            data.bounceReason || data.cancelReason || data.returnReason || data.recoverReason || null;
+
+          const result = await callChequeLifecycleRpc({
+            userId: user.id,
+            chequeId: cheque.id,
+            event: evt,
+            eventDate,
+            bankAccountCode: bankCode,
+            notes: data.notes || null,
+            bankFees: (data.action === 'bounced' || data.action === 'outgoing_bounced') ? (data.bankFees || null) : null,
+            endorsedToContactId: data.action === 'endorse' ? (data.endorsedToContactId || null) : null,
+            reason,
+          });
+
+          if (!result.success) throw new Error(result.error || 'فشل تنفيذ الإجراء');
+          txId = result.transaction_id || null;
+
+          // Apply UI-side updates (status + extra columns) — RPC already updated cheque.status,
+          // but we keep the explicit update for non-accounting columns (deposit_bank_account_id, etc.)
+          const { error: updErr } = await supabase.from('cheques').update(updatePayload as any).eq('id', cheque.id);
+          if (updErr) throw updErr;
+
+          // RPC already wrote cheque_status_history; just refresh UI
+          setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
+          toast.success(`تم: ${config.emoji} ${config.label} (RPC)`);
+          setActionTarget(null);
+          setActionType(null);
+          fetchCheques();
+          setActionSubmitting(false);
+          return;
+        }
+        // Fall through to legacy path if event not mapped
+      }
 
       if (data.action === 'deposit') {
         updatePayload.deposit_bank_account_id = data.bankAccountId;

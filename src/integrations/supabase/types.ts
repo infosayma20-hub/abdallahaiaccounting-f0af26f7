@@ -15880,14 +15880,29 @@ export type Database = {
         }
         Returns: Json
       }
+      create_cheque_bounce_atomic: {
+        Args: {
+          p_bank_fees?: number
+          p_bounce_date: string
+          p_bounce_reason: string
+          p_cheque_id: string
+          p_outbound?: boolean
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_cheque_lifecycle_event: {
         Args: {
           p_bank_account_code?: string
+          p_bank_fees?: number
+          p_bank_fees_account_code?: string
           p_cheque_id: string
+          p_endorsed_to_contact_id?: string
           p_event: string
           p_event_date?: string
           p_idempotency_key?: string
           p_notes?: string
+          p_reason?: string
           p_user_id: string
         }
         Returns: Json
@@ -15970,13 +15985,19 @@ export type Database = {
       create_payment_with_entry: {
         Args: {
           p_amount: number
+          p_cash_account_code?: string
+          p_contact_account_code?: string
           p_contact_id: string
           p_contact_name: string
           p_currency?: string
           p_description?: string
+          p_exchange_rate?: number
           p_idempotency_key?: string
+          p_notes?: string
           p_payment_method?: string
+          p_reference?: string
           p_user_id: string
+          p_voucher_date?: string
         }
         Returns: Json
       }
@@ -15996,13 +16017,19 @@ export type Database = {
       create_receipt_with_entry: {
         Args: {
           p_amount: number
+          p_cash_account_code?: string
+          p_contact_account_code?: string
           p_contact_id: string
           p_contact_name: string
           p_currency?: string
           p_description?: string
+          p_exchange_rate?: number
           p_idempotency_key?: string
+          p_notes?: string
           p_payment_method?: string
+          p_reference?: string
           p_user_id: string
+          p_voucher_date?: string
         }
         Returns: Json
       }
@@ -16336,6 +16363,27 @@ export type Database = {
         Returns: boolean
       }
       update_last_seen: { Args: never; Returns: undefined }
+      update_voucher_atomic: {
+        Args: {
+          p_amount: number
+          p_cash_account_code?: string
+          p_contact_account_code?: string
+          p_contact_id?: string
+          p_contact_name?: string
+          p_currency: string
+          p_description: string
+          p_exchange_rate?: number
+          p_idempotency_key?: string
+          p_kind: string
+          p_notes?: string
+          p_payment_method: string
+          p_reference?: string
+          p_transaction_id: string
+          p_user_id: string
+          p_voucher_date: string
+        }
+        Returns: Json
+      }
       user_can_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
@@ -16355,6 +16403,16 @@ export type Database = {
           p_reason: string
           p_session_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      void_voucher_atomic: {
+        Args: {
+          p_create_reverse?: boolean
+          p_reason?: string
+          p_transaction_id: string
+          p_user_id: string
+          p_void_date?: string
         }
         Returns: Json
       }
