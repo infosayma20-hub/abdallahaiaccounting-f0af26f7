@@ -104,6 +104,7 @@ const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDas
 const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
 const ReportBuilderPage = lazy(() => import("./pages/reports/ReportBuilderPage"));
 const MyReportsPage = lazy(() => import("./pages/reports/MyReportsPage"));
+const VanSalesReportsPage = lazy(() => import("./pages/reports/VanSalesReportsPage"));
 const DashboardsPage = lazy(() => import("./pages/dashboards/DashboardsPage"));
 const DashboardViewPage = lazy(() => import("./pages/dashboards/DashboardViewPage"));
 const PublicDashboardPage = lazy(() => import("./pages/dashboards/PublicDashboardPage"));
