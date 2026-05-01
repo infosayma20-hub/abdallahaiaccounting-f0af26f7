@@ -16560,6 +16560,10 @@ export type Database = {
         }
         Returns: Json
       }
+      void_rep_sale_atomic: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: Json
+      }
       void_voucher_atomic: {
         Args: {
           p_create_reverse?: boolean
