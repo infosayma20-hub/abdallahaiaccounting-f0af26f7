@@ -31,6 +31,7 @@ import {
   isVouchersRpcEnabled,
   callCreateReceiptRpc,
   callCreatePaymentRpc,
+  callAllocateVoucherRpc,
 } from "@/lib/voucher-rpc";
 import {
   AllocationMode,
