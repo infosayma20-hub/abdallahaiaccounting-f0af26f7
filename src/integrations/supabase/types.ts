@@ -15994,20 +15994,42 @@ export type Database = {
         }
         Returns: Json
       }
-      create_invoice_with_entry: {
-        Args: {
-          p_amount: number
-          p_contact_id: string
-          p_contact_name: string
-          p_currency?: string
-          p_description: string
-          p_idempotency_key?: string
-          p_items?: Json
-          p_payment_method?: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      create_invoice_with_entry:
+        | {
+            Args: {
+              p_amount: number
+              p_contact_id: string
+              p_contact_name: string
+              p_currency?: string
+              p_description: string
+              p_idempotency_key?: string
+              p_items?: Json
+              p_payment_method?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_contact_id: string
+              p_contact_name: string
+              p_cost_center_name?: string
+              p_currency?: string
+              p_description: string
+              p_exchange_rate?: number
+              p_foreign_amount?: number
+              p_idempotency_key?: string
+              p_invoice_type?: string
+              p_items?: Json
+              p_payment_method?: string
+              p_reference?: string
+              p_transaction_date?: string
+              p_user_id: string
+              p_workshop_id?: string
+            }
+            Returns: Json
+          }
       create_journal_entry_atomic: {
         Args: {
           p_currency?: string
