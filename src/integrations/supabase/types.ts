@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      _phase5a_test_results: {
+        Row: {
+          created_at: string | null
+          id: number
+          result: Json | null
+          test_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          result?: Json | null
+          test_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          result?: Json | null
+          test_name?: string | null
+        }
+        Relationships: []
+      }
       accountant_permissions: {
         Row: {
           accountant_auth_id: string
