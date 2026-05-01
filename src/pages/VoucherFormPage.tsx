@@ -28,6 +28,11 @@ import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import MobileSummaryBar from "@/components/voucher/MobileSummaryBar";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
 import {
+  isVouchersRpcEnabled,
+  callCreateReceiptRpc,
+  callCreatePaymentRpc,
+} from "@/lib/voucher-rpc";
+import {
   AllocationMode,
   autoAllocate as engineAutoAllocate,
   checkPostingGuards,
