@@ -25,6 +25,17 @@ interface StatementRow {
     total: number;
     unit?: string | null;
   }>;
+  voucherDetail?: {
+    paymentMethod?: string | null;
+    cashBox?: string | null;
+    bank?: string | null;
+    chequeNumber?: string | null;
+    chequeDate?: string | null;
+    chequeStatus?: string | null;
+    notes?: string | null;
+  };
+  voucherKind?: string;
+  voucherAmount?: number;
 }
 
 interface CompanyInfo {
@@ -98,6 +109,20 @@ const getTypeLabel = (t: string) => {
   if (t.includes("cheque")) return "شيك";
   if (t.includes("opening_balance")) return "رصيد افتتاحي";
   return "حركة";
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: "نقدي", bank: "بنك", cheque: "شيك", check: "شيك",
+  transfer: "تحويل", card: "بطاقة", credit: "آجل",
+};
+const paymentMethodLabel = (m?: string | null) => m ? (PAYMENT_METHOD_LABELS[m] || m) : "—";
+
+const CHEQUE_STATUS_LABELS: Record<string, string> = {
+  registered: "مسجل", deferred: "مؤجل", due: "مستحق",
+  deposited: "مودع بالبنك", under_collection: "برسم التحصيل",
+  collected: "محصّل", endorsed: "مجيّر لمورد",
+  returned: "مرتجع", return_to_customer: "مرتجع للعميل", rejected: "مرفوض",
+  paid: "مدفوع", cancelled: "ملغى",
 };
 
 const S = {
@@ -310,6 +335,77 @@ const StatementPrintViewClean = ({
                           </tr>
                         </tfoot>
                       </table>
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+            // ─── Nested Voucher Detail Table (Print) ───
+            if (r.lineItemDetail === "voucher-table" && r.voucherDetail) {
+              const d = r.voucherDetail;
+              const isCheque = d.paymentMethod === "cheque" || d.paymentMethod === "check" || !!d.chequeNumber;
+              const accountLabel = isCheque ? "البنك" : (d.cashBox ? "الصندوق" : (d.bank ? "البنك" : "—"));
+              const accountValue = isCheque ? (d.bank || "—") : (d.cashBox || d.bank || "—");
+              const amount = r.voucherAmount || 0;
+              return (
+                <tr key={r.transaction_id + "-" + i} style={{ background: "#FAFBFC" }}>
+                  <td colSpan={columns.length} style={{ padding: "6px 14px 10px", border: "none" }}>
+                    <div style={{ border: "1px solid #E5E7EB", borderRadius: 4, overflow: "hidden", background: "white" }}>
+                      <div style={{ padding: "4px 8px", background: "#F3F4F6", fontSize: 9, fontWeight: 700, color: "#374151" }}>
+                        تفاصيل {r.voucherKind || getTypeLabel(r.transaction_type)} {r.reference}
+                      </div>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                        <thead>
+                          <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                            <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9 }}>نوع السند</th>
+                            <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9 }}>رقم السند</th>
+                            <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9 }}>طريقة الدفع</th>
+                            <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9 }}>{accountLabel}</th>
+                            <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9, width: 90 }}>المبلغ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td style={{ padding: "4px 8px", color: "#111827", fontSize: 10 }}>{r.voucherKind || getTypeLabel(r.transaction_type)}</td>
+                            <td style={{ padding: "4px 8px", color: "#374151", fontSize: 9 }}>{r.reference}</td>
+                            <td style={{ padding: "4px 8px", color: "#374151", fontSize: 10 }}>{paymentMethodLabel(d.paymentMethod)}</td>
+                            <td style={{ padding: "4px 8px", color: "#374151", fontSize: 10 }}>{accountValue}</td>
+                            <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 600, fontSize: 10 }}>{fmt(amount)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      {isCheque && d.chequeNumber && (
+                        <>
+                          <div style={{ padding: "4px 8px", background: "#FFFBEB", fontSize: 9, fontWeight: 700, color: "#92400E", borderTop: "1px solid #E5E7EB" }}>
+                            تفاصيل الشيك
+                          </div>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                            <thead>
+                              <tr style={{ background: "#FEF3C7", borderBottom: "1px solid #FDE68A" }}>
+                                <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#92400E", fontSize: 9 }}>رقم الشيك</th>
+                                <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#92400E", fontSize: 9 }}>البنك</th>
+                                <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#92400E", fontSize: 9 }}>تاريخ الاستحقاق</th>
+                                <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#92400E", fontSize: 9 }}>الحالة</th>
+                                <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#92400E", fontSize: 9, width: 90 }}>المبلغ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td style={{ padding: "4px 8px", color: "#111827", fontSize: 9 }}>{d.chequeNumber}</td>
+                                <td style={{ padding: "4px 8px", color: "#374151", fontSize: 10 }}>{d.bank || "—"}</td>
+                                <td style={{ padding: "4px 8px", color: "#374151", fontSize: 10 }}>{d.chequeDate ? fmtDate(d.chequeDate) : "—"}</td>
+                                <td style={{ padding: "4px 8px", color: "#374151", fontSize: 10 }}>{d.chequeStatus ? (CHEQUE_STATUS_LABELS[d.chequeStatus] || d.chequeStatus) : "—"}</td>
+                                <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 600, fontSize: 10 }}>{fmt(amount)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </>
+                      )}
+                      {d.notes && (
+                        <div style={{ padding: "4px 8px", background: "#F9FAFB", fontSize: 9, color: "#6B7280", borderTop: "1px solid #E5E7EB", lineHeight: 1.4 }}>
+                          <span style={{ fontWeight: 600, color: "#374151" }}>ملاحظات:</span> {d.notes}
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

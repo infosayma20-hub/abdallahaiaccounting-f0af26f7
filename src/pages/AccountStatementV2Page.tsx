@@ -33,10 +33,10 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; voucherDetail?: StatementVoucherDetail; voucherKind?: string; voucherAmount?: number; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
-interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
+interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; chequeStatus?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
 interface StatementDetailsMap { invoiceDetailsById: Record<string, StatementInvoiceDetail[]>; voucherDetailsById: Record<string, StatementVoucherDetail>; agingSummary: ReturnType<typeof buildEmptyAging> | null; companySettings: typeof EMPTY_COMPANY_SETTINGS; }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts" | "contacts";
@@ -480,20 +480,53 @@ const AccountStatementV2Page = () => {
       }
 
       if (statementOptions.showVoucherDetails && voucherRefs.length > 0) {
-        const [{ data: receipts }, { data: vouchers }, { data: txLines }] = await Promise.all([
+        const [{ data: receipts }, { data: vouchers }] = await Promise.all([
           supabase.from("receipt_vouchers").select("receipt_number, payment_method, bank_name, check_number, check_date, notes, cash_box_id, bank_account_id").eq("user_id", user.id).in("receipt_number", voucherRefs),
-          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id").eq("user_id", user.id).in("ref_number", voucherRefs),
-          supabase.from("transactions").select("reference, debit_account_code, credit_account_code, amount").eq("user_id", user.id).in("reference", voucherRefs).eq("is_deleted", false),
+          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id, cash_box_id").eq("user_id", user.id).in("ref_number", voucherRefs),
         ]);
-        const codes = Array.from(new Set((txLines || []).flatMap((tx: any) => [tx.debit_account_code, tx.credit_account_code]).filter(Boolean)));
-        const { data: accs } = codes.length ? await supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).in("account_code", codes) : { data: [] as any[] };
-        const accMap: Record<string, string> = {}; (accs || []).forEach((a: any) => { accMap[a.account_code] = a.account_name; });
-        (receipts || []).forEach((v: any) => { voucherDetailsById[v.receipt_number] = { paymentMethod: v.payment_method, bank: v.bank_name, cashBox: v.cash_box_id, chequeNumber: v.check_number, chequeDate: v.check_date, notes: v.notes }; });
-        (vouchers || []).forEach((v: any) => { voucherDetailsById[v.ref_number] = { paymentMethod: v.payment_method, bank: v.cheque_bank_name, chequeNumber: v.cheque_number, chequeDate: v.cheque_due_date, notes: v.notes }; });
-        (txLines || []).forEach((tx: any) => {
-          const detail = voucherDetailsById[tx.reference] ||= {};
-          (detail.accounts ||= []).push({ accountCode: tx.debit_account_code, accountName: accMap[tx.debit_account_code] || tx.debit_account_code, debit: Number(tx.amount || 0), credit: 0 });
-          detail.accounts.push({ accountCode: tx.credit_account_code, accountName: accMap[tx.credit_account_code] || tx.credit_account_code, debit: 0, credit: Number(tx.amount || 0) });
+        // Resolve cash box / bank account UUIDs → human names
+        const cashBoxIds = Array.from(new Set([
+          ...(receipts || []).map((v: any) => v.cash_box_id).filter(Boolean),
+          ...(vouchers || []).map((v: any) => v.cash_box_id).filter(Boolean),
+        ]));
+        const bankAccountIds = Array.from(new Set([
+          ...(receipts || []).map((v: any) => v.bank_account_id).filter(Boolean),
+          ...(vouchers || []).map((v: any) => v.bank_account_id).filter(Boolean),
+        ]));
+        const [{ data: cashBoxesData }, { data: bankAccountsData }] = await Promise.all([
+          cashBoxIds.length ? supabase.from("cash_boxes").select("id, name").eq("user_id", user.id).in("id", cashBoxIds) : Promise.resolve({ data: [] as any[] }),
+          bankAccountIds.length ? supabase.from("bank_accounts").select("id, account_name, bank_name").eq("user_id", user.id).in("id", bankAccountIds) : Promise.resolve({ data: [] as any[] }),
+        ]);
+        const cashBoxMap: Record<string, string> = {}; (cashBoxesData || []).forEach((b: any) => { cashBoxMap[b.id] = b.name; });
+        const bankAccountMap: Record<string, { name: string; bank: string }> = {};
+        (bankAccountsData || []).forEach((b: any) => { bankAccountMap[b.id] = { name: b.account_name, bank: b.bank_name }; });
+        // Cheque status lookup (already loaded into `cheques` state)
+        const chequeStatusByNumber: Record<string, string> = {};
+        cheques.forEach(c => { if (c.cheque_number) chequeStatusByNumber[c.cheque_number] = c.status; });
+
+        (receipts || []).forEach((v: any) => {
+          const ba = v.bank_account_id ? bankAccountMap[v.bank_account_id] : null;
+          voucherDetailsById[v.receipt_number] = {
+            paymentMethod: v.payment_method,
+            bank: ba?.bank || v.bank_name || null,
+            cashBox: v.cash_box_id ? (cashBoxMap[v.cash_box_id] || null) : null,
+            chequeNumber: v.check_number,
+            chequeDate: v.check_date,
+            chequeStatus: v.check_number ? (chequeStatusByNumber[v.check_number] || null) : null,
+            notes: v.notes,
+          };
+        });
+        (vouchers || []).forEach((v: any) => {
+          const ba = v.bank_account_id ? bankAccountMap[v.bank_account_id] : null;
+          voucherDetailsById[v.ref_number] = {
+            paymentMethod: v.payment_method,
+            bank: ba?.bank || v.cheque_bank_name || null,
+            cashBox: v.cash_box_id ? (cashBoxMap[v.cash_box_id] || null) : null,
+            chequeNumber: v.cheque_number,
+            chequeDate: v.cheque_due_date,
+            chequeStatus: v.cheque_number ? (chequeStatusByNumber[v.cheque_number] || null) : null,
+            notes: v.notes,
+          };
         });
       }
 
@@ -501,7 +534,7 @@ const AccountStatementV2Page = () => {
     };
     loadDetailsMap();
     return () => { cancelled = true; };
-  }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo]);
+  }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo, cheques]);
 
   const statementRowsWithDetails = useMemo(() => {
     return filteredRows.flatMap((row) => {
@@ -524,16 +557,17 @@ const AccountStatementV2Page = () => {
       if (statementOptions.showVoucherDetails) {
         const detail = detailsMap.voucherDetailsById[row.reference];
         if (detail) {
-          const parts = [
-            `طريقة الدفع: ${paymentMethodLabel(detail.paymentMethod)}`,
-            detail.cashBox ? `الصندوق: ${detail.cashBox}` : null,
-            detail.bank ? `البنك: ${detail.bank}` : null,
-            detail.chequeNumber ? `شيك: ${detail.chequeNumber}${detail.chequeDate ? ` (${fmtDate(detail.chequeDate)})` : ""}` : null,
-            detail.notes ? `ملاحظات: ${detail.notes}` : null,
-          ].filter(Boolean).join(" | ");
-          if (parts) nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-main`, description: `↳ ${parts}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher" });
-          (detail.accounts || []).forEach((acc, idx) => {
-            nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-account-${idx}`, description: `↳ ${acc.accountCode} — ${acc.accountName} | مدين: ${fmtAmount(acc.debit, row.currency)} | دائن: ${fmtAmount(acc.credit, row.currency)}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher-account" });
+          nested.push({
+            ...row,
+            transaction_id: `${row.transaction_id}-voucher-table`,
+            description: "",
+            debit: 0,
+            credit: 0,
+            isLineItem: true,
+            lineItemDetail: "voucher-table",
+            voucherDetail: detail,
+            voucherKind: getTypeBadge(row.transaction_type),
+            voucherAmount: row.debit + row.credit,
           });
         }
       }
@@ -1054,6 +1088,87 @@ const AccountStatementV2Page = () => {
                                     </tr>
                                   </tfoot>
                                 </table>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+                      // ─── Nested Voucher Detail Table (Document-aware) ───
+                      if (row.lineItemDetail === "voucher-table" && row.voucherDetail) {
+                        const d = row.voucherDetail;
+                        const isCheque = d.paymentMethod === "cheque" || d.paymentMethod === "check" || !!d.chequeNumber;
+                        const chequeStatusMap: Record<string, string> = {
+                          registered: "مسجل", deferred: "مؤجل", due: "مستحق",
+                          deposited: "مودع بالبنك", under_collection: "برسم التحصيل",
+                          collected: "محصّل", endorsed: "مجيّر لمورد",
+                          returned: "مرتجع", return_to_customer: "مرتجع للعميل", rejected: "مرفوض",
+                          paid: "مدفوع", cancelled: "ملغى",
+                        };
+                        const accountLabel = isCheque ? "البنك" : (d.cashBox ? "الصندوق" : (d.bank ? "البنك" : "—"));
+                        const accountValue = isCheque ? (d.bank || "—") : (d.cashBox || d.bank || "—");
+                        return (
+                          <tr key={row.transaction_id + "-" + i} style={{ background: "#FAFBFC", borderBottom: "1px solid #E5E7EB" }}>
+                            <td colSpan={colSpan} style={{ padding: "10px 18px 14px" }}>
+                              <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", background: "white" }}>
+                                <div style={{ padding: "6px 12px", background: "#F3F4F6", fontSize: 10, fontWeight: 700, color: "#374151", letterSpacing: 0.2 }}>
+                                  🧾 تفاصيل {row.voucherKind || "السند"} {row.reference}
+                                </div>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                                  <thead>
+                                    <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>نوع السند</th>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>رقم السند</th>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>طريقة الدفع</th>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>{accountLabel}</th>
+                                      <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 110 }}>المبلغ</th>
+                                      <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 60 }}>العملة</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr>
+                                      <td style={{ padding: "6px 10px", color: "#111827", fontSize: 11 }}>{row.voucherKind || "—"}</td>
+                                      <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11, fontFamily: "monospace" }}>{row.reference}</td>
+                                      <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{paymentMethodLabel(d.paymentMethod)}</td>
+                                      <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{accountValue}</td>
+                                      <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 11 }}>{fmtAmount(row.voucherAmount || 0, row.currency)}</td>
+                                      <td style={{ padding: "6px 10px", textAlign: "center", color: "#6B7280", fontSize: 10 }}>{normalizeCurrency(row.currency)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                {isCheque && d.chequeNumber && (
+                                  <>
+                                    <div style={{ padding: "5px 12px", background: "#FFFBEB", fontSize: 10, fontWeight: 700, color: "#92400E", borderTop: "1px solid #E5E7EB" }}>
+                                      💳 تفاصيل الشيك
+                                    </div>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                                      <thead>
+                                        <tr style={{ background: "#FEF3C7", borderBottom: "1px solid #FDE68A" }}>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>رقم الشيك</th>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>البنك</th>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>تاريخ الاستحقاق</th>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>الحالة</th>
+                                          <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10, width: 110 }}>المبلغ</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr>
+                                          <td style={{ padding: "6px 10px", color: "#111827", fontSize: 11, fontFamily: "monospace" }}>{d.chequeNumber}</td>
+                                          <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{d.bank || "—"}</td>
+                                          <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{d.chequeDate ? fmtDate(d.chequeDate) : "—"}</td>
+                                          <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>
+                                            {d.chequeStatus ? (chequeStatusMap[d.chequeStatus] || d.chequeStatus) : "—"}
+                                          </td>
+                                          <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 11 }}>{fmtAmount(row.voucherAmount || 0, row.currency)}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </>
+                                )}
+                                {d.notes && (
+                                  <div style={{ padding: "6px 12px", background: "#F9FAFB", fontSize: 10, color: "#6B7280", borderTop: "1px solid #E5E7EB", lineHeight: 1.5 }}>
+                                    📝 <span style={{ fontWeight: 600, color: "#374151" }}>ملاحظات:</span> {d.notes}
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
