@@ -801,7 +801,8 @@ const ChequesPage = () => {
   const pendingIncoming = cheques.filter(c => c.cheque_type === 'وارد' && PENDING_STATUSES.includes(c.status));
   const pendingOutgoing = cheques.filter(c => c.cheque_type === 'صادر' && PENDING_STATUSES.includes(c.status));
   const sevenDaysFromNow = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-  const dueWithin7 = cheques.filter(c => PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+  const dueWithin7 = cheques.filter(c => DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+  const overdueWatch = cheques.filter(c => DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date < today);
   const thisMonth = new Date().toISOString().slice(0, 7);
   const collectedThisMonth = cheques.filter(c => ['محصل', 'مصروف'].includes(c.status) && c.updated_at?.startsWith(thisMonth));
 
@@ -853,7 +854,7 @@ const ChequesPage = () => {
   // Apply tab-level filtering
   const tabFiltered = useMemo(() => {
     if (activeTab === 'معلقة') return filtered.filter(c => PENDING_STATUSES.includes(c.status));
-    if (activeTab === 'مستحقة') return filtered.filter(c => PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+    if (activeTab === 'مستحقة') return filtered.filter(c => DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
     return filtered;
   }, [filtered, activeTab, sevenDaysFromNow, today]);
 
