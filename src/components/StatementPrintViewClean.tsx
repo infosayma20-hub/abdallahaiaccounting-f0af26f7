@@ -25,6 +25,17 @@ interface StatementRow {
     total: number;
     unit?: string | null;
   }>;
+  voucherDetail?: {
+    paymentMethod?: string | null;
+    cashBox?: string | null;
+    bank?: string | null;
+    chequeNumber?: string | null;
+    chequeDate?: string | null;
+    chequeStatus?: string | null;
+    notes?: string | null;
+  };
+  voucherKind?: string;
+  voucherAmount?: number;
 }
 
 interface CompanyInfo {
