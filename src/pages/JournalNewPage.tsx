@@ -485,7 +485,7 @@ const JournalNewPage = () => {
   return (
     <AccountingShell>
     <SmartFormScope
-      className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 space-y-5"
+      className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-32 space-y-5"
       firstFieldSelector="[data-smart-first]"
     >
     <div dir="rtl" className="contents">
