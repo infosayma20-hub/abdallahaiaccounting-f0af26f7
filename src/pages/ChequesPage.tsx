@@ -1058,7 +1058,7 @@ const ChequesPage = () => {
                   const isSelected = selected.has(c.id);
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
-                  const isDueSoon = PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
+                  const isDueSoon = DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
                   return (
                     <Fragment key={c.id}>
                       <tr
