@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { FileText, Search, CheckCircle, AlertTriangle, Info, Wand2, Hand, Wallet, Undo2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { FileText, Search, CheckCircle, AlertTriangle, Info, Wand2, Hand, Wallet, Undo2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -67,6 +67,8 @@ const SmartAllocationPanel = ({
   if (partyType !== "contact" || !hasContact) return null;
 
   const modeOptions = isReceipt ? MODE_OPTIONS : [...MODE_OPTIONS, REFUND_OPTION];
+  const secondaryOptions = modeOptions.filter(o => o.value !== "auto");
+  const [showMore, setShowMore] = useState<boolean>(mode !== "auto");
 
   const toneClasses = {
     success: "bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400",
@@ -77,7 +79,7 @@ const SmartAllocationPanel = ({
 
   return (
     <Card>
-      <CardContent className="p-5 space-y-4">
+      <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -90,76 +92,96 @@ const SmartAllocationPanel = ({
           </div>
         </div>
 
-        {/* Mode selector */}
-        {/* Hierarchy: Auto (default — strongest) > Manual (secondary) > Advance (subtle / exceptional) */}
-        <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr] gap-2">
-          {modeOptions.map(opt => {
-            const Icon = opt.icon;
-            const active = mode === opt.value;
-            const isPrimary = opt.value === "auto";
-            const isException = opt.value === "advance" || opt.value === "refund";
+        {/* Empty state — must enter amount first */}
+        {amount <= 0 ? (
+          <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 flex-shrink-0" />
+            أدخل المبلغ أولاً لعرض خيارات الربط بالفواتير
+          </div>
+        ) : (
+          <>
+            {/* Mode selector — progressive disclosure */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Primary: Auto (compact secondary button — not dominant) */}
+              {(() => {
+                const opt = modeOptions.find(o => o.value === "auto")!;
+                const Icon = opt.icon;
+                const active = mode === "auto";
+                return (
+                  <button
+                    type="button"
+                    onClick={() => { onModeChange("auto"); onAutoAllocate(); }}
+                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                      active
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border bg-card hover:bg-secondary/40 text-foreground"
+                    }`}
+                    title={opt.hint}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                );
+              })()}
 
-            // Visual weight per role
-            const baseClass = isPrimary
-              ? // Default / recommended
-                active
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                  : "border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary/60"
-              : isException
-                ? // Subtle, dashed — exceptional choice
-                  active
-                    ? "border-amber-500/60 bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20"
-                    : "border-dashed border-border/60 bg-transparent text-muted-foreground hover:bg-secondary/30 hover:text-foreground hover:border-border"
-                : // Manual — neutral secondary
-                  active
-                    ? "border-foreground/40 bg-secondary text-foreground ring-1 ring-foreground/10"
-                    : "border-border bg-card hover:bg-secondary/40";
-
-            const iconColor = isPrimary && active
-              ? "text-primary-foreground"
-              : isException && active
-                ? "text-amber-700"
-                : active
-                  ? "text-foreground"
-                  : isPrimary
-                    ? "text-primary"
-                    : "text-muted-foreground";
-
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  onModeChange(opt.value);
-                  if (opt.value === "auto") onAutoAllocate();
-                  if (opt.value === "advance" || opt.value === "refund") onClear();
-                }}
-                className={`relative text-right rounded-xl border p-2.5 transition-all ${baseClass}`}
-                title={opt.hint}
-              >
-                {isPrimary && !active && (
-                  <span className="absolute -top-1.5 right-2 text-[8px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
-                    موصى به
-                  </span>
-                )}
-                <div className="flex items-center gap-2">
-                  <Icon className={`h-4 w-4 ${iconColor}`} />
-                  <span className={`text-xs font-bold ${isPrimary && active ? "text-primary-foreground" : ""}`}>
+              {/* Active secondary mode chip (when something other than auto is picked) */}
+              {mode !== "auto" && (() => {
+                const opt = modeOptions.find(o => o.value === mode);
+                if (!opt) return null;
+                const Icon = opt.icon;
+                return (
+                  <span className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-foreground/30 bg-secondary text-foreground">
+                    <Icon className="h-3.5 w-3.5" />
                     {opt.label}
                   </span>
-                </div>
-                <p className={`text-[10px] mt-0.5 leading-tight ${
-                  isPrimary && active ? "text-primary-foreground/85" : "text-muted-foreground"
-                }`}>
-                  {opt.hint}
-                </p>
-              </button>
-            );
-          })}
-        </div>
+                );
+              })()}
 
-        {/* Classification badge */}
-        <div className={`rounded-xl border p-3 ${toneClasses}`}>
+              {/* Toggle for more options */}
+              <button
+                type="button"
+                onClick={() => setShowMore(s => !s)}
+                className="ml-auto text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                خيارات أخرى
+                {showMore ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
+            </div>
+
+            {/* Secondary options — collapsed by default */}
+            {showMore && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {secondaryOptions.map(opt => {
+                  const Icon = opt.icon;
+                  const active = mode === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        onModeChange(opt.value);
+                        if (opt.value === "advance" || opt.value === "refund") onClear();
+                      }}
+                      className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border transition-all ${
+                        active
+                          ? "border-foreground/30 bg-secondary text-foreground"
+                          : "border-dashed border-border/70 bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                      }`}
+                      title={opt.hint}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Classification badge — only meaningful when amount > 0 */}
+        {amount > 0 && (
+        <div className={`rounded-lg border p-2.5 ${toneClasses}`}>
           <div className="flex items-start gap-2">
             {classification.tone === "success" && <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />}
             {classification.tone === "warning" && <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />}
@@ -171,9 +193,10 @@ const SmartAllocationPanel = ({
             </div>
           </div>
         </div>
+        )}
 
         {/* Search + Invoice table — only when allocation modes are active */}
-        {(mode === "auto" || mode === "manual") && invoices.length > 0 && (
+        {amount > 0 && (mode === "auto" || mode === "manual") && invoices.length > 0 && (
           <>
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
