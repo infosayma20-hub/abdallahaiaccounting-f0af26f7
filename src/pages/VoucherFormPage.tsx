@@ -2277,13 +2277,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
   return (
     <SmartFormScope
-      className="max-w-7xl mx-auto"
+      className="max-w-[1440px] w-full mx-auto px-4 lg:px-6"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
-    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
-      {/* ───── Right column: Input ───── */}
-      <div className="space-y-5 min-w-0">
+    {/* ═══════════════════════════════════════════════════════════════
+        PROFESSIONAL VOUCHER LAYOUT — 12-column grid (RTL)
+        ───────────────────────────────────────────────────────────────
+        Top    : [Voucher Form  col-span-8] [Sticky Summary col-span-4]
+        Middle : [Payment Card                              col-span-12]
+        Bottom : [Notes col-span-8]               [Attachments col-span-4]
+        Footer : Sticky action bar
+        ═══════════════════════════════════════════════════════════════ */}
+    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* ───── TOP-RIGHT (RTL right): Voucher Form — 8 cols ───── */}
+      <div className="lg:col-span-8 space-y-5 min-w-0">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
