@@ -2805,17 +2805,30 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                 </>
               ) : (
                 <>
-                  <Label className="text-xs mb-1.5 block">دفتر الشيكات (الحساب البنكي)</Label>
-                  <Select value={selectedChequeBankAccount} onValueChange={setSelectedChequeBankAccount}>
-                    <SelectTrigger><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
-                    <SelectContent>
-                      {bankAccounts.map(ba => (
-                        <SelectItem key={ba.id} value={ba.id}>
-                          {ba.name} - {ba.bank_name} {ba.currency ? `(${ba.currency})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {isReceipt ? (
+                    <>
+                      <Label className="text-xs mb-1.5 block">حساب الشيك</Label>
+                      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/40 bg-secondary/30 text-xs text-muted-foreground">
+                        <ReceiptIcon className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-medium text-foreground">شيكات برسم التحصيل (1150)</span>
+                        <span className="text-[10px]">— تلقائي</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Label className="text-xs mb-1.5 block">دفتر الشيكات (الحساب البنكي)</Label>
+                      <Select value={selectedChequeBankAccount} onValueChange={setSelectedChequeBankAccount}>
+                        <SelectTrigger><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map(ba => (
+                            <SelectItem key={ba.id} value={ba.id}>
+                              {ba.name} - {ba.bank_name} {ba.currency ? `(${ba.currency})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
                 </>
               )}
             </div>
