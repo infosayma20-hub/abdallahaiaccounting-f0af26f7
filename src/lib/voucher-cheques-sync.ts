@@ -24,6 +24,29 @@ export type ChequeFormRow = {
 /** Statuses that mean "cheque is still safely editable". */
 const SAFE_STATUSES = new Set(["مسجل", "مسودة"]);
 
+/** DB constraint cheques_currency_check allows only these codes. */
+const ALLOWED_CURRENCIES = new Set(["ILS", "USD", "JOD", "EUR", "EGP"]);
+const CURRENCY_LABEL_TO_CODE: Record<string, string> = {
+  "شيكل": "ILS",
+  "شيقل": "ILS",
+  "دولار": "USD",
+  "دينار": "JOD",
+  "يورو": "EUR",
+  "جنيه": "EGP",
+  "NIS": "ILS",
+  "ils": "ILS",
+};
+
+function normalizeCurrency(input: string | null | undefined): string {
+  const raw = (input || "").trim();
+  if (!raw) return "ILS";
+  if (ALLOWED_CURRENCIES.has(raw)) return raw;
+  const upper = raw.toUpperCase();
+  if (ALLOWED_CURRENCIES.has(upper)) return upper;
+  if (CURRENCY_LABEL_TO_CODE[raw]) return CURRENCY_LABEL_TO_CODE[raw];
+  throw new Error(`العملة غير مدعومة للشيكات: "${raw}". المسموح: ILS, USD, JOD, EUR, EGP.`);
+}
+
 export interface SyncChequesParams {
   userId: string;
   voucherId: string;
@@ -32,6 +55,7 @@ export interface SyncChequesParams {
   cheques: ChequeFormRow[];
   partyName: string;
   contactId: string | null;
+  /** Currency code (ILS/USD/JOD/EUR/EGP). Arabic labels are auto-normalized. */
   currencyLabel: string;
   sourceBankAccountId: string | null;
   fallbackDate: string;
@@ -44,6 +68,7 @@ export interface SyncChequesParams {
  */
 export async function syncChequesOnEdit(p: SyncChequesParams): Promise<void> {
   const formCount = (p.cheques || []).filter((c) => c.number).length;
+  const currencyCode = normalizeCurrency(p.currencyLabel);
 
   // 1. Fetch existing cheques attached to this voucher
   const { data: existing, error: fetchErr } = await supabase
@@ -86,7 +111,7 @@ export async function syncChequesOnEdit(p: SyncChequesParams): Promise<void> {
       party_name: p.partyName,
       bank_name: c.bank,
       status: "مسجل" as const,
-      currency: p.currencyLabel,
+      currency: currencyCode,
       source_bank_account_id: p.sourceBankAccountId,
       receipt_voucher_id: p.receiptVoucherId,
       contact_id: p.contactId,
