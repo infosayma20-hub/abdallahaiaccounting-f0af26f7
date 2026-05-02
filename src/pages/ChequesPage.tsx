@@ -1118,6 +1118,16 @@ const ChequesPage = () => {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
+                            {c.status === 'مظهر' && c.cheque_type === 'وارد' && (
+                              <button
+                                onClick={() => setUnendorseTarget(c)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
+                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                title="إلغاء التجيير وإرجاع الشيك إلى بحوزتك"
+                              >
+                                <Undo2 className="h-3 w-3" />إلغاء التجيير
+                              </button>
+                            )}
                             <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-red-50 transition-colors" title="حذف">
                               <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
                             </button>
