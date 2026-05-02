@@ -971,16 +971,19 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* Notes */}
-      <Card>
+      {/* ═══ Bottom row: Notes (8 cols) + Attachments (4 cols) ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <Card className="lg:col-span-8 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
-          <Label className="text-xs mb-1.5 block">ملاحظات</Label>
-          <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." rows={3} />
+          <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
+            ملاحظات
+          </Label>
+          <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." rows={5} className="resize-none" />
         </CardContent>
       </Card>
 
       {/* Attachments Section */}
-      <Card>
+      <Card className="lg:col-span-4 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
