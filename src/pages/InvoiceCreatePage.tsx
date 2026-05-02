@@ -2515,32 +2515,47 @@ const InvoiceCreatePage = () => {
 
       </div>
 
-      {/* ─── Smart Summary Panel (Left, sticky on desktop) ─── */}
-      <aside className="hidden lg:block lg:sticky lg:top-4 self-start">
-        <SmartSummaryPanel
-          variant="invoice"
-          invoiceType={form.type}
-          subtotal={summary.subtotal}
-          totalDiscount={summary.totalDiscount}
-          totalTax={summary.totalTax}
-          total={summary.total}
-          taxEnabled={taxEnabled}
-          taxInclusive={form.taxInclusive}
-          itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
-          partyName={selectedContact?.contact_name || form.contactName || null}
-          partyId={selectedContact?.id || null}
-          balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
-          openInvoicesTotal={contactOpenInvoicesTotal}
-          unappliedCredit={contactUnappliedCredit}
-          creditLimit={selectedContact?.credit_limit ?? null}
-          currency={form.currency}
-          exchangeRate={form.exchangeRate}
-          dueDate={form.dueDate}
-          refNumber={nextInvoiceNumber}
-          currencySymbol={currSymbol}
-          onOpenStatement={selectedContact ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank") : undefined}
-        />
-      </aside>
+      {/* ───── BOTTOM-RIGHT (RTL left): Final Totals — 4 cols ─────
+          Compact mirror of the top sticky summary. Same design language,
+          stronger emphasis on the final total. */}
+      <div className="lg:col-span-4 w-full">
+        <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+          <CardHeader className="pb-2 pt-3 px-4 bg-muted/30 border-b border-border/50">
+            <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
+              <FileCheck className="h-4 w-4 text-primary" /> ملخص الإجماليات
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-2.5">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="text-muted-foreground">الإجمالي الفرعي</span>
+              <span className="font-semibold tabular-nums">{fmtCurrency(summary.subtotal)}</span>
+            </div>
+            {summary.totalDiscount > 0 && (
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-muted-foreground">الخصم</span>
+                <span className="font-semibold tabular-nums text-destructive">- {fmtCurrency(summary.totalDiscount)}</span>
+              </div>
+            )}
+            {taxEnabled && (
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-muted-foreground">ضريبة القيمة المضافة</span>
+                <span className="font-semibold tabular-nums">{fmtCurrency(summary.totalTax)}</span>
+              </div>
+            )}
+            <div className="h-px bg-border/60 my-1" />
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[13px] font-bold">الإجمالي النهائي</span>
+              <span className="text-[18px] font-extrabold text-primary tabular-nums">{fmtCurrency(summary.total)}</span>
+            </div>
+            {form.currency !== "ILS" && (
+              <p className="text-[10px] text-muted-foreground text-left pt-1">
+                ≈ {fmtCurrencyStatic(summary.total * form.exchangeRate)} (شيكل)
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       </div>
 
       {/* ─── Sticky Bottom Actions ─── */}
