@@ -170,10 +170,22 @@ export default function MonthlyAttendanceTab({ employees }: { employees: Employe
       const co = buildTs(form.last_check_out);
       let total = 0;
       if (ci && co) total = Math.max(0, (new Date(co).getTime() - new Date(ci).getTime()) / 3600000);
+      // Recompute overtime based on employee's daily work hours (default 8)
+      let dailyHours = 8;
+      try {
+        const { data: emp } = await supabase
+          .from("employees")
+          .select("work_hours_per_day")
+          .eq("id", editing.employee_id)
+          .maybeSingle();
+        if (emp?.work_hours_per_day) dailyHours = Number(emp.work_hours_per_day) || 8;
+      } catch { /* fallback to 8 */ }
+      const overtime = ci && co ? Math.max(0, total - dailyHours) : 0;
       const { error } = await supabase.from("attendance_days").update({
         first_check_in: ci,
         last_check_out: co,
         total_hours: Number(total.toFixed(2)),
+        overtime_hours: Number(overtime.toFixed(2)),
         status: form.status,
         notes: form.notes || null,
         is_manually_adjusted: true,
