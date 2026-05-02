@@ -2341,6 +2341,11 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
+      </div>
+
+      {/* ═══ BOTTOM ROW: Notes/Terms/Attach (8 cols)  +  Final Totals (4 cols) ═══ */}
+      <div className="lg:col-span-8 min-w-0 space-y-4">
+
       {/* ─── SECTION 4: Notes (Collapsible) ─── */}
       <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
         <Card className="border-0 shadow-sm rounded-2xl">
