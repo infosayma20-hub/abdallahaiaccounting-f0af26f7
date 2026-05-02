@@ -547,11 +547,25 @@ const JournalNewPage = () => {
         } : undefined}
       />
 
+      {/* ═══════════════════════════════════════════════════════════════
+          12-COLUMN MASTER GRID — Odoo / QuickBooks Journal style
+          Left  (col-span-8): Header → Lines → Notes/Attachments
+          Right (col-span-4): Sticky balance summary (Debit/Credit/Diff)
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      {/* ═══ LEFT COLUMN — Main content (8 cols) ═══ */}
+      <div className="lg:col-span-8 min-w-0 space-y-5">
+
       {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-4">
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <h2 className="text-[13px] font-bold text-foreground">بيانات السند</h2>
+        </div>
+        <CardContent className="p-5 space-y-5">
           {/* Subtype Tabs — chip strip, single row */}
-          <div className="flex flex-wrap gap-2 pb-3 border-b border-border/40">
+          <div className="flex flex-wrap gap-2">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
               <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
                 {subtypeLabels[st]}
@@ -636,7 +650,7 @@ const JournalNewPage = () => {
           </div>
 
           <div>
-            <Label className="text-xs mb-1.5 block">الوصف *</Label>
+            <Label className="text-xs mb-1.5 block font-semibold">الوصف *</Label>
             <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="مثال: سلفة راتب - رهام حسون" />
           </div>
         </CardContent>
