@@ -534,7 +534,7 @@ const AccountStatementV2Page = () => {
     };
     loadDetailsMap();
     return () => { cancelled = true; };
-  }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo]);
+  }, [user, filteredRows, statementOptions.showInvoiceDetails, statementOptions.showVoucherDetails, agingData, companyInfo, cheques]);
 
   const statementRowsWithDetails = useMemo(() => {
     return filteredRows.flatMap((row) => {
