@@ -846,7 +846,7 @@ const JournalNewPage = () => {
                           )}
                           {(() => {
                             const q = (accountSearches[line.id] || "");
-                            const fa = accounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
+                            const fa = postableAccounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
                             const fc = q.trim() ? contacts.filter(c => multiWordMatchAny(q, c.contact_name)) : contacts;
                             const hasSearch = q.trim().length > 0;
 
