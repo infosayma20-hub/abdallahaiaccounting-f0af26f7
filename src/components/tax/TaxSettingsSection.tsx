@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,35 @@ import { Save, Plus, Trash2, AlertTriangle, Shield } from "lucide-react";
 
 interface Props { ownerId: string; }
 
+interface TaxSettings {
+  id?: string;
+  tax_name?: string;
+  tax_number?: string;
+  tax_rate?: number;
+  registration_type?: string;
+  fiscal_year_start?: number;
+  report_due_day?: number;
+  prices_include_tax?: boolean;
+  output_tax_account_code?: string;
+  input_tax_account_code?: string;
+  payable_tax_account_code?: string;
+  refundable_tax_account_code?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+}
+
+interface TaxCategory {
+  id: string;
+  name: string;
+  code: string;
+  tax_type: string;
+  rate: number | null;
+  description?: string | null;
+  is_active?: boolean | null;
+}
+
 const defaultCategories = [
   { name: "خاضع للضريبة 16%", code: "STD", tax_type: "standard", rate: 16, description: "صفقات خاضعة بالنسبة العامة", is_default: true },
   { name: "بنسبة صفر - تصدير", code: "ZERO-EXP", tax_type: "zero", rate: 0, description: "صادرات بنسبة صفر" },
@@ -24,18 +53,13 @@ const defaultCategories = [
 
 export default function TaxSettingsSection({ ownerId }: Props) {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<any>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [settings, setSettings] = useState<TaxSettings | null>(null);
+  const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [vatEnabled, setVatEnabled] = useState(true);
 
-  useEffect(() => {
-    if (!ownerId) return;
-    loadData();
-  }, [ownerId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const [settingsRes, categoriesRes, companyRes] = await Promise.all([
       supabase.from("tax_settings").select("*").eq("user_id", ownerId).maybeSingle(),
@@ -66,28 +90,54 @@ export default function TaxSettingsSection({ ownerId }: Props) {
 
     setCategories(categoriesRes.data || []);
     setLoading(false);
-  };
+  }, [ownerId]);
+
+  useEffect(() => {
+    if (!ownerId) return;
+    loadData();
+  }, [ownerId, loadData]);
 
   const saveSettings = async () => {
     if (!ownerId || !user) return;
     setSaving(true);
+    try {
+      const { data: updatedCompany, error: updateCompanyError } = await supabase
+        .from("company_settings")
+        .update({ vat_enabled: vatEnabled, updated_by: user.id })
+        .eq("user_id", ownerId)
+        .select("id");
 
-    // Save vat_enabled in company_settings
-    await supabase.from("company_settings").update({ vat_enabled: vatEnabled } as any).eq("user_id", ownerId);
+      if (updateCompanyError) throw updateCompanyError;
 
-    if (vatEnabled) {
-      const payload = { ...settings, user_id: ownerId, updated_at: new Date().toISOString() };
-      delete payload.created_at;
+      if (!updatedCompany?.length) {
+        const { error: insertCompanyError } = await supabase
+          .from("company_settings")
+          .insert({ user_id: ownerId, vat_enabled: vatEnabled, updated_by: user.id });
 
-      if (settings.id) {
-        await supabase.from("tax_settings").update(payload).eq("id", settings.id);
-      } else {
-        const { data } = await supabase.from("tax_settings").insert(payload).select().single();
-        if (data) setSettings(data);
+        if (insertCompanyError) throw insertCompanyError;
       }
+
+      if (vatEnabled) {
+        const payload = { ...settings, user_id: ownerId, updated_at: new Date().toISOString() };
+        delete payload.created_at;
+
+        if (settings.id) {
+          const { error } = await supabase.from("tax_settings").update(payload).eq("id", settings.id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from("tax_settings").insert(payload).select().single();
+          if (error) throw error;
+          if (data) setSettings(data);
+        }
+      }
+
+      toast.success("تم حفظ الإعدادات الضريبية");
+      await loadData();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ إعدادات الضريبة");
+    } finally {
+      setSaving(false);
     }
-    toast.success("تم حفظ الإعدادات الضريبية");
-    setSaving(false);
   };
 
   const initDefaultCategories = async () => {
