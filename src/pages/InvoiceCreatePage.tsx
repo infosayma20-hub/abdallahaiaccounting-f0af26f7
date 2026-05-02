@@ -1572,7 +1572,7 @@ const InvoiceCreatePage = () => {
   return (
     <AccountingShell>
     <SmartFormScope
-      className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
+      className="px-4 lg:px-6 pt-3 pb-32 w-full max-w-[1600px] mx-auto"
       firstFieldSelector="input[data-smart-first], [data-smart-first] input, [data-smart-first]"
       disableAutoFocus={isEditMode}
     >
@@ -1644,7 +1644,9 @@ const InvoiceCreatePage = () => {
           ───────────────────────────────────────────────────────────────
           Top row    : [Invoice Form  col-span-8] [Sticky Summary col-span-4]
           Middle row : [Items Table                              col-span-12]
-          Bottom row : [Notes + Terms + Attach col-span-8] [Final Totals col-span-4]
+          Bottom row : [Notes + Terms + Attach                    col-span-12]
+          (Final totals are NOT duplicated — the top sticky summary is the
+          single source of truth for totals, mirrored in the sticky action bar.)
           All cards share the same horizontal gutters (gap-6) and align
           perfectly on the same baselines — QuickBooks / Odoo style.
           ═══════════════════════════════════════════════════════════════ */}
@@ -2344,7 +2346,10 @@ const InvoiceCreatePage = () => {
       </div>
 
       {/* ═══ BOTTOM ROW: Notes/Terms/Attach (8 cols)  +  Final Totals (4 cols) ═══ */}
-      <div className="lg:col-span-8 min-w-0 space-y-4">
+      {/* ═══ BOTTOM ROW: Notes / Terms / Attachments — full width 12 cols ═══
+          The duplicate "Final Totals" card was removed; the top sticky summary
+          + the sticky action bar are the single source of truth for totals. */}
+      <div className="lg:col-span-12 min-w-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
 
       {/* ─── SECTION 4: Notes (Collapsible) ─── */}
       <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
@@ -2513,47 +2518,6 @@ const InvoiceCreatePage = () => {
         </Card>
       </Collapsible>
 
-      </div>
-
-      {/* ───── BOTTOM-RIGHT (RTL left): Final Totals — 4 cols ─────
-          Compact mirror of the top sticky summary. Same design language,
-          stronger emphasis on the final total. */}
-      <div className="lg:col-span-4 w-full">
-        <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="pb-2 pt-3 px-4 bg-muted/30 border-b border-border/50">
-            <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
-              <FileCheck className="h-4 w-4 text-primary" /> ملخص الإجماليات
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-2.5">
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-muted-foreground">الإجمالي الفرعي</span>
-              <span className="font-semibold tabular-nums">{fmtCurrency(summary.subtotal)}</span>
-            </div>
-            {summary.totalDiscount > 0 && (
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="text-muted-foreground">الخصم</span>
-                <span className="font-semibold tabular-nums text-destructive">- {fmtCurrency(summary.totalDiscount)}</span>
-              </div>
-            )}
-            {taxEnabled && (
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="text-muted-foreground">ضريبة القيمة المضافة</span>
-                <span className="font-semibold tabular-nums">{fmtCurrency(summary.totalTax)}</span>
-              </div>
-            )}
-            <div className="h-px bg-border/60 my-1" />
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[13px] font-bold">الإجمالي النهائي</span>
-              <span className="text-[18px] font-extrabold text-primary tabular-nums">{fmtCurrency(summary.total)}</span>
-            </div>
-            {form.currency !== "ILS" && (
-              <p className="text-[10px] text-muted-foreground text-left pt-1">
-                ≈ {fmtCurrencyStatic(summary.total * form.exchangeRate)} (شيكل)
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       </div>
