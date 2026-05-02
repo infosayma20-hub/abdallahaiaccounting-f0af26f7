@@ -2682,16 +2682,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       )}
 
-      {/* ───── MIDDLE: Payment card — stays INSIDE col-span-8 left column
-          (was previously col-span-12 which broke the grid and made the
-          summary look floating). Now flows continuously beside the
-          sticky summary on the left. */}
-      <div className="space-y-5">
+      </div>
 
-      {/* Row 2: Payment Method, Currency & Amount */}
-      <Card>
-        <CardContent className="p-5 space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* ───── TOP-LEFT (RTL left): Sticky Summary — 4 cols ───── */}
+      <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
         <SmartSummaryPanel
           variant={voucherType}
           currencySymbol={currencySymbol}
