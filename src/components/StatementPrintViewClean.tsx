@@ -266,7 +266,56 @@ const StatementPrintViewClean = ({
           </tr>
 
           {/* Data rows */}
-          {rows.map((r, i) => (
+          {rows.map((r, i) => {
+            // ─── Nested Invoice Items Table (Print) ───
+            if (r.lineItemDetail === "invoice-table" && r.invoiceItems && r.invoiceItems.length > 0) {
+              const items = r.invoiceItems;
+              const sub = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
+              return (
+                <tr key={r.transaction_id + "-" + i} style={{ background: "#FAFBFC" }}>
+                  <td colSpan={columns.length} style={{ padding: "6px 14px 10px", border: "none" }}>
+                    <div style={{ border: "1px solid #E5E7EB", borderRadius: 4, overflow: "hidden", background: "white" }}>
+                      <div style={{ padding: "4px 8px", background: "#F3F4F6", fontSize: 9, fontWeight: 700, color: "#374151" }}>
+                        تفاصيل أصناف الفاتورة {r.reference} ({items.length} {items.length === 1 ? "صنف" : "أصناف"})
+                      </div>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                        <thead>
+                          <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                            <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9 }}>المنتج / الخدمة</th>
+                            <th style={{ textAlign: "center", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9, width: 55 }}>الكمية</th>
+                            <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9, width: 70 }}>السعر</th>
+                            <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9, width: 55 }}>الخصم</th>
+                            <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9, width: 55 }}>الضريبة</th>
+                            <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#4B5563", fontSize: 9, width: 80 }}>الإجمالي</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((it, idx) => (
+                            <tr key={idx} style={{ borderBottom: idx === items.length - 1 ? "none" : "1px solid #F3F4F6" }}>
+                              <td style={{ padding: "4px 8px", color: "#111827", fontSize: 10 }}>{it.productName || "—"}</td>
+                              <td style={{ padding: "4px 8px", textAlign: "center", color: "#374151", fontSize: 10 }}>
+                                {it.quantity}{it.unit ? <span style={{ color: "#9CA3AF", fontSize: 8, marginRight: 2 }}>{it.unit}</span> : null}
+                              </td>
+                              <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#374151", fontSize: 10 }}>{fmt(it.unitPrice)}</td>
+                              <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: it.discount > 0 ? "#B45309" : "#9CA3AF", fontSize: 10 }}>{it.discount > 0 ? `${it.discount}` : "—"}</td>
+                              <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#6B7280", fontSize: 10 }}>{it.tax > 0 ? `${it.tax}%` : "—"}</td>
+                              <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 600, fontSize: 10 }}>{fmt(it.total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{ background: "#F9FAFB", borderTop: "1px solid #E5E7EB" }}>
+                            <td colSpan={5} style={{ padding: "4px 8px", textAlign: "left", fontSize: 9, fontWeight: 700, color: "#374151" }}>الإجمالي</td>
+                            <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", fontSize: 10, fontWeight: 700, color: "#0D1B2E" }}>{fmt(sub)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+            return (
             <tr key={r.transaction_id + "-" + i} style={r.isLineItem ? { background: "#F9FAFB" } : undefined}>
               {columns.map((c) => {
                 if (r.isLineItem) {
@@ -289,7 +338,8 @@ const StatementPrintViewClean = ({
                 }
               })}
             </tr>
-          ))}
+            );
+          })}
 
           {/* Totals row */}
           <tr style={S.totalsRow}>
