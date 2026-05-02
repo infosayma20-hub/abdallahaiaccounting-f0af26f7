@@ -15,6 +15,16 @@ interface StatementRow {
   currency?: string;
   dueDate?: string;
   isLineItem?: boolean;
+  lineItemDetail?: string;
+  invoiceItems?: Array<{
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    tax: number;
+    total: number;
+    unit?: string | null;
+  }>;
 }
 
 interface CompanyInfo {
