@@ -62,6 +62,105 @@ export interface SyncChequesParams {
 }
 
 /**
+ * Validate cheque rows BEFORE any DB call. Throws a clear, Arabic, actionable
+ * error message — caller must catch and surface it. Used by both the create
+ * and edit paths so the same rules apply everywhere.
+ */
+export function validateChequeRows(rows: ChequeFormRow[], currencyLabel: string) {
+  const populated = (rows || []).filter((c) => c.number && String(c.number).trim() !== "");
+  if (populated.length === 0) {
+    throw new Error("يجب إدخال شيك واحد على الأقل (الرقم، البنك، التاريخ، والمبلغ).");
+  }
+  for (const c of populated) {
+    const num = String(c.number).trim();
+    if (!c.bank || !String(c.bank).trim()) {
+      throw new Error(`الشيك رقم ${num}: حقل البنك مطلوب.`);
+    }
+    if (!c.date || !String(c.date).trim()) {
+      throw new Error(`الشيك رقم ${num}: تاريخ الاستحقاق مطلوب.`);
+    }
+    if (!(Number(c.amount) > 0)) {
+      throw new Error(`الشيك رقم ${num}: المبلغ يجب أن يكون أكبر من صفر.`);
+    }
+  }
+  // Throws if currency is unsupported.
+  normalizeCurrency(currencyLabel);
+}
+
+export interface InsertChequesParams {
+  userId: string;
+  voucherId: string;
+  receiptVoucherId: string | null;
+  direction: "وارد" | "صادر";
+  cheques: ChequeFormRow[];
+  partyName: string;
+  contactId: string | null;
+  currencyLabel: string;
+  sourceBankAccountId: string | null;
+  fallbackDate: string;
+}
+
+/**
+ * Atomic-ish insert for the **create** flow. Validates → inserts → verifies
+ * `dbCount === formCount` via `.select('id')`. On any failure throws so the
+ * caller can roll back / void the parent voucher. Never silently swallows.
+ *
+ * This replaces the legacy ad-hoc `supabase.from("cheques").insert(...)` calls
+ * that were the root cause of "voucher saved with zero cheques" incidents.
+ */
+export async function insertChequesForVoucher(p: InsertChequesParams): Promise<number> {
+  validateChequeRows(p.cheques, p.currencyLabel);
+  const currencyCode = normalizeCurrency(p.currencyLabel);
+
+  const rows = p.cheques
+    .filter((c) => c.number && String(c.number).trim() !== "")
+    .map((c) => ({
+      user_id: p.userId,
+      cheque_type: p.direction,
+      cheque_number: String(c.number).trim(),
+      cheque_date: c.date || p.fallbackDate,
+      amount: Number(c.amount) || 0,
+      party_name: p.partyName,
+      bank_name: c.bank,
+      status: "مسجل" as const,
+      currency: currencyCode,
+      source_bank_account_id: p.sourceBankAccountId,
+      receipt_voucher_id: p.receiptVoucherId,
+      contact_id: p.contactId,
+      account_number: c.accountNumber?.trim() || null,
+      notes: c.notes?.trim() || null,
+      voucher_id: p.voucherId,
+    }));
+
+  const formCount = rows.length;
+  if (formCount === 0) {
+    // validateChequeRows already throws on this — defensive only.
+    throw new Error("لا توجد شيكات صالحة للحفظ.");
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("cheques")
+    .insert(rows as any)
+    .select("id");
+  if (error) throw new Error(`فشل تسجيل الشيكات: ${error.message}`);
+
+  const dbCount = inserted?.length || 0;
+  if (dbCount !== formCount) {
+    throw new Error(
+      `تم حفظ ${dbCount} من أصل ${formCount} شيك فقط — السند سيتم التراجع عنه. أعد المحاولة.`,
+    );
+  }
+  console.info("[voucher-cheques-sync] insert ok", {
+    voucherId: p.voucherId,
+    direction: p.direction,
+    formCount,
+    dbCount,
+  });
+  toast.success(`تم تسجيل ${dbCount} شيك`);
+  return dbCount;
+}
+
+/**
  * Delete & recreate the cheques attached to a voucher.
  * Throws if any of the existing cheques is in an unsafe status — caller must
  * cancel the edit instead of silently overwriting downstream accounting.
