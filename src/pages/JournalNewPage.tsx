@@ -484,7 +484,7 @@ const JournalNewPage = () => {
   return (
     <AccountingShell>
     <SmartFormScope
-      className="max-w-4xl mx-auto space-y-5"
+      className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 space-y-5"
       firstFieldSelector="[data-smart-first]"
     >
     <div dir="rtl" className="contents">
@@ -546,28 +546,29 @@ const JournalNewPage = () => {
         } : undefined}
       />
 
-      {/* Subtype Tabs */}
-      <Card>
+      {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5 space-y-4">
-          <div className="flex gap-2">
+          {/* Subtype Tabs — chip strip, single row */}
+          <div className="flex flex-wrap gap-2 pb-3 border-b border-border/40">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
-              <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+              <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
                 {subtypeLabels[st]}
               </button>
             ))}
           </div>
 
-          {/* Date & Ref & Description */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+          {/* Header fields — 12-col grid: 3 / 3 / 3 / 3 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block">التاريخ</Label>
-              <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
+              <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first />
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block">رقم السند</Label>
               <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default" />
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block">جهة الاتصال (اختياري)</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
                 <SelectTrigger><SelectValue placeholder="اختر جهة الاتصال..." /></SelectTrigger>
@@ -624,6 +625,12 @@ const JournalNewPage = () => {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="lg:col-span-3">
+              <Label className="text-xs mb-1.5 block">نوع السند</Label>
+              <div className="h-10 px-3 inline-flex items-center rounded-md border border-input bg-muted/40 text-xs font-semibold text-foreground w-full">
+                {subtypeLabels[formSubtype]}
+              </div>
             </div>
           </div>
 
@@ -964,16 +971,19 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* Notes */}
-      <Card>
+      {/* ═══ Bottom row: Notes (8 cols) + Attachments (4 cols) ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <Card className="lg:col-span-8 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
-          <Label className="text-xs mb-1.5 block">ملاحظات</Label>
-          <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." rows={3} />
+          <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
+            ملاحظات
+          </Label>
+          <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." rows={5} className="resize-none" />
         </CardContent>
       </Card>
 
       {/* Attachments Section */}
-      <Card>
+      <Card className="lg:col-span-4 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
@@ -1017,28 +1027,31 @@ const JournalNewPage = () => {
           )}
         </CardContent>
       </Card>
+      </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4 flex-wrap gap-3">
-        <button onClick={() => handleSave("draft")} disabled={saving}
-          className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-          حفظ كمسودة
-        </button>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-            <Printer className="h-4 w-4" /> طباعة
+      {/* ═══ Sticky Bottom Action Bar ═══ */}
+      <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <button onClick={() => handleSave("draft")} disabled={saving}
+            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            حفظ كمسودة
           </button>
-          <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
-            <Clock className="h-4 w-4" />
-            حفظ مع التأجيل
-          </button>
-          <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
-            <Save className="h-4 w-4" />
-            {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
-          </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+              <Printer className="h-4 w-4" /> طباعة
+            </button>
+            <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
+              <Clock className="h-4 w-4" />
+              حفظ مع التأجيل
+            </button>
+            <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-md">
+              <Save className="h-4 w-4" />
+              {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
+            </button>
+          </div>
         </div>
       </div>
 
