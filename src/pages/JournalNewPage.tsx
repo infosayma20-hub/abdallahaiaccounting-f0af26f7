@@ -546,28 +546,29 @@ const JournalNewPage = () => {
         } : undefined}
       />
 
-      {/* Subtype Tabs */}
-      <Card>
+      {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
+      <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5 space-y-4">
-          <div className="flex gap-2">
+          {/* Subtype Tabs — chip strip, single row */}
+          <div className="flex flex-wrap gap-2 pb-3 border-b border-border/40">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
-              <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+              <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
                 {subtypeLabels[st]}
               </button>
             ))}
           </div>
 
-          {/* Date & Ref & Description */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+          {/* Header fields — 12-col grid: 3 / 3 / 3 / 3 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block">التاريخ</Label>
-              <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
+              <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} data-smart-first />
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block">رقم السند</Label>
               <Input value={formRefNumber} readOnly className="font-mono bg-muted/50 cursor-default" />
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <Label className="text-xs mb-1.5 block">جهة الاتصال (اختياري)</Label>
               <Select value={formContactId} onValueChange={setFormContactId}>
                 <SelectTrigger><SelectValue placeholder="اختر جهة الاتصال..." /></SelectTrigger>
@@ -624,6 +625,12 @@ const JournalNewPage = () => {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="lg:col-span-3">
+              <Label className="text-xs mb-1.5 block">نوع السند</Label>
+              <div className="h-10 px-3 inline-flex items-center rounded-md border border-input bg-muted/40 text-xs font-semibold text-foreground w-full">
+                {subtypeLabels[formSubtype]}
+              </div>
             </div>
           </div>
 
