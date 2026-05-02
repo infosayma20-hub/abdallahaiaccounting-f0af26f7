@@ -1027,28 +1027,31 @@ const JournalNewPage = () => {
           )}
         </CardContent>
       </Card>
+      </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4 flex-wrap gap-3">
-        <button onClick={() => handleSave("draft")} disabled={saving}
-          className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-          حفظ كمسودة
-        </button>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-            <Printer className="h-4 w-4" /> طباعة
+      {/* ═══ Sticky Bottom Action Bar ═══ */}
+      <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <button onClick={() => handleSave("draft")} disabled={saving}
+            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            حفظ كمسودة
           </button>
-          <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
-            <Clock className="h-4 w-4" />
-            حفظ مع التأجيل
-          </button>
-          <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
-            <Save className="h-4 w-4" />
-            {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
-          </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+              <Printer className="h-4 w-4" /> طباعة
+            </button>
+            <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
+              <Clock className="h-4 w-4" />
+              حفظ مع التأجيل
+            </button>
+            <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-md">
+              <Save className="h-4 w-4" />
+              {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
+            </button>
+          </div>
         </div>
       </div>
 
