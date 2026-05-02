@@ -1572,7 +1572,7 @@ const InvoiceCreatePage = () => {
   return (
     <AccountingShell>
     <SmartFormScope
-      className="px-2 lg:px-4 pt-3 pb-32 w-full max-w-none mx-auto"
+      className="px-4 lg:px-6 pt-3 pb-32 w-full max-w-[1600px] mx-auto"
       firstFieldSelector="input[data-smart-first], [data-smart-first] input, [data-smart-first]"
       disableAutoFocus={isEditMode}
     >
