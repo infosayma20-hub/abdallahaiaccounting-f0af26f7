@@ -1372,6 +1372,19 @@ const ChequesPage = () => {
         submitting={actionSubmitting}
       />
 
+      {/* ============ UNENDORSE DIALOG ============ */}
+      <UnendorseChequeDialog
+        cheque={unendorseTarget}
+        userId={user?.id || null}
+        open={!!unendorseTarget}
+        onOpenChange={(v) => { if (!v) setUnendorseTarget(null); }}
+        onSuccess={() => {
+          setUnendorseTarget(null);
+          setStatusHistory({});
+          fetchCheques();
+        }}
+      />
+
       {/* ============ DELETE CONFIRMATION ============ */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent dir="rtl" className="rounded-2xl">
