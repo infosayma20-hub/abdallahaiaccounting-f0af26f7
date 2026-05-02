@@ -92,6 +92,12 @@ const JournalNewPage = () => {
   // Invalid line IDs (highlighted on failed save attempt)
   const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
 
+  // Clear invalid highlight whenever the user edits lines
+  useEffect(() => {
+    if (invalidLineIds.size > 0) setInvalidLineIds(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines]);
+
   // Postable accounts only (exclude parents — any code referenced as parent_code is a parent)
   const postableAccounts = useMemo(() => {
     const parentCodes = new Set(
