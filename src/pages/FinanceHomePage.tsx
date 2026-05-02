@@ -46,17 +46,24 @@ const FinanceHomePage = () => {
   const totalReceipts = receiptsThisMonth.reduce((s, v) => s + Number(v.amount_ils || v.amount || 0), 0);
   const totalPayments = paymentsThisMonth.reduce((s, v) => s + Number(v.amount_ils || v.amount || 0), 0);
 
+  // Statuses that are CLOSED — never raise a due-date alert for them.
+  // Endorsed ("مظهر") is intentionally NOT here: we are still liable until cleared.
+  const CLOSED_CHEQUE_STATUSES = ["محصل", "مصروف", "ملغي", "مرتجع"];
+  const isOpenForDueAlert = (c: any) => !CLOSED_CHEQUE_STATUSES.includes(c.status);
+
   const dueSoonCheques = cheques.filter(c => {
-    if (!c.cheque_date) return false;
+    if (!c.cheque_date || !isOpenForDueAlert(c)) return false;
     const due = new Date(c.cheque_date);
     const diff = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff <= 7 && c.status !== "محصل" && c.status !== "ملغي";
+    return diff >= 0 && diff <= 7;
   });
 
   const todayCheques = cheques.filter(c => {
-    if (!c.cheque_date) return false;
-    return c.cheque_date === now.toISOString().split("T")[0] && c.status !== "محصل" && c.status !== "ملغي";
+    if (!c.cheque_date || !isOpenForDueAlert(c)) return false;
+    return c.cheque_date === now.toISOString().split("T")[0];
   });
+
+  const endorsedDueSoon = dueSoonCheques.filter(c => c.status === "مظهر");
 
   const draftVouchers = vouchers.filter(v => v.status === "draft");
   const returnedCheques = cheques.filter(c => c.status === "مرتجع");
@@ -82,7 +89,10 @@ const FinanceHomePage = () => {
 
   const alerts: { color: string; text: string; path: string }[] = [];
   if (todayCheques.length > 0) alerts.push({ color: "🔴", text: `${todayCheques.length} شيكات مستحقة اليوم بإجمالي ₪${formatAmount(todayCheques.reduce((s, c) => s + Number(c.amount), 0))}`, path: "/finance/cheques" });
-  if (dueSoonCheques.length > 0) alerts.push({ color: "🟡", text: `${dueSoonCheques.length} شيكات مستحقة خلال 7 أيام`, path: "/finance/cheques" });
+  if (dueSoonCheques.length > 0) {
+    const endorsedNote = endorsedDueSoon.length > 0 ? ` (منها ${endorsedDueSoon.length} مظهَّر)` : "";
+    alerts.push({ color: "🟡", text: `${dueSoonCheques.length} شيكات مستحقة خلال 7 أيام${endorsedNote}`, path: "/finance/cheques" });
+  }
   if (draftVouchers.length > 0) alerts.push({ color: "🔵", text: `${draftVouchers.length} سندات في حالة مسودة لم تُرحَّل`, path: "/finance/receipts" });
   if (returnedCheques.length > 0) alerts.push({ color: "⚫", text: `${returnedCheques.length} شيكات مرتجعة تحتاج معالجة`, path: "/finance/cheques" });
 

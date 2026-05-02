@@ -97,6 +97,10 @@ const getAvailableActions = (status: ChequeStatus, chequeType: ChequeType): Acti
 };
 
 const PENDING_STATUSES = ['مسجل', 'آجل', 'مستحق', 'مودع'];
+// Statuses that should still trigger due-date alerts/follow-up.
+// "مظهر" stays endorsed (not back in our hands), but we still need to
+// watch its due date because we are liable if the endorsee bounces it.
+const DUE_WATCH_STATUSES = [...PENDING_STATUSES, 'مظهر'];
 const PER_PAGE = 15;
 type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number' | 'created_at';
 type SortDir = 'asc' | 'desc';
@@ -797,7 +801,8 @@ const ChequesPage = () => {
   const pendingIncoming = cheques.filter(c => c.cheque_type === 'وارد' && PENDING_STATUSES.includes(c.status));
   const pendingOutgoing = cheques.filter(c => c.cheque_type === 'صادر' && PENDING_STATUSES.includes(c.status));
   const sevenDaysFromNow = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-  const dueWithin7 = cheques.filter(c => PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+  const dueWithin7 = cheques.filter(c => DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+  const overdueWatch = cheques.filter(c => DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date < today);
   const thisMonth = new Date().toISOString().slice(0, 7);
   const collectedThisMonth = cheques.filter(c => ['محصل', 'مصروف'].includes(c.status) && c.updated_at?.startsWith(thisMonth));
 
@@ -849,7 +854,7 @@ const ChequesPage = () => {
   // Apply tab-level filtering
   const tabFiltered = useMemo(() => {
     if (activeTab === 'معلقة') return filtered.filter(c => PENDING_STATUSES.includes(c.status));
-    if (activeTab === 'مستحقة') return filtered.filter(c => PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
+    if (activeTab === 'مستحقة') return filtered.filter(c => DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow && c.cheque_date >= today);
     return filtered;
   }, [filtered, activeTab, sevenDaysFromNow, today]);
 
@@ -1053,7 +1058,7 @@ const ChequesPage = () => {
                   const isSelected = selected.has(c.id);
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
-                  const isDueSoon = PENDING_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
+                  const isDueSoon = DUE_WATCH_STATUSES.includes(c.status) && c.cheque_date <= sevenDaysFromNow;
                   return (
                     <Fragment key={c.id}>
                       <tr
