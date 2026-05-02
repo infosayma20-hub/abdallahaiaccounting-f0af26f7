@@ -10,7 +10,7 @@ import {
   Building2, Calendar, Hash, User, Banknote,
   ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
   ArrowUpDown, Zap, Download, Printer,
-  ChevronLeft, ChevronRight, Loader2, X, Send
+  ChevronLeft, ChevronRight, Loader2, X, Send, Undo2
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import { UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
+import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import AccountingShell from "@/components/layout/AccountingShell";
@@ -127,6 +128,7 @@ const ChequesPage = () => {
   const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [actionTarget, setActionTarget] = useState<Cheque | null>(null);
+  const [unendorseTarget, setUnendorseTarget] = useState<Cheque | null>(null);
   const [actionType, setActionType] = useState<ActionType | null>(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("cheque_date");
@@ -1116,6 +1118,16 @@ const ChequesPage = () => {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
+                            {c.status === 'مظهر' && c.cheque_type === 'وارد' && (
+                              <button
+                                onClick={() => setUnendorseTarget(c)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all hover:opacity-90"
+                                style={{ background: '#FEF3C7', color: '#92400E' }}
+                                title="إلغاء التجيير وإرجاع الشيك إلى بحوزتك"
+                              >
+                                <Undo2 className="h-3 w-3" />إلغاء التجيير
+                              </button>
+                            )}
                             <button onClick={() => setDeleteTarget(c)} className="p-1 rounded-lg hover:bg-red-50 transition-colors" title="حذف">
                               <Trash2 className="h-3.5 w-3.5" style={{ color: '#DC2626' }} />
                             </button>
@@ -1358,6 +1370,19 @@ const ChequesPage = () => {
         sourceBankAccount={actionTarget?.source_bank_account_id ? bankAccounts.find(b => b.id === actionTarget.source_bank_account_id) : null}
         onConfirm={handleAction}
         submitting={actionSubmitting}
+      />
+
+      {/* ============ UNENDORSE DIALOG ============ */}
+      <UnendorseChequeDialog
+        cheque={unendorseTarget}
+        userId={user?.id || null}
+        open={!!unendorseTarget}
+        onOpenChange={(v) => { if (!v) setUnendorseTarget(null); }}
+        onSuccess={() => {
+          setUnendorseTarget(null);
+          setStatusHistory({});
+          fetchCheques();
+        }}
       />
 
       {/* ============ DELETE CONFIRMATION ============ */}
