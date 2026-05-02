@@ -1639,10 +1639,20 @@ const InvoiceCreatePage = () => {
         </div>
       )}
 
-      {/* Two-column shell: denser invoice work area with narrower summary rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1100px)_280px] xl:justify-center gap-4 items-start mt-4">
-      <div className="space-y-4 min-w-0">
-      <Card className="border-0 shadow-sm rounded-2xl">
+      {/* ═══════════════════════════════════════════════════════════════
+          PROFESSIONAL ACCOUNTING-GRADE LAYOUT — 12-column grid (RTL)
+          ───────────────────────────────────────────────────────────────
+          Top row    : [Invoice Form  col-span-8] [Sticky Summary col-span-4]
+          Middle row : [Items Table                              col-span-12]
+          Bottom row : [Notes + Terms + Attach col-span-8] [Final Totals col-span-4]
+          All cards share the same horizontal gutters (gap-6) and align
+          perfectly on the same baselines — QuickBooks / Odoo style.
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-4">
+
+      {/* ───── TOP-LEFT (RTL right): Invoice Form — 8 cols ───── */}
+      <div className="lg:col-span-8 min-w-0">
+      <Card className="border border-border/60 shadow-sm rounded-2xl">
         <CardHeader className="pb-2 pt-3 px-4">
           <CardTitle className="text-[13px] font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" /> بيانات الفاتورة
