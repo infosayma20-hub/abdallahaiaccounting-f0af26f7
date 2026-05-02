@@ -89,6 +89,17 @@ const JournalNewPage = () => {
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
   const [lineContactSearches, setLineContactSearches] = useState<Record<string, string>>({});
 
+  // Invalid line IDs (highlighted on failed save attempt)
+  const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
+
+  // Postable accounts only (exclude parents — any code referenced as parent_code is a parent)
+  const postableAccounts = useMemo(() => {
+    const parentCodes = new Set(
+      accounts.map((a: any) => a.parent_code).filter(Boolean)
+    );
+    return accounts.filter((a: any) => !parentCodes.has(a.account_code));
+  }, [accounts]);
+
   // Quick-add contact state
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddForLineId, setQuickAddForLineId] = useState<string | null>(null);
