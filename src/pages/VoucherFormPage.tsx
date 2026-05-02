@@ -1738,30 +1738,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
 
         if (paymentMethod === "شيك" && !asDraft && cheques.length > 0) {
-          const chequeRows = cheques.filter(c => c.number).map(c => ({
-            user_id: user.id,
-            cheque_type: "وارد" as const,
-            cheque_number: c.number,
-            cheque_date: c.date || paymentDate,
-            amount: Number(c.amount) || 0,
-            party_name: selectedContact?.contact_name || "",
-            bank_name: c.bank,
-            status: "مسجل" as const,
-            currency: currency,
-            source_bank_account_id: selectedChequeBankAccount || null,
-            receipt_voucher_id: receipt?.id || null,
-            contact_id: selectedContact?.id || null,
-            account_number: c.accountNumber?.trim() || null,
-            notes: c.notes?.trim() || null,
-            voucher_id: txId,
-          }));
-          if (chequeRows.length > 0) {
-            const { error: chErr } = await supabase.from("cheques").insert(chequeRows as any);
-            if (chErr) {
-              // Surface duplicate / constraint failures clearly to user
-              throw new Error(`فشل تسجيل الشيكات: ${chErr.message}`);
-            }
-          }
+          // Atomic insert with .select() + count verification.
+          // Throws on partial save → outer try/catch surfaces error to user.
+          await insertChequesForVoucher({
+            userId: user.id,
+            voucherId: txId,
+            receiptVoucherId: receipt?.id || null,
+            direction: "وارد",
+            cheques: cheques as any,
+            partyName: selectedContact?.contact_name || "",
+            contactId: selectedContact?.id || null,
+            currencyLabel: currency,
+            sourceBankAccountId: selectedChequeBankAccount || null,
+            fallbackDate: paymentDate,
+          });
         }
 
         broadcastChange("receipt_voucher", "created", receipt?.id);
