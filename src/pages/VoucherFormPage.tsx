@@ -2689,7 +2689,57 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* Row 2: Payment Method, Currency & Amount */}
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* ─── Row 1: AMOUNT FIRST (dominant) + Currency ─── */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-8">
+              <Label className="text-xs mb-1.5 block font-bold text-foreground">{amountLabel}</Label>
+              <div className="relative">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">{currencySymbol}</span>
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  className="pr-9 text-left font-mono text-2xl font-bold h-14"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  autoFocus
+                />
+              </div>
+              {currency !== "ILS" && amountNum > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">= ₪{formatAmount(amountInILS)} بالشيكل</p>
+              )}
+            </div>
+
+            <div className="md:col-span-4">
+              <Label className="text-xs mb-1.5 block">العملة</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="h-14"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {currency !== "ILS" && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Label className="text-[10px] text-muted-foreground whitespace-nowrap">سعر الصرف:</Label>
+                  <Input
+                    type="number"
+                    value={exchangeRate}
+                    onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)}
+                    className="h-7 text-xs font-mono text-left flex-1"
+                    step="0.001"
+                    min="0"
+                  />
+                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Row 2: Payment Method + Source toggle ─── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border/40">
             <div>
               <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -2709,19 +2759,27 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               </Select>
             </div>
 
-            {/* Deposit/Source - hide when cheque is selected */}
             {paymentMethod !== "شيك" && (
               <div>
                 <Label className="text-xs mb-1.5 block">{isReceipt ? "إيداع في" : "الدفع من"}</Label>
-                <div className="space-y-2">
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setDepositType("cash_box")} className={`flex-1 text-[11px] py-1.5 rounded-lg border transition-all ${depositType === "cash_box" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground"}`}>
-                      صندوق
-                    </button>
-                    <button onClick={() => setDepositType("bank")} className={`flex-1 text-[11px] py-1.5 rounded-lg border transition-all ${depositType === "bank" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground"}`}>
-                      بنك
-                    </button>
-                  </div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => setDepositType("cash_box")} className={`flex-1 text-[11px] py-2 rounded-lg border transition-all ${depositType === "cash_box" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground"}`}>
+                    صندوق
+                  </button>
+                  <button onClick={() => setDepositType("bank")} className={`flex-1 text-[11px] py-2 rounded-lg border transition-all ${depositType === "bank" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground"}`}>
+                    بنك
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ─── Row 3: Specific account selector ─── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-start-2">
+              {paymentMethod !== "شيك" ? (
+                <>
+                  <Label className="text-xs mb-1.5 block">{depositType === "cash_box" ? "الصندوق" : "الحساب البنكي"}</Label>
                   {depositType === "cash_box" ? (
                     <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
                       <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
@@ -2744,70 +2802,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                       )}
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Cheque bank account - show when cheque is selected */}
-            {paymentMethod === "شيك" && (
-              <div>
-                <Label className="text-xs mb-1.5 block">دفتر الشيكات (الحساب البنكي)</Label>
-                <Select value={selectedChequeBankAccount} onValueChange={setSelectedChequeBankAccount}>
-                  <SelectTrigger><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map(ba => (
-                      <SelectItem key={ba.id} value={ba.id}>
-                        {ba.name} - {ba.bank_name} {ba.currency ? `(${ba.currency})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Currency */}
-            <div>
-              <Label className="text-xs mb-1.5 block">العملة</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map(c => (
-                    <SelectItem key={c.value} value={c.value}>{c.symbol} {c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {currency !== "ILS" && (
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Label className="text-[10px] text-muted-foreground whitespace-nowrap">سعر الصرف:</Label>
-                  <Input
-                    type="number"
-                    value={exchangeRate}
-                    onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)}
-                    className="h-7 text-xs font-mono text-left flex-1"
-                    step="0.001"
-                    min="0"
-                  />
-                  {fetchingRate && <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label className="text-xs mb-1.5 block">{amountLabel}</Label>
-              <div className="relative">
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencySymbol}</span>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  className="pr-8 text-left font-mono text-lg font-bold"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              {currency !== "ILS" && amountNum > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-1">= ₪{formatAmount(amountInILS)} بالشيكل</p>
+                </>
+              ) : (
+                <>
+                  <Label className="text-xs mb-1.5 block">دفتر الشيكات (الحساب البنكي)</Label>
+                  <Select value={selectedChequeBankAccount} onValueChange={setSelectedChequeBankAccount}>
+                    <SelectTrigger><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map(ba => (
+                        <SelectItem key={ba.id} value={ba.id}>
+                          {ba.name} - {ba.bank_name} {ba.currency ? `(${ba.currency})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
               )}
             </div>
           </div>
