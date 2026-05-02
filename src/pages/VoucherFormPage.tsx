@@ -2969,6 +2969,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         />
       )}
 
+      </div>
+
+      {/* ───── BOTTOM ROW: Notes (8 cols) + Attachments (4 cols) ───── */}
+      <div className="lg:col-span-8 min-w-0">
+      {/* Notes */}
+      <Card>
+        <CardContent className="p-5">
+          <Label className="text-xs mb-1.5 block font-semibold">ملاحظات</Label>
+          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={5} className="resize-none" />
+        </CardContent>
+      </Card>
+      </div>
+
+      <div className="lg:col-span-4 min-w-0">
       {/* Attachments */}
       <Card>
         <CardContent className="p-5 space-y-3">
