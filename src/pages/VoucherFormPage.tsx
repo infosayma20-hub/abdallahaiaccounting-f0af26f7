@@ -2813,6 +2813,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                         <span className="font-medium text-foreground">شيكات برسم التحصيل (1150)</span>
                         <span className="text-[10px]">— تلقائي</span>
                       </div>
+                      <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+                        يبقى الشيك بعهدة الشركة. لاحقاً من شاشة <span className="font-semibold text-foreground">الشيكات</span> يمكن: إيداعه بالبنك، تجييره لمورد، أو إرجاعه للعميل.
+                      </p>
                     </>
                   ) : (
                     <>
