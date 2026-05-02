@@ -2992,36 +2992,85 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       </Card>
       </div>
 
-      {/* ═══ Sticky Bottom Action Bar — col-span-12 ═══ */}
+      {/* ═══ END LEFT COLUMN (col-span-8) ═══ */}
+      </div>
+
+      {/* ───── RIGHT (RTL left): Sticky Summary — 4 cols ─────
+          Sits inside the master grid (NOT floating). Aligns to the
+          top of the form and stays visible while scrolling. */}
+      <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
+        <SmartSummaryPanel
+          variant={voucherType}
+          currencySymbol={currencySymbol}
+          amount={amountNum}
+          partyName={
+            partyType === "contact" ? selectedContact?.contact_name :
+            partyType === "employee" ? selectedEmployee?.full_name :
+            partyType === "account" ? selectedGlAccount?.account_name :
+            null
+          }
+          partyType={partyType}
+          balanceBefore={
+            partyType === "contact"
+              ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+              : null
+          }
+          openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
+          openInvoicesTotal={partyType === "contact" ? Number(selectedContact?.open_invoices_balance ?? 0) : 0}
+          unappliedCredit={partyType === "contact" ? Number(selectedContact?.unapplied_credit ?? 0) : 0}
+          oldestInvoiceDays={oldestInvoiceDays}
+          paymentMethod={paymentMethod}
+          chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
+          chequesCount={cheques.length}
+          allocatedTotal={totalAllocated}
+          date={paymentDate}
+          refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
+          onOpenStatement={
+            partyType === "contact" && selectedContact?.id
+              ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
+              : undefined
+          }
+        />
+      </aside>
+
+      {/* ═══ END MASTER GRID ═══ */}
+      </div>
+
+      {/* ═══ Sticky Bottom Action Bar — full container width
+          Outside the grid so it spans 100% and centers properly. */}
       {!isCancelled && (
-        <div className="lg:col-span-12 sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            {!isEditMode ? (
+        <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
+          <div className="max-w-[1600px] mx-auto flex items-center gap-2 flex-wrap">
+            {/* Ghost: Print */}
+            <button onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+              <Printer className="h-4 w-4" /> طباعة
+            </button>
+
+            {/* Secondary: Draft (only in create mode) */}
+            {!isEditMode && (
               <button onClick={() => handleSave(true)} disabled={saving}
-                className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+                className="px-4 h-11 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
                 حفظ كمسودة
               </button>
-            ) : <div />}
-            <div className="flex items-center gap-3 flex-wrap">
-              <button onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-                <Printer className="h-4 w-4" /> طباعة
-              </button>
-              <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-md">
-                <Save className="h-4 w-4" />
-                {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
-              </button>
-            </div>
+            )}
+
+            {/* PRIMARY — full-flex, dominant */}
+            <button onClick={() => handleSave(false)}
+              disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
+              className="flex-1 min-w-[220px] flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-primary/25">
+              <Save className="h-4 w-4" />
+              {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Cancelled — only show print */}
+      {/* Cancelled — only show print, full width */}
       {isCancelled && (
-        <div className="lg:col-span-12 sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 flex items-center justify-center">
+        <div className="sticky bottom-0 -mx-4 lg:-mx-6 mt-5 px-4 lg:px-6 py-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 flex items-center justify-center">
           <button onClick={handlePrint}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+            className="flex items-center gap-2 px-5 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة (ملغي)
           </button>
         </div>
@@ -3054,7 +3103,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }}
         excludeIds={endorsedCheques.map(c => c.id)}
       />
-    </div>
     </SmartFormScope>
   );
 };
