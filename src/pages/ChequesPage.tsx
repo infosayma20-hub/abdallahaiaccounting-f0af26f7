@@ -26,6 +26,7 @@ import { UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
+import UnendorseChequeDialog from "@/components/cheques/UnendorseChequeDialog";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 import AccountingShell from "@/components/layout/AccountingShell";
