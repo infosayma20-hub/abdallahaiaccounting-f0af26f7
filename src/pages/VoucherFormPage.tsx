@@ -2277,7 +2277,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
   return (
     <SmartFormScope
-      className="max-w-[1440px] w-full mx-auto px-4 lg:px-6"
+      className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-8"
       firstFieldSelector="[data-smart-first]"
       disableAutoFocus={isEditMode}
     >
