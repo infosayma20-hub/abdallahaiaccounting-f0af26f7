@@ -94,7 +94,7 @@ interface PreviewRow {
   total_deductions: number;
   net_salary: number;
   engine: "Standard" | "Malaki" | "None";
-  status: "ok" | "no_salary" | "no_attendance" | "no_policy" | "warning";
+  status: "ok" | "no_salary" | "no_attendance" | "no_policy" | "bad_policy" | "warning";
   warnings: string[];
   policy_name: string | null;
   has_policy: boolean;
@@ -109,7 +109,7 @@ export default function PayrollPreviewAllPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance" | "no_policy">("all");
+  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance" | "no_policy" | "bad_policy">("all");
 
   // ─── Data ─────────────────────────────────────────────
   const { data: employees = [], isLoading: loadingEmp } = useQuery({
