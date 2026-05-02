@@ -480,20 +480,53 @@ const AccountStatementV2Page = () => {
       }
 
       if (statementOptions.showVoucherDetails && voucherRefs.length > 0) {
-        const [{ data: receipts }, { data: vouchers }, { data: txLines }] = await Promise.all([
+        const [{ data: receipts }, { data: vouchers }] = await Promise.all([
           supabase.from("receipt_vouchers").select("receipt_number, payment_method, bank_name, check_number, check_date, notes, cash_box_id, bank_account_id").eq("user_id", user.id).in("receipt_number", voucherRefs),
-          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id").eq("user_id", user.id).in("ref_number", voucherRefs),
-          supabase.from("transactions").select("reference, debit_account_code, credit_account_code, amount").eq("user_id", user.id).in("reference", voucherRefs).eq("is_deleted", false),
+          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id, cash_box_id").eq("user_id", user.id).in("ref_number", voucherRefs),
         ]);
-        const codes = Array.from(new Set((txLines || []).flatMap((tx: any) => [tx.debit_account_code, tx.credit_account_code]).filter(Boolean)));
-        const { data: accs } = codes.length ? await supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).in("account_code", codes) : { data: [] as any[] };
-        const accMap: Record<string, string> = {}; (accs || []).forEach((a: any) => { accMap[a.account_code] = a.account_name; });
-        (receipts || []).forEach((v: any) => { voucherDetailsById[v.receipt_number] = { paymentMethod: v.payment_method, bank: v.bank_name, cashBox: v.cash_box_id, chequeNumber: v.check_number, chequeDate: v.check_date, notes: v.notes }; });
-        (vouchers || []).forEach((v: any) => { voucherDetailsById[v.ref_number] = { paymentMethod: v.payment_method, bank: v.cheque_bank_name, chequeNumber: v.cheque_number, chequeDate: v.cheque_due_date, notes: v.notes }; });
-        (txLines || []).forEach((tx: any) => {
-          const detail = voucherDetailsById[tx.reference] ||= {};
-          (detail.accounts ||= []).push({ accountCode: tx.debit_account_code, accountName: accMap[tx.debit_account_code] || tx.debit_account_code, debit: Number(tx.amount || 0), credit: 0 });
-          detail.accounts.push({ accountCode: tx.credit_account_code, accountName: accMap[tx.credit_account_code] || tx.credit_account_code, debit: 0, credit: Number(tx.amount || 0) });
+        // Resolve cash box / bank account UUIDs → human names
+        const cashBoxIds = Array.from(new Set([
+          ...(receipts || []).map((v: any) => v.cash_box_id).filter(Boolean),
+          ...(vouchers || []).map((v: any) => v.cash_box_id).filter(Boolean),
+        ]));
+        const bankAccountIds = Array.from(new Set([
+          ...(receipts || []).map((v: any) => v.bank_account_id).filter(Boolean),
+          ...(vouchers || []).map((v: any) => v.bank_account_id).filter(Boolean),
+        ]));
+        const [{ data: cashBoxesData }, { data: bankAccountsData }] = await Promise.all([
+          cashBoxIds.length ? supabase.from("cash_boxes").select("id, name").eq("user_id", user.id).in("id", cashBoxIds) : Promise.resolve({ data: [] as any[] }),
+          bankAccountIds.length ? supabase.from("bank_accounts").select("id, account_name, bank_name").eq("user_id", user.id).in("id", bankAccountIds) : Promise.resolve({ data: [] as any[] }),
+        ]);
+        const cashBoxMap: Record<string, string> = {}; (cashBoxesData || []).forEach((b: any) => { cashBoxMap[b.id] = b.name; });
+        const bankAccountMap: Record<string, { name: string; bank: string }> = {};
+        (bankAccountsData || []).forEach((b: any) => { bankAccountMap[b.id] = { name: b.account_name, bank: b.bank_name }; });
+        // Cheque status lookup (already loaded into `cheques` state)
+        const chequeStatusByNumber: Record<string, string> = {};
+        cheques.forEach(c => { if (c.cheque_number) chequeStatusByNumber[c.cheque_number] = c.status; });
+
+        (receipts || []).forEach((v: any) => {
+          const ba = v.bank_account_id ? bankAccountMap[v.bank_account_id] : null;
+          voucherDetailsById[v.receipt_number] = {
+            paymentMethod: v.payment_method,
+            bank: ba?.bank || v.bank_name || null,
+            cashBox: v.cash_box_id ? (cashBoxMap[v.cash_box_id] || null) : null,
+            chequeNumber: v.check_number,
+            chequeDate: v.check_date,
+            chequeStatus: v.check_number ? (chequeStatusByNumber[v.check_number] || null) : null,
+            notes: v.notes,
+          };
+        });
+        (vouchers || []).forEach((v: any) => {
+          const ba = v.bank_account_id ? bankAccountMap[v.bank_account_id] : null;
+          voucherDetailsById[v.ref_number] = {
+            paymentMethod: v.payment_method,
+            bank: ba?.bank || v.cheque_bank_name || null,
+            cashBox: v.cash_box_id ? (cashBoxMap[v.cash_box_id] || null) : null,
+            chequeNumber: v.cheque_number,
+            chequeDate: v.cheque_due_date,
+            chequeStatus: v.cheque_number ? (chequeStatusByNumber[v.cheque_number] || null) : null,
+            notes: v.notes,
+          };
         });
       }
 
