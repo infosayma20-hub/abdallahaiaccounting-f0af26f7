@@ -24,7 +24,12 @@ import useFormDraft from "@/hooks/useFormDraft";
 import DraftRestoreBanner from "@/components/forms/DraftRestoreBanner";
 import SmartAllocationPanel from "@/components/voucher/SmartAllocationPanel";
 import CompactChequeRow from "@/components/voucher/CompactChequeRow";
-import { syncChequesOnEdit, wipeUnreferencedCheques } from "@/lib/voucher-cheques-sync";
+import {
+  syncChequesOnEdit,
+  wipeUnreferencedCheques,
+  insertChequesForVoucher,
+  validateChequeRows,
+} from "@/lib/voucher-cheques-sync";
 import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import MobileSummaryBar from "@/components/voucher/MobileSummaryBar";
 import { useFastEntryMode } from "@/hooks/useFastEntryMode";
