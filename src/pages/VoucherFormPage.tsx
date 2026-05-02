@@ -1092,6 +1092,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         return;
       }
 
+      // Per-row strict validation for new cheques (number, bank, date, amount, currency).
+      if (newCount > 0) {
+        try {
+          validateChequeRows(validCheques as any, currency);
+        } catch (e: any) {
+          toast.error(e?.message || "بيانات الشيك غير مكتملة");
+          return;
+        }
+      }
+
       const chequesTotal =
         validCheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0) + endorsedTotal;
       const diff = Math.abs(chequesTotal - amountNum);
