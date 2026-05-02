@@ -97,6 +97,10 @@ const getAvailableActions = (status: ChequeStatus, chequeType: ChequeType): Acti
 };
 
 const PENDING_STATUSES = ['مسجل', 'آجل', 'مستحق', 'مودع'];
+// Statuses that should still trigger due-date alerts/follow-up.
+// "مظهر" stays endorsed (not back in our hands), but we still need to
+// watch its due date because we are liable if the endorsee bounces it.
+const DUE_WATCH_STATUSES = [...PENDING_STATUSES, 'مظهر'];
 const PER_PAGE = 15;
 type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number' | 'created_at';
 type SortDir = 'asc' | 'desc';
