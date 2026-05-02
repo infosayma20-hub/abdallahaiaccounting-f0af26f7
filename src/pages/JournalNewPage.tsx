@@ -89,6 +89,17 @@ const JournalNewPage = () => {
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
   const [lineContactSearches, setLineContactSearches] = useState<Record<string, string>>({});
 
+  // Invalid line IDs (highlighted on failed save attempt)
+  const [invalidLineIds, setInvalidLineIds] = useState<Set<string>>(new Set());
+
+  // Postable accounts only (exclude parents — any code referenced as parent_code is a parent)
+  const postableAccounts = useMemo(() => {
+    const parentCodes = new Set(
+      accounts.map((a: any) => a.parent_code).filter(Boolean)
+    );
+    return accounts.filter((a: any) => !parentCodes.has(a.account_code));
+  }, [accounts]);
+
   // Quick-add contact state
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddForLineId, setQuickAddForLineId] = useState<string | null>(null);
@@ -100,6 +111,11 @@ const JournalNewPage = () => {
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
+
+  // Clear invalid highlight whenever the user edits lines
+  useEffect(() => {
+    setInvalidLineIds(prev => (prev.size > 0 ? new Set() : prev));
+  }, [lines]);
 
   // ─── Auto-Draft (سند القيد) ───
   const journalDraftSnapshot = useMemo(() => ({
@@ -354,7 +370,35 @@ const JournalNewPage = () => {
       return l;
     });
 
-    const validLines = preparedLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
+    // Strict accounting validation: a line is "active" if it has any value or any account/contact selected.
+    // - Fully empty rows are silently dropped.
+    // - Active rows MUST have a postable account_code AND at least one of debit/credit > 0.
+    const postableSet = new Set(postableAccounts.map((a: any) => a.account_code));
+    const invalids: string[] = [];
+    const cleanLines = preparedLines.filter(l => {
+      const hasAmount = Number(l.debit) > 0 || Number(l.credit) > 0;
+      const hasAccount = !!l.account_code;
+      const hasContact = !!l.contact_id && l.contact_id !== "__none__";
+      const isEmpty = !hasAmount && !hasAccount && !hasContact && !l.line_comment;
+      if (isEmpty) return false; // auto-drop fully empty rows
+
+      // Active row — must have an account
+      if (!hasAccount) { invalids.push(l.id); return true; }
+      // Account must be postable (not a parent)
+      if (!postableSet.has(l.account_code)) { invalids.push(l.id); return true; }
+      // Must have an amount
+      if (!hasAmount) { invalids.push(l.id); return true; }
+      return true;
+    });
+
+    if (invalids.length > 0) {
+      setInvalidLineIds(new Set(invalids));
+      toast.error("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ");
+      return;
+    }
+    setInvalidLineIds(new Set());
+
+    const validLines = cleanLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
     if (validLines.length < 2) { toast.error("أدخل سطرين على الأقل"); return; }
 
     setSaving(true);
@@ -367,7 +411,7 @@ const JournalNewPage = () => {
         description: formDescription,
         notes: formNotes || null,
         contact_id: formContactId || null,
-        lines: preparedLines.map((l) => ({
+        lines: validLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
           debit: Number(l.debit) || 0,
@@ -711,7 +755,7 @@ const JournalNewPage = () => {
                     : lines;
                   return displayLines.map((line, i) => {
                   return (
-                  <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
+                  <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
                       <Input
@@ -807,7 +851,7 @@ const JournalNewPage = () => {
                           )}
                           {(() => {
                             const q = (accountSearches[line.id] || "");
-                            const fa = accounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
+                            const fa = postableAccounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
                             const fc = q.trim() ? contacts.filter(c => multiWordMatchAny(q, c.contact_name)) : contacts;
                             const hasSearch = q.trim().length > 0;
 
