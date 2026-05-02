@@ -507,17 +507,19 @@ const AccountStatementV2Page = () => {
     return filteredRows.flatMap((row) => {
       const nested: StatementRow[] = [];
       if (statementOptions.showInvoiceDetails) {
-        (detailsMap.invoiceDetailsById[row.reference] || []).forEach((it) => {
+        const items = detailsMap.invoiceDetailsById[row.reference] || [];
+        if (items.length > 0) {
           nested.push({
             ...row,
-            transaction_id: `${row.transaction_id}-invoice-${nested.length}`,
-            description: `↳ ${it.productName} | الكمية: ${it.quantity}${it.unit ? ` ${it.unit}` : ""} | السعر: ${fmtAmount(it.unitPrice, row.currency)} | الخصم: ${it.discount} | الضريبة: ${it.tax}% | الإجمالي: ${fmtAmount(it.total, row.currency)}`,
+            transaction_id: `${row.transaction_id}-invoice-table`,
+            description: "",
             debit: 0,
             credit: 0,
             isLineItem: true,
-            lineItemDetail: "invoice",
+            lineItemDetail: "invoice-table",
+            invoiceItems: items,
           });
-        });
+        }
       }
       if (statementOptions.showVoucherDetails) {
         const detail = detailsMap.voucherDetailsById[row.reference];
