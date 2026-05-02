@@ -35,7 +35,7 @@ interface TaxCategory {
   id: string;
   name: string;
   code: string;
-  tax_type: "standard" | "zero" | "exempt";
+  tax_type: string;
   rate: number | null;
   description?: string | null;
   is_active?: boolean | null;
