@@ -10,7 +10,7 @@ import {
   Building2, Calendar, Hash, User, Banknote,
   ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
   ArrowUpDown, Zap, Download, Printer,
-  ChevronLeft, ChevronRight, Loader2, X, Send
+  ChevronLeft, ChevronRight, Loader2, X, Send, Undo2
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Input } from "@/components/ui/input";
