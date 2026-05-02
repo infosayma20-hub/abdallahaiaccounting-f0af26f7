@@ -1241,6 +1241,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           broadcastChange("receipt_voucher", "updated", editId);
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+
+          // ─── Cheques: delete & recreate (Golden Rule) ───
+          if (paymentMethod === "شيك") {
+            await syncChequesOnEdit({
+              userId: user.id,
+              voucherId: editId,
+              receiptVoucherId: editId,
+              direction: "وارد",
+              cheques,
+              partyName: selectedContact?.contact_name || "",
+              contactId: selectedContact?.id || null,
+              currencyLabel,
+              sourceBankAccountId: selectedChequeBankAccount || null,
+              fallbackDate: paymentDate,
+            });
+          } else {
+            // Payment method changed away from cheque — wipe orphan rows if no
+            // downstream events have happened yet.
+            await wipeUnreferencedCheques(user.id, editId);
+          }
         } else {
           // Get linked transaction ID before updating
           const { data: existingVoucher } = await supabase.from("vouchers")
@@ -1364,6 +1384,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           broadcastChange("payment_voucher", "updated", editId);
           toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+
+          // ─── Cheques: delete & recreate (Golden Rule) ───
+          if (paymentMethod === "شيك") {
+            await syncChequesOnEdit({
+              userId: user.id,
+              voucherId: editId,
+              receiptVoucherId: null,
+              direction: "صادر",
+              cheques,
+              partyName: selectedContact?.contact_name || "",
+              contactId: selectedContact?.id || null,
+              currencyLabel,
+              sourceBankAccountId: selectedChequeBankAccount || null,
+              fallbackDate: paymentDate,
+            });
+          } else {
+            await wipeUnreferencedCheques(user.id, editId);
+          }
 
           // B3.4: refresh sub-ledger mirror for this voucher (delete & recreate).
           // Only mirrors employee payment vouchers; other voucher types are untouched.
