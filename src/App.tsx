@@ -272,13 +272,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <CrossTabSyncProvider />
-        <VersionChecker />
         <BrowserRouter>
           <AuthProvider>
             <ReadOnlyProvider>
             <CompanyProvider>
             <CompanyThemeProvider>
             <GlobalFormFocusProvider />
+            <VersionChecker />
             <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
