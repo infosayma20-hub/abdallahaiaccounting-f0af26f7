@@ -2682,46 +2682,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         </div>
       )}
 
-      </div>
-
-      {/* ───── TOP-LEFT (RTL left): Sticky Summary — 4 cols ───── */}
-      <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
-        <SmartSummaryPanel
-          variant={voucherType}
-          currencySymbol={currencySymbol}
-          amount={amountNum}
-          partyName={
-            partyType === "contact" ? selectedContact?.contact_name :
-            partyType === "employee" ? selectedEmployee?.full_name :
-            partyType === "account" ? selectedGlAccount?.account_name :
-            null
-          }
-          partyType={partyType}
-          balanceBefore={
-            partyType === "contact"
-              ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
-              : null
-          }
-          openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
-          openInvoicesTotal={partyType === "contact" ? Number(selectedContact?.open_invoices_balance ?? 0) : 0}
-          unappliedCredit={partyType === "contact" ? Number(selectedContact?.unapplied_credit ?? 0) : 0}
-          oldestInvoiceDays={oldestInvoiceDays}
-          paymentMethod={paymentMethod}
-          chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
-          chequesCount={cheques.length}
-          allocatedTotal={totalAllocated}
-          date={paymentDate}
-          refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
-          onOpenStatement={
-            partyType === "contact" && selectedContact?.id
-              ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
-              : undefined
-          }
-        />
-      </aside>
-
-      {/* ───── MIDDLE ROW: Payment (method + source + amount) — full width 12 cols ───── */}
-      <div className="lg:col-span-12 min-w-0 space-y-5">
+      {/* ───── Payment + Allocation — flow continuously inside the
+          col-span-8 left column so the sticky summary on the right
+          always has content beside it (no more "floating" feel). */}
 
       {/* Row 2: Payment Method, Currency & Amount */}
       <Card>
