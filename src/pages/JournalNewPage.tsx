@@ -454,8 +454,29 @@ const JournalNewPage = () => {
           document.querySelector<HTMLElement>("[data-smart-first]")?.focus();
         });
       } else {
-        toast.success(modeLabel);
-        setSaved(true);
+        // ERP-style: non-blocking toast with quick actions, stay on the same screen.
+        toast.success(modeLabel, {
+          duration: 4000,
+          action: {
+            label: "العودة للسندات",
+            onClick: () => navigate("/finance/journals"),
+          },
+        });
+        // Reset form for a new entry while keeping the user in place.
+        setFormDescription("");
+        setFormNotes("");
+        setFormContactId("");
+        setContactSearch("");
+        setAttachments([]);
+        setLines([
+          { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+          { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
+        ]);
+        setAccountSearches({});
+        setLineContactSearches({});
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>("[data-smart-first]")?.focus();
+        });
       }
     } catch (err: any) {
       toast.error(err.message || "حدث خطأ");
@@ -491,40 +512,7 @@ const JournalNewPage = () => {
 
   const handlePrint = () => { /* no browser print */ };
 
-  if (saved) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-6" dir="rtl">
-        <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <CheckCircle className="h-8 w-8 text-primary" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground">تم حفظ سند القيد بنجاح</h2>
-          <p className="text-muted-foreground">رقم السند: <span className="font-mono font-bold text-foreground">{savedRefNumber}</span></p>
-          <div className="flex items-center justify-center gap-3 pt-4">
-            <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all">
-              <Printer className="h-4 w-4" /> طباعة
-            </button>
-            <button onClick={() => navigate("/finance/journals")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
-              العودة للسندات
-            </button>
-            <button onClick={() => {
-              setSaved(false);
-              setFormDescription("");
-              setFormNotes("");
-              setFormContactId("");
-              setAttachments([]);
-              setLines([
-                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
-                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
-              ]);
-            }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
-              سند قيد جديد
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Note: Removed full-screen success page — replaced with non-blocking toast + inline reset.
 
   return (
     <AccountingShell>
