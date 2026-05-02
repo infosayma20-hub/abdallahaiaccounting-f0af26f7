@@ -128,6 +128,7 @@ const ChequesPage = () => {
   const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [actionTarget, setActionTarget] = useState<Cheque | null>(null);
+  const [unendorseTarget, setUnendorseTarget] = useState<Cheque | null>(null);
   const [actionType, setActionType] = useState<ActionType | null>(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("cheque_date");
