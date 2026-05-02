@@ -193,6 +193,7 @@ const SettingsPage = () => {
             </ScrollArea>
 
             {/* Footer Actions */}
+            {activeSection !== "tax" && (
             <div className="border-t border-border px-6 py-3 flex items-center justify-between bg-muted/30">
               <Button
                 variant="ghost"
@@ -219,6 +220,7 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
