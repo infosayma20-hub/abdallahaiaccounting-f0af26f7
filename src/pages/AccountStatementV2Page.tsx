@@ -557,16 +557,17 @@ const AccountStatementV2Page = () => {
       if (statementOptions.showVoucherDetails) {
         const detail = detailsMap.voucherDetailsById[row.reference];
         if (detail) {
-          const parts = [
-            `طريقة الدفع: ${paymentMethodLabel(detail.paymentMethod)}`,
-            detail.cashBox ? `الصندوق: ${detail.cashBox}` : null,
-            detail.bank ? `البنك: ${detail.bank}` : null,
-            detail.chequeNumber ? `شيك: ${detail.chequeNumber}${detail.chequeDate ? ` (${fmtDate(detail.chequeDate)})` : ""}` : null,
-            detail.notes ? `ملاحظات: ${detail.notes}` : null,
-          ].filter(Boolean).join(" | ");
-          if (parts) nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-main`, description: `↳ ${parts}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher" });
-          (detail.accounts || []).forEach((acc, idx) => {
-            nested.push({ ...row, transaction_id: `${row.transaction_id}-voucher-account-${idx}`, description: `↳ ${acc.accountCode} — ${acc.accountName} | مدين: ${fmtAmount(acc.debit, row.currency)} | دائن: ${fmtAmount(acc.credit, row.currency)}`, debit: 0, credit: 0, isLineItem: true, lineItemDetail: "voucher-account" });
+          nested.push({
+            ...row,
+            transaction_id: `${row.transaction_id}-voucher-table`,
+            description: "",
+            debit: 0,
+            credit: 0,
+            isLineItem: true,
+            lineItemDetail: "voucher-table",
+            voucherDetail: detail,
+            voucherKind: getTypeBadge(row.transaction_type),
+            voucherAmount: row.debit + row.credit,
           });
         }
       }
