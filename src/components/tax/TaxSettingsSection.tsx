@@ -71,23 +71,44 @@ export default function TaxSettingsSection({ ownerId }: Props) {
   const saveSettings = async () => {
     if (!ownerId || !user) return;
     setSaving(true);
+    try {
+      const { data: updatedCompany, error: updateCompanyError } = await supabase
+        .from("company_settings")
+        .update({ vat_enabled: vatEnabled, updated_by: user.id } as any)
+        .eq("user_id", ownerId)
+        .select("id");
 
-    // Save vat_enabled in company_settings
-    await supabase.from("company_settings").update({ vat_enabled: vatEnabled } as any).eq("user_id", ownerId);
+      if (updateCompanyError) throw updateCompanyError;
 
-    if (vatEnabled) {
-      const payload = { ...settings, user_id: ownerId, updated_at: new Date().toISOString() };
-      delete payload.created_at;
+      if (!updatedCompany?.length) {
+        const { error: insertCompanyError } = await supabase
+          .from("company_settings")
+          .insert({ user_id: ownerId, vat_enabled: vatEnabled, updated_by: user.id } as any);
 
-      if (settings.id) {
-        await supabase.from("tax_settings").update(payload).eq("id", settings.id);
-      } else {
-        const { data } = await supabase.from("tax_settings").insert(payload).select().single();
-        if (data) setSettings(data);
+        if (insertCompanyError) throw insertCompanyError;
       }
+
+      if (vatEnabled) {
+        const payload = { ...settings, user_id: ownerId, updated_at: new Date().toISOString() };
+        delete payload.created_at;
+
+        if (settings.id) {
+          const { error } = await supabase.from("tax_settings").update(payload).eq("id", settings.id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from("tax_settings").insert(payload).select().single();
+          if (error) throw error;
+          if (data) setSettings(data);
+        }
+      }
+
+      toast.success("تم حفظ الإعدادات الضريبية");
+      await loadData();
+    } catch (error: any) {
+      toast.error(error?.message || "تعذر حفظ إعدادات الضريبة");
+    } finally {
+      setSaving(false);
     }
-    toast.success("تم حفظ الإعدادات الضريبية");
-    setSaving(false);
   };
 
   const initDefaultCategories = async () => {
