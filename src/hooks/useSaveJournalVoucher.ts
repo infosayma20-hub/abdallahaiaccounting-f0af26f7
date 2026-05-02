@@ -68,6 +68,120 @@ const SUBTYPE_TO_TX_TYPE: Record<string, string> = {
   closing: "journal",
 };
 
+/** Code of the neutral asset clearing account used when a voucher transfers
+ *  a balance between two parties on the SAME control account (e.g. 2110→2110
+ *  with different supplier_ids). The account is auto-created via the DB
+ *  function `ensure_party_transfer_clearing_account`. Net effect on the
+ *  general ledger is zero — it exists only to preserve per-contact analytics
+ *  in account statements. */
+const PARTY_TRANSFER_CLEARING_CODE = "1199";
+
+/** Build transactions from validated voucher lines.
+ *  - Default: pair-match debit×credit lines.
+ *  - Edge case: if a debit line and credit line share the SAME account but
+ *    different contacts, route both through the clearing account so each
+ *    contact's statement of account reflects the real movement.
+ */
+function buildTransactionsFromLines(args: {
+  userId: string;
+  date: string;
+  description: string;
+  lines: JournalSaveLine[];
+  txType: string;
+  reference: string;
+  voucherId: string;
+  voucherContactId?: string | null;
+}): { txns: any[]; usedClearing: boolean } {
+  const { userId, date, description, lines, txType, reference, voucherId, voucherContactId } = args;
+
+  const cleanContact = (c?: string | null) =>
+    c && c !== "__none__" ? c : null;
+
+  const debitLines = lines
+    .filter((l) => Number(l.debit) > 0)
+    .map((l, idx) => ({ ...l, _idx: idx, remaining: Number(l.debit) }));
+  const creditLines = lines
+    .filter((l) => Number(l.credit) > 0)
+    .map((l, idx) => ({ ...l, _idx: idx, remaining: Number(l.credit) }));
+
+  const txns: any[] = [];
+  let pairIdx = 0;
+  let usedClearing = false;
+
+  let di = 0;
+  let ci = 0;
+  while (di < debitLines.length && ci < creditLines.length) {
+    const dl = debitLines[di];
+    const cl = creditLines[ci];
+    const amount = Math.min(dl.remaining, cl.remaining);
+    if (amount > 0) {
+      const dContact = cleanContact(dl.contact_id);
+      const cContact = cleanContact(cl.contact_id);
+      const sameAccount = dl.account_code === cl.account_code;
+      const differentContacts =
+        !!dContact && !!cContact && dContact !== cContact;
+
+      if (sameAccount && differentContacts) {
+        // Route via clearing account so each contact's SOA records the move.
+        usedClearing = true;
+        txns.push({
+          user_id: userId,
+          transaction_date: date,
+          description: dl.contact_name
+            ? `${description} - ${dl.contact_name}`
+            : description,
+          debit_account_code: dl.account_code,
+          credit_account_code: PARTY_TRANSFER_CLEARING_CODE,
+          amount,
+          currency: "ILS",
+          transaction_type: txType,
+          reference,
+          contact_id: dContact,
+          idempotency_key: `VOUCHER-${voucherId}-${pairIdx}D`,
+        });
+        txns.push({
+          user_id: userId,
+          transaction_date: date,
+          description: cl.contact_name
+            ? `${description} - ${cl.contact_name}`
+            : description,
+          debit_account_code: PARTY_TRANSFER_CLEARING_CODE,
+          credit_account_code: cl.account_code,
+          amount,
+          currency: "ILS",
+          transaction_type: txType,
+          reference,
+          contact_id: cContact,
+          idempotency_key: `VOUCHER-${voucherId}-${pairIdx}C`,
+        });
+      } else {
+        const lineContactId = dContact || cContact || cleanContact(voucherContactId);
+        const contactName = dl.contact_name || cl.contact_name || null;
+        txns.push({
+          user_id: userId,
+          transaction_date: date,
+          description: contactName ? `${description} - ${contactName}` : description,
+          debit_account_code: dl.account_code,
+          credit_account_code: cl.account_code,
+          amount,
+          currency: "ILS",
+          transaction_type: txType,
+          reference,
+          contact_id: lineContactId,
+          idempotency_key: `VOUCHER-${voucherId}-${pairIdx}`,
+        });
+      }
+      pairIdx++;
+    }
+    dl.remaining -= amount;
+    cl.remaining -= amount;
+    if (dl.remaining <= 0.0001) di++;
+    if (cl.remaining <= 0.0001) ci++;
+  }
+
+  return { txns, usedClearing };
+}
+
 /** توليد رقم سند جديد بصيغة QV-YYYY-#### */
 async function generateRefNumber(userId: string): Promise<string> {
   const { data } = await supabase
@@ -99,6 +213,24 @@ export function validateJournalInput(input: JournalSaveInput): string | null {
     const l = validLines[i];
     if (Number(l.debit) > 0 && Number(l.credit) > 0) {
       return `السطر ${i + 1}: لا يمكن مدين ودائن معاً`;
+    }
+  }
+
+  // Block pure noise: same account + same contact appearing on both sides.
+  // (Same account with DIFFERENT contacts is allowed — it's a valid party transfer.)
+  const norm = (c: string | null | undefined) =>
+    !c || c === "__none__" ? "" : c;
+  const debitKeys = new Set(
+    validLines
+      .filter((l) => Number(l.debit) > 0)
+      .map((l) => `${l.account_code}|${norm(l.contact_id)}`),
+  );
+  for (const l of validLines) {
+    if (Number(l.credit) > 0) {
+      const key = `${l.account_code}|${norm(l.contact_id)}`;
+      if (debitKeys.has(key)) {
+        return `الحساب ${l.account_code} يظهر مديناً ودائناً لنفس الطرف — هذا يلغي أثر القيد. استخدم طرفين مختلفين أو احذف أحد السطرين.`;
+      }
     }
   }
 
@@ -228,51 +360,21 @@ export function useSaveJournalVoucher() {
 
       // ── (5) عند الترحيل: إنشاء transactions ──
       if (mode === "posted") {
-        const debitLines = validLines.filter((l) => Number(l.debit) > 0);
-        const creditLines = validLines.filter((l) => Number(l.credit) > 0);
-
-        const txns: any[] = [];
         const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
-
-        // مزدوج بسيط أو معقد: نطابق Debit × Credit pairs بالحد الأدنى
-        const dQueue = debitLines.map((l) => ({ ...l, remaining: Number(l.debit) }));
-        const cQueue = creditLines.map((l) => ({ ...l, remaining: Number(l.credit) }));
-
-        let di = 0;
-        let ci = 0;
-        let pairIdx = 0;
-        while (di < dQueue.length && ci < cQueue.length) {
-          const dl = dQueue[di];
-          const cl = cQueue[ci];
-          const amount = Math.min(dl.remaining, cl.remaining);
-          if (amount > 0) {
-            const lineContactId =
-              (dl.contact_id && dl.contact_id !== "__none__" && dl.contact_id) ||
-              (cl.contact_id && cl.contact_id !== "__none__" && cl.contact_id) ||
-              input.contact_id ||
-              null;
-            const contactName = dl.contact_name || cl.contact_name || null;
-            txns.push({
-              user_id: user.id,
-              transaction_date: input.date,
-              description: contactName
-                ? `${input.description.trim()} - ${contactName}`
-                : input.description.trim(),
-              debit_account_code: dl.account_code,
-              credit_account_code: cl.account_code,
-              amount,
-              currency: "ILS",
-              transaction_type: txType,
-              reference: voucher.ref_number,
-              contact_id: lineContactId,
-              idempotency_key: `VOUCHER-${voucher.id}-${pairIdx}`,
-            });
-            pairIdx++;
-          }
-          dl.remaining -= amount;
-          cl.remaining -= amount;
-          if (dl.remaining <= 0.0001) di++;
-          if (cl.remaining <= 0.0001) ci++;
+        const { txns, usedClearing } = buildTransactionsFromLines({
+          userId: user.id,
+          date: input.date,
+          description: input.description.trim(),
+          lines: validLines,
+          txType,
+          reference: voucher.ref_number,
+          voucherId: voucher.id,
+          voucherContactId: input.contact_id,
+        });
+        if (usedClearing) {
+          await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
+            p_user_id: user.id,
+          });
         }
 
         // Phase 5E: route through canonical multi-party RPC when the flag
@@ -426,45 +528,21 @@ export function useSaveJournalVoucher() {
 
       // إعادة إنشاء transactions (إذا posted)
       if (mode === "posted") {
-        const debitLines = validLines.filter((l) => Number(l.debit) > 0);
-        const creditLines = validLines.filter((l) => Number(l.credit) > 0);
-        const txns: any[] = [];
         const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
-        const dQueue = debitLines.map((l) => ({ ...l, remaining: Number(l.debit) }));
-        const cQueue = creditLines.map((l) => ({ ...l, remaining: Number(l.credit) }));
-        let di = 0, ci = 0, pairIdx = 0;
-        while (di < dQueue.length && ci < cQueue.length) {
-          const dl = dQueue[di];
-          const cl = cQueue[ci];
-          const amount = Math.min(dl.remaining, cl.remaining);
-          if (amount > 0) {
-            const lineContactId =
-              (dl.contact_id && dl.contact_id !== "__none__" && dl.contact_id) ||
-              (cl.contact_id && cl.contact_id !== "__none__" && cl.contact_id) ||
-              input.contact_id ||
-              null;
-            const contactName = dl.contact_name || cl.contact_name || null;
-            txns.push({
-              user_id: user.id,
-              transaction_date: input.date,
-              description: contactName
-                ? `${input.description.trim()} - ${contactName}`
-                : input.description.trim(),
-              debit_account_code: dl.account_code,
-              credit_account_code: cl.account_code,
-              amount,
-              currency: "ILS",
-              transaction_type: txType,
-              reference: existing.ref_number,
-              contact_id: lineContactId,
-              idempotency_key: `VOUCHER-${voucherId}-${pairIdx}`,
-            });
-            pairIdx++;
-          }
-          dl.remaining -= amount;
-          cl.remaining -= amount;
-          if (dl.remaining <= 0.0001) di++;
-          if (cl.remaining <= 0.0001) ci++;
+        const { txns, usedClearing } = buildTransactionsFromLines({
+          userId: user.id,
+          date: input.date,
+          description: input.description.trim(),
+          lines: validLines,
+          txType,
+          reference: existing.ref_number,
+          voucherId,
+          voucherContactId: input.contact_id,
+        });
+        if (usedClearing) {
+          await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
+            p_user_id: user.id,
+          });
         }
 
         // Phase 5E: same RPC routing for the update path. The legacy delete

@@ -16250,6 +16250,10 @@ export type Database = {
         Returns: undefined
       }
       ensure_default_warehouse: { Args: { p_user_id: string }; Returns: string }
+      ensure_party_transfer_clearing_account: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       ensure_return_accounts: {
         Args: { p_user_id: string }
         Returns: undefined
