@@ -750,7 +750,7 @@ const JournalNewPage = () => {
                     : lines;
                   return displayLines.map((line, i) => {
                   return (
-                  <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
+                  <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"} ${invalidLineIds.has(line.id) ? "!bg-destructive/10 ring-1 ring-destructive/40" : ""}`}>
                     <td data-journal-line-id={line.id} className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
                       <Input
