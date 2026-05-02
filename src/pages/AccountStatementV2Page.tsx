@@ -1128,7 +1128,8 @@ const AccountStatementV2Page = () => {
                           return <td key={c.key} style={{ padding: "8px 12px" }} />;
                         })}
                       </tr>
-                    ))
+                      );
+                    })
                   )}
 
                   {/* Closing balance row */}
