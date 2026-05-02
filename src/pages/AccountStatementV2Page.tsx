@@ -33,7 +33,7 @@ interface Account { id: string; account_code: string; account_name: string; acco
 interface EmployeeEntity { id: string; full_name: string; department: string | null; job_title: string | null; phone: string | null; base_salary: number; account_code: string | null; }
 interface Transaction { id: string; description: string; transaction_type: string; amount: number; currency: string; transaction_date: string; debit_account_code: string; credit_account_code: string; reference: string | null; is_deleted: boolean; contact_id: string | null; payment_method: string | null; foreign_amount: number | null; exchange_rate: number | null; reversed_by_id?: string | null; }
 interface Cheque { id: string; cheque_number: string | null; cheque_type: string; amount: number; currency: string; cheque_date: string; party_name: string; status: string; bank_name: string | null; }
-interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; }
+interface StatementRow { date: string; description: string; transaction_type: string; reference: string; debit: number; credit: number; balance: number; transaction_id: string; currency: string; payment_method: string | null; dueDate?: string; foreignDetail?: string; isConverted?: boolean; isMismatch?: boolean; conversionRate?: number; usedHistoricRate?: boolean; isCancelled?: boolean; isLineItem?: boolean; lineItemDetail?: string; invoiceItems?: StatementInvoiceDetail[]; }
 interface StatementInvoiceDetail { productName: string; quantity: number; unitPrice: number; discount: number; tax: number; total: number; unit?: string | null; }
 interface StatementVoucherAccountLine { accountCode: string; accountName: string; debit: number; credit: number; }
 interface StatementVoucherDetail { paymentMethod?: string | null; cashBox?: string | null; bank?: string | null; chequeNumber?: string | null; chequeDate?: string | null; notes?: string | null; accounts?: StatementVoucherAccountLine[]; }
@@ -507,17 +507,19 @@ const AccountStatementV2Page = () => {
     return filteredRows.flatMap((row) => {
       const nested: StatementRow[] = [];
       if (statementOptions.showInvoiceDetails) {
-        (detailsMap.invoiceDetailsById[row.reference] || []).forEach((it) => {
+        const items = detailsMap.invoiceDetailsById[row.reference] || [];
+        if (items.length > 0) {
           nested.push({
             ...row,
-            transaction_id: `${row.transaction_id}-invoice-${nested.length}`,
-            description: `↳ ${it.productName} | الكمية: ${it.quantity}${it.unit ? ` ${it.unit}` : ""} | السعر: ${fmtAmount(it.unitPrice, row.currency)} | الخصم: ${it.discount} | الضريبة: ${it.tax}% | الإجمالي: ${fmtAmount(it.total, row.currency)}`,
+            transaction_id: `${row.transaction_id}-invoice-table`,
+            description: "",
             debit: 0,
             credit: 0,
             isLineItem: true,
-            lineItemDetail: "invoice",
+            lineItemDetail: "invoice-table",
+            invoiceItems: items,
           });
-        });
+        }
       }
       if (statementOptions.showVoucherDetails) {
         const detail = detailsMap.voucherDetailsById[row.reference];
@@ -1008,7 +1010,56 @@ const AccountStatementV2Page = () => {
                   ) : filteredRows.length === 0 ? (
                     <tr><td colSpan={colSpan} style={{ textAlign: "center", padding: 40, color: "#9CA3AF", fontSize: 13 }}>لا توجد حركات في هذه الفترة</td></tr>
                   ) : (
-                    statementRowsWithDetails.map((row, i) => (
+                    statementRowsWithDetails.map((row, i) => {
+                      // ─── Nested Invoice Items Table (Document-aware) ───
+                      if (row.lineItemDetail === "invoice-table" && row.invoiceItems && row.invoiceItems.length > 0) {
+                        const items = row.invoiceItems;
+                        const sub = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
+                        return (
+                          <tr key={row.transaction_id + "-" + i} style={{ background: "#FAFBFC", borderBottom: "1px solid #E5E7EB" }}>
+                            <td colSpan={colSpan} style={{ padding: "10px 18px 14px" }}>
+                              <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", background: "white" }}>
+                                <div style={{ padding: "6px 12px", background: "#F3F4F6", fontSize: 10, fontWeight: 700, color: "#374151", letterSpacing: 0.2 }}>
+                                  📦 تفاصيل أصناف الفاتورة {row.reference} ({items.length} {items.length === 1 ? "صنف" : "أصناف"})
+                                </div>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                                  <thead>
+                                    <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>المنتج / الخدمة</th>
+                                      <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 70 }}>الكمية</th>
+                                      <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 90 }}>السعر</th>
+                                      <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 70 }}>الخصم</th>
+                                      <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 70 }}>الضريبة</th>
+                                      <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 100 }}>الإجمالي</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {items.map((it, idx) => (
+                                      <tr key={idx} style={{ borderBottom: idx === items.length - 1 ? "none" : "1px solid #F3F4F6" }}>
+                                        <td style={{ padding: "6px 10px", color: "#111827", fontSize: 11 }}>{it.productName || "—"}</td>
+                                        <td style={{ padding: "6px 10px", textAlign: "center", color: "#374151", fontFamily: "tabular-nums", fontSize: 11 }}>
+                                          {it.quantity}{it.unit ? <span style={{ color: "#9CA3AF", fontSize: 9, marginRight: 3 }}>{it.unit}</span> : null}
+                                        </td>
+                                        <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#374151", fontFamily: "tabular-nums", fontSize: 11 }}>{fmtAmount(it.unitPrice, row.currency)}</td>
+                                        <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: it.discount > 0 ? "#B45309" : "#9CA3AF", fontFamily: "tabular-nums", fontSize: 11 }}>{it.discount > 0 ? `${it.discount}` : "—"}</td>
+                                        <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#6B7280", fontFamily: "tabular-nums", fontSize: 11 }}>{it.tax > 0 ? `${it.tax}%` : "—"}</td>
+                                        <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 11 }}>{fmtAmount(it.total, row.currency)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr style={{ background: "#F9FAFB", borderTop: "1px solid #E5E7EB" }}>
+                                      <td colSpan={5} style={{ padding: "6px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: "#374151" }}>الإجمالي</td>
+                                      <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", fontSize: 11, fontWeight: 700, color: "#0D1B2E", fontFamily: "tabular-nums" }}>{fmtAmount(sub, row.currency)}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return (
                       <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
                         {screenCols.map(c => {
                           if (c.key === "date") return (
@@ -1077,7 +1128,8 @@ const AccountStatementV2Page = () => {
                           return <td key={c.key} style={{ padding: "8px 12px" }} />;
                         })}
                       </tr>
-                    ))
+                      );
+                    })
                   )}
 
                   {/* Closing balance row */}
