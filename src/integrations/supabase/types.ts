@@ -15901,6 +15901,10 @@ export type Database = {
         Args: { p_approved_by: string; p_request_id: string }
         Returns: Json
       }
+      cancel_cheque_endorsement: {
+        Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
       cancel_stock_transfer: {
         Args: { p_reason?: string; p_transfer_id: string }
         Returns: Json
