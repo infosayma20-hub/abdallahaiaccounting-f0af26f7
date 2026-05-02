@@ -2692,15 +2692,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label className="text-xs mb-1.5 block">طريقة الدفع</Label>
-              <div className="flex gap-1.5">
-                {PAYMENT_METHODS.map(m => (
-                  <button key={m.value} onClick={() => setPaymentMethod(m.value)}
-                    className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg text-[11px] transition-all border ${paymentMethod === m.value ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
-                    <m.icon className="h-4 w-4" strokeWidth={1.6} />
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map(m => (
+                    <SelectItem key={m.value} value={m.value}>
+                      <span className="flex items-center gap-2">
+                        <m.icon className="h-4 w-4" strokeWidth={1.6} />
+                        {m.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Deposit/Source - hide when cheque is selected */}
