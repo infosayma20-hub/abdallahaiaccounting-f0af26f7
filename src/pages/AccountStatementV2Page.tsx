@@ -1093,6 +1093,87 @@ const AccountStatementV2Page = () => {
                           </tr>
                         );
                       }
+                      // ─── Nested Voucher Detail Table (Document-aware) ───
+                      if (row.lineItemDetail === "voucher-table" && row.voucherDetail) {
+                        const d = row.voucherDetail;
+                        const isCheque = d.paymentMethod === "cheque" || d.paymentMethod === "check" || !!d.chequeNumber;
+                        const chequeStatusMap: Record<string, string> = {
+                          registered: "مسجل", deferred: "مؤجل", due: "مستحق",
+                          deposited: "مودع بالبنك", under_collection: "برسم التحصيل",
+                          collected: "محصّل", endorsed: "مجيّر لمورد",
+                          returned: "مرتجع", return_to_customer: "مرتجع للعميل", rejected: "مرفوض",
+                          paid: "مدفوع", cancelled: "ملغى",
+                        };
+                        const accountLabel = isCheque ? "البنك" : (d.cashBox ? "الصندوق" : (d.bank ? "البنك" : "—"));
+                        const accountValue = isCheque ? (d.bank || "—") : (d.cashBox || d.bank || "—");
+                        return (
+                          <tr key={row.transaction_id + "-" + i} style={{ background: "#FAFBFC", borderBottom: "1px solid #E5E7EB" }}>
+                            <td colSpan={colSpan} style={{ padding: "10px 18px 14px" }}>
+                              <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", background: "white" }}>
+                                <div style={{ padding: "6px 12px", background: "#F3F4F6", fontSize: 10, fontWeight: 700, color: "#374151", letterSpacing: 0.2 }}>
+                                  🧾 تفاصيل {row.voucherKind || "السند"} {row.reference}
+                                </div>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                                  <thead>
+                                    <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>نوع السند</th>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>رقم السند</th>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>طريقة الدفع</th>
+                                      <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10 }}>{accountLabel}</th>
+                                      <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 110 }}>المبلغ</th>
+                                      <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600, color: "#4B5563", fontSize: 10, width: 60 }}>العملة</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr>
+                                      <td style={{ padding: "6px 10px", color: "#111827", fontSize: 11 }}>{row.voucherKind || "—"}</td>
+                                      <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11, fontFamily: "monospace" }}>{row.reference}</td>
+                                      <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{paymentMethodLabel(d.paymentMethod)}</td>
+                                      <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{accountValue}</td>
+                                      <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 11 }}>{fmtAmount(row.voucherAmount || 0, row.currency)}</td>
+                                      <td style={{ padding: "6px 10px", textAlign: "center", color: "#6B7280", fontSize: 10 }}>{normalizeCurrency(row.currency)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                {isCheque && d.chequeNumber && (
+                                  <>
+                                    <div style={{ padding: "5px 12px", background: "#FFFBEB", fontSize: 10, fontWeight: 700, color: "#92400E", borderTop: "1px solid #E5E7EB" }}>
+                                      💳 تفاصيل الشيك
+                                    </div>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                                      <thead>
+                                        <tr style={{ background: "#FEF3C7", borderBottom: "1px solid #FDE68A" }}>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>رقم الشيك</th>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>البنك</th>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>تاريخ الاستحقاق</th>
+                                          <th style={{ textAlign: "right", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10 }}>الحالة</th>
+                                          <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600, color: "#92400E", fontSize: 10, width: 110 }}>المبلغ</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr>
+                                          <td style={{ padding: "6px 10px", color: "#111827", fontSize: 11, fontFamily: "monospace" }}>{d.chequeNumber}</td>
+                                          <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{d.bank || "—"}</td>
+                                          <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>{d.chequeDate ? fmtDate(d.chequeDate) : "—"}</td>
+                                          <td style={{ padding: "6px 10px", color: "#374151", fontSize: 11 }}>
+                                            {d.chequeStatus ? (chequeStatusMap[d.chequeStatus] || d.chequeStatus) : "—"}
+                                          </td>
+                                          <td style={{ padding: "6px 10px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 11 }}>{fmtAmount(row.voucherAmount || 0, row.currency)}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </>
+                                )}
+                                {d.notes && (
+                                  <div style={{ padding: "6px 12px", background: "#F9FAFB", fontSize: 10, color: "#6B7280", borderTop: "1px solid #E5E7EB", lineHeight: 1.5 }}>
+                                    📝 <span style={{ fontWeight: 600, color: "#374151" }}>ملاحظات:</span> {d.notes}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
                       return (
                       <tr key={row.transaction_id + "-" + i} style={{ borderBottom: "1px solid #F3F4F6", cursor: row.isLineItem ? "default" : "pointer", background: row.isLineItem ? "#F9FAFB" : row.isCancelled ? "#F9FAFB" : (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#FEF3C7" : undefined, opacity: row.isCancelled ? 0.7 : 1 }} className={row.isLineItem ? "" : "hover:bg-gray-50 transition-colors group"} onClick={() => { if (!row.isLineItem) { setDrawerRow(row); setDrawerOpen(true); } }}>
                         {screenCols.map(c => {
