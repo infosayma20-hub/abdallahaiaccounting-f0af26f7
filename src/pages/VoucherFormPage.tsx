@@ -3029,41 +3029,36 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           </div>
         </CardContent>
       </Card>
+      </div>
 
-      {/* Notes */}
-      <Card>
-        <CardContent className="p-5">
-          <Label className="text-xs mb-1.5 block">ملاحظات</Label>
-          <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={3} />
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
+      {/* ═══ Sticky Bottom Action Bar — col-span-12 ═══ */}
       {!isCancelled && (
-        <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-          {!isEditMode ? (
-            <button onClick={() => handleSave(true)} disabled={saving}
-              className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-              حفظ كمسودة
-            </button>
-          ) : <div />}
-          <div className="flex items-center gap-3">
-            <button onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-              <Printer className="h-4 w-4" /> طباعة
-            </button>
-            <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
-              <Save className="h-4 w-4" />
-              {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
-            </button>
+        <div className="lg:col-span-12 sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            {!isEditMode ? (
+              <button onClick={() => handleSave(true)} disabled={saving}
+                className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+                حفظ كمسودة
+              </button>
+            ) : <div />}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+                <Printer className="h-4 w-4" /> طباعة
+              </button>
+              <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (partyType === "contact" && !selectedContact) || (partyType === "employee" && !selectedEmployee) || (partyType === "account" && !selectedGlAccount)}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-md">
+                <Save className="h-4 w-4" />
+                {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Cancelled — only show print */}
       {isCancelled && (
-        <div className="flex items-center justify-center bg-card rounded-2xl border border-border p-4">
+        <div className="lg:col-span-12 sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 flex items-center justify-center">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة (ملغي)
