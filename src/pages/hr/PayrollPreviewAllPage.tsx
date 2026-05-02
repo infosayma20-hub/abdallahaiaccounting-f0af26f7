@@ -546,12 +546,14 @@ export default function PayrollPreviewAllPage() {
     const noSalary = rows.filter((r) => r.status === "no_salary").length;
     const noAttendance = rows.filter((r) => r.status === "no_attendance").length;
     const noPolicy = rows.filter((r) => r.status === "no_policy").length;
+    const badPolicy = rows.filter((r) => r.status === "bad_policy").length;
     const ok = rows.filter((r) => r.status === "ok" || r.status === "warning").length;
     return {
       count: rows.length,
       noSalary,
       noAttendance,
       noPolicy,
+      badPolicy,
       ok,
       totalAllowances: rows.reduce((a, r) => a + r.total_allowances, 0),
       totalDeductions: rows.reduce((a, r) => a + r.total_deductions, 0),
@@ -575,6 +577,8 @@ export default function PayrollPreviewAllPage() {
       "الحالة":
         r.status === "no_policy"
           ? "بدون سياسة رواتب"
+          : r.status === "bad_policy"
+          ? "سياسة خاطئة (يومية/ساعة + راتب شهري)"
           : r.status === "no_salary"
           ? "بدون راتب أساسي"
           : r.status === "no_attendance"
@@ -656,7 +660,7 @@ export default function PayrollPreviewAllPage() {
           className="w-[220px]"
         />
         <div className="flex gap-1">
-          {(["all", "ok", "no_salary", "no_attendance", "no_policy"] as const).map((f) => (
+          {(["all", "ok", "no_salary", "no_attendance", "no_policy", "bad_policy"] as const).map((f) => (
             <Button
               key={f}
               size="sm"
@@ -671,6 +675,8 @@ export default function PayrollPreviewAllPage() {
                 ? "بدون راتب"
                 : f === "no_attendance"
                 ? "بدون حضور"
+                : f === "bad_policy"
+                ? "سياسة خاطئة"
                 : "بدون سياسة"}
             </Button>
           ))}
@@ -791,6 +797,10 @@ export default function PayrollPreviewAllPage() {
                     {r.status === "no_policy" ? (
                       <Badge variant="destructive" className="gap-1">
                         <AlertTriangle className="h-3 w-3" /> بدون سياسة رواتب
+                      </Badge>
+                    ) : r.status === "bad_policy" ? (
+                      <Badge variant="destructive" className="gap-1" title="سياسة الراتب لا تطابق الراتب الأساسي — الموظف مربوط بسياسة يومية/ساعة لكن الراتب المدخل يبدو شهرياً">
+                        <AlertTriangle className="h-3 w-3" /> سياسة خاطئة
                       </Badge>
                     ) : r.status === "no_salary" ? (
                       <Badge variant="destructive" className="gap-1">
