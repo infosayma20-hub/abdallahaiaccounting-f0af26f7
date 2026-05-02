@@ -2008,6 +2008,39 @@ const InvoiceCreatePage = () => {
           )}
         </CardContent>
       </Card>
+      </div>
+
+      {/* ───── TOP-RIGHT (RTL left): Sticky Summary — 4 cols ─────
+          Aligned to the SAME top baseline as the invoice form card.
+          Sticks while user fills items below. */}
+      <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
+        <SmartSummaryPanel
+          variant="invoice"
+          invoiceType={form.type}
+          subtotal={summary.subtotal}
+          totalDiscount={summary.totalDiscount}
+          totalTax={summary.totalTax}
+          total={summary.total}
+          taxEnabled={taxEnabled}
+          taxInclusive={form.taxInclusive}
+          itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
+          partyName={selectedContact?.contact_name || form.contactName || null}
+          partyId={selectedContact?.id || null}
+          balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
+          openInvoicesTotal={contactOpenInvoicesTotal}
+          unappliedCredit={contactUnappliedCredit}
+          creditLimit={selectedContact?.credit_limit ?? null}
+          currency={form.currency}
+          exchangeRate={form.exchangeRate}
+          dueDate={form.dueDate}
+          refNumber={nextInvoiceNumber}
+          currencySymbol={currSymbol}
+          onOpenStatement={selectedContact ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank") : undefined}
+        />
+      </aside>
+
+      {/* ───── MIDDLE ROW: Items Table — full width 12 cols ───── */}
+      <div className="lg:col-span-12 min-w-0">
 
       {/* ─── SECTION 2: Invoice Items — Clean Professional Table ─── */}
       <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
