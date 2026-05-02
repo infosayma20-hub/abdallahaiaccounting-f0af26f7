@@ -683,6 +683,22 @@ export default function PayrollPreviewAllPage() {
         </div>
       </div>
 
+      {/* Bad-policy alert banner */}
+      {summary.badPolicy > 0 && (
+        <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div className="text-right">
+            <div className="font-bold">
+              {summary.badPolicy} موظف بسياسة راتب لا تطابق الراتب الأساسي
+            </div>
+            <div className="text-xs mt-1">
+              هؤلاء الموظفون مربوطون بسياسة <b>يومية</b> أو <b>بالساعة</b> لكن راتبهم الأساسي يبدو شهرياً (≥ 1,000 ₪).
+              تم إيقاف احتساب رواتبهم لمنع أرقام مضخّمة. يرجى تعديل سياسة الراتب من ملف الموظف قبل المتابعة.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Card className="p-3">
