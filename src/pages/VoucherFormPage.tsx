@@ -2931,22 +2931,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         />
       )}
 
-      </div>
-
-      {/* ───── BOTTOM ROW: Notes (8 cols) + Attachments (4 cols) ───── */}
-      <div className="lg:col-span-8 min-w-0">
-      {/* Notes */}
-      <Card>
+      {/* ───── BOTTOM ROW (inside left col): Notes + Attachments
+          Nested 3-col grid keeps both inside the col-span-8 left
+          column so the sticky summary on the right keeps content
+          beside it all the way down. */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* Notes — 2/3 */}
+      <Card className="md:col-span-2">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block font-semibold">ملاحظات</Label>
           <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={`ملاحظات تظهر في إيصال ${isReceipt ? "القبض" : "الصرف"}...`} rows={5} className="resize-none" />
         </CardContent>
       </Card>
-      </div>
 
-      <div className="lg:col-span-4 min-w-0">
-      {/* Attachments */}
-      <Card>
+      {/* Attachments — 1/3 */}
+      <Card className="md:col-span-1">
         <CardContent className="p-5 space-y-3">
           <button
             type="button"
