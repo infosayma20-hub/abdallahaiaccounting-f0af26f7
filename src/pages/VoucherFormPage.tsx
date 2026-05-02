@@ -1072,18 +1072,34 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
     // Validate cheque amounts total
     if (paymentMethod === "شيك" && !asDraft) {
-      // يجب وجود شيك واحد على الأقل بمعلومات مكتملة (رقم + بنك + مبلغ)
+      // يسمح بنوعين: شيكات جديدة (cheques) أو شيكات مظهَّرة موجودة (endorsedCheques)
       const validCheques = cheques.filter(
         c => c.number && String(c.number).trim() !== "" && c.bank && Number(c.amount) > 0
       );
-      if (validCheques.length === 0) {
-        toast.error("يجب إدخال بيانات الشيك (الرقم، البنك، والمبلغ) قبل حفظ السند بطريقة دفع شيك");
+      const endorsedTotal = endorsedCheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+      const newCount = validCheques.length;
+      const endorsedCount = endorsedCheques.length;
+
+      if (newCount === 0 && endorsedCount === 0) {
+        toast.error(
+          "يجب إدخال بيانات شيك جديد (الرقم، البنك، والمبلغ) أو اختيار شيك موجود للتجيير قبل حفظ السند",
+        );
         return;
       }
-      const chequesTotal = validCheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+      const chequesTotal =
+        validCheques.reduce((sum, c) => sum + (Number(c.amount) || 0), 0) + endorsedTotal;
       const diff = Math.abs(chequesTotal - amountNum);
       if (diff > 0.01) {
-        toast.error(`إجمالي الشيكات (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`);
+        const breakdown =
+          endorsedCount > 0 && newCount > 0
+            ? ` (جديد: ${(chequesTotal - endorsedTotal).toFixed(2)} + مظهَّر: ${endorsedTotal.toFixed(2)})`
+            : endorsedCount > 0
+            ? " (مظهَّر)"
+            : "";
+        toast.error(
+          `إجمالي الشيكات${breakdown} (${chequesTotal.toFixed(2)}) لا يساوي مبلغ السند (${amountNum.toFixed(2)})`,
+        );
         return;
       }
       // رقم حساب صاحب الشيك أصبح اختيارياً للوارد والصادر معاً
