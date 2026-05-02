@@ -360,51 +360,21 @@ export function useSaveJournalVoucher() {
 
       // ── (5) عند الترحيل: إنشاء transactions ──
       if (mode === "posted") {
-        const debitLines = validLines.filter((l) => Number(l.debit) > 0);
-        const creditLines = validLines.filter((l) => Number(l.credit) > 0);
-
-        const txns: any[] = [];
         const txType = SUBTYPE_TO_TX_TYPE[input.subtype] || "journal";
-
-        // مزدوج بسيط أو معقد: نطابق Debit × Credit pairs بالحد الأدنى
-        const dQueue = debitLines.map((l) => ({ ...l, remaining: Number(l.debit) }));
-        const cQueue = creditLines.map((l) => ({ ...l, remaining: Number(l.credit) }));
-
-        let di = 0;
-        let ci = 0;
-        let pairIdx = 0;
-        while (di < dQueue.length && ci < cQueue.length) {
-          const dl = dQueue[di];
-          const cl = cQueue[ci];
-          const amount = Math.min(dl.remaining, cl.remaining);
-          if (amount > 0) {
-            const lineContactId =
-              (dl.contact_id && dl.contact_id !== "__none__" && dl.contact_id) ||
-              (cl.contact_id && cl.contact_id !== "__none__" && cl.contact_id) ||
-              input.contact_id ||
-              null;
-            const contactName = dl.contact_name || cl.contact_name || null;
-            txns.push({
-              user_id: user.id,
-              transaction_date: input.date,
-              description: contactName
-                ? `${input.description.trim()} - ${contactName}`
-                : input.description.trim(),
-              debit_account_code: dl.account_code,
-              credit_account_code: cl.account_code,
-              amount,
-              currency: "ILS",
-              transaction_type: txType,
-              reference: voucher.ref_number,
-              contact_id: lineContactId,
-              idempotency_key: `VOUCHER-${voucher.id}-${pairIdx}`,
-            });
-            pairIdx++;
-          }
-          dl.remaining -= amount;
-          cl.remaining -= amount;
-          if (dl.remaining <= 0.0001) di++;
-          if (cl.remaining <= 0.0001) ci++;
+        const { txns, usedClearing } = buildTransactionsFromLines({
+          userId: user.id,
+          date: input.date,
+          description: input.description.trim(),
+          lines: validLines,
+          txType,
+          reference: voucher.ref_number,
+          voucherId: voucher.id,
+          voucherContactId: input.contact_id,
+        });
+        if (usedClearing) {
+          await supabase.rpc("ensure_party_transfer_clearing_account" as any, {
+            p_user_id: user.id,
+          });
         }
 
         // Phase 5E: route through canonical multi-party RPC when the flag
