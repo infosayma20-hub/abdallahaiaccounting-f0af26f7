@@ -111,6 +111,20 @@ const getTypeLabel = (t: string) => {
   return "حركة";
 };
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: "نقدي", bank: "بنك", cheque: "شيك", check: "شيك",
+  transfer: "تحويل", card: "بطاقة", credit: "آجل",
+};
+const paymentMethodLabel = (m?: string | null) => m ? (PAYMENT_METHOD_LABELS[m] || m) : "—";
+
+const CHEQUE_STATUS_LABELS: Record<string, string> = {
+  registered: "مسجل", deferred: "مؤجل", due: "مستحق",
+  deposited: "مودع بالبنك", under_collection: "برسم التحصيل",
+  collected: "محصّل", endorsed: "مجيّر لمورد",
+  returned: "مرتجع", return_to_customer: "مرتجع للعميل", rejected: "مرفوض",
+  paid: "مدفوع", cancelled: "ملغى",
+};
+
 const S = {
   page: { direction: "rtl" as const, fontFamily: "'Cairo', Arial, sans-serif", fontSize: 11, color: "#111827", background: "white", padding: "40px 48px", maxWidth: 780 },
   headerWrap: { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 16, paddingBottom: 16, borderBottom: "2px solid #111827" } as React.CSSProperties,
