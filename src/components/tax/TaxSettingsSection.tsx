@@ -12,6 +12,35 @@ import { Save, Plus, Trash2, AlertTriangle, Shield } from "lucide-react";
 
 interface Props { ownerId: string; }
 
+interface TaxSettings {
+  id?: string;
+  tax_name?: string;
+  tax_number?: string;
+  tax_rate?: number;
+  registration_type?: string;
+  fiscal_year_start?: number;
+  report_due_day?: number;
+  prices_include_tax?: boolean;
+  output_tax_account_code?: string;
+  input_tax_account_code?: string;
+  payable_tax_account_code?: string;
+  refundable_tax_account_code?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+}
+
+interface TaxCategory {
+  id: string;
+  name: string;
+  code: string;
+  tax_type: "standard" | "zero" | "exempt";
+  rate: number | null;
+  description?: string | null;
+  is_active?: boolean | null;
+}
+
 const defaultCategories = [
   { name: "خاضع للضريبة 16%", code: "STD", tax_type: "standard", rate: 16, description: "صفقات خاضعة بالنسبة العامة", is_default: true },
   { name: "بنسبة صفر - تصدير", code: "ZERO-EXP", tax_type: "zero", rate: 0, description: "صادرات بنسبة صفر" },
@@ -24,8 +53,8 @@ const defaultCategories = [
 
 export default function TaxSettingsSection({ ownerId }: Props) {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<any>(null);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [settings, setSettings] = useState<TaxSettings | null>(null);
+  const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [vatEnabled, setVatEnabled] = useState(true);
