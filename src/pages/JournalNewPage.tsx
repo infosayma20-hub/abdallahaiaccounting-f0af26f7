@@ -112,6 +112,11 @@ const JournalNewPage = () => {
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "", line_comment: "" },
   ]);
 
+  // Clear invalid highlight whenever the user edits lines
+  useEffect(() => {
+    setInvalidLineIds(prev => (prev.size > 0 ? new Set() : prev));
+  }, [lines]);
+
   // ─── Auto-Draft (سند القيد) ───
   const journalDraftSnapshot = useMemo(() => ({
     formDate, formRefNumber, formSubtype, formDescription, formNotes,
