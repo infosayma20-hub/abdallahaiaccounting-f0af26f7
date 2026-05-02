@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
-  BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock
+  BookOpen, User, Building2, Users, X, UserPlus, Upload, Paperclip, ChevronDown, Clock,
+  FileText, Scale, AlertTriangle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
@@ -484,7 +485,7 @@ const JournalNewPage = () => {
   return (
     <AccountingShell>
     <SmartFormScope
-      className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 space-y-5"
+      className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pb-32 space-y-5"
       firstFieldSelector="[data-smart-first]"
     >
     <div dir="rtl" className="contents">
@@ -546,11 +547,25 @@ const JournalNewPage = () => {
         } : undefined}
       />
 
+      {/* ═══════════════════════════════════════════════════════════════
+          12-COLUMN MASTER GRID — Odoo / QuickBooks Journal style
+          Left  (col-span-8): Header → Lines → Notes/Attachments
+          Right (col-span-4): Sticky balance summary (Debit/Credit/Diff)
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      {/* ═══ LEFT COLUMN — Main content (8 cols) ═══ */}
+      <div className="lg:col-span-8 min-w-0 space-y-5">
+
       {/* ═══ Header Card: Subtype + Date/Ref/Contact/Type + Description (12-col grid) ═══ */}
-      <Card className="border border-border/60 shadow-sm rounded-2xl">
-        <CardContent className="p-5 space-y-4">
+      <Card className="border border-border/60 shadow-sm rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <h2 className="text-[13px] font-bold text-foreground">بيانات السند</h2>
+        </div>
+        <CardContent className="p-5 space-y-5">
           {/* Subtype Tabs — chip strip, single row */}
-          <div className="flex flex-wrap gap-2 pb-3 border-b border-border/40">
+          <div className="flex flex-wrap gap-2">
             {(["normal", "opening", "adjustment", "closing"] as const).map(st => (
               <button key={st} onClick={() => setFormSubtype(st)} className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${formSubtype === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
                 {subtypeLabels[st]}
@@ -635,7 +650,7 @@ const JournalNewPage = () => {
           </div>
 
           <div>
-            <Label className="text-xs mb-1.5 block">الوصف *</Label>
+            <Label className="text-xs mb-1.5 block font-semibold">الوصف *</Label>
             <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="مثال: سلفة راتب - رهام حسون" />
           </div>
         </CardContent>
@@ -971,9 +986,9 @@ const JournalNewPage = () => {
         </CardContent>
       </Card>
 
-      {/* ═══ Bottom row: Notes (8 cols) + Attachments (4 cols) ═══ */}
+      {/* ═══ Bottom row INSIDE left column: Notes (7) + Attachments (5) ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <Card className="lg:col-span-8 border border-border/60 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-7 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-5">
           <Label className="text-xs mb-1.5 block flex items-center gap-2 font-semibold">
             ملاحظات
@@ -983,7 +998,7 @@ const JournalNewPage = () => {
       </Card>
 
       {/* Attachments Section */}
-      <Card className="lg:col-span-4 border border-border/60 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-5 border border-border/60 shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <button
             onClick={() => setAttachmentsOpen(!attachmentsOpen)}
@@ -1029,29 +1044,122 @@ const JournalNewPage = () => {
       </Card>
       </div>
 
+      {/* ═══ END LEFT COLUMN ═══ */}
+      </div>
+
+      {/* ═══ RIGHT COLUMN — Sticky Balance Summary (4 cols) ═══
+          Always visible while scrolling; mirrors SmartSummary pattern. */}
+      <aside className="lg:col-span-4 lg:sticky lg:top-4 self-start w-full">
+        <Card className="border border-border/60 shadow-md rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50 bg-muted/30 flex items-center gap-2">
+            <Scale className="h-4 w-4 text-primary" />
+            <h3 className="text-[13px] font-bold text-foreground">ملخص القيد</h3>
+          </div>
+          <CardContent className="p-4 space-y-3">
+            {/* Status badge */}
+            {(() => {
+              const diff = totalDebit - totalCredit;
+              const isZero = totalDebit === 0 && totalCredit === 0;
+              if (isZero) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 text-muted-foreground text-xs">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>أدخل المبالغ للتحقق من التوازن</span>
+                  </div>
+                );
+              }
+              if (isBalanced) {
+                return (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>القيد متوازن — جاهز للترحيل</span>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-bold border border-destructive/20">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>القيد غير متوازن</span>
+                </div>
+              );
+            })()}
+
+            {/* Debit / Credit / Diff */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي مدين</span>
+                <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400 text-sm">₪{formatAmount(totalDebit)}</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-destructive/5 border border-destructive/15">
+                <span className="text-[11px] text-muted-foreground font-medium">إجمالي دائن</span>
+                <span className="font-bold tabular-nums text-destructive text-sm">₪{formatAmount(totalCredit)}</span>
+              </div>
+              <div className="h-px bg-border/60 my-1" />
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/40">
+                <span className="text-[12px] font-semibold">الفرق</span>
+                <span className={`font-extrabold tabular-nums text-base ${isBalanced ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                  ₪{formatAmount(Math.abs(totalDebit - totalCredit))}
+                </span>
+              </div>
+            </div>
+
+            {/* Meta */}
+            <div className="pt-2 mt-1 border-t border-border/50 space-y-1.5 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>عدد الأسطر</span>
+                <span className="font-semibold text-foreground tabular-nums">{lines.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>نوع السند</span>
+                <span className="font-semibold text-foreground">{subtypeLabels[formSubtype]}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>التاريخ</span>
+                <span className="font-semibold text-foreground tabular-nums">{formDate}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
+
+      {/* ═══ END MASTER GRID ═══ */}
+      </div>
+
       {/* ═══ Sticky Bottom Action Bar ═══ */}
       <div className="sticky bottom-0 -mx-4 lg:-mx-6 px-4 lg:px-6 pt-3 pb-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Mini status pill */}
+          <div className={`hidden md:flex items-center gap-2 px-3 h-11 rounded-xl text-[11px] font-semibold tabular-nums ${isBalanced && totalDebit > 0 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : totalDebit > 0 ? "bg-destructive/10 text-destructive" : "bg-muted/40 text-muted-foreground"}`}>
+            <span>مدين ₪{formatAmount(totalDebit)}</span>
+            <span className="opacity-40">·</span>
+            <span>دائن ₪{formatAmount(totalCredit)}</span>
+          </div>
+
+          {/* Ghost: Print */}
+          <button onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
+            <Printer className="h-4 w-4" /> طباعة
+          </button>
+
+          {/* Secondary: Draft */}
           <button onClick={() => handleSave("draft")} disabled={saving}
-            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            className="px-4 h-11 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
             حفظ كمسودة
           </button>
-          <div className="flex items-center gap-3 flex-wrap">
-            <button onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
-              <Printer className="h-4 w-4" /> طباعة
-            </button>
-            <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 text-sm font-bold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
-              <Clock className="h-4 w-4" />
-              حفظ مع التأجيل
-            </button>
-            <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-md">
-              <Save className="h-4 w-4" />
-              {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
-            </button>
-          </div>
+
+          {/* Secondary warning: Deferred */}
+          <button onClick={() => handleSave("deferred")} disabled={saving || !isBalanced}
+            className="flex items-center gap-1.5 px-4 h-11 rounded-xl border-2 border-yellow-500/70 text-yellow-700 dark:text-yellow-400 text-sm font-semibold hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all disabled:opacity-50">
+            <Clock className="h-4 w-4" />
+            حفظ مع التأجيل
+          </button>
+
+          {/* PRIMARY — dominant */}
+          <button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}
+            className="flex-1 min-w-[200px] flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-primary/25">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
+          </button>
         </div>
       </div>
 
