@@ -94,7 +94,7 @@ interface PreviewRow {
   total_deductions: number;
   net_salary: number;
   engine: "Standard" | "Malaki" | "None";
-  status: "ok" | "no_salary" | "no_attendance" | "no_policy" | "warning";
+  status: "ok" | "no_salary" | "no_attendance" | "no_policy" | "bad_policy" | "warning";
   warnings: string[];
   policy_name: string | null;
   has_policy: boolean;
@@ -109,7 +109,7 @@ export default function PayrollPreviewAllPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance" | "no_policy">("all");
+  const [filter, setFilter] = useState<"all" | "ok" | "no_salary" | "no_attendance" | "no_policy" | "bad_policy">("all");
 
   // ─── Data ─────────────────────────────────────────────
   const { data: employees = [], isLoading: loadingEmp } = useQuery({
@@ -259,10 +259,66 @@ export default function PayrollPreviewAllPage() {
         policyBelongsToCompany && linkedPolicy.engine_preset === "standard";
       const noPolicy = !policyBelongsToCompany;
 
+      // ─── HARD GUARD (S2-A.3) ──────────────────────────────────
+      // Detect mismatch: policy basis is daily/hourly, but base_salary is
+      // unrealistically large (>= 1000 ₪) — meaning the user entered a
+      // monthly salary while the policy treats it as daily/hourly. Without
+      // this guard, the engine would multiply 3000 × 25 days = 75,000+ ₪.
+      // We block the calculation, force net=0, and flag the row.
+      const basis = linkedPolicy?.salary_basis;
+      const baseSalaryGuard = Number(emp.base_salary || 0);
+      const policyMismatch =
+        useStandard &&
+        (basis === "daily" || basis === "hourly") &&
+        baseSalaryGuard >= 1000;
+
       let slip: MalakiPayslip;
       const warnings: string[] = [];
 
-      if (noPolicy) {
+      if (policyMismatch) {
+        // Zeroed payslip — accountant must fix policy linkage first.
+        warnings.push(
+          `policy_mismatch:basis=${basis},base_salary=${baseSalaryGuard}`
+        );
+        slip = {
+          working_days: malakiInput.working_days,
+          regular_hours: malakiInput.working_hours,
+          overtime_hours: malakiInput.overtime_hours,
+          vacation_hours: 0,
+          annual_leave_days: 0,
+          sick_leave_days: 0,
+          attendance_salary: 0,
+          annual_allowance: 0,
+          admin_allowance: 0,
+          food_transport_base: 0,
+          food_transport_net: 0,
+          family_allowance: 0,
+          other_allowances: 0,
+          gross_fixed: 0,
+          fixed_deduction: 0,
+          net_fixed: 0,
+          attendance_bonus: 0,
+          special_allowance: 0,
+          extra_work_allowance: 0,
+          entitlements: 0,
+          total_earnings: 0,
+          deduction_opening_balance: 0,
+          deduction_loan: 0,
+          deduction_new_advance: 0,
+          deduction_cash_advance: 0,
+          deduction_food_group: 0,
+          deduction_food_individual: 0,
+          deduction_cash_shortage: 0,
+          deduction_cash_surplus: 0,
+          deduction_delivery: 0,
+          deduction_purchases: 0,
+          deduction_other: 0,
+          deduction_violations: 0,
+          total_deductions: 0,
+          net_salary: 0,
+          carry_over_balance: 0,
+        } as MalakiPayslip;
+      } else if (noPolicy) {
         // No engine runs. Zeroed payslip. The row will be flagged "بدون سياسة رواتب".
         warnings.push("no_payroll_policy_assigned");
         slip = {
@@ -409,6 +465,8 @@ export default function PayrollPreviewAllPage() {
 
       const status: PreviewRow["status"] = noPolicy
         ? "no_policy"
+        : policyMismatch
+        ? "bad_policy"
         : noSalary
         ? "no_salary"
         : noAttendance
@@ -488,12 +546,14 @@ export default function PayrollPreviewAllPage() {
     const noSalary = rows.filter((r) => r.status === "no_salary").length;
     const noAttendance = rows.filter((r) => r.status === "no_attendance").length;
     const noPolicy = rows.filter((r) => r.status === "no_policy").length;
+    const badPolicy = rows.filter((r) => r.status === "bad_policy").length;
     const ok = rows.filter((r) => r.status === "ok" || r.status === "warning").length;
     return {
       count: rows.length,
       noSalary,
       noAttendance,
       noPolicy,
+      badPolicy,
       ok,
       totalAllowances: rows.reduce((a, r) => a + r.total_allowances, 0),
       totalDeductions: rows.reduce((a, r) => a + r.total_deductions, 0),
@@ -517,6 +577,8 @@ export default function PayrollPreviewAllPage() {
       "الحالة":
         r.status === "no_policy"
           ? "بدون سياسة رواتب"
+          : r.status === "bad_policy"
+          ? "سياسة خاطئة (يومية/ساعة + راتب شهري)"
           : r.status === "no_salary"
           ? "بدون راتب أساسي"
           : r.status === "no_attendance"
@@ -598,7 +660,7 @@ export default function PayrollPreviewAllPage() {
           className="w-[220px]"
         />
         <div className="flex gap-1">
-          {(["all", "ok", "no_salary", "no_attendance", "no_policy"] as const).map((f) => (
+          {(["all", "ok", "no_salary", "no_attendance", "no_policy", "bad_policy"] as const).map((f) => (
             <Button
               key={f}
               size="sm"
@@ -613,11 +675,29 @@ export default function PayrollPreviewAllPage() {
                 ? "بدون راتب"
                 : f === "no_attendance"
                 ? "بدون حضور"
+                : f === "bad_policy"
+                ? "سياسة خاطئة"
                 : "بدون سياسة"}
             </Button>
           ))}
         </div>
       </div>
+
+      {/* Bad-policy alert banner */}
+      {summary.badPolicy > 0 && (
+        <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div className="text-right">
+            <div className="font-bold">
+              {summary.badPolicy} موظف بسياسة راتب لا تطابق الراتب الأساسي
+            </div>
+            <div className="text-xs mt-1">
+              هؤلاء الموظفون مربوطون بسياسة <b>يومية</b> أو <b>بالساعة</b> لكن راتبهم الأساسي يبدو شهرياً (≥ 1,000 ₪).
+              تم إيقاف احتساب رواتبهم لمنع أرقام مضخّمة. يرجى تعديل سياسة الراتب من ملف الموظف قبل المتابعة.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -733,6 +813,10 @@ export default function PayrollPreviewAllPage() {
                     {r.status === "no_policy" ? (
                       <Badge variant="destructive" className="gap-1">
                         <AlertTriangle className="h-3 w-3" /> بدون سياسة رواتب
+                      </Badge>
+                    ) : r.status === "bad_policy" ? (
+                      <Badge variant="destructive" className="gap-1" title="سياسة الراتب لا تطابق الراتب الأساسي — الموظف مربوط بسياسة يومية/ساعة لكن الراتب المدخل يبدو شهرياً">
+                        <AlertTriangle className="h-3 w-3" /> سياسة خاطئة
                       </Badge>
                     ) : r.status === "no_salary" ? (
                       <Badge variant="destructive" className="gap-1">
