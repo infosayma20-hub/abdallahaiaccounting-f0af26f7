@@ -365,7 +365,35 @@ const JournalNewPage = () => {
       return l;
     });
 
-    const validLines = preparedLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
+    // Strict accounting validation: a line is "active" if it has any value or any account/contact selected.
+    // - Fully empty rows are silently dropped.
+    // - Active rows MUST have a postable account_code AND at least one of debit/credit > 0.
+    const postableSet = new Set(postableAccounts.map((a: any) => a.account_code));
+    const invalids: string[] = [];
+    const cleanLines = preparedLines.filter(l => {
+      const hasAmount = Number(l.debit) > 0 || Number(l.credit) > 0;
+      const hasAccount = !!l.account_code;
+      const hasContact = !!l.contact_id && l.contact_id !== "__none__";
+      const isEmpty = !hasAmount && !hasAccount && !hasContact && !l.line_comment;
+      if (isEmpty) return false; // auto-drop fully empty rows
+
+      // Active row — must have an account
+      if (!hasAccount) { invalids.push(l.id); return true; }
+      // Account must be postable (not a parent)
+      if (!postableSet.has(l.account_code)) { invalids.push(l.id); return true; }
+      // Must have an amount
+      if (!hasAmount) { invalids.push(l.id); return true; }
+      return true;
+    });
+
+    if (invalids.length > 0) {
+      setInvalidLineIds(new Set(invalids));
+      toast.error("يرجى تحديد حساب قابل للترحيل ومبلغ لكل سطر قبل الحفظ");
+      return;
+    }
+    setInvalidLineIds(new Set());
+
+    const validLines = cleanLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
     if (validLines.length < 2) { toast.error("أدخل سطرين على الأقل"); return; }
 
     setSaving(true);
@@ -378,7 +406,7 @@ const JournalNewPage = () => {
         description: formDescription,
         notes: formNotes || null,
         contact_id: formContactId || null,
-        lines: preparedLines.map((l) => ({
+        lines: validLines.map((l) => ({
           account_code: l.account_code,
           account_name: l.account_name,
           debit: Number(l.debit) || 0,
