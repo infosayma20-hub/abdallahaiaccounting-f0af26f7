@@ -1644,7 +1644,9 @@ const InvoiceCreatePage = () => {
           ───────────────────────────────────────────────────────────────
           Top row    : [Invoice Form  col-span-8] [Sticky Summary col-span-4]
           Middle row : [Items Table                              col-span-12]
-          Bottom row : [Notes + Terms + Attach col-span-8] [Final Totals col-span-4]
+          Bottom row : [Notes + Terms + Attach                    col-span-12]
+          (Final totals are NOT duplicated — the top sticky summary is the
+          single source of truth for totals, mirrored in the sticky action bar.)
           All cards share the same horizontal gutters (gap-6) and align
           perfectly on the same baselines — QuickBooks / Odoo style.
           ═══════════════════════════════════════════════════════════════ */}
