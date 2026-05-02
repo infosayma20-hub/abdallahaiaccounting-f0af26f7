@@ -3093,43 +3093,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }}
         excludeIds={endorsedCheques.map(c => c.id)}
       />
-      </div>
-
-      {/* ───── Left column: Smart Summary (sticky) ───── */}
-      <aside className="hidden lg:block lg:sticky lg:top-4 self-start">
-        <SmartSummaryPanel
-          variant={voucherType}
-          currencySymbol={currencySymbol}
-          amount={amountNum}
-          partyName={
-            partyType === "contact" ? selectedContact?.contact_name :
-            partyType === "employee" ? selectedEmployee?.full_name :
-            partyType === "account" ? selectedGlAccount?.account_name :
-            null
-          }
-          partyType={partyType}
-          balanceBefore={
-            partyType === "contact"
-              ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
-              : null
-          }
-          openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
-          openInvoicesTotal={partyType === "contact" ? Number(selectedContact?.open_invoices_balance ?? 0) : 0}
-          unappliedCredit={partyType === "contact" ? Number(selectedContact?.unapplied_credit ?? 0) : 0}
-          oldestInvoiceDays={oldestInvoiceDays}
-          paymentMethod={paymentMethod}
-          chequesTotal={cheques.reduce((s, c) => s + (Number(c.amount) || 0), 0)}
-          chequesCount={cheques.length}
-          allocatedTotal={totalAllocated}
-          date={paymentDate}
-          refNumber={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
-          onOpenStatement={
-            partyType === "contact" && selectedContact?.id
-              ? () => window.open(`/account-statement?contact_id=${selectedContact.id}`, "_blank")
-              : undefined
-          }
-        />
-      </aside>
     </div>
     </SmartFormScope>
   );
