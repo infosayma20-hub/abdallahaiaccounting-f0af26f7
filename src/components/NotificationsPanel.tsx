@@ -137,19 +137,22 @@ export function useNotifications() {
         .from("cheques")
         .select("*")
         .eq("user_id", user.id)
-        .in("status", ["مسجل", "آجل", "مستحق"])
+        .in("status", ["مسجل", "آجل", "مستحق", "مودع", "مظهر"])
         .gte("cheque_date", today)
         .lte("cheque_date", new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0]);
 
       (cheques as any[] || []).forEach((ch) => {
         const daysUntil = Math.ceil((new Date(ch.cheque_date).getTime() - now.getTime()) / 86400000);
+        const isEndorsed = ch.status === "مظهر";
+        const prefix = isEndorsed ? "شيك مظهَّر" : "شيك";
+        const endorseSuffix = isEndorsed && ch.endorsed_to_name ? ` (مظهَّر إلى ${ch.endorsed_to_name})` : "";
         notifs.push({
           id: `cheque-${ch.id}`,
           icon: CreditCard,
           iconColor: daysUntil <= 2 ? "#EF4444" : "#F59E0B",
           iconBg: daysUntil <= 2 ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
-          title: daysUntil === 0 ? "شيك مستحق اليوم!" : `شيك مستحق خلال ${daysUntil} أيام`,
-          description: `${ch.cheque_type === "وارد" ? "وارد من" : "صادر لـ"} ${ch.party_name} • ${Number(ch.amount).toLocaleString()} ${ch.currency}`,
+          title: daysUntil === 0 ? `${prefix} مستحق اليوم!` : `${prefix} مستحق خلال ${daysUntil} أيام`,
+          description: `${ch.cheque_type === "وارد" ? "وارد من" : "صادر لـ"} ${ch.party_name}${endorseSuffix} • ${Number(ch.amount).toLocaleString()} ${ch.currency}`,
           time: new Date(ch.created_at),
           path: "/cheques",
           read: false,
@@ -162,16 +165,18 @@ export function useNotifications() {
         .from("cheques")
         .select("*")
         .eq("user_id", user.id)
-        .in("status", ["مسجل", "آجل", "مستحق"])
+        .in("status", ["مسجل", "آجل", "مستحق", "مودع", "مظهر"])
         .lt("cheque_date", today);
 
       if ((overdue || []).length > 0) {
+        const endorsedCount = (overdue as any[]).filter(c => c.status === "مظهر").length;
+        const endorsedNote = endorsedCount > 0 ? ` (منها ${endorsedCount} مظهَّر)` : "";
         notifs.push({
           id: "cheques-overdue",
           icon: AlertTriangle,
           iconColor: "#EF4444",
           iconBg: "rgba(239,68,68,0.1)",
-          title: `${(overdue as any[]).length} شيكات متأخرة عن موعدها!`,
+          title: `${(overdue as any[]).length} شيكات متأخرة عن موعدها!${endorsedNote}`,
           description: `إجمالي: ${(overdue as any[]).reduce((s, c) => s + Number(c.amount), 0).toLocaleString()} شيكل`,
           time: new Date(),
           path: "/cheques",
