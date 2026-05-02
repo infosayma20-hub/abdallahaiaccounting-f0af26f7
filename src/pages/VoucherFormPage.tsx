@@ -642,8 +642,27 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setPaymentMethod(data.payment_method || "نقدي");
             setAmount(String(data.amount || ""));
             setNotes(data.notes || "");
-            if (data.check_number) {
-              setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || ""), accountNumber: "", notes: "" }]);
+            // Load cheques from the dedicated cheques table (multi-cheque safe)
+            if ((data.payment_method || "") === "شيك") {
+              const { data: chList } = await supabase
+                .from("cheques")
+                .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
+                .eq("user_id", user.id)
+                .or(`voucher_id.eq.${editId},receipt_voucher_id.eq.${editId}`)
+                .order("created_at", { ascending: true });
+              if (chList && chList.length > 0) {
+                setCheques(chList.map((c: any) => ({
+                  number: c.cheque_number || "",
+                  date: c.cheque_date || "",
+                  bank: c.bank_name || "",
+                  amount: String(c.amount ?? ""),
+                  accountNumber: c.account_number || "",
+                  notes: c.notes || "",
+                })));
+              } else if (data.check_number) {
+                // Legacy fallback: single cheque stored on the header.
+                setCheques([{ number: data.check_number || "", date: data.check_date || "", bank: data.bank_name || "", amount: String(data.amount || ""), accountNumber: "", notes: "" }]);
+              }
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
@@ -671,8 +690,27 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
             setAmount(String(data.amount || data.amount_ils || ""));
             setNotes(data.notes || data.description || "");
-            if (data.cheque_number) {
-              setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || ""), accountNumber: "", notes: "" }]);
+            // Load cheques from the dedicated cheques table (multi-cheque safe)
+            if (((methodMap[data.payment_method] || data.payment_method || "") === "شيك")) {
+              const { data: chList } = await supabase
+                .from("cheques")
+                .select("cheque_number, cheque_date, bank_name, amount, account_number, notes")
+                .eq("user_id", user.id)
+                .eq("voucher_id", editId)
+                .order("created_at", { ascending: true });
+              if (chList && chList.length > 0) {
+                setCheques(chList.map((c: any) => ({
+                  number: c.cheque_number || "",
+                  date: c.cheque_date || "",
+                  bank: c.bank_name || "",
+                  amount: String(c.amount ?? ""),
+                  accountNumber: c.account_number || "",
+                  notes: c.notes || "",
+                })));
+              } else if (data.cheque_number) {
+                // Legacy fallback: single cheque stored on the header.
+                setCheques([{ number: data.cheque_number || "", date: data.cheque_due_date || "", bank: data.cheque_bank_name || "", amount: String(data.amount || data.amount_ils || ""), accountNumber: "", notes: "" }]);
+              }
             }
             setEditVoucherStatus(data.status || "posted");
             if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
