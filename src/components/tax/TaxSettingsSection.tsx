@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
@@ -59,12 +59,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
   const [loading, setLoading] = useState(true);
   const [vatEnabled, setVatEnabled] = useState(true);
 
-  useEffect(() => {
-    if (!ownerId) return;
-    loadData();
-  }, [ownerId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const [settingsRes, categoriesRes, companyRes] = await Promise.all([
       supabase.from("tax_settings").select("*").eq("user_id", ownerId).maybeSingle(),
@@ -95,7 +90,12 @@ export default function TaxSettingsSection({ ownerId }: Props) {
 
     setCategories(categoriesRes.data || []);
     setLoading(false);
-  };
+  }, [ownerId]);
+
+  useEffect(() => {
+    if (!ownerId) return;
+    loadData();
+  }, [ownerId, loadData]);
 
   const saveSettings = async () => {
     if (!ownerId || !user) return;
@@ -103,7 +103,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
     try {
       const { data: updatedCompany, error: updateCompanyError } = await supabase
         .from("company_settings")
-        .update({ vat_enabled: vatEnabled, updated_by: user.id } as any)
+        .update({ vat_enabled: vatEnabled, updated_by: user.id })
         .eq("user_id", ownerId)
         .select("id");
 
@@ -112,7 +112,7 @@ export default function TaxSettingsSection({ ownerId }: Props) {
       if (!updatedCompany?.length) {
         const { error: insertCompanyError } = await supabase
           .from("company_settings")
-          .insert({ user_id: ownerId, vat_enabled: vatEnabled, updated_by: user.id } as any);
+          .insert({ user_id: ownerId, vat_enabled: vatEnabled, updated_by: user.id });
 
         if (insertCompanyError) throw insertCompanyError;
       }
@@ -133,8 +133,8 @@ export default function TaxSettingsSection({ ownerId }: Props) {
 
       toast.success("تم حفظ الإعدادات الضريبية");
       await loadData();
-    } catch (error: any) {
-      toast.error(error?.message || "تعذر حفظ إعدادات الضريبة");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ إعدادات الضريبة");
     } finally {
       setSaving(false);
     }
