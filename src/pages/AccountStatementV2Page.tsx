@@ -1049,41 +1049,87 @@ const AccountStatementV2Page = () => {
                       if (row.lineItemDetail === "invoice-table" && row.invoiceItems && row.invoiceItems.length > 0) {
                         const items = row.invoiceItems;
                         const isSingle = items.length === 1;
-                        const railStyle: React.CSSProperties = {
-                          borderRight: "2px solid #CBD5E1",
+                        const cardStyle: React.CSSProperties = {
                           background: "#F8FAFC",
-                          marginRight: 32,
-                          padding: "5px 12px 6px",
-                          borderRadius: "0 4px 4px 0",
+                          borderRight: "3px solid #0D1B2E",
+                          borderRadius: 8,
+                          padding: "8px 12px",
+                          margin: "4px 32px 8px 8px",
                         };
+                        const headerStyle: React.CSSProperties = {
+                          fontSize: 10,
+                          color: "#64748B",
+                          fontWeight: 600,
+                          marginBottom: 6,
+                          paddingBottom: 5,
+                          borderBottom: "1px dashed #E2E8F0",
+                        };
+                        const chipStyle: React.CSSProperties = {
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: "#FFFFFF",
+                          border: "1px solid #E2E8F0",
+                          borderRadius: 6,
+                          padding: "3px 8px",
+                          fontSize: 10.5,
+                          marginLeft: 6,
+                          marginBottom: 3,
+                        };
+                        const chipLabel: React.CSSProperties = { color: "#94A3B8", fontWeight: 600, fontSize: 9.5 };
+                        const chipValue: React.CSSProperties = { color: "#1F2937", fontWeight: 600, fontFamily: "tabular-nums", direction: "ltr" };
                         if (isSingle) {
                           const it = items[0];
                           return (
                             <tr key={row.transaction_id + "-" + i}>
-                              <td colSpan={colSpan} style={{ padding: "0 8px 5px" }}>
-                                <div style={railStyle}>
-                                  <span style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, marginLeft: 6 }}>تفاصيل {row.reference}:</span>
-                                  <span style={{ fontSize: 11, color: "#1F2937", fontWeight: 600 }}>{it.productName || "—"}</span>
-                                  <span style={{ fontSize: 10.5, color: "#6B7280" }}> · كمية {it.quantity}{it.unit ? ` ${it.unit}` : ""}</span>
-                                  <span style={{ fontSize: 10.5, color: "#6B7280", direction: "ltr", display: "inline-block" }}> · سعر {fmtAmount(it.unitPrice, row.currency)}</span>
-                                  {it.discount > 0 && <span style={{ fontSize: 10.5, color: "#B45309" }}> · خصم {it.discount}</span>}
-                                  {it.tax > 0 && <span style={{ fontSize: 10.5, color: "#6B7280" }}> · ض {it.tax}%</span>}
-                                  <span style={{ fontSize: 11, color: "#065F46", fontWeight: 700, direction: "ltr", display: "inline-block", marginRight: 4 }}> · إجمالي {fmtAmount(it.total, row.currency)}</span>
+                              <td colSpan={colSpan} style={{ padding: 0 }}>
+                                <div style={cardStyle}>
+                                  <div style={headerStyle}>
+                                    تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{row.reference}</span> · 1 صنف
+                                  </div>
+                                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+                                    <span style={{ ...chipStyle, background: "#0D1B2E", borderColor: "#0D1B2E", color: "#fff", fontWeight: 700 }}>
+                                      {it.productName || "—"}
+                                    </span>
+                                    <span style={chipStyle}>
+                                      <span style={chipLabel}>الكمية:</span>
+                                      <span style={chipValue}>{it.quantity}{it.unit ? ` ${it.unit}` : ""}</span>
+                                    </span>
+                                    <span style={chipStyle}>
+                                      <span style={chipLabel}>السعر:</span>
+                                      <span style={chipValue}>{fmtAmount(it.unitPrice, row.currency)}</span>
+                                    </span>
+                                    <span style={{ ...chipStyle, ...(it.discount > 0 ? { background: "#FEF3C7", borderColor: "#FDE68A" } : {}) }}>
+                                      <span style={chipLabel}>الخصم:</span>
+                                      <span style={{ ...chipValue, color: it.discount > 0 ? "#B45309" : "#CBD5E1" }}>
+                                        {it.discount > 0 ? it.discount : "—"}
+                                      </span>
+                                    </span>
+                                    <span style={chipStyle}>
+                                      <span style={chipLabel}>الضريبة:</span>
+                                      <span style={{ ...chipValue, color: "#475569" }}>{it.tax > 0 ? `${it.tax}%` : "—"}</span>
+                                    </span>
+                                    <span style={{ ...chipStyle, background: "#ECFDF5", borderColor: "#A7F3D0" }}>
+                                      <span style={chipLabel}>الإجمالي:</span>
+                                      <span style={{ ...chipValue, color: "#065F46", fontWeight: 700 }}>{fmtAmount(it.total, row.currency)}</span>
+                                    </span>
+                                  </div>
                                 </div>
                               </td>
                             </tr>
                           );
                         }
+                        const subtotal = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
                         return (
                           <tr key={row.transaction_id + "-" + i}>
-                            <td colSpan={colSpan} style={{ padding: "0 8px 6px" }}>
-                              <div style={railStyle}>
-                                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, marginBottom: 4 }}>
-                                  تفاصيل {row.reference} · {items.length} أصناف
+                            <td colSpan={colSpan} style={{ padding: 0 }}>
+                              <div style={cardStyle}>
+                                <div style={headerStyle}>
+                                  تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{row.reference}</span> · {items.length} أصناف
                                 </div>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5 }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, background: "#fff", borderRadius: 6, overflow: "hidden", border: "1px solid #E2E8F0" }}>
                                   <thead>
-                                    <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
+                                    <tr style={{ background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
                                       <th style={{ textAlign: "right", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10 }}>الصنف</th>
                                       <th style={{ textAlign: "center", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 60 }}>كمية</th>
                                       <th style={{ textAlign: "left", padding: "3px 8px 4px", fontWeight: 600, color: "#94A3B8", fontSize: 10, width: 80 }}>سعر</th>
@@ -1094,7 +1140,7 @@ const AccountStatementV2Page = () => {
                                   </thead>
                                   <tbody>
                                     {items.map((it, idx) => (
-                                      <tr key={idx}>
+                                      <tr key={idx} style={{ borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9" }}>
                                         <td style={{ padding: "3px 8px", color: "#1F2937", fontSize: 10.5 }}>{it.productName || "—"}</td>
                                         <td style={{ padding: "3px 8px", textAlign: "center", color: "#475569", fontFamily: "tabular-nums", fontSize: 10.5 }}>
                                           {it.quantity}{it.unit ? <span style={{ color: "#94A3B8", fontSize: 9, marginRight: 2 }}>{it.unit}</span> : null}
@@ -1105,6 +1151,10 @@ const AccountStatementV2Page = () => {
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 10.5 }}>{fmtAmount(it.total, row.currency)}</td>
                                       </tr>
                                     ))}
+                                    <tr style={{ background: "#ECFDF5" }}>
+                                      <td colSpan={5} style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, color: "#475569", fontWeight: 600 }}>الإجمالي</td>
+                                      <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 700, fontSize: 11 }}>{fmtAmount(subtotal, row.currency)}</td>
+                                    </tr>
                                   </tbody>
                                 </table>
                               </div>
