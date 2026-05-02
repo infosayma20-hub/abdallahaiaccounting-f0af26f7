@@ -71,13 +71,6 @@ export const navigationSections: NavSection[] = [
     sectionTitle: "المالية والمحاسبة",
     items: [
       {
-        id: "accounting-center", label: "مركز المحاسبة", description: "نظرة موحّدة على النشاط المالي اليومي والمؤشرات الحيوية",
-        module: "accounting", icon: Activity,
-        color: "text-emerald-600", bgColor: "bg-emerald-500/10",
-        path: "/accounting-center", isDirect: true, isNew: true,
-        keywords: ["مركز", "محاسبة", "لوحة", "مالي", "نظرة عامة", "accounting center"],
-      },
-      {
         id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", module: "accounting", icon: DollarSign,
         color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/finance/receipts",
         keywords: ["مالية", "حسابات", "قيود", "ميزان"],
