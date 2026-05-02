@@ -296,43 +296,73 @@ const StatementPrintViewClean = ({
             if (r.lineItemDetail === "invoice-table" && r.invoiceItems && r.invoiceItems.length > 0) {
               const items = r.invoiceItems;
               const isSingle = items.length === 1;
-              const railStyle: React.CSSProperties = {
-                borderRight: "2px solid #CBD5E1",
+              const cardStyle: React.CSSProperties = {
                 background: "#F8FAFC",
-                marginRight: 28,
-                padding: "4px 10px 5px",
+                borderRight: "3px solid #0D1B2E",
+                borderRadius: 6,
+                padding: "5px 9px 6px",
+                margin: "2px 28px 5px 4px",
                 pageBreakInside: "avoid",
               };
-              // Single-item: compact one-liner — no table chrome
+              const headerStyle: React.CSSProperties = {
+                fontSize: 8.5,
+                color: "#64748B",
+                fontWeight: 600,
+                marginBottom: 4,
+                paddingBottom: 3,
+                borderBottom: "1px dashed #E2E8F0",
+              };
+              const chipStyle: React.CSSProperties = {
+                display: "inline-block",
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: 4,
+                padding: "1.5px 6px",
+                fontSize: 8.5,
+                marginLeft: 4,
+                marginBottom: 2,
+              };
+              const chipLabel: React.CSSProperties = { color: "#94A3B8", fontWeight: 600, fontSize: 8 };
+              const chipValue: React.CSSProperties = { color: "#1F2937", fontWeight: 600, marginRight: 3, direction: "ltr", display: "inline-block" };
               if (isSingle) {
                 const it = items[0];
                 return (
                   <tr key={r.transaction_id + "-" + i}>
-                    <td colSpan={columns.length} style={{ padding: "0 0 4px", border: "none" }}>
-                      <div style={railStyle}>
-                        <span style={{ fontSize: 8.5, color: "#94A3B8", fontWeight: 600, marginLeft: 6 }}>تفاصيل {r.reference}:</span>
-                        <span style={{ fontSize: 9.5, color: "#1F2937", fontWeight: 600 }}>{it.productName || "—"}</span>
-                        <span style={{ fontSize: 9, color: "#6B7280" }}> · كمية {it.quantity}{it.unit ? ` ${it.unit}` : ""}</span>
-                        <span style={{ fontSize: 9, color: "#6B7280", direction: "ltr", display: "inline-block" }}> · سعر {fmt(it.unitPrice)}</span>
-                        {it.discount > 0 && <span style={{ fontSize: 9, color: "#B45309" }}> · خصم {it.discount}</span>}
-                        {it.tax > 0 && <span style={{ fontSize: 9, color: "#6B7280" }}> · ض {it.tax}%</span>}
-                        <span style={{ fontSize: 9.5, color: "#065F46", fontWeight: 700, direction: "ltr", display: "inline-block", marginRight: 4 }}> · إجمالي {fmt(it.total)}</span>
+                    <td colSpan={columns.length} style={{ padding: 0, border: "none" }}>
+                      <div style={cardStyle}>
+                        <div style={headerStyle}>
+                          تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{r.reference}</span> · 1 صنف
+                        </div>
+                        <div>
+                          <span style={{ ...chipStyle, background: "#0D1B2E", borderColor: "#0D1B2E", color: "#fff", fontWeight: 700 }}>{it.productName || "—"}</span>
+                          <span style={chipStyle}><span style={chipLabel}>الكمية:</span><span style={chipValue}>{it.quantity}{it.unit ? ` ${it.unit}` : ""}</span></span>
+                          <span style={chipStyle}><span style={chipLabel}>السعر:</span><span style={chipValue}>{fmt(it.unitPrice)}</span></span>
+                          <span style={{ ...chipStyle, ...(it.discount > 0 ? { background: "#FEF3C7", borderColor: "#FDE68A" } : {}) }}>
+                            <span style={chipLabel}>الخصم:</span>
+                            <span style={{ ...chipValue, color: it.discount > 0 ? "#B45309" : "#CBD5E1" }}>{it.discount > 0 ? it.discount : "—"}</span>
+                          </span>
+                          <span style={chipStyle}><span style={chipLabel}>الضريبة:</span><span style={{ ...chipValue, color: "#475569" }}>{it.tax > 0 ? `${it.tax}%` : "—"}</span></span>
+                          <span style={{ ...chipStyle, background: "#ECFDF5", borderColor: "#A7F3D0" }}>
+                            <span style={chipLabel}>الإجمالي:</span>
+                            <span style={{ ...chipValue, color: "#065F46", fontWeight: 700 }}>{fmt(it.total)}</span>
+                          </span>
+                        </div>
                       </div>
                     </td>
                   </tr>
                 );
               }
-              // Multi-item: compact table, light header, no dark chrome
+              const subtotal = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
               return (
                 <tr key={r.transaction_id + "-" + i}>
-                  <td colSpan={columns.length} style={{ padding: "0 0 5px", border: "none" }}>
-                    <div style={railStyle}>
-                      <div style={{ fontSize: 8.5, color: "#94A3B8", fontWeight: 600, marginBottom: 3 }}>
-                        تفاصيل {r.reference} · {items.length} أصناف
+                  <td colSpan={columns.length} style={{ padding: 0, border: "none" }}>
+                    <div style={cardStyle}>
+                      <div style={headerStyle}>
+                        تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{r.reference}</span> · {items.length} أصناف
                       </div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 4 }}>
                         <thead>
-                          <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
+                          <tr style={{ background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
                             <th style={{ textAlign: "right", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5 }}>الصنف</th>
                             <th style={{ textAlign: "center", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 45 }}>كمية</th>
                             <th style={{ textAlign: "left", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 60 }}>سعر</th>
@@ -343,7 +373,7 @@ const StatementPrintViewClean = ({
                         </thead>
                         <tbody>
                           {items.map((it, idx) => (
-                            <tr key={idx}>
+                            <tr key={idx} style={{ borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9" }}>
                               <td style={{ padding: "2px 6px", color: "#1F2937", fontSize: 9 }}>{it.productName || "—"}</td>
                               <td style={{ padding: "2px 6px", textAlign: "center", color: "#475569", fontSize: 9 }}>
                                 {it.quantity}{it.unit ? <span style={{ color: "#94A3B8", fontSize: 8, marginRight: 2 }}>{it.unit}</span> : null}
@@ -354,6 +384,10 @@ const StatementPrintViewClean = ({
                               <td style={{ padding: "2px 6px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 600, fontSize: 9 }}>{fmt(it.total)}</td>
                             </tr>
                           ))}
+                          <tr style={{ background: "#ECFDF5" }}>
+                            <td colSpan={5} style={{ padding: "3px 6px", textAlign: "left", fontSize: 8.5, color: "#475569", fontWeight: 600 }}>الإجمالي</td>
+                            <td style={{ padding: "3px 6px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 700, fontSize: 9.5 }}>{fmt(subtotal)}</td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
