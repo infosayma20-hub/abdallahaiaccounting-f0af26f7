@@ -102,6 +102,24 @@ export function validateJournalInput(input: JournalSaveInput): string | null {
     }
   }
 
+  // Block pure noise: same account + same contact appearing on both sides.
+  // (Same account with DIFFERENT contacts is allowed — it's a valid party transfer.)
+  const norm = (c: string | null | undefined) =>
+    !c || c === "__none__" ? "" : c;
+  const debitKeys = new Set(
+    validLines
+      .filter((l) => Number(l.debit) > 0)
+      .map((l) => `${l.account_code}|${norm(l.contact_id)}`),
+  );
+  for (const l of validLines) {
+    if (Number(l.credit) > 0) {
+      const key = `${l.account_code}|${norm(l.contact_id)}`;
+      if (debitKeys.has(key)) {
+        return `الحساب ${l.account_code} يظهر مديناً ودائناً لنفس الطرف — هذا يلغي أثر القيد. استخدم طرفين مختلفين أو احذف أحد السطرين.`;
+      }
+    }
+  }
+
   const totalDebit = validLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
   const totalCredit = validLines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
 
