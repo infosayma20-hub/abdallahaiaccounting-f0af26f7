@@ -81,6 +81,7 @@ const RepNewOrderPage = lazy(() => import("./pages/rep/RepNewOrderPage"));
 const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const RepCollectPage = lazy(() => import("./pages/rep/RepCollectPage"));
 const RepExpensePage = lazy(() => import("./pages/rep/RepExpensePage"));
+const RepSalesBySupplierPage = lazy(() => import("./pages/rep/RepSalesBySupplierPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
 const RepUnpostedOrdersPage = lazy(() => import("./pages/admin/RepUnpostedOrdersPage"));
@@ -298,6 +299,7 @@ const App = () => (
                 <Route path="collect" element={<RepCollectPage />} />
                 <Route path="expense" element={<RepExpensePage />} />
                 <Route path="orders" element={<RepOrdersPage />} />
+                <Route path="sales-by-supplier" element={<RepSalesBySupplierPage />} />
                 {/* alias: إغلاق اليوم موجود ضمن لوحة /rep الرئيسية */}
                 <Route path="close-day" element={<Navigate to="/rep" replace />} />
               </Route>
