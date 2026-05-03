@@ -38,6 +38,8 @@ async function buildContext(supabase: any, userId: string, period: string): Prom
       .select("id, total_amount")
       .eq("user_id", userId)
       .eq("invoice_type", "sale")
+      .eq("is_voided", false)
+      .not("status", "in", "(cancelled,void,reversed)")
       .gte("invoice_date", from)
       .lte("invoice_date", to),
     supabase
@@ -45,6 +47,8 @@ async function buildContext(supabase: any, userId: string, period: string): Prom
       .select("total_amount")
       .eq("user_id", userId)
       .eq("invoice_type", "purchase")
+      .eq("is_voided", false)
+      .not("status", "in", "(cancelled,void,reversed)")
       .gte("invoice_date", from)
       .lte("invoice_date", to),
     supabase
@@ -92,6 +96,8 @@ async function buildContext(supabase: any, userId: string, period: string): Prom
     .select("total_amount, paid_amount")
     .eq("user_id", userId)
     .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
     .neq("payment_status", "paid");
   const receivables_total = (openInvoices || []).reduce(
     (s: number, r: any) => s + Math.max(0, Number(r.total_amount || 0) - Number(r.paid_amount || 0)),

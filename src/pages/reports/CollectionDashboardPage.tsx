@@ -34,7 +34,7 @@ export default function CollectionDashboardPage() {
     setLoading(true);
     const uid = ownerId!;
     const [invRes, vRes, linkRes] = await Promise.all([
-      supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name, contact_id, invoice_type").eq("user_id", uid).eq("invoice_type", "sale"),
+      supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name, contact_id, invoice_type").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)"),
       supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, amount, contact_name, payment_method").eq("user_id", uid),
       supabase.from("payment_invoice_links").select("id, invoice_id, payment_id, allocated_amount"),
     ]);
