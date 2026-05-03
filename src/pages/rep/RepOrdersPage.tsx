@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Receipt, RefreshCw, AlertCircle, Trash2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { broadcastChange } from "@/lib/crossTabSync";
 
 export default function RepOrdersPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +121,16 @@ export default function RepOrdersPage() {
         title: data.already_voided ? "الطلب ملغى مسبقاً" : "تم إلغاء الطلب",
         description: `قيد عكسي: ${data.reverse_transaction_id?.slice(0,8)}…`,
       });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["van-sales-payload"] }),
+        queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+        queryClient.invalidateQueries({ queryKey: ["account-statement"] }),
+        queryClient.invalidateQueries({ queryKey: ["account-statement-v2"] }),
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["trial-balance"] }),
+      ]);
+      broadcastChange("invoice", "updated", o.id);
+      broadcastChange("transaction", "updated", data.reverse_transaction_id);
       await load();
     } catch (e: any) {
       const message = String(e?.message || "");
