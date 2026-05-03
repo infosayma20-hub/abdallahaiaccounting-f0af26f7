@@ -3138,7 +3138,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           partyType={partyType}
           balanceBefore={
             partyType === "contact"
-              ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+            ? ((computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+                + (isEditMode ? (isReceipt ? originalAmount : -originalAmount) : 0))
               : null
           }
           openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
