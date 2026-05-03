@@ -181,8 +181,8 @@ export default function RepSalesBySupplierPage() {
     });
 
     // Compute total discount from filtered invoices (only those that contributed items after filter)
-    const contributingInvIds = new Set((items || []).map((i: any) => i.invoice_id));
-    const discTotal = Array.from(contributingInvIds).reduce((s, id) => {
+    const contributingInvIds = new Set<string>((items || []).map((i: any) => i.invoice_id as string));
+    const discTotal = Array.from(contributingInvIds).reduce<number>((s, id) => {
       const inv = invMap.get(id);
       return s + Number(inv?.discount_amount || 0);
     }, 0);
