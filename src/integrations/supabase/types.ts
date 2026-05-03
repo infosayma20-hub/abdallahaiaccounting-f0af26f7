@@ -16043,6 +16043,59 @@ export type Database = {
         }
         Returns: Json
       }
+      create_customer_from_rep: {
+        Args: {
+          p_address?: string
+          p_credit_limit?: number
+          p_name: string
+          p_notes?: string
+          p_payment_terms_days?: number
+          p_phone: string
+        }
+        Returns: {
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          avg_payment_days: number | null
+          company_size: string | null
+          contact_class: string | null
+          contact_name: string
+          contact_segment: string | null
+          contact_type: string
+          created_at: string
+          created_from_order: boolean | null
+          credit_limit: number | null
+          current_balance: number | null
+          early_pay_discount: number | null
+          email: string | null
+          id: string
+          industry: string | null
+          is_active: boolean | null
+          is_archived: boolean | null
+          last_transaction_date: string | null
+          linked_account_code: string | null
+          notes: string | null
+          overdue_amount: number | null
+          payment_terms_days: number | null
+          phone: string | null
+          purchase_limit: number | null
+          sales_rep_id: string | null
+          source: string | null
+          tax_number: string | null
+          total_paid: number | null
+          total_purchases: number | null
+          total_sales: number | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contacts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_invoice_with_entry:
         | {
             Args: {
