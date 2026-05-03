@@ -233,6 +233,38 @@ export default function RepExpensePage() {
         notes: tagNotes,
       });
       if (!result.success) throw new Error(result.error || "فشل حفظ المصروف");
+
+      // إنشاء سند صرف في جدول vouchers ليظهر في شاشة سندات الصرف
+      if (!result.duplicate && result.transaction_id) {
+        const { data: existingPV } = await (supabase as any)
+          .from("vouchers")
+          .select("id")
+          .eq("user_id", rep.user_id)
+          .eq("linked_transaction_id", result.transaction_id)
+          .maybeSingle();
+        if (!existingPV) {
+          const { error: pvErr } = await (supabase as any)
+            .from("vouchers")
+            .insert({
+              user_id: rep.user_id,
+              type: "payment",
+              subtype: "rep_expense",
+              ref_number: reference,
+              date: new Date().toISOString().slice(0, 10),
+              contact_id: null,
+              payment_method: "نقدي",
+              amount: amt,
+              currency: "شيكل",
+              amount_ils: amt,
+              description: `مصروف مندوب — ${currentType.label}${notes ? ` — ${notes}` : ""}`,
+              notes: tagNotes,
+              status: "posted",
+              linked_transaction_id: result.transaction_id,
+            });
+          if (pvErr) console.error("[RepExpense] voucher insert failed:", pvErr);
+        }
+      }
+
       toast({
         title: result.duplicate ? "هذا المصروف مسجّل مسبقاً" : "تم تسجيل المصروف بنجاح",
         description: `${amt.toFixed(2)} ₪ — ${currentType.label}`,
