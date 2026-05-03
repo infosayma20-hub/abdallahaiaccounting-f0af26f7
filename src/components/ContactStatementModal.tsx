@@ -174,9 +174,9 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
             .order("transaction_date", { ascending: true });
           if (error) throw error;
 
-          // Determine debit/credit by matching the contact's AR/AP account roots
-          // (handles per-customer sub-accounts like 1131, 21101, etc.)
-          const roots = ["1130", "2110", "2180", "2115", "1146"];
+          // Determine debit/credit by matching the contact's AR/AP account families
+          // (handles AR accounts like 1130/1131/1135 and AP accounts like 2110/2111/2115).
+          const roots = ["113", "211", "2180", "1146"];
           const matches = (code: string | null | undefined) =>
             !!code && roots.some(r => code === r || code.startsWith(r));
           let balance = 0;
