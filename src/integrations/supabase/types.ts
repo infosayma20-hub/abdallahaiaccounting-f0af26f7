@@ -16366,6 +16366,13 @@ export type Database = {
         Returns: number
       }
       get_rep_owner_id: { Args: never; Returns: string }
+      get_rep_suppliers: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       get_rep_warehouse_id: { Args: never; Returns: string }
       get_team_owner_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
