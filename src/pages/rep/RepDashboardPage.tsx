@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3 } from "lucide-react";
+import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3, Percent } from "lucide-react";
 
 export default function RepDashboardPage() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export default function RepDashboardPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [openDay, setOpenDay] = useState<any>(null);
-  const [stats, setStats] = useState({ count: 0, total: 0, cash: 0 });
+  const [stats, setStats] = useState({ count: 0, total: 0, cash: 0, discount: 0 });
   const [expenses, setExpenses] = useState(0);
   const [profit, setProfit] = useState<number | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
@@ -51,7 +51,7 @@ export default function RepDashboardPage() {
       // (invoices لا يحوي عمود is_deleted — لا تستخدمه)
       const { data: invs, error: invErr } = await (supabase as any)
         .from("invoices")
-        .select("id, total_amount, payment_method")
+        .select("id, total_amount, subtotal, discount_amount, payment_method")
         .eq("user_id", rep.user_id)
         .eq("salesperson_id", rep.id)
         .gte("created_at", day.opened_at);
@@ -59,8 +59,15 @@ export default function RepDashboardPage() {
       const list = invs || [];
       setStats({
         count: list.length,
-        total: list.reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+        // إجمالي المبيعات قبل الخصم (gross): subtotal أو total + discount عند غياب subtotal
+        total: list.reduce((s: number, i: any) => {
+          const sub = Number(i.subtotal || 0);
+          const tot = Number(i.total_amount || 0);
+          const disc = Number(i.discount_amount || 0);
+          return s + (sub > 0 ? sub : tot + disc);
+        }, 0),
         cash: list.filter((i: any) => i.payment_method === "cash").reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+        discount: list.reduce((s: number, i: any) => s + Number(i.discount_amount || 0), 0),
       });
 
       // مصاريف اليوم — payment_method='rep_expense' و notes يحوي rep_id
@@ -230,14 +237,26 @@ export default function RepDashboardPage() {
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
         <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-destructive" /><div className="text-2xl font-bold text-destructive">{expenses.toFixed(2)}</div><div className="text-xs text-muted-foreground">مصاريف اليوم (₪)</div></Card>
-        <Card className="p-4 space-y-1">
+        <Card className="p-4 space-y-1 border-orange-200 dark:border-orange-900/40">
+          <Percent className="w-5 h-5 text-orange-500" />
+          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {stats.discount.toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">الخصم المسموح به (₪)</div>
+        </Card>
+        <Card className="p-4 space-y-1 col-span-2">
           <Package className="w-5 h-5 text-primary" />
           <div className="text-2xl font-bold">
-            {profit == null ? "—" : profit.toFixed(2)}
+            {profit == null ? "—" : (profit - stats.discount).toFixed(2)}
           </div>
           <div className="text-xs text-muted-foreground">
-            {profit == null ? "تكلفة غير محددة" : "ربح اليوم (₪)"}
+            {profit == null ? "تكلفة غير محددة" : "الربح بعد الخصم (₪)"}
           </div>
+          {profit != null && stats.discount > 0 && (
+            <div className="text-[11px] text-muted-foreground pt-1">
+              قبل الخصم: {profit.toFixed(2)} ₪ — الخصم: {stats.discount.toFixed(2)} ₪
+            </div>
+          )}
         </Card>
       </div>
 
