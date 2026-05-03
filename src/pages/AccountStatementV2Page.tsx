@@ -437,8 +437,37 @@ const AccountStatementV2Page = () => {
   const agingData = useMemo(() => {
     if (!selectedEntityId || isAccountsTab) return null;
     const today = new Date();
+    // FIFO net aging: credits (including reverse entries) consume the oldest debit lots first.
+    // Anything netted to zero — including a reversed transaction — drops out of the buckets.
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    const lots: { date: string; remaining: number }[] = [];
+    let creditPool = 0;
+    for (const row of sorted) {
+      const d = Number(row.debit) || 0;
+      const c = Number(row.credit) || 0;
+      if (d > 0) lots.push({ date: row.date, remaining: d });
+      if (c > 0) creditPool += c;
+      // consume oldest debits with available credits
+      while (creditPool > 0 && lots.length > 0) {
+        const lot = lots[0];
+        if (lot.remaining <= creditPool + 1e-6) {
+          creditPool -= lot.remaining;
+          lots.shift();
+        } else {
+          lot.remaining -= creditPool;
+          creditPool = 0;
+        }
+      }
+    }
     let current = 0, d1_30 = 0, d31_60 = 0, d60plus = 0;
-    for (const row of rows) { if (row.debit <= 0) continue; const days = differenceInDays(today, parseISO(row.date)); if (days <= 0) current += row.debit; else if (days <= 30) d1_30 += row.debit; else if (days <= 60) d31_60 += row.debit; else d60plus += row.debit; }
+    for (const lot of lots) {
+      if (lot.remaining <= 0.005) continue;
+      const days = differenceInDays(today, parseISO(lot.date));
+      if (days <= 0) current += lot.remaining;
+      else if (days <= 30) d1_30 += lot.remaining;
+      else if (days <= 60) d31_60 += lot.remaining;
+      else d60plus += lot.remaining;
+    }
     const total = current + d1_30 + d31_60 + d60plus;
     return total === 0 ? null : { current, d1_30, d31_60, d60plus, total };
   }, [rows, selectedEntityId, isAccountsTab]);
