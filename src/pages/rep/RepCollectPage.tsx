@@ -90,9 +90,10 @@ export default function RepCollectPage() {
         .eq("is_deleted", false);
       if (txErr) throw txErr;
       const rows = data || [];
-      // ذمم عملاء: نقبل 1130 وأي حساب فرعي تحته (1131, 1130-001, ...)،
+      // ذمم عملاء: نقبل عائلة 113 كاملة (1130/1131/1135...) لأنها قد تُعرّف
+      // كحسابات فرعية محاسبياً بدون أن يكون رقمها بادئاً بـ 1130 نصياً.
       // ونقبل أيضاً 2115 (دفعات مقدمة من العملاء) كدائن طبيعي.
-      const arRoots = ["1130", "2115"];
+      const arRoots = ["113", "2115"];
       const matchesAR = (code: string | null | undefined) =>
         !!code && arRoots.some((r) => code === r || code.startsWith(r));
       const debit = rows
