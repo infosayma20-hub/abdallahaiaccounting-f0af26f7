@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle } from "lucide-react";
+import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3 } from "lucide-react";
 
 export default function RepDashboardPage() {
   const navigate = useNavigate();
@@ -203,6 +203,10 @@ export default function RepDashboardPage() {
 
       <Button className="w-full h-12 text-base" onClick={() => navigate("/rep/new-order")}>
         <Plus className="w-5 h-5 ml-2" /> طلب جديد
+      </Button>
+
+      <Button variant="outline" className="w-full h-11 text-sm" onClick={() => navigate("/rep/sales-by-supplier")}>
+        <BarChart3 className="w-4 h-4 ml-2" /> تقرير المبيعات حسب المورد
       </Button>
 
       <Card className="p-4 space-y-3">
