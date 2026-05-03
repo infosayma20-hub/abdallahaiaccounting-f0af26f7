@@ -229,6 +229,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [computedBalance, setComputedBalance] = useState<number | null>(null);
+  // Original saved amount when editing — used to exclude this voucher's own
+  // effect from the ledger so the side panel shows "balance BEFORE this voucher".
+  const [originalAmount, setOriginalAmount] = useState<number>(0);
   const contactDropdownRef = useRef<HTMLDivElement>(null);
 
   // GL Account (for "account" party type)
@@ -647,6 +650,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setRefNumber(data.receipt_number || "");
             setPaymentMethod(data.payment_method || "نقدي");
             setAmount(String(data.amount || ""));
+            setOriginalAmount(Number(data.amount) || 0);
             setNotes(data.notes || "");
             // Load cheques from the dedicated cheques table (multi-cheque safe)
             if ((data.payment_method || "") === "شيك") {
@@ -695,6 +699,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const methodMap: Record<string, string> = { cash: "نقدي", cheque: "شيك", transfer: "تحويل", card: "بطاقة" };
             setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
             setAmount(String(data.amount || data.amount_ils || ""));
+            setOriginalAmount(Number(data.amount || data.amount_ils) || 0);
             setNotes(data.notes || data.description || "");
             // Load cheques from the dedicated cheques table (multi-cheque safe)
             if (((methodMap[data.payment_method] || data.payment_method || "") === "شيك")) {
@@ -2444,7 +2449,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         partyType={partyType}
         balanceBefore={
           partyType === "contact"
-            ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+            ? ((computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+                + (isEditMode ? (isReceipt ? originalAmount : -originalAmount) : 0))
             : null
         }
         openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
@@ -3133,7 +3139,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           partyType={partyType}
           balanceBefore={
             partyType === "contact"
-              ? (computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+            ? ((computedBalance ?? selectedContact?.ledger_balance ?? selectedContact?.current_balance ?? 0)
+                + (isEditMode ? (isReceipt ? originalAmount : -originalAmount) : 0))
               : null
           }
           openInvoicesCount={partyType === "contact" ? openInvoiceCount : 0}
