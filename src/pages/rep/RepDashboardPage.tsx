@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3, Percent } from "lucide-react";
+import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3, BadgePercent } from "lucide-react";
 
 export default function RepDashboardPage() {
   const navigate = useNavigate();
@@ -238,7 +238,7 @@ export default function RepDashboardPage() {
         <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-destructive" /><div className="text-2xl font-bold text-destructive">{expenses.toFixed(2)}</div><div className="text-xs text-muted-foreground">مصاريف اليوم (₪)</div></Card>
         <Card className="p-4 space-y-1 border-orange-200 dark:border-orange-900/40">
-          <Percent className="w-5 h-5 text-orange-500" />
+          <BadgePercent className="w-5 h-5 text-orange-500" />
           <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
             {stats.discount.toFixed(2)}
           </div>
