@@ -331,6 +331,16 @@ export default function RepNewOrderPage() {
               <Label>ملاحظات</Label>
               <Textarea value={newCust.notes} onChange={(e) => setNewCust({ ...newCust, notes: e.target.value })} rows={2} />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>حد ائتماني (₪)</Label>
+                <Input type="number" min="0" value={newCust.creditLimit} onChange={(e) => setNewCust({ ...newCust, creditLimit: e.target.value })} placeholder="اختياري" />
+              </div>
+              <div className="space-y-1">
+                <Label>مدة السداد (يوم)</Label>
+                <Input type="number" min="0" value={newCust.paymentTermsDays} onChange={(e) => setNewCust({ ...newCust, paymentTermsDays: e.target.value })} placeholder="0" />
+              </div>
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setNewCustOpen(false)} disabled={newCustSaving}>إلغاء</Button>
@@ -338,6 +348,23 @@ export default function RepNewOrderPage() {
               {newCustSaving ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <Save className="w-4 h-4 ml-1" />}
               حفظ الزبون
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!dupCandidate} onOpenChange={(o) => !o && setDupCandidate(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>رقم مسجّل مسبقاً</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            هذا الرقم مسجل للزبون: <span className="font-semibold text-foreground">{dupCandidate?.contact_name}</span>
+            <br />
+            هل تريد اختياره بدلاً من إنشاء زبون جديد؟
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDupCandidate(null)}>إلغاء</Button>
+            <Button onClick={selectExistingDup}>اختيار الزبون الموجود</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
