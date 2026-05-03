@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Receipt, Coffee, Car, Utensils, Wallet, FileText, MoreHorizontal, Check, ChevronsUpDown, Search } from "lucide-react";
+import { Loader2, Save, Receipt, Coffee, Car, Utensils, Wallet, FileText, MoreHorizontal, Check, ChevronsUpDown, Search, Truck } from "lucide-react";
 import { callCreatePaymentRpc } from "@/lib/voucher-rpc";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -44,6 +44,7 @@ const EXPENSE_TYPES: ExpenseType[] = [
   { key: "hospitality", label: "ضيافة", icon: Coffee, defaultAccountCode: "5520", defaultAccountFallbacks: ["55901"] },
   { key: "meal", label: "فطور / وجبة", icon: Utensils, defaultAccountCode: "5520", defaultAccountFallbacks: ["5900"] },
   { key: "personal", label: "مصروف شخصي", icon: Wallet, defaultAccountCode: "5150", defaultAccountFallbacks: ["5900"] },
+  { key: "supplier", label: "صرف لمورد", icon: Truck, defaultAccountCode: null, defaultAccountFallbacks: [] },
   { key: "other", label: "أخرى", icon: MoreHorizontal, defaultAccountCode: null, defaultAccountFallbacks: [] },
 ];
 
@@ -65,6 +66,12 @@ export default function RepExpensePage() {
 
   // مصاريف اليوم
   const [todayExpenses, setTodayExpenses] = useState<any[]>([]);
+
+  // Supplier picker (for type "supplier")
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [supplierId, setSupplierId] = useState<string>("");
+  const [supPickerOpen, setSupPickerOpen] = useState(false);
+  const [supSearch, setSupSearch] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -113,6 +120,18 @@ export default function RepExpensePage() {
       const postable = list.filter((a) => !childCodes.has(a.account_code));
       setAccounts(postable);
 
+      // Suppliers list (active, not archived)
+      const { data: sups } = await (supabase as any)
+        .from("contacts")
+        .select("id, contact_name, contact_type")
+        .eq("user_id", r.user_id)
+        .in("contact_type", ["supplier", "both", "مورد", "كلاهما"])
+        .eq("is_active", true)
+        .eq("is_archived", false)
+        .order("contact_name")
+        .limit(500);
+      setSuppliers(sups || []);
+
       // مصاريف اليوم (إن كان مفتوح)
       if (day) {
         const { data: txs } = await (supabase as any)
@@ -137,6 +156,7 @@ export default function RepExpensePage() {
   }, [user?.id]);
 
   const currentType = EXPENSE_TYPES.find((t) => t.key === typeKey)!;
+  const isSupplierMode = typeKey === "supplier";
 
   // Searchable account picker state
   const [accPickerOpen, setAccPickerOpen] = useState(false);
@@ -176,11 +196,24 @@ export default function RepExpensePage() {
   // ضبط الحساب الافتراضي عند تغيير النوع
   useEffect(() => {
     if (!accounts.length) return;
+    if (typeKey === "supplier") { setAccountCode(""); return; }
     if (typeKey === "other") { setAccountCode(""); return; }
     const candidates = [currentType.defaultAccountCode, ...currentType.defaultAccountFallbacks].filter(Boolean) as string[];
     const picked = candidates.find((c) => accounts.some((a) => a.account_code === c));
     setAccountCode(picked || "");
   }, [typeKey, accounts.length]);
+
+  const filteredSuppliers = useMemo(() => {
+    const q = supSearch.trim().toLowerCase();
+    if (!q) return suppliers.slice(0, 20);
+    return suppliers.filter((s) =>
+      String(s.contact_name || "").toLowerCase().includes(q)
+    ).slice(0, 20);
+  }, [suppliers, supSearch]);
+  const selectedSupplier = useMemo(
+    () => suppliers.find((s) => s.id === supplierId) || null,
+    [suppliers, supplierId]
+  );
 
   const todayTotal = useMemo(
     () => todayExpenses.reduce((s, t) => s + Number(t.amount || 0), 0),
@@ -193,9 +226,16 @@ export default function RepExpensePage() {
       toast({ title: "لا يوجد يوم عمل مفتوح", description: "افتح يوم عمل أولاً من الرئيسية", variant: "destructive" });
       return;
     }
-    if (!accountCode) {
-      toast({ title: "اختر الحساب المحاسبي", description: "يرجى اختيار حساب مصروف", variant: "destructive" });
-      return;
+    if (isSupplierMode) {
+      if (!supplierId) {
+        toast({ title: "اختر المورد", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!accountCode) {
+        toast({ title: "اختر الحساب المحاسبي", description: "يرجى اختيار حساب مصروف", variant: "destructive" });
+        return;
+      }
     }
     const amt = Number(amount);
     if (!amt || amt <= 0) {
@@ -206,28 +246,36 @@ export default function RepExpensePage() {
     try {
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const rand = Math.floor(1000 + Math.random() * 9000);
-      const reference = `REP-EXP-${dateStr}-${rand}`;
+      const reference = isSupplierMode
+        ? `REP-PV-${dateStr}-${rand}`
+        : `REP-EXP-${dateStr}-${rand}`;
       const idem = `${reference}-${rep.id.slice(0, 8)}`;
 
       const tagNotes = JSON.stringify({
-        tag: "REP-EXP",
+        tag: isSupplierMode ? "REP-PV-SUPPLIER" : "REP-EXP",
         rep_id: rep.id,
         day_id: openDay.id,
         type: typeKey,
         type_label: currentType.label,
+        supplier_id: isSupplierMode ? supplierId : undefined,
+        supplier_name: isSupplierMode ? (selectedSupplier?.contact_name || null) : undefined,
         user_note: notes || null,
       });
 
+      const description = isSupplierMode
+        ? `دفعة لمورد — ${selectedSupplier?.contact_name || ""}${notes ? ` — ${notes}` : ""}`
+        : `مصروف مندوب — ${currentType.label}${notes ? ` — ${notes}` : ""}`;
+
       const result = await callCreatePaymentRpc({
         userId: rep.user_id,
-        contactId: null,
-        contactName: rep.full_name,
+        contactId: isSupplierMode ? supplierId : null,
+        contactName: isSupplierMode ? (selectedSupplier?.contact_name || null) : rep.full_name,
         amount: amt,
-        paymentMethod: "rep_expense",
+        paymentMethod: isSupplierMode ? "نقدي" : "rep_expense",
         currency: "شيكل",
         cashAccountCode: rep.cash_account_code,
-        contactAccountCode: accountCode,
-        description: `مصروف مندوب — ${currentType.label}${notes ? ` — ${notes}` : ""}`,
+        contactAccountCode: isSupplierMode ? null : accountCode,
+        description,
         reference,
         idempotencyKey: idem,
         notes: tagNotes,
@@ -248,15 +296,15 @@ export default function RepExpensePage() {
             .insert({
               user_id: rep.user_id,
               type: "payment",
-              subtype: "rep_expense",
+              subtype: isSupplierMode ? "rep_supplier_payment" : "rep_expense",
               ref_number: reference,
               date: new Date().toISOString().slice(0, 10),
-              contact_id: null,
+              contact_id: isSupplierMode ? supplierId : null,
               payment_method: "نقدي",
               amount: amt,
               currency: "شيكل",
               amount_ils: amt,
-              description: `مصروف مندوب — ${currentType.label}${notes ? ` — ${notes}` : ""}`,
+              description,
               notes: tagNotes,
               status: "posted",
               linked_transaction_id: result.transaction_id,
@@ -266,11 +314,14 @@ export default function RepExpensePage() {
       }
 
       toast({
-        title: result.duplicate ? "هذا المصروف مسجّل مسبقاً" : "تم تسجيل المصروف بنجاح",
-        description: `${amt.toFixed(2)} ₪ — ${currentType.label}`,
+        title: result.duplicate
+          ? (isSupplierMode ? "هذا السند مسجّل مسبقاً" : "هذا المصروف مسجّل مسبقاً")
+          : (isSupplierMode ? "تم تسجيل سند الصرف للمورد" : "تم تسجيل المصروف بنجاح"),
+        description: `${amt.toFixed(2)} ₪ — ${isSupplierMode ? (selectedSupplier?.contact_name || "مورد") : currentType.label}`,
       });
       setAmount("");
       setNotes("");
+      setSupplierId("");
       navigate("/rep");
     } catch (e: any) {
       toast({ title: "تعذّر الحفظ", description: e.message, variant: "destructive" });
@@ -355,6 +406,68 @@ export default function RepExpensePage() {
           </div>
         </div>
 
+        {isSupplierMode ? (
+          <div className="space-y-2">
+            <Label>المورد</Label>
+            <Popover open={supPickerOpen} onOpenChange={setSupPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={supPickerOpen}
+                  className="w-full h-11 justify-between font-normal"
+                >
+                  {selectedSupplier ? (
+                    <span className="truncate">{selectedSupplier.contact_name}</span>
+                  ) : (
+                    <span className="text-muted-foreground">— اختر المورد —</span>
+                  )}
+                  <ChevronsUpDown className="w-4 h-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                <Command shouldFilter={false}>
+                  <div className="flex items-center border-b px-3">
+                    <Search className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                    <CommandInput
+                      value={supSearch}
+                      onValueChange={setSupSearch}
+                      placeholder="ابحث باسم المورد"
+                      className="h-10"
+                    />
+                  </div>
+                  <CommandList>
+                    {filteredSuppliers.length === 0 ? (
+                      <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                    ) : (
+                      <CommandGroup heading={`الموردين (${filteredSuppliers.length})`}>
+                        {filteredSuppliers.map((s) => (
+                          <CommandItem
+                            key={s.id}
+                            value={s.id}
+                            onSelect={() => {
+                              setSupplierId(s.id);
+                              setSupPickerOpen(false);
+                              setSupSearch("");
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Check className={cn("w-4 h-4", supplierId === s.id ? "opacity-100" : "opacity-0")} />
+                            <span className="truncate">{s.contact_name}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <p className="text-[11px] text-muted-foreground">
+              يُسجَّل القيد: مدين ذمم المورد / دائن عهدة السيارة. لا يؤثر على قائمة الدخل.
+            </p>
+          </div>
+        ) : (
         <div className="space-y-2">
           <Label>الحساب المحاسبي</Label>
 
@@ -450,6 +563,7 @@ export default function RepExpensePage() {
             </PopoverContent>
           </Popover>
         </div>
+        )}
 
         <div className="space-y-2">
           <Label>المبلغ (₪)</Label>
@@ -473,8 +587,12 @@ export default function RepExpensePage() {
           />
         </div>
 
-        <Button className="w-full h-12 text-base" onClick={save} disabled={saving || !amount || !accountCode}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> حفظ المصروف</>}
+        <Button
+          className="w-full h-12 text-base"
+          onClick={save}
+          disabled={saving || !amount || (isSupplierMode ? !supplierId : !accountCode)}
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> {isSupplierMode ? "حفظ سند الصرف" : "حفظ المصروف"}</>}
         </Button>
       </Card>
 
