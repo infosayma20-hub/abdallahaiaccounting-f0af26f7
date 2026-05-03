@@ -92,11 +92,14 @@ export default function RepDashboardPage() {
       const dayDate = new Date(day.opened_at).toISOString().slice(0, 10);
       const { data: allTxs } = await (supabase as any)
         .from("transactions")
-        .select("amount, notes, payment_method, debit_account_code, credit_account_code")
+        .select("amount, notes, payment_method, debit_account_code, credit_account_code, reversed_by_id, transaction_type")
         .eq("user_id", rep.user_id)
         .eq("is_deleted", false)
         .gte("transaction_date", dayDate);
       const myTxs = ((allTxs as any[]) || []).filter((t) => {
+        // استبعاد المعاملات المعكوسة وقيود العكس نفسها
+        if (t.reversed_by_id) return false;
+        if (t.transaction_type === "reversal") return false;
         try { return JSON.parse(t.notes || "{}")?.rep_id === rep.id; } catch { return false; }
       });
 
