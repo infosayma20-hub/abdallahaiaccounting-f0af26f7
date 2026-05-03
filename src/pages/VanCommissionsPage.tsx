@@ -132,9 +132,10 @@ export default function VanCommissionsPage() {
         .eq("user_id", user.id)
         .eq("warehouse_id", warehouseId)
         .eq("invoice_type", "sale")
+        .eq("is_voided", false)
         .gte("invoice_date", from)
         .lte("invoice_date", to)
-        .neq("status", "cancelled");
+        .not("status", "in", "(cancelled,void,reversed)");
       if (e1) {
         toast({ title: "خطأ بالمبيعات", description: e1.message, variant: "destructive" });
       } else {
@@ -148,7 +149,8 @@ export default function VanCommissionsPage() {
         .select("contact_id")
         .eq("user_id", user.id)
         .eq("warehouse_id", warehouseId)
-        .neq("status", "cancelled");
+        .eq("is_voided", false)
+        .not("status", "in", "(cancelled,void,reversed)");
       const contactIds = Array.from(
         new Set((warehouseInvoices || []).map((x: any) => x.contact_id).filter(Boolean))
       );

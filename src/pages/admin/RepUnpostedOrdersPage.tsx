@@ -29,10 +29,11 @@ export default function RepUnpostedOrdersPage() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("invoices")
-      .select("id, invoice_number, invoice_date, total_amount, payment_method, contact_name, warehouse_id, status")
+      .select("id, invoice_number, invoice_date, total_amount, payment_method, contact_name, warehouse_id, status, is_voided")
       .eq("source", "rep")
       .is("linked_transaction_id", null)
-      .neq("status", "void")
+      .eq("is_voided", false)
+      .not("status", "in", "(cancelled,void,reversed)")
       .order("invoice_date", { ascending: false });
     if (error) {
       toast({ title: "تعذّر تحميل القائمة", description: error.message, variant: "destructive" });

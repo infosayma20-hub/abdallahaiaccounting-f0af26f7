@@ -60,9 +60,11 @@ export default function SalesRepsLivePage() {
         repIds.length
           ? (supabase as any)
               .from("invoices")
-              .select("id, salesperson_id, payment_method, total_amount, status, invoice_date")
+              .select("id, salesperson_id, payment_method, total_amount, status, is_voided, invoice_date")
               .eq("source", "rep")
               .eq("invoice_date", today)
+              .eq("is_voided", false)
+              .not("status", "in", "(cancelled,void,reversed)")
               .in("salesperson_id", repIds)
           : Promise.resolve({ data: [] }),
         repIds.length
@@ -95,7 +97,7 @@ export default function SalesRepsLivePage() {
       for (const inv of (invRes.data as any[]) || []) {
         const sid = inv.salesperson_id as string | null;
         if (!sid) continue;
-        if ((inv.status || "").toString().toLowerCase() === "void") continue;
+        if (inv.is_voided || ["void", "cancelled", "reversed"].includes((inv.status || "").toString().toLowerCase())) continue;
         const amt = Number(inv.total_amount || 0);
         const pm = (inv.payment_method || "").toString().toLowerCase();
         const cur = kpiMap.get(sid) || { count: 0, cash: 0, credit: 0 };
