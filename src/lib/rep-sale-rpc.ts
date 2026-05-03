@@ -31,6 +31,8 @@ export interface RepSaleParams {
   items: RepSaleItem[];
   idempotencyKey: string;
   invoiceNumber?: string | null;
+  discountType?: "percent" | "value" | null;
+  discountValue?: number | null;
 }
 
 export interface RepSaleResult {
@@ -39,6 +41,8 @@ export interface RepSaleResult {
   invoice_id?: string;
   invoice_number?: string;
   transaction_id?: string;
+  subtotal?: number;
+  discount_amount?: number;
   total?: number;
   total_cost?: number;
   total_profit?: number;
@@ -63,6 +67,8 @@ export async function callCreateRepSaleAtomic(p: RepSaleParams): Promise<RepSale
     })),
     p_idempotency_key: p.idempotencyKey,
     p_invoice_number: p.invoiceNumber ?? null,
+    p_discount_type: p.discountType ?? null,
+    p_discount_value: p.discountValue ?? 0,
   });
 
   if (error) return { success: false, error: error.message };

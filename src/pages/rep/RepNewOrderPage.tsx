@@ -41,6 +41,8 @@ export default function RepNewOrderPage() {
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
+  const [discountType, setDiscountType] = useState<"value" | "percent">("value");
+  const [discountInput, setDiscountInput] = useState<string>("");
 
   useEffect(() => {
     if (!user) return;
@@ -97,12 +99,27 @@ export default function RepNewOrderPage() {
     setSearch("");
   };
 
-  const total = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const discountRaw = Number(discountInput) || 0;
+  const discountAmount = (() => {
+    if (discountRaw <= 0) return 0;
+    if (discountType === "percent") {
+      const pct = Math.min(discountRaw, 100);
+      return +(subtotal * (pct / 100)).toFixed(2);
+    }
+    return Math.min(discountRaw, subtotal);
+  })();
+  const total = Math.max(0, subtotal - discountAmount);
+  const discountInvalid =
+    discountRaw > 0 &&
+    ((discountType === "percent" && discountRaw > 100) ||
+      (discountType === "value" && discountRaw > subtotal));
 
   const save = async () => {
     if (!day) { toast({ title: "افتح يوم العمل أولاً", variant: "destructive" }); return; }
     if (items.length === 0) { toast({ title: "أضف منتجات للطلب", variant: "destructive" }); return; }
     if (paymentMethod === "credit" && !contactId) { toast({ title: "اختر العميل لطلب آجل", variant: "destructive" }); return; }
+    if (discountInvalid) { toast({ title: "الخصم أكبر من الإجمالي", variant: "destructive" }); return; }
     setSaving(true);
     try {
       const invoiceNumber = `REP-${Date.now()}`;
@@ -118,6 +135,8 @@ export default function RepNewOrderPage() {
         items: items.map((i) => ({ product_id: i.product_id, name: i.name, qty: i.qty, price: i.price })),
         idempotencyKey: invoiceNumber,
         invoiceNumber,
+        discountType: discountAmount > 0 ? discountType : null,
+        discountValue: discountAmount > 0 ? discountRaw : 0,
       });
       if (!result.success) throw new Error(result.error || "فشل تنفيذ البيع");
       const profitTxt = result.total_profit != null ? ` — ربح: ${Number(result.total_profit).toFixed(2)} ₪` : "";
@@ -155,7 +174,19 @@ export default function RepNewOrderPage() {
       <Card className="p-4 space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="ابحث بالاسم / الباركود / SKU" value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10 h-11" />
+          <Input
+            data-rep-search="1"
+            placeholder="ابحث بالاسم / الباركود / SKU"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filteredProducts.length > 0) {
+                e.preventDefault();
+                addProduct(filteredProducts[0]);
+              }
+            }}
+            className="pr-10 h-11"
+          />
         </div>
         {search && (
           <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-md">
@@ -181,8 +212,41 @@ export default function RepNewOrderPage() {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">{it.name}</div>
               <div className="grid grid-cols-2 gap-2 mt-1">
-                <Input type="number" inputMode="decimal" value={it.qty} onChange={(e) => setItems(items.map((x, i) => i === idx ? { ...x, qty: Number(e.target.value) || 0 } : x))} className="h-9 text-sm" placeholder="الكمية" />
-                <Input type="number" inputMode="decimal" value={it.price} onChange={(e) => setItems(items.map((x, i) => i === idx ? { ...x, price: Number(e.target.value) || 0 } : x))} className="h-9 text-sm" placeholder="السعر" />
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={it.qty}
+                  data-rep-qty={it.product_id}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const el = document.querySelector<HTMLInputElement>(`[data-rep-price="${it.product_id}"]`);
+                      el?.focus(); el?.select();
+                    }
+                  }}
+                  onChange={(e) => setItems(items.map((x, i) => i === idx ? { ...x, qty: Number(e.target.value) || 0 } : x))}
+                  className="h-9 text-sm"
+                  placeholder="الكمية"
+                />
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={it.price}
+                  data-rep-price={it.product_id}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Move to search to add next item
+                      const search = document.querySelector<HTMLInputElement>('[data-rep-search="1"]');
+                      search?.focus();
+                    }
+                  }}
+                  onChange={(e) => setItems(items.map((x, i) => i === idx ? { ...x, price: Number(e.target.value) || 0 } : x))}
+                  className="h-9 text-sm"
+                  placeholder="السعر"
+                />
               </div>
               <div className="text-xs text-muted-foreground mt-1">المجموع: {(it.qty * it.price).toFixed(2)} ₪</div>
             </div>
@@ -191,10 +255,54 @@ export default function RepNewOrderPage() {
         ))}
       </Card>
 
+      {items.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <Label className="text-sm font-bold">خصم الفاتورة</Label>
+          <div className="grid grid-cols-[120px_1fr] gap-2">
+            <div className="grid grid-cols-2 gap-1 p-1 border border-border rounded-md">
+              <button
+                type="button"
+                onClick={() => setDiscountType("value")}
+                className={`h-8 rounded text-xs font-medium ${discountType === "value" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              >₪</button>
+              <button
+                type="button"
+                onClick={() => setDiscountType("percent")}
+                className={`h-8 rounded text-xs font-medium ${discountType === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              >%</button>
+            </div>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={discountInput}
+              onChange={(e) => setDiscountInput(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              placeholder={discountType === "percent" ? "نسبة %" : "قيمة ₪"}
+              className={`h-10 ${discountInvalid ? "border-destructive" : ""}`}
+            />
+          </div>
+          {discountInvalid && (
+            <div className="text-xs text-destructive">الخصم لا يمكن أن يتجاوز الإجمالي{discountType === "percent" ? " أو 100%" : ""}</div>
+          )}
+        </Card>
+      )}
+
       <Card className="p-4 sticky bottom-20 bg-card">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-sm text-muted-foreground">الإجمالي</div>
-          <div className="text-2xl font-bold text-primary">{total.toFixed(2)} ₪</div>
+        <div className="space-y-1 mb-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>المجموع قبل الخصم</span>
+            <span>{subtotal.toFixed(2)} ₪</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="flex items-center justify-between text-sm text-destructive">
+              <span>الخصم{discountType === "percent" ? ` (${discountRaw}%)` : ""}</span>
+              <span>− {discountAmount.toFixed(2)} ₪</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="text-sm font-medium">الإجمالي</div>
+            <div className="text-2xl font-bold text-primary">{total.toFixed(2)} ₪</div>
+          </div>
         </div>
         <Button className="w-full h-12 text-base" onClick={save} disabled={saving || items.length === 0}>
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> حفظ الطلب</>}
