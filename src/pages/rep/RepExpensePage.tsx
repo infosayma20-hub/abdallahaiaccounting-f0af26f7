@@ -406,6 +406,68 @@ export default function RepExpensePage() {
           </div>
         </div>
 
+        {isSupplierMode ? (
+          <div className="space-y-2">
+            <Label>المورد</Label>
+            <Popover open={supPickerOpen} onOpenChange={setSupPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={supPickerOpen}
+                  className="w-full h-11 justify-between font-normal"
+                >
+                  {selectedSupplier ? (
+                    <span className="truncate">{selectedSupplier.contact_name}</span>
+                  ) : (
+                    <span className="text-muted-foreground">— اختر المورد —</span>
+                  )}
+                  <ChevronsUpDown className="w-4 h-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                <Command shouldFilter={false}>
+                  <div className="flex items-center border-b px-3">
+                    <Search className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+                    <CommandInput
+                      value={supSearch}
+                      onValueChange={setSupSearch}
+                      placeholder="ابحث باسم المورد"
+                      className="h-10"
+                    />
+                  </div>
+                  <CommandList>
+                    {filteredSuppliers.length === 0 ? (
+                      <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                    ) : (
+                      <CommandGroup heading={`الموردين (${filteredSuppliers.length})`}>
+                        {filteredSuppliers.map((s) => (
+                          <CommandItem
+                            key={s.id}
+                            value={s.id}
+                            onSelect={() => {
+                              setSupplierId(s.id);
+                              setSupPickerOpen(false);
+                              setSupSearch("");
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Check className={cn("w-4 h-4", supplierId === s.id ? "opacity-100" : "opacity-0")} />
+                            <span className="truncate">{s.contact_name}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <p className="text-[11px] text-muted-foreground">
+              يُسجَّل القيد: مدين ذمم المورد / دائن عهدة السيارة. لا يؤثر على قائمة الدخل.
+            </p>
+          </div>
+        ) : (
         <div className="space-y-2">
           <Label>الحساب المحاسبي</Label>
 
@@ -501,6 +563,7 @@ export default function RepExpensePage() {
             </PopoverContent>
           </Popover>
         </div>
+        )}
 
         <div className="space-y-2">
           <Label>المبلغ (₪)</Label>
