@@ -141,6 +141,36 @@ export default function RepCollectPage() {
         idempotencyKey,
       });
       if (!result.success) throw new Error(result.error || "فشل التحصيل");
+
+      // إنشاء سجل سند قبض في receipt_vouchers ليظهر في شاشة سندات القبض
+      // (مرتبط بالـ transaction عبر linked_transaction_id)
+      if (!result.duplicate && result.transaction_id) {
+        const { data: existingRV } = await (supabase as any)
+          .from("receipt_vouchers")
+          .select("id")
+          .eq("user_id", rep.user_id)
+          .eq("linked_transaction_id", result.transaction_id)
+          .maybeSingle();
+        if (!existingRV) {
+          const { error: rvErr } = await (supabase as any)
+            .from("receipt_vouchers")
+            .insert({
+              user_id: rep.user_id,
+              contact_id: contactId,
+              contact_name: selectedContact?.name ?? null,
+              payment_date: new Date().toISOString().slice(0, 10),
+              amount: amt,
+              payment_method: "نقدي",
+              cash_box_id: rep.cash_box_id ?? null,
+              deposit_account_code: rep.cash_account_code,
+              notes: `تحصيل من بورتال المندوب — ${rep.full_name ?? ""}`.trim(),
+              status: "posted",
+              linked_transaction_id: result.transaction_id,
+            });
+          if (rvErr) console.error("[RepCollect] receipt_voucher insert failed:", rvErr);
+        }
+      }
+
       toast({ title: result.duplicate ? "هذا التحصيل مسجّل مسبقاً" : "تم التحصيل بنجاح", description: `${amt.toFixed(2)} ₪` });
       setAmount("");
       await loadBalance(contactId);
