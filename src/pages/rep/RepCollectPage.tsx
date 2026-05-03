@@ -90,9 +90,17 @@ export default function RepCollectPage() {
         .eq("is_deleted", false);
       if (txErr) throw txErr;
       const rows = data || [];
-      // ذمم عملاء (1130): مدين يزيد الرصيد، دائن ينقصه
-      const debit = rows.filter((t: any) => t.debit_account_code?.startsWith("1130")).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-      const credit = rows.filter((t: any) => t.credit_account_code?.startsWith("1130")).reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      // ذمم عملاء: نقبل 1130 وأي حساب فرعي تحته (1131, 1130-001, ...)،
+      // ونقبل أيضاً 2115 (دفعات مقدمة من العملاء) كدائن طبيعي.
+      const arRoots = ["1130", "2115"];
+      const matchesAR = (code: string | null | undefined) =>
+        !!code && arRoots.some((r) => code === r || code.startsWith(r));
+      const debit = rows
+        .filter((t: any) => matchesAR(t.debit_account_code))
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      const credit = rows
+        .filter((t: any) => matchesAR(t.credit_account_code))
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
       setBalance(debit - credit);
     } catch (e: any) {
       toast({ title: "تعذر جلب الرصيد", description: e.message, variant: "destructive" });
