@@ -35,9 +35,25 @@ async function getInvoiceTxnIdsBySource(
     .select("linked_transaction_id, source")
     .eq("user_id", uid)
     .eq("source", source)
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
     .gte("invoice_date", dateFrom)
     .lte("invoice_date", dateTo);
   return new Set((data || []).map(r => r.linked_transaction_id).filter(Boolean) as string[]);
+}
+
+async function getVoidedInvoiceTxnIds(uid: string, dateFrom: string, dateTo: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("invoices")
+    .select("linked_transaction_id, status, is_voided")
+    .eq("user_id", uid)
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+  return new Set(
+    (data || [])
+      .filter((r: any) => r.linked_transaction_id && (r.is_voided || ["cancelled", "void", "reversed"].includes((r.status || "").toLowerCase())))
+      .map((r: any) => r.linked_transaction_id)
+  );
 }
 
 // ── General / Accounting Loaders ──
@@ -147,9 +163,10 @@ export async function loadChequesReport(uid: string, dateFrom: string, dateTo: s
 
 export async function loadTotalSales(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
   let q = supabase.from("transactions").select("id, transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
   const { data: txns } = await q;
-  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
+  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   dbg("totalSales", { source, txnCount: filtered.length, total: filtered.reduce((s, t) => s + t.amount, 0) });
   // Sales returns from new returns table (confirmed only) + legacy transactions
   const { data: rets } = await supabase.from("returns" as any).select("return_date, total, status").eq("user_id", uid).eq("return_type", "sales").gte("return_date", dateFrom).lte("return_date", dateTo);
