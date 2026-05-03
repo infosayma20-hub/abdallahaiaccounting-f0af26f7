@@ -174,11 +174,19 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
             .order("transaction_date", { ascending: true });
           if (error) throw error;
 
+          // Determine debit/credit by matching the contact's AR/AP account roots
+          // (handles per-customer sub-accounts like 1131, 21101, etc.)
+          const roots = ["1130", "2110", "2180", "2115", "1146"];
+          const matches = (code: string | null | undefined) =>
+            !!code && roots.some(r => code === r || code.startsWith(r));
           let balance = 0;
           const mapped = (data || []).map(tx => {
-            const debit = tx.amount;
-            balance += debit;
-            return { id: tx.id, date: tx.transaction_date, description: tx.description, debit, credit: 0, balance, source: tx.transaction_type };
+            const isDebit = matches(tx.debit_account_code);
+            const isCredit = matches(tx.credit_account_code);
+            const debit = isDebit ? Number(tx.amount) : 0;
+            const credit = isCredit ? Number(tx.amount) : 0;
+            balance += debit - credit;
+            return { id: tx.id, date: tx.transaction_date, description: tx.description, debit, credit, balance, source: tx.transaction_type };
           });
           setRows(mapped);
         }
