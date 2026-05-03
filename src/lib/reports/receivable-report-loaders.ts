@@ -198,7 +198,7 @@ export async function loadSupplierStatementAll(uid: string, dateFrom: string, da
 // ── Invoice Tracking Loaders ──
 
 export async function loadInvoiceLifecycle(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo).order("invoice_date", { ascending: false });
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", dateFrom).lte("invoice_date", dateTo).order("invoice_date", { ascending: false });
   if (!invoices?.length) { setData([]); return; }
   const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
   const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
@@ -232,7 +232,7 @@ export async function loadInvoiceLifecycle(uid: string, dateFrom: string, dateTo
 }
 
 export async function loadDSODetailed(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name, contact_id").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name, contact_id").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
   if (!invoices?.length) { setData([]); return; }
   const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id");
   const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
@@ -262,7 +262,7 @@ export async function loadDSODetailed(uid: string, dateFrom: string, dateTo: str
 }
 
 export async function loadARAgingAdvanced(uid: string, setData: SetData) {
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, contact_name, payment_status").eq("user_id", uid).eq("invoice_type", "sale");
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, contact_name, payment_status").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
   if (!invoices?.length) { setData([]); return; }
   const today = new Date();
   const customerMap: Record<string, { name: string; current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number }> = {};
