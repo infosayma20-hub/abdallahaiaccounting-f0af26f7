@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, Search, Save } from "lucide-react";
 import { callCreateRepSaleAtomic } from "@/lib/rep-sale-rpc";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 // ============================================================================
 // TODO (post-demo): Add explicit `invoices.sales_rep_id` column and set it here.
@@ -43,6 +45,62 @@ export default function RepNewOrderPage() {
   const [saving, setSaving] = useState(false);
   const [discountType, setDiscountType] = useState<"value" | "percent">("value");
   const [discountInput, setDiscountInput] = useState<string>("");
+  const [newCustOpen, setNewCustOpen] = useState(false);
+  const [newCustSaving, setNewCustSaving] = useState(false);
+  const [newCust, setNewCust] = useState({ name: "", phone: "", address: "", notes: "" });
+
+  const createNewCustomer = async () => {
+    if (!rep) return;
+    const name = newCust.name.trim();
+    const phoneRaw = newCust.phone.trim();
+    if (!name) { toast({ title: "اسم الزبون مطلوب", variant: "destructive" }); return; }
+    const phoneClean = phoneRaw.replace(/[^\d+]/g, "");
+    const digits = phoneClean.replace(/\D/g, "");
+    if (digits.length < 8) { toast({ title: "رقم جوال غير صالح (8 أرقام على الأقل)", variant: "destructive" }); return; }
+    setNewCustSaving(true);
+    try {
+      // duplicate phone check within same owner
+      const { data: dup } = await (supabase as any)
+        .from("contacts")
+        .select("id, contact_name")
+        .eq("user_id", rep.user_id)
+        .eq("phone", phoneClean)
+        .maybeSingle();
+      if (dup) {
+        toast({ title: "رقم مكرر", description: `هذا الرقم موجود مسبقاً للزبون: ${dup.contact_name}`, variant: "destructive" });
+        setNewCustSaving(false);
+        return;
+      }
+      const { data: ins, error } = await (supabase as any)
+        .from("contacts")
+        .insert({
+          user_id: rep.user_id,
+          contact_name: name,
+          contact_type: "عميل",
+          phone: phoneClean,
+          address: newCust.address.trim() || null,
+          notes: newCust.notes.trim() || null,
+          is_active: true,
+          is_archived: false,
+          current_balance: 0,
+          source: "rep_portal",
+          sales_rep_id: rep.id,
+        })
+        .select("id, contact_name, contact_type")
+        .single();
+      if (error) throw error;
+      const norm = { ...ins, name: ins.contact_name };
+      setContacts((prev) => [norm, ...prev]);
+      setContactId(ins.id);
+      setNewCust({ name: "", phone: "", address: "", notes: "" });
+      setNewCustOpen(false);
+      toast({ title: "تم إنشاء الزبون واختياره للطلب" });
+    } catch (e: any) {
+      toast({ title: "تعذر إنشاء الزبون", description: e?.message || String(e), variant: "destructive" });
+    } finally {
+      setNewCustSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -219,13 +277,51 @@ export default function RepNewOrderPage() {
         {paymentMethod === "credit" && (
           <div className="space-y-2">
             <Label>الزبون</Label>
-            <select value={contactId} onChange={(e) => setContactId(e.target.value)} className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">اختر زبون...</option>
-              {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="flex gap-2">
+              <select value={contactId} onChange={(e) => setContactId(e.target.value)} className="flex-1 h-11 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">اختر زبون...</option>
+                {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <Button type="button" variant="outline" className="h-11 shrink-0" onClick={() => setNewCustOpen(true)}>
+                <Plus className="w-4 h-4 ml-1" /> زبون جديد
+              </Button>
+            </div>
           </div>
         )}
       </Card>
+
+      <Dialog open={newCustOpen} onOpenChange={(o) => !newCustSaving && setNewCustOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>زبون جديد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>اسم الزبون *</Label>
+              <Input value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })} placeholder="الاسم الكامل" />
+            </div>
+            <div className="space-y-1">
+              <Label>رقم الجوال *</Label>
+              <Input value={newCust.phone} onChange={(e) => setNewCust({ ...newCust, phone: e.target.value.replace(/[^\d+]/g, "") })} placeholder="05xxxxxxxx" inputMode="tel" />
+            </div>
+            <div className="space-y-1">
+              <Label>العنوان / المنطقة</Label>
+              <Input value={newCust.address} onChange={(e) => setNewCust({ ...newCust, address: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>ملاحظات</Label>
+              <Textarea value={newCust.notes} onChange={(e) => setNewCust({ ...newCust, notes: e.target.value })} rows={2} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setNewCustOpen(false)} disabled={newCustSaving}>إلغاء</Button>
+            <Button onClick={createNewCustomer} disabled={newCustSaving}>
+              {newCustSaving ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <Save className="w-4 h-4 ml-1" />}
+              حفظ الزبون
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card className="p-4 space-y-3">
         <div className="relative">
