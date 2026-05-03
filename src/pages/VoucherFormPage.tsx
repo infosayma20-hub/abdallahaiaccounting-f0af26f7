@@ -650,6 +650,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             setRefNumber(data.receipt_number || "");
             setPaymentMethod(data.payment_method || "نقدي");
             setAmount(String(data.amount || ""));
+            setOriginalAmount(Number(data.amount) || 0);
             setNotes(data.notes || "");
             // Load cheques from the dedicated cheques table (multi-cheque safe)
             if ((data.payment_method || "") === "شيك") {
