@@ -13,6 +13,7 @@ export default function RepOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"today" | "all">("today");
+  const [showCancelled, setShowCancelled] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = async () => {
@@ -38,6 +39,10 @@ export default function RepOrdersPage() {
         .order("created_at", { ascending: false })
         .limit(200);
 
+      if (!showCancelled) {
+        query = query.not("status", "in", "(cancelled,void,reversed)");
+      }
+
       if (filter === "today") {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         query = query.gte("created_at", today.toISOString());
@@ -55,7 +60,7 @@ export default function RepOrdersPage() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id, filter]);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id, filter, showCancelled]);
 
   const deleteDraft = async (o: any) => {
     if (!confirm(`حذف المسودة ${o.invoice_number}؟`)) return;
@@ -81,6 +86,7 @@ export default function RepOrdersPage() {
 
   const cancelOrder = async (o: any) => {
     const reason = prompt("سبب إلغاء الطلب (إلزامي):");
+    if (reason === null) return;
     if (!reason || reason.trim().length < 3) {
       toast({ title: "السبب مطلوب (3 حروف على الأقل)", variant: "destructive" });
       return;
@@ -114,6 +120,15 @@ export default function RepOrdersPage() {
         <Button variant={filter === "all" ? "default" : "outline"} size="sm" onClick={() => setFilter("all")} className="h-9">الكل</Button>
       </div>
 
+      <Button
+        variant={showCancelled ? "secondary" : "outline"}
+        size="sm"
+        onClick={() => setShowCancelled((v) => !v)}
+        className="w-full h-9"
+      >
+        {showCancelled ? "إخفاء الملغاة" : "إظهار الملغاة"}
+      </Button>
+
       {error && (
         <Card className="p-4 border-destructive/40 bg-destructive/5 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
@@ -135,9 +150,9 @@ export default function RepOrdersPage() {
 }
 
 function RepOrderRow({ o, busy, onDelete, onCancel }: { o: any; busy: boolean; onDelete: () => void; onCancel: () => void }) {
-  const cancelled = o.status === "cancelled" || o.status === "void";
+  const cancelled = ["cancelled", "void", "reversed"].includes((o.status || "").toLowerCase());
   // Heuristic: if status is 'draft' or 'pending' OR there's no linked txn metadata, treat as draft.
-  // We rely on what the list query returned. Posted = status not in (draft, cancelled, void)
+  // We rely on what the list query returned. Posted = status not in (draft, cancelled, void, reversed)
   const isDraft = ["draft", "pending", "مسودة"].includes((o.status || "").toLowerCase());
   return (
     <Card className={`p-4 flex items-center justify-between gap-3 ${cancelled ? "opacity-60" : ""}`}>
