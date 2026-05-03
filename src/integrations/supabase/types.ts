@@ -6256,6 +6256,8 @@ export type Database = {
           product_id: string | null
           product_name: string
           quantity: number
+          supplier_id: string | null
+          supplier_name: string | null
           tax_rate: number | null
           total_amount: number
           unit_of_measure: string | null
@@ -6274,6 +6276,8 @@ export type Database = {
           product_id?: string | null
           product_name: string
           quantity?: number
+          supplier_id?: string | null
+          supplier_name?: string | null
           tax_rate?: number | null
           total_amount?: number
           unit_of_measure?: string | null
@@ -6292,6 +6296,8 @@ export type Database = {
           product_id?: string | null
           product_name?: string
           quantity?: number
+          supplier_id?: string | null
+          supplier_name?: string | null
           tax_rate?: number | null
           total_amount?: number
           unit_of_measure?: string | null
@@ -10307,6 +10313,7 @@ export type Database = {
           category: string
           color: string | null
           created_at: string
+          default_supplier_id: string | null
           description: string | null
           has_warranty: boolean | null
           id: string
@@ -10348,6 +10355,7 @@ export type Database = {
           category?: string
           color?: string | null
           created_at?: string
+          default_supplier_id?: string | null
           description?: string | null
           has_warranty?: boolean | null
           id?: string
@@ -10389,6 +10397,7 @@ export type Database = {
           category?: string
           color?: string | null
           created_at?: string
+          default_supplier_id?: string | null
           description?: string | null
           has_warranty?: boolean | null
           id?: string
@@ -10425,6 +10434,13 @@ export type Database = {
           warranty_unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_default_supplier_id_fkey"
+            columns: ["default_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_kitchen_station_id_fkey"
             columns: ["kitchen_station_id"]
@@ -15851,6 +15867,23 @@ export type Database = {
         Row: {
           cnt: number | null
           metric: string | null
+        }
+        Relationships: []
+      }
+      v_sales_by_supplier: {
+        Row: {
+          first_sale: string | null
+          last_sale: string | null
+          lines_count: number | null
+          product_id: string | null
+          product_name: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          total_cost: number | null
+          total_profit: number | null
+          total_qty: number | null
+          total_sales: number | null
+          user_id: string | null
         }
         Relationships: []
       }
