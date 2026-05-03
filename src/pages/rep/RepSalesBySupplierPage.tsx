@@ -18,6 +18,8 @@ type Row = {
   total_sales: number;
   total_cost: number;
   total_profit: number;
+  total_discount: number;
+  net_profit: number;
 };
 
 type LineDetail = {
@@ -47,6 +49,7 @@ export default function RepSalesBySupplierPage() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [lines, setLines] = useState<LineDetail[]>([]);
+  const [totalDiscount, setTotalDiscount] = useState(0);
   const [reps, setReps] = useState<Array<{ id: string; full_name: string }>>([]);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -71,7 +74,7 @@ export default function RepSalesBySupplierPage() {
     // Get invoices in date range matching filter (rep)
     let invQ = (supabase as any)
       .from("invoices")
-      .select("id, invoice_number, invoice_date, salesperson_id, status")
+      .select("id, invoice_number, invoice_date, salesperson_id, status, discount_amount")
       .eq("invoice_type", "sales")
       .gte("invoice_date", dateFrom)
       .lte("invoice_date", dateTo)
@@ -83,7 +86,7 @@ export default function RepSalesBySupplierPage() {
     const invIds = Array.from(invMap.keys());
 
     if (invIds.length === 0) {
-      setRows([]); setLines([]); setLoading(false); return;
+      setRows([]); setLines([]); setTotalDiscount(0); setLoading(false); return;
     }
 
     let itemsQ = (supabase as any)
@@ -165,6 +168,8 @@ export default function RepSalesBySupplierPage() {
         total_sales: 0,
         total_cost: 0,
         total_profit: 0,
+        total_discount: 0,
+        net_profit: 0,
       };
       cur.lines_count += 1;
       cur.total_qty += Number(it.quantity || 0);
@@ -175,7 +180,20 @@ export default function RepSalesBySupplierPage() {
       supMap.set(key, cur);
     });
 
-    setRows(Array.from(supMap.values()).sort((a, b) => b.total_sales - a.total_sales));
+    // Compute total discount from filtered invoices (only those that contributed items after filter)
+    const contributingInvIds = new Set((items || []).map((i: any) => i.invoice_id));
+    const discTotal = Array.from(contributingInvIds).reduce((s, id) => {
+      const inv = invMap.get(id);
+      return s + Number(inv?.discount_amount || 0);
+    }, 0);
+    const totalSales = Array.from(supMap.values()).reduce((s, r) => s + r.total_sales, 0);
+    const aggregated = Array.from(supMap.values()).map(r => {
+      const share = totalSales > 0 ? (r.total_sales / totalSales) : 0;
+      const supDisc = discTotal * share;
+      return { ...r, total_discount: supDisc, net_profit: r.total_profit - supDisc };
+    }).sort((a, b) => b.total_sales - a.total_sales);
+    setRows(aggregated);
+    setTotalDiscount(discTotal);
     setLines(detailRows);
     console.log("[SalesBySupplier] invoices:", invIds.length, "items:", (rawItems||[]).length, "after-filter:", items.length, "with-supplier:", items.filter((i:any)=>i._resolved_supplier_id).length, "fallback:", items.filter((i:any)=>!i.supplier_id && i._resolved_supplier_id).length);
     setLoading(false);
@@ -195,6 +213,8 @@ export default function RepSalesBySupplierPage() {
     qty: acc.qty + r.total_qty,
     lines: acc.lines + r.lines_count,
   }), { sales: 0, cost: 0, profit: 0, qty: 0, lines: 0 }), [rows]);
+
+  const netProfit = totals.profit - totalDiscount;
 
   const repName = (id: string | null) => reps.find(r => r.id === id)?.full_name || "—";
 
@@ -244,7 +264,14 @@ export default function RepSalesBySupplierPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card className="p-3"><div className="text-[10px] text-muted-foreground">المبيعات</div><div className="font-bold">{fmt(totals.sales)}</div></Card>
         <Card className="p-3"><div className="text-[10px] text-muted-foreground">التكلفة</div><div className="font-bold">{fmt(totals.cost)}</div></Card>
-        <Card className="p-3"><div className="text-[10px] text-muted-foreground">الربح</div><div className="font-bold" style={{ color: totals.profit >= 0 ? "#16A34A" : "#DC2626" }}>{fmt(totals.profit)}</div></Card>
+        <Card className="p-3"><div className="text-[10px] text-muted-foreground">الخصم المسموح به</div><div className="font-bold text-orange-500">{fmt(totalDiscount)}</div></Card>
+        <Card className="p-3">
+          <div className="text-[10px] text-muted-foreground">الربح بعد الخصم</div>
+          <div className="font-bold" style={{ color: netProfit >= 0 ? "#16A34A" : "#DC2626" }}>{fmt(netProfit)}</div>
+          {totalDiscount > 0 && (
+            <div className="text-[9px] text-muted-foreground mt-0.5">قبل الخصم: {fmt(totals.profit)} — الخصم: {fmt(totalDiscount)}</div>
+          )}
+        </Card>
         <Card className="p-3"><div className="text-[10px] text-muted-foreground">عدد البنود</div><div className="font-bold">{totals.lines}</div></Card>
       </div>
 
@@ -258,7 +285,8 @@ export default function RepSalesBySupplierPage() {
               <th className="text-right py-3 px-2">إجمالي الكمية</th>
               <th className="text-right py-3 px-2">المبيعات</th>
               <th className="text-right py-3 px-2">التكلفة</th>
-              <th className="text-right py-3 px-2">الربح</th>
+              <th className="text-right py-3 px-2">الخصم</th>
+              <th className="text-right py-3 px-2">الربح بعد الخصم</th>
               <th className="text-right py-3 px-2">هامش %</th>
             </tr>
           </thead>
@@ -276,12 +304,13 @@ export default function RepSalesBySupplierPage() {
                     <td className="py-2.5 px-2">{r.total_qty.toLocaleString()}</td>
                     <td className="py-2.5 px-2">{fmt(r.total_sales)}</td>
                     <td className="py-2.5 px-2">{fmt(r.total_cost)}</td>
-                    <td className="py-2.5 px-2 font-medium" style={{ color: r.total_profit >= 0 ? "#16A34A" : "#DC2626" }}>{fmt(r.total_profit)}</td>
-                    <td className="py-2.5 px-2">{r.total_sales > 0 ? ((r.total_profit / r.total_sales) * 100).toFixed(1) : 0}%</td>
+                    <td className="py-2.5 px-2 text-orange-500">{fmt(r.total_discount)}</td>
+                    <td className="py-2.5 px-2 font-medium" style={{ color: r.net_profit >= 0 ? "#16A34A" : "#DC2626" }}>{fmt(r.net_profit)}</td>
+                    <td className="py-2.5 px-2">{r.total_sales > 0 ? ((r.net_profit / r.total_sales) * 100).toFixed(1) : 0}%</td>
                   </tr>
                   {isOpen && (
                     <tr key={key + "_d"} className="bg-muted/10">
-                      <td colSpan={8} className="p-3">
+                      <td colSpan={9} className="p-3">
                         <div className="overflow-x-auto rounded border border-border/60">
                           <table className="w-full text-xs">
                             <thead className="bg-muted/40 text-[10px] text-muted-foreground">
@@ -310,7 +339,7 @@ export default function RepSalesBySupplierPage() {
                                 </tr>
                               ))}
                               {detail.length === 0 && (
-                                <tr><td colSpan={8} className="text-center py-3 text-muted-foreground">لا بنود</td></tr>
+                                <tr><td colSpan={9} className="text-center py-3 text-muted-foreground">لا بنود</td></tr>
                               )}
                             </tbody>
                           </table>
