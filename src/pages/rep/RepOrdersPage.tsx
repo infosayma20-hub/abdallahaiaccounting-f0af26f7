@@ -86,6 +86,7 @@ export default function RepOrdersPage() {
 
   const cancelOrder = async (o: any) => {
     const reason = prompt("سبب إلغاء الطلب (إلزامي):");
+    if (reason === null) return;
     if (!reason || reason.trim().length < 3) {
       toast({ title: "السبب مطلوب (3 حروف على الأقل)", variant: "destructive" });
       return;
