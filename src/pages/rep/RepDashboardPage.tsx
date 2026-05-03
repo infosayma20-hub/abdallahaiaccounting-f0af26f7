@@ -237,14 +237,26 @@ export default function RepDashboardPage() {
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
         <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-destructive" /><div className="text-2xl font-bold text-destructive">{expenses.toFixed(2)}</div><div className="text-xs text-muted-foreground">مصاريف اليوم (₪)</div></Card>
-        <Card className="p-4 space-y-1">
+        <Card className="p-4 space-y-1 border-orange-200 dark:border-orange-900/40">
+          <Percent className="w-5 h-5 text-orange-500" />
+          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {stats.discount.toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">الخصم المسموح به (₪)</div>
+        </Card>
+        <Card className="p-4 space-y-1 col-span-2">
           <Package className="w-5 h-5 text-primary" />
           <div className="text-2xl font-bold">
-            {profit == null ? "—" : profit.toFixed(2)}
+            {profit == null ? "—" : (profit - stats.discount).toFixed(2)}
           </div>
           <div className="text-xs text-muted-foreground">
-            {profit == null ? "تكلفة غير محددة" : "ربح اليوم (₪)"}
+            {profit == null ? "تكلفة غير محددة" : "الربح بعد الخصم (₪)"}
           </div>
+          {profit != null && stats.discount > 0 && (
+            <div className="text-[11px] text-muted-foreground pt-1">
+              قبل الخصم: {profit.toFixed(2)} ₪ — الخصم: {stats.discount.toFixed(2)} ₪
+            </div>
+          )}
         </Card>
       </div>
 
