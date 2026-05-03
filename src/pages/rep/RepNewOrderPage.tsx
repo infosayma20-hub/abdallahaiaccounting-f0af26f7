@@ -114,12 +114,68 @@ export default function RepNewOrderPage() {
     discountRaw > 0 &&
     ((discountType === "percent" && discountRaw > 100) ||
       (discountType === "value" && discountRaw > subtotal));
+  const discountOnZero = discountRaw > 0 && subtotal <= 0;
+
+  // Per-line validation
+  const itemErrors = items.map((it) => ({
+    qty: !(it.qty > 0),
+    price: !(it.price >= 0) || Number.isNaN(it.price),
+  }));
+  const hasItemErrors = itemErrors.some((e) => e.qty || e.price);
+  const noItems = items.length === 0;
+  const blockSave =
+    noItems || hasItemErrors || discountInvalid || discountOnZero;
+
+  const focusFirstError = () => {
+    // 1) First bad item
+    const badIdx = itemErrors.findIndex((e) => e.qty || e.price);
+    if (badIdx >= 0) {
+      const it = items[badIdx];
+      const sel = itemErrors[badIdx].qty
+        ? `[data-rep-qty="${it.product_id}"]`
+        : `[data-rep-price="${it.product_id}"]`;
+      const el = document.querySelector<HTMLInputElement>(sel);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => { el?.focus(); el?.select?.(); }, 200);
+      return true;
+    }
+    if (discountInvalid || discountOnZero) {
+      const el = document.querySelector<HTMLInputElement>('[data-rep-discount="1"]');
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => { el?.focus(); el?.select?.(); }, 200);
+      return true;
+    }
+    return false;
+  };
 
   const save = async () => {
     if (!day) { toast({ title: "افتح يوم العمل أولاً", variant: "destructive" }); return; }
-    if (items.length === 0) { toast({ title: "أضف منتجات للطلب", variant: "destructive" }); return; }
+    if (noItems) { toast({ title: "أضف صنف واحد على الأقل", variant: "destructive" }); return; }
+    if (hasItemErrors) {
+      const firstBad = itemErrors.find((e) => e.qty || e.price);
+      toast({
+        title: firstBad?.qty ? "الكمية يجب أن تكون أكبر من صفر" : "السعر غير صالح",
+        variant: "destructive",
+      });
+      focusFirstError();
+      return;
+    }
     if (paymentMethod === "credit" && !contactId) { toast({ title: "اختر العميل لطلب آجل", variant: "destructive" }); return; }
-    if (discountInvalid) { toast({ title: "الخصم أكبر من الإجمالي", variant: "destructive" }); return; }
+    if (discountOnZero) {
+      toast({ title: "لا يمكن إدخال خصم بدون فاتورة", variant: "destructive" });
+      focusFirstError();
+      return;
+    }
+    if (discountInvalid) {
+      toast({
+        title: discountType === "percent" && discountRaw > 100
+          ? "النسبة لا يمكن أن تتجاوز 100%"
+          : "الخصم أكبر من قيمة الفاتورة",
+        variant: "destructive",
+      });
+      focusFirstError();
+      return;
+    }
     setSaving(true);
     try {
       const invoiceNumber = `REP-${Date.now()}`;
