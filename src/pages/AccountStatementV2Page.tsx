@@ -273,21 +273,27 @@ const AccountStatementV2Page = () => {
 
   const { contactBalances, contactTxCounts } = useMemo(() => {
     const balMap: Record<string, number> = {}; const cntMap: Record<string, number> = {};
-    // Include advance accounts so dفعات مقدمة (2115 / 1146) reflect in the
-    // contact's balance & statement (Smart Allocation routes them there).
-    const codesByType: Record<string, string[]> = {
-      "عميل": ["1130", "2115"],     // ذمم عملاء + دفعات مقدمة من العملاء
-      "مورد": ["2110", "1146"],     // ذمم موردين + دفعات مقدمة للموردين
+    // Use account-family ROOT PREFIXES (not exact codes) so AR/AP sub-accounts
+    // like 1131, 1135, 2111, 2115 are all included. This MUST match the same
+    // prefix logic used when rendering the statement rows below — otherwise the
+    // search dropdown shows "✓ مسدّد" while the statement shows a real balance.
+    const rootsByType: Record<string, string[]> = {
+      "عميل": ["113", "2115"],         // ذمم عملاء + دفعات مقدمة من العملاء
+      "مورد": ["211", "1146"],         // ذمم موردين + دفعات مقدمة للموردين
       "موظف": ["2180"],
+    };
+    const matchesRoot = (code: string | null | undefined, roots: string[]) => {
+      if (!code) return false;
+      return roots.some(root => code === root || code.startsWith(root));
     };
     for (const c of contacts) {
       let b = 0, cnt = 0;
-      const codes = codesByType[c.contact_type] || ["2180"];
+      const roots = rootsByType[c.contact_type] || ["2180"];
       for (const tx of transactions) {
         const matches = (tx.contact_id === c.id) || (!tx.contact_id && tx.description?.includes(c.contact_name?.trim()));
         if (!matches) continue;
-        const isDr = codes.includes(tx.debit_account_code);
-        const isCr = codes.includes(tx.credit_account_code);
+        const isDr = matchesRoot(tx.debit_account_code, roots);
+        const isCr = matchesRoot(tx.credit_account_code, roots);
         if (!isDr && !isCr) continue;
         cnt++;
         if (isDr) b += tx.amount || 0;
