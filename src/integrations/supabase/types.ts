@@ -6370,6 +6370,7 @@ export type Database = {
           invoice_number: string | null
           invoice_type: string
           is_credit_note: boolean | null
+          is_voided: boolean
           last_sent_at: string | null
           linked_transaction_id: string | null
           notes: string | null
@@ -6392,6 +6393,8 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string
+          void_reason: string | null
+          voided_at: string | null
           warehouse_id: string | null
           workshop_id: string | null
         }
@@ -6412,6 +6415,7 @@ export type Database = {
           invoice_number?: string | null
           invoice_type?: string
           is_credit_note?: boolean | null
+          is_voided?: boolean
           last_sent_at?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
@@ -6434,6 +6438,8 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id: string
+          void_reason?: string | null
+          voided_at?: string | null
           warehouse_id?: string | null
           workshop_id?: string | null
         }
@@ -6454,6 +6460,7 @@ export type Database = {
           invoice_number?: string | null
           invoice_type?: string
           is_credit_note?: boolean | null
+          is_voided?: boolean
           last_sent_at?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
@@ -6476,6 +6483,8 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
           warehouse_id?: string | null
           workshop_id?: string | null
         }
