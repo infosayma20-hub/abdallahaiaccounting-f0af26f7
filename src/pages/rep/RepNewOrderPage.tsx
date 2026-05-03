@@ -154,7 +154,7 @@ export default function RepNewOrderPage() {
   if (!day) return <div className="p-4"><Card className="p-6 text-center text-muted-foreground">يجب فتح يوم العمل أولاً من الرئيسية</Card></div>;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 pb-32">
       <Card className="p-4 space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <Button variant={paymentMethod === "cash" ? "default" : "outline"} onClick={() => setPaymentMethod("cash")} className="h-11">نقدي</Button>
@@ -287,7 +287,7 @@ export default function RepNewOrderPage() {
         </Card>
       )}
 
-      <Card className="p-4 sticky bottom-20 bg-card">
+      <Card className="p-4 bg-card">
         <div className="space-y-1 mb-3">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>المجموع قبل الخصم</span>
