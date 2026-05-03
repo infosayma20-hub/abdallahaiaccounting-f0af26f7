@@ -120,13 +120,17 @@ export default function RepDashboardPage() {
       if (cashAccountCode) {
         const { data: rcps } = await (supabase as any)
           .from("transactions")
-          .select("amount, debit_account_code, credit_account_code, transaction_type, description")
+          .select("amount, debit_account_code, credit_account_code, transaction_type, description, reversed_by_id")
           .eq("user_id", rep.user_id)
           .eq("is_deleted", false)
           .eq("debit_account_code", cashAccountCode)
           .gte("transaction_date", dayDate);
         collTotal = ((rcps as any[]) || [])
           .filter((t) => {
+            // استبعاد المعكوسة: لها reversed_by_id (تم إلغاؤها بقيد عكسي)
+            // واستبعاد قيود العكس نفسها (transaction_type='reversal')
+            if (t.reversed_by_id) return false;
+            if (t.transaction_type === "reversal") return false;
             const cc = String(t.credit_account_code || "");
             return cc === "1130" || cc.startsWith("113");
           })
