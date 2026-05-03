@@ -294,6 +294,8 @@ export default function RepDashboardPage() {
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
         <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-destructive" /><div className="text-2xl font-bold text-destructive">{expenses.toFixed(2)}</div><div className="text-xs text-muted-foreground">مصاريف اليوم (₪)</div></Card>
+        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-emerald-600" /><div className="text-2xl font-bold text-emerald-600">{collections.toFixed(2)}</div><div className="text-xs text-muted-foreground">تحصيلات اليوم (₪)</div></Card>
+        <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-amber-600" /><div className="text-2xl font-bold text-amber-600">{supplierPayments.toFixed(2)}</div><div className="text-xs text-muted-foreground">صرف للموردين (₪)</div></Card>
         <Card className="p-4 space-y-1 border-orange-200 dark:border-orange-900/40">
           <Tag className="w-5 h-5 text-orange-500" />
           <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
@@ -330,8 +332,18 @@ export default function RepDashboardPage() {
         <div className="text-xs text-muted-foreground space-y-0.5">
           <div>عهدة افتتاحية: {Number(openDay.opening_cash || 0).toFixed(2)} ₪</div>
           <div>+ كاش مبيعات: {stats.cash.toFixed(2)} ₪</div>
+          <div>+ تحصيلات: {collections.toFixed(2)} ₪</div>
           <div>− مصاريف: {expenses.toFixed(2)} ₪</div>
-          <div className="font-bold text-foreground pt-1 border-t border-border">المتوقع: {(Number(openDay.opening_cash || 0) + stats.cash - expenses).toFixed(2)} ₪</div>
+          <div>− صرف موردين: {supplierPayments.toFixed(2)} ₪</div>
+          {stats.credit > 0 && (
+            <div className="text-[11px] opacity-70">ℹ️ مبيعات آجلة (لا تدخل بالكاش): {stats.credit.toFixed(2)} ₪</div>
+          )}
+          {stats.discount > 0 && (
+            <div className="text-[11px] opacity-70">ℹ️ خصم مسموح (لا يؤثر بالكاش): {stats.discount.toFixed(2)} ₪</div>
+          )}
+          <div className="font-bold text-foreground pt-1 border-t border-border">
+            المتوقع: {(Number(openDay.opening_cash || 0) + stats.cash + collections - expenses - supplierPayments).toFixed(2)} ₪
+          </div>
         </div>
         <div className="space-y-2">
           <Label>الكاش الفعلي معك الآن</Label>
