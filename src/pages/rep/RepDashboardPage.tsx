@@ -199,6 +199,8 @@ export default function RepDashboardPage() {
           const m = mins % 60;
           durationStr = h > 0 ? `مفتوح منذ ${h} ساعة${m ? ` و ${m} دقيقة` : ""}` : `مفتوح منذ ${m} دقيقة`;
         }
+        const arDays = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        const dayName = opened ? arDays[opened.getDay()] : "";
         return (
       <Card className={`p-4 ${cardTone}`}>
         <div className="flex items-center justify-between">
@@ -208,10 +210,10 @@ export default function RepDashboardPage() {
             {opened && (
               <>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {opened.toLocaleDateString("ar-EG", { weekday: "long" })}، {opened.toLocaleDateString("ar-EG-u-nu-latn", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                  {dayName}، {opened.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}
                 </div>
                 <div className="text-[11px] text-muted-foreground/80">
-                  بدأت الساعة {opened.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                  بدأت الساعة {opened.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })}
                 </div>
                 <div className="text-[11px] font-medium text-foreground/80 mt-1">⏱ {durationStr}</div>
               </>
