@@ -184,8 +184,9 @@ export async function loadTotalSales(uid: string, dateFrom: string, dateTo: stri
 
 export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
   const { data: txns } = await supabase.from("transactions").select("id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
-  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id) || t.transaction_type === "return") : (txns || []);
+  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id) || t.transaction_type === "return") : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   dbg("dailySales", { source, total: filtered.length });
   const dayMap: Record<string, { date: string; count: number; sales: number; returns: number }> = {};
   filtered.forEach(tx => {
@@ -199,16 +200,18 @@ export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo
 
 export async function loadInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
   const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, transaction_type, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
-  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
+  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   dbg("invoiceRegister", { source, count: filtered.length });
   setData(filtered);
 }
 
 export async function loadByCustomer(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
   const { data: txns } = await supabase.from("transactions").select("id, contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-  const filtered = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
+  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).eq("contact_type", "عميل");
   const cMap = new Map((contacts || []).map(c => [c.id, c]));
   const custMap: Record<string, { name: string; cls: string; count: number; total: number; lastDate: string }> = {};
@@ -254,14 +257,16 @@ export async function loadSalesReturns(uid: string, dateFrom: string, dateTo: st
 
 export async function loadSalesPerformance(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
   const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
+  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
   const { data: txns } = await supabase.from("transactions").select("id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-  const cur = txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || []);
+  const cur = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
   const daysDiff = differenceInDays(new Date(dateTo), new Date(dateFrom));
   const prevFrom = format(subDays(new Date(dateFrom), daysDiff + 1), "yyyy-MM-dd");
   const prevTo = format(subDays(new Date(dateFrom), 1), "yyyy-MM-dd");
   const prevIds = await getInvoiceTxnIdsBySource(uid, source, prevFrom, prevTo);
+  const prevVoidedTxnIds = await getVoidedInvoiceTxnIds(uid, prevFrom, prevTo);
   const { data: prevTxns } = await supabase.from("transactions").select("id, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", prevFrom).lte("transaction_date", prevTo);
-  const prev = prevIds ? (prevTxns || []).filter(t => prevIds.has(t.id)) : (prevTxns || []);
+  const prev = (prevIds ? (prevTxns || []).filter(t => prevIds.has(t.id)) : (prevTxns || [])).filter(t => !prevVoidedTxnIds.has(t.id));
   const total = cur.reduce((s, t) => s + t.amount, 0);
   const prevTotal = prev.reduce((s, t) => s + t.amount, 0);
   const growth = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100) : 0;
