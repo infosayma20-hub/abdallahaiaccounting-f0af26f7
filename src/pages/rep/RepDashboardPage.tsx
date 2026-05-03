@@ -180,6 +180,18 @@ export default function RepDashboardPage() {
           <div>
             <div className="text-xs text-muted-foreground">يوم العمل</div>
             <div className="font-bold text-foreground">{openDay.day_number}</div>
+            {openDay.opened_at && (() => {
+              const opened = new Date(openDay.opened_at);
+              const dayName = opened.toLocaleDateString("ar-EG", { weekday: "long" });
+              const dateStr = opened.toLocaleDateString("ar-EG-u-nu-latn", { day: "2-digit", month: "2-digit", year: "numeric" });
+              const timeStr = opened.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+              return (
+                <>
+                  <div className="text-xs text-muted-foreground mt-0.5">{dayName}، {dateStr}</div>
+                  <div className="text-[11px] text-muted-foreground/80">بدأت الساعة {timeStr}</div>
+                </>
+              );
+            })()}
           </div>
           <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">مفتوح</div>
         </div>
