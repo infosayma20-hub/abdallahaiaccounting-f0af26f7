@@ -166,6 +166,15 @@ export default function RepNewOrderPage() {
       return [...prev, { product_id: p.id, name: p.name, qty: 1, price }];
     });
     setSearch("");
+    // Auto-focus quantity field on the just-added/updated row
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>(`[data-rep-qty="${p.id}"]`);
+      if (el) {
+        el.focus();
+        el.select();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 50);
   };
 
   const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
@@ -264,10 +273,9 @@ export default function RepNewOrderPage() {
         discountValue: discountAmount > 0 ? discountRaw : 0,
       });
       if (!result.success) throw new Error(result.error || "فشل تنفيذ البيع");
-      const profitTxt = result.total_profit != null ? ` — ربح: ${Number(result.total_profit).toFixed(2)} ₪` : "";
       toast({
-        title: result.duplicate ? "هذا الطلب موجود مسبقاً" : "تم حفظ الطلب",
-        description: `الإجمالي: ${total.toFixed(2)} ₪${profitTxt}`,
+        title: result.duplicate ? "هذا الطلب موجود مسبقاً" : "تم حفظ الطلب بنجاح",
+        description: `الإجمالي: ${total.toFixed(2)} ₪`,
       });
       navigate("/rep/orders");
     } catch (e: any) {
