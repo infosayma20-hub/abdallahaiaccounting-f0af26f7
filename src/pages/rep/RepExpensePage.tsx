@@ -587,8 +587,12 @@ export default function RepExpensePage() {
           />
         </div>
 
-        <Button className="w-full h-12 text-base" onClick={save} disabled={saving || !amount || !accountCode}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> حفظ المصروف</>}
+        <Button
+          className="w-full h-12 text-base"
+          onClick={save}
+          disabled={saving || !amount || (isSupplierMode ? !supplierId : !accountCode)}
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> {isSupplierMode ? "حفظ سند الصرف" : "حفظ المصروف"}</>}
         </Button>
       </Card>
 
