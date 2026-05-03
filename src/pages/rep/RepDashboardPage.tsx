@@ -92,11 +92,14 @@ export default function RepDashboardPage() {
       const dayDate = new Date(day.opened_at).toISOString().slice(0, 10);
       const { data: allTxs } = await (supabase as any)
         .from("transactions")
-        .select("amount, notes, payment_method, debit_account_code, credit_account_code")
+        .select("amount, notes, payment_method, debit_account_code, credit_account_code, reversed_by_id, transaction_type")
         .eq("user_id", rep.user_id)
         .eq("is_deleted", false)
         .gte("transaction_date", dayDate);
       const myTxs = ((allTxs as any[]) || []).filter((t) => {
+        // استبعاد المعاملات المعكوسة وقيود العكس نفسها
+        if (t.reversed_by_id) return false;
+        if (t.transaction_type === "reversal") return false;
         try { return JSON.parse(t.notes || "{}")?.rep_id === rep.id; } catch { return false; }
       });
 
@@ -120,13 +123,17 @@ export default function RepDashboardPage() {
       if (cashAccountCode) {
         const { data: rcps } = await (supabase as any)
           .from("transactions")
-          .select("amount, debit_account_code, credit_account_code, transaction_type, description")
+          .select("amount, debit_account_code, credit_account_code, transaction_type, description, reversed_by_id")
           .eq("user_id", rep.user_id)
           .eq("is_deleted", false)
           .eq("debit_account_code", cashAccountCode)
           .gte("transaction_date", dayDate);
         collTotal = ((rcps as any[]) || [])
           .filter((t) => {
+            // استبعاد المعكوسة: لها reversed_by_id (تم إلغاؤها بقيد عكسي)
+            // واستبعاد قيود العكس نفسها (transaction_type='reversal')
+            if (t.reversed_by_id) return false;
+            if (t.transaction_type === "reversal") return false;
             const cc = String(t.credit_account_code || "");
             return cc === "1130" || cc.startsWith("113");
           })
