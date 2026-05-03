@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3 } from "lucide-react";
+import { ShoppingCart, DollarSign, Package, Receipt, Plus, Loader2, PlayCircle, StopCircle, BarChart3, Percent } from "lucide-react";
 
 export default function RepDashboardPage() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export default function RepDashboardPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [openDay, setOpenDay] = useState<any>(null);
-  const [stats, setStats] = useState({ count: 0, total: 0, cash: 0 });
+  const [stats, setStats] = useState({ count: 0, total: 0, cash: 0, discount: 0 });
   const [expenses, setExpenses] = useState(0);
   const [profit, setProfit] = useState<number | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
@@ -51,7 +51,7 @@ export default function RepDashboardPage() {
       // (invoices لا يحوي عمود is_deleted — لا تستخدمه)
       const { data: invs, error: invErr } = await (supabase as any)
         .from("invoices")
-        .select("id, total_amount, payment_method")
+        .select("id, total_amount, subtotal, discount_amount, payment_method")
         .eq("user_id", rep.user_id)
         .eq("salesperson_id", rep.id)
         .gte("created_at", day.opened_at);
@@ -59,8 +59,15 @@ export default function RepDashboardPage() {
       const list = invs || [];
       setStats({
         count: list.length,
-        total: list.reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+        // إجمالي المبيعات قبل الخصم (gross): subtotal أو total + discount عند غياب subtotal
+        total: list.reduce((s: number, i: any) => {
+          const sub = Number(i.subtotal || 0);
+          const tot = Number(i.total_amount || 0);
+          const disc = Number(i.discount_amount || 0);
+          return s + (sub > 0 ? sub : tot + disc);
+        }, 0),
         cash: list.filter((i: any) => i.payment_method === "cash").reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+        discount: list.reduce((s: number, i: any) => s + Number(i.discount_amount || 0), 0),
       });
 
       // مصاريف اليوم — payment_method='rep_expense' و notes يحوي rep_id
