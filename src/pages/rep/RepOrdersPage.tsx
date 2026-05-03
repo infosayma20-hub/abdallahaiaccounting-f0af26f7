@@ -33,7 +33,7 @@ export default function RepOrdersPage() {
       // (لا is_deleted على invoices — العمود غير موجود)
       let query = (supabase as any)
         .from("invoices")
-        .select("id, invoice_number, total_amount, payment_method, status, created_at, contact_id, contact_name")
+        .select("id, invoice_number, total_amount, payment_method, status, is_voided, voided_at, created_at, contact_id, contact_name, linked_transaction_id")
         .eq("user_id", rep.user_id)
         .eq("salesperson_id", rep.id)
         .order("created_at", { ascending: false })
@@ -41,6 +41,7 @@ export default function RepOrdersPage() {
 
       if (!showCancelled) {
         query = query.not("status", "in", "(cancelled,void,reversed)");
+        query = query.eq("is_voided", false);
       }
 
       if (filter === "today") {
@@ -93,16 +94,39 @@ export default function RepOrdersPage() {
     }
     setBusyId(o.id);
     try {
+      const { data: latest, error: latestErr } = await (supabase as any)
+        .from("invoices")
+        .select("status, is_voided")
+        .eq("id", o.id)
+        .maybeSingle();
+      if (latestErr) throw latestErr;
+
+      const alreadyCancelled = Boolean(latest?.is_voided) || ["cancelled", "void", "reversed", "ملغي", "ملغى"].includes((latest?.status || "").toLowerCase());
+      if (alreadyCancelled) {
+        toast({ title: "الطلب ملغى مسبقاً", description: "تم تحديث القائمة لإخفائه من الطلبات النشطة." });
+        await load();
+        return;
+      }
+
       const { data, error } = await (supabase as any).rpc("void_rep_sale_atomic", {
         p_invoice_id: o.id,
         p_reason: reason.trim(),
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "فشل الإلغاء");
-      toast({ title: "تم إلغاء الطلب", description: `قيد عكسي: ${data.reverse_transaction_id?.slice(0,8)}…` });
+      toast({
+        title: data.already_voided ? "الطلب ملغى مسبقاً" : "تم إلغاء الطلب",
+        description: `قيد عكسي: ${data.reverse_transaction_id?.slice(0,8)}…`,
+      });
       await load();
     } catch (e: any) {
-      toast({ title: "فشل الإلغاء", description: e.message, variant: "destructive" });
+      const message = String(e?.message || "");
+      toast({
+        title: "فشل الإلغاء",
+        description: message.includes("عُكس مسبقاً") ? "تم العثور على قيد عكسي سابق، حدّثت القائمة حسب حالة الطلب الحالية." : message,
+        variant: "destructive",
+      });
+      await load();
     } finally { setBusyId(null); }
   };
 
@@ -150,7 +174,7 @@ export default function RepOrdersPage() {
 }
 
 function RepOrderRow({ o, busy, onDelete, onCancel }: { o: any; busy: boolean; onDelete: () => void; onCancel: () => void }) {
-  const cancelled = ["cancelled", "void", "reversed"].includes((o.status || "").toLowerCase());
+  const cancelled = Boolean(o.is_voided) || ["cancelled", "void", "reversed", "ملغي", "ملغى"].includes((o.status || "").toLowerCase());
   // Heuristic: if status is 'draft' or 'pending' OR there's no linked txn metadata, treat as draft.
   // We rely on what the list query returned. Posted = status not in (draft, cancelled, void, reversed)
   const isDraft = ["draft", "pending", "مسودة"].includes((o.status || "").toLowerCase());
