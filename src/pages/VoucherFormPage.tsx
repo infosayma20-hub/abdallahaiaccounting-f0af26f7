@@ -229,6 +229,9 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [computedBalance, setComputedBalance] = useState<number | null>(null);
+  // Original saved amount when editing — used to exclude this voucher's own
+  // effect from the ledger so the side panel shows "balance BEFORE this voucher".
+  const [originalAmount, setOriginalAmount] = useState<number>(0);
   const contactDropdownRef = useRef<HTMLDivElement>(null);
 
   // GL Account (for "account" party type)
