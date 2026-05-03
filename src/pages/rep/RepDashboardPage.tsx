@@ -15,8 +15,10 @@ export default function RepDashboardPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [openDay, setOpenDay] = useState<any>(null);
-  const [stats, setStats] = useState({ count: 0, total: 0, cash: 0, discount: 0 });
+  const [stats, setStats] = useState({ count: 0, total: 0, cash: 0, credit: 0, discount: 0 });
   const [expenses, setExpenses] = useState(0);
+  const [supplierPayments, setSupplierPayments] = useState(0);
+  const [collections, setCollections] = useState(0);
   const [profit, setProfit] = useState<number | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
   const [closingCash, setClosingCash] = useState("");
@@ -33,9 +35,19 @@ export default function RepDashboardPage() {
     setLoading(true);
     const { data: rep } = await (supabase as any)
       .from("sales_representatives")
-      .select("id, user_id, default_warehouse_id")
+      .select("id, user_id, default_warehouse_id, cash_box_id")
       .eq("auth_user_id", user.id).maybeSingle();
     if (!rep) { setLoading(false); return; }
+
+    // اجلب gl_account_code لصندوق المندوب لتمييز حركات الكاش (تحصيل/صرف)
+    let cashAccountCode: string | null = null;
+    if (rep.cash_box_id) {
+      const { data: cb } = await (supabase as any)
+        .from("cash_boxes")
+        .select("gl_account_code, is_active")
+        .eq("id", rep.cash_box_id).maybeSingle();
+      if (cb?.is_active) cashAccountCode = cb.gl_account_code || null;
+    }
 
     const { data: day } = await (supabase as any)
       .from("van_sales_days")
@@ -71,21 +83,56 @@ export default function RepDashboardPage() {
           return s + (sub > 0 ? sub : tot + disc);
         }, 0),
         cash: list.filter((i: any) => i.payment_method === "cash").reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+        credit: list.filter((i: any) => i.payment_method !== "cash").reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
         discount: list.reduce((s: number, i: any) => s + Number(i.discount_amount || 0), 0),
       });
 
-      // مصاريف اليوم — payment_method='rep_expense' و notes يحوي rep_id
-      const { data: txs } = await (supabase as any)
+      // اجلب جميع حركات اليوم لهذا المستخدم ثم افلترها على rep_id من notes
+      // (استبعاد كل المحذوف/الملغى عبر is_deleted=false)
+      const dayDate = new Date(day.opened_at).toISOString().slice(0, 10);
+      const { data: allTxs } = await (supabase as any)
         .from("transactions")
-        .select("amount, notes")
+        .select("amount, notes, payment_method, debit_account_code, credit_account_code")
         .eq("user_id", rep.user_id)
-        .eq("payment_method", "rep_expense")
         .eq("is_deleted", false)
-        .gte("transaction_date", new Date(day.opened_at).toISOString().slice(0, 10));
-      const myExp = ((txs as any[]) || []).filter((t) => {
+        .gte("transaction_date", dayDate);
+      const myTxs = ((allTxs as any[]) || []).filter((t) => {
         try { return JSON.parse(t.notes || "{}")?.rep_id === rep.id; } catch { return false; }
       });
-      setExpenses(myExp.reduce((s, t) => s + Number(t.amount || 0), 0));
+
+      // 1) مصاريف تشغيلية: payment_method='rep_expense'
+      const expTotal = myTxs
+        .filter((t) => t.payment_method === "rep_expense")
+        .reduce((s, t) => s + Number(t.amount || 0), 0);
+      setExpenses(expTotal);
+
+      // 2) صرف لمورد: tag = REP-PV-SUPPLIER في notes
+      const supTotal = myTxs
+        .filter((t) => {
+          try { return JSON.parse(t.notes || "{}")?.tag === "REP-PV-SUPPLIER"; } catch { return false; }
+        })
+        .reduce((s, t) => s + Number(t.amount || 0), 0);
+      setSupplierPayments(supTotal);
+
+      // 3) تحصيلات نقدية: حركات صندوق المندوب مدين / 1130 دائن (سندات قبض من بورتال المندوب)
+      // نعتمد على notes الذي يحوي رسالة "تحصيل من بورتال المندوب" أو نطابق على cash_account_code
+      let collTotal = 0;
+      if (cashAccountCode) {
+        const { data: rcps } = await (supabase as any)
+          .from("transactions")
+          .select("amount, debit_account_code, credit_account_code, transaction_type, description")
+          .eq("user_id", rep.user_id)
+          .eq("is_deleted", false)
+          .eq("debit_account_code", cashAccountCode)
+          .gte("transaction_date", dayDate);
+        collTotal = ((rcps as any[]) || [])
+          .filter((t) => {
+            const cc = String(t.credit_account_code || "");
+            return cc === "1130" || cc.startsWith("113");
+          })
+          .reduce((s, t) => s + Number(t.amount || 0), 0);
+      }
+      setCollections(collTotal);
 
       // Phase 7: aggregate line_profit for the day's invoices
       if (list.length > 0) {
@@ -102,6 +149,8 @@ export default function RepDashboardPage() {
       }
     } else {
       setExpenses(0);
+      setSupplierPayments(0);
+      setCollections(0);
     }
     setLoading(false);
   };
@@ -146,7 +195,11 @@ export default function RepDashboardPage() {
     setBusy(true);
     try {
       const actual = Number(closingCash) || 0;
-      const expected = Number(openDay.opening_cash || 0) + stats.cash - expenses;
+      const expected = Number(openDay.opening_cash || 0)
+        + stats.cash
+        + collections
+        - expenses
+        - supplierPayments;
       const variance = actual - expected;
       const { error } = await (supabase as any).from("van_sales_days").update({
         status: "closed",
