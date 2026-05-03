@@ -47,7 +47,8 @@ export default function RepNewOrderPage() {
   const [discountInput, setDiscountInput] = useState<string>("");
   const [newCustOpen, setNewCustOpen] = useState(false);
   const [newCustSaving, setNewCustSaving] = useState(false);
-  const [newCust, setNewCust] = useState({ name: "", phone: "", address: "", notes: "" });
+  const [newCust, setNewCust] = useState({ name: "", phone: "", address: "", notes: "", creditLimit: "", paymentTermsDays: "" });
+  const [dupCandidate, setDupCandidate] = useState<{ id: string; contact_name: string; contact_type?: string } | null>(null);
 
   const createNewCustomer = async () => {
     if (!rep) return;
@@ -62,15 +63,17 @@ export default function RepNewOrderPage() {
       // duplicate phone check within same owner
       const { data: dup } = await (supabase as any)
         .from("contacts")
-        .select("id, contact_name")
+        .select("id, contact_name, contact_type")
         .eq("user_id", rep.user_id)
         .eq("phone", phoneClean)
         .maybeSingle();
       if (dup) {
-        toast({ title: "رقم مكرر", description: `هذا الرقم موجود مسبقاً للزبون: ${dup.contact_name}`, variant: "destructive" });
+        setDupCandidate(dup);
         setNewCustSaving(false);
         return;
       }
+      const creditLimit = newCust.creditLimit.trim() ? Number(newCust.creditLimit) : null;
+      const paymentTerms = newCust.paymentTermsDays.trim() ? Number(newCust.paymentTermsDays) : 0;
       const { data: ins, error } = await (supabase as any)
         .from("contacts")
         .insert({
@@ -83,6 +86,8 @@ export default function RepNewOrderPage() {
           is_active: true,
           is_archived: false,
           current_balance: 0,
+          credit_limit: creditLimit,
+          payment_terms_days: paymentTerms,
           source: "rep_portal",
           sales_rep_id: rep.id,
         })
@@ -92,7 +97,7 @@ export default function RepNewOrderPage() {
       const norm = { ...ins, name: ins.contact_name };
       setContacts((prev) => [norm, ...prev]);
       setContactId(ins.id);
-      setNewCust({ name: "", phone: "", address: "", notes: "" });
+      setNewCust({ name: "", phone: "", address: "", notes: "", creditLimit: "", paymentTermsDays: "" });
       setNewCustOpen(false);
       toast({ title: "تم إنشاء الزبون واختياره للطلب" });
     } catch (e: any) {
@@ -100,6 +105,20 @@ export default function RepNewOrderPage() {
     } finally {
       setNewCustSaving(false);
     }
+  };
+
+  const selectExistingDup = () => {
+    if (!dupCandidate) return;
+    // ensure it's in the dropdown (contact may not be in list if archived/other type)
+    setContacts((prev) => prev.some((c) => c.id === dupCandidate.id)
+      ? prev
+      : [{ id: dupCandidate.id, contact_name: dupCandidate.contact_name, name: dupCandidate.contact_name, contact_type: dupCandidate.contact_type }, ...prev]
+    );
+    setContactId(dupCandidate.id);
+    setDupCandidate(null);
+    setNewCust({ name: "", phone: "", address: "", notes: "", creditLimit: "", paymentTermsDays: "" });
+    setNewCustOpen(false);
+    toast({ title: "تم اختيار الزبون الموجود" });
   };
 
   useEffect(() => {
@@ -312,6 +331,16 @@ export default function RepNewOrderPage() {
               <Label>ملاحظات</Label>
               <Textarea value={newCust.notes} onChange={(e) => setNewCust({ ...newCust, notes: e.target.value })} rows={2} />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>حد ائتماني (₪)</Label>
+                <Input type="number" min="0" value={newCust.creditLimit} onChange={(e) => setNewCust({ ...newCust, creditLimit: e.target.value })} placeholder="اختياري" />
+              </div>
+              <div className="space-y-1">
+                <Label>مدة السداد (يوم)</Label>
+                <Input type="number" min="0" value={newCust.paymentTermsDays} onChange={(e) => setNewCust({ ...newCust, paymentTermsDays: e.target.value })} placeholder="0" />
+              </div>
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setNewCustOpen(false)} disabled={newCustSaving}>إلغاء</Button>
@@ -319,6 +348,23 @@ export default function RepNewOrderPage() {
               {newCustSaving ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <Save className="w-4 h-4 ml-1" />}
               حفظ الزبون
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!dupCandidate} onOpenChange={(o) => !o && setDupCandidate(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>رقم مسجّل مسبقاً</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            هذا الرقم مسجل للزبون: <span className="font-semibold text-foreground">{dupCandidate?.contact_name}</span>
+            <br />
+            هل تريد اختياره بدلاً من إنشاء زبون جديد؟
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDupCandidate(null)}>إلغاء</Button>
+            <Button onClick={selectExistingDup}>اختيار الزبون الموجود</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
