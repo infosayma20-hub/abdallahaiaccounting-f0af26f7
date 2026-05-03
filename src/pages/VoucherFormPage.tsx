@@ -699,6 +699,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             const methodMap: Record<string, string> = { cash: "نقدي", cheque: "شيك", transfer: "تحويل", card: "بطاقة" };
             setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
             setAmount(String(data.amount || data.amount_ils || ""));
+            setOriginalAmount(Number(data.amount || data.amount_ils) || 0);
             setNotes(data.notes || data.description || "");
             // Load cheques from the dedicated cheques table (multi-cheque safe)
             if (((methodMap[data.payment_method] || data.payment_method || "") === "شيك")) {
