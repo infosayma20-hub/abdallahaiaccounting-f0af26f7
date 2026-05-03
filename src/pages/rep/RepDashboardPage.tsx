@@ -21,6 +21,12 @@ export default function RepDashboardPage() {
   const [openingCash, setOpeningCash] = useState("0");
   const [closingCash, setClosingCash] = useState("");
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const load = async () => {
     if (!user) return;
@@ -175,27 +181,47 @@ export default function RepDashboardPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <Card className="p-4 bg-primary/5 border-primary/20">
+      {(() => {
+        const opened = openDay.opened_at ? new Date(openDay.opened_at) : null;
+        const isToday = opened ? opened.toDateString() === now.toDateString() : true;
+        const isOld = opened ? !isToday : false;
+        const cardTone = isOld
+          ? "bg-amber-500/10 border-amber-500/30"
+          : "bg-emerald-500/5 border-emerald-500/20";
+        const badgeTone = isOld
+          ? "bg-amber-500/15 text-amber-700"
+          : "bg-emerald-500/15 text-emerald-700";
+        const badgeLabel = isOld ? "🟡 وردية قديمة" : "🟢 مفتوح";
+        let durationStr = "";
+        if (opened) {
+          const mins = Math.max(0, Math.floor((now.getTime() - opened.getTime()) / 60000));
+          const h = Math.floor(mins / 60);
+          const m = mins % 60;
+          durationStr = h > 0 ? `مفتوح منذ ${h} ساعة${m ? ` و ${m} دقيقة` : ""}` : `مفتوح منذ ${m} دقيقة`;
+        }
+        return (
+      <Card className={`p-4 ${cardTone}`}>
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs text-muted-foreground">يوم العمل</div>
             <div className="font-bold text-foreground">{openDay.day_number}</div>
-            {openDay.opened_at && (() => {
-              const opened = new Date(openDay.opened_at);
-              const dayName = opened.toLocaleDateString("ar-EG", { weekday: "long" });
-              const dateStr = opened.toLocaleDateString("ar-EG-u-nu-latn", { day: "2-digit", month: "2-digit", year: "numeric" });
-              const timeStr = opened.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
-              return (
-                <>
-                  <div className="text-xs text-muted-foreground mt-0.5">{dayName}، {dateStr}</div>
-                  <div className="text-[11px] text-muted-foreground/80">بدأت الساعة {timeStr}</div>
-                </>
-              );
-            })()}
+            {opened && (
+              <>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {opened.toLocaleDateString("ar-EG", { weekday: "long" })}، {opened.toLocaleDateString("ar-EG-u-nu-latn", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                </div>
+                <div className="text-[11px] text-muted-foreground/80">
+                  بدأت الساعة {opened.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <div className="text-[11px] font-medium text-foreground/80 mt-1">⏱ {durationStr}</div>
+              </>
+            )}
           </div>
-          <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">مفتوح</div>
+          <div className={`text-xs px-2 py-1 rounded-full ${badgeTone}`}>{badgeLabel}</div>
         </div>
       </Card>
+        );
+      })()}
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.count}</div><div className="text-xs text-muted-foreground">طلبات اليوم</div></Card>
