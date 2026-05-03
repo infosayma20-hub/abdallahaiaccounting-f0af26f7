@@ -156,9 +156,11 @@ export function useDashboardData() {
           .maybeSingle(),
         supabase
           .from("invoice_items")
-          .select("product_name, quantity, total_amount, invoice_id, invoices!inner(user_id, invoice_type)")
+          .select("product_name, quantity, total_amount, invoice_id, invoices!inner(user_id, invoice_type, status, is_voided)")
           .eq("invoices.user_id", user.id)
-          .eq("invoices.invoice_type", "sale"),
+          .eq("invoices.invoice_type", "sale")
+          .eq("invoices.is_voided", false)
+          .not("invoices.status", "in", "(cancelled,void,reversed)"),
         supabase
           .from("company_settings")
           .select("logo_url")

@@ -32,6 +32,7 @@ interface RepInvoice {
   salesperson_id: string | null;
   payment_method: string | null;
   status: string | null;
+  is_voided?: boolean | null;
   total_amount: number | null;
   payment_status: string | null;
 }
@@ -66,7 +67,7 @@ const isCash = (pm: string | null | undefined) => {
 };
 
 const isVoid = (s: string | null | undefined) =>
-  (s || "").toString().toLowerCase() === "void";
+  ["void", "cancelled", "reversed", "ملغي", "ملغى"].includes((s || "").toString().toLowerCase());
 
 const safe = (n: number | null | undefined) => Number(n || 0);
 
@@ -142,9 +143,11 @@ export default function VanSalesReportsPage() {
       const invQ: any = (supabase as any)
         .from("invoices")
         .select(
-          "id, invoice_number, invoice_date, contact_id, contact_name, salesperson_id, payment_method, status, total_amount, payment_status"
+          "id, invoice_number, invoice_date, contact_id, contact_name, salesperson_id, payment_method, status, is_voided, total_amount, payment_status"
         )
         .eq("source", "rep")
+        .eq("is_voided", false)
+        .not("status", "in", "(cancelled,void,reversed)")
         .gte("invoice_date", dateFrom)
         .lte("invoice_date", dateTo)
         .order("invoice_date", { ascending: false });
@@ -168,7 +171,7 @@ export default function VanSalesReportsPage() {
   /* Apply filters */
   const filtered = useMemo(() => {
     const invs = (payload?.invoices || []).filter((i) => {
-      if (isVoid(i.status)) return false;
+      if (i.is_voided || isVoid(i.status)) return false;
       if (repFilter !== "all" && i.salesperson_id !== repFilter) return false;
       if (customerFilter !== "all" && i.contact_id !== customerFilter)
         return false;
