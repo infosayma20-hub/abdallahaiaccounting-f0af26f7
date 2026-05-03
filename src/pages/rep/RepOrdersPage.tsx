@@ -152,7 +152,7 @@ export default function RepOrdersPage() {
 function RepOrderRow({ o, busy, onDelete, onCancel }: { o: any; busy: boolean; onDelete: () => void; onCancel: () => void }) {
   const cancelled = ["cancelled", "void", "reversed"].includes((o.status || "").toLowerCase());
   // Heuristic: if status is 'draft' or 'pending' OR there's no linked txn metadata, treat as draft.
-  // We rely on what the list query returned. Posted = status not in (draft, cancelled, void)
+  // We rely on what the list query returned. Posted = status not in (draft, cancelled, void, reversed)
   const isDraft = ["draft", "pending", "مسودة"].includes((o.status || "").toLowerCase());
   return (
     <Card className={`p-4 flex items-center justify-between gap-3 ${cancelled ? "opacity-60" : ""}`}>
