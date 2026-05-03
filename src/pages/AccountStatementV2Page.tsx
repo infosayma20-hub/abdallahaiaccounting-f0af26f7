@@ -322,13 +322,9 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      // Include advance accounts so دفعات مقدمة من/إلى العملاء/الموردين
-      // appear in the contact statement (Smart Allocation routes them to
-      // 2115 / 1146). Without this they'd be invisible.
-      // Match parent AR/AP roots AND any sub-account under them (e.g. 1131, 1130-001, 21101...).
-      // Sales-rep & POS invoices may post to per-customer sub-accounts of 1130, so a strict
-      // equality list would silently hide those rows from the contact statement.
-      const contactAccountRoots = ["1130", "2110", "2180", "2115", "1146"];
+      // Include full AR/AP account families so 1131/1135 and 2111/2115 remain visible.
+      // Sales-rep & POS invoices may post to AR sub-accounts that are not text-prefixes of 1130.
+      const contactAccountRoots = ["113", "211", "2180", "1146"];
       const matchesContactAccount = (code: string | null | undefined) => {
         if (!code) return false;
         return contactAccountRoots.some(root => code === root || code.startsWith(root));
@@ -636,7 +632,7 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const contactAccountRoots = ["1130", "2110", "2180", "2115", "1146"];
+      const contactAccountRoots = ["113", "211", "2180", "1146"];
       const matchesContactAccount = (code: string | null | undefined) =>
         !!code && contactAccountRoots.some(root => code === root || code.startsWith(root));
       related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
