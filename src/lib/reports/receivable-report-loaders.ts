@@ -285,7 +285,7 @@ export async function loadARAgingAdvanced(uid: string, setData: SetData) {
 export async function loadCollectionEfficiency(uid: string, setData: SetData) {
   const months = [];
   for (let i = 11; i >= 0; i--) { const m = subMonths(new Date(), i); months.push({ label: format(m, "yyyy-MM"), from: format(startOfMonth(m), "yyyy-MM-dd"), to: format(endOfMonth(m), "yyyy-MM-dd") }); }
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", months[0].from).lte("invoice_date", months[11].to);
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", months[0].from).lte("invoice_date", months[11].to);
   const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
   const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
   const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
@@ -343,7 +343,7 @@ export async function loadPaymentAllocation(uid: string, dateFrom: string, dateT
 }
 
 export async function loadUnpaidInvoices(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
   if (!invoices?.length) { setData([]); return; }
   const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id");
   const linkedIds = new Set((linkData || []).map(l => l.invoice_id));

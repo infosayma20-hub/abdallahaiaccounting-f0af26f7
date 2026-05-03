@@ -295,7 +295,8 @@ Deno.serve(async (req) => {
           .select("id, invoice_date, total_amount, contact_name, payment_method, invoice_number, created_at")
           .eq("user_id", linkedUserId)
           .eq("invoice_type", "sale")
-          .neq("status", "cancelled");
+          .eq("is_voided", false)
+          .not("status", "in", "(cancelled,void,reversed)");
         if (shiftStartDate) invoiceQuery = invoiceQuery.gte("invoice_date", shiftStartDate);
         if (shiftEndDate) invoiceQuery = invoiceQuery.lte("invoice_date", shiftEndDate);
 
@@ -946,6 +947,7 @@ Deno.serve(async (req) => {
         .from("invoices")
         .select("contact_id, invoice_date, due_date, status")
         .eq("user_id", linkedUserId)
+        .eq("is_voided", false)
         .in("status", ["issued", "posted", "partial"]);
 
       const maxDaysMap: Record<string, number> = {};
@@ -1013,6 +1015,7 @@ Deno.serve(async (req) => {
         .select("contact_id, invoice_date, due_date, status")
         .eq("user_id", linkedUserId)
         .eq("invoice_type", "purchase")
+        .eq("is_voided", false)
         .in("status", ["issued", "posted", "partial"]);
 
       const maxDaysMap: Record<string, number> = {};
