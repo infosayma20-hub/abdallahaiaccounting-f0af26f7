@@ -325,9 +325,16 @@ const AccountStatementV2Page = () => {
       // Include advance accounts so دفعات مقدمة من/إلى العملاء/الموردين
       // appear in the contact statement (Smart Allocation routes them to
       // 2115 / 1146). Without this they'd be invisible.
-      const contactAccountCodes = ["1130", "2110", "2180", "2115", "1146"];
+      // Match parent AR/AP roots AND any sub-account under them (e.g. 1131, 1130-001, 21101...).
+      // Sales-rep & POS invoices may post to per-customer sub-accounts of 1130, so a strict
+      // equality list would silently hide those rows from the contact statement.
+      const contactAccountRoots = ["1130", "2110", "2180", "2115", "1146"];
+      const matchesContactAccount = (code: string | null | undefined) => {
+        if (!code) return false;
+        return contactAccountRoots.some(root => code === root || code.startsWith(root));
+      };
       related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
-      resolveDebitCredit = (tx) => ({ isDebit: contactAccountCodes.includes(tx.debit_account_code), isCredit: contactAccountCodes.includes(tx.credit_account_code) });
+      resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
     }
 
     const foreignCashAccounts = ["1111", "1112", "1113", "1114"];
