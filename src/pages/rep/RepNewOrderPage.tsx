@@ -282,8 +282,9 @@ export default function RepNewOrderPage() {
                     }
                   }}
                   onChange={(e) => setItems(items.map((x, i) => i === idx ? { ...x, qty: Number(e.target.value) || 0 } : x))}
-                  className="h-9 text-sm"
+                  className={`h-9 text-sm ${itemErrors[idx]?.qty ? "border-destructive" : ""}`}
                   placeholder="الكمية"
+                  min={0}
                 />
                 <Input
                   type="number"
@@ -300,11 +301,15 @@ export default function RepNewOrderPage() {
                     }
                   }}
                   onChange={(e) => setItems(items.map((x, i) => i === idx ? { ...x, price: Number(e.target.value) || 0 } : x))}
-                  className="h-9 text-sm"
+                  className={`h-9 text-sm ${itemErrors[idx]?.price ? "border-destructive" : ""}`}
                   placeholder="السعر"
+                  min={0}
                 />
               </div>
               <div className="text-xs text-muted-foreground mt-1">المجموع: {(it.qty * it.price).toFixed(2)} ₪</div>
+              {itemErrors[idx]?.qty && (
+                <div className="text-xs text-destructive mt-1">الكمية يجب أن تكون أكبر من صفر</div>
+              )}
             </div>
             <Button variant="ghost" size="icon" onClick={() => setItems(items.filter((_, i) => i !== idx))}><Trash2 className="w-4 h-4 text-destructive" /></Button>
           </div>
@@ -331,14 +336,19 @@ export default function RepNewOrderPage() {
               type="number"
               inputMode="decimal"
               value={discountInput}
+              data-rep-discount="1"
               onChange={(e) => setDiscountInput(e.target.value)}
               onFocus={(e) => e.currentTarget.select()}
               placeholder={discountType === "percent" ? "نسبة %" : "قيمة ₪"}
-              className={`h-10 ${discountInvalid ? "border-destructive" : ""}`}
+              className={`h-10 ${discountInvalid || discountOnZero ? "border-destructive" : ""}`}
+              min={0}
             />
           </div>
           {discountInvalid && (
             <div className="text-xs text-destructive">الخصم لا يمكن أن يتجاوز الإجمالي{discountType === "percent" ? " أو 100%" : ""}</div>
+          )}
+          {discountOnZero && (
+            <div className="text-xs text-destructive">لا يمكن إدخال خصم بدون بنود في الفاتورة</div>
           )}
         </Card>
       )}
@@ -360,7 +370,7 @@ export default function RepNewOrderPage() {
             <div className="text-2xl font-bold text-primary">{total.toFixed(2)} ₪</div>
           </div>
         </div>
-        <Button className="w-full h-12 text-base" onClick={save} disabled={saving || items.length === 0}>
+        <Button className="w-full h-12 text-base" onClick={save} disabled={saving || blockSave}>
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 ml-2" /> حفظ الطلب</>}
         </Button>
       </Card>
