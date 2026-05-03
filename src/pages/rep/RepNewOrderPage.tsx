@@ -174,7 +174,19 @@ export default function RepNewOrderPage() {
       <Card className="p-4 space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="ابحث بالاسم / الباركود / SKU" value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10 h-11" />
+          <Input
+            data-rep-search="1"
+            placeholder="ابحث بالاسم / الباركود / SKU"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filteredProducts.length > 0) {
+                e.preventDefault();
+                addProduct(filteredProducts[0]);
+              }
+            }}
+            className="pr-10 h-11"
+          />
         </div>
         {search && (
           <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-md">
