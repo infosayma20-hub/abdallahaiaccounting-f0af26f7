@@ -1078,7 +1078,7 @@ Deno.serve(async (req) => {
       // Backfill أعاد ربط الفواتير القديمة REP-% بالمندوب الصحيح.
       let q = supabase
         .from("invoices")
-        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, contact_id, contact_name, warehouse_id, salesperson_id, created_at")
+        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, is_voided, contact_id, contact_name, warehouse_id, salesperson_id, created_at")
         .eq("user_id", linkedUserId)
         .eq("invoice_type", "sale")
         .in("salesperson_id", repId ? [repId] : repIds)
@@ -1089,6 +1089,7 @@ Deno.serve(async (req) => {
       if (dateTo) q = q.lte("invoice_date", dateTo);
       if (paymentMethod) q = q.eq("payment_method", paymentMethod);
       if (status) q = q.eq("status", status);
+      else q = q.eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)");
 
       const { data: invs, error: invErr } = await q;
       if (invErr) throw invErr;
@@ -1146,7 +1147,7 @@ Deno.serve(async (req) => {
 
       const { data: inv, error: invErr } = await supabase
         .from("invoices")
-        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, contact_name, warehouse_id, created_at")
+        .select("id, invoice_number, invoice_date, total_amount, payment_method, status, is_voided, contact_name, warehouse_id, created_at")
         .eq("id", invoiceId)
         .eq("user_id", linkedUserId)
         .single();
