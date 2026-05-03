@@ -76,13 +76,14 @@ export default function VanReportsPage() {
     if (warehouseIds.length > 0) {
       const { data: invs } = await supabase
         .from("invoices")
-        .select("id, total_amount, warehouse_id")
+        .select("id, total_amount, warehouse_id, status, is_voided")
         .eq("user_id", user.id)
         .eq("invoice_type", "sale")
         .in("warehouse_id", warehouseIds)
+        .eq("is_voided", false)
         .gte("invoice_date", from)
         .lte("invoice_date", to)
-        .neq("status", "cancelled");
+        .not("status", "in", "(cancelled,void,reversed)");
 
       const invIds: string[] = [];
       const invToWh = new Map<string, string>();
@@ -123,12 +124,13 @@ export default function VanReportsPage() {
       const customerByRep = new Map<string, Set<string>>();
       const { data: invsWithContact } = await supabase
         .from("invoices")
-        .select("contact_id, warehouse_id")
+        .select("contact_id, warehouse_id, status, is_voided")
         .eq("user_id", user.id)
         .in("warehouse_id", warehouseIds)
+        .eq("is_voided", false)
         .gte("invoice_date", from)
         .lte("invoice_date", to)
-        .neq("status", "cancelled");
+        .not("status", "in", "(cancelled,void,reversed)");
       (invsWithContact || []).forEach((i: any) => {
         const rep = repByWh.get(i.warehouse_id);
         if (!rep || !i.contact_id) return;

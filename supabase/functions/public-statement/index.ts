@@ -140,7 +140,8 @@ Deno.serve(async (req) => {
       `)
       .eq("user_id", dataOwnerId)
       .eq("contact_id", stmt.contact_id)
-      .neq("status", "cancelled")
+      .eq("is_voided", false)
+      .not("status", "in", "(cancelled,void,reversed)")
       .gte("invoice_date", stmt.date_from)
       .lte("invoice_date", stmt.date_to)
       .order("invoice_date", { ascending: true });

@@ -74,15 +74,19 @@ export default function RepSalesBySupplierPage() {
     // Get invoices in date range matching filter (rep)
     let invQ = (supabase as any)
       .from("invoices")
-      .select("id, invoice_number, invoice_date, salesperson_id, status, discount_amount")
+      .select("id, invoice_number, invoice_date, salesperson_id, status, is_voided, discount_amount")
       .eq("invoice_type", "sales")
       .gte("invoice_date", dateFrom)
       .lte("invoice_date", dateTo)
+      .eq("is_voided", false)
+      .not("status", "in", "(cancelled,void,reversed)")
       .neq("status", "draft");
     if (repFilter !== "all") invQ = invQ.eq("salesperson_id", repFilter);
     const { data: invs } = await invQ;
     const invMap = new Map<string, any>();
-    (invs || []).forEach((i: any) => invMap.set(i.id, i));
+    (invs || [])
+      .filter((i: any) => !Boolean(i.is_voided) && !["cancelled", "void", "reversed", "ملغي", "ملغى"].includes((i.status || "").toLowerCase()))
+      .forEach((i: any) => invMap.set(i.id, i));
     const invIds = Array.from(invMap.keys());
 
     if (invIds.length === 0) {

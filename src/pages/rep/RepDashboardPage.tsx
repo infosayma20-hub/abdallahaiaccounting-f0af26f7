@@ -51,12 +51,16 @@ export default function RepDashboardPage() {
       // (invoices لا يحوي عمود is_deleted — لا تستخدمه)
       const { data: invs, error: invErr } = await (supabase as any)
         .from("invoices")
-        .select("id, total_amount, subtotal, discount_amount, payment_method")
+        .select("id, total_amount, subtotal, discount_amount, payment_method, status, is_voided")
         .eq("user_id", rep.user_id)
         .eq("salesperson_id", rep.id)
+        .eq("is_voided", false)
+        .not("status", "in", "(cancelled,void,reversed)")
         .gte("created_at", day.opened_at);
       if (invErr) console.error("[RepDashboard] invoices query error:", invErr);
-      const list = invs || [];
+      const list = (invs || []).filter((i: any) =>
+        !Boolean(i.is_voided) && !["cancelled", "void", "reversed", "ملغي", "ملغى"].includes((i.status || "").toLowerCase())
+      );
       setStats({
         count: list.length,
         // إجمالي المبيعات قبل الخصم (gross): subtotal أو total + discount عند غياب subtotal
