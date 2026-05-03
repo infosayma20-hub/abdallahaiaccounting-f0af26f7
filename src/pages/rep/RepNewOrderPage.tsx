@@ -60,40 +60,32 @@ export default function RepNewOrderPage() {
     if (digits.length < 8) { toast({ title: "رقم جوال غير صالح (8 أرقام على الأقل)", variant: "destructive" }); return; }
     setNewCustSaving(true);
     try {
-      // duplicate phone check within same owner
-      const { data: dup } = await (supabase as any)
-        .from("contacts")
-        .select("id, contact_name, contact_type")
-        .eq("user_id", rep.user_id)
-        .eq("phone", phoneClean)
-        .maybeSingle();
-      if (dup) {
-        setDupCandidate(dup);
-        setNewCustSaving(false);
-        return;
-      }
       const creditLimit = newCust.creditLimit.trim() ? Number(newCust.creditLimit) : null;
       const paymentTerms = newCust.paymentTermsDays.trim() ? Number(newCust.paymentTermsDays) : 0;
-      const { data: ins, error } = await (supabase as any)
-        .from("contacts")
-        .insert({
-          user_id: rep.user_id,
-          contact_name: name,
-          contact_type: "عميل",
-          phone: phoneClean,
-          address: newCust.address.trim() || null,
-          notes: newCust.notes.trim() || null,
-          is_active: true,
-          is_archived: false,
-          current_balance: 0,
-          credit_limit: creditLimit,
-          payment_terms_days: paymentTerms,
-          source: "rep_portal",
-          sales_rep_id: rep.id,
-        })
-        .select("id, contact_name, contact_type")
-        .single();
-      if (error) throw error;
+      const { data: ins, error } = await (supabase as any).rpc("create_customer_from_rep", {
+        p_name: name,
+        p_phone: phoneClean,
+        p_address: newCust.address.trim() || null,
+        p_notes: newCust.notes.trim() || null,
+        p_credit_limit: creditLimit,
+        p_payment_terms_days: paymentTerms,
+      });
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("DUPLICATE_PHONE")) {
+          // format: DUPLICATE_PHONE:<id>:<name>
+          const parts = msg.split("DUPLICATE_PHONE:")[1] || "";
+          const [dupId, ...rest] = parts.split(":");
+          const dupName = rest.join(":").trim();
+          setDupCandidate({ id: dupId.trim(), contact_name: dupName });
+          setNewCustSaving(false);
+          return;
+        }
+        if (msg.includes("PHONE_INVALID")) { toast({ title: "رقم جوال غير صالح", variant: "destructive" }); setNewCustSaving(false); return; }
+        if (msg.includes("NAME_REQUIRED")) { toast({ title: "اسم الزبون مطلوب", variant: "destructive" }); setNewCustSaving(false); return; }
+        if (msg.includes("NOT_A_SALES_REP")) { toast({ title: "غير مصرح: ليس مندوب مبيعات", variant: "destructive" }); setNewCustSaving(false); return; }
+        throw error;
+      }
       const norm = { ...ins, name: ins.contact_name };
       setContacts((prev) => [norm, ...prev]);
       setContactId(ins.id);
