@@ -60,7 +60,7 @@ export default function RepCollectPage() {
         .from("contacts")
         .select("id, contact_name, contact_type")
         .eq("user_id", r.user_id)
-        .in("contact_type", ["customer", "both", "عميل", "كلاهما"])
+        .in("contact_type", ["customer", "both", "عميل", "كلاهما", "customer_supplier", "زبون ومورد", "عميل ومورد"])
         .eq("is_active", true)
         .eq("is_archived", false)
         .limit(500);
