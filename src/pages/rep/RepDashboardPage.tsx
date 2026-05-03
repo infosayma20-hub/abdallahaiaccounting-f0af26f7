@@ -299,9 +299,9 @@ export default function RepDashboardPage() {
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.count}</div><div className="text-xs text-muted-foreground">طلبات اليوم</div></Card>
         <Card className="p-4 space-y-1"><ShoppingCart className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.total.toFixed(2)}</div><div className="text-xs text-muted-foreground">إجمالي المبيعات (₪)</div></Card>
-        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">الكاش المحصّل (₪)</div></Card>
+        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-primary" /><div className="text-2xl font-bold">{stats.cash.toFixed(2)}</div><div className="text-xs text-muted-foreground">مبيعات نقدية (₪)</div></Card>
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-destructive" /><div className="text-2xl font-bold text-destructive">{expenses.toFixed(2)}</div><div className="text-xs text-muted-foreground">مصاريف اليوم (₪)</div></Card>
-        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-emerald-600" /><div className="text-2xl font-bold text-emerald-600">{collections.toFixed(2)}</div><div className="text-xs text-muted-foreground">تحصيلات اليوم (₪)</div></Card>
+        <Card className="p-4 space-y-1"><DollarSign className="w-5 h-5 text-emerald-600" /><div className="text-2xl font-bold text-emerald-600">{collections.toFixed(2)}</div><div className="text-xs text-muted-foreground">تحصيل ذمم العملاء (₪)</div></Card>
         <Card className="p-4 space-y-1"><Receipt className="w-5 h-5 text-amber-600" /><div className="text-2xl font-bold text-amber-600">{supplierPayments.toFixed(2)}</div><div className="text-xs text-muted-foreground">صرف للموردين (₪)</div></Card>
         <Card className="p-4 space-y-1 border-orange-200 dark:border-orange-900/40">
           <Tag className="w-5 h-5 text-orange-500" />
