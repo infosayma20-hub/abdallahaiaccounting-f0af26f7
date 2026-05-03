@@ -636,9 +636,11 @@ const AccountStatementV2Page = () => {
     } else {
       const contactName = selectedContact?.contact_name?.trim() || "";
       const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
-      const contactAccountCodes = ["1130", "2110", "2180", "2115", "1146"];
+      const contactAccountRoots = ["1130", "2110", "2180", "2115", "1146"];
+      const matchesContactAccount = (code: string | null | undefined) =>
+        !!code && contactAccountRoots.some(root => code === root || code.startsWith(root));
       related = transactions.filter(tx => (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName)));
-      resolveDebitCredit = (tx) => ({ isDebit: contactAccountCodes.includes(tx.debit_account_code), isCredit: contactAccountCodes.includes(tx.credit_account_code) });
+      resolveDebitCredit = (tx) => ({ isDebit: matchesContactAccount(tx.debit_account_code), isCredit: matchesContactAccount(tx.credit_account_code) });
     }
 
     let curDebit = 0, curCredit = 0, curCount = 0;
