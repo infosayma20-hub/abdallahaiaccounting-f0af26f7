@@ -48,11 +48,22 @@ export default function RepSalesBySupplierPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [lines, setLines] = useState<LineDetail[]>([]);
   const [reps, setReps] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    (supabase as any).from("sales_representatives").select("id, full_name").eq("is_active", true)
-      .then((r: any) => setReps(r.data || []));
+    (async () => {
+      const [{ data: repsData }, { data: supsData }] = await Promise.all([
+        (supabase as any)
+          .from("sales_representatives")
+          .select("id, full_name")
+          .eq("is_active", true)
+          .order("full_name"),
+        (supabase as any).rpc("get_rep_suppliers"),
+      ]);
+      setReps(repsData || []);
+      setSuppliers(supsData || []);
+    })();
   }, []);
 
   const load = async () => {
@@ -79,12 +90,48 @@ export default function RepSalesBySupplierPage() {
       .from("invoice_items")
       .select("invoice_id, product_id, product_name, quantity, unit_price, cost_price, line_profit, total_amount, supplier_id, supplier_name")
       .in("invoice_id", invIds);
-    if (supplierFilter !== "all") {
-      itemsQ = supplierFilter === "none"
-        ? itemsQ.is("supplier_id", null)
-        : itemsQ.eq("supplier_id", supplierFilter);
+    const { data: rawItems } = await itemsQ;
+
+    // Fallback supplier from product.default_supplier_id when invoice_items.supplier_id is null
+    const productIds = Array.from(new Set((rawItems || []).map((i: any) => i.product_id).filter(Boolean)));
+    let prodSupMap = new Map<string, { id: string | null; name: string | null }>();
+    if (productIds.length > 0) {
+      const { data: prods } = await (supabase as any)
+        .from("products")
+        .select("id, default_supplier_id")
+        .in("id", productIds);
+      const supIds = Array.from(new Set((prods || []).map((p: any) => p.default_supplier_id).filter(Boolean)));
+      const supNameMap = new Map<string, string>();
+      if (supIds.length > 0) {
+        const { data: cts } = await (supabase as any)
+          .from("contacts")
+          .select("id, contact_name")
+          .in("id", supIds);
+        (cts || []).forEach((c: any) => supNameMap.set(c.id, c.contact_name));
+      }
+      (prods || []).forEach((p: any) => {
+        prodSupMap.set(p.id, {
+          id: p.default_supplier_id || null,
+          name: p.default_supplier_id ? (supNameMap.get(p.default_supplier_id) || null) : null,
+        });
+      });
     }
-    const { data: items } = await itemsQ;
+
+    // Apply supplier resolution + supplier filter (after fallback)
+    const enriched = (rawItems || []).map((it: any) => {
+      let sId = it.supplier_id || null;
+      let sName = it.supplier_name || null;
+      if (!sId) {
+        const fb = prodSupMap.get(it.product_id);
+        if (fb?.id) { sId = fb.id; sName = fb.name; }
+      }
+      return { ...it, _resolved_supplier_id: sId, _resolved_supplier_name: sName };
+    });
+    const items = enriched.filter((it: any) => {
+      if (supplierFilter === "all") return true;
+      if (supplierFilter === "none") return !it._resolved_supplier_id;
+      return it._resolved_supplier_id === supplierFilter;
+    });
 
     const detailRows: LineDetail[] = (items || []).map((it: any) => {
       const inv = invMap.get(it.invoice_id) || {};
@@ -100,17 +147,17 @@ export default function RepSalesBySupplierPage() {
         cost_price: Number(it.cost_price || 0),
         line_profit: Number(it.line_profit || ((Number(it.unit_price||0) - Number(it.cost_price||0)) * Number(it.quantity||0))),
         total_amount: Number(it.total_amount || 0),
-        supplier_id: it.supplier_id,
+        supplier_id: it._resolved_supplier_id,
       };
     });
 
     // aggregate per supplier
     const supMap = new Map<string, Row>();
     (items || []).forEach((it: any) => {
-      const key = it.supplier_id || "__none__";
+      const key = it._resolved_supplier_id || "__none__";
       const cur = supMap.get(key) || {
-        supplier_id: it.supplier_id,
-        supplier_name: it.supplier_name || "بدون مورد",
+        supplier_id: it._resolved_supplier_id,
+        supplier_name: it._resolved_supplier_name || "بدون مورد",
         product_id: "",
         product_name: "",
         lines_count: 0,
@@ -130,16 +177,16 @@ export default function RepSalesBySupplierPage() {
 
     setRows(Array.from(supMap.values()).sort((a, b) => b.total_sales - a.total_sales));
     setLines(detailRows);
+    console.log("[SalesBySupplier] invoices:", invIds.length, "items:", (rawItems||[]).length, "after-filter:", items.length, "with-supplier:", items.filter((i:any)=>i._resolved_supplier_id).length, "fallback:", items.filter((i:any)=>!i.supplier_id && i._resolved_supplier_id).length);
     setLoading(false);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
-  const supplierOptions = useMemo(() => {
-    const set = new Map<string, string>();
-    rows.forEach(r => set.set(r.supplier_id || "none", r.supplier_name || "بدون مورد"));
-    return Array.from(set.entries());
-  }, [rows]);
+  const supplierOptions = useMemo(
+    () => suppliers.map(s => [s.id, s.name] as const),
+    [suppliers]
+  );
 
   const totals = useMemo(() => rows.reduce((acc, r) => ({
     sales: acc.sales + r.total_sales,
@@ -183,7 +230,6 @@ export default function RepSalesBySupplierPage() {
                 <SelectItem value="all">كل الموردين</SelectItem>
                 <SelectItem value="none">بدون مورد</SelectItem>
                 {supplierOptions
-                  .filter(([id]) => id !== "none")
                   .map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
               </SelectContent>
             </Select>
