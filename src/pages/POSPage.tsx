@@ -1200,8 +1200,10 @@ const POSPage = () => {
             return box.branch_id === deviceBranchId;
           });
           const boxList: CashBoxOption[] = [...branchSafeBoxes];
-          const isMalakyAccount = user?.email === "malakybroast@gmail.com";
-          if (!callCenterHidden && isMalakyAccount) {
+          // Phase A: Call Center is opt-in via company_settings.pos_call_center_enabled.
+          // The hook falls back to the legacy Malaky email so existing tenants are
+          // not broken before they flip the new switch.
+          if (!callCenterHidden && callCenterEnabled) {
             boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
           }
           setCashBoxes(boxList);
