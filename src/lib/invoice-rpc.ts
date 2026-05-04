@@ -63,7 +63,7 @@ export async function callCreateInvoiceLedgerRpc(
     p_currency: p.currency ?? "شيكل",
     p_items: [],
     p_idempotency_key: p.idempotencyKey ?? null,
-    p_invoice_type: p.invoiceType ?? "sales",
+    p_invoice_type: p.invoiceType ?? "sale",
     p_transaction_date: p.transactionDate ?? null,
     p_foreign_amount: p.foreignAmount ?? null,
     p_exchange_rate: p.exchangeRate ?? null,
