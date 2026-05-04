@@ -330,8 +330,12 @@ export default function RepDashboardPage() {
         <Plus className="w-5 h-5 ml-2" /> طلب جديد
       </Button>
 
-      <Button variant="outline" className="w-full h-11 text-sm" onClick={() => navigate("/rep/sales-by-supplier")}>
-        <BarChart3 className="w-4 h-4 ml-2" /> تقرير المبيعات حسب المورد
+      <Button
+        variant="secondary"
+        className="w-full h-12 text-base border border-primary/30"
+        onClick={() => navigate("/rep/sales-by-supplier")}
+      >
+        <BarChart3 className="w-5 h-5 ml-2" /> تقرير المبيعات حسب المورد
       </Button>
 
       <Card className="p-4 space-y-3">
