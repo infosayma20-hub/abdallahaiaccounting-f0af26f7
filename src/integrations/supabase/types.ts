@@ -2074,6 +2074,7 @@ export type Database = {
           pos_auto_print: boolean | null
           pos_auto_update_stock: boolean | null
           pos_branch_id: string | null
+          pos_call_center_enabled: boolean
           pos_count: number | null
           pos_day_cutoff_hour: number | null
           pos_default_opening_balance: number | null
@@ -2083,6 +2084,7 @@ export type Database = {
           pos_disable_stock_deduction: boolean
           pos_kitchen_auto_print: boolean | null
           pos_kitchen_ticket_size: string | null
+          pos_mode: string
           pos_name: string | null
           pos_payment_methods: Json | null
           pos_prevent_zero_stock: boolean | null
@@ -2217,6 +2219,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
+          pos_call_center_enabled?: boolean
           pos_count?: number | null
           pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
@@ -2226,6 +2229,7 @@ export type Database = {
           pos_disable_stock_deduction?: boolean
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
+          pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
@@ -2360,6 +2364,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
+          pos_call_center_enabled?: boolean
           pos_count?: number | null
           pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
@@ -2369,6 +2374,7 @@ export type Database = {
           pos_disable_stock_deduction?: boolean
           pos_kitchen_auto_print?: boolean | null
           pos_kitchen_ticket_size?: string | null
+          pos_mode?: string
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
@@ -9139,6 +9145,7 @@ export type Database = {
           port: number
           print_categories: string[] | null
           printer_type: string
+          settings: Json
           station_ids: string[] | null
           updated_at: string | null
           user_id: string
@@ -9155,6 +9162,7 @@ export type Database = {
           port?: number
           print_categories?: string[] | null
           printer_type?: string
+          settings?: Json
           station_ids?: string[] | null
           updated_at?: string | null
           user_id: string
@@ -9171,6 +9179,7 @@ export type Database = {
           port?: number
           print_categories?: string[] | null
           printer_type?: string
+          settings?: Json
           station_ids?: string[] | null
           updated_at?: string | null
           user_id?: string
