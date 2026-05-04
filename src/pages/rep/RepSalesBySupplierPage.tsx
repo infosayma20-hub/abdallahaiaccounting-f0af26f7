@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronDown, ChevronLeft, RefreshCw } from "lucide-react";
+import { SALES_INVOICE_TYPES } from "@/constants/invoice";
 
 type Row = {
   supplier_id: string | null;
@@ -75,7 +76,7 @@ export default function RepSalesBySupplierPage() {
     let invQ = (supabase as any)
       .from("invoices")
       .select("id, invoice_number, invoice_date, salesperson_id, status, is_voided, discount_amount, invoice_type")
-      .in("invoice_type", ["sale", "sales"])
+      .in("invoice_type", SALES_INVOICE_TYPES as unknown as string[])
       .gte("invoice_date", dateFrom)
       .lte("invoice_date", dateTo)
       .eq("is_voided", false)
