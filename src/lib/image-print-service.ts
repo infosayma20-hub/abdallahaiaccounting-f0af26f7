@@ -473,7 +473,7 @@ export async function printAllImage(
     const unifiedKitchenItems = kitchenJobs && kitchenJobs.length > 0
       ? stationsToPrintRaw.flatMap(s => s.items)
       : order.items;
-    const stationsToPrint = shouldUseUnifiedKitchenPrinter(order)
+    const stationsToPrint = (await shouldUseUnifiedKitchenPrinter(order))
       ? [{ key: 'kitchen', label: 'المطبخ', items: unifiedKitchenItems }]
       : stationsToPrintRaw;
 
