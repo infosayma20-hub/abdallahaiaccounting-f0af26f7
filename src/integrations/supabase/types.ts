@@ -12143,9 +12143,13 @@ export type Database = {
           created_at: string
           id: string
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          notes: string | null
           product_id: string
           quantity: number
+          reference_id: string | null
           reference_note: string | null
+          reference_type: string | null
+          unit_cost: number | null
           user_id: string
           warehouse_id: string | null
         }
@@ -12153,9 +12157,13 @@ export type Database = {
           created_at?: string
           id?: string
           movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          notes?: string | null
           product_id: string
           quantity: number
+          reference_id?: string | null
           reference_note?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
           user_id: string
           warehouse_id?: string | null
         }
@@ -12163,9 +12171,13 @@ export type Database = {
           created_at?: string
           id?: string
           movement_type?: Database["public"]["Enums"]["stock_movement_type"]
+          notes?: string | null
           product_id?: string
           quantity?: number
+          reference_id?: string | null
           reference_note?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
           user_id?: string
           warehouse_id?: string | null
         }
