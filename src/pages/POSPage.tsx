@@ -6,6 +6,7 @@ import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -318,6 +319,9 @@ const POSPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  // Phase A — Generalization Hard Stop: drives restaurant vs retail UI
+  // and replaces the hardcoded Malaky email check for Call Center.
+  const { restaurantFeatures, callCenterEnabled } = usePosMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const { printAll: bridgePrintAll } = usePrintBridge();
   // Guard against rapid double-fires on print shortcuts (F8/F9/payment button).
