@@ -282,10 +282,43 @@ const ALL_STATIONS = [
   { key: 'pizza', label: 'البيتزا' },
 ];
 
-const RAMALLAH_PLAZA_BRANCH_ID = 'f82642e1-ce32-456e-8ef8-e556d8d65af9';
+// Phase A — Generalization Hard Stop:
+// The unified-kitchen routing was previously hardcoded to the Ramallah Plaza
+// branch ID. It is now driven by data:
+//   1) Any active pos_printers row for the device's branch with
+//      settings->>'image_mode' = 'unified_kitchen'   (preferred)
+//   2) Legacy fallback: the original Ramallah Plaza branch ID + name match,
+//      kept ONLY so existing Plaza terminals do not break before they
+//      configure their printer settings.
+const LEGACY_RAMALLAH_PLAZA_BRANCH_ID = 'f82642e1-ce32-456e-8ef8-e556d8d65af9';
 
-function shouldUseUnifiedKitchenPrinter(order: PrintOrder): boolean {
-  return getDeviceBranchId() === RAMALLAH_PLAZA_BRANCH_ID || order.branchName?.includes('رام الله بلازا');
+let _unifiedKitchenCache: { branchId: string | null; value: boolean; at: number } | null = null;
+
+async function branchHasUnifiedKitchenPrinter(branchId: string | null): Promise<boolean> {
+  if (!branchId) return false;
+  const now = Date.now();
+  if (_unifiedKitchenCache && _unifiedKitchenCache.branchId === branchId && now - _unifiedKitchenCache.at < 60_000) {
+    return _unifiedKitchenCache.value;
+  }
+  try {
+    const { data } = await supabase
+      .from('pos_printers')
+      .select('id, settings, is_active, branch_id')
+      .eq('branch_id', branchId)
+      .eq('is_active', true);
+    const value = !!(data || []).find((p: any) => (p?.settings?.image_mode === 'unified_kitchen'));
+    _unifiedKitchenCache = { branchId, value, at: now };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
+async function shouldUseUnifiedKitchenPrinter(order: PrintOrder): Promise<boolean> {
+  const branchId = getDeviceBranchId();
+  if (await branchHasUnifiedKitchenPrinter(branchId)) return true;
+  // Legacy fallback — keep Plaza working until they set image_mode.
+  return branchId === LEGACY_RAMALLAH_PLAZA_BRANCH_ID || !!order.branchName?.includes('رام الله بلازا');
 }
 
 function toBridgeKitchenOrder(order: PrintOrder, items: PrintItem[]) {
