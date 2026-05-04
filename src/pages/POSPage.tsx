@@ -4449,8 +4449,12 @@ const POSPage = () => {
           />
 
           {/* Order Type Pills */}
+          {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery. */}
           <div className="flex items-center gap-2 px-3 pb-2 shrink-0">
-            {(["takeaway", "delivery", "dine_in"] as const).map(type => {
+            {((restaurantFeatures
+              ? (["takeaway", "delivery", "dine_in"] as const)
+              : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
+            ).map(type => {
               const isActive = type === "dine_in" ? !!activeOrder.tableId : (activeOrder.orderType === type && !activeOrder.tableId);
               const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
               return (
