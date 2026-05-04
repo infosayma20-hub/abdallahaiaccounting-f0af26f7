@@ -4840,7 +4840,7 @@ const POSPage = () => {
                 >
                   F10 حفظ
                 </button>
-                {!isCallCenter && (
+                {!isCallCenter && restaurantFeatures && (
                   <button
                     onClick={handleSendToKitchen}
                     disabled={cart.length === 0}
