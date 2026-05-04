@@ -6,6 +6,7 @@ import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePosMode } from "@/hooks/usePosMode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -318,6 +319,9 @@ const POSPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  // Phase A — Generalization Hard Stop: drives restaurant vs retail UI
+  // and replaces the hardcoded Malaky email check for Call Center.
+  const { restaurantFeatures, callCenterEnabled } = usePosMode();
   const searchRef = useRef<HTMLInputElement>(null);
   const { printAll: bridgePrintAll } = usePrintBridge();
   // Guard against rapid double-fires on print shortcuts (F8/F9/payment button).
@@ -1196,8 +1200,10 @@ const POSPage = () => {
             return box.branch_id === deviceBranchId;
           });
           const boxList: CashBoxOption[] = [...branchSafeBoxes];
-          const isMalakyAccount = user?.email === "malakybroast@gmail.com";
-          if (!callCenterHidden && isMalakyAccount) {
+          // Phase A: Call Center is opt-in via company_settings.pos_call_center_enabled.
+          // The hook falls back to the legacy Malaky email so existing tenants are
+          // not broken before they flip the new switch.
+          if (!callCenterHidden && callCenterEnabled) {
             boxList.push({ id: "__call_center__", name: "كول سنتر", type: "call_center" } as any);
           }
           setCashBoxes(boxList);
@@ -4443,8 +4449,12 @@ const POSPage = () => {
           />
 
           {/* Order Type Pills */}
+          {/* Phase A: in retail/service mode hide dine-in (tables) but keep takeaway+delivery. */}
           <div className="flex items-center gap-2 px-3 pb-2 shrink-0">
-            {(["takeaway", "delivery", "dine_in"] as const).map(type => {
+            {((restaurantFeatures
+              ? (["takeaway", "delivery", "dine_in"] as const)
+              : (["takeaway", "delivery"] as const)) as readonly ("takeaway" | "delivery" | "dine_in")[]
+            ).map(type => {
               const isActive = type === "dine_in" ? !!activeOrder.tableId : (activeOrder.orderType === type && !activeOrder.tableId);
               const labels: Record<string, string> = { takeaway: "استلام", delivery: "توصيل", dine_in: "طاولة" };
               return (
@@ -4702,7 +4712,7 @@ const POSPage = () => {
             />
 
             {/* Table picker dropdown */}
-            {showTablePicker && (
+            {restaurantFeatures && showTablePicker && (
               <div className="mx-3 mt-1 z-50 border rounded-lg shadow-lg p-2 max-h-[200px] overflow-y-auto" style={{ background: '#1a2d4a', borderColor: 'rgba(255,255,255,0.15)' }}>
                 {availableTables.length === 0 && (
                   <p className="text-[11px] p-2 text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>جاري التحميل...</p>
@@ -4830,7 +4840,7 @@ const POSPage = () => {
                 >
                   F10 حفظ
                 </button>
-                {!isCallCenter && (
+                {!isCallCenter && restaurantFeatures && (
                   <button
                     onClick={handleSendToKitchen}
                     disabled={cart.length === 0}
