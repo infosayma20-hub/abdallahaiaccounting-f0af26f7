@@ -223,6 +223,7 @@ export default function DeviceSetupPage() {
       setDeviceBranchId(branchId);
       setDeviceTerminalId(terminalId);
       setDeviceLabel(label.trim());
+      try { localStorage.removeItem("device-setup-draft"); } catch {}
       toast.success("🎉 جاهز! تم تجهيز الجهاز بنجاح");
       setTimeout(() => navigate("/pos"), 700);
     } finally { setSaving(false); }
@@ -233,6 +234,7 @@ export default function DeviceSetupPage() {
     clearDeviceConfig();
     setBridgeInput(""); setBranchId(""); setTerminalId(""); setLabel("");
     setBridgeStatus("idle"); setStepIdx(0);
+    try { localStorage.removeItem("device-setup-draft"); } catch {}
     toast.success("تم مسح إعدادات هذا الجهاز");
   };
 
