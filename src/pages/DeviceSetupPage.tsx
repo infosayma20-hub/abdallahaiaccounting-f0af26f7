@@ -101,14 +101,25 @@ export default function DeviceSetupPage() {
     if (!trimmed) { toast.error("أدخل اسم المحطة"); return; }
     setCreatingTerminal(true);
     try {
-      // Resolve owner + company to satisfy NOT NULL columns + RLS.
+      // Resolve owner + POS company (pos_terminals.company_id → pos_companies.id, NOT profiles.company_id).
       const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
       const ownerId = (ownerIdRaw as string | null) || user.id;
-      const { data: ownerProfile, error: profErr } = await supabase
-        .from("profiles").select("company_id").eq("user_id", ownerId).maybeSingle();
-      if (profErr || !ownerProfile?.company_id) {
-        toast.error("تعذر تحديد الشركة المالكة. تواصل مع الدعم.");
-        return;
+      // Find or create the pos_companies row for this owner.
+      let posCompanyId: string | null = null;
+      const { data: existingCo } = await supabase
+        .from("pos_companies").select("id").eq("user_id", ownerId).maybeSingle();
+      if (existingCo?.id) {
+        posCompanyId = existingCo.id;
+      } else {
+        const { data: newCo, error: coErr } = await supabase
+          .from("pos_companies")
+          .insert({ user_id: ownerId, name: "شركتي", currency_code: "ILS", is_active: true } as any)
+          .select("id").single();
+        if (coErr || !newCo) {
+          toast.error("تعذر تجهيز شركة الـ POS: " + (coErr?.message || "خطأ"));
+          return;
+        }
+        posCompanyId = newCo.id;
       }
       const { data: created, error } = await supabase
         .from("pos_terminals")
@@ -116,7 +127,7 @@ export default function DeviceSetupPage() {
           name: trimmed,
           branch_id: branchId,
           user_id: ownerId,
-          company_id: ownerProfile.company_id,
+          company_id: posCompanyId,
           is_active: true,
         } as any)
         .select("id, name, branch_id, user_id, is_active")
