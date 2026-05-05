@@ -501,9 +501,10 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <div
             style={{
               padding: "8px 6px 4px",
-              fontSize: "12px",
-              color: "#374151",
-              fontWeight: 600,
+              fontSize: "11px",
+              color: "#6B7280",
+              fontWeight: 500,
+              fontStyle: "italic",
               lineHeight: 1.6,
               textAlign: "right",
             }}
