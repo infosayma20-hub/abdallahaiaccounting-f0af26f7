@@ -378,7 +378,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
 
       {/* ━━━ ITEMS TABLE ━━━ */}
       <div style={{ padding: "10px 28px" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed", border: "1px solid #E5E7EB" }}>
           <colgroup>
             <col style={{ width: "5%" }} />
             <col style={{ width: "35%" }} />
@@ -401,6 +401,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     fontWeight: 700,
                     fontSize: "12px",
                     borderBottom: "2px solid #4A9EE8",
+                    borderRight: i === 0 ? undefined : "1px solid rgba(255,255,255,0.12)",
                     whiteSpace: "nowrap",
                     background: isLast ? "#152F4A" : undefined,
                   }}
@@ -423,16 +424,16 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     height: `${rowMinHeight}px`,
                   }}
                 >
-                  <td style={{ padding: "12px 6px", textAlign: "center", color: "#6B7280", fontWeight: 700, fontSize: "13px" }}>{idx + 1}</td>
-                  <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", color: "#6B7280", fontWeight: 700, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>{idx + 1}</td>
+                  <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal", borderRight: "1px solid #F1F5F9" }}>
                     {item.description}
                   </td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px" }}>{item.quantity}</td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px" }}>{fmtAmount(item.unitPrice)}</td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px", borderRight: "1px solid #F1F5F9" }}>{item.quantity}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(item.unitPrice)}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px" }}>{fmtAmount(calc.afterDiscount)}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(calc.afterDiscount)}</td>
                   <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 800, color: "#1B3A5C", fontFeatureSettings: "'tnum'", fontSize: "15px", background: "#EEF4FB" }}>
                     {fmtAmount(calc.total)}
                   </td>
