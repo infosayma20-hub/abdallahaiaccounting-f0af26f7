@@ -419,6 +419,7 @@ export const navigationSections: NavSection[] = [
             groupLabel: "التشغيل",
             children: [
               { label: "💵 إدارة الرواتب", path: "/payroll" },
+              { label: "🏦 القروض", path: "/loans" },
               { label: "📝 طلبات الموظفين", path: "/employee-forms-management" },
             ],
           },
