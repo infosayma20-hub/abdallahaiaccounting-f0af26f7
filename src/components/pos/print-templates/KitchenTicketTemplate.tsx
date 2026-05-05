@@ -130,26 +130,26 @@ const KitchenTicketTemplate = forwardRef<HTMLDivElement, Props>(({ order, items,
       {items.map((item, i) => {
         const qty = item.quantity || 1;
         return (
-          <div key={i} style={{ padding: '4px 0', borderBottom: '2px dashed #666', lineHeight: 1.2 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '22px', fontWeight: 900, minWidth: '46px', lineHeight: 1.1 }}>{qty}×</span>
-              <span style={{ fontSize: '26px', fontWeight: 900, textAlign: 'right', flex: 1, lineHeight: 1.2 }}>{item.name}</span>
+          <div key={i} style={{ padding: '4px 0', borderBottom: '1px dashed #666', lineHeight: 1.2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={{ fontSize: '20px', fontWeight: 900, minWidth: '38px', lineHeight: 1.15, flexShrink: 0 }}>{qty}×</span>
+              <span style={{ fontSize: '21px', fontWeight: 900, textAlign: 'right', flex: 1, lineHeight: 1.25, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{item.name}</span>
             </div>
             {item.modifiers?.map((m, j) => (
               <div key={j} style={{
-                fontSize: '20px', color: '#000', fontWeight: 700,
-                textAlign: 'right', paddingRight: '50px', marginTop: '2px',
-                lineHeight: 1.2,
+                fontSize: '17px', color: '#000', fontWeight: 700,
+                textAlign: 'right', paddingRight: '42px', marginTop: '2px',
+                lineHeight: 1.2, wordBreak: 'break-word',
               }}>
                 + {m.option_name}
               </div>
             ))}
             {item.note && (
               <div style={{
-                fontSize: '20px', fontWeight: 900, color: '#000',
-                textAlign: 'right', paddingRight: '50px', marginTop: '2px',
+                fontSize: '17px', fontWeight: 900, color: '#000',
+                textAlign: 'right', paddingRight: '42px', marginTop: '2px',
                 background: '#eee', padding: '3px 6px', borderRadius: '3px',
-                lineHeight: 1.2,
+                lineHeight: 1.2, wordBreak: 'break-word',
               }}>
                 ملاحظة: {item.note}
               </div>
