@@ -136,11 +136,11 @@ export default function RepExpensePage() {
       if (day) {
         const { data: txs } = await (supabase as any)
           .from("transactions")
-          .select("id, amount, description, debit_account_code, reference, transaction_date, notes")
+          .select("id, amount, description, debit_account_code, reference, transaction_date, notes, created_at")
           .eq("user_id", r.user_id)
           .eq("payment_method", "rep_expense")
           .eq("is_deleted", false)
-          .gte("transaction_date", new Date(day.opened_at).toISOString().slice(0, 10))
+          .gte("created_at", day.opened_at)
           .order("created_at", { ascending: false });
         const mine = ((txs as any[]) || []).filter((t) => {
           try {
