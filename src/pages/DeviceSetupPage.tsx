@@ -47,6 +47,11 @@ export default function DeviceSetupPage() {
   const [loadError, setLoadError] = useState("");
   const [stepIdx, setStepIdx] = useState<number>(isDeviceFullyConfigured() ? 1 : 0);
   const [saving, setSaving] = useState(false);
+  // Backward-compat: existing configured devices see a compact "manage" view
+  // by default. They can opt into the wizard manually. New devices go straight
+  // to the wizard from welcome.
+  const [forceWizard, setForceWizard] = useState(false);
+  const showWizard = !isDeviceFullyConfigured() || forceWizard;
 
   useEffect(() => { if (!authLoading) void loadOptions(); }, [user?.id, authLoading]);
 
