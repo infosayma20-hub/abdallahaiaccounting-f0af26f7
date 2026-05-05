@@ -559,12 +559,38 @@ export default function DeviceSetupPage() {
                   أدخل عنوان <strong>Print Bridge</strong> (IP والمنفذ) أو اسم طابعة Windows مشتركة.
                   هذه الخطوة اختيارية — يمكنك تخطيها وإضافتها لاحقاً.
                 </p>
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
-                  💡 تأكد أن الكمبيوتر والطابعة على نفس الشبكة المحلية. أمثلة شائعة:
-                  <div className="mt-1 font-mono text-[11px]" dir="ltr">
-                    http://192.168.1.65:3001<br/>
-                    http://127.0.0.1:3001
-                  </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setBridgeInput("http://127.0.0.1:3001"); setBridgeStatus("idle"); }}
+                    className="text-right rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 p-3 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      🔌 طابعة USB
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                      موصولة بكابل بنفس الجهاز. ثبّت Print Bridge على هذا الجهاز واستخدم
+                      <span className="font-mono" dir="ltr"> http://127.0.0.1:3001</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setBridgeInput("http://192.168.1.65:3001"); setBridgeStatus("idle"); }}
+                    className="text-right rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 p-3 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      🌐 طابعة شبكة
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                      لها IP على الراوتر. اكتب IP الكمبيوتر اللي عليه Print Bridge مثل
+                      <span className="font-mono" dir="ltr"> http://192.168.1.65:3001</span>
+                    </div>
+                  </button>
+                </div>
+                <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-[11px] leading-relaxed text-foreground/80">
+                  💡 سواء USB أو شبكة، الطباعة تمر دائماً عبر <strong>Print Bridge</strong> المثبّت على
+                  كمبيوتر واحد بالفرع. الطابعات تُكتشف تلقائياً من النظام بعد تثبيت البريدج، فما في داعي
+                  لإدخال موديل الطابعة هون.
                 </div>
                 <div className="flex gap-2">
                   <Input
