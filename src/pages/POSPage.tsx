@@ -5125,6 +5125,16 @@ const POSPage = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowPayment(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "F2") {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+                handleCompleteOrder();
+              }
+            }
+          }}
+          tabIndex={-1}
         >
           <div
             className="w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl"
