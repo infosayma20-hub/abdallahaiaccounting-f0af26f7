@@ -380,18 +380,17 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: "5%" }} />
-            <col style={{ width: "33%" }} />
+            <col style={{ width: "35%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "13%" }} />
+            <col style={{ width: "14%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "13%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "14%" }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
-              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "ضريبة 16%", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => {
-                const isLast = i === (taxEnabled ? 7 : 5);
+              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => {
+                const isLast = i === (taxEnabled ? 6 : 5);
                 return (
                 <th
                   key={i}
@@ -433,11 +432,6 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
                   <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px" }}>{fmtAmount(calc.afterDiscount)}</td>
-                  {taxEnabled && (
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontSize: "11px", color: "#6B7280", fontFeatureSettings: "'tnum'" }}>
-                    {calc.category === "taxable" ? fmtAmount(calc.tax) : calc.category === "zero" ? "0%" : "معفى"}
-                  </td>
-                  )}
                   <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 800, color: "#1B3A5C", fontFeatureSettings: "'tnum'", fontSize: "15px", background: "#EEF4FB" }}>
                     {fmtAmount(calc.total)}
                   </td>
