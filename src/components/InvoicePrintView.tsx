@@ -1,4 +1,5 @@
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import { amountToArabicWords } from "@/lib/arabic-number-words";
 
 interface InvoiceItem {
   description: string;
@@ -494,6 +495,19 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           >
             <span>الإجمالي النهائي</span>
             <span style={{ fontSize: "23px", fontWeight: 800, letterSpacing: "0.3px" }}>{fmtAmount(grandTotal)}</span>
+          </div>
+          {/* Amount in Arabic words */}
+          <div
+            style={{
+              padding: "8px 6px 4px",
+              fontSize: "12px",
+              color: "#374151",
+              fontWeight: 600,
+              lineHeight: 1.6,
+              textAlign: "right",
+            }}
+          >
+            {amountToArabicWords(grandTotal, invoice.currency)}
           </div>
           {/* Paid / Remaining */}
           {invoice.paidAmount > 0 && (
