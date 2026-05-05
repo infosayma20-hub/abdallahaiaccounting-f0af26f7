@@ -5543,7 +5543,7 @@ const POSPage = () => {
                 ) : (
                   <CheckCircle className="h-5 w-5" />
                 )}
-                {processing ? "جاري المعالجة..." : "إتمام البيع ✅"}
+                {processing ? "جاري المعالجة..." : "F2 — إتمام البيع ✅"}
               </motion.button>
             </div>
           </div>
