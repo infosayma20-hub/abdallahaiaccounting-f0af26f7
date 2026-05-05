@@ -3544,6 +3544,15 @@ const POSPage = () => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
+      // F2 inside payment modal = Complete sale
+      if (e.key === "F2" && showPayment) {
+        e.preventDefault();
+        if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+          handleCompleteOrder();
+        }
+        return;
+      }
+
       // F2 = Call Center Dispatch (for call center users / admin)
       if (e.key === "F2" && cart.length > 0 && (isAdmin || isCallCenter)) {
         setShowCallCenterDispatch(true);
@@ -3555,8 +3564,8 @@ const POSPage = () => {
         setShowInvoiceHistory(true);
         e.preventDefault();
       }
-      // F12 = Pay (not for call center)
-      if (e.key === "F12" && cart.length > 0 && !isCallCenter) {
+      // F2 / F12 = Pay (not for call center)
+      if ((e.key === "F2" || e.key === "F12") && cart.length > 0 && !isCallCenter) {
         openPaymentModal();
         e.preventDefault();
         return;
@@ -3655,7 +3664,7 @@ const POSPage = () => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod]);
+  }, [cart, posCategories, products, selectedCategory, addToCart, enforceDeviceGuard, openPaymentModal, isCallCenter, shouldThrottlePrint, buildCartHash, company, session, activeOrder, cartTotals, paymentMethod, showPayment, processing, customerName, selectedEmployee]);
 
   if (loading) {
     return (
@@ -4847,7 +4856,7 @@ const POSPage = () => {
                   disabled={cart.length === 0 || !session}
                   onClick={openPaymentModal}
                 >
-                  F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
+                  F2 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                 </motion.button>
               )}
 
@@ -5081,7 +5090,7 @@ const POSPage = () => {
                   { key: "F8", desc: "طباعة" },
                   { key: "F9", desc: "إرسال إلى الطابعة" },
                   { key: "F10", desc: "حفظ الطلب" },
-                  { key: "F12", desc: "فتح نافذة الدفع" },
+                  { key: "F2", desc: "فتح نافذة الدفع / إتمام البيع" },
                   { key: "Ctrl+Del", desc: "إفراغ السلة بالكامل" },
                 ].map(s => (
                   <div key={s.key} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
@@ -5534,7 +5543,7 @@ const POSPage = () => {
                 ) : (
                   <CheckCircle className="h-5 w-5" />
                 )}
-                {processing ? "جاري المعالجة..." : "إتمام البيع ✅"}
+                {processing ? "جاري المعالجة..." : "F2 — إتمام البيع ✅"}
               </motion.button>
             </div>
           </div>
