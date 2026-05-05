@@ -27,6 +27,9 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
   const missing: string[] = [];
   if (!config.branchId) missing.push("الفرع");
   if (!config.terminalId) missing.push("محطة POS");
+  // First-run: if nothing is configured yet, allow ANY user to open the
+  // setup screen so a cashier on a brand-new PC isn't locked out.
+  const isFirstRun = !config.branchId && !config.terminalId;
 
   // Conflict detection — only check when both sides are present.
   const conflicts: string[] = [];
@@ -66,7 +69,7 @@ export default function POSDeviceGuard({ config, terminalBranchId, cashBoxBranch
         <div className="font-semibold truncate">{title}</div>
         <div className="opacity-80 truncate">{subtitle}</div>
       </div>
-      {isDeviceAdmin ? (
+      {(isDeviceAdmin || isFirstRun) ? (
         <button
           type="button"
           onClick={() => window.location.assign("/device-setup")}

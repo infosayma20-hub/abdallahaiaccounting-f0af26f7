@@ -1,5 +1,6 @@
 import { ShieldAlert, Monitor } from "lucide-react";
 import { useIsDeviceAdmin } from "@/hooks/useIsDeviceAdmin";
+import { getDeviceBranchId, getDeviceTerminalId } from "@/lib/device-config";
 
 interface Props {
   children: React.ReactNode;
@@ -14,6 +15,11 @@ interface Props {
  */
 export default function DeviceSetupGuard({ children }: Props) {
   const { isDeviceAdmin, checking } = useIsDeviceAdmin();
+  // First-run bypass: if the device has never been configured (no branch +
+  // no terminal stored locally and no copy restored from the Print Bridge),
+  // allow ANY logged-in user to complete the initial setup. Otherwise a
+  // cashier opening a brand-new PC would be locked out with no way in.
+  const isUnconfigured = !getDeviceBranchId() && !getDeviceTerminalId();
 
   if (checking) {
     return (
@@ -29,7 +35,7 @@ export default function DeviceSetupGuard({ children }: Props) {
     );
   }
 
-  if (!isDeviceAdmin) {
+  if (!isDeviceAdmin && !isUnconfigured) {
     return (
       <div
         className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-4"
