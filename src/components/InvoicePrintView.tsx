@@ -446,21 +446,21 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       <div style={{ padding: "6px 28px 10px", display: "flex", justifyContent: "flex-end" }}>
         <div style={{ width: "360px", fontFeatureSettings: "'tnum'" }}>
           {/* Subtotal */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
             <span style={{ color: "#4B5563" }}>{taxEnabled ? "المجموع قبل الضريبة" : "الإجمالي الفرعي"}</span>
             <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{fmtAmount(subtotalBeforeTax)}</span>
           </div>
           {/* Discount */}
           {invoice.totalDiscount > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
               <span style={{ color: "#DC2626" }}>إجمالي الخصم</span>
               <span style={{ fontWeight: 600, color: "#DC2626" }}>-{fmtAmount(invoice.totalDiscount)}</span>
             </div>
           )}
           {/* Tax */}
           {taxEnabled && totalTax > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
-              <span style={{ color: "#4B5563" }}>{invoice.taxInclusive ? "ضريبة القيمة المضافة (16%) — مستخرجة" : "ضريبة القيمة المضافة (16%)"}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 4px", fontSize: "13px" }}>
+              <span style={{ color: "#4B5563" }}>ضريبة القيمة المضافة (16%)</span>
               <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
             </div>
           )}
@@ -483,17 +483,17 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
               display: "flex",
               justifyContent: "space-between",
               alignItems: "baseline",
-              padding: "10px 4px 8px",
-              marginTop: "4px",
+              padding: "14px 4px 12px",
+              marginTop: "8px",
               borderTop: "1px solid #1B3A5C",
               borderBottom: "3px double #1B3A5C",
-              fontSize: "16px",
+              fontSize: "18px",
               fontWeight: 800,
               color: "#0D1B2E",
             }}
           >
             <span>الإجمالي النهائي</span>
-            <span style={{ fontSize: "21px", fontWeight: 800, letterSpacing: "0.3px" }}>{fmtAmount(grandTotal)}</span>
+            <span style={{ fontSize: "23px", fontWeight: 800, letterSpacing: "0.3px" }}>{fmtAmount(grandTotal)}</span>
           </div>
           {/* Paid / Remaining */}
           {invoice.paidAmount > 0 && (
