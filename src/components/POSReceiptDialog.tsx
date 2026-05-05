@@ -160,6 +160,20 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
     };
   }, [open, autoPrint, data, doPrint]);
 
+  // F2 = New order (close receipt dialog)
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "F2") {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpenChange(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey, true);
+    return () => window.removeEventListener("keydown", handleKey, true);
+  }, [open, onOpenChange]);
+
   if (!data) return null;
 
   const handlePrint = () => doPrint();
@@ -519,7 +533,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
             style={{ backgroundColor: "#16a34a" }}
           >
             <CheckCircle className="h-4 w-4" />
-            طلب جديد
+            F2 — طلب جديد
           </Button>
         </div>
       </DialogContent>
