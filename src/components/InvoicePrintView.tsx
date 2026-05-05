@@ -449,7 +449,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       </div>
 
       {/* ━━━ TOTALS SECTION (Ledger Style) ━━━ */}
-      <div style={{ padding: "6px 28px 10px", display: "flex", justifyContent: "flex-start" }}>
+      <div style={{ padding: "6px 28px 10px", display: "flex", justifyContent: "flex-end" }}>
         <div style={{ width: "360px", fontFeatureSettings: "'tnum'" }}>
           {/* Subtotal */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
