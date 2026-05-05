@@ -4,13 +4,15 @@ const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عش�
 const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
 const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
 
-const CURRENCY_MAP: Record<string, { singular: string; dual: string; plural: string }> = {
-  "شيكل": { singular: "شيكلاً", dual: "شيكلاً", plural: "شيكلات" },
-  "ILS": { singular: "شيكلاً", dual: "شيكلاً", plural: "شيكلات" },
-  "دينار": { singular: "ديناراً", dual: "ديناراً", plural: "دنانير" },
-  "JOD": { singular: "ديناراً", dual: "ديناراً", plural: "دنانير" },
-  "دولار": { singular: "دولاراً", dual: "دولاراً", plural: "دولارات" },
-  "USD": { singular: "دولاراً", dual: "دولاراً", plural: "دولارات" },
+const CURRENCY_MAP: Record<string, { singular: string; dual: string; plural: string; fraction: string }> = {
+  "شيكل": { singular: "شيكلاً", dual: "شيكلاً", plural: "شيكلات", fraction: "أغورة" },
+  "ILS":   { singular: "شيكلاً", dual: "شيكلاً", plural: "شيكلات", fraction: "أغورة" },
+  "دينار": { singular: "ديناراً", dual: "ديناراً", plural: "دنانير", fraction: "قرشاً" },
+  "JOD":   { singular: "ديناراً", dual: "ديناراً", plural: "دنانير", fraction: "قرشاً" },
+  "دولار": { singular: "دولاراً", dual: "دولاراً", plural: "دولارات", fraction: "سنتاً" },
+  "USD":   { singular: "دولاراً", dual: "دولاراً", plural: "دولارات", fraction: "سنتاً" },
+  "يورو":  { singular: "يورو",    dual: "يورو",    plural: "يورو",    fraction: "سنتاً" },
+  "EUR":   { singular: "يورو",    dual: "يورو",    plural: "يورو",    fraction: "سنتاً" },
 };
 
 function convertGroup(n: number): string {
@@ -29,15 +31,25 @@ function convertGroup(n: number): string {
 }
 
 export function amountToArabicWords(amount: number, currency: string = "شيكل"): string {
-  if (amount === 0) return "صفر";
-  
-  const intPart = Math.floor(Math.abs(amount));
   const cur = CURRENCY_MAP[currency] || CURRENCY_MAP["شيكل"];
-  
-  if (intPart === 0) return `صفر ${cur.singular} لا غير`;
-  
+  const abs = Math.abs(amount);
+  const intPart = Math.floor(abs);
+  const fracPart = Math.round((abs - intPart) * 100);
+
+  const intWords = intPart === 0 ? "صفر" : intToArabicWords(intPart);
+
+  let result = `فقط ${intWords} ${cur.singular}`;
+  if (fracPart > 0) {
+    result += ` و ${intToArabicWords(fracPart)} ${cur.fraction}`;
+  }
+  result += " لا غير";
+  return result;
+}
+
+function intToArabicWords(intPart: number): string {
+  if (intPart === 0) return "صفر";
   const parts: string[] = [];
-  
+
   if (intPart >= 1000000) {
     const millions = Math.floor(intPart / 1000000);
     if (millions === 1) parts.push("مليون");
@@ -60,6 +72,5 @@ export function amountToArabicWords(amount: number, currency: string = "شيكل
     parts.push(convertGroup(remainder));
   }
   
-  const joined = parts.join(" و");
-  return `${joined} ${cur.singular} لا غير`;
+  return parts.join(" و");
 }
