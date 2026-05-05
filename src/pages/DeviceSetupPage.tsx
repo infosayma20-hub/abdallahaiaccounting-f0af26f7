@@ -34,10 +34,16 @@ export default function DeviceSetupPage() {
   const navigate = useNavigate();
 
   const initial = getDeviceConfig();
-  const [bridgeInput, setBridgeInput] = useState(initial.bridgeUrl);
-  const [branchId, setBranchId] = useState(initial.branchId);
-  const [terminalId, setTerminalId] = useState(initial.terminalId);
-  const [label, setLabel] = useState(initial.label);
+  // Restore in-progress wizard draft so navigating away (e.g. to printer
+  // settings) and coming back doesn't wipe the user's selections.
+  const draft = (() => {
+    try { return JSON.parse(localStorage.getItem("device-setup-draft") || "{}"); }
+    catch { return {}; }
+  })();
+  const [bridgeInput, setBridgeInput] = useState(draft.bridgeUrl ?? initial.bridgeUrl);
+  const [branchId, setBranchId] = useState(draft.branchId ?? initial.branchId);
+  const [terminalId, setTerminalId] = useState(draft.terminalId ?? initial.terminalId);
+  const [label, setLabel] = useState(draft.label ?? initial.label);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -45,7 +51,9 @@ export default function DeviceSetupPage() {
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "testing" | "online" | "offline">("idle");
   const [bridgeError, setBridgeError] = useState("");
   const [loadError, setLoadError] = useState("");
-  const [stepIdx, setStepIdx] = useState<number>(isDeviceFullyConfigured() ? 1 : 0);
+  const [stepIdx, setStepIdx] = useState<number>(
+    typeof draft.stepIdx === "number" ? draft.stepIdx : (isDeviceFullyConfigured() ? 1 : 0)
+  );
   const [saving, setSaving] = useState(false);
   // Backward-compat: existing configured devices see a compact "manage" view
   // by default. They can opt into the wizard manually. New devices go straight
@@ -215,6 +223,7 @@ export default function DeviceSetupPage() {
       setDeviceBranchId(branchId);
       setDeviceTerminalId(terminalId);
       setDeviceLabel(label.trim());
+      try { localStorage.removeItem("device-setup-draft"); } catch {}
       toast.success("🎉 جاهز! تم تجهيز الجهاز بنجاح");
       setTimeout(() => navigate("/pos"), 700);
     } finally { setSaving(false); }
@@ -225,6 +234,7 @@ export default function DeviceSetupPage() {
     clearDeviceConfig();
     setBridgeInput(""); setBranchId(""); setTerminalId(""); setLabel("");
     setBridgeStatus("idle"); setStepIdx(0);
+    try { localStorage.removeItem("device-setup-draft"); } catch {}
     toast.success("تم مسح إعدادات هذا الجهاز");
   };
 
@@ -238,6 +248,16 @@ export default function DeviceSetupPage() {
 
   const next = () => setStepIdx(i => Math.min(STEPS.length - 1, i + 1));
   const prev = () => setStepIdx(i => Math.max(0, i - 1));
+
+  // Persist wizard draft so leaving the page (e.g. to /printer-settings)
+  // and returning resumes from the same step with the same selections.
+  useEffect(() => {
+    try {
+      localStorage.setItem("device-setup-draft", JSON.stringify({
+        bridgeUrl: bridgeInput, branchId, terminalId, label, stepIdx,
+      }));
+    } catch { /* ignore quota */ }
+  }, [bridgeInput, branchId, terminalId, label, stepIdx]);
 
   const currentStep = STEPS[stepIdx];
 
