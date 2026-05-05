@@ -35,7 +35,6 @@ interface InvoiceLine {
 const ProcurementInvoiceCreatePage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId");
-  const navigate = useNavigate();
 
   // ─── Unification: direct purchase invoice creation now uses the unified
   // /invoices/new?type=purchase page (same UI/UX as sales). This page is kept
@@ -46,6 +45,11 @@ const ProcurementInvoiceCreatePage = () => {
     return <Navigate to="/invoices/new?type=purchase" replace />;
   }
 
+  return <ReceivePOInvoicePage orderId={orderId} />;
+};
+
+const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
+  const navigate = useNavigate();
   const { createInvoice } = usePurchaseInvoices();
   const { suppliers } = useSuppliers();
   const { user } = useAuth();
