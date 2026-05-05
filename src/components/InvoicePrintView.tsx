@@ -376,8 +376,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
       </div>
 
       {/* ━━━ ITEMS TABLE ━━━ */}
-      <div style={{ padding: "8px 28px" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", tableLayout: "fixed" }}>
+      <div style={{ padding: "10px 28px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: "5%" }} />
             <col style={{ width: "33%" }} />
@@ -390,50 +390,55 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
-              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "ضريبة 16%", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => (
+              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "ضريبة 16%", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => {
+                const isLast = i === (taxEnabled ? 7 : 5);
+                return (
                 <th
                   key={i}
                   style={{
-                    padding: "6px 4px",
+                    padding: "12px 6px",
                     textAlign: i >= 2 ? "center" : "right",
                     fontWeight: 700,
-                    fontSize: "9px",
+                    fontSize: "12px",
                     borderBottom: "2px solid #4A9EE8",
                     whiteSpace: "nowrap",
+                    background: isLast ? "#152F4A" : undefined,
                   }}
                 >
                   {h}
                 </th>
-              ))}
+              );})}
             </tr>
           </thead>
           <tbody>
             {invoice.items.map((item, idx) => {
               const calc = calcItemTotal(item);
+              const rowMinHeight = invoice.items.length === 1 ? 56 : 40;
               return (
                 <tr
                   key={idx}
                   style={{
-                    background: idx % 2 === 0 ? "white" : "#FAFBFC",
-                    borderBottom: "1px solid #F3F4F6",
+                    background: idx % 2 === 0 ? "white" : "#F7F9FC",
+                    borderBottom: "1px solid #E5E7EB",
+                    height: `${rowMinHeight}px`,
                   }}
                 >
-                  <td style={{ padding: "5px 4px", textAlign: "center", color: "#6B7280", fontWeight: 600 }}>{idx + 1}</td>
-                  <td style={{ padding: "5px 4px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", color: "#6B7280", fontWeight: 700, fontSize: "13px" }}>{idx + 1}</td>
+                  <td style={{ padding: "12px 8px", fontWeight: 700, color: "#111827", fontSize: "14px", lineHeight: 1.4, wordWrap: "break-word", whiteSpace: "normal" }}>
                     {item.description}
                   </td>
-                  <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{item.quantity}</td>
-                  <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtAmount(item.unitPrice)}</td>
-                  <td style={{ padding: "5px 4px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px" }}>{item.quantity}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px" }}>{fmtAmount(item.unitPrice)}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px" }}>
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
-                  <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtAmount(calc.afterDiscount)}</td>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px" }}>{fmtAmount(calc.afterDiscount)}</td>
                   {taxEnabled && (
-                  <td style={{ padding: "5px 4px", textAlign: "center", fontSize: "8px", color: "#6B7280", fontFeatureSettings: "'tnum'" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontSize: "11px", color: "#6B7280", fontFeatureSettings: "'tnum'" }}>
                     {calc.category === "taxable" ? fmtAmount(calc.tax) : calc.category === "zero" ? "0%" : "معفى"}
                   </td>
                   )}
-                  <td style={{ padding: "5px 4px", textAlign: "center", fontWeight: 700, color: "#1B3A5C", fontFeatureSettings: "'tnum'" }}>
+                  <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 800, color: "#1B3A5C", fontFeatureSettings: "'tnum'", fontSize: "15px", background: "#EEF4FB" }}>
                     {fmtAmount(calc.total)}
                   </td>
                 </tr>
