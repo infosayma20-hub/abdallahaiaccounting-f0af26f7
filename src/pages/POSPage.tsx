@@ -2005,6 +2005,27 @@ const POSPage = () => {
 
     const actualCashBoxId = isCallCenter ? null : (selectedCashBoxId || null);
 
+    // Auto-link cash box & terminal to the device branch if not yet linked.
+    // The DB trigger `enforce_pos_session_branch_match` requires both to have
+    // the same branch_id. For new customers (single-branch setups) we link
+    // them silently here so the shift can open without manual setup.
+    try {
+      const deviceBranchId = deviceConfig.branchId || (terminal as any)?.branch_id || null;
+      if (deviceBranchId) {
+        if (actualCashBoxId) {
+          const box = cashBoxes.find(b => b.id === actualCashBoxId);
+          if (box && !(box as any).branch_id) {
+            await supabase.from("cash_boxes").update({ branch_id: deviceBranchId } as any).eq("id", actualCashBoxId);
+          }
+        }
+        if (terminal && !(terminal as any).branch_id) {
+          await supabase.from("pos_terminals").update({ branch_id: deviceBranchId } as any).eq("id", terminal.id);
+        }
+      }
+    } catch (linkErr) {
+      console.warn("[open-shift] auto-link branch failed:", linkErr);
+    }
+
     const { data, error } = await supabase
       .from("pos_sessions")
       .insert({
