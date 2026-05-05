@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Monitor, Wifi, WifiOff, Building2, Boxes, Save, TestTube, RefreshCw,
-  Link2, Trash2, CheckCircle2, ChevronRight, ChevronLeft, Sparkles, Printer, Rocket,
+  Link2, Trash2, CheckCircle2, ChevronRight, ChevronLeft, Sparkles, Printer, Rocket, Plus,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import {
@@ -52,6 +52,48 @@ export default function DeviceSetupPage() {
   // to the wizard from welcome.
   const [forceWizard, setForceWizard] = useState(false);
   const showWizard = !isDeviceFullyConfigured() || forceWizard;
+  // Inline create-terminal state
+  const [showCreateTerminal, setShowCreateTerminal] = useState(false);
+  const [newTerminalName, setNewTerminalName] = useState("نقطة بيع 1");
+  const [creatingTerminal, setCreatingTerminal] = useState(false);
+
+  const createTerminalInline = async () => {
+    if (!user) { toast.error("لا توجد جلسة"); return; }
+    if (!branchId) { toast.error("اختر الفرع أولاً"); return; }
+    const trimmed = newTerminalName.trim();
+    if (!trimmed) { toast.error("أدخل اسم المحطة"); return; }
+    setCreatingTerminal(true);
+    try {
+      // Resolve owner + company to satisfy NOT NULL columns + RLS.
+      const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const ownerId = (ownerIdRaw as string | null) || user.id;
+      const { data: ownerProfile, error: profErr } = await supabase
+        .from("profiles").select("company_id").eq("user_id", ownerId).maybeSingle();
+      if (profErr || !ownerProfile?.company_id) {
+        toast.error("تعذر تحديد الشركة المالكة. تواصل مع الدعم.");
+        return;
+      }
+      const { data: created, error } = await supabase
+        .from("pos_terminals")
+        .insert({
+          name: trimmed,
+          branch_id: branchId,
+          user_id: ownerId,
+          company_id: ownerProfile.company_id,
+          is_active: true,
+        } as any)
+        .select("id, name, branch_id, user_id, is_active")
+        .single();
+      if (error || !created) {
+        toast.error("فشل إنشاء المحطة: " + (error?.message || "خطأ غير معروف"));
+        return;
+      }
+      setTerminals(prev => [...prev, created as Terminal]);
+      setTerminalId((created as any).id);
+      setShowCreateTerminal(false);
+      toast.success(`✅ تم إنشاء "${trimmed}" واختيارها`);
+    } finally { setCreatingTerminal(false); }
+  };
 
   useEffect(() => { if (!authLoading) void loadOptions(); }, [user?.id, authLoading]);
 
