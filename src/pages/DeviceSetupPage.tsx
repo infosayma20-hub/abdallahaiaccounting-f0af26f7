@@ -34,10 +34,16 @@ export default function DeviceSetupPage() {
   const navigate = useNavigate();
 
   const initial = getDeviceConfig();
-  const [bridgeInput, setBridgeInput] = useState(initial.bridgeUrl);
-  const [branchId, setBranchId] = useState(initial.branchId);
-  const [terminalId, setTerminalId] = useState(initial.terminalId);
-  const [label, setLabel] = useState(initial.label);
+  // Restore in-progress wizard draft so navigating away (e.g. to printer
+  // settings) and coming back doesn't wipe the user's selections.
+  const draft = (() => {
+    try { return JSON.parse(localStorage.getItem("device-setup-draft") || "{}"); }
+    catch { return {}; }
+  })();
+  const [bridgeInput, setBridgeInput] = useState(draft.bridgeUrl ?? initial.bridgeUrl);
+  const [branchId, setBranchId] = useState(draft.branchId ?? initial.branchId);
+  const [terminalId, setTerminalId] = useState(draft.terminalId ?? initial.terminalId);
+  const [label, setLabel] = useState(draft.label ?? initial.label);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -45,7 +51,9 @@ export default function DeviceSetupPage() {
   const [bridgeStatus, setBridgeStatus] = useState<"idle" | "testing" | "online" | "offline">("idle");
   const [bridgeError, setBridgeError] = useState("");
   const [loadError, setLoadError] = useState("");
-  const [stepIdx, setStepIdx] = useState<number>(isDeviceFullyConfigured() ? 1 : 0);
+  const [stepIdx, setStepIdx] = useState<number>(
+    typeof draft.stepIdx === "number" ? draft.stepIdx : (isDeviceFullyConfigured() ? 1 : 0)
+  );
   const [saving, setSaving] = useState(false);
   // Backward-compat: existing configured devices see a compact "manage" view
   // by default. They can opt into the wizard manually. New devices go straight
