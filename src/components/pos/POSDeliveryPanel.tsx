@@ -165,7 +165,8 @@ export default function POSDeliveryPanel({
       />
 
       {/* Zone + Area */}
-      <div className="flex gap-1.5">
+      {/* Hidden — سيتم ربط المناطق وسعر التوصيل ببرنامج ويلز لاحقاً */}
+      <div className="flex gap-1.5" style={{ display: "none" }}>
         <select
           value={zoneCode}
           onChange={(e) => onDeliveryFieldsChange({ zoneCode: e.target.value })}
@@ -187,7 +188,7 @@ export default function POSDeliveryPanel({
       </div>
 
       {/* Send button */}
-      {deliveryStatus === "none" && (
+      {false && deliveryStatus === "none" && (
         <button
           onClick={handleSendToDelivery}
           disabled={sending || !customerAddress.trim()}
