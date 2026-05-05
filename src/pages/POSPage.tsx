@@ -3542,7 +3542,17 @@ const POSPage = () => {
       }
       // Skip if typing in input/textarea
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // Allow F2 inside payment modal even when an input is focused (amount field auto-focuses)
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+        if (e.key === "F2" && showPayment) {
+          e.preventDefault();
+          if (!processing && !(paymentMethod === "credit" && !customerName) && !(paymentMethod === "employee_account" && !selectedEmployee)) {
+            handleCompleteOrder();
+          }
+          return;
+        }
+        return;
+      }
 
       // F2 inside payment modal = Complete sale
       if (e.key === "F2" && showPayment) {
