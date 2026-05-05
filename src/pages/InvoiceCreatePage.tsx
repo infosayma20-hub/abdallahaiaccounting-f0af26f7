@@ -2080,16 +2080,16 @@ const InvoiceCreatePage = () => {
         <CardContent className="p-0">
           {/* Excel-grade accounting grid: visible borders, alternating rows, emphasized columns */}
           <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-border/60 [&_th]:border [&_th]:border-border/60">
+            <table className="w-full text-xs border-collapse [&_td]:border [&_td]:border-border/30 [&_th]:border [&_th]:border-border/40 [&_tr]:transition-colors">
               <thead>
-                <tr className="bg-muted/60 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
+                <tr className="bg-muted/70 text-[10.5px] font-semibold text-foreground/80 uppercase tracking-wide">
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
                   <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
                   <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
-                  <th className="py-2.5 px-3 text-center w-[110px] bg-muted/80">السعر</th>
+                  <th className="py-2.5 px-3 text-center w-[110px] bg-muted/90">السعر</th>
                   <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
                   {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
-                  <th className="py-2.5 px-3 text-left w-[120px] bg-muted/80">الإجمالي</th>
+                  <th className="py-2.5 px-3 text-left w-[120px] bg-primary/10 text-primary">الإجمالي</th>
                   <th className="py-2.5 px-2 text-center w-[40px]"></th>
                 </tr>
               </thead>
@@ -2108,11 +2108,11 @@ const InvoiceCreatePage = () => {
                     : 0;
                   const unit = prod?.unit || "قطعة";
                   const isService = prod?.product_type === "service";
-                  const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/10";
                   return (
-                    <tr key={item.id} className={`${rowBg} hover:bg-sky-50/60 dark:hover:bg-sky-950/20 focus-within:bg-sky-50/80 dark:focus-within:bg-sky-950/30 transition-colors group`}>
+                    <tr key={item.id} className={`${rowBg} hover:bg-primary/5 dark:hover:bg-primary/10 focus-within:bg-primary/10 dark:focus-within:bg-primary/15 transition-colors group`}>
                       {/* # */}
-                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle bg-muted/30">
+                      <td className="py-2 px-3 text-center text-[11px] text-muted-foreground font-mono align-middle bg-muted/20">
                         {idx + 1}
                       </td>
 
@@ -2183,7 +2183,7 @@ const InvoiceCreatePage = () => {
                       </td>
 
                       {/* Price */}
-                      <td className="py-1.5 px-2 align-middle relative bg-muted/40">
+                      <td className="py-1.5 px-2 align-middle relative bg-muted/20">
                         <Input
                           data-invoice-price={item.id}
                           type="number"
@@ -2254,12 +2254,12 @@ const InvoiceCreatePage = () => {
                       )}
 
                       {/* Subtotal */}
-                      <td className="py-2 px-3 text-left align-middle bg-muted/40">
-                        <span className="text-[13px] font-bold text-foreground tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</span>
+                      <td className="py-2 px-3 text-left align-middle bg-primary/5">
+                        <span className="text-[13px] font-bold text-primary tabular-nums">{fmtCurrency(calcItemSubtotal(item))}</span>
                       </td>
 
                       {/* Delete */}
-                      <td className="py-2 px-2 text-center align-middle bg-muted/30">
+                      <td className="py-2 px-2 text-center align-middle bg-muted/20">
                         <button
                           onClick={() => removeItem(item.id)}
                           className="text-muted-foreground/40 hover:text-destructive transition-colors disabled:opacity-20 disabled:hover:text-muted-foreground/40 opacity-0 group-hover:opacity-100"
