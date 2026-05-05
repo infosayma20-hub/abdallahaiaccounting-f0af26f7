@@ -3553,8 +3553,8 @@ const POSPage = () => {
         return;
       }
 
-      // F2 = Call Center Dispatch (for call center users / admin)
-      if (e.key === "F2" && cart.length > 0 && (isAdmin || isCallCenter)) {
+      // F12 = Call Center Dispatch (for call center users / admin)
+      if (e.key === "F12" && cart.length > 0 && (isAdmin || isCallCenter)) {
         setShowCallCenterDispatch(true);
         e.preventDefault();
         return;
@@ -3564,8 +3564,8 @@ const POSPage = () => {
         setShowInvoiceHistory(true);
         e.preventDefault();
       }
-      // F2 / F12 = Pay (not for call center)
-      if ((e.key === "F2" || e.key === "F12") && cart.length > 0 && !isCallCenter) {
+      // F2 = Pay (not for call center)
+      if (e.key === "F2" && cart.length > 0 && !isCallCenter) {
         openPaymentModal();
         e.preventDefault();
         return;
@@ -5085,7 +5085,7 @@ const POSPage = () => {
               <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">⚡ الأوامر</h3>
               <div className="space-y-1.5">
                 {[
-                  { key: "F2", desc: "تحويل إلى الفرع" },
+                  { key: "F12", desc: "تحويل إلى الفرع" },
                   { key: "F4", desc: "سجل الفواتير" },
                   { key: "F8", desc: "طباعة" },
                   { key: "F9", desc: "إرسال إلى الطابعة" },
