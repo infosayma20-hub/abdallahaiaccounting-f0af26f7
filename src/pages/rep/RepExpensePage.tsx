@@ -599,7 +599,7 @@ export default function RepExpensePage() {
       {todayExpenses.length > 0 && (
         <Card className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-foreground">مصاريف اليوم</h3>
+            <h3 className="font-bold text-foreground">مصاريف العهدة الحالية</h3>
             <div className="text-sm font-bold text-destructive">{todayTotal.toFixed(2)} ₪</div>
           </div>
           <div className="space-y-2">
