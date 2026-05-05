@@ -136,11 +136,11 @@ export default function RepExpensePage() {
       if (day) {
         const { data: txs } = await (supabase as any)
           .from("transactions")
-          .select("id, amount, description, debit_account_code, reference, transaction_date, notes")
+          .select("id, amount, description, debit_account_code, reference, transaction_date, notes, created_at")
           .eq("user_id", r.user_id)
           .eq("payment_method", "rep_expense")
           .eq("is_deleted", false)
-          .gte("transaction_date", new Date(day.opened_at).toISOString().slice(0, 10))
+          .gte("created_at", day.opened_at)
           .order("created_at", { ascending: false });
         const mine = ((txs as any[]) || []).filter((t) => {
           try {
@@ -599,7 +599,7 @@ export default function RepExpensePage() {
       {todayExpenses.length > 0 && (
         <Card className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-foreground">مصاريف اليوم</h3>
+            <h3 className="font-bold text-foreground">مصاريف العهدة الحالية</h3>
             <div className="text-sm font-bold text-destructive">{todayTotal.toFixed(2)} ₪</div>
           </div>
           <div className="space-y-2">
