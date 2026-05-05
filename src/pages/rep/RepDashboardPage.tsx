@@ -310,7 +310,7 @@ export default function RepDashboardPage() {
           </div>
           <div className="text-xs text-muted-foreground">الخصم المسموح به (₪)</div>
         </Card>
-        <Card className="p-4 space-y-1 col-span-2">
+        <Card className="p-4 space-y-1">
           <Package className="w-5 h-5 text-primary" />
           <div className="text-2xl font-bold">
             {profit == null ? "—" : (profit - stats.discount).toFixed(2)}
@@ -320,7 +320,19 @@ export default function RepDashboardPage() {
           </div>
           {profit != null && stats.discount > 0 && (
             <div className="text-[11px] text-muted-foreground pt-1">
-              قبل الخصم: {profit.toFixed(2)} ₪ — الخصم: {stats.discount.toFixed(2)} ₪
+              قبل الخصم: {profit.toFixed(2)} ₪
+            </div>
+          )}
+        </Card>
+        <Card className="p-4 space-y-1 border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/10">
+          <Package className="w-5 h-5 text-emerald-600" />
+          <div className={`text-2xl font-bold ${profit == null ? "" : ((profit - stats.discount - expenses) >= 0 ? "text-emerald-600" : "text-destructive")}`}>
+            {profit == null ? "—" : (profit - stats.discount - expenses).toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">صافي الربح بعد المصاريف (₪)</div>
+          {profit != null && (
+            <div className="text-[11px] text-muted-foreground pt-1">
+              الربح: {(profit - stats.discount).toFixed(2)} − مصاريف: {expenses.toFixed(2)}
             </div>
           )}
         </Card>
