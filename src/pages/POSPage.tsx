@@ -3555,8 +3555,8 @@ const POSPage = () => {
         setShowInvoiceHistory(true);
         e.preventDefault();
       }
-      // F12 = Pay (not for call center)
-      if (e.key === "F12" && cart.length > 0 && !isCallCenter) {
+      // F2 / F12 = Pay (not for call center)
+      if ((e.key === "F2" || e.key === "F12") && cart.length > 0 && !isCallCenter) {
         openPaymentModal();
         e.preventDefault();
         return;
@@ -4847,7 +4847,7 @@ const POSPage = () => {
                   disabled={cart.length === 0 || !session}
                   onClick={openPaymentModal}
                 >
-                  F12 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
+                  F2 — دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                 </motion.button>
               )}
 
@@ -5081,7 +5081,7 @@ const POSPage = () => {
                   { key: "F8", desc: "طباعة" },
                   { key: "F9", desc: "إرسال إلى الطابعة" },
                   { key: "F10", desc: "حفظ الطلب" },
-                  { key: "F12", desc: "فتح نافذة الدفع" },
+                  { key: "F2", desc: "فتح نافذة الدفع / إتمام البيع" },
                   { key: "Ctrl+Del", desc: "إفراغ السلة بالكامل" },
                 ].map(s => (
                   <div key={s.key} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
