@@ -247,6 +247,16 @@ export default function DeviceSetupPage() {
   const next = () => setStepIdx(i => Math.min(STEPS.length - 1, i + 1));
   const prev = () => setStepIdx(i => Math.max(0, i - 1));
 
+  // Persist wizard draft so leaving the page (e.g. to /printer-settings)
+  // and returning resumes from the same step with the same selections.
+  useEffect(() => {
+    try {
+      localStorage.setItem("device-setup-draft", JSON.stringify({
+        bridgeUrl: bridgeInput, branchId, terminalId, label, stepIdx,
+      }));
+    } catch { /* ignore quota */ }
+  }, [bridgeInput, branchId, terminalId, label, stepIdx]);
+
   const currentStep = STEPS[stepIdx];
 
   // ───────────────────────────────────────────────────────────
