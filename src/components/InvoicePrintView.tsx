@@ -1,4 +1,5 @@
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import { amountToArabicWords } from "@/lib/arabic-number-words";
 
 interface InvoiceItem {
   description: string;
