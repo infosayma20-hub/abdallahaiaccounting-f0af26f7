@@ -2,17 +2,17 @@
 const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
 const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
 const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+const hundreds = ["", "مائة", "مئتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
 
-const CURRENCY_MAP: Record<string, { singular: string; dual: string; plural: string; fraction: string }> = {
-  "شيكل": { singular: "شيكلاً", dual: "شيكلاً", plural: "شيكلات", fraction: "أغورة" },
-  "ILS":   { singular: "شيكلاً", dual: "شيكلاً", plural: "شيكلات", fraction: "أغورة" },
-  "دينار": { singular: "ديناراً", dual: "ديناراً", plural: "دنانير", fraction: "قرشاً" },
-  "JOD":   { singular: "ديناراً", dual: "ديناراً", plural: "دنانير", fraction: "قرشاً" },
-  "دولار": { singular: "دولاراً", dual: "دولاراً", plural: "دولارات", fraction: "سنتاً" },
-  "USD":   { singular: "دولاراً", dual: "دولاراً", plural: "دولارات", fraction: "سنتاً" },
-  "يورو":  { singular: "يورو",    dual: "يورو",    plural: "يورو",    fraction: "سنتاً" },
-  "EUR":   { singular: "يورو",    dual: "يورو",    plural: "يورو",    fraction: "سنتاً" },
+const CURRENCY_MAP: Record<string, { singular: string; fraction: string }> = {
+  "شيكل": { singular: "شيكل",  fraction: "أغورة" },
+  "ILS":   { singular: "شيكل",  fraction: "أغورة" },
+  "دينار": { singular: "دينار", fraction: "قرش" },
+  "JOD":   { singular: "دينار", fraction: "قرش" },
+  "دولار": { singular: "دولار", fraction: "سنت" },
+  "USD":   { singular: "دولار", fraction: "سنت" },
+  "يورو":  { singular: "يورو",  fraction: "سنت" },
+  "EUR":   { singular: "يورو",  fraction: "سنت" },
 };
 
 function convertGroup(n: number): string {
@@ -36,14 +36,23 @@ export function amountToArabicWords(amount: number, currency: string = "شيكل
   const intPart = Math.floor(abs);
   const fracPart = Math.round((abs - intPart) * 100);
 
-  const intWords = intPart === 0 ? "صفر" : intToArabicWords(intPart);
+  // Use construct state ("مئتا" instead of "مئتان") when number is followed by a noun
+  const intWords = intPart === 0 ? "صفر" : applyConstructState(intToArabicWords(intPart));
 
-  let result = `فقط ${intWords} ${cur.singular}`;
+  let result = `فقط: ${intWords} ${cur.singular}`;
   if (fracPart > 0) {
-    result += ` و ${intToArabicWords(fracPart)} ${cur.fraction}`;
+    result += ` و${applyConstructState(intToArabicWords(fracPart))} ${cur.fraction}`;
   }
   result += " لا غير";
   return result;
+}
+
+// Drop the final ن from "مئتان"/"ألفان"/"مليونان" when the number is followed directly by a noun (idafa).
+function applyConstructState(words: string): string {
+  return words
+    .replace(/مئتان$/, "مئتا")
+    .replace(/ألفان$/, "ألفا")
+    .replace(/مليونان$/, "مليونا");
 }
 
 function intToArabicWords(intPart: number): string {
