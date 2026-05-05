@@ -57,6 +57,43 @@ export default function DeviceSetupPage() {
   const [newTerminalName, setNewTerminalName] = useState("نقطة بيع 1");
   const [creatingTerminal, setCreatingTerminal] = useState(false);
 
+  // Inline create-branch state
+  const [showCreateBranch, setShowCreateBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("الفرع الرئيسي");
+  const [creatingBranch, setCreatingBranch] = useState(false);
+
+  const createBranchInline = async () => {
+    if (!user) { toast.error("لا توجد جلسة"); return; }
+    const trimmed = newBranchName.trim();
+    if (!trimmed) { toast.error("أدخل اسم الفرع"); return; }
+    setCreatingBranch(true);
+    try {
+      const { data: ownerIdRaw } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      const ownerId = (ownerIdRaw as string | null) || user.id;
+      const { data: created, error } = await supabase
+        .from("branches")
+        .insert({
+          name: trimmed,
+          user_id: ownerId,
+          latitude: 0,
+          longitude: 0,
+          is_active: true,
+        } as any)
+        .select("id, name, is_active, user_id")
+        .single();
+      if (error || !created) {
+        toast.error("فشل إنشاء الفرع: " + (error?.message || "خطأ غير معروف"));
+        return;
+      }
+      setBranches(prev => [...prev, created as Branch]);
+      setBranchId((created as any).id);
+      setTerminalId("");
+      setShowCreateBranch(false);
+      setLoadError("");
+      toast.success(`✅ تم إنشاء "${trimmed}" واختياره`);
+    } finally { setCreatingBranch(false); }
+  };
+
   const createTerminalInline = async () => {
     if (!user) { toast.error("لا توجد جلسة"); return; }
     if (!branchId) { toast.error("اختر الفرع أولاً"); return; }
