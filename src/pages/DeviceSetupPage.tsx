@@ -396,19 +396,63 @@ export default function DeviceSetupPage() {
               <div className="space-y-4">
                 <h2 className="text-lg font-bold flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /> اختر الفرع</h2>
                 <p className="text-sm text-muted-foreground">الفرع الذي يقع فيه هذا الجهاز فعلياً. لن تختلط طلباته مع باقي الفروع.</p>
-                <Select value={branchId} onValueChange={(v) => { setBranchId(v); setTerminalId(""); }}>
-                  <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder={loading ? "جاري التحميل..." : "اختر الفرع"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {branches.length > 0 && (
+                  <Select value={branchId} onValueChange={(v) => { setBranchId(v); setTerminalId(""); }}>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue placeholder={loading ? "جاري التحميل..." : "اختر الفرع"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+
                 {branches.length === 0 && !loading && (
+                  <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center space-y-2">
+                    <Building2 className="h-6 w-6 mx-auto text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">لا توجد فروع بعد</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      أنشئ الفرع الرئيسي الآن من هنا مباشرة دون مغادرة المعالج. تقدر تضيف فروع إضافية لاحقاً من الإعدادات.
+                    </p>
+                  </div>
+                )}
+
+                {!showCreateBranch && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowCreateBranch(true); setNewBranchName(branches.length === 0 ? "الفرع الرئيسي" : `فرع ${branches.length + 1}`); }}
+                    className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary text-sm font-medium py-2.5 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" /> إنشاء فرع جديد
+                  </button>
+                )}
+
+                {showCreateBranch && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                    <label className="text-xs font-medium text-foreground">اسم الفرع الجديد</label>
+                    <Input
+                      value={newBranchName}
+                      onChange={e => setNewBranchName(e.target.value)}
+                      placeholder="مثال: الفرع الرئيسي"
+                      autoFocus
+                      onKeyDown={e => { if (e.key === "Enter") void createBranchInline(); }}
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={createBranchInline} disabled={creatingBranch} size="sm" className="gap-1 flex-1">
+                        {creatingBranch ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        إنشاء وتحديد
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCreateBranch(false)}>إلغاء</Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      يمكنك ضبط الموقع الجغرافي والعنوان لاحقاً من <Link to="/settings?section=branches" className="underline">إدارة الفروع</Link>.
+                    </p>
+                  </div>
+                )}
+
+                {loadError && branches.length > 0 && (
                   <p className="text-xs text-warning">
-                    {loadError || "لا يوجد فروع نشطة."}{" "}
-                    <Link to="/settings?section=branches" className="underline">إدارة الفروع</Link>
-                    {" · "}
+                    {loadError}{" · "}
                     <button type="button" onClick={loadOptions} className="underline text-primary">إعادة المحاولة</button>
                   </p>
                 )}
