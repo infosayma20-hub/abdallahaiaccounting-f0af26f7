@@ -47,6 +47,11 @@ export default function DeviceSetupPage() {
   const [loadError, setLoadError] = useState("");
   const [stepIdx, setStepIdx] = useState<number>(isDeviceFullyConfigured() ? 1 : 0);
   const [saving, setSaving] = useState(false);
+  // Backward-compat: existing configured devices see a compact "manage" view
+  // by default. They can opt into the wizard manually. New devices go straight
+  // to the wizard from welcome.
+  const [forceWizard, setForceWizard] = useState(false);
+  const showWizard = !isDeviceFullyConfigured() || forceWizard;
 
   useEffect(() => { if (!authLoading) void loadOptions(); }, [user?.id, authLoading]);
 
@@ -145,6 +150,87 @@ export default function DeviceSetupPage() {
   const prev = () => setStepIdx(i => Math.max(0, i - 1));
 
   const currentStep = STEPS[stepIdx];
+
+  // ───────────────────────────────────────────────────────────
+  // Manage view — shown to ALREADY-configured devices so existing
+  // customers (Malaky, Sufyan, …) never see the wizard by accident.
+  // ───────────────────────────────────────────────────────────
+  if (!showWizard) {
+    const branchName = branches.find(b => b.id === branchId)?.name || branchId || "—";
+    const terminalName = terminals.find(t => t.id === terminalId)?.name || terminalId || "—";
+    return (
+      <div className="min-h-full bg-background pb-24" dir="rtl">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <BackButton />
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Monitor className="h-6 w-6" /> إعدادات هذا الجهاز
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                هذا الجهاز مُعدّ ومرتبط — يمكنك المتابعة إلى نقطة البيع مباشرة
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success border border-success/30 px-2.5 py-1 text-xs font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" /> جاهز
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            <Row label="اسم الجهاز" value={label || "—"} icon={Monitor} />
+            <Row label="الفرع" value={branchName} icon={Building2} ok />
+            <Row label="محطة POS" value={terminalName} icon={Boxes} ok />
+            <Row
+              label="Print Bridge"
+              value={bridgeInput || "غير محدد"}
+              icon={bridgeInput ? Wifi : WifiOff}
+              ok={!!bridgeInput}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => navigate("/pos")} className="gap-2 flex-1 min-w-[180px]">
+              <Rocket className="h-4 w-4" /> الانتقال إلى نقطة البيع
+            </Button>
+            <Button variant="outline" onClick={testBridge} disabled={!bridgeInput || bridgeStatus === "testing"} className="gap-2">
+              {bridgeStatus === "testing" ? <RefreshCw className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
+              اختبار الطابعة
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/printer-settings")} className="gap-2">
+              <Link2 className="h-4 w-4" /> إدارة الطابعات
+            </Button>
+          </div>
+
+          {bridgeStatus === "online" && (
+            <div className="flex items-center gap-2 text-sm text-success bg-success/10 border border-success/30 rounded-md px-3 py-2">
+              <CheckCircle2 className="h-4 w-4" /> ✅ Print Bridge متصل
+            </div>
+          )}
+          {bridgeStatus === "offline" && (
+            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+              <WifiOff className="h-4 w-4" /> ❌ {bridgeError}
+            </div>
+          )}
+
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+            <div className="text-sm font-medium text-foreground">تحتاج تغيير الإعدادات؟</div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              إذا انتقل الجهاز إلى فرع آخر أو تغيّرت الطابعة، يمكنك إعادة تشغيل معالج
+              الإعداد كاملاً. الإعدادات الحالية ستبقى محفوظة حتى تحفظ الجديدة.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button variant="secondary" size="sm" onClick={() => { setForceWizard(true); setStepIdx(1); }} className="gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> إعادة تشغيل المعالج
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleClear} className="gap-1 text-destructive hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" /> مسح إعدادات الجهاز
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-background pb-24" dir="rtl">
