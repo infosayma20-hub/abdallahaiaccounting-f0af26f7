@@ -87,15 +87,15 @@ export default function RepDashboardPage() {
         discount: list.reduce((s: number, i: any) => s + Number(i.discount_amount || 0), 0),
       });
 
-      // اجلب جميع حركات اليوم لهذا المستخدم ثم افلترها على rep_id من notes
-      // (استبعاد كل المحذوف/الملغى عبر is_deleted=false)
-      const dayDate = new Date(day.opened_at).toISOString().slice(0, 10);
+      // ⚠️ نعتمد على العهدة (session) وليس التاريخ:
+      // نفلتر بـ created_at >= opened_at حتى لا تظهر حركات من عهدة سابقة
+      // فُتحت بنفس اليوم الميلادي لكن لم تُغلق إلا متأخراً.
       const { data: allTxs } = await (supabase as any)
         .from("transactions")
         .select("amount, notes, payment_method, debit_account_code, credit_account_code, reversed_by_id, transaction_type")
         .eq("user_id", rep.user_id)
         .eq("is_deleted", false)
-        .gte("transaction_date", dayDate);
+        .gte("created_at", day.opened_at);
       const myTxs = ((allTxs as any[]) || []).filter((t) => {
         // استبعاد المعاملات المعكوسة وقيود العكس نفسها
         if (t.reversed_by_id) return false;
@@ -127,7 +127,7 @@ export default function RepDashboardPage() {
           .eq("user_id", rep.user_id)
           .eq("is_deleted", false)
           .eq("debit_account_code", cashAccountCode)
-          .gte("transaction_date", dayDate);
+          .gte("created_at", day.opened_at);
         collTotal = ((rcps as any[]) || [])
           .filter((t) => {
             // استبعاد المعكوسة: لها reversed_by_id (تم إلغاؤها بقيد عكسي)
@@ -310,7 +310,7 @@ export default function RepDashboardPage() {
           </div>
           <div className="text-xs text-muted-foreground">الخصم المسموح به (₪)</div>
         </Card>
-        <Card className="p-4 space-y-1 col-span-2">
+        <Card className="p-4 space-y-1">
           <Package className="w-5 h-5 text-primary" />
           <div className="text-2xl font-bold">
             {profit == null ? "—" : (profit - stats.discount).toFixed(2)}
@@ -320,7 +320,19 @@ export default function RepDashboardPage() {
           </div>
           {profit != null && stats.discount > 0 && (
             <div className="text-[11px] text-muted-foreground pt-1">
-              قبل الخصم: {profit.toFixed(2)} ₪ — الخصم: {stats.discount.toFixed(2)} ₪
+              قبل الخصم: {profit.toFixed(2)} ₪
+            </div>
+          )}
+        </Card>
+        <Card className="p-4 space-y-1 border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/10">
+          <Package className="w-5 h-5 text-emerald-600" />
+          <div className={`text-2xl font-bold ${profit == null ? "" : ((profit - stats.discount - expenses) >= 0 ? "text-emerald-600" : "text-destructive")}`}>
+            {profit == null ? "—" : (profit - stats.discount - expenses).toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">صافي الربح بعد المصاريف (₪)</div>
+          {profit != null && (
+            <div className="text-[11px] text-muted-foreground pt-1">
+              الربح: {(profit - stats.discount).toFixed(2)} − مصاريف: {expenses.toFixed(2)}
             </div>
           )}
         </Card>
