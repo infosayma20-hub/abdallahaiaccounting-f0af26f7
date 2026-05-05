@@ -448,76 +448,70 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         </table>
       </div>
 
-      {/* ━━━ TOTALS SECTION ━━━ */}
-      <div style={{ padding: "4px 28px 10px", display: "flex", justifyContent: "flex-start" }}>
-        <div
-          style={{
-            width: "340px",
-            border: "1px solid #E5E7EB",
-            borderRadius: "10px",
-            overflow: "hidden",
-            boxShadow: "0 2px 6px rgba(27,58,92,0.08)",
-          }}
-        >
+      {/* ━━━ TOTALS SECTION (Ledger Style) ━━━ */}
+      <div style={{ padding: "6px 28px 10px", display: "flex", justifyContent: "flex-start" }}>
+        <div style={{ width: "360px", fontFeatureSettings: "'tnum'" }}>
           {/* Subtotal */}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", borderBottom: "1px solid #F3F4F6", fontSize: "12px" }}>
-            <span style={{ color: "#6B7280" }}>{taxEnabled ? "المجموع قبل الضريبة" : "الإجمالي الفرعي"}</span>
-            <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{fmtAmount(subtotalBeforeTax)}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
+            <span style={{ color: "#4B5563" }}>{taxEnabled ? "المجموع قبل الضريبة" : "الإجمالي الفرعي"}</span>
+            <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{fmtAmount(subtotalBeforeTax)}</span>
           </div>
           {/* Discount */}
           {invoice.totalDiscount > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", borderBottom: "1px solid #F3F4F6", fontSize: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
               <span style={{ color: "#DC2626" }}>إجمالي الخصم</span>
-              <span style={{ fontWeight: 600, color: "#DC2626", fontFeatureSettings: "'tnum'" }}>-{fmtAmount(invoice.totalDiscount)}</span>
+              <span style={{ fontWeight: 600, color: "#DC2626" }}>-{fmtAmount(invoice.totalDiscount)}</span>
             </div>
           )}
           {/* Tax */}
           {taxEnabled && totalTax > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", borderBottom: "1px solid #F3F4F6", fontSize: "12px" }}>
-              <span style={{ color: "#6B7280" }}>{invoice.taxInclusive ? "ضريبة القيمة المضافة 16% (مستخرجة)" : "ضريبة القيمة المضافة 16%"}</span>
-              <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 4px", fontSize: "13px" }}>
+              <span style={{ color: "#4B5563" }}>{invoice.taxInclusive ? "ضريبة القيمة المضافة 16% (مستخرجة)" : "ضريبة القيمة المضافة 16%"}</span>
+              <span style={{ fontWeight: 600, color: "#1B3A5C" }}>{invoice.taxInclusive ? "" : "+"}{fmtAmount(totalTax)}</span>
             </div>
           )}
           {/* Exempt breakdown */}
           {taxEnabled && exemptNetTotal > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "9px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 4px", fontSize: "10px" }}>
               <span style={{ color: "#9CA3AF" }}>مبيعات معفاة من الضريبة</span>
-              <span style={{ color: "#9CA3AF", fontFeatureSettings: "'tnum'" }}>{fmtAmount(exemptNetTotal)}</span>
+              <span style={{ color: "#9CA3AF" }}>{fmtAmount(exemptNetTotal)}</span>
             </div>
           )}
           {taxEnabled && zeroNetTotal > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "9px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 4px", fontSize: "10px" }}>
               <span style={{ color: "#9CA3AF" }}>مبيعات بنسبة صفر</span>
-              <span style={{ color: "#9CA3AF", fontFeatureSettings: "'tnum'" }}>{fmtAmount(zeroNetTotal)}</span>
+              <span style={{ color: "#9CA3AF" }}>{fmtAmount(zeroNetTotal)}</span>
             </div>
           )}
-          {/* Grand Total */}
+          {/* Grand Total — accounting ledger lines */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              padding: "14px 18px",
-              background: "linear-gradient(135deg, #1B3A5C 0%, #0D1B2E 100%)",
-              color: "white",
+              alignItems: "baseline",
+              padding: "10px 4px 8px",
+              marginTop: "4px",
+              borderTop: "1px solid #1B3A5C",
+              borderBottom: "3px double #1B3A5C",
               fontSize: "16px",
               fontWeight: 800,
+              color: "#0D1B2E",
             }}
           >
             <span>الإجمالي النهائي</span>
-            <span style={{ color: "#FFFFFF", fontSize: "22px", fontFeatureSettings: "'tnum'", fontWeight: 800, letterSpacing: "0.5px" }}>{fmtAmount(grandTotal)}</span>
+            <span style={{ fontSize: "21px", fontWeight: 800, letterSpacing: "0.3px" }}>{fmtAmount(grandTotal)}</span>
           </div>
           {/* Paid / Remaining */}
           {invoice.paidAmount > 0 && (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", borderTop: "1px solid #E5E7EB", fontSize: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 4px", fontSize: "13px" }}>
                 <span style={{ color: "#16A34A" }}>المبلغ المدفوع</span>
-                <span style={{ fontWeight: 600, color: "#16A34A", fontFeatureSettings: "'tnum'" }}>{fmtAmount(invoice.paidAmount)}</span>
+                <span style={{ fontWeight: 600, color: "#16A34A" }}>{fmtAmount(invoice.paidAmount)}</span>
               </div>
               {invoice.remainingAmount > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", borderTop: "1px solid #F3F4F6", fontSize: "13px" }}>
-                  <span style={{ color: "#DC2626", fontWeight: 600 }}>المبلغ المتبقي</span>
-                  <span style={{ fontWeight: 700, color: "#DC2626", fontFeatureSettings: "'tnum'" }}>{fmtAmount(invoice.remainingAmount)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 4px", fontSize: "14px", borderTop: "1px solid #F3F4F6" }}>
+                  <span style={{ color: "#DC2626", fontWeight: 700 }}>المبلغ المتبقي</span>
+                  <span style={{ fontWeight: 700, color: "#DC2626" }}>{fmtAmount(invoice.remainingAmount)}</span>
                 </div>
               )}
             </>
