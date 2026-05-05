@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,20 @@ interface InvoiceLine {
 const ProcurementInvoiceCreatePage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId");
+
+  // ─── Unification: direct purchase invoice creation now uses the unified
+  // /invoices/new?type=purchase page (same UI/UX as sales). This page is kept
+  // ONLY for the "receive from Purchase Order" flow which has unique logic
+  // (received vs ordered quantity, supplier invoice image upload + AI extract,
+  // writes to purchase_invoices with stock movements).
+  if (!orderId) {
+    return <Navigate to="/invoices/new?type=purchase" replace />;
+  }
+
+  return <ReceivePOInvoicePage orderId={orderId} />;
+};
+
+const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
   const navigate = useNavigate();
   const { createInvoice } = usePurchaseInvoices();
   const { suppliers } = useSuppliers();

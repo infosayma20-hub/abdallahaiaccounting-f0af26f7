@@ -13,7 +13,9 @@ import { useProcurementOrders, useSuppliers, useBranches, type ProcurementOrderI
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProcurementPrintView, generateWhatsAppText } from "@/components/procurement/ProcurementPrintView";
+import { generateWhatsAppText } from "@/components/procurement/ProcurementPrintView";
+import InvoicePrintView from "@/components/InvoicePrintView";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { toast } from "@/hooks/use-toast";
 import ReactDOM from "react-dom/client";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -30,6 +32,7 @@ const PurchaseOrdersPage = () => {
   const { orders, loading, updateStatus, getOrderItems } = useProcurementOrders();
   const { suppliers } = useSuppliers();
   const { branches } = useBranches();
+  const { settings: companySettings } = useCompanySettings();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -66,23 +69,51 @@ const PurchaseOrdersPage = () => {
 
   const handlePrint = async (order: any) => {
     const items = await getOrderItems(order.id);
-    const printWindow = window.open("", "_blank", "width=800,height=600");
-    if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>طلبية ${order.order_number}</title><style>body{font-family:Arial,sans-serif;margin:0;padding:20px;direction:rtl}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4px 8px;text-align:right;font-size:12px}th{background:#f0f0f0}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:15px}@media print{body{padding:10mm}}</style></head><body>`);
-    printWindow.document.write(`<div class="header"><div><h2>طلبية مشتريات</h2></div><div style="text-align:left"><strong>${order.order_number}</strong></div></div>`);
-    printWindow.document.write(`<p><strong>المورد:</strong> ${order.supplier?.name || "—"} | <strong>الفرع:</strong> ${order.branch?.name || "—"} | <strong>التاريخ:</strong> ${new Date(order.order_date).toLocaleDateString("en-GB")}</p>`);
-    printWindow.document.write(`<table><thead><tr><th>#</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>`);
-    items.forEach((item, idx) => {
-      printWindow.document.write(`<tr><td>${idx + 1}</td><td>${item.item_name}</td><td>${item.unit}</td><td>${item.quantity}</td><td>${Number(item.unit_price).toFixed(2)}</td><td>${Number(item.total_price).toFixed(2)}</td></tr>`);
-    });
+    // Unified print: use InvoicePrintView (same look & feel as sales/purchase invoices)
     const total = items.reduce((s, i) => s + Number(i.total_price), 0);
-    printWindow.document.write(`</tbody></table>`);
-    printWindow.document.write(`<p style="text-align:left;font-size:14px;font-weight:bold;margin-top:10px">الإجمالي: ${total.toFixed(2)} ₪</p>`);
-    if (order.notes) printWindow.document.write(`<p><strong>ملاحظات:</strong> ${order.notes}</p>`);
-    printWindow.document.write(`<div style="display:flex;justify-content:space-between;margin-top:60px"><div><div style="border-bottom:1px solid #000;width:150px;margin-bottom:5px"></div><p style="font-size:11px">توقيع مسؤول المشتريات</p></div><div><div style="border-bottom:1px solid #000;width:150px;margin-bottom:5px"></div><p style="font-size:11px">توقيع المورد</p></div></div>`);
-    printWindow.document.write(`</body></html>`);
-    printWindow.document.close();
-    /* view only — no browser print */
+    const previewInvoice = {
+      type: "purchase" as const,
+      invoiceNumber: order.order_number,
+      date: order.order_date,
+      dueDate: order.expected_delivery_date || undefined,
+      contactName: order.supplier?.name || "—",
+      contactPhone: order.supplier?.phone,
+      items: items.map((i: any) => ({
+        description: i.item_name,
+        quantity: Number(i.quantity),
+        unitPrice: Number(i.unit_price),
+        discount: 0,
+        taxRate: 0,
+        taxCategory: "exempt" as const,
+        subtotal: Number(i.total_price),
+      })),
+      notes: order.notes || "",
+      status: "draft",
+      paymentMethod: "credit",
+      subtotal: total,
+      totalDiscount: 0,
+      totalTax: 0,
+      total,
+      paidAmount: 0,
+      remainingAmount: total,
+      currency: "شيكل",
+      taxInclusive: false,
+    };
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<html dir="rtl"><head><title>طلبية ${order.order_number}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: white; } @media print { @page { margin: 8mm; size: A4; } }</style>
+    </head><body><div id="print-root"></div></body></html>`);
+    win.document.close();
+    setTimeout(() => {
+      const container = win.document.getElementById("print-root");
+      if (container) {
+        const root = ReactDOM.createRoot(container);
+        root.render(<InvoicePrintView invoice={previewInvoice as any} settings={companySettings} copyLabel="طلبية شراء" />);
+        setTimeout(() => win.print(), 500);
+      }
+    }, 200);
   };
 
   const handleWhatsApp = async (order: any) => {
