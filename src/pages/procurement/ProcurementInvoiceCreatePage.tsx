@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Check, Upload, Loader2, Image as ImageIcon, X, Eye, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Check, Upload, Loader2, Image as ImageIcon, X, Eye, CheckCircle2, CalendarIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parseISO, differenceInCalendarDays } from "date-fns";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { usePurchaseInvoices, useSuppliers } from "@/hooks/useProcurement";
 import { useAuth } from "@/hooks/useAuth";
@@ -460,7 +464,7 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                     <TableHead className="w-[120px] bg-muted/40">الكمية المستلمة</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">السعر الفعلي</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">الإجمالي</TableHead>
-                    <TableHead className="w-[140px] bg-amber-50 dark:bg-amber-950/20">الصلاحية</TableHead>
+                    <TableHead className="w-[160px] bg-amber-50 dark:bg-amber-950/20">الصلاحية</TableHead>
                     <TableHead className="w-[170px] text-right">ملاحظة</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -493,13 +497,10 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                         </TableCell>
                         <TableCell className="bg-muted/20 text-center font-bold tabular-nums">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="bg-amber-50/40 dark:bg-amber-950/10">
-                          <Input
-                            type="date"
-                            value={line.expiry_date || ""}
-                            min={invoiceDate}
-                            onChange={e => updateLine(idx, "expiry_date", e.target.value)}
-                            className="h-8 w-[130px] text-center text-xs bg-background"
-                            title="تاريخ انتهاء الصلاحية (اختياري — يُوصى به للمواد الغذائية)"
+                          <ExpiryDateCell
+                            value={line.expiry_date}
+                            minDate={invoiceDate}
+                            onChange={(v) => updateLine(idx, "expiry_date", v)}
                           />
                         </TableCell>
                         <TableCell>
@@ -567,3 +568,72 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
 };
 
 export default ProcurementInvoiceCreatePage;
+
+// ─── Expiry Date Cell ──────────────────────────────────────────────────────
+// DatePicker احترافي مع: format عربي dd/MM/yyyy، أيقونة تقويم على اليسار،
+// تنبيهات بصرية: حدود صفراء إذا قاربت الصلاحية (≤30 يوم)، حمراء + Badge "منتهي".
+function ExpiryDateCell({
+  value,
+  minDate,
+  onChange,
+}: {
+  value: string;
+  minDate: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const date = value ? parseISO(value) : undefined;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysLeft = date ? differenceInCalendarDays(date, today) : null;
+  const expired = daysLeft !== null && daysLeft < 0;
+  const nearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+
+  return (
+    <div className="flex items-center justify-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-8 w-[140px] justify-between gap-1 px-2 text-xs font-normal bg-background",
+              !date && "text-muted-foreground",
+              expired && "border-destructive border-2 text-destructive",
+              nearExpiry && "border-amber-500 border-2 text-amber-700 dark:text-amber-400"
+            )}
+            title="تاريخ انتهاء الصلاحية"
+          >
+            <CalendarIcon className="h-3.5 w-3.5 opacity-60 shrink-0" />
+            <span className="flex-1 text-center tabular-nums">
+              {date ? format(date, "dd/MM/yyyy") : "—"}
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => {
+              if (d) onChange(format(d, "yyyy-MM-dd"));
+              else onChange("");
+              setOpen(false);
+            }}
+            disabled={(d) => (minDate ? d < parseISO(minDate) : false)}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+          {date && (
+            <div className="border-t p-2 flex justify-end">
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { onChange(""); setOpen(false); }}>
+                مسح التاريخ
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+      {expired && (
+        <Badge variant="destructive" className="text-[10px] h-5 px-1.5">منتهي</Badge>
+      )}
+    </div>
+  );
+}
