@@ -10702,6 +10702,7 @@ export type Database = {
       }
       purchase_invoice_items: {
         Row: {
+          batch_no: string | null
           created_at: string | null
           discount_pct: number | null
           expiry_date: string | null
@@ -10712,6 +10713,7 @@ export type Database = {
           price_change_pct: number | null
           product_id: string | null
           product_name: string
+          production_date: string | null
           quantity: number
           tax_pct: number | null
           total_amount: number
@@ -10719,6 +10721,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          batch_no?: string | null
           created_at?: string | null
           discount_pct?: number | null
           expiry_date?: string | null
@@ -10729,6 +10732,7 @@ export type Database = {
           price_change_pct?: number | null
           product_id?: string | null
           product_name: string
+          production_date?: string | null
           quantity: number
           tax_pct?: number | null
           total_amount: number
@@ -10736,6 +10740,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          batch_no?: string | null
           created_at?: string | null
           discount_pct?: number | null
           expiry_date?: string | null
@@ -10746,6 +10751,7 @@ export type Database = {
           price_change_pct?: number | null
           product_id?: string | null
           product_name?: string
+          production_date?: string | null
           quantity?: number
           tax_pct?: number | null
           total_amount?: number
