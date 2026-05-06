@@ -568,3 +568,72 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
 };
 
 export default ProcurementInvoiceCreatePage;
+
+// ─── Expiry Date Cell ──────────────────────────────────────────────────────
+// DatePicker احترافي مع: format عربي dd/MM/yyyy، أيقونة تقويم على اليسار،
+// تنبيهات بصرية: حدود صفراء إذا قاربت الصلاحية (≤30 يوم)، حمراء + Badge "منتهي".
+function ExpiryDateCell({
+  value,
+  minDate,
+  onChange,
+}: {
+  value: string;
+  minDate: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const date = value ? parseISO(value) : undefined;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysLeft = date ? differenceInCalendarDays(date, today) : null;
+  const expired = daysLeft !== null && daysLeft < 0;
+  const nearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+
+  return (
+    <div className="flex items-center justify-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-8 w-[140px] justify-between gap-1 px-2 text-xs font-normal bg-background",
+              !date && "text-muted-foreground",
+              expired && "border-destructive border-2 text-destructive",
+              nearExpiry && "border-amber-500 border-2 text-amber-700 dark:text-amber-400"
+            )}
+            title="تاريخ انتهاء الصلاحية"
+          >
+            <CalendarIcon className="h-3.5 w-3.5 opacity-60 shrink-0" />
+            <span className="flex-1 text-center tabular-nums">
+              {date ? format(date, "dd/MM/yyyy") : "—"}
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => {
+              if (d) onChange(format(d, "yyyy-MM-dd"));
+              else onChange("");
+              setOpen(false);
+            }}
+            disabled={(d) => (minDate ? d < parseISO(minDate) : false)}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+          {date && (
+            <div className="border-t p-2 flex justify-end">
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { onChange(""); setOpen(false); }}>
+                مسح التاريخ
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+      {expired && (
+        <Badge variant="destructive" className="text-[10px] h-5 px-1.5">منتهي</Badge>
+      )}
+    </div>
+  );
+}
