@@ -464,7 +464,7 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                     <TableHead className="w-[120px] bg-muted/40">الكمية المستلمة</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">السعر الفعلي</TableHead>
                     <TableHead className="w-[130px] bg-muted/40">الإجمالي</TableHead>
-                    <TableHead className="w-[140px] bg-amber-50 dark:bg-amber-950/20">الصلاحية</TableHead>
+                    <TableHead className="w-[160px] bg-amber-50 dark:bg-amber-950/20">الصلاحية</TableHead>
                     <TableHead className="w-[170px] text-right">ملاحظة</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -497,13 +497,10 @@ const ReceivePOInvoicePage = ({ orderId }: { orderId: string }) => {
                         </TableCell>
                         <TableCell className="bg-muted/20 text-center font-bold tabular-nums">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="bg-amber-50/40 dark:bg-amber-950/10">
-                          <Input
-                            type="date"
-                            value={line.expiry_date || ""}
-                            min={invoiceDate}
-                            onChange={e => updateLine(idx, "expiry_date", e.target.value)}
-                            className="h-8 w-[130px] text-center text-xs bg-background"
-                            title="تاريخ انتهاء الصلاحية (اختياري — يُوصى به للمواد الغذائية)"
+                          <ExpiryDateCell
+                            value={line.expiry_date}
+                            minDate={invoiceDate}
+                            onChange={(v) => updateLine(idx, "expiry_date", v)}
                           />
                         </TableCell>
                         <TableCell>
