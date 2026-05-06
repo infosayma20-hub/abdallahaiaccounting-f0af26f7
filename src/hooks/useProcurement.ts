@@ -292,6 +292,7 @@ export function usePurchaseInvoices() {
       quantity: i.received_quantity,
       unit_price: i.unit_price,
       total_amount: i.received_quantity * i.unit_price,
+      expiry_date: i.expiry_date || null,
     }));
     await supabase.from("purchase_invoice_items").insert(invItems as any);
 

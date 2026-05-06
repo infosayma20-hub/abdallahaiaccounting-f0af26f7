@@ -10704,6 +10704,7 @@ export type Database = {
         Row: {
           created_at: string | null
           discount_pct: number | null
+          expiry_date: string | null
           id: string
           invoice_id: string
           notes: string | null
@@ -10720,6 +10721,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           discount_pct?: number | null
+          expiry_date?: string | null
           id?: string
           invoice_id: string
           notes?: string | null
@@ -10736,6 +10738,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           discount_pct?: number | null
+          expiry_date?: string | null
           id?: string
           invoice_id?: string
           notes?: string | null
