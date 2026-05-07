@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { fmtDateDisplay } from "@/lib/utils";
 import { setNextExportBranding } from "@/lib/excel-export";
+import { RtlDataTable, type RtlColumn } from "@/components/ui/RtlDataTable";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -744,200 +745,109 @@ export default function VanSalesReportsPage() {
         {/* 1. Daily */}
         <TabsContent value="daily">
           <Card className="overflow-hidden mt-3">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التاريخ</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">عدد الطلبات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المبيعات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">النقدي</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الآجل</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التكلفة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الهامش %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">جاري التحميل...</td></tr>
-                  ) : !daily.length ? (
-                    <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
-                  ) : daily.map((d) => (
-                    <tr key={d.date} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 font-medium">{fmtDateDisplay(d.date)}</td>
-                      <td className="p-3">{d.orders}</td>
-                      <td className="p-3">{fmt(d.sales)}</td>
-                      <td className="p-3 text-emerald-600">{fmt(d.cash)}</td>
-                      <td className="p-3 text-red-600">{fmt(d.credit)}</td>
-                      <td className="p-3 text-amber-600">{fmt(d.cost)}</td>
-                      <td className="p-3 font-bold">{d.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(d.profit)}</td>
-                      <td className="p-3">{d.undefinedCost ? "—" : `${d.margin.toFixed(1)}%`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RtlDataTable
+              loading={isLoading}
+              rows={daily}
+              rowKey={(d: any) => d.date}
+              columns={[
+                { key: "date", header: "التاريخ", align: "right", render: (d: any) => <span className="font-medium">{fmtDateDisplay(d.date)}</span> },
+                { key: "orders", header: "عدد الطلبات", align: "center", render: (d: any) => d.orders },
+                { key: "sales", header: "المبيعات", align: "center", render: (d: any) => fmt(d.sales) },
+                { key: "cash", header: "النقدي", align: "center", cellClassName: "text-emerald-600", render: (d: any) => fmt(d.cash) },
+                { key: "credit", header: "الآجل", align: "center", cellClassName: "text-red-600", render: (d: any) => fmt(d.credit) },
+                { key: "cost", header: "التكلفة", align: "center", cellClassName: "text-amber-600", render: (d: any) => fmt(d.cost) },
+                { key: "profit", header: "الربح", align: "center", render: (d: any) => <span className="font-bold">{d.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(d.profit)}</span> },
+                { key: "margin", header: "الهامش %", align: "center", render: (d: any) => d.undefinedCost ? "—" : `${d.margin.toFixed(1)}%` },
+              ] as RtlColumn<any>[]}
+            />
           </Card>
         </TabsContent>
 
         {/* 2. Rep */}
         <TabsContent value="rep">
           <Card className="overflow-hidden mt-3">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المندوب</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">عدد الطلبات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المبيعات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">النقدي</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الآجل</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التكلفة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الهامش %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!byRep.length ? (
-                    <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
-                  ) : byRep.map((r: any, i: number) => (
-                    <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 font-medium">{r.name}</td>
-                      <td className="p-3">{r.orders}</td>
-                      <td className="p-3">{fmt(r.sales)}</td>
-                      <td className="p-3 text-emerald-600">{fmt(r.cash)}</td>
-                      <td className="p-3 text-red-600">{fmt(r.credit)}</td>
-                      <td className="p-3 text-amber-600">{fmt(r.cost)}</td>
-                      <td className="p-3 font-bold">{r.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(r.profit)}</td>
-                      <td className="p-3">{r.undefinedCost ? "—" : `${r.margin.toFixed(1)}%`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RtlDataTable
+              rows={byRep as any[]}
+              rowKey={(_: any, i: number) => i}
+              columns={[
+                { key: "name", header: "المندوب", align: "right", render: (r: any) => <span className="font-medium">{r.name}</span> },
+                { key: "orders", header: "عدد الطلبات", align: "center", render: (r: any) => r.orders },
+                { key: "sales", header: "المبيعات", align: "center", render: (r: any) => fmt(r.sales) },
+                { key: "cash", header: "النقدي", align: "center", cellClassName: "text-emerald-600", render: (r: any) => fmt(r.cash) },
+                { key: "credit", header: "الآجل", align: "center", cellClassName: "text-red-600", render: (r: any) => fmt(r.credit) },
+                { key: "cost", header: "التكلفة", align: "center", cellClassName: "text-amber-600", render: (r: any) => fmt(r.cost) },
+                { key: "profit", header: "الربح", align: "center", render: (r: any) => <span className="font-bold">{r.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(r.profit)}</span> },
+                { key: "margin", header: "الهامش %", align: "center", render: (r: any) => r.undefinedCost ? "—" : `${r.margin.toFixed(1)}%` },
+              ] as RtlColumn<any>[]}
+            />
           </Card>
         </TabsContent>
 
         {/* 3. Product */}
         <TabsContent value="product">
           <Card className="overflow-hidden mt-3">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الصنف</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الكمية</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المبيعات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التكلفة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الهامش %</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">أكثر مندوب</th>
-                    <th className="p-3 text-center font-semibold text-muted-foreground"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!byProduct.length ? (
-                    <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
-                  ) : byProduct.map((p: any, i: number) => (
-                    <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 font-medium">{p.name}</td>
-                      <td className="p-3">{fmt(p.qty)}</td>
-                      <td className="p-3">{fmt(p.sales)}</td>
-                      <td className="p-3 text-amber-600">{fmt(p.cost)}</td>
-                      <td className="p-3 font-bold">{p.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(p.profit)}</td>
-                      <td className="p-3">{p.undefinedCost ? "—" : `${p.margin.toFixed(1)}%`}</td>
-                      <td className="p-3">{p.topRep}</td>
-                      <td className="p-3 text-center">
-                        {p.product_id && (
-                          <button onClick={() => navigate(`/products?focus=${p.product_id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
-                            <ExternalLink className="h-3 w-3" /> فتح
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RtlDataTable
+              rows={byProduct as any[]}
+              rowKey={(_: any, i: number) => i}
+              columns={[
+                { key: "action", header: "إجراء", align: "center", width: 72, render: (p: any) => p.product_id ? (
+                  <button onClick={() => navigate(`/products?focus=${p.product_id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
+                    <ExternalLink className="h-3 w-3" /> فتح
+                  </button>
+                ) : null },
+                { key: "name", header: "الصنف", align: "right", render: (p: any) => <span className="font-medium">{p.name}</span> },
+                { key: "topRep", header: "أكثر مندوب", align: "right", render: (p: any) => p.topRep },
+                { key: "margin", header: "الهامش %", align: "center", render: (p: any) => p.undefinedCost ? "—" : `${p.margin.toFixed(1)}%` },
+                { key: "profit", header: "الربح", align: "center", render: (p: any) => <span className="font-bold">{p.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(p.profit)}</span> },
+                { key: "cost", header: "التكلفة", align: "center", cellClassName: "text-amber-600", render: (p: any) => fmt(p.cost) },
+                { key: "sales", header: "المبيعات", align: "center", render: (p: any) => fmt(p.sales) },
+                { key: "qty", header: "الكمية", align: "center", render: (p: any) => fmt(p.qty) },
+              ] as RtlColumn<any>[]}
+            />
           </Card>
         </TabsContent>
 
         {/* 4. Customer */}
         <TabsContent value="customer">
           <Card className="overflow-hidden mt-3">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الزبون</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">عدد الطلبات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المبيعات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">متوسط الفاتورة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الرصيد الحالي</th>
-                    <th className="p-3 text-center font-semibold text-muted-foreground"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!byCustomer.length ? (
-                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">لا توجد بيانات</td></tr>
-                  ) : byCustomer.map((c: any, i: number) => (
-                    <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 font-medium">{c.name}</td>
-                      <td className="p-3">{c.orders}</td>
-                      <td className="p-3">{fmt(c.sales)}</td>
-                      <td className="p-3 font-bold">{c.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(c.profit)}</td>
-                      <td className="p-3">{fmt(c.avg)}</td>
-                      <td className="p-3">
-                        {c.contact_id && balances ? fmt(balances[c.contact_id] ?? 0) : "—"}
-                      </td>
-                      <td className="p-3 text-center">
-                        {c.contact_id && (
-                          <button onClick={() => navigate(`/account-statement?contact=${c.contact_id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
-                            <ExternalLink className="h-3 w-3" /> كشف
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RtlDataTable
+              rows={byCustomer as any[]}
+              rowKey={(_: any, i: number) => i}
+              columns={[
+                { key: "action", header: "إجراء", align: "center", width: 72, render: (c: any) => c.contact_id ? (
+                  <button onClick={() => navigate(`/account-statement?contact=${c.contact_id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
+                    <ExternalLink className="h-3 w-3" /> كشف
+                  </button>
+                ) : null },
+                { key: "name", header: "الزبون", align: "right", render: (c: any) => <span className="font-medium">{c.name}</span> },
+                { key: "balance", header: "الرصيد الحالي", align: "center", render: (c: any) => c.contact_id && balances ? fmt(balances[c.contact_id] ?? 0) : "—" },
+                { key: "avg", header: "متوسط الفاتورة", align: "center", render: (c: any) => fmt(c.avg) },
+                { key: "profit", header: "الربح", align: "center", render: (c: any) => <span className="font-bold">{c.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(c.profit)}</span> },
+                { key: "sales", header: "المبيعات", align: "center", render: (c: any) => fmt(c.sales) },
+                { key: "orders", header: "عدد الطلبات", align: "center", render: (c: any) => c.orders },
+              ] as RtlColumn<any>[]}
+            />
           </Card>
         </TabsContent>
 
         {/* 5. Supplier */}
         <TabsContent value="supplier">
           <Card className="overflow-hidden mt-3">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المورد</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">عدد الأصناف</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المبيعات</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التكلفة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الهامش %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!bySupplier.length ? (
-                    <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">جاري حساب الموردين أو لا توجد بيانات...</td></tr>
-                  ) : bySupplier.map((s: any, i: number) => (
-                    <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 font-medium flex items-center gap-2"><Building2 className="h-3 w-3 text-muted-foreground" /> {s.name}</td>
-                      <td className="p-3">{s.products}</td>
-                      <td className="p-3">{fmt(s.sales)}</td>
-                      <td className="p-3 text-amber-600">{fmt(s.cost)}</td>
-                      <td className="p-3 font-bold">{s.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(s.profit)}</td>
-                      <td className="p-3">{s.undefinedCost ? "—" : `${s.margin.toFixed(1)}%`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RtlDataTable
+              rows={bySupplier as any[]}
+              rowKey={(_: any, i: number) => i}
+              emptyMessage="جاري حساب الموردين أو لا توجد بيانات..."
+              columns={[
+                { key: "name", header: "المورد", align: "right", render: (s: any) => (
+                  <span className="font-medium inline-flex items-center gap-2"><Building2 className="h-3 w-3 text-muted-foreground" /> {s.name}</span>
+                ) },
+                { key: "margin", header: "الهامش %", align: "center", render: (s: any) => s.undefinedCost ? "—" : `${s.margin.toFixed(1)}%` },
+                { key: "profit", header: "الربح", align: "center", render: (s: any) => <span className="font-bold">{s.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(s.profit)}</span> },
+                { key: "cost", header: "التكلفة", align: "center", cellClassName: "text-amber-600", render: (s: any) => fmt(s.cost) },
+                { key: "sales", header: "المبيعات", align: "center", render: (s: any) => fmt(s.sales) },
+                { key: "products", header: "عدد الأصناف", align: "center", render: (s: any) => s.products },
+              ] as RtlColumn<any>[]}
+            />
           </Card>
           <p className="text-[10px] text-muted-foreground mt-2">
             * يُحدَّد المورد لكل صنف من آخر فاتورة شراء له (لا يوجد ربط مباشر بين المنتج والمورد في الهيكلة الحالية).
@@ -948,50 +858,31 @@ export default function VanSalesReportsPage() {
         <TabsContent value="orders">
           {/* Desktop table */}
           <Card className="overflow-hidden mt-3 hidden md:block">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-3 text-center font-semibold text-muted-foreground w-16">إجراء</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">رقم الطلب</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التاريخ</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">المندوب</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الزبون</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الدفع</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الحالة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الإجمالي</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">التكلفة</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!orders.length ? (
-                    <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">لا توجد طلبات</td></tr>
-                  ) : orders.map((o) => (
-                    <tr key={o.id} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-3 text-center">
-                        <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
-                          <ExternalLink className="h-3 w-3" /> فتح
-                        </button>
-                      </td>
-                      <td className="p-3 font-medium">{o.invoice_number || "—"}</td>
-                      <td className="p-3">{fmtDateDisplay(o.invoice_date)}</td>
-                      <td className="p-3">{o.rep_name}</td>
-                      <td className="p-3">{o.contact_name || "—"}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${isCash(o.payment_method) ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                          {isCash(o.payment_method) ? "نقدي" : "آجل"}
-                        </span>
-                      </td>
-                      <td className="p-3 text-muted-foreground">{statusLabel(o.payment_status || o.status)}</td>
-                      <td className="p-3">{fmt(safe(o.total_amount))}</td>
-                      <td className="p-3 text-amber-600">{fmt(o.cost)}</td>
-                      <td className="p-3 font-bold">{o.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(o.profit)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RtlDataTable
+              rows={orders as any[]}
+              rowKey={(o: any) => o.id}
+              emptyMessage="لا توجد طلبات"
+              columns={[
+                { key: "action", header: "إجراء", align: "center", width: 72, render: (o: any) => (
+                  <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
+                    <ExternalLink className="h-3 w-3" /> فتح
+                  </button>
+                ) },
+                { key: "num", header: "رقم الطلب", align: "right", render: (o: any) => <span className="font-medium">{o.invoice_number || "—"}</span> },
+                { key: "date", header: "التاريخ", align: "center", render: (o: any) => fmtDateDisplay(o.invoice_date) },
+                { key: "rep", header: "المندوب", align: "right", render: (o: any) => o.rep_name },
+                { key: "customer", header: "الزبون", align: "right", render: (o: any) => o.contact_name || "—" },
+                { key: "pay", header: "الدفع", align: "center", render: (o: any) => (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${isCash(o.payment_method) ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                    {isCash(o.payment_method) ? "نقدي" : "آجل"}
+                  </span>
+                ) },
+                { key: "status", header: "الحالة", align: "center", cellClassName: "text-muted-foreground", render: (o: any) => statusLabel(o.payment_status || o.status) },
+                { key: "total", header: "الإجمالي", align: "center", render: (o: any) => fmt(safe(o.total_amount)) },
+                { key: "cost", header: "التكلفة", align: "center", cellClassName: "text-amber-600", render: (o: any) => fmt(o.cost) },
+                { key: "profit", header: "الربح", align: "center", render: (o: any) => <span className="font-bold">{o.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(o.profit)}</span> },
+              ] as RtlColumn<any>[]}
+            />
           </Card>
 
           {/* Mobile cards */}
