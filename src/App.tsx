@@ -82,6 +82,7 @@ const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const RepCollectPage = lazy(() => import("./pages/rep/RepCollectPage"));
 const RepExpensePage = lazy(() => import("./pages/rep/RepExpensePage"));
 const RepSalesBySupplierPage = lazy(() => import("./pages/rep/RepSalesBySupplierPage"));
+const RepReportsPage = lazy(() => import("./pages/manager/RepReportsPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
 const RepUnpostedOrdersPage = lazy(() => import("./pages/admin/RepUnpostedOrdersPage"));
