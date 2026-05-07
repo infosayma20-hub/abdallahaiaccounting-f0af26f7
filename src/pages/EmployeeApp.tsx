@@ -21,6 +21,15 @@ import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
 import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
 import ManagerHeader from "@/components/employee/manager/ManagerHeader";
 
+function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
+  return (
+    <div className="pb-24">
+      <ManagerHeader title="غير مصرح" onBack={onBack} />
+      <div className="p-8 text-center text-muted-foreground text-sm">{text}</div>
+    </div>
+  );
+}
+
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
