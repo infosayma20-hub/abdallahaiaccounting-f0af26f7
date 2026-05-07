@@ -223,8 +223,13 @@ const AppsLauncher = () => {
     <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px 120px" }}>
-        {/* Hero */}
-        <AppsHero />
+        {/* Compact header */}
+        <div className="flex items-baseline justify-between mb-4 px-1">
+          <div>
+            <h1 className="text-xl font-bold" style={{ color: "#0D1B2E" }}>التطبيقات</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">اختر تطبيقاً للبدء</p>
+          </div>
+        </div>
 
         {/* Search + Ctrl+K hint */}
         <div className="flex justify-center mb-5">
