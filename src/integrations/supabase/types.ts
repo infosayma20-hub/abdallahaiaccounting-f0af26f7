@@ -15685,6 +15685,7 @@ export type Database = {
           name: string | null
           qr_rotation_minutes: number | null
           radius_meters: number | null
+          require_gps: boolean | null
           updated_at: string | null
           user_id: string | null
         }
@@ -15698,6 +15699,7 @@ export type Database = {
           name?: string | null
           qr_rotation_minutes?: number | null
           radius_meters?: number | null
+          require_gps?: boolean | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -15711,6 +15713,7 @@ export type Database = {
           name?: string | null
           qr_rotation_minutes?: number | null
           radius_meters?: number | null
+          require_gps?: boolean | null
           updated_at?: string | null
           user_id?: string | null
         }
