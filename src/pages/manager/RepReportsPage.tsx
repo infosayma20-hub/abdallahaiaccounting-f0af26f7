@@ -779,15 +779,15 @@ function ReportTable({ title, rows, cols }: { title: string; rows: any[]; cols: 
         </Button>
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/50 text-xs text-muted-foreground border-b">
-              {cols.map((c) => <th key={c.key} className="text-right py-2.5 px-3">{c.label}</th>)}
+      {/* Desktop table — RTL standard (matches attendance header) */}
+      <div className="hidden md:block overflow-x-auto" dir="rtl">
+        <table className="w-full text-sm" dir="rtl">
+          <thead dir="rtl">
+            <tr className="bg-[#0D1B2E] hover:bg-[#0D1B2E]">
+              {cols.map((c) => <th key={c.key} className="text-right py-2.5 px-3 text-white font-semibold whitespace-nowrap">{c.label}</th>)}
             </tr>
           </thead>
-          <tbody>
+          <tbody dir="rtl">
             {rows.map((r, i) => (
               <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                 {cols.map((c) => (
