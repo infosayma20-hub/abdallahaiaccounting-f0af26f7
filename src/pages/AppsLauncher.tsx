@@ -259,6 +259,14 @@ const AppsLauncher = () => {
   };
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
+  if (employeeOnlyRedirect) {
+    return (
+      <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "hsl(var(--accent))", borderRightColor: "hsl(var(--accent) / 0.3)" }} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">
 
