@@ -295,6 +295,7 @@ const App = () => (
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/employee/roster" element={<ProtectedRoute><RoleGuard allowedRoles={["employee", "branch_scheduler", "admin", "hr_manager"]} fallback="/auth" allowEmployeePerm="can_manage_schedule"><EmployeeApp initialTab="manager-roster" /></RoleGuard></ProtectedRoute>} />
               <Route path="/rep" element={<ProtectedRoute><RepLayout /></ProtectedRoute>}>
                 <Route index element={<RepDashboardPage />} />
                 <Route path="new-order" element={<RepNewOrderPage />} />
