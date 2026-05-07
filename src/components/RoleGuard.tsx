@@ -10,9 +10,11 @@ interface Props {
   children: React.ReactNode;
   allowedRoles: AllowedRole[];
   fallback?: string;
+  /** If set, also grants access when the current user's employee row has this permission flag = true. */
+  allowEmployeePerm?: "can_view_team" | "can_manage_schedule" | "can_manage_attendance";
 }
 
-export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Props) {
+export default function RoleGuard({ children, allowedRoles, fallback = "/", allowEmployeePerm }: Props) {
   const { user, loading: authLoading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
@@ -30,13 +32,21 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Pr
       
       // If user has no roles assigned, treat as admin (business owner)
       const effectiveRoles = userRoles.length === 0 ? ["admin"] : userRoles;
-      const allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
+      let allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
+      if (!allowed && allowEmployeePerm) {
+        const { data: emp } = await supabase
+          .from("employees")
+          .select(allowEmployeePerm)
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+        if (emp && (emp as any)[allowEmployeePerm] === true) allowed = true;
+      }
       setHasAccess(allowed);
       setChecking(false);
     };
 
     checkRoles();
-  }, [user, authLoading, allowedRoles]);
+  }, [user, authLoading, allowedRoles, allowEmployeePerm]);
 
   if (authLoading || checking) return (
     <div className="flex h-full min-h-[200px] w-full items-center justify-center">
