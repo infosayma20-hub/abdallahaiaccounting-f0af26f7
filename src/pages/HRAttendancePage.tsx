@@ -39,6 +39,7 @@ type Branch = {
   longitude: number;
   radius_meters: number;
   is_active: boolean;
+  require_gps?: boolean;
 };
 
 type EmployeeLite = {
@@ -283,7 +284,7 @@ export default function HRAttendancePage() {
   const [qrToken, setQrToken] = useState("");
   const [branchForm, setBranchForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "100" });
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "" });
+  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "", require_gps: true });
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
@@ -722,14 +723,15 @@ export default function HRAttendancePage() {
 
   const openEditBranch = (b: Branch) => {
     setEditingBranch(b);
-    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters) });
+    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters), require_gps: b.require_gps ?? true });
   };
 
   const updateBranch = async () => {
     if (!editingBranch) return;
     const { error } = await supabase.from("branches").update({
       radius_meters: parseInt(editForm.radius_meters) || 100,
-    }).eq("id", editingBranch.id);
+      require_gps: editForm.require_gps,
+    } as any).eq("id", editingBranch.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     else { toast({ title: "تم حفظ إعدادات الحضور" }); setEditingBranch(null); fetchData(); }
   };
@@ -1176,7 +1178,7 @@ export default function HRAttendancePage() {
           {branches.map(b => {
             const empCount = employees.filter(e => e.branch_id === b.id && e.is_active && !e.is_terminated).length;
             const qrOn = !!companySettings?.hr_require_qr;
-            const gpsOn = !!companySettings?.hr_require_gps;
+            const gpsOn = b.require_gps ?? true;
             return (
             <Card key={b.id} className="min-w-[250px] p-3 hover:border-primary/50 transition-colors">
               <div className="flex items-center justify-between mb-2">
