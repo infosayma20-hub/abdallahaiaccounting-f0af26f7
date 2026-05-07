@@ -87,6 +87,10 @@ interface Employee {
   is_hr_manager?: boolean;
   department_id?: string | null;
   job_title_id?: string | null;
+  manager_employee_id?: string | null;
+  can_view_team?: boolean;
+  can_manage_schedule?: boolean;
+  can_manage_attendance?: boolean;
 }
 
 const emptyEmployee: Partial<Employee> = {
