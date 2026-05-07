@@ -362,6 +362,8 @@ export function useCompanySettings() {
     "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
     "inventory_default_min_qty","inventory_default_max_qty","inventory_expiry_alert",
     "inventory_expiry_days","inventory_auto_barcode","inventory_allow_no_barcode",
+    // Sales Reps (Van Sales)
+    "rep_allow_negative_stock","rep_disable_stock_deduction",
     // Security
     "security_session_timeout","security_warning_minutes","security_2fa_enabled",
     "security_passkeys_enabled","security_ip_restrict","security_allowed_ips",

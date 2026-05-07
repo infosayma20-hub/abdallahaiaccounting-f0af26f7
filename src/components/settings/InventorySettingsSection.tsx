@@ -108,6 +108,31 @@ const InventorySettingsSection = ({ settings, onChange }: Props) => {
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      {/* Sales Reps (Van Sales) Stock Policy */}
+      <div>
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-primary rounded-full" />
+          سياسة المخزون لبورتال المندوبين (Van Sales)
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div>
+              <p className="font-medium text-sm">السماح بالبيع بالسالب للمندوبين</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                عند التفعيل: لن يُمنع المندوب من حفظ الطلب إذا كانت الكمية المطلوبة أكبر من المتوفر، وسيظهر تنبيه فقط.
+                هذا الإعداد يخص بورتال المندوب فقط ولا يؤثر على نقاط البيع (POS) ولا على فواتير المبيعات الرئيسية.
+              </p>
+            </div>
+            <Switch
+              checked={settings.rep_allow_negative_stock ?? false}
+              onCheckedChange={v => onChange({ rep_allow_negative_stock: v })}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
