@@ -82,6 +82,7 @@ const RepOrdersPage = lazy(() => import("./pages/rep/RepOrdersPage"));
 const RepCollectPage = lazy(() => import("./pages/rep/RepCollectPage"));
 const RepExpensePage = lazy(() => import("./pages/rep/RepExpensePage"));
 const RepSalesBySupplierPage = lazy(() => import("./pages/rep/RepSalesBySupplierPage"));
+const RepReportsPage = lazy(() => import("./pages/manager/RepReportsPage"));
 const SalesRepsLivePage = lazy(() => import("./pages/admin/SalesRepsLivePage"));
 const SalesRepOrdersPage = lazy(() => import("./pages/admin/SalesRepOrdersPage"));
 const RepUnpostedOrdersPage = lazy(() => import("./pages/admin/RepUnpostedOrdersPage"));
@@ -411,6 +412,7 @@ const App = () => (
                       <Route path="/hr/day-types" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrDayTypesPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/shifts" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrWorkShiftsPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/manager/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><BranchRosterPage /></RoleGuard>} />
+                      <Route path="/manager/rep-reports" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><RepReportsPage /></RoleGuard>} />
                       <Route path="/attendance/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><BranchRosterPage /></RoleGuard>} />
                       <Route path="/hr/settings" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollSettingsPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/employee/:id" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard>} />
