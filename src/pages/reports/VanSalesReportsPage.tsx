@@ -697,8 +697,6 @@ export default function VanSalesReportsPage() {
         {[
           { label: "عدد الطلبات", value: kpis.orders, icon: Receipt, color: "text-blue-500" },
           { label: "المبيعات", value: fmt(kpis.sales), icon: TrendingUp, color: "text-emerald-500" },
-          { label: "النقدي", value: fmt(kpis.cash), icon: Wallet, color: "text-emerald-500" },
-          { label: "الآجل", value: fmt(kpis.credit), icon: Wallet, color: "text-red-500" },
           { label: "التكلفة", value: fmt(kpis.cost), icon: Package, color: "text-amber-500" },
           {
             label: "الربح",
@@ -712,6 +710,8 @@ export default function VanSalesReportsPage() {
             icon: TrendingUp,
             color: "text-emerald-500",
           },
+          { label: "النقدي", value: fmt(kpis.cash), icon: Wallet, color: "text-emerald-500" },
+          { label: "الآجل", value: fmt(kpis.credit), icon: Wallet, color: "text-red-500" },
         ].map((s, i) => (
           <Card key={i} className="p-3">
             <div className="flex items-center gap-2 mb-1">
