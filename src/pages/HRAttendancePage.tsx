@@ -696,18 +696,18 @@ export default function HRAttendancePage() {
       ${company ? `<div class="company">${company}</div>` : ""}
     </div>
     <div class="title">تسجيل الحضور والانصراف</div>
-    <div class="subtitle">امسح الرمز من هاتفك للبصمة</div>
+    <div class="subtitle">امسح الرمز من داخل تطبيق أموالي للبصمة</div>
     <div class="branch-pill">📍 ${branchName}</div>
 
     <div class="qr-wrap"><img src="${qrUrl}" alt="QR"/></div>
-    <div class="scan-cta">📱 امسح الكود — يفتح صفحة البصمة تلقائياً</div>
+    <div class="scan-cta">📱 امسح الكود من داخل تطبيق أموالي → بورتال الموظف</div>
 
     <div class="steps">
       <ol>
-        <li>افتح كاميرا الهاتف</li>
-        <li>وجّهها نحو رمز QR</li>
-        <li>سجّل دخولك بحسابك</li>
-        <li>اختر: حضور أو انصراف</li>
+        <li>افتح تطبيق أموالي وسجّل دخولك</li>
+        <li>ادخل إلى بورتال الموظف</li>
+        <li>اضغط زر "البصمة" (حضور / انصراف)</li>
+        <li>وجّه الكاميرا نحو رمز QR</li>
       </ol>
     </div>
 
