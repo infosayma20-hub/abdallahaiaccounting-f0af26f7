@@ -71,6 +71,30 @@ const isVoid = (s: string | null | undefined) =>
 
 const safe = (n: number | null | undefined) => Number(n || 0);
 
+/** ترجمة حالة الدفع/الفاتورة للعربي */
+const statusLabel = (s: string | null | undefined): string => {
+  const v = (s || "").toString().toLowerCase().trim();
+  const map: Record<string, string> = {
+    paid: "مدفوع",
+    unpaid: "غير مدفوع",
+    partial: "جزئي",
+    partially_paid: "جزئي",
+    draft: "مسودة",
+    cancelled: "ملغي",
+    canceled: "ملغي",
+    void: "ملغي",
+    voided: "ملغي",
+    reversed: "معكوس",
+    posted: "مرحَّل",
+    approved: "معتمد",
+    sent: "مرسل",
+    overdue: "متأخر",
+    pending: "قيد الانتظار",
+  };
+  if (!v) return "—";
+  return map[v] || s || "—";
+};
+
 /** يرجّع قيمة الربح أو null إذا التكلفة غير محددة (cost_price NULL) */
 const lineProfitOrNull = (it: RepItem): number | null => {
   if (it.cost_price === null || it.cost_price === undefined) return null;
