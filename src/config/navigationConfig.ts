@@ -413,6 +413,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "👥 الموظفون", path: "/employees" },
               { label: "🕐 الحضور", path: "/hr-attendance" },
+              { label: "📅 جدول الدوام", path: "/attendance/roster" },
             ],
           },
           {

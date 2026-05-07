@@ -87,6 +87,10 @@ interface Employee {
   is_hr_manager?: boolean;
   department_id?: string | null;
   job_title_id?: string | null;
+  manager_employee_id?: string | null;
+  can_view_team?: boolean;
+  can_manage_schedule?: boolean;
+  can_manage_attendance?: boolean;
 }
 
 const emptyEmployee: Partial<Employee> = {
@@ -1192,6 +1196,58 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">هاتف الطوارئ</label><Input value={form.emergency_phone || ""} onChange={e => setForm({ ...form, emergency_phone: e.target.value })} /></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">العنوان</label><Input value={form.address || ""} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
             <div className="col-span-2"><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+            <div className="col-span-2 border-t border-border pt-3 mt-2">
+              <h4 className="text-sm font-bold text-foreground mb-2">إدارة الفريق</h4>
+              <p className="text-[11px] text-muted-foreground mb-3">حدّد المدير المباشر لهذا الموظف، أو امنحه صلاحية إدارة فريق إذا كان مديراً/مشرف شفت.</p>
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-muted-foreground">المدير المباشر</label>
+              <Select
+                value={form.manager_employee_id || "__none__"}
+                onValueChange={v => setForm({ ...form, manager_employee_id: v === "__none__" ? null : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="بدون" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— بدون —</SelectItem>
+                  {employees
+                    .filter((e) => e.id !== editingId)
+                    .map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.full_name}{e.position ? ` — ${e.position}` : ""}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 grid grid-cols-1 gap-2 bg-muted/30 rounded-md p-3">
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>يستطيع رؤية فريقه</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={!!form.can_view_team}
+                  onChange={e => setForm({ ...form, can_view_team: e.target.checked })}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>يستطيع إدارة جدول الدوام</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={!!form.can_manage_schedule}
+                  onChange={e => setForm({ ...form, can_manage_schedule: e.target.checked })}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 text-sm">
+                <span>يستطيع اعتماد الحضور</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={!!form.can_manage_attendance}
+                  onChange={e => setForm({ ...form, can_manage_attendance: e.target.checked })}
+                />
+              </label>
+            </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
