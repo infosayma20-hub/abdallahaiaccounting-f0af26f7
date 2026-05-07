@@ -43,7 +43,7 @@ export function useRoleRedirect() {
           supabase
             .from("employees")
             .select("id, is_active, is_terminated")
-            .eq("user_id", user.id)
+            .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
 
