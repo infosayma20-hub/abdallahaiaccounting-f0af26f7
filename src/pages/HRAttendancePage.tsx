@@ -39,6 +39,7 @@ type Branch = {
   longitude: number;
   radius_meters: number;
   is_active: boolean;
+  require_gps?: boolean;
 };
 
 type EmployeeLite = {
@@ -283,7 +284,7 @@ export default function HRAttendancePage() {
   const [qrToken, setQrToken] = useState("");
   const [branchForm, setBranchForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "100" });
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "" });
+  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "", require_gps: true });
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
@@ -722,14 +723,15 @@ export default function HRAttendancePage() {
 
   const openEditBranch = (b: Branch) => {
     setEditingBranch(b);
-    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters) });
+    setEditForm({ name: b.name, address: b.address || "", latitude: String(b.latitude), longitude: String(b.longitude), radius_meters: String(b.radius_meters), require_gps: b.require_gps ?? true });
   };
 
   const updateBranch = async () => {
     if (!editingBranch) return;
     const { error } = await supabase.from("branches").update({
       radius_meters: parseInt(editForm.radius_meters) || 100,
-    }).eq("id", editingBranch.id);
+      require_gps: editForm.require_gps,
+    } as any).eq("id", editingBranch.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
     else { toast({ title: "تم حفظ إعدادات الحضور" }); setEditingBranch(null); fetchData(); }
   };
@@ -1176,7 +1178,7 @@ export default function HRAttendancePage() {
           {branches.map(b => {
             const empCount = employees.filter(e => e.branch_id === b.id && e.is_active && !e.is_terminated).length;
             const qrOn = !!companySettings?.hr_require_qr;
-            const gpsOn = !!companySettings?.hr_require_gps;
+            const gpsOn = b.require_gps ?? true;
             return (
             <Card key={b.id} className="min-w-[250px] p-3 hover:border-primary/50 transition-colors">
               <div className="flex items-center justify-between mb-2">
@@ -1612,17 +1614,17 @@ export default function HRAttendancePage() {
               </div>
               <Switch checked={!!companySettings?.hr_require_qr} onCheckedChange={(v) => updateCompanySettings({ hr_require_qr: v })} />
             </div>
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
-              <div>
-                <div className="text-sm font-medium flex items-center gap-2"><MapPin className="h-4 w-4" /> التحقق من موقع الموظف <span className="text-[10px] text-muted-foreground font-normal">(لكل الشركة)</span></div>
-                <div className="text-[11px] text-muted-foreground">يتحقق من وجود الموظف داخل نطاق الفرع عبر GPS</div>
-              </div>
-              <Switch checked={!!companySettings?.hr_require_gps} onCheckedChange={(v) => updateCompanySettings({ hr_require_gps: v })} />
-            </div>
-
             <div className="text-xs text-muted-foreground -mb-1 pt-1">خاص بهذا الفرع فقط</div>
 
-            <div className={cn("rounded-lg border p-3 space-y-1", !companySettings?.hr_require_gps && "opacity-60")}>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="text-sm font-medium flex items-center gap-2"><MapPin className="h-4 w-4" /> التحقق من موقع الموظف <span className="text-[10px] text-muted-foreground font-normal">(هذا الفرع فقط)</span></div>
+                <div className="text-[11px] text-muted-foreground">يتحقق من وجود الموظف داخل نطاق هذا الفرع عبر GPS</div>
+              </div>
+              <Switch checked={editForm.require_gps} onCheckedChange={(v) => setEditForm(p => ({ ...p, require_gps: v }))} />
+            </div>
+
+            <div className={cn("rounded-lg border p-3 space-y-1", !editForm.require_gps && "opacity-60")}>
               <label className="text-xs text-muted-foreground">نطاق الفرع (متر) – خاص بهذا الفرع</label>
               <Input
                 type="number"
@@ -1630,7 +1632,7 @@ export default function HRAttendancePage() {
                 onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))}
                 dir="ltr"
                 placeholder="مثل 150"
-                disabled={!companySettings?.hr_require_gps}
+                disabled={!editForm.require_gps}
               />
               <p className="text-[11px] text-muted-foreground">يستخدم فقط عند تفعيل GPS</p>
             </div>
