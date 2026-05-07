@@ -57,10 +57,10 @@ type Employee = {
   company_id?: string;
 };
 
-export default function EmployeeApp() {
+export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || "home");
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; event_time: string }[]>([]);
