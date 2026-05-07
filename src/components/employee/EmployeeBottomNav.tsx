@@ -1,6 +1,7 @@
 import { Home, Calendar, User, Bell, ClipboardList, FileText, CalendarDays } from "lucide-react";
 
-type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule" | "manager-roster";
+type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule"
+  | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "home", label: "الرئيسية", icon: Home },

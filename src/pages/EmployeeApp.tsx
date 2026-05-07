@@ -15,8 +15,23 @@ import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
 import EmployeeMyRequestsTab from "@/components/employee/EmployeeMyRequestsTab";
 import MyScheduleTab from "@/components/employee/MyScheduleTab";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
+import MyTeamTab from "@/components/employee/manager/MyTeamTab";
+import TeamAttendanceTab from "@/components/employee/manager/TeamAttendanceTab";
+import TeamRequestsTab from "@/components/employee/manager/TeamRequestsTab";
+import ShiftSwapsTab from "@/components/employee/manager/ShiftSwapsTab";
+import ManagerHeader from "@/components/employee/manager/ManagerHeader";
 
-type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule" | "manager-roster";
+function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
+  return (
+    <div className="pb-24">
+      <ManagerHeader title="غير مصرح" onBack={onBack} />
+      <div className="p-8 text-center text-muted-foreground text-sm">{text}</div>
+    </div>
+  );
+}
+
+type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
+  | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 type AttendanceDay = {
   id: string;
@@ -183,11 +198,12 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             isManager={!!employee.is_manager}
             branchName={branchName}
             onOpenManagerRoute={(path) => {
-              if (path.startsWith("/employee/roster") || path.startsWith("/manager/roster")) {
-                setActiveTab("manager-roster");
-              } else {
-                navigate(path);
-              }
+              if (path.startsWith("/employee/roster") || path.startsWith("/manager/roster")) setActiveTab("manager-roster");
+              else if (path.startsWith("/employee/team-attendance")) setActiveTab("manager-attendance");
+              else if (path.startsWith("/employee/team-requests")) setActiveTab("manager-requests");
+              else if (path.startsWith("/employee/shift-swaps")) setActiveTab("manager-swaps");
+              else if (path.startsWith("/employee/team")) setActiveTab("manager-team");
+              else navigate(path);
             }}
           />
         )}
@@ -197,15 +213,40 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "manager-roster" && (
-          <div className="px-2 pt-2 pb-24">
+          <div className="pb-24">
             {(employee.can_manage_schedule || employee.is_manager) ? (
-              <BranchRosterPage />
+              <>
+                <ManagerHeader title="جدول الدوام" subtitle={branchName} onBack={() => setActiveTab("home")} />
+                <BranchRosterPage />
+              </>
             ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                لا تملك صلاحية إدارة جدول الدوام
-              </div>
+              <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية إدارة جدول الدوام" />
             )}
           </div>
+        )}
+
+        {activeTab === "manager-team" && (
+          employee.can_view_team || employee.is_manager
+            ? <MyTeamTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية عرض الفريق" />
+        )}
+
+        {activeTab === "manager-attendance" && (
+          employee.can_manage_attendance || employee.is_manager
+            ? <TeamAttendanceTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية إدارة الحضور" />
+        )}
+
+        {activeTab === "manager-requests" && (
+          employee.can_manage_attendance || employee.can_manage_schedule || employee.is_manager
+            ? <TeamRequestsTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية اعتماد الطلبات" />
+        )}
+
+        {activeTab === "manager-swaps" && (
+          employee.can_manage_schedule || employee.is_manager
+            ? <ShiftSwapsTab branchId={employee.branch_id} branchName={branchName} onBack={() => setActiveTab("home")} />
+            : <NoPerm onBack={() => setActiveTab("home")} text="لا تملك صلاحية تبديل الورديات" />
         )}
 
         {activeTab === "schedule" && (
