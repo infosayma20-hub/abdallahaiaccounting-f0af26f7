@@ -1320,6 +1320,7 @@ export type Database = {
           qr_mode: string
           qr_rotation_minutes: number
           radius_meters: number
+          require_gps: boolean
           secret_key: string
           updated_at: string
           user_id: string
@@ -1335,6 +1336,7 @@ export type Database = {
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          require_gps?: boolean
           secret_key?: string
           updated_at?: string
           user_id: string
@@ -1350,6 +1352,7 @@ export type Database = {
           qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
+          require_gps?: boolean
           secret_key?: string
           updated_at?: string
           user_id?: string

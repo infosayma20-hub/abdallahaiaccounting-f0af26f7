@@ -1,0 +1,1 @@
+ALTER TABLE public.branches ADD COLUMN IF NOT EXISTS require_gps BOOLEAN NOT NULL DEFAULT true;
