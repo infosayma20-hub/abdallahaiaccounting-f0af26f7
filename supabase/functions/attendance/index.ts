@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       // 1. Validate branch
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode")
+        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
       // 4. Get employee record
       const { data: employee, error: empErr } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, user_id, work_hours_per_day")
+        .select("id, full_name, branch_id, user_id, company_id, work_hours_per_day")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -184,6 +184,26 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "لم يتم العثور على سجل الموظف" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // 4.b Multi-tenant guard — employee must belong to the same tenant as the branch
+      if (employee.user_id !== branch.user_id) {
+        console.warn("[attendance] cross-tenant scan blocked", {
+          employee_id: employee.id, employee_owner: employee.user_id,
+          branch_id, branch_owner: branch.user_id,
+        });
+        return new Response(
+          JSON.stringify({ error: "غير مسموح لك بتسجيل الحضور في هذا الفرع." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 4.c Branch assignment guard — if employee is pinned to a branch, block other branches
+      if (employee.branch_id && employee.branch_id !== branch_id) {
+        return new Response(
+          JSON.stringify({ error: "غير مسموح لك بتسجيل الحضور في هذا الفرع." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       const today = new Date().toISOString().split("T")[0];
