@@ -100,8 +100,19 @@ export default function BranchRosterPage() {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h2 className="text-xl font-bold mb-2">لا يوجد فروع مرتبطة بحسابك</h2>
-        <p className="text-muted-foreground">يرجى التواصل مع مدير الموارد البشرية لربط فرعك.</p>
+        <h2 className="text-xl font-bold mb-2">
+          {isHrAdmin ? "لا توجد فروع مُعرّفة بعد" : "لا يوجد فروع مرتبطة بحسابك"}
+        </h2>
+        <p className="text-muted-foreground mb-4">
+          {isHrAdmin
+            ? "أنشئ فرعاً واحداً على الأقل لتبدأ بإدارة جداول الدوام."
+            : "يرجى التواصل مع مدير الموارد البشرية لربط فرعك."}
+        </p>
+        {isHrAdmin && (
+          <Button onClick={() => (window.location.href = "/settings?tab=branches")}>
+            إدارة الفروع
+          </Button>
+        )}
       </div>
     );
   }

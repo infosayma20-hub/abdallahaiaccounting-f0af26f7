@@ -74,6 +74,8 @@ const ROUTE_META: Record<string, { title: string; icon: string }> = {
   "/employees": { title: "الموظفين", icon: "usercheck" },
   "/payroll": { title: "الرواتب", icon: "dollar" },
   "/hr-attendance": { title: "الحضور", icon: "usercheck" },
+  "/attendance/roster": { title: "جدول الدوام", icon: "usercheck" },
+  "/manager/roster": { title: "جدول الدوام", icon: "usercheck" },
   "/leaves": { title: "الإجازات", icon: "usercheck" },
   "/advances": { title: "السلف", icon: "dollar" },
   "/loans": { title: "القروض", icon: "dollar" },
