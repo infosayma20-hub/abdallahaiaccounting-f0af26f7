@@ -74,15 +74,17 @@ export function useRoleRedirect() {
               if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
             });
           } catch {}
-          console.info("[role-redirect]", {
+          console.info("[role-redirect] finalRedirect = /employee", {
             authUid: user.id,
             employeeId: empRow.id,
             employeeAuthUserId: empRow.auth_user_id,
             employeeOwnerUserId: empRow.user_id,
             userRoles: roles,
             isManager: empRow.is_manager,
+            isHrManager: empRow.is_hr_manager,
             canViewTeam: empRow.can_view_team,
             canManageSchedule: empRow.can_manage_schedule,
+            canManageAttendance: empRow.can_manage_attendance,
             finalRedirect: nextPath,
           });
           if (isCancelled) return;
