@@ -169,7 +169,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                 <Button
                   variant="outline"
                   className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
-                  onClick={() => onOpenManagerRoute?.("/manager/roster")}
+                  onClick={() => onOpenManagerRoute?.("/employee/roster")}
                 >
                   <CalendarDays className="h-4 w-4 text-primary" />
                   جدول الدوام
@@ -179,7 +179,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                 <Button
                   variant="outline"
                   className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
-                  onClick={() => onOpenManagerRoute?.("/manager/roster?tab=attendance")}
+                  onClick={() => onOpenManagerRoute?.("/employee/roster?tab=attendance")}
                 >
                   <ClipboardCheck className="h-4 w-4 text-emerald-500" />
                   حضور الفريق
@@ -189,7 +189,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                 <Button
                   variant="outline"
                   className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
-                  onClick={() => onOpenManagerRoute?.("/manager/roster?tab=team")}
+                  onClick={() => onOpenManagerRoute?.("/employee/roster?tab=team")}
                 >
                   <Users className="h-4 w-4 text-primary" />
                   فريقي
@@ -199,7 +199,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
                 <Button
                   variant="outline"
                   className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
-                  onClick={() => onOpenManagerRoute?.("/manager/roster?tab=swaps")}
+                  onClick={() => onOpenManagerRoute?.("/employee/roster?tab=swaps")}
                 >
                   <Send className="h-4 w-4 text-warning" />
                   تبديل الورديات
