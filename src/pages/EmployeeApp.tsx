@@ -81,7 +81,7 @@ export default function EmployeeApp() {
 
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, user_id")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, user_id, company_id")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
