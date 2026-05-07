@@ -14,8 +14,9 @@ import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
 import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
 import EmployeeMyRequestsTab from "@/components/employee/EmployeeMyRequestsTab";
 import MyScheduleTab from "@/components/employee/MyScheduleTab";
+import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 
-type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule";
+type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule" | "manager-roster";
 
 type AttendanceDay = {
   id: string;
@@ -181,12 +182,30 @@ export default function EmployeeApp() {
             canManageAttendance={!!employee.can_manage_attendance}
             isManager={!!employee.is_manager}
             branchName={branchName}
-            onOpenManagerRoute={(path) => navigate(path)}
+            onOpenManagerRoute={(path) => {
+              if (path.startsWith("/employee/roster") || path.startsWith("/manager/roster")) {
+                setActiveTab("manager-roster");
+              } else {
+                navigate(path);
+              }
+            }}
           />
         )}
 
         {activeTab === "history" && (
           <AttendanceCalendarTab history={history} />
+        )}
+
+        {activeTab === "manager-roster" && (
+          <div className="px-2 pt-2 pb-24">
+            {(employee.can_manage_schedule || employee.is_manager) ? (
+              <BranchRosterPage />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                لا تملك صلاحية إدارة جدول الدوام
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === "schedule" && (
