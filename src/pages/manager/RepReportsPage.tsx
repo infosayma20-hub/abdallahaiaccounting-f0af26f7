@@ -15,6 +15,14 @@ const num = (n: any) => Number(n || 0);
 
 const SALES_TYPES = ["sale", "sales"];
 const STATUS_EXCLUDE = ["cancelled", "void", "reversed", "draft", "ملغي", "ملغى"];
+const PAGE_LIMIT = 10000; // safety cap (well above default 1000) until real pagination
+
+/** يضيف يوم واحد إلى تاريخ ISO (yyyy-mm-dd) لاستخدام شرط exclusive: date < to+1 */
+function isoPlusDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 type Row = Record<string, any>;
 
@@ -87,14 +95,17 @@ export default function RepReportsPage() {
   const load = async () => {
     setLoading(true);
     try {
+      const toExclusive = isoPlusDays(filters.to, 1);
+
       // 1) Invoices in window
       let invQ = (supabase as any)
         .from("invoices")
         .select("id, invoice_number, invoice_date, salesperson_id, contact_id, contact_name, status, is_voided, discount_amount, subtotal, total_amount, payment_method, invoice_type, created_at, user_id")
         .in("invoice_type", SALES_TYPES)
         .gte("invoice_date", filters.from)
-        .lte("invoice_date", filters.to)
-        .eq("is_voided", false);
+        .lt("invoice_date", toExclusive)
+        .eq("is_voided", false)
+        .limit(PAGE_LIMIT);
       if (filters.repId !== "all") invQ = invQ.eq("salesperson_id", filters.repId);
       if (filters.contactId !== "all") invQ = invQ.eq("contact_id", filters.contactId);
       const { data: rawInvs } = await invQ;
@@ -102,19 +113,15 @@ export default function RepReportsPage() {
         (i: any) => !STATUS_EXCLUDE.includes((i.status || "").toLowerCase()),
       );
       const invIds = invList.map((i: any) => i.id);
-      const invMap = new Map<string, any>(invList.map((i: any) => [i.id, i]));
 
-      // 2) Items
+      // 2) Items (single query, no duplicate fetch)
       let rawItems: any[] = [];
       if (invIds.length) {
-        const { data } = await (supabase as any)
-          .from("invoice_items")
-          .select("id, invoice_id, product_id, product_name, quantity, unit_price, cost_price, line_profit, total_amount, supplier_id, supplier_name");
-        // chunk-safer: just do .in
         const { data: items2 } = await (supabase as any)
           .from("invoice_items")
           .select("id, invoice_id, product_id, product_name, quantity, unit_price, cost_price, line_profit, total_amount, supplier_id, supplier_name")
-          .in("invoice_id", invIds);
+          .in("invoice_id", invIds)
+          .limit(PAGE_LIMIT);
         rawItems = items2 || [];
       }
       // product->supplier fallback
@@ -151,50 +158,81 @@ export default function RepReportsPage() {
         filteredItems = filteredItems.filter((i) => i.product_id === filters.productId);
       }
 
-      // 3) Returns
+      // 3) Returns — enum value is 'sales' (NOT 'sales_return')
       let retQ = (supabase as any)
         .from("returns")
         .select("id, return_number, return_date, contact_id, contact_name, related_invoice_id, total_amount, status, is_deleted")
         .gte("return_date", filters.from)
-        .lte("return_date", filters.to)
+        .lt("return_date", toExclusive)
         .eq("is_deleted", false)
-        .eq("return_type", "sales_return");
+        .eq("return_type", "sales")
+        .limit(PAGE_LIMIT);
       const { data: rawReturns } = await retQ;
       let retList = (rawReturns || []).filter((r: any) => !STATUS_EXCLUDE.includes((r.status || "").toLowerCase()));
-      // restrict returns by linked invoice's salesperson if rep filter active
+      // restrict returns: when rep/customer filter active, REQUIRE link to a matching invoice
       if (filters.repId !== "all" || filters.contactId !== "all") {
         const validInvIds = new Set(invIds);
-        retList = retList.filter((r: any) => !r.related_invoice_id || validInvIds.has(r.related_invoice_id));
+        retList = retList.filter((r: any) => r.related_invoice_id && validInvIds.has(r.related_invoice_id));
       }
 
-      // 4) Transactions for collections / expenses (use notes JSON tag)
+      // 4) Transactions for collections / expenses
+      //    Rep linkage priority:
+      //      a) notes.rep_id (current strongest signal)
+      //      b) contacts.sales_rep_id (assigned rep on customer)
       const { data: rawTxs } = await (supabase as any)
         .from("transactions")
         .select("id, amount, notes, payment_method, debit_account_code, credit_account_code, transaction_type, reversed_by_id, transaction_date, description, contact_id, expense_category, is_deleted")
         .gte("transaction_date", filters.from)
-        .lte("transaction_date", filters.to)
-        .eq("is_deleted", false);
+        .lt("transaction_date", toExclusive)
+        .eq("is_deleted", false)
+        .limit(PAGE_LIMIT);
+
+      // Build customer→rep map (for fallback)
+      const customerIds = Array.from(new Set((rawTxs || []).map((t: any) => t.contact_id).filter(Boolean)));
+      const custRepMap = new Map<string, string>();
+      if (customerIds.length) {
+        const { data: cs } = await (supabase as any)
+          .from("contacts")
+          .select("id, sales_rep_id")
+          .in("id", customerIds);
+        (cs || []).forEach((c: any) => { if (c.sales_rep_id) custRepMap.set(c.id, c.sales_rep_id); });
+      }
+
+      // resolver: returns rep_id for a transaction or null
+      const resolveTxRep = (t: any): string | null => {
+        try {
+          const meta = JSON.parse(t.notes || "{}");
+          if (meta?.rep_id) return meta.rep_id;
+        } catch {}
+        if (t.contact_id && custRepMap.has(t.contact_id)) return custRepMap.get(t.contact_id) || null;
+        return null;
+      };
 
       const allowedRepIds = new Set<string>(
         filters.repId === "all" ? reps.map((r) => r.id) : [filters.repId],
       );
+
+      const seenIds = new Set<string>(); // de-dup safety
       const tagged = (rawTxs || []).filter((t: any) => {
         if (t.reversed_by_id) return false;
         if (t.transaction_type === "reversal") return false;
-        try {
-          const meta = JSON.parse(t.notes || "{}");
-          if (!meta?.rep_id) return false;
-          return allowedRepIds.has(meta.rep_id);
-        } catch {
-          return false;
-        }
+        if (seenIds.has(t.id)) return false;
+        const rep = resolveTxRep(t);
+        if (!rep) return false;
+        if (!allowedRepIds.has(rep)) return false;
+        // attach resolved rep on the row for downstream aggregation
+        t._rep_id = rep;
+        seenIds.add(t.id);
+        return true;
       });
       const expensesTx = tagged.filter((t: any) => t.payment_method === "rep_expense");
       const collectionsTx = tagged.filter((t: any) => {
+        if (t.payment_method === "rep_expense") return false;
         try {
           const m = JSON.parse(t.notes || "{}");
-          return m?.tag === "REP-RECEIPT" || m?.tag === "REP-COLLECTION" || (t.transaction_type === "receipt");
-        } catch { return false; }
+          if (m?.tag === "REP-RECEIPT" || m?.tag === "REP-COLLECTION") return true;
+        } catch {}
+        return t.transaction_type === "receipt";
       });
 
       setInvs(invList);
