@@ -13,9 +13,13 @@ import {
   useWeekRoster,
   useUpsertRoster,
   useDeleteRosterEntry,
+  useCurrentEmployee,
   type RosterEntry,
   type ShiftTemplate,
 } from "@/hooks/useBranchRoster";
+import { useEffect, useState as useStateReact } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 function startOfWeek(d: Date): Date {
   // Saturday start (Arab work week)
@@ -50,9 +54,20 @@ type CellState = {
 };
 
 export default function BranchRosterPage() {
+  const { user } = useAuth();
+  const { data: me } = useCurrentEmployee();
   const { data: branches = [], isLoading: bLoading } = useManagerBranches();
   const [branchId, setBranchId] = useState<string>("");
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
+  const [isHrAdmin, setIsHrAdmin] = useStateReact(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      const roles = (data || []).map((r: any) => r.role);
+      setIsHrAdmin(roles.length === 0 || roles.includes("admin") || roles.includes("hr_manager"));
+    });
+  }, [user?.id]);
 
   const activeBranch = branches.find((b) => b.branch_id === branchId) || branches[0];
   const effectiveBranchId = activeBranch?.branch_id;
@@ -62,7 +77,11 @@ export default function BranchRosterPage() {
   const weekEnd = fmtISO(addDays(weekAnchor, 6));
 
   const { data: templates = [] } = useShiftTemplates(companyId);
-  const { data: employees = [] } = useBranchEmployees(effectiveBranchId);
+  // Non-admin/HR managers: restrict to their direct team only
+  const { data: employees = [] } = useBranchEmployees(
+    effectiveBranchId,
+    isHrAdmin ? undefined : me?.id,
+  );
   const { data: roster = [], isLoading: rLoading } = useWeekRoster(effectiveBranchId, weekStart, weekEnd);
 
   const upsert = useUpsertRoster();
