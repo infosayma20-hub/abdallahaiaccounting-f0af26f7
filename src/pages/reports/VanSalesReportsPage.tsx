@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { fmtDateDisplay } from "@/lib/utils";
 import { setNextExportBranding } from "@/lib/excel-export";
+import { RtlDataTable, type RtlColumn } from "@/components/ui/RtlDataTable";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
