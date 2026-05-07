@@ -666,24 +666,24 @@ export default function HRAttendancePage() {
     printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>بصمة الحضور - ${branchName}</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4 portrait; margin: 0; }
+  @page { size: A4 portrait; margin: 8mm; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; color: #0D1B2E; background: #fff; }
-  .page { width: 210mm; height: 297mm; padding: 8mm 12mm 6mm; display: flex; flex-direction: column; align-items: center; overflow: hidden; page-break-after: avoid; page-break-inside: avoid; }
-  .header { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2mm; padding-bottom: 4mm; border-bottom: 2px dashed #0D1B2E33; }
-  .logo { width: 20mm; height: 20mm; object-fit: contain; }
-  .company { font-size: 13pt; font-weight: 700; color: #0D1B2E; opacity: .8; }
-  .title { font-size: 26pt; font-weight: 900; color: #0D1B2E; margin-top: 4mm; text-align: center; line-height: 1.2; }
-  .subtitle { font-size: 15pt; font-weight: 700; color: #0D1B2E; opacity: .85; margin-top: 1mm; text-align: center; }
-  .branch-pill { margin-top: 3mm; background: #0D1B2E; color: #fff; padding: 3mm 9mm; border-radius: 999px; font-size: 20pt; font-weight: 800; text-align: center; }
-  .qr-wrap { margin: 5mm 0 3mm; padding: 6mm; border: 4px solid #0D1B2E; border-radius: 8mm; background: #fff; }
-  .qr-wrap img { width: 145mm; height: 145mm; display: block; }
-  .scan-cta { font-size: 18pt; font-weight: 800; color: #0D1B2E; margin-top: 1mm; text-align: center; }
-  .steps { margin-top: 4mm; width: 100%; max-width: 175mm; }
-  .steps ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 5mm; }
-  .steps li { counter-increment: s; padding: 3mm 16mm 3mm 5mm; position: relative; background: #F4F6FA; border-radius: 3mm; font-size: 15pt; font-weight: 700; color: #0D1B2E; min-height: 14mm; display: flex; align-items: center; }
-  .steps li::before { content: counter(s); position: absolute; right: 3mm; top: 50%; transform: translateY(-50%); width: 10mm; height: 10mm; border-radius: 50%; background: #0D1B2E; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15pt; }
-  .footer { margin-top: auto; padding-top: 4mm; width: 100%; display: flex; justify-content: space-between; font-size: 9pt; color: #0D1B2E99; border-top: 1px dashed #0D1B2E33; }
+  .page { width: 100%; max-height: 281mm; padding: 0 4mm; display: flex; flex-direction: column; align-items: center; overflow: hidden; break-inside: avoid; page-break-inside: avoid; page-break-after: avoid; }
+  .header { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1mm; padding-bottom: 2mm; border-bottom: 2px dashed #0D1B2E33; }
+  .logo { width: 16mm; height: 16mm; object-fit: contain; }
+  .company { font-size: 11pt; font-weight: 700; color: #0D1B2E; opacity: .8; }
+  .title { font-size: 22pt; font-weight: 900; color: #0D1B2E; margin-top: 2mm; text-align: center; line-height: 1.15; }
+  .subtitle { font-size: 12pt; font-weight: 700; color: #0D1B2E; opacity: .85; margin-top: 0.5mm; text-align: center; }
+  .branch-pill { margin-top: 2mm; background: #0D1B2E; color: #fff; padding: 2mm 8mm; border-radius: 999px; font-size: 16pt; font-weight: 800; text-align: center; }
+  .qr-wrap { margin: 3mm 0 2mm; padding: 4mm; border: 3px solid #0D1B2E; border-radius: 6mm; background: #fff; }
+  .qr-wrap img { width: 120mm; height: 120mm; display: block; }
+  .scan-cta { font-size: 13pt; font-weight: 800; color: #0D1B2E; margin-top: 1mm; text-align: center; }
+  .steps { margin-top: 2mm; width: 100%; max-width: 180mm; }
+  .steps ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 4mm; }
+  .steps li { counter-increment: s; padding: 2mm 14mm 2mm 4mm; position: relative; background: #F4F6FA; border-radius: 3mm; font-size: 11pt; font-weight: 700; color: #0D1B2E; min-height: 11mm; display: flex; align-items: center; line-height: 1.25; }
+  .steps li::before { content: counter(s); position: absolute; right: 2mm; top: 50%; transform: translateY(-50%); width: 8mm; height: 8mm; border-radius: 50%; background: #0D1B2E; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12pt; }
+  .footer { margin-top: 3mm; padding-top: 2mm; width: 100%; display: flex; justify-content: space-between; font-size: 8pt; color: #0D1B2E99; border-top: 1px dashed #0D1B2E33; }
   .no-print { position: fixed; top: 8px; left: 8px; }
   @media print { .no-print { display: none; } }
   .btn { background: #0D1B2E; color: #fff; border: 0; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-weight: 700; cursor: pointer; }
