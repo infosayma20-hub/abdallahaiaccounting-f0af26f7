@@ -32,10 +32,12 @@ export interface SupabaseAccount {
 export async function fetchTransactions(userId: string) {
   const { data, error } = await supabase
     .from("transactions")
-    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate")
+    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate, reversed_by_id")
     .eq("user_id", userId)
+    .is("reversed_by_id", null)
+    .neq("transaction_type", "reversal")
     .order("transaction_date", { ascending: false })
-    .limit(5000);
+    .limit(20000);
   if (error) throw error;
   return data || [];
 }
