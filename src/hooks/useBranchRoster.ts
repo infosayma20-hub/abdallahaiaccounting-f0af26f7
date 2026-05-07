@@ -70,14 +70,22 @@ export function useManagerBranches() {
         isAdmin = r.includes("admin") || r.includes("hr_manager");
       }
       if (isAdmin) {
-        const { data: allBr } = await supabase
+        const { data: allBr, error: brErr } = await supabase
           .from("branches")
-          .select("id, name, user_id, company_id")
+          .select("id, name, user_id")
           .eq("is_active", true)
           .order("name");
+        if (brErr) {
+          console.error("[useManagerBranches] admin branches load failed:", brErr);
+          throw brErr;
+        }
+        console.debug("[useManagerBranches] admin branches loaded:", {
+          count: allBr?.length || 0,
+          user_id: user?.id,
+        });
         return (allBr || []).map((b: any) => ({
           branch_id: b.id,
-          company_id: b.company_id || b.user_id,
+          company_id: b.user_id, // tenant root = branch.user_id
           branch_name: b.name || "—",
         }));
       }

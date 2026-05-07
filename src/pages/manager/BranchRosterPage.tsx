@@ -58,7 +58,7 @@ type CellState = {
 export default function BranchRosterPage() {
   const { user } = useAuth();
   const { data: me } = useCurrentEmployee();
-  const { data: branches = [], isLoading: bLoading } = useManagerBranches();
+  const { data: branches = [], isLoading: bLoading, error: bError } = useManagerBranches();
   const [branchId, setBranchId] = useState<string>("");
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
   const [isHrAdmin, setIsHrAdmin] = useState(false);
@@ -105,6 +105,16 @@ export default function BranchRosterPage() {
   });
 
   if (bLoading) return <div className="p-8 text-center">جار التحميل…</div>;
+  if (bError) {
+    return (
+      <div className="p-8 max-w-xl mx-auto text-center">
+        <Calendar className="h-12 w-12 mx-auto text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">فشل تحميل الفروع</h2>
+        <p className="text-sm text-muted-foreground mb-2">{(bError as any)?.message || "خطأ غير معروف"}</p>
+        <p className="text-xs text-muted-foreground">راجع الكونسول أو تواصل مع الدعم الفني.</p>
+      </div>
+    );
+  }
   if (!branches.length) {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
