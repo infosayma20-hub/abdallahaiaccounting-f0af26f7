@@ -946,21 +946,22 @@ export default function VanSalesReportsPage() {
 
         {/* 6. Orders */}
         <TabsContent value="orders">
-          <Card className="overflow-hidden mt-3">
+          {/* Desktop table */}
+          <Card className="overflow-hidden mt-3 hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
+                    <th className="p-3 text-center font-semibold text-muted-foreground w-16">إجراء</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">رقم الطلب</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">التاريخ</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">المندوب</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">الزبون</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">الدفع</th>
+                    <th className="p-3 text-right font-semibold text-muted-foreground">الحالة</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">الإجمالي</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">التكلفة</th>
                     <th className="p-3 text-right font-semibold text-muted-foreground">الربح</th>
-                    <th className="p-3 text-right font-semibold text-muted-foreground">الحالة</th>
-                    <th className="p-3 text-center font-semibold text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -968,6 +969,11 @@ export default function VanSalesReportsPage() {
                     <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">لا توجد طلبات</td></tr>
                   ) : orders.map((o) => (
                     <tr key={o.id} className="border-b border-border/40 hover:bg-muted/20">
+                      <td className="p-3 text-center">
+                        <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
+                          <ExternalLink className="h-3 w-3" /> فتح
+                        </button>
+                      </td>
                       <td className="p-3 font-medium">{o.invoice_number || "—"}</td>
                       <td className="p-3">{fmtDateDisplay(o.invoice_date)}</td>
                       <td className="p-3">{o.rep_name}</td>
@@ -977,21 +983,43 @@ export default function VanSalesReportsPage() {
                           {isCash(o.payment_method) ? "نقدي" : "آجل"}
                         </span>
                       </td>
+                      <td className="p-3 text-muted-foreground">{statusLabel(o.payment_status || o.status)}</td>
                       <td className="p-3">{fmt(safe(o.total_amount))}</td>
                       <td className="p-3 text-amber-600">{fmt(o.cost)}</td>
                       <td className="p-3 font-bold">{o.undefinedCost ? <span className="text-amber-600">تكلفة غير محددة</span> : fmt(o.profit)}</td>
-                      <td className="p-3 text-muted-foreground">{o.payment_status || o.status || "—"}</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
-                          <ExternalLink className="h-3 w-3" /> فتح
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </Card>
+
+          {/* Mobile cards */}
+          <div className="md:hidden mt-3 space-y-2">
+            {!orders.length ? (
+              <Card className="p-6 text-center text-muted-foreground text-sm">لا توجد طلبات</Card>
+            ) : orders.map((o) => (
+              <Card key={o.id} className="p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm truncate">{o.invoice_number || "—"}</div>
+                    <div className="text-[11px] text-muted-foreground">{fmtDateDisplay(o.invoice_date)}</div>
+                  </div>
+                  <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary text-xs inline-flex items-center gap-1 px-2 py-1 rounded-md border border-primary/30 hover:bg-primary/5">
+                    <ExternalLink className="h-3 w-3" /> فتح
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">المندوب:</span><span className="font-medium truncate">{o.rep_name}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">الزبون:</span><span className="font-medium truncate">{o.contact_name || "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">الإجمالي:</span><span className="font-bold">{fmt(safe(o.total_amount))}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">الربح:</span><span className="font-bold text-emerald-600">{o.undefinedCost ? "—" : fmt(o.profit)}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">الدفع:</span><span className={isCash(o.payment_method) ? "text-emerald-600" : "text-red-600"}>{isCash(o.payment_method) ? "نقدي" : "آجل"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">الحالة:</span><span>{statusLabel(o.payment_status || o.status)}</span></div>
+                </div>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
