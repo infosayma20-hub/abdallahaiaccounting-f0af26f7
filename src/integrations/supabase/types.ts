@@ -16663,6 +16663,7 @@ export type Database = {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
+      is_my_team_employee: { Args: { _employee_id: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_member: {
