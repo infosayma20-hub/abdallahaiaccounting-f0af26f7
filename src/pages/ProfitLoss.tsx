@@ -500,7 +500,7 @@ const ProfitLoss = () => {
     const tableHeaders = ["البند", "المبلغ", ...(showPercentages ? ["%"] : []), ...(showComparison ? ["الفترة السابقة"] : [])];
     const tableRows = rows.map(l => {
       const isNeg = l.amount < 0;
-      const pctVal = current.totalRevenue > 0 ? ((Math.abs(l.amount) / current.totalRevenue) * 100).toFixed(1) + "%" : "";
+      const pctVal = current.totalRevenue > 0 ? ((l.amount / current.totalRevenue) * 100).toFixed(1) + "%" : "";
       const indent = l.level * 16;
       const isBold = l.type === "subtotal" || l.type === "total" || l.type === "grand-total";
       const style = isBold ? 'font-weight:700;' : '';
@@ -664,7 +664,8 @@ const ProfitLoss = () => {
                     const isCollapsed = line.section && collapsedSections.has(line.section);
                     if (line.type === "item" && isCollapsed) return null;
 
-                    const pctVal = current.totalRevenue > 0 && line.type !== "header" ? ((Math.abs(line.amount) / current.totalRevenue) * 100).toFixed(1) : "";
+                    const pctVal = current.totalRevenue > 0 && line.type !== "header" ? ((line.amount / current.totalRevenue) * 100).toFixed(1) : "";
+                    const pctNeg = pctVal !== "" && parseFloat(pctVal) < 0;
                     const change = showComparison && line.compareAmount !== undefined ? pctChange(line.amount, line.compareAmount) : null;
                     const isNeg = line.amount < 0;
                     const indent = line.level * 16;
@@ -694,7 +695,7 @@ const ProfitLoss = () => {
                         <td className={`p-3 tabular-nums ${isNeg ? "text-destructive" : ""}`}>
                           {line.type === "header" ? "" : fmtAmount(line.amount)}
                         </td>
-                        {showPercentages && <td className="p-3 text-center text-muted-foreground tabular-nums">{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
+                        {showPercentages && <td className={`p-3 text-center tabular-nums ${pctNeg ? "text-destructive" : "text-muted-foreground"}`}>{line.type === "header" ? "" : pctVal ? `${pctVal}%` : ""}</td>}
                         {showComparison && (
                           <td className="p-3 tabular-nums text-muted-foreground">
                             {line.compareAmount !== undefined ? fmtAmount(line.compareAmount) : ""}
@@ -781,9 +782,9 @@ const ProfitLoss = () => {
               <Card className="p-4">
                 <h3 className="text-xs font-bold text-foreground mb-3">هامش الربح الإجمالي</h3>
                 <div className="flex flex-col items-center">
-                  <div className="text-3xl font-bold text-primary tabular-nums">{grossMarginPct.toFixed(1)}%</div>
+                  <div className={`text-3xl font-bold tabular-nums ${grossMarginPct >= 0 ? "text-primary" : "text-destructive"}`}>{grossMarginPct.toFixed(1)}%</div>
                   <div className="w-full mt-3 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(grossMarginPct, 100)}%` }} />
+                    <div className={`h-full rounded-full transition-all ${grossMarginPct >= 0 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${Math.min(Math.abs(grossMarginPct), 100)}%` }} />
                   </div>
                 </div>
               </Card>
