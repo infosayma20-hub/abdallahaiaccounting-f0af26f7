@@ -494,18 +494,32 @@ const ChequesPage = () => {
       }
 
       if (data.action === 'endorse') {
-        updatePayload.endorsed_to_name = data.endorsedToName;
-        updatePayload.endorsed_to_contact_id = data.endorsedToContactId;
-        const { data: txResult } = await supabase.from('transactions').insert({
-          user_id: user.id, transaction_date: new Date().toISOString().split('T')[0],
-          description: `تظهير شيك - ${cheque.party_name} → ${data.endorsedToName}`,
-          debit_account_code: '2110', credit_account_code: '1150',
-          amount: cheque.amount, currency: cheque.currency || 'شيكل',
-          transaction_type: 'cheque_endorsement', contact_id: data.endorsedToContactId || null,
-          reference: `CHQ-END-${cheque.id.slice(0, 8)}`,
-          idempotency_key: `CHQ-END-${cheque.id}`,
-        }).select('id').single();
-        txId = txResult?.id || null;
+        // ✅ Endorsement MUST go through the unified RPC
+        // (preserves original_contact_id, prevents duplicate endorsements,
+        //  enforces fiscal-period lock, validates supplier contact_id).
+        if (!data.endorsedToContactId) {
+          throw new Error('تجيير الشيك يتطلب اختيار المورد المظهَّر إليه من القائمة (contact_id).');
+        }
+        const result = await callChequeLifecycleRpc({
+          userId: user.id,
+          chequeId: cheque.id,
+          event: 'endorse',
+          eventDate: new Date().toISOString().split('T')[0],
+          bankAccountCode: null,
+          notes: data.notes || null,
+          bankFees: null,
+          endorsedToContactId: data.endorsedToContactId,
+          reason: null,
+        });
+        if (!result.success) throw new Error(result.error || 'فشل تنفيذ التجيير');
+        // RPC already updated cheque + history; just refresh UI
+        setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
+        toast.success(`تم: 📤 تظهير لمورد`);
+        setActionTarget(null);
+        setActionType(null);
+        fetchCheques();
+        setActionSubmitting(false);
+        return;
       }
 
       if (data.action === 'return_to_customer') {
