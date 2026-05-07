@@ -781,6 +781,28 @@ const ChequesPage = () => {
   useEffect(() => { if (user) { fetchCheques(); fetchContacts(); fetchBankAccounts(); } }, [user]);
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus, dateFrom, dateTo]);
 
+  // Alert once per session for endorsed cheques due within 7 days (we remain liable)
+  useEffect(() => {
+    if (!cheques.length) return;
+    const flagKey = `cheques_endorsed_due_alert_${new Date().toISOString().slice(0,10)}`;
+    if (sessionStorage.getItem(flagKey)) return;
+    const today = new Date().toISOString().split('T')[0];
+    const in7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+    const dueEndorsed = cheques.filter(c => c.status === 'مظهر' && c.cheque_date >= today && c.cheque_date <= in7);
+    const overdueEndorsed = cheques.filter(c => c.status === 'مظهر' && c.cheque_date < today);
+    if (dueEndorsed.length || overdueEndorsed.length) {
+      const parts: string[] = [];
+      if (overdueEndorsed.length) parts.push(`${overdueEndorsed.length} مظهَّر متأخر`);
+      if (dueEndorsed.length) parts.push(`${dueEndorsed.length} مظهَّر مستحق خلال 7 أيام`);
+      toast.warning(`⚠️ شيكات مظهَّرة بحاجة متابعة: ${parts.join(' • ')}`, {
+        description: 'أنت ضامن لها أمام المظهَّر إليه إذا ارتدّت.',
+        duration: 8000,
+      });
+      sessionStorage.setItem(flagKey, '1');
+    }
+  }, [cheques]);
+
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
@@ -1085,7 +1107,7 @@ const ChequesPage = () => {
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days < 0 ? '#DC2626' : days <= 7 ? '#F59E0B' : '#64748B'; })(), fontWeight: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days <= 7 ? 700 : 400; })() }}>
                           {(() => {
-                            if (!PENDING_STATUSES.includes(c.status)) return '—';
+                            if (!DUE_WATCH_STATUSES.includes(c.status)) return '—';
                             const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
                             if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
                             if (days === 0) return 'اليوم';
