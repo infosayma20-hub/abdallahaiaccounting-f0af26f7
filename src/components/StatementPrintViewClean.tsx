@@ -295,99 +295,101 @@ const StatementPrintViewClean = ({
             // ─── Nested Invoice Items Table (Print) ───
             if (r.lineItemDetail === "invoice-table" && r.invoiceItems && r.invoiceItems.length > 0) {
               const items = r.invoiceItems;
-              const isSingle = items.length === 1;
-              const cardStyle: React.CSSProperties = {
-                background: "#F8FAFC",
-                borderRight: "3px solid #0D1B2E",
-                borderRadius: 6,
-                padding: "5px 9px 6px",
-                margin: "2px 28px 5px 4px",
-                pageBreakInside: "avoid",
-              };
-              const headerStyle: React.CSSProperties = {
-                fontSize: 8.5,
-                color: "#64748B",
-                fontWeight: 600,
-                marginBottom: 4,
-                paddingBottom: 3,
-                borderBottom: "1px dashed #E2E8F0",
-              };
-              const chipStyle: React.CSSProperties = {
-                display: "inline-block",
-                background: "#FFFFFF",
-                border: "1px solid #E2E8F0",
-                borderRadius: 4,
-                padding: "1.5px 6px",
-                fontSize: 8.5,
-                marginLeft: 4,
-                marginBottom: 2,
-              };
-              const chipLabel: React.CSSProperties = { color: "#94A3B8", fontWeight: 600, fontSize: 8 };
-              const chipValue: React.CSSProperties = { color: "#1F2937", fontWeight: 600, marginRight: 3, direction: "ltr", display: "inline-block" };
-              if (isSingle) {
-                const it = items[0];
-                return (
-                  <tr key={r.transaction_id + "-" + i}>
-                    <td colSpan={columns.length} style={{ padding: 0, border: "none" }}>
-                      <div style={cardStyle}>
-                        <div style={headerStyle}>
-                          تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{r.reference}</span> · 1 صنف
-                        </div>
-                        <div>
-                          <span style={{ ...chipStyle, background: "#0D1B2E", borderColor: "#0D1B2E", color: "#fff", fontWeight: 700 }}>{it.productName || "—"}</span>
-                          <span style={chipStyle}><span style={chipLabel}>الكمية:</span><span style={chipValue}>{it.quantity}{it.unit ? ` ${it.unit}` : ""}</span></span>
-                          <span style={chipStyle}><span style={chipLabel}>السعر:</span><span style={chipValue}>{fmt(it.unitPrice)}</span></span>
-                          <span style={{ ...chipStyle, ...(it.discount > 0 ? { background: "#FEF3C7", borderColor: "#FDE68A" } : {}) }}>
-                            <span style={chipLabel}>الخصم:</span>
-                            <span style={{ ...chipValue, color: it.discount > 0 ? "#B45309" : "#CBD5E1" }}>{it.discount > 0 ? it.discount : "—"}</span>
-                          </span>
-                          <span style={chipStyle}><span style={chipLabel}>الضريبة:</span><span style={{ ...chipValue, color: "#475569" }}>{it.tax > 0 ? `${it.tax}%` : "—"}</span></span>
-                          <span style={{ ...chipStyle, background: "#ECFDF5", borderColor: "#A7F3D0" }}>
-                            <span style={chipLabel}>الإجمالي:</span>
-                            <span style={{ ...chipValue, color: "#065F46", fontWeight: 700 }}>{fmt(it.total)}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }
+              // Variant 3 — nested items table with L-shape connector + info pill label.
+              // Info palette (matches --info: 199 89% 48% / #0EA5E9):
+              //   bg:#F0F9FF, border:#BAE6FD, text:#0369A1, accent:#0284C7
               const subtotal = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
               return (
-                <tr key={r.transaction_id + "-" + i}>
+                <tr key={r.transaction_id + "-" + i} className="soa-items-row">
                   <td colSpan={columns.length} style={{ padding: 0, border: "none" }}>
-                    <div style={cardStyle}>
-                      <div style={headerStyle}>
-                        تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{r.reference}</span> · {items.length} أصناف
+                    <div style={{ position: "relative", padding: "2px 32px 10px 4px", pageBreakInside: "avoid" }}>
+                      {/* L-shape connector */}
+                      <div
+                        aria-hidden
+                        style={{
+                          position: "absolute",
+                          top: -2,
+                          right: 14,
+                          width: 14,
+                          height: 14,
+                          borderRight: "1.5px solid #BAE6FD",
+                          borderBottom: "1.5px solid #BAE6FD",
+                          borderBottomRightRadius: 6,
+                        }}
+                      />
+                      {/* Pill label */}
+                      <div style={{ marginBottom: 4 }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            background: "#F0F9FF",
+                            color: "#0369A1",
+                            border: "0.5px solid #BAE6FD",
+                            fontSize: 9,
+                            fontWeight: 500,
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          أصناف الفاتورة <span style={{ fontFamily: "monospace" }}>{r.reference}</span> · {items.length} {items.length === 1 ? "صنف" : "أصناف"}
+                        </span>
                       </div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 4 }}>
+                      {/* Items table */}
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          background: "#fff",
+                          border: "0.5px solid #BAE6FD",
+                          borderRadius: 6,
+                          overflow: "hidden",
+                          fontSize: 9.5,
+                        }}
+                      >
                         <thead>
-                          <tr style={{ background: "#F1F5F9", borderBottom: "1px solid #E2E8F0" }}>
-                            <th style={{ textAlign: "right", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5 }}>الصنف</th>
-                            <th style={{ textAlign: "center", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 45 }}>كمية</th>
-                            <th style={{ textAlign: "left", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 60 }}>سعر</th>
-                            <th style={{ textAlign: "left", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 45 }}>خصم</th>
-                            <th style={{ textAlign: "left", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 40 }}>ضريبة</th>
-                            <th style={{ textAlign: "left", padding: "2px 6px 3px", fontWeight: 600, color: "#94A3B8", fontSize: 8.5, width: 70 }}>إجمالي</th>
+                          <tr style={{ background: "#F0F9FF" }}>
+                            <th style={{ textAlign: "right", padding: "5px 8px", fontWeight: 500, color: "#0369A1", fontSize: 9 }}>الصنف</th>
+                            <th style={{ textAlign: "center", padding: "5px 8px", fontWeight: 500, color: "#0369A1", fontSize: 9, width: 50 }}>الكمية</th>
+                            <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 500, color: "#0369A1", fontSize: 9, width: 65 }}>السعر</th>
+                            <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 500, color: "#0369A1", fontSize: 9, width: 55 }}>الخصم</th>
+                            <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 500, color: "#0369A1", fontSize: 9, width: 55 }}>الضريبة</th>
+                            <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 500, color: "#0369A1", fontSize: 9, width: 75 }}>الإجمالي</th>
                           </tr>
                         </thead>
                         <tbody>
                           {items.map((it, idx) => (
-                            <tr key={idx} style={{ borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9" }}>
-                              <td style={{ padding: "2px 6px", color: "#1F2937", fontSize: 9 }}>{it.productName || "—"}</td>
-                              <td style={{ padding: "2px 6px", textAlign: "center", color: "#475569", fontSize: 9 }}>
+                            <tr key={idx} style={{ borderTop: "0.5px solid #E0F2FE" }}>
+                              <td style={{ padding: "5px 8px", color: "#1F2937" }}>
+                                {it.productName || "—"}
+                              </td>
+                              <td style={{ padding: "5px 8px", textAlign: "center", color: "#475569" }}>
                                 {it.quantity}{it.unit ? <span style={{ color: "#94A3B8", fontSize: 8, marginRight: 2 }}>{it.unit}</span> : null}
                               </td>
-                              <td style={{ padding: "2px 6px", textAlign: "left", direction: "ltr", color: "#475569", fontSize: 9 }}>{fmt(it.unitPrice)}</td>
-                              <td style={{ padding: "2px 6px", textAlign: "left", direction: "ltr", color: it.discount > 0 ? "#B45309" : "#CBD5E1", fontSize: 9 }}>{it.discount > 0 ? `${it.discount}` : "—"}</td>
-                              <td style={{ padding: "2px 6px", textAlign: "left", direction: "ltr", color: "#64748B", fontSize: 9 }}>{it.tax > 0 ? `${it.tax}%` : "—"}</td>
-                              <td style={{ padding: "2px 6px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 600, fontSize: 9 }}>{fmt(it.total)}</td>
+                              <td style={{ padding: "5px 8px", textAlign: "left", direction: "ltr", color: "#475569" }}>{fmt(it.unitPrice)}</td>
+                              <td
+                                style={{
+                                  padding: "5px 8px",
+                                  textAlign: "left",
+                                  direction: "ltr",
+                                  color: it.discount > 0 ? "#1F2937" : "#CBD5E1",
+                                }}
+                              >
+                                {it.discount > 0 ? fmt(it.discount) : "—"}
+                              </td>
+                              <td style={{ padding: "5px 8px", textAlign: "left", direction: "ltr", color: "#64748B" }}>
+                                {it.tax > 0 ? `${it.tax}%` : "—"}
+                              </td>
+                              <td style={{ padding: "5px 8px", textAlign: "left", direction: "ltr", color: "#1F2937", fontWeight: 500 }}>
+                                {fmt(it.total)}
+                              </td>
                             </tr>
                           ))}
-                          <tr style={{ background: "#ECFDF5" }}>
-                            <td colSpan={5} style={{ padding: "3px 6px", textAlign: "left", fontSize: 8.5, color: "#475569", fontWeight: 600 }}>الإجمالي</td>
-                            <td style={{ padding: "3px 6px", textAlign: "left", direction: "ltr", color: "#065F46", fontWeight: 700, fontSize: 9.5 }}>{fmt(subtotal)}</td>
-                          </tr>
+                          {items.length > 1 && (
+                            <tr style={{ background: "#F8FAFC", borderTop: "0.5px solid #BAE6FD" }}>
+                              <td colSpan={5} style={{ padding: "5px 8px", textAlign: "left", fontSize: 9, color: "#475569", fontWeight: 500 }}>الإجمالي</td>
+                              <td style={{ padding: "5px 8px", textAlign: "left", direction: "ltr", color: "#0369A1", fontWeight: 500 }}>{fmt(subtotal)}</td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
