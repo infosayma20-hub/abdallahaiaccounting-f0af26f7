@@ -107,15 +107,17 @@ const AppsLauncher = () => {
               if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
             });
           } catch {}
-          console.info("[apps-route-guard]", {
+          console.info("[apps-route-guard] finalRedirect = /employee", {
             authUid: user.id,
             employeeId: employee.id,
             employeeAuthUserId: employee.auth_user_id,
             employeeOwnerUserId: employee.user_id,
             userRoles: roles,
             isManager: employee.is_manager,
+            isHrManager: employee.is_hr_manager,
             canViewTeam: employee.can_view_team,
             canManageSchedule: employee.can_manage_schedule,
+            canManageAttendance: employee.can_manage_attendance,
             finalRedirect: "/employee",
           });
           setEmployeeOnlyRedirect(true);
