@@ -522,8 +522,10 @@ export default function RepReportsPage() {
           تقارير البائع المتجول
         </h1>
         <div className="flex items-center gap-2 text-xs">
-          {recon.sales.drift ? (
-            <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> DRIFT</Badge>
+          {!recon.ok ? (
+            <Badge variant="destructive" className="gap-1" title={recon.drifts.map(d => `${d.tab}.${d.metric}: ${d.diff.toFixed(2)}`).join(" • ")}>
+              <AlertTriangle className="w-3 h-3" /> DRIFT ({recon.drifts.length})
+            </Badge>
           ) : (
             <Badge variant="secondary" className="gap-1 bg-emerald-500/15 text-emerald-700"><CheckCircle2 className="w-3 h-3" /> تدقيق الأرقام: OK</Badge>
           )}
