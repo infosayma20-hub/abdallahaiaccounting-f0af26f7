@@ -680,7 +680,7 @@ export default function HRAttendancePage() {
   .scan-cta { font-size: 18pt; font-weight: 800; color: #0D1B2E; margin-top: 1mm; text-align: center; }
   .steps { margin-top: 4mm; width: 100%; max-width: 175mm; }
   .steps ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 5mm; }
-  .steps li { counter-increment: s; padding: 3mm 5mm 3mm 16mm; position: relative; background: #F4F6FA; border-radius: 3mm; font-size: 15pt; font-weight: 700; color: #0D1B2E; min-height: 14mm; display: flex; align-items: center; }
+  .steps li { counter-increment: s; padding: 3mm 16mm 3mm 5mm; position: relative; background: #F4F6FA; border-radius: 3mm; font-size: 15pt; font-weight: 700; color: #0D1B2E; min-height: 14mm; display: flex; align-items: center; }
   .steps li::before { content: counter(s); position: absolute; right: 3mm; top: 50%; transform: translateY(-50%); width: 10mm; height: 10mm; border-radius: 50%; background: #0D1B2E; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15pt; }
   .footer { margin-top: auto; padding-top: 4mm; width: 100%; display: flex; justify-content: space-between; font-size: 9pt; color: #0D1B2E99; border-top: 1px dashed #0D1B2E33; }
   .no-print { position: fixed; top: 8px; left: 8px; }
