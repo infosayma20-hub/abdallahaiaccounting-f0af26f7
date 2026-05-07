@@ -57,6 +57,7 @@ const AppsLauncher = () => {
   // expandedApp removed in Phase 1 — apps now navigate directly
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [employeeOnlyRedirect, setEmployeeOnlyRedirect] = useState(false);
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; module: string; tier: string }>({ open: false, module: "", tier: "pro" });
 
   // Global Ctrl+K / ⌘K to open command palette
@@ -82,17 +83,56 @@ const AppsLauncher = () => {
     }
     let cancelled = false;
     setRolesLoading(true);
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
+    Promise.all([
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id),
+      supabase
+        .from("employees")
+        .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance")
+        .eq("auth_user_id", user.id)
+        .maybeSingle(),
+    ]).then(([{ data }, { data: employee }]) => {
         if (cancelled) return;
-        setUserRoles((data || []).map((r) => r.role));
+        const roles = (data || []).map((r) => r.role);
+        const hasEmployeeRecord = !!employee && employee.is_active && !employee.is_terminated;
+        const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
+        if (hasEmployeeRecord && !hasAdminAccess) {
+          try {
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith("amwali-open-tabs") || key.includes("lastVisitedRoute")) localStorage.removeItem(key);
+            });
+            Object.keys(sessionStorage).forEach((key) => {
+              if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
+            });
+          } catch {}
+          console.info("[apps-route-guard] finalRedirect = /employee", {
+            authUid: user.id,
+            employeeId: employee.id,
+            employeeAuthUserId: employee.auth_user_id,
+            employeeOwnerUserId: employee.user_id,
+            userRoles: roles,
+            isManager: employee.is_manager,
+            isHrManager: employee.is_hr_manager,
+            canViewTeam: employee.can_view_team,
+            canManageSchedule: employee.can_manage_schedule,
+            canManageAttendance: employee.can_manage_attendance,
+            finalRedirect: "/employee",
+          });
+          setEmployeeOnlyRedirect(true);
+        } else {
+          setEmployeeOnlyRedirect(false);
+        }
+        setUserRoles(roles);
         setRolesLoading(false);
       });
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (employeeOnlyRedirect) navigate("/employee", { replace: true });
+  }, [employeeOnlyRedirect, navigate]);
 
   // ⚡ Fast-path: عرض البطاقات فور توفر الحد الأدنى (auth + roles + settings للـ hidden_apps).
   // باقي الـ hooks (subscription/guard/onboarding) تُحمَّل في الخلفية دون حجب الشبكة.
@@ -218,6 +258,14 @@ const AppsLauncher = () => {
     update({ full_tour_completed: true, modules_toured: appSections.flatMap(s => s.items.map(i => i.id)) });
   };
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
+
+  if (employeeOnlyRedirect) {
+    return (
+      <div className="flex h-full min-h-[200px] w-full items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "hsl(var(--accent))", borderRightColor: "hsl(var(--accent) / 0.3)" }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100%", background: "#F7F8FA", margin: "-1.25rem", marginBottom: 0, fontFamily: "Cairo, sans-serif" }} className="lg:-m-8 lg:mb-0" dir="rtl">

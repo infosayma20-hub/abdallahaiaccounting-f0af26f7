@@ -35,11 +35,44 @@ const AuthPage = () => {
   }, []);
 
   const resolveRedirect = useCallback(async (userId: string): Promise<string> => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const [{ data }, { data: employee }] = await Promise.all([
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId),
+      supabase
+        .from("employees")
+        .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance")
+        .eq("auth_user_id", userId)
+        .maybeSingle(),
+    ]);
     const roles = (data || []).map((r) => r.role);
+    const hasEmployeeRecord = !!employee && employee.is_active && !employee.is_terminated;
+    const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
+    if (hasEmployeeRecord && !hasAdminAccess) {
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith("amwali-open-tabs") || key.includes("lastVisitedRoute")) localStorage.removeItem(key);
+        });
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
+        });
+      } catch {}
+      console.info("[post-login-redirect] finalRedirect = /employee", {
+        authUid: userId,
+        employeeId: employee.id,
+        employeeAuthUserId: employee.auth_user_id,
+        employeeOwnerUserId: employee.user_id,
+        userRoles: roles,
+        isManager: employee.is_manager,
+        isHrManager: employee.is_hr_manager,
+        canViewTeam: employee.can_view_team,
+        canManageSchedule: employee.can_manage_schedule,
+        canManageAttendance: employee.can_manage_attendance,
+        finalRedirect: "/employee",
+      });
+      return "/employee";
+    }
     if (roles.includes("super_admin")) return "/super-admin/dashboard";
     if (roles.includes("portal") && !roles.includes("admin")) return "/portal/dashboard";
     if (roles.includes("employee") && roles.length === 1) return "/employee";
