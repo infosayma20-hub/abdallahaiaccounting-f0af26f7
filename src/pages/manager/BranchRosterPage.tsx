@@ -375,13 +375,8 @@ function CellDialog({
   if (!cell) return null;
   const needsShift = status === "scheduled" || status === "coverage";
 
-  return (
-    <Dialog open={!!cell} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent dir="rtl">
-        <DialogHeader>
-          <DialogTitle>{cell.date}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
+  const body = (
+    <div className="space-y-4">
           <div>
             <label className="text-sm font-medium block mb-2">الحالة</label>
             <div className="grid grid-cols-2 gap-2">
@@ -389,7 +384,7 @@ function CellDialog({
                 <button
                   key={s.value}
                   onClick={() => setStatus(s.value)}
-                  className={`px-3 py-2 rounded-md text-sm border transition ${status === s.value ? "border-primary bg-primary/10 font-bold" : "border-border"}`}
+                  className={`px-3 py-3 rounded-md text-base border transition ${status === s.value ? "border-primary bg-primary/10 font-bold" : "border-border"}`}
                 >
                   {s.label}
                 </button>
@@ -400,16 +395,19 @@ function CellDialog({
           {needsShift && (
             <div>
               <label className="text-sm font-medium block mb-2">الوردية</label>
-              <Select value={shiftId} onValueChange={setShiftId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name_ar} ({t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-1 gap-2">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setShiftId(t.id)}
+                    className={`flex items-center gap-2 px-3 py-3 rounded-md border text-right transition ${shiftId === t.id ? "border-primary bg-primary/10 font-bold" : "border-border"}`}
+                  >
+                    <span className="w-3 h-3 rounded-full" style={{ background: t.color }} />
+                    <span className="flex-1">{t.name_ar}</span>
+                    <span className="text-xs text-muted-foreground" dir="ltr">{t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -417,19 +415,55 @@ function CellDialog({
             <label className="text-sm font-medium block mb-2">ملاحظات (اختياري)</label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
-        </div>
-        <DialogFooter className="gap-2">
-          {cell.existing && (
-            <Button variant="destructive" size="sm" onClick={onDelete} className="me-auto">
-              <Trash2 className="h-4 w-4 ms-1" /> حذف
+    </div>
+  );
+
+  const footer = (
+    <div className="flex items-center gap-2 pt-2">
+      {cell.existing && (
+        <Button variant="destructive" size="sm" onClick={onDelete} className="me-auto">
+          <Trash2 className="h-4 w-4 ms-1" /> حذف
+        </Button>
+      )}
+      <Button variant="outline" onClick={onClose}>إلغاء</Button>
+      <Button onClick={() => onSave({ status, shift_template_id: needsShift ? shiftId : null, notes })}>
+        حفظ
+      </Button>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile bottom sheet */}
+      <Sheet open={!!cell} onOpenChange={(o) => !o && onClose()}>
+        <SheetContent side="bottom" dir="rtl" className="md:hidden rounded-t-2xl max-h-[90vh] overflow-y-auto">
+          <SheetHeader className="text-right">
+            <SheetTitle>{cell.date}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">{body}</div>
+          {footer}
+        </SheetContent>
+      </Sheet>
+      {/* Desktop dialog */}
+      <Dialog open={!!cell} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent dir="rtl" className="hidden md:block">
+          <DialogHeader>
+            <DialogTitle>{cell.date}</DialogTitle>
+          </DialogHeader>
+          {body}
+          <DialogFooter className="gap-2">
+            {cell.existing && (
+              <Button variant="destructive" size="sm" onClick={onDelete} className="me-auto">
+                <Trash2 className="h-4 w-4 ms-1" /> حذف
+              </Button>
+            )}
+            <Button variant="outline" onClick={onClose}>إلغاء</Button>
+            <Button onClick={() => onSave({ status, shift_template_id: needsShift ? shiftId : null, notes })}>
+              حفظ
             </Button>
-          )}
-          <Button variant="outline" onClick={onClose}>إلغاء</Button>
-          <Button onClick={() => onSave({ status, shift_template_id: needsShift ? shiftId : null, notes })}>
-            حفظ
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
