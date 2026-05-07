@@ -864,7 +864,7 @@ export default function VanSalesReportsPage() {
               emptyMessage="لا توجد طلبات"
               columns={[
                 { key: "action", header: "إجراء", align: "center", width: 72, render: (o: any) => (
-                  <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
+                  <button onClick={() => navigate(`/invoices?focus=${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
                     <ExternalLink className="h-3 w-3" /> فتح
                   </button>
                 ) },
