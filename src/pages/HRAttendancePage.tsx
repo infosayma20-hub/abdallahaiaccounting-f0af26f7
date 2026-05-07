@@ -27,6 +27,9 @@ import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDi
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
 
 type Branch = {
   id: string;
@@ -260,6 +263,8 @@ function computeIssue(
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [employees, setEmployees] = useState<EmployeeLite[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
@@ -1116,9 +1121,13 @@ export default function HRAttendancePage() {
       {/* Branches strip */}
       {branches.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {branches.map(b => (
-            <Card key={b.id} className="min-w-[230px] p-3 hover:border-primary/50 transition-colors">
-              <div className="flex items-center justify-between mb-1">
+          {branches.map(b => {
+            const empCount = employees.filter(e => e.branch_id === b.id && e.is_active && !e.is_terminated).length;
+            const qrOn = !!companySettings?.hr_require_qr;
+            const gpsOn = !!companySettings?.hr_require_gps;
+            return (
+            <Card key={b.id} className="min-w-[250px] p-3 hover:border-primary/50 transition-colors">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm">{b.name}</span>
@@ -1128,18 +1137,25 @@ export default function HRAttendancePage() {
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><MoreVertical className="h-3.5 w-3.5" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEditBranch(b)} className="gap-2"><Pencil className="h-3.5 w-3.5" /> تعديل</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditBranch(b)} className="gap-2"><Pencil className="h-3.5 w-3.5" /> إعدادات الحضور</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings?tab=branches')} className="gap-2"><Building2 className="h-3.5 w-3.5" /> تعديل بيانات الفرع</DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setDeletingBranch(b)} className="gap-2 text-destructive"><Trash2 className="h-3.5 w-3.5" /> حذف</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2"><MapPin className="h-3 w-3" /><span className="truncate">{b.address || "—"}</span></div>
+              <div className="flex flex-wrap gap-1 text-[11px] mb-2">
+                <Badge variant={qrOn ? "default" : "outline"} className="gap-1 px-1.5"><QrCode className="h-3 w-3" /> QR {qrOn ? "فعال" : "معطل"}</Badge>
+                <Badge variant={gpsOn ? "default" : "outline"} className="gap-1 px-1.5"><MapPin className="h-3 w-3" /> GPS {gpsOn ? "مطلوب" : "غير مطلوب"}</Badge>
+                <Badge variant="secondary" className="gap-1 px-1.5"><Users className="h-3 w-3" /> {empCount}</Badge>
+              </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" className="gap-1 text-xs flex-1" onClick={() => generateQRToken(b)}><QrCode className="h-3 w-3" /> QR</Button>
+                <Button size="sm" variant="outline" className="gap-1 text-xs flex-1" onClick={() => generateQRToken(b)}><QrCode className="h-3 w-3" /> عرض QR</Button>
                 <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1" onClick={() => openDisplayPage(b.id)}><Eye className="h-3 w-3" /> شاشة</Button>
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1524,15 +1540,43 @@ export default function HRAttendancePage() {
       {/* Edit Branch */}
       <Dialog open={!!editingBranch} onOpenChange={(o) => !o && setEditingBranch(null)}>
         <DialogContent dir="rtl">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> تعديل {editingBranch?.name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><QrCode className="h-5 w-5 text-primary" /> إعدادات الحضور – {editingBranch?.name}</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} placeholder="اسم الفرع" />
-            <Input value={editForm.address} onChange={e => setEditForm(p => ({ ...p, address: e.target.value }))} placeholder="العنوان" />
-            <div className="grid grid-cols-2 gap-3">
-              <Input type="number" step="any" value={editForm.latitude} onChange={e => setEditForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" placeholder="Latitude" />
-              <Input type="number" step="any" value={editForm.longitude} onChange={e => setEditForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" placeholder="Longitude" />
+            <div className="bg-muted/40 rounded-lg p-3 text-xs space-y-1">
+              <div className="flex items-center gap-1 text-muted-foreground"><MapPin className="h-3 w-3" /> {editingBranch?.address || "بدون عنوان"}</div>
+              <button type="button" onClick={() => navigate('/settings?tab=branches')} className="text-primary hover:underline">تعديل اسم الفرع والإحداثيات من إدارة الفروع ←</button>
             </div>
-            <Input type="number" value={editForm.radius_meters} onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" placeholder="النطاق" />
+
+            <div className="text-xs text-muted-foreground -mb-1">إعدادات البصمة (تطبق على كل الفروع):</div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="text-sm font-medium flex items-center gap-2"><QrCode className="h-4 w-4" /> تفعيل QR للبصمة</div>
+                <div className="text-[11px] text-muted-foreground">يتطلب مسح رمز معلّق في الفرع</div>
+              </div>
+              <Switch checked={!!companySettings?.hr_require_qr} onCheckedChange={(v) => updateCompanySettings({ hr_require_qr: v })} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="text-sm font-medium flex items-center gap-2"><MapPin className="h-4 w-4" /> تفعيل GPS للبصمة</div>
+                <div className="text-[11px] text-muted-foreground">يتحقق من وجود الموظف داخل نطاق الفرع</div>
+              </div>
+              <Switch checked={!!companySettings?.hr_require_gps} onCheckedChange={(v) => updateCompanySettings({ hr_require_gps: v })} />
+            </div>
+
+            <div className={cn("rounded-lg border p-3 space-y-1", !companySettings?.hr_require_gps && "opacity-60")}>
+              <label className="text-xs text-muted-foreground">نطاق الفرع (متر) – خاص بهذا الفرع</label>
+              <Input
+                type="number"
+                value={editForm.radius_meters}
+                onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))}
+                dir="ltr"
+                placeholder="مثل 150"
+                disabled={!companySettings?.hr_require_gps}
+              />
+              <p className="text-[11px] text-muted-foreground">يستخدم فقط عند تفعيل GPS</p>
+            </div>
           </div>
           <DialogFooter><Button onClick={updateBranch} className="w-full">حفظ</Button></DialogFooter>
         </DialogContent>
