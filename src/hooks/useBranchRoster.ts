@@ -54,10 +54,35 @@ export function useCurrentEmployee() {
 /** Branches the current manager-employee can see (derived from team employees). */
 export function useManagerBranches() {
   const { data: me } = useCurrentEmployee();
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["manager-branches", me?.id],
-    enabled: !!me?.id,
+    queryKey: ["manager-branches", me?.id || "no-emp", user?.id],
+    enabled: !!user?.id,
     queryFn: async (): Promise<ManagerBranch[]> => {
+      // 1) Admin / HR manager → return ALL company branches
+      let isAdmin = false;
+      if (user?.id) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        const r = (roles || []).map((x: any) => x.role);
+        isAdmin = r.includes("admin") || r.includes("hr_manager");
+      }
+      if (isAdmin) {
+        const { data: allBr } = await supabase
+          .from("branches")
+          .select("id, name, user_id, company_id")
+          .eq("is_active", true)
+          .order("name");
+        return (allBr || []).map((b: any) => ({
+          branch_id: b.id,
+          company_id: b.company_id || b.user_id,
+          branch_name: b.name || "—",
+        }));
+      }
+      // 2) Regular manager → branches derived from team employees
+      if (!me?.id) return [];
       const { data, error } = await supabase
         .from("employees")
         .select("branch_id, company_id, branches:branch_id(name)")
