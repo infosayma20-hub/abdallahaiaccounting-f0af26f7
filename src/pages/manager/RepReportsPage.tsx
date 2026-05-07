@@ -15,6 +15,14 @@ const num = (n: any) => Number(n || 0);
 
 const SALES_TYPES = ["sale", "sales"];
 const STATUS_EXCLUDE = ["cancelled", "void", "reversed", "draft", "ملغي", "ملغى"];
+const PAGE_LIMIT = 10000; // safety cap (well above default 1000) until real pagination
+
+/** يضيف يوم واحد إلى تاريخ ISO (yyyy-mm-dd) لاستخدام شرط exclusive: date < to+1 */
+function isoPlusDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 type Row = Record<string, any>;
 
@@ -87,14 +95,17 @@ export default function RepReportsPage() {
   const load = async () => {
     setLoading(true);
     try {
+      const toExclusive = isoPlusDays(filters.to, 1);
+
       // 1) Invoices in window
       let invQ = (supabase as any)
         .from("invoices")
         .select("id, invoice_number, invoice_date, salesperson_id, contact_id, contact_name, status, is_voided, discount_amount, subtotal, total_amount, payment_method, invoice_type, created_at, user_id")
         .in("invoice_type", SALES_TYPES)
         .gte("invoice_date", filters.from)
-        .lte("invoice_date", filters.to)
-        .eq("is_voided", false);
+        .lt("invoice_date", toExclusive)
+        .eq("is_voided", false)
+        .limit(PAGE_LIMIT);
       if (filters.repId !== "all") invQ = invQ.eq("salesperson_id", filters.repId);
       if (filters.contactId !== "all") invQ = invQ.eq("contact_id", filters.contactId);
       const { data: rawInvs } = await invQ;
@@ -102,19 +113,15 @@ export default function RepReportsPage() {
         (i: any) => !STATUS_EXCLUDE.includes((i.status || "").toLowerCase()),
       );
       const invIds = invList.map((i: any) => i.id);
-      const invMap = new Map<string, any>(invList.map((i: any) => [i.id, i]));
 
-      // 2) Items
+      // 2) Items (single query, no duplicate fetch)
       let rawItems: any[] = [];
       if (invIds.length) {
-        const { data } = await (supabase as any)
-          .from("invoice_items")
-          .select("id, invoice_id, product_id, product_name, quantity, unit_price, cost_price, line_profit, total_amount, supplier_id, supplier_name");
-        // chunk-safer: just do .in
         const { data: items2 } = await (supabase as any)
           .from("invoice_items")
           .select("id, invoice_id, product_id, product_name, quantity, unit_price, cost_price, line_profit, total_amount, supplier_id, supplier_name")
-          .in("invoice_id", invIds);
+          .in("invoice_id", invIds)
+          .limit(PAGE_LIMIT);
         rawItems = items2 || [];
       }
       // product->supplier fallback
@@ -151,50 +158,81 @@ export default function RepReportsPage() {
         filteredItems = filteredItems.filter((i) => i.product_id === filters.productId);
       }
 
-      // 3) Returns
+      // 3) Returns — enum value is 'sales' (NOT 'sales_return')
       let retQ = (supabase as any)
         .from("returns")
         .select("id, return_number, return_date, contact_id, contact_name, related_invoice_id, total_amount, status, is_deleted")
         .gte("return_date", filters.from)
-        .lte("return_date", filters.to)
+        .lt("return_date", toExclusive)
         .eq("is_deleted", false)
-        .eq("return_type", "sales_return");
+        .eq("return_type", "sales")
+        .limit(PAGE_LIMIT);
       const { data: rawReturns } = await retQ;
       let retList = (rawReturns || []).filter((r: any) => !STATUS_EXCLUDE.includes((r.status || "").toLowerCase()));
-      // restrict returns by linked invoice's salesperson if rep filter active
+      // restrict returns: when rep/customer filter active, REQUIRE link to a matching invoice
       if (filters.repId !== "all" || filters.contactId !== "all") {
         const validInvIds = new Set(invIds);
-        retList = retList.filter((r: any) => !r.related_invoice_id || validInvIds.has(r.related_invoice_id));
+        retList = retList.filter((r: any) => r.related_invoice_id && validInvIds.has(r.related_invoice_id));
       }
 
-      // 4) Transactions for collections / expenses (use notes JSON tag)
+      // 4) Transactions for collections / expenses
+      //    Rep linkage priority:
+      //      a) notes.rep_id (current strongest signal)
+      //      b) contacts.sales_rep_id (assigned rep on customer)
       const { data: rawTxs } = await (supabase as any)
         .from("transactions")
         .select("id, amount, notes, payment_method, debit_account_code, credit_account_code, transaction_type, reversed_by_id, transaction_date, description, contact_id, expense_category, is_deleted")
         .gte("transaction_date", filters.from)
-        .lte("transaction_date", filters.to)
-        .eq("is_deleted", false);
+        .lt("transaction_date", toExclusive)
+        .eq("is_deleted", false)
+        .limit(PAGE_LIMIT);
+
+      // Build customer→rep map (for fallback)
+      const customerIds = Array.from(new Set((rawTxs || []).map((t: any) => t.contact_id).filter(Boolean)));
+      const custRepMap = new Map<string, string>();
+      if (customerIds.length) {
+        const { data: cs } = await (supabase as any)
+          .from("contacts")
+          .select("id, sales_rep_id")
+          .in("id", customerIds);
+        (cs || []).forEach((c: any) => { if (c.sales_rep_id) custRepMap.set(c.id, c.sales_rep_id); });
+      }
+
+      // resolver: returns rep_id for a transaction or null
+      const resolveTxRep = (t: any): string | null => {
+        try {
+          const meta = JSON.parse(t.notes || "{}");
+          if (meta?.rep_id) return meta.rep_id;
+        } catch {}
+        if (t.contact_id && custRepMap.has(t.contact_id)) return custRepMap.get(t.contact_id) || null;
+        return null;
+      };
 
       const allowedRepIds = new Set<string>(
         filters.repId === "all" ? reps.map((r) => r.id) : [filters.repId],
       );
+
+      const seenIds = new Set<string>(); // de-dup safety
       const tagged = (rawTxs || []).filter((t: any) => {
         if (t.reversed_by_id) return false;
         if (t.transaction_type === "reversal") return false;
-        try {
-          const meta = JSON.parse(t.notes || "{}");
-          if (!meta?.rep_id) return false;
-          return allowedRepIds.has(meta.rep_id);
-        } catch {
-          return false;
-        }
+        if (seenIds.has(t.id)) return false;
+        const rep = resolveTxRep(t);
+        if (!rep) return false;
+        if (!allowedRepIds.has(rep)) return false;
+        // attach resolved rep on the row for downstream aggregation
+        t._rep_id = rep;
+        seenIds.add(t.id);
+        return true;
       });
       const expensesTx = tagged.filter((t: any) => t.payment_method === "rep_expense");
       const collectionsTx = tagged.filter((t: any) => {
+        if (t.payment_method === "rep_expense") return false;
         try {
           const m = JSON.parse(t.notes || "{}");
-          return m?.tag === "REP-RECEIPT" || m?.tag === "REP-COLLECTION" || (t.transaction_type === "receipt");
-        } catch { return false; }
+          if (m?.tag === "REP-RECEIPT" || m?.tag === "REP-COLLECTION") return true;
+        } catch {}
+        return t.transaction_type === "receipt";
       });
 
       setInvs(invList);
@@ -222,13 +260,60 @@ export default function RepReportsPage() {
     return m;
   }, [items]);
 
+  /** Map invoice_id → invoice (O(1) lookup) */
+  const invIndex = useMemo(() => {
+    const m = new Map<string, any>();
+    invs.forEach((i) => m.set(i.id, i));
+    return m;
+  }, [invs]);
+
+  /**
+   * Pro-rata discount per item.
+   * For each invoice we know:
+   *   - invoice.discount_amount
+   *   - sum of ALL its items' total_amount BEFORE filtering (denominator base)
+   *     ⇒ we use invoice.subtotal when present (= sum of line totals before discount).
+   *   - the items currently in scope (after supplier/product filter)
+   * Each in-scope item gets: discount_share = invoice_discount * (item.total_amount / invoice_subtotal)
+   * This guarantees: sum(discount_share over all rows) ≤ invoice.discount_amount,
+   * and equals it when no item filter is applied.
+   */
+  const itemDiscount = useMemo(() => {
+    const m = new Map<string, number>(); // item.id → distributed discount
+    // Group in-scope items per invoice to access their sales
+    items.forEach((it) => {
+      const inv = invIndex.get(it.invoice_id);
+      if (!inv) return;
+      const invDisc = num(inv.discount_amount);
+      if (invDisc <= 0) { m.set(it.id, 0); return; }
+      // denominator = invoice subtotal (pre-discount) if available, else sum of items in scope
+      const denom = num(inv.subtotal) > 0
+        ? num(inv.subtotal)
+        : (itemsByInvoice.get(it.invoice_id) || []).reduce((s, x) => s + num(x.total_amount), 0);
+      if (denom <= 0) { m.set(it.id, 0); return; }
+      m.set(it.id, invDisc * (num(it.total_amount) / denom));
+    });
+    return m;
+  }, [items, invIndex, itemsByInvoice]);
+
+  /** Helper: for a row aggregator, returns base metrics with pro-rata discount + net_profit */
+  const enrichRow = (r: { sales: number; cost: number; profit: number; discount: number }) => ({
+    ...r,
+    net_profit: r.profit - r.discount,
+    margin: r.sales > 0 ? ((r.profit - r.discount) / r.sales) * 100 : 0,
+  });
+
   // KPIs (period-wide)
   const kpi = useMemo(() => {
-    const sales = items.reduce((s, i) => s + num(i.total_amount), 0);
-    const cost = items.reduce((s, i) => s + num(i.cost_price) * num(i.quantity), 0);
-    const grossProfit = items.reduce((s, i) => s + num(i.line_profit ?? num(i.total_amount) - num(i.cost_price) * num(i.quantity)), 0);
-    const contributingInv = new Set(items.map((i) => i.invoice_id));
-    const discount = Array.from(contributingInv).reduce((s, id) => s + num(invMap(id, invs)?.discount_amount), 0);
+    let sales = 0, cost = 0, grossProfit = 0, discount = 0;
+    const contributingInv = new Set<string>();
+    items.forEach((i) => {
+      sales += num(i.total_amount);
+      cost += num(i.cost_price) * num(i.quantity);
+      grossProfit += num(i.line_profit ?? num(i.total_amount) - num(i.cost_price) * num(i.quantity));
+      discount += itemDiscount.get(i.id) || 0;
+      contributingInv.add(i.invoice_id);
+    });
     const netProfit = grossProfit - discount;
     const returnsTotal = returns.reduce((s, r) => s + num(r.total_amount), 0);
     const collTotal = collTxs.reduce((s, t) => s + num(t.amount), 0);
@@ -241,13 +326,13 @@ export default function RepReportsPage() {
       collections: collTotal,
       expenses: expTotal,
     };
-  }, [items, invs, returns, collTxs, expenseTxs]);
+  }, [items, returns, collTxs, expenseTxs, itemDiscount]);
 
   // ===== Reports =====
   const byRep = useMemo(() => {
     const m = new Map<string, any>();
     items.forEach((it) => {
-      const inv = invMap(it.invoice_id, invs);
+      const inv = invIndex.get(it.invoice_id);
       if (!inv) return;
       const k = inv.salesperson_id || "__none__";
       if (!m.has(k)) m.set(k, {
@@ -263,29 +348,19 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
-    });
-    // distribute discounts per invoice once
-    invs.forEach((inv) => {
-      if (!num(inv.discount_amount)) return;
-      const k = inv.salesperson_id || "__none__";
-      if (!m.has(k)) return;
-      // only count if some item from this invoice contributed
-      if (!items.some((it) => it.invoice_id === inv.id)) return;
-      m.get(k).discount += num(inv.discount_amount);
+      r.discount += itemDiscount.get(it.id) || 0;
     });
     return Array.from(m.values()).map((r) => ({
-      ...r,
+      ...enrichRow(r),
       invoices: r.invoices.size,
       customers: r.customers.size,
-      net_profit: r.profit - r.discount,
-      margin: r.sales > 0 ? ((r.profit - r.discount) / r.sales) * 100 : 0,
     })).sort((a, b) => b.sales - a.sales);
-  }, [items, invs, reps]);
+  }, [items, invIndex, reps, itemDiscount]);
 
   const byCustomer = useMemo(() => {
     const m = new Map<string, any>();
     items.forEach((it) => {
-      const inv = invMap(it.invoice_id, invs);
+      const inv = invIndex.get(it.invoice_id);
       if (!inv) return;
       const k = inv.contact_id || "__none__";
       if (!m.has(k)) m.set(k, {
@@ -302,14 +377,8 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
+      r.discount += itemDiscount.get(it.id) || 0;
       r.topProductMap.set(it.product_name, (r.topProductMap.get(it.product_name) || 0) + num(it.total_amount));
-    });
-    invs.forEach((inv) => {
-      if (!num(inv.discount_amount)) return;
-      const k = inv.contact_id || "__none__";
-      if (!m.has(k)) return;
-      if (!items.some((it) => it.invoice_id === inv.id)) return;
-      m.get(k).discount += num(inv.discount_amount);
     });
     // collections by customer
     const collByContact = new Map<string, number>();
@@ -319,17 +388,16 @@ export default function RepReportsPage() {
     });
     return Array.from(m.values()).map((r) => {
       const top = Array.from(r.topProductMap.entries() as Iterable<[string, number]>).sort((a, b) => b[1] - a[1])[0];
+      const enriched = enrichRow(r);
       return {
-        ...r,
+        ...enriched,
         invoices: r.invoices.size,
-        net_profit: r.profit - r.discount,
-        margin: r.sales > 0 ? ((r.profit - r.discount) / r.sales) * 100 : 0,
         collections: r.contact_id ? collByContact.get(r.contact_id) || 0 : 0,
         balance: r.sales - r.discount - (r.contact_id ? collByContact.get(r.contact_id) || 0 : 0),
         top_product: top ? top[0] : "—",
       };
     }).sort((a, b) => b.sales - a.sales);
-  }, [items, invs, collTxs]);
+  }, [items, invIndex, collTxs, itemDiscount]);
 
   const byProduct = useMemo(() => {
     const m = new Map<string, any>();
@@ -339,7 +407,7 @@ export default function RepReportsPage() {
         product_id: it.product_id, product_name: it.product_name,
         supplier: it._sname || "—",
         invoices: new Set<string>(),
-        qty: 0, sales: 0, cost: 0, profit: 0,
+        qty: 0, sales: 0, cost: 0, profit: 0, discount: 0,
         priceSum: 0, costSum: 0, n: 0,
       });
       const r = m.get(k);
@@ -348,18 +416,18 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
+      r.discount += itemDiscount.get(it.id) || 0;
       r.priceSum += num(it.unit_price);
       r.costSum += num(it.cost_price);
       r.n += 1;
     });
     return Array.from(m.values()).map((r) => ({
-      ...r,
+      ...enrichRow(r),
       invoices: r.invoices.size,
       avg_price: r.n ? r.priceSum / r.n : 0,
       avg_cost: r.n ? r.costSum / r.n : 0,
-      margin: r.sales > 0 ? (r.profit / r.sales) * 100 : 0,
     })).sort((a, b) => b.sales - a.sales);
-  }, [items]);
+  }, [items, itemDiscount]);
 
   const bySupplier = useMemo(() => {
     const m = new Map<string, any>();
@@ -367,7 +435,7 @@ export default function RepReportsPage() {
       const k = it._sid || "__none__";
       if (!m.has(k)) m.set(k, {
         supplier_id: it._sid, supplier_name: it._sname || "بدون مورد",
-        lines: 0, qty: 0, sales: 0, cost: 0, profit: 0,
+        lines: 0, qty: 0, sales: 0, cost: 0, profit: 0, discount: 0,
       });
       const r = m.get(k);
       r.lines += 1;
@@ -375,27 +443,17 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
+      r.discount += itemDiscount.get(it.id) || 0;
     });
-    const totalSales = Array.from(m.values()).reduce((s, r) => s + r.sales, 0);
-    const contributingInv = new Set(items.map((i) => i.invoice_id));
-    const discTotal = Array.from(contributingInv).reduce((s, id) => s + num(invMap(id, invs)?.discount_amount), 0);
-    return Array.from(m.values()).map((r) => {
-      const share = totalSales > 0 ? r.sales / totalSales : 0;
-      const supDisc = discTotal * share;
-      return {
-        ...r,
-        discount: supDisc,
-        net_profit: r.profit - supDisc,
-        margin: r.sales > 0 ? ((r.profit - supDisc) / r.sales) * 100 : 0,
-      };
-    }).sort((a, b) => b.sales - a.sales);
-  }, [items, invs]);
+    return Array.from(m.values())
+      .map((r) => enrichRow(r))
+      .sort((a, b) => b.sales - a.sales);
+  }, [items, itemDiscount]);
 
   const collectionsRpt = useMemo(() => {
     const m = new Map<string, any>();
     collTxs.forEach((t) => {
-      let repId = "__none__";
-      try { repId = JSON.parse(t.notes || "{}")?.rep_id || "__none__"; } catch {}
+      const repId = (t._rep_id as string) || "__none__";
       if (!m.has(repId)) m.set(repId, {
         rep_id: repId, rep_name: repName(repId),
         cash: 0, cheque: 0, bank: 0, other: 0, count: 0, total: 0,
@@ -435,13 +493,26 @@ export default function RepReportsPage() {
     return Array.from(byCust.values()).sort((a, b) => b.total - a.total);
   }, [returns]);
 
-  // ===== Reconciliation: cards vs table =====
+  // ===== Reconciliation: cards vs every tab (sales, cost, discount, net_profit) =====
   const recon = useMemo(() => {
-    const tableSales = byRep.reduce((s, r) => s + r.sales, 0);
-    return {
-      sales: { card: kpi.sales, table: tableSales, drift: Math.abs(kpi.sales - tableSales) > 0.01 },
-    };
-  }, [byRep, kpi]);
+    const sumOf = (rows: any[], key: string) => rows.reduce((s, r) => s + num(r[key]), 0);
+    const checks: { tab: string; metric: string; card: number; table: number }[] = [];
+    [
+      { tab: "byRep", rows: byRep },
+      { tab: "byCustomer", rows: byCustomer },
+      { tab: "byProduct", rows: byProduct },
+      { tab: "bySupplier", rows: bySupplier },
+    ].forEach(({ tab, rows }) => {
+      checks.push({ tab, metric: "sales", card: kpi.sales, table: sumOf(rows, "sales") });
+      checks.push({ tab, metric: "cost", card: kpi.cost, table: sumOf(rows, "cost") });
+      checks.push({ tab, metric: "discount", card: kpi.discount, table: sumOf(rows, "discount") });
+      checks.push({ tab, metric: "net", card: kpi.netProfit, table: sumOf(rows, "net_profit") });
+    });
+    const drifts = checks
+      .map((c) => ({ ...c, diff: c.card - c.table }))
+      .filter((c) => Math.abs(c.diff) > 0.01);
+    return { drifts, ok: drifts.length === 0 };
+  }, [byRep, byCustomer, byProduct, bySupplier, kpi]);
 
   return (
     <div className="p-4 space-y-4" dir="rtl">
@@ -451,8 +522,10 @@ export default function RepReportsPage() {
           تقارير البائع المتجول
         </h1>
         <div className="flex items-center gap-2 text-xs">
-          {recon.sales.drift ? (
-            <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> DRIFT</Badge>
+          {!recon.ok ? (
+            <Badge variant="destructive" className="gap-1" title={recon.drifts.map(d => `${d.tab}.${d.metric}: ${d.diff.toFixed(2)}`).join(" • ")}>
+              <AlertTriangle className="w-3 h-3" /> DRIFT ({recon.drifts.length})
+            </Badge>
           ) : (
             <Badge variant="secondary" className="gap-1 bg-emerald-500/15 text-emerald-700"><CheckCircle2 className="w-3 h-3" /> تدقيق الأرقام: OK</Badge>
           )}
