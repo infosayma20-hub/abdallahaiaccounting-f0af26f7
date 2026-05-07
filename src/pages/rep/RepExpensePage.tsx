@@ -16,8 +16,9 @@ import { cn } from "@/lib/utils";
 
 // أكواد الحسابات الأكثر استخداماً للمندوب (Quick-pick)
 const QUICK_PICK_CODES: Array<{ code: string; label: string }> = [
-  { code: "5530", label: "نقل" },
-  { code: "5520", label: "ضيافة" },
+  { code: "5350", label: "نقل ومواصلات" },
+  { code: "5410", label: "وقود" },
+  { code: "5380", label: "ضيافة" },
   { code: "5900", label: "نثرية" },
 ];
 
@@ -39,11 +40,14 @@ type ExpenseType = {
 };
 
 const EXPENSE_TYPES: ExpenseType[] = [
-  { key: "transport", label: "نقل / مواصلات", icon: Car, defaultAccountCode: "5530", defaultAccountFallbacks: ["5810"] },
-  { key: "misc", label: "نثرية", icon: Receipt, defaultAccountCode: "5900", defaultAccountFallbacks: ["5500"] },
-  { key: "hospitality", label: "ضيافة", icon: Coffee, defaultAccountCode: "5520", defaultAccountFallbacks: ["55901"] },
-  { key: "meal", label: "فطور / وجبة", icon: Utensils, defaultAccountCode: "5520", defaultAccountFallbacks: ["5900"] },
-  { key: "personal", label: "مصروف شخصي", icon: Wallet, defaultAccountCode: "5150", defaultAccountFallbacks: ["5900"] },
+  // ملاحظة: 5530/5520 كانت غلط (تحت دعاية وإعلان). الصحيح حسب الشجرة القياسية:
+  // 5350 نقل وتوصيل، 5400/5410 مركبات ووقود، 5380 ضيافة وتمثيل، 5900 متنوعة
+  { key: "transport", label: "نقل / مواصلات", icon: Car, defaultAccountCode: "5350", defaultAccountFallbacks: ["5400", "5900"] },
+  { key: "fuel", label: "بنزين / وقود", icon: Truck, defaultAccountCode: "5410", defaultAccountFallbacks: ["5400", "5350", "5900"] },
+  { key: "misc", label: "نثرية", icon: Receipt, defaultAccountCode: "5900", defaultAccountFallbacks: ["5300"] },
+  { key: "hospitality", label: "ضيافة", icon: Coffee, defaultAccountCode: "5380", defaultAccountFallbacks: ["5900"] },
+  { key: "meal", label: "فطور / وجبة", icon: Utensils, defaultAccountCode: "5380", defaultAccountFallbacks: ["5900"] },
+  { key: "personal", label: "مصروف شخصي", icon: Wallet, defaultAccountCode: null, defaultAccountFallbacks: [] },
   { key: "supplier", label: "صرف لمورد", icon: Truck, defaultAccountCode: null, defaultAccountFallbacks: [] },
   { key: "other", label: "أخرى", icon: MoreHorizontal, defaultAccountCode: null, defaultAccountFallbacks: [] },
 ];
