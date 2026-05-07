@@ -33,23 +33,54 @@ export type ManagerBranch = {
   branch_name: string;
 };
 
-/** Branches this user manages (for the new branch_scheduler role). */
-export function useManagerBranches() {
+/** Current employee row (the one linked to auth.uid via auth_user_id). */
+export function useCurrentEmployee() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["manager-branches", user?.id],
+    queryKey: ["current-employee", user?.id],
     enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, full_name, user_id, company_id, branch_id, can_view_team, can_manage_schedule, can_manage_attendance")
+        .eq("auth_user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+}
+
+/** Branches the current manager-employee can see (derived from team employees). */
+export function useManagerBranches() {
+  const { data: me } = useCurrentEmployee();
+  return useQuery({
+    queryKey: ["manager-branches", me?.id],
+    enabled: !!me?.id,
     queryFn: async (): Promise<ManagerBranch[]> => {
       const { data, error } = await supabase
-        .from("branch_manager_assignments")
+        .from("employees")
         .select("branch_id, company_id, branches:branch_id(name)")
-        .eq("user_id", user!.id);
+        .eq("manager_employee_id", me!.id)
+        .eq("is_active", true);
       if (error) throw error;
-      return (data || []).map((r: any) => ({
-        branch_id: r.branch_id,
-        company_id: r.company_id,
-        branch_name: r.branches?.name || "—",
-      }));
+      const seen = new Set<string>();
+      const out: ManagerBranch[] = [];
+      (data || []).forEach((r: any) => {
+        if (!r.branch_id || seen.has(r.branch_id)) return;
+        seen.add(r.branch_id);
+        out.push({
+          branch_id: r.branch_id,
+          company_id: r.company_id,
+          branch_name: r.branches?.name || "—",
+        });
+      });
+      // Fallback: if manager has no team yet, expose their own branch
+      if (!out.length && me?.branch_id) {
+        const { data: br } = await supabase.from("branches").select("name").eq("id", me.branch_id).maybeSingle();
+        out.push({ branch_id: me.branch_id, company_id: me.company_id, branch_name: (br as any)?.name || "—" });
+      }
+      return out;
     },
   });
 }
@@ -71,17 +102,19 @@ export function useShiftTemplates(companyId: string | undefined) {
   });
 }
 
-export function useBranchEmployees(branchId: string | undefined) {
+/** Employees in a branch — RLS will further restrict to team for non-admin/HR users. */
+export function useBranchEmployees(branchId: string | undefined, managerEmployeeId?: string | undefined) {
   return useQuery({
-    queryKey: ["branch-employees", branchId],
+    queryKey: ["branch-employees", branchId, managerEmployeeId],
     enabled: !!branchId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("employees")
-        .select("id, full_name, position, phone")
+        .select("id, full_name, position, phone, manager_employee_id")
         .eq("branch_id", branchId!)
-        .eq("is_active", true)
-        .order("full_name");
+        .eq("is_active", true);
+      if (managerEmployeeId) q = q.eq("manager_employee_id", managerEmployeeId);
+      const { data, error } = await q.order("full_name");
       if (error) throw error;
       return data || [];
     },
