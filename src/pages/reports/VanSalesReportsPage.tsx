@@ -593,10 +593,10 @@ export default function VanSalesReportsPage() {
         "المندوب": o.rep_name,
         "الزبون": o.contact_name || "—",
         "الدفع": isCash(o.payment_method) ? "نقدي" : "آجل",
+        "الحالة": statusLabel(o.payment_status || o.status),
         "الإجمالي": safe(o.total_amount),
         "التكلفة": o.cost,
         "الربح": o.undefinedCost ? "تكلفة غير محددة" : o.profit,
-        "الحالة": o.payment_status || o.status || "—",
       }));
     }
     if (!rows.length) return;
