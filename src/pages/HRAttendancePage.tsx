@@ -668,22 +668,21 @@ export default function HRAttendancePage() {
   @page { size: A4 portrait; margin: 0; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; color: #0D1B2E; background: #fff; }
-  .page { width: 210mm; min-height: 297mm; padding: 12mm 14mm; display: flex; flex-direction: column; align-items: center; }
-  .header { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4mm; padding-bottom: 6mm; border-bottom: 2px dashed #0D1B2E33; }
-  .logo { width: 22mm; height: 22mm; object-fit: contain; }
-  .company { font-size: 14pt; font-weight: 700; color: #0D1B2E; opacity: .8; }
-  .title { font-size: 28pt; font-weight: 900; color: #0D1B2E; margin-top: 6mm; text-align: center; }
-  .subtitle { font-size: 18pt; font-weight: 700; color: #0D1B2E; opacity: .85; margin-top: 2mm; text-align: center; }
-  .branch-pill { margin-top: 4mm; background: #0D1B2E; color: #fff; padding: 4mm 10mm; border-radius: 999px; font-size: 22pt; font-weight: 800; text-align: center; }
-  .qr-wrap { margin: 10mm 0 6mm; padding: 8mm; border: 4px solid #0D1B2E; border-radius: 10mm; background: #fff; }
-  .qr-wrap img { width: 130mm; height: 130mm; display: block; }
-  .scan-cta { font-size: 20pt; font-weight: 800; color: #0D1B2E; margin-top: 2mm; text-align: center; }
-  .steps { margin-top: 8mm; width: 100%; max-width: 170mm; }
-  .steps ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 6mm; }
-  .steps li { counter-increment: s; padding: 4mm 5mm 4mm 14mm; position: relative; background: #F4F6FA; border-radius: 4mm; font-size: 13pt; font-weight: 600; color: #0D1B2E; min-height: 16mm; display: flex; align-items: center; }
-  .steps li::before { content: counter(s); position: absolute; right: 4mm; top: 50%; transform: translateY(-50%); width: 9mm; height: 9mm; border-radius: 50%; background: #0D1B2E; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13pt; }
-  .warn { margin-top: 8mm; padding: 5mm 6mm; border: 2px solid #C62828; color: #C62828; border-radius: 4mm; font-weight: 800; font-size: 13pt; text-align: center; width: 100%; max-width: 170mm; background: #FFEBEE; }
-  .footer { margin-top: auto; padding-top: 6mm; width: 100%; display: flex; justify-content: space-between; font-size: 9pt; color: #0D1B2E99; border-top: 1px dashed #0D1B2E33; }
+  .page { width: 210mm; height: 297mm; padding: 8mm 12mm 6mm; display: flex; flex-direction: column; align-items: center; overflow: hidden; page-break-after: avoid; page-break-inside: avoid; }
+  .header { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2mm; padding-bottom: 4mm; border-bottom: 2px dashed #0D1B2E33; }
+  .logo { width: 20mm; height: 20mm; object-fit: contain; }
+  .company { font-size: 13pt; font-weight: 700; color: #0D1B2E; opacity: .8; }
+  .title { font-size: 26pt; font-weight: 900; color: #0D1B2E; margin-top: 4mm; text-align: center; line-height: 1.2; }
+  .subtitle { font-size: 15pt; font-weight: 700; color: #0D1B2E; opacity: .85; margin-top: 1mm; text-align: center; }
+  .branch-pill { margin-top: 3mm; background: #0D1B2E; color: #fff; padding: 3mm 9mm; border-radius: 999px; font-size: 20pt; font-weight: 800; text-align: center; }
+  .qr-wrap { margin: 5mm 0 3mm; padding: 6mm; border: 4px solid #0D1B2E; border-radius: 8mm; background: #fff; }
+  .qr-wrap img { width: 145mm; height: 145mm; display: block; }
+  .scan-cta { font-size: 18pt; font-weight: 800; color: #0D1B2E; margin-top: 1mm; text-align: center; }
+  .steps { margin-top: 4mm; width: 100%; max-width: 175mm; }
+  .steps ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 5mm; }
+  .steps li { counter-increment: s; padding: 3mm 5mm 3mm 16mm; position: relative; background: #F4F6FA; border-radius: 3mm; font-size: 15pt; font-weight: 700; color: #0D1B2E; min-height: 14mm; display: flex; align-items: center; }
+  .steps li::before { content: counter(s); position: absolute; right: 3mm; top: 50%; transform: translateY(-50%); width: 10mm; height: 10mm; border-radius: 50%; background: #0D1B2E; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15pt; }
+  .footer { margin-top: auto; padding-top: 4mm; width: 100%; display: flex; justify-content: space-between; font-size: 9pt; color: #0D1B2E99; border-top: 1px dashed #0D1B2E33; }
   .no-print { position: fixed; top: 8px; left: 8px; }
   @media print { .no-print { display: none; } }
   .btn { background: #0D1B2E; color: #fff; border: 0; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-weight: 700; cursor: pointer; }
@@ -700,7 +699,7 @@ export default function HRAttendancePage() {
     <div class="branch-pill">📍 ${branchName}</div>
 
     <div class="qr-wrap"><img src="${qrUrl}" alt="QR"/></div>
-    <div class="scan-cta">📱 امسح الكود لتسجيل حضورك</div>
+    <div class="scan-cta">📱 امسح الكود — يفتح صفحة البصمة تلقائياً</div>
 
     <div class="steps">
       <ol>
@@ -710,8 +709,6 @@ export default function HRAttendancePage() {
         <li>اختر: حضور أو انصراف</li>
       </ol>
     </div>
-
-    <div class="warn">⚠️ يُمنع تسجيل الحضور لزميل آخر — البصمة شخصية ومسؤولية كل موظف</div>
 
     <div class="footer">
       <span>${company || "Amwali ERP"}</span>
