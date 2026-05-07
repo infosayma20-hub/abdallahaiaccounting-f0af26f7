@@ -10717,6 +10717,7 @@ export type Database = {
           quantity: number
           tax_pct: number | null
           total_amount: number
+          track_inventory: boolean | null
           unit: string | null
           unit_price: number
         }
@@ -10736,6 +10737,7 @@ export type Database = {
           quantity: number
           tax_pct?: number | null
           total_amount: number
+          track_inventory?: boolean | null
           unit?: string | null
           unit_price: number
         }
@@ -10755,6 +10757,7 @@ export type Database = {
           quantity?: number
           tax_pct?: number | null
           total_amount?: number
+          track_inventory?: boolean | null
           unit?: string | null
           unit_price?: number
         }
