@@ -13,8 +13,9 @@ import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
 import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
 import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
 import EmployeeMyRequestsTab from "@/components/employee/EmployeeMyRequestsTab";
+import MyScheduleTab from "@/components/employee/MyScheduleTab";
 
-type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms";
+type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule";
 
 type AttendanceDay = {
   id: string;
@@ -49,6 +50,7 @@ type Employee = {
   is_manager: boolean;
   is_hr_manager: boolean;
   user_id: string;
+  company_id?: string;
 };
 
 export default function EmployeeApp() {
@@ -79,7 +81,7 @@ export default function EmployeeApp() {
 
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, user_id")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, user_id, company_id")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -176,6 +178,10 @@ export default function EmployeeApp() {
 
         {activeTab === "history" && (
           <AttendanceCalendarTab history={history} />
+        )}
+
+        {activeTab === "schedule" && (
+          <MyScheduleTab employeeId={employee.id} companyId={employee.company_id} />
         )}
 
         {activeTab === "requests" && (

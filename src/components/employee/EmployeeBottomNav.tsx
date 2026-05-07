@@ -1,9 +1,10 @@
-import { Home, Calendar, User, Bell, ClipboardList, FileText } from "lucide-react";
+import { Home, Calendar, User, Bell, ClipboardList, FileText, CalendarDays } from "lucide-react";
 
-type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms";
+type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule";
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "home", label: "الرئيسية", icon: Home },
+  { id: "schedule", label: "دوامي", icon: CalendarDays },
   { id: "forms", label: "النماذج", icon: ClipboardList },
   { id: "requests", label: "طلباتي", icon: FileText },
   { id: "history", label: "الحضور", icon: Calendar },

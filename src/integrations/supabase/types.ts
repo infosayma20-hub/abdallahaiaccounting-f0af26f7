@@ -1284,6 +1284,30 @@ export type Database = {
         }
         Relationships: []
       }
+      branch_manager_assignments: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           address: string | null
@@ -3661,6 +3685,76 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_roster: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          end_time: string | null
+          id: string
+          notes: string | null
+          roster_date: string
+          shift_template_id: string | null
+          start_time: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          roster_date: string
+          shift_template_id?: string | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          roster_date?: string
+          shift_template_id?: string | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_roster_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_roster_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_roster_shift_template_id_fkey"
+            columns: ["shift_template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -12064,6 +12158,48 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_templates: {
+        Row: {
+          code: string
+          color: string
+          company_id: string
+          created_at: string
+          crosses_midnight: boolean
+          end_time: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          color?: string
+          company_id: string
+          created_at?: string
+          crosses_midnight?: boolean
+          end_time: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          color?: string
+          company_id?: string
+          created_at?: string
+          crosses_midnight?: boolean
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       statement_send_log: {
         Row: {
           balance_at_send: number | null
@@ -16459,6 +16595,7 @@ export type Database = {
         Args: { p_date: string; p_user_id: string }
         Returns: string
       }
+      get_employee_id_for_user: { Args: { _user: string }; Returns: string }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
@@ -16482,6 +16619,14 @@ export type Database = {
       }
       is_attendance_day_locked: {
         Args: { _branch?: string; _date: string; _owner: string }
+        Returns: boolean
+      }
+      is_branch_manager_of: {
+        Args: { _branch: string; _user: string }
+        Returns: boolean
+      }
+      is_company_hr_admin: {
+        Args: { _company: string; _user: string }
         Returns: boolean
       }
       is_module_enabled: {
@@ -16756,6 +16901,7 @@ export type Database = {
         | "supervisor"
         | "portal"
         | "sales_rep"
+        | "branch_scheduler"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -16950,6 +17096,7 @@ export const Constants = {
         "supervisor",
         "portal",
         "sales_rep",
+        "branch_scheduler",
       ],
       cheque_status: [
         "مسجل",
