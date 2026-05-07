@@ -629,7 +629,7 @@ const ChequesPage = () => {
 
       const historyDetails: Record<string, any> = {};
       if (data.action === 'deposit') { const bank = bankAccounts.find(b => b.id === data.bankAccountId); historyDetails.bank_name = bank?.name; }
-      if (data.action === 'endorse') historyDetails.endorsed_to = data.endorsedToName;
+      // 'endorse' handled exclusively via RPC above (returns early)
       if (data.action === 'bounced' || data.action === 'outgoing_bounced') { historyDetails.bounce_reason = data.bounceReason; historyDetails.bank_fees = data.bankFees; }
       if (data.action === 'cashed') { const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id); historyDetails.source_bank = sb?.name; }
       if (data.action === 'recover') historyDetails.recover_reason = data.recoverReason;
