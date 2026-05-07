@@ -733,12 +733,12 @@ export default function VanSalesReportsPage() {
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="daily">ملخص يومي</TabsTrigger>
-          <TabsTrigger value="rep">حسب المندوب</TabsTrigger>
-          <TabsTrigger value="product">حسب الصنف</TabsTrigger>
-          <TabsTrigger value="customer">حسب الزبون</TabsTrigger>
-          <TabsTrigger value="supplier">حسب المورد</TabsTrigger>
           <TabsTrigger value="orders">الطلبات</TabsTrigger>
+          <TabsTrigger value="supplier">حسب المورد</TabsTrigger>
+          <TabsTrigger value="customer">حسب الزبون</TabsTrigger>
+          <TabsTrigger value="product">حسب الصنف</TabsTrigger>
+          <TabsTrigger value="rep">حسب المندوب</TabsTrigger>
+          <TabsTrigger value="daily">ملخص يومي</TabsTrigger>
         </TabsList>
 
         {/* 1. Daily */}
