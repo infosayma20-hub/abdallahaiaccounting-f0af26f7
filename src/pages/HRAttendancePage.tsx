@@ -672,14 +672,12 @@ export default function HRAttendancePage() {
   };
 
   const updateBranch = async () => {
-    if (!editingBranch || !editForm.name || !editForm.latitude || !editForm.longitude) return;
+    if (!editingBranch) return;
     const { error } = await supabase.from("branches").update({
-      name: editForm.name, address: editForm.address || null,
-      latitude: parseFloat(editForm.latitude), longitude: parseFloat(editForm.longitude),
       radius_meters: parseInt(editForm.radius_meters) || 100,
     }).eq("id", editingBranch.id);
     if (error) toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    else { toast({ title: "تم التحديث" }); setEditingBranch(null); fetchData(); }
+    else { toast({ title: "تم حفظ إعدادات الحضور" }); setEditingBranch(null); fetchData(); }
   };
 
   const deleteBranch = async () => {
