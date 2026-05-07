@@ -21,6 +21,7 @@ import {
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function startOfWeek(d: Date): Date {
   // Saturday start (Arab work week)
@@ -359,6 +360,7 @@ function CellDialog({
   onSave: (d: { status: RosterEntry["status"]; shift_template_id: string | null; notes: string }) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
+  const isMobile = useIsMobile();
   const [status, setStatus] = useState<RosterEntry["status"]>("scheduled");
   const [shiftId, setShiftId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -434,36 +436,37 @@ function CellDialog({
 
   return (
     <>
-      {/* Mobile bottom sheet */}
-      <Sheet open={!!cell} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent side="bottom" dir="rtl" className="md:hidden rounded-t-2xl max-h-[90vh] overflow-y-auto">
-          <SheetHeader className="text-right">
-            <SheetTitle>{cell.date}</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4">{body}</div>
-          {footer}
-        </SheetContent>
-      </Sheet>
-      {/* Desktop dialog */}
-      <Dialog open={!!cell} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent dir="rtl" className="hidden md:block">
-          <DialogHeader>
-            <DialogTitle>{cell.date}</DialogTitle>
-          </DialogHeader>
-          {body}
-          <DialogFooter className="gap-2">
-            {cell.existing && (
-              <Button variant="destructive" size="sm" onClick={onDelete} className="me-auto">
-                <Trash2 className="h-4 w-4 ms-1" /> حذف
+      {isMobile ? (
+        <Sheet open={!!cell} onOpenChange={(o) => !o && onClose()}>
+          <SheetContent side="bottom" dir="rtl" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+            <SheetHeader className="text-right">
+              <SheetTitle>{cell.date}</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">{body}</div>
+            {footer}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={!!cell} onOpenChange={(o) => !o && onClose()}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>{cell.date}</DialogTitle>
+            </DialogHeader>
+            {body}
+            <DialogFooter className="gap-2">
+              {cell.existing && (
+                <Button variant="destructive" size="sm" onClick={onDelete} className="me-auto">
+                  <Trash2 className="h-4 w-4 ms-1" /> حذف
+                </Button>
+              )}
+              <Button variant="outline" onClick={onClose}>إلغاء</Button>
+              <Button onClick={() => onSave({ status, shift_template_id: needsShift ? shiftId : null, notes })}>
+                حفظ
               </Button>
-            )}
-            <Button variant="outline" onClick={onClose}>إلغاء</Button>
-            <Button onClick={() => onSave({ status, shift_template_id: needsShift ? shiftId : null, notes })}>
-              حفظ
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
