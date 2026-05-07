@@ -12,7 +12,7 @@ import { generateStatementPDF } from "@/utils/generateStatementPDF";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import SimpleStatementPrintView from "@/components/SimpleStatementPrintView";
+import StatementPrintViewClean from "@/components/StatementPrintViewClean";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -1496,7 +1496,7 @@ const AccountStatementV2Page = () => {
           </div>
           <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
             <div id="statement-preview-doc" style={{ width: "780px", minHeight: "1100px", background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4 }}>
-              <SimpleStatementPrintView
+              <StatementPrintViewClean
                 company={companyInfo}
                 contact={{
                   name: selectedEntityName,
@@ -1517,6 +1517,9 @@ const AccountStatementV2Page = () => {
                 showCompanyLogo={statementOptions.showCompanyLogo}
                 showContactInfo={statementOptions.showContactInfo}
                 showSignature={statementOptions.showSignature}
+                showReference={statementOptions.showReference}
+                showDueDate={statementOptions.showDueDate}
+                showType={statementOptions.showType}
                 showAging={statementOptions.showAging}
                 agingData={agingData}
               />
