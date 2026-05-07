@@ -1,148 +1,88 @@
+# تعميم إدارة الفريق لكل الشركات (Generic Workforce Management)
 
-# جدول دوام الفرع — Branch Scheduler
-
-نظام جداول ورديات يديره مدير الفرع لفرع أو أكثر، بدون أي تأثير على الرواتب أو حسابات تلقائية في الشهر الأول.
-
-## الفكرة الأساسية
-
-- **لا** نربط الموظف بـ`shift_id` ثابت.
-- نخزّن **جدول يومي ديناميكي** لكل (موظف × تاريخ × فرع × وردية).
-- مدير الفرع يدخل/يعدّل جدوله فقط، ولا يرى رواتب أو حسابات.
-- النظام يسجّل الحضور الفعلي ويقارن مع الجدول لاحقاً (للعرض فقط، بدون عقوبات).
+الهدف: إلغاء الربط بدور `branch_scheduler` المخصص للملكي، واستبداله بعلاقة إدارية مرنة بين الموظفين تعمل لأي شركة وأي قطاع، وتُدار يدوياً من شاشة الموظف.
 
 ---
 
-## 1. قوالب الورديات (Shift Templates)
+## 1) قاعدة البيانات
 
-ثلاث قوالب فقط للبداية، تُحقن لشركة الملكي:
+### إضافة على جدول `employees`
+- `manager_employee_id` (uuid, nullable) → الموظف المسؤول عنه (مدير مباشر).
+- `can_manage_schedule` (bool, default false) → يستطيع إنشاء/تعديل جدول دوام فريقه.
+- `can_manage_attendance` (bool, default false) → يستطيع اعتماد حضور فريقه.
+- `can_view_team` (bool, default false) → يستطيع رؤية فريقه فقط.
 
-| Code | الاسم | البداية | النهاية | اللون | Cross-day |
-|---|---|---|---|---|---|
-| `MORNING` | صباحي | 09:00 | 17:00 | أزرق | لا |
-| `MID` | ميد | 14:00 | 22:00 | برتقالي | لا |
-| `NIGHT` | مسائي | 17:00 | 01:00 | بنفسجي | **نعم** |
+(لا داعي لجدول علاقات منفصل في المرحلة الأولى — الحقول داخل `employees` كافية وأبسط.)
 
-تُخزّن في جدول جديد `shift_templates` (لكل شركة).
+### دالة مساعدة (Security Definer)
+```sql
+public.is_employee_manager_of(_manager_employee_id uuid, _target_employee_id uuid) returns boolean
+```
+تتحقق إذا كان الموظف A مديراً مباشراً للموظف B داخل نفس الشركة.
 
----
+### تحديث RLS لجدول `daily_roster`
+- يُسمح بالـ SELECT/INSERT/UPDATE/DELETE إذا:
+  - admin أو hr_manager (كما هو)، **أو**
+  - الموظف الحالي (المرتبط بـ `auth.uid()` في `employees.user_id`) عنده `can_manage_schedule = true` **و** الموظف المستهدف `manager_employee_id` يساوي معرّفه.
+- إزالة الاعتماد على `branch_manager_assignments` و `branch_scheduler` role من المنطق الجديد (نُبقي الجدول والدور موجودَين للتوافق لكن لا نعتمد عليهما في RLS الجديدة).
 
-## 2. الجداول الجديدة
-
-### `shift_templates`
-- `id`, `company_id`, `code`, `name_ar`, `start_time`, `end_time`, `crosses_midnight`, `color`, `is_active`
-
-### `daily_roster`
-- `id`, `company_id`, `branch_id`, `employee_id`, `roster_date` (DATE)
-- `shift_template_id` (nullable إذا OFF/إجازة)
-- `status` enum: `scheduled` | `off` | `leave` | `coverage`
-- `start_time`, `end_time` (overrides اختيارية)
-- `notes`, `created_by`, `created_at`, `updated_at`
-- **UNIQUE** (employee_id, roster_date) — موظف واحد له صف واحد باليوم
-
-### Triggers / Validations
-- `end < start` → يضع `crosses_midnight = true` تلقائياً
-- منع تداخل (employee_id, date) — يكفي UNIQUE constraint
-- `set_updated_at` trigger
+### تحديث RLS لـ `attendance_days` / `attendance_events` (للاعتماد فقط)
+- إضافة سياسة UPDATE تسمح للمدير المباشر باعتماد حضور موظفي فريقه عندما `can_manage_attendance = true`.
 
 ---
 
-## 3. الرول الجديد: `branch_scheduler`
+## 2) الواجهة الأمامية
 
-إضافة قيمة جديدة لـ `app_role` enum.
+### (أ) صفحة الموظف (Employees → Edit)
+إضافة قسم جديد: **"إدارة الفريق"**
+- Select: **المدير المباشر** (`manager_employee_id`) — قائمة موظفي نفس الشركة.
+- 3 Toggles:
+  - ☑ يستطيع رؤية فريقه
+  - ☑ يستطيع إدارة جدول الدوام
+  - ☑ يستطيع اعتماد الحضور
 
-### جدول `branch_manager_assignments`
-- `id`, `user_id`, `branch_id`, `company_id`, `created_at`
-- يحدد أي مدير مسؤول عن أي فرع/فروع.
-- لأنس → صفّان: (الطيرة) + (بلازا مول).
+### (ب) إعادة تنظيم قائمة الحضور
+ضمن قسم **الحضور** في الـ Sidebar:
+- سجل الحضور (موجود)
+- **جدول الدوام** ← نقل `/manager/roster` إلى `/attendance/roster` وإظهاره لأي موظف عنده `can_manage_schedule`.
+- اعتماد الحضور (لاحقاً)
+- الحضور المباشر (لاحقاً)
 
-### دالة `is_branch_manager_of(_user, _branch)` — SECURITY DEFINER
+### (ج) شاشة جدول الدوام (تحسين UX الحالي)
+- بدل إدخال أوقات يدوية: قائمة منسدلة (صباحي / ميد / مسائي / OFF / إجازة) → الأوقات تُملأ تلقائياً من `shift_templates`.
+- فلترة الموظفين المعروضين: فقط الموظفين الذين `manager_employee_id = currentEmployee.id` (إذا لم يكن admin/hr_manager).
+- زر **"نسخ جدول أمس"**.
 
----
+### (د) Hooks جديدة / تعديل
+- `useMyTeam()` → يرجع موظفي فريقي.
+- `useCurrentEmployee()` → الموظف المرتبط بـ `auth.uid()` + صلاحياته.
+- تعديل `useBranchRoster` → فلترة حسب الفريق بدل `branch_manager_assignments`.
 
-## 4. RLS Policies
-
-### `daily_roster`
-- **SELECT**: admin, hr_manager, accountant_senior (للشركة كلها) — أو branch_scheduler لفروعه فقط — أو الموظف نفسه (صفه فقط).
-- **INSERT/UPDATE/DELETE**: admin, hr_manager — أو branch_scheduler لفروعه فقط.
-
-### `shift_templates`
-- **SELECT**: كل authenticated في نفس الشركة.
-- **INSERT/UPDATE/DELETE**: admin, hr_manager فقط.
-
-### `branch_manager_assignments`
-- **SELECT/كل العمليات**: admin, hr_manager فقط.
-
-### حماية صريحة من escalation
-- branch_scheduler **لا يحصل** على أي صلاحية ضمنية على: `employees`, `employee_payroll`, `monthly_payroll_inputs`, `hr_payroll_*`, `transactions`, `accounts`. (نتأكد من سياسات الموجودة لا تمنحه شيء.)
-
----
-
-## 5. الواجهات (Frontend)
-
-### أ) شاشة جديدة `/manager/roster` — لمدير الفرع
-- Header: اختيار الفرع (لو يدير أكثر من واحد) + اختيار الأسبوع
-- **عرض أسبوعي** (Sat→Fri) جدول: صفوف = موظفي الفرع، أعمدة = أيام الأسبوع
-- نقرة على خلية → Dialog: اختيار وردية (MORNING/MID/NIGHT/OFF/LEAVE) + ملاحظات
-- زر **نسخ من الأسبوع السابق**
-- زر **تعبئة سريعة** (كل الموظفين → MORNING يوم محدد)
-- ألوان الورديات بصرية (أزرق/برتقالي/بنفسجي)
-
-### ب) Tab جديد في Employee Portal: **"دوامي"**
-- يعرض للموظف جدوله للأسبوع الحالي والقادم فقط (read-only)
-- ربط بـ`/employee` portal الموجود
-
-### ج) إعداد قوالب الورديات (Admin/HR فقط)
-- شاشة بسيطة في إعدادات HR لإدارة `shift_templates`
-
-### د) Sidebar / Navigation
-- إضافة عنصر "جدول الدوام" في نافيجيشن المدير (للرول الجديد فقط)
+### (هـ) RoleGuard / Navigation
+- إظهار رابط "جدول الدوام" لأي موظف عنده `can_manage_schedule = true` بغض النظر عن الـ role.
+- إبقاء وصول admin / hr_manager كاملاً.
 
 ---
 
-## 6. أنس — الإعداد الأولي
-
-بعد إنشاء الرول والجداول:
-1. إعطاء أنس رول `branch_scheduler` في `user_roles`
-2. ربطه بفرعَي الطيرة + بلازا مول في `branch_manager_assignments`
-3. ربط الموظفين الـ7 المذكورين بفرع بلازا مول (`employees.branch_id`)
-4. حقن قوالب الورديات الثلاث
-
-> ملاحظة: ربط أنس فعلياً بحسابه يحتاج `user_id` الخاص فيه — سأطلبه منك بعد التنفيذ.
+## 3) ربط الملكي يدوياً (بعد التطبيق)
+- على شاشة الموظف الخاصة بـ **أنس**: تفعيل التوغلز الثلاثة.
+- على كل موظف من السبعة في بلازا مول + موظفي الطيرة: ضبط `manager_employee_id = أنس`.
+- (يدوي بالكامل، بدون أي script).
 
 ---
 
-## 7. ما لا نمسّه الآن
-
-- Payroll engine — يبقى manual
-- `attendance_days` triggers — تبقى كما هي
-- `hr_payroll_policies` — لا تتغيّر
-- لا late/OT تلقائي — حتى لو الجدول مدخل، الـ Issue Engine معطّل من المرحلة السابقة
-- مقارنة الحضور الفعلي مع الجدول → **عرض فقط**، بدون أي خصم
+## 4) ما الذي **لن** يتغيّر
+- محرك الرواتب — كما هو.
+- `hr_payroll_policies` — كما هي (Manual mode).
+- `shift_templates` و `daily_roster` و `branch_manager_assignments` — تبقى موجودة (تراث Phase 2)، لكن RLS الجديدة هي المعتمدة.
+- دور `branch_scheduler` يبقى متاحاً لكنه أصبح اختيارياً وغير ضروري.
 
 ---
 
-## 8. التنفيذ (المراحل)
+## 5) الأمان
+- المدير المباشر لا يرى أي بيانات راتب أو مالية — لا تغييرات على RLS لجداول `salaries`، `payslips`، أو الجداول المالية.
+- التحقق من نفس `company_id` في كل دالة security definer.
 
-### Migration واحد:
-1. `shift_templates` + `daily_roster` + `branch_manager_assignments`
-2. enum value `branch_scheduler`
-3. دالة `is_branch_manager_of`
-4. RLS policies
-5. Trigger للـ updated_at و cross-midnight
-6. Seed: 3 ورديات + رول أنس + ربط فرعين + ربط 7 موظفين ببلازا مول
-
-### Frontend (نفس الجلسة بعد الموافقة على Migration):
-- `src/pages/manager/RosterPage.tsx` — العرض الأسبوعي
-- `src/pages/manager/ShiftTemplatesPage.tsx` — إدارة القوالب (Admin)
-- `src/pages/employee/MyRosterTab.tsx` — تبويب الموظف
-- `src/hooks/useDailyRoster.ts` + `useShiftTemplates.ts` + `useBranchAssignments.ts`
-- إضافة الراوت + RoleGuard للرول الجديد
-- إضافة عنصر النافيجيشن
-
----
-
-## أسئلة قبل التنفيذ
-
-1. هل أنس يحتاج فعلياً يشوف **حضور الموظفين الفعلي** (check-in/out) بنفس الشاشة، أم فقط جدوله؟
-2. هل بدك الموظف يقدر **يطلب تبديل وردية** من البورتال (يحتاج موافقة أنس)، أم لا حالياً؟
-3. عند موظف يشتغل بفرعين بنفس الأسبوع — هل ممكن (مثلاً سبت بلازا، أحد طيرة)؟ (افتراضي: نعم).
+## أسئلة قبل البدء
+1. هل أحذف فعلياً جدول `branch_manager_assignments` ودور `branch_scheduler`، أم أتركهما كـ legacy؟ (الافتراضي: أتركهما).
+2. هل أضع شاشة "جدول الدوام" تحت `/attendance/roster` (مفضّل) أم أبقي `/manager/roster`؟
