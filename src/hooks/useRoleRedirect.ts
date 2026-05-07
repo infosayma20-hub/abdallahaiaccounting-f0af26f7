@@ -42,13 +42,14 @@ export function useRoleRedirect() {
           supabase.from("user_roles").select("role").eq("user_id", user.id),
           supabase
             .from("employees")
-            .select("id, is_active, is_terminated")
+            .select("id, auth_user_id, user_id, is_active, is_terminated, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
 
         const roles: string[] = (rolesData || []).map((r) => r.role);
         const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
+        const hasAdminAccess = roles.some((role) => role === "admin" || role === "super_admin" || role === "hr_manager" || role.startsWith("accountant"));
 
         // Employees (even those who also have an "admin" row, e.g. a branch
         // manager whose account was provisioned with admin) must land in the
@@ -63,8 +64,27 @@ export function useRoleRedirect() {
           roles.includes("cashier") ||
           roles.includes("sales_rep");
 
-        if (isEmployee && !roles.includes("super_admin") && !isPureSystemRole) {
+        if (isEmployee && !hasAdminAccess && !isPureSystemRole) {
           const nextPath = "/employee";
+          try {
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith("amwali-open-tabs") || key.includes("lastVisitedRoute")) localStorage.removeItem(key);
+            });
+            Object.keys(sessionStorage).forEach((key) => {
+              if (key.includes("lastVisitedRoute")) sessionStorage.removeItem(key);
+            });
+          } catch {}
+          console.info("[role-redirect]", {
+            authUid: user.id,
+            employeeId: empRow.id,
+            employeeAuthUserId: empRow.auth_user_id,
+            employeeOwnerUserId: empRow.user_id,
+            userRoles: roles,
+            isManager: empRow.is_manager,
+            canViewTeam: empRow.can_view_team,
+            canManageSchedule: empRow.can_manage_schedule,
+            finalRedirect: nextPath,
+          });
           if (isCancelled) return;
           redirectCache.set(user.id, nextPath);
           setTargetPath(nextPath);
