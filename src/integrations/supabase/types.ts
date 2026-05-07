@@ -1672,6 +1672,7 @@ export type Database = {
           linked_account: string | null
           linked_transaction_id: string | null
           notes: string | null
+          original_contact_id: string | null
           party_name: string
           party_type: string
           receipt_voucher_id: string | null
@@ -1708,6 +1709,7 @@ export type Database = {
           linked_account?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
+          original_contact_id?: string | null
           party_name: string
           party_type?: string
           receipt_voucher_id?: string | null
@@ -1744,6 +1746,7 @@ export type Database = {
           linked_account?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
+          original_contact_id?: string | null
           party_name?: string
           party_type?: string
           receipt_voucher_id?: string | null
@@ -16675,10 +16678,6 @@ export type Database = {
       set_task_user_password: {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
-      }
-      unendorse_cheque: {
-        Args: { p_cheque_id: string; p_reason: string; p_user_id: string }
-        Returns: Json
       }
       update_last_seen: { Args: never; Returns: undefined }
       update_voucher_atomic: {
