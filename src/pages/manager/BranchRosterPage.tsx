@@ -17,7 +17,7 @@ import {
   type RosterEntry,
   type ShiftTemplate,
 } from "@/hooks/useBranchRoster";
-import { useEffect, useState as useStateReact } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -59,7 +59,7 @@ export default function BranchRosterPage() {
   const { data: branches = [], isLoading: bLoading } = useManagerBranches();
   const [branchId, setBranchId] = useState<string>("");
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
-  const [isHrAdmin, setIsHrAdmin] = useStateReact(false);
+  const [isHrAdmin, setIsHrAdmin] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
