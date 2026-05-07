@@ -38,12 +38,39 @@ export function useRoleRedirect() {
 
     const resolve = async () => {
       try {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
+        const [{ data: rolesData }, { data: empRow }] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", user.id),
+          supabase
+            .from("employees")
+            .select("id, is_active, is_terminated")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+        ]);
 
-        const roles: string[] = (data || []).map((r) => r.role);
+        const roles: string[] = (rolesData || []).map((r) => r.role);
+        const isEmployee = !!empRow && empRow.is_active && !empRow.is_terminated;
+
+        // Employees (even those who also have an "admin" row, e.g. a branch
+        // manager whose account was provisioned with admin) must land in the
+        // employee portal — not the company-wide /apps dashboard.
+        // Exception: super_admin and the explicit "owner" path (no employee
+        // record at all) still go to their respective dashboards.
+        const isPureSystemRole =
+          roles.includes("super_admin") ||
+          roles.includes("portal") ||
+          roles.includes("store_tracker") ||
+          roles.includes("worker") ||
+          roles.includes("cashier") ||
+          roles.includes("sales_rep");
+
+        if (isEmployee && !roles.includes("super_admin") && !isPureSystemRole) {
+          const nextPath = "/employee";
+          if (isCancelled) return;
+          redirectCache.set(user.id, nextPath);
+          setTargetPath(nextPath);
+          return;
+        }
+
         let nextPath: string;
 
         if (roles.includes("super_admin")) {
