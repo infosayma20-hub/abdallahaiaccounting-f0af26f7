@@ -1085,7 +1085,7 @@ const ChequesPage = () => {
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: isDueSoon ? '#DC2626' : '#64748B', fontWeight: isDueSoon ? 700 : 400 }}>{fmtDate(c.cheque_date)}</td>
                         <td className="px-2 py-3 text-[11px] tabular-nums" style={{ color: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days < 0 ? '#DC2626' : days <= 7 ? '#F59E0B' : '#64748B'; })(), fontWeight: (() => { const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000); return days <= 7 ? 700 : 400; })() }}>
                           {(() => {
-                            if (!PENDING_STATUSES.includes(c.status)) return '—';
+                            if (!DUE_WATCH_STATUSES.includes(c.status)) return '—';
                             const days = Math.ceil((new Date(c.cheque_date).getTime() - Date.now()) / 86400000);
                             if (days < 0) return `متأخر ${Math.abs(days)} يوم`;
                             if (days === 0) return 'اليوم';
