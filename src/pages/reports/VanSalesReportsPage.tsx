@@ -864,7 +864,7 @@ export default function VanSalesReportsPage() {
               emptyMessage="لا توجد طلبات"
               columns={[
                 { key: "action", header: "إجراء", align: "center", width: 72, render: (o: any) => (
-                  <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
+                  <button onClick={() => navigate(`/invoices?focus=${o.id}`)} className="text-primary hover:underline inline-flex items-center gap-1">
                     <ExternalLink className="h-3 w-3" /> فتح
                   </button>
                 ) },
@@ -896,7 +896,7 @@ export default function VanSalesReportsPage() {
                     <div className="font-bold text-sm truncate">{o.invoice_number || "—"}</div>
                     <div className="text-[11px] text-muted-foreground">{fmtDateDisplay(o.invoice_date)}</div>
                   </div>
-                  <button onClick={() => navigate(`/invoice/${o.id}`)} className="text-primary text-xs inline-flex items-center gap-1 px-2 py-1 rounded-md border border-primary/30 hover:bg-primary/5">
+                  <button onClick={() => navigate(`/invoices?focus=${o.id}`)} className="text-primary text-xs inline-flex items-center gap-1 px-2 py-1 rounded-md border border-primary/30 hover:bg-primary/5">
                     <ExternalLink className="h-3 w-3" /> فتح
                   </button>
                 </div>
