@@ -781,6 +781,28 @@ const ChequesPage = () => {
   useEffect(() => { if (user) { fetchCheques(); fetchContacts(); fetchBankAccounts(); } }, [user]);
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus, dateFrom, dateTo]);
 
+  // Alert once per session for endorsed cheques due within 7 days (we remain liable)
+  useEffect(() => {
+    if (!cheques.length) return;
+    const flagKey = `cheques_endorsed_due_alert_${new Date().toISOString().slice(0,10)}`;
+    if (sessionStorage.getItem(flagKey)) return;
+    const today = new Date().toISOString().split('T')[0];
+    const in7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+    const dueEndorsed = cheques.filter(c => c.status === 'مظهر' && c.cheque_date >= today && c.cheque_date <= in7);
+    const overdueEndorsed = cheques.filter(c => c.status === 'مظهر' && c.cheque_date < today);
+    if (dueEndorsed.length || overdueEndorsed.length) {
+      const parts: string[] = [];
+      if (overdueEndorsed.length) parts.push(`${overdueEndorsed.length} مظهَّر متأخر`);
+      if (dueEndorsed.length) parts.push(`${dueEndorsed.length} مظهَّر مستحق خلال 7 أيام`);
+      toast.warning(`⚠️ شيكات مظهَّرة بحاجة متابعة: ${parts.join(' • ')}`, {
+        description: 'أنت ضامن لها أمام المظهَّر إليه إذا ارتدّت.',
+        duration: 8000,
+      });
+      sessionStorage.setItem(flagKey, '1');
+    }
+  }, [cheques]);
+
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
