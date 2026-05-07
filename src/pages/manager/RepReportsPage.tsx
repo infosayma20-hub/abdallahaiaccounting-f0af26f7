@@ -260,13 +260,60 @@ export default function RepReportsPage() {
     return m;
   }, [items]);
 
+  /** Map invoice_id → invoice (O(1) lookup) */
+  const invIndex = useMemo(() => {
+    const m = new Map<string, any>();
+    invs.forEach((i) => m.set(i.id, i));
+    return m;
+  }, [invs]);
+
+  /**
+   * Pro-rata discount per item.
+   * For each invoice we know:
+   *   - invoice.discount_amount
+   *   - sum of ALL its items' total_amount BEFORE filtering (denominator base)
+   *     ⇒ we use invoice.subtotal when present (= sum of line totals before discount).
+   *   - the items currently in scope (after supplier/product filter)
+   * Each in-scope item gets: discount_share = invoice_discount * (item.total_amount / invoice_subtotal)
+   * This guarantees: sum(discount_share over all rows) ≤ invoice.discount_amount,
+   * and equals it when no item filter is applied.
+   */
+  const itemDiscount = useMemo(() => {
+    const m = new Map<string, number>(); // item.id → distributed discount
+    // Group in-scope items per invoice to access their sales
+    items.forEach((it) => {
+      const inv = invIndex.get(it.invoice_id);
+      if (!inv) return;
+      const invDisc = num(inv.discount_amount);
+      if (invDisc <= 0) { m.set(it.id, 0); return; }
+      // denominator = invoice subtotal (pre-discount) if available, else sum of items in scope
+      const denom = num(inv.subtotal) > 0
+        ? num(inv.subtotal)
+        : (itemsByInvoice.get(it.invoice_id) || []).reduce((s, x) => s + num(x.total_amount), 0);
+      if (denom <= 0) { m.set(it.id, 0); return; }
+      m.set(it.id, invDisc * (num(it.total_amount) / denom));
+    });
+    return m;
+  }, [items, invIndex, itemsByInvoice]);
+
+  /** Helper: for a row aggregator, returns base metrics with pro-rata discount + net_profit */
+  const enrichRow = (r: { sales: number; cost: number; profit: number; discount: number }) => ({
+    ...r,
+    net_profit: r.profit - r.discount,
+    margin: r.sales > 0 ? ((r.profit - r.discount) / r.sales) * 100 : 0,
+  });
+
   // KPIs (period-wide)
   const kpi = useMemo(() => {
-    const sales = items.reduce((s, i) => s + num(i.total_amount), 0);
-    const cost = items.reduce((s, i) => s + num(i.cost_price) * num(i.quantity), 0);
-    const grossProfit = items.reduce((s, i) => s + num(i.line_profit ?? num(i.total_amount) - num(i.cost_price) * num(i.quantity)), 0);
-    const contributingInv = new Set(items.map((i) => i.invoice_id));
-    const discount = Array.from(contributingInv).reduce((s, id) => s + num(invMap(id, invs)?.discount_amount), 0);
+    let sales = 0, cost = 0, grossProfit = 0, discount = 0;
+    const contributingInv = new Set<string>();
+    items.forEach((i) => {
+      sales += num(i.total_amount);
+      cost += num(i.cost_price) * num(i.quantity);
+      grossProfit += num(i.line_profit ?? num(i.total_amount) - num(i.cost_price) * num(i.quantity));
+      discount += itemDiscount.get(i.id) || 0;
+      contributingInv.add(i.invoice_id);
+    });
     const netProfit = grossProfit - discount;
     const returnsTotal = returns.reduce((s, r) => s + num(r.total_amount), 0);
     const collTotal = collTxs.reduce((s, t) => s + num(t.amount), 0);
@@ -279,13 +326,13 @@ export default function RepReportsPage() {
       collections: collTotal,
       expenses: expTotal,
     };
-  }, [items, invs, returns, collTxs, expenseTxs]);
+  }, [items, returns, collTxs, expenseTxs, itemDiscount]);
 
   // ===== Reports =====
   const byRep = useMemo(() => {
     const m = new Map<string, any>();
     items.forEach((it) => {
-      const inv = invMap(it.invoice_id, invs);
+      const inv = invIndex.get(it.invoice_id);
       if (!inv) return;
       const k = inv.salesperson_id || "__none__";
       if (!m.has(k)) m.set(k, {
@@ -301,29 +348,19 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
-    });
-    // distribute discounts per invoice once
-    invs.forEach((inv) => {
-      if (!num(inv.discount_amount)) return;
-      const k = inv.salesperson_id || "__none__";
-      if (!m.has(k)) return;
-      // only count if some item from this invoice contributed
-      if (!items.some((it) => it.invoice_id === inv.id)) return;
-      m.get(k).discount += num(inv.discount_amount);
+      r.discount += itemDiscount.get(it.id) || 0;
     });
     return Array.from(m.values()).map((r) => ({
-      ...r,
+      ...enrichRow(r),
       invoices: r.invoices.size,
       customers: r.customers.size,
-      net_profit: r.profit - r.discount,
-      margin: r.sales > 0 ? ((r.profit - r.discount) / r.sales) * 100 : 0,
     })).sort((a, b) => b.sales - a.sales);
-  }, [items, invs, reps]);
+  }, [items, invIndex, reps, itemDiscount]);
 
   const byCustomer = useMemo(() => {
     const m = new Map<string, any>();
     items.forEach((it) => {
-      const inv = invMap(it.invoice_id, invs);
+      const inv = invIndex.get(it.invoice_id);
       if (!inv) return;
       const k = inv.contact_id || "__none__";
       if (!m.has(k)) m.set(k, {
@@ -340,14 +377,8 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
+      r.discount += itemDiscount.get(it.id) || 0;
       r.topProductMap.set(it.product_name, (r.topProductMap.get(it.product_name) || 0) + num(it.total_amount));
-    });
-    invs.forEach((inv) => {
-      if (!num(inv.discount_amount)) return;
-      const k = inv.contact_id || "__none__";
-      if (!m.has(k)) return;
-      if (!items.some((it) => it.invoice_id === inv.id)) return;
-      m.get(k).discount += num(inv.discount_amount);
     });
     // collections by customer
     const collByContact = new Map<string, number>();
@@ -357,17 +388,16 @@ export default function RepReportsPage() {
     });
     return Array.from(m.values()).map((r) => {
       const top = Array.from(r.topProductMap.entries() as Iterable<[string, number]>).sort((a, b) => b[1] - a[1])[0];
+      const enriched = enrichRow(r);
       return {
-        ...r,
+        ...enriched,
         invoices: r.invoices.size,
-        net_profit: r.profit - r.discount,
-        margin: r.sales > 0 ? ((r.profit - r.discount) / r.sales) * 100 : 0,
         collections: r.contact_id ? collByContact.get(r.contact_id) || 0 : 0,
         balance: r.sales - r.discount - (r.contact_id ? collByContact.get(r.contact_id) || 0 : 0),
         top_product: top ? top[0] : "—",
       };
     }).sort((a, b) => b.sales - a.sales);
-  }, [items, invs, collTxs]);
+  }, [items, invIndex, collTxs, itemDiscount]);
 
   const byProduct = useMemo(() => {
     const m = new Map<string, any>();
@@ -377,7 +407,7 @@ export default function RepReportsPage() {
         product_id: it.product_id, product_name: it.product_name,
         supplier: it._sname || "—",
         invoices: new Set<string>(),
-        qty: 0, sales: 0, cost: 0, profit: 0,
+        qty: 0, sales: 0, cost: 0, profit: 0, discount: 0,
         priceSum: 0, costSum: 0, n: 0,
       });
       const r = m.get(k);
@@ -386,18 +416,18 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
+      r.discount += itemDiscount.get(it.id) || 0;
       r.priceSum += num(it.unit_price);
       r.costSum += num(it.cost_price);
       r.n += 1;
     });
     return Array.from(m.values()).map((r) => ({
-      ...r,
+      ...enrichRow(r),
       invoices: r.invoices.size,
       avg_price: r.n ? r.priceSum / r.n : 0,
       avg_cost: r.n ? r.costSum / r.n : 0,
-      margin: r.sales > 0 ? (r.profit / r.sales) * 100 : 0,
     })).sort((a, b) => b.sales - a.sales);
-  }, [items]);
+  }, [items, itemDiscount]);
 
   const bySupplier = useMemo(() => {
     const m = new Map<string, any>();
@@ -405,7 +435,7 @@ export default function RepReportsPage() {
       const k = it._sid || "__none__";
       if (!m.has(k)) m.set(k, {
         supplier_id: it._sid, supplier_name: it._sname || "بدون مورد",
-        lines: 0, qty: 0, sales: 0, cost: 0, profit: 0,
+        lines: 0, qty: 0, sales: 0, cost: 0, profit: 0, discount: 0,
       });
       const r = m.get(k);
       r.lines += 1;
@@ -413,27 +443,17 @@ export default function RepReportsPage() {
       r.sales += num(it.total_amount);
       r.cost += num(it.cost_price) * num(it.quantity);
       r.profit += num(it.line_profit ?? num(it.total_amount) - num(it.cost_price) * num(it.quantity));
+      r.discount += itemDiscount.get(it.id) || 0;
     });
-    const totalSales = Array.from(m.values()).reduce((s, r) => s + r.sales, 0);
-    const contributingInv = new Set(items.map((i) => i.invoice_id));
-    const discTotal = Array.from(contributingInv).reduce((s, id) => s + num(invMap(id, invs)?.discount_amount), 0);
-    return Array.from(m.values()).map((r) => {
-      const share = totalSales > 0 ? r.sales / totalSales : 0;
-      const supDisc = discTotal * share;
-      return {
-        ...r,
-        discount: supDisc,
-        net_profit: r.profit - supDisc,
-        margin: r.sales > 0 ? ((r.profit - supDisc) / r.sales) * 100 : 0,
-      };
-    }).sort((a, b) => b.sales - a.sales);
-  }, [items, invs]);
+    return Array.from(m.values())
+      .map((r) => enrichRow(r))
+      .sort((a, b) => b.sales - a.sales);
+  }, [items, itemDiscount]);
 
   const collectionsRpt = useMemo(() => {
     const m = new Map<string, any>();
     collTxs.forEach((t) => {
-      let repId = "__none__";
-      try { repId = JSON.parse(t.notes || "{}")?.rep_id || "__none__"; } catch {}
+      const repId = (t._rep_id as string) || "__none__";
       if (!m.has(repId)) m.set(repId, {
         rep_id: repId, rep_name: repName(repId),
         cash: 0, cheque: 0, bank: 0, other: 0, count: 0, total: 0,
@@ -473,13 +493,26 @@ export default function RepReportsPage() {
     return Array.from(byCust.values()).sort((a, b) => b.total - a.total);
   }, [returns]);
 
-  // ===== Reconciliation: cards vs table =====
+  // ===== Reconciliation: cards vs every tab (sales, cost, discount, net_profit) =====
   const recon = useMemo(() => {
-    const tableSales = byRep.reduce((s, r) => s + r.sales, 0);
-    return {
-      sales: { card: kpi.sales, table: tableSales, drift: Math.abs(kpi.sales - tableSales) > 0.01 },
-    };
-  }, [byRep, kpi]);
+    const sumOf = (rows: any[], key: string) => rows.reduce((s, r) => s + num(r[key]), 0);
+    const checks: { tab: string; metric: string; card: number; table: number }[] = [];
+    [
+      { tab: "byRep", rows: byRep },
+      { tab: "byCustomer", rows: byCustomer },
+      { tab: "byProduct", rows: byProduct },
+      { tab: "bySupplier", rows: bySupplier },
+    ].forEach(({ tab, rows }) => {
+      checks.push({ tab, metric: "sales", card: kpi.sales, table: sumOf(rows, "sales") });
+      checks.push({ tab, metric: "cost", card: kpi.cost, table: sumOf(rows, "cost") });
+      checks.push({ tab, metric: "discount", card: kpi.discount, table: sumOf(rows, "discount") });
+      checks.push({ tab, metric: "net", card: kpi.netProfit, table: sumOf(rows, "net_profit") });
+    });
+    const drifts = checks
+      .map((c) => ({ ...c, diff: c.card - c.table }))
+      .filter((c) => Math.abs(c.diff) > 0.01);
+    return { drifts, ok: drifts.length === 0 };
+  }, [byRep, byCustomer, byProduct, bySupplier, kpi]);
 
   return (
     <div className="p-4 space-y-4" dir="rtl">
