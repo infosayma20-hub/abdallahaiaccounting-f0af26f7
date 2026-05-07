@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       // 1. Validate branch
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id")
+        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes, qr_mode, user_id, require_gps")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -129,8 +129,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2. Geofencing check
-      if (latitude !== 0 || longitude !== 0) {
+      // 2. Geofencing check (per-branch toggle)
+      const gpsRequired = branch.require_gps !== false; // default true
+      if (gpsRequired && (latitude !== 0 || longitude !== 0)) {
         const dist = haversineDistance(latitude, longitude, branch.latitude, branch.longitude);
         if (dist > branch.radius_meters) {
           return new Response(
