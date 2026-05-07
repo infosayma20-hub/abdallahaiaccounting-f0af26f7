@@ -202,6 +202,7 @@ export default function RepExpensePage() {
     if (!accounts.length) return;
     if (typeKey === "supplier") { setAccountCode(""); return; }
     if (typeKey === "other") { setAccountCode(""); return; }
+    if (typeKey === "personal") { setAccountCode(""); return; }
     const candidates = [currentType.defaultAccountCode, ...currentType.defaultAccountFallbacks].filter(Boolean) as string[];
     const picked = candidates.find((c) => accounts.some((a) => a.account_code === c));
     setAccountCode(picked || "");
