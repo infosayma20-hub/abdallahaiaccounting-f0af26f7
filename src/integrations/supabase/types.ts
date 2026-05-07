@@ -5138,6 +5138,9 @@ export type Database = {
           bank_name: string | null
           base_salary: number
           branch_id: string | null
+          can_manage_attendance: boolean
+          can_manage_schedule: boolean
+          can_view_team: boolean
           child_allowance_per_child: number | null
           children_count: number | null
           company_id: string
@@ -5164,6 +5167,7 @@ export type Database = {
           is_terminated: boolean | null
           job_title: string | null
           job_title_id: string | null
+          manager_employee_id: string | null
           marital_status: string | null
           meal_allowance_per_day: number | null
           nationality: string | null
@@ -5206,6 +5210,9 @@ export type Database = {
           bank_name?: string | null
           base_salary?: number
           branch_id?: string | null
+          can_manage_attendance?: boolean
+          can_manage_schedule?: boolean
+          can_view_team?: boolean
           child_allowance_per_child?: number | null
           children_count?: number | null
           company_id: string
@@ -5232,6 +5239,7 @@ export type Database = {
           is_terminated?: boolean | null
           job_title?: string | null
           job_title_id?: string | null
+          manager_employee_id?: string | null
           marital_status?: string | null
           meal_allowance_per_day?: number | null
           nationality?: string | null
@@ -5274,6 +5282,9 @@ export type Database = {
           bank_name?: string | null
           base_salary?: number
           branch_id?: string | null
+          can_manage_attendance?: boolean
+          can_manage_schedule?: boolean
+          can_view_team?: boolean
           child_allowance_per_child?: number | null
           children_count?: number | null
           company_id?: string
@@ -5300,6 +5311,7 @@ export type Database = {
           is_terminated?: boolean | null
           job_title?: string | null
           job_title_id?: string | null
+          manager_employee_id?: string | null
           marital_status?: string | null
           meal_allowance_per_day?: number | null
           nationality?: string | null
@@ -5366,6 +5378,20 @@ export type Database = {
             columns: ["job_title_id"]
             isOneToOne: false
             referencedRelation: "job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
           {
@@ -16627,6 +16653,10 @@ export type Database = {
       }
       is_company_hr_admin: {
         Args: { _company: string; _user: string }
+        Returns: boolean
+      }
+      is_manager_of_employee: {
+        Args: { _perm?: string; _target_employee_id: string }
         Returns: boolean
       }
       is_module_enabled: {
