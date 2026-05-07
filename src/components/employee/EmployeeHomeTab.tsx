@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart
+  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
+  Users, CalendarDays, ClipboardCheck, Shield
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -39,9 +40,17 @@ interface Props {
   onNavigate: (tab: string) => void;
   isCashier?: boolean;
   onOpenPOS?: () => void;
+  canViewTeam?: boolean;
+  canManageSchedule?: boolean;
+  canManageAttendance?: boolean;
+  isManager?: boolean;
+  branchName?: string;
+  onOpenManagerRoute?: (path: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents = [], history, onScanTap, onNavigate, isCashier, onOpenPOS, canViewTeam, canManageSchedule, canManageAttendance, isManager, branchName, onOpenManagerRoute }: Props) {
+  const hasMgmt = !!(canViewTeam || canManageSchedule || canManageAttendance);
+  const mgmtBadge = isManager ? "مدير فرع" : (canManageSchedule ? "مشرف دوام" : "مشرف");
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -114,6 +123,14 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           <p className="text-xs mt-1 text-primary-foreground/50">
             {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
           </p>
+          {hasMgmt && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur border border-white/20">
+              <Shield className="h-3 w-3 text-primary-foreground" />
+              <span className="text-[11px] font-semibold text-primary-foreground">
+                {mgmtBadge}{branchName ? ` • ${branchName}` : ""}
+              </span>
+            </div>
+          )}
         </div>
         {/* Decorative circle */}
         <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
@@ -130,6 +147,77 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
           <ShoppingCart className="w-5 h-5" />
           فتح نقطة البيع
         </Button>
+      )}
+
+      {/* Manager Section */}
+      {hasMgmt && (
+        <Card className="border-primary/20 bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">إدارة الفريق</h3>
+                  <p className="text-[10px] text-muted-foreground">أدوات المشرف لفرعك فقط</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {canManageSchedule && (
+                <Button
+                  variant="outline"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  onClick={() => onOpenManagerRoute?.("/manager/roster")}
+                >
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                  جدول الدوام
+                </Button>
+              )}
+              {canManageAttendance && (
+                <Button
+                  variant="outline"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  onClick={() => onOpenManagerRoute?.("/manager/roster?tab=attendance")}
+                >
+                  <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+                  حضور الفريق
+                </Button>
+              )}
+              {canViewTeam && (
+                <Button
+                  variant="outline"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  onClick={() => onOpenManagerRoute?.("/manager/roster?tab=team")}
+                >
+                  <Users className="h-4 w-4 text-primary" />
+                  فريقي
+                </Button>
+              )}
+              {canManageSchedule && (
+                <Button
+                  variant="outline"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform"
+                  onClick={() => onOpenManagerRoute?.("/manager/roster?tab=swaps")}
+                >
+                  <Send className="h-4 w-4 text-warning" />
+                  تبديل الورديات
+                </Button>
+              )}
+              {canManageAttendance && (
+                <Button
+                  variant="outline"
+                  className="h-14 rounded-2xl gap-2 text-xs justify-start px-3 border-border active:scale-[0.97] transition-transform col-span-2"
+                  onClick={() => onNavigate("forms")}
+                >
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  اعتماد / رفض طلبات الفريق
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Live Clock */}

@@ -49,6 +49,9 @@ type Employee = {
   email: string | null;
   is_manager: boolean;
   is_hr_manager: boolean;
+  can_view_team?: boolean;
+  can_manage_schedule?: boolean;
+  can_manage_attendance?: boolean;
   user_id: string;
   company_id?: string;
 };
@@ -81,7 +84,7 @@ export default function EmployeeApp() {
 
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, user_id, company_id")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -173,6 +176,12 @@ export default function EmployeeApp() {
             onNavigate={(tab) => setActiveTab(tab as Tab)}
             isCashier={isCashier}
             onOpenPOS={() => navigate("/pos")}
+            canViewTeam={!!employee.can_view_team}
+            canManageSchedule={!!employee.can_manage_schedule}
+            canManageAttendance={!!employee.can_manage_attendance}
+            isManager={!!employee.is_manager}
+            branchName={branchName}
+            onOpenManagerRoute={(path) => navigate(path)}
           />
         )}
 
