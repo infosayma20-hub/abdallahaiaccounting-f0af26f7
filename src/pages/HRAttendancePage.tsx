@@ -1614,17 +1614,17 @@ export default function HRAttendancePage() {
               </div>
               <Switch checked={!!companySettings?.hr_require_qr} onCheckedChange={(v) => updateCompanySettings({ hr_require_qr: v })} />
             </div>
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
-              <div>
-                <div className="text-sm font-medium flex items-center gap-2"><MapPin className="h-4 w-4" /> التحقق من موقع الموظف <span className="text-[10px] text-muted-foreground font-normal">(لكل الشركة)</span></div>
-                <div className="text-[11px] text-muted-foreground">يتحقق من وجود الموظف داخل نطاق الفرع عبر GPS</div>
-              </div>
-              <Switch checked={!!companySettings?.hr_require_gps} onCheckedChange={(v) => updateCompanySettings({ hr_require_gps: v })} />
-            </div>
-
             <div className="text-xs text-muted-foreground -mb-1 pt-1">خاص بهذا الفرع فقط</div>
 
-            <div className={cn("rounded-lg border p-3 space-y-1", !companySettings?.hr_require_gps && "opacity-60")}>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <div className="text-sm font-medium flex items-center gap-2"><MapPin className="h-4 w-4" /> التحقق من موقع الموظف <span className="text-[10px] text-muted-foreground font-normal">(هذا الفرع فقط)</span></div>
+                <div className="text-[11px] text-muted-foreground">يتحقق من وجود الموظف داخل نطاق هذا الفرع عبر GPS</div>
+              </div>
+              <Switch checked={editForm.require_gps} onCheckedChange={(v) => setEditForm(p => ({ ...p, require_gps: v }))} />
+            </div>
+
+            <div className={cn("rounded-lg border p-3 space-y-1", !editForm.require_gps && "opacity-60")}>
               <label className="text-xs text-muted-foreground">نطاق الفرع (متر) – خاص بهذا الفرع</label>
               <Input
                 type="number"
@@ -1632,7 +1632,7 @@ export default function HRAttendancePage() {
                 onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))}
                 dir="ltr"
                 placeholder="مثل 150"
-                disabled={!companySettings?.hr_require_gps}
+                disabled={!editForm.require_gps}
               />
               <p className="text-[11px] text-muted-foreground">يستخدم فقط عند تفعيل GPS</p>
             </div>
