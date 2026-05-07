@@ -227,9 +227,8 @@ export default function EmployeeAttendancePage() {
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
       } catch {
-        toast({ title: "خطأ", description: "يرجى تفعيل خدمات الموقع", variant: "destructive" });
-        setCheckingIn(false);
-        return;
+        // لا نوقف العملية هنا — السيرفر يقرر حسب إعداد الفرع (require_gps)
+        lat = 0; lng = 0;
       }
 
       const actionMap: Record<string, string> = {

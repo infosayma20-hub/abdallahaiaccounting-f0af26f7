@@ -129,9 +129,15 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2. Geofencing check (per-branch toggle)
-      const gpsRequired = branch.require_gps !== false; // default true
-      if (gpsRequired && (latitude !== 0 || longitude !== 0)) {
+      // 2. Geofencing check (per-branch toggle, default ON)
+      const gpsRequired = branch.require_gps !== false;
+      if (gpsRequired) {
+        if (latitude === 0 && longitude === 0) {
+          return new Response(
+            JSON.stringify({ error: "يرجى تفعيل خدمات الموقع (GPS) لهذا الفرع" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         const dist = haversineDistance(latitude, longitude, branch.latitude, branch.longitude);
         if (dist > branch.radius_meters) {
           return new Response(
