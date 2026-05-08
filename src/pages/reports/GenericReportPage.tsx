@@ -5,6 +5,7 @@ import { ArrowRight, Printer, CalendarDays, FileSpreadsheet, Search } from "luci
 import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 import ReportEmptyState from "@/components/reports/ReportEmptyState";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
+import ReportMetadataBar from "@/components/reports/ReportMetadataBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
