@@ -47,10 +47,12 @@ import {
   computeSummary as engineSummary,
 } from "@/lib/voucher-allocation";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
+import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
 
 interface Contact {
   id: string;
   contact_name: string;
+  contact_type?: string;
   current_balance: number;
   ledger_balance?: number;
   open_invoices_balance?: number;
