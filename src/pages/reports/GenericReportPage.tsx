@@ -26,6 +26,7 @@ import {
   loadMonthlyDepreciation, loadDepreciationSchedule, loadFullyDepreciated, loadAssetDisposal,
   loadAssetsByLocation, loadExchangeRates, loadCurrencyConversions, loadExchangeGainLoss,
   loadAllOrders, loadGenericTransactions,
+  loadPurchasesByProduct, loadInventoryReconciliation, loadProductCard,
 } from "@/lib/reports/report-loaders";
 import {
   loadPOSDailySales, loadPOSCashReconciliation, loadPOSCashierPerformance,
@@ -124,6 +125,9 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "supplier-comparison": await loadSupplierComparison(uid, dateFrom, dateTo, setData); break;
         case "inventory-valuation": await loadInventoryValuation(uid, setData); break;
         case "stock-movement": await loadStockMovement(uid, dateFrom, dateTo, setData); break;
+        case "purchases-by-product": await loadPurchasesByProduct(uid, dateFrom, dateTo, setData); break;
+        case "inventory-reconciliation": await loadInventoryReconciliation(uid, setData); break;
+        case "product-card": await loadProductCard(uid, dateFrom, dateTo, setData); break;
         case "below-reorder": await loadBelowReorder(uid, setData); break;
         case "employee-directory": await loadEmployeeDirectory(uid, setData); break;
         case "employee-withdrawals": await loadEmployeeWithdrawals(uid, dateFrom, dateTo, setData); break;
@@ -290,11 +294,42 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "sales-by-product": case "order-performance":
         return [
           { key: "name", label: "الصنف", type: "text" },
-          { key: "qty", label: "الكمية", type: "number", align: "center" },
+          { key: "qty", label: "الكمية المباعة", type: "number", align: "center" },
+          { key: "qty_returned", label: "المرتجعة", type: "number", align: "center", format: (v: number) => <span className={`font-mono text-xs ${v > 0 ? "text-destructive font-bold" : ""}`}>{v || 0}</span> },
+          { key: "qty_net", label: "الصافي", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs font-bold">{v}</span> },
           { key: "revenue", label: "الإيرادات", type: "currency" },
           { key: "cost", label: "التكلفة", type: "currency" },
           { key: "profit", label: "الربح", type: "currency", format: (v, row) => { const p = (row.revenue || 0) - (row.cost || 0); return <span className={`font-mono text-xs ${p >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmtCell(p)}</span>; } },
           { key: "margin", label: "الهامش", type: "percent", format: (v, row) => { const m = row.revenue > 0 ? ((row.revenue - row.cost) / row.revenue * 100) : 0; return <span className="font-mono text-xs">{m.toFixed(1)}%</span>; } },
+        ];
+      case "purchases-by-product":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "qty", label: "كمية الشراء", type: "number", align: "center" },
+          { key: "qty_returned", label: "المرتجعة", type: "number", align: "center", format: (v: number) => <span className={`font-mono text-xs ${v > 0 ? "text-destructive font-bold" : ""}`}>{v || 0}</span> },
+          { key: "qty_net", label: "الصافي", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs font-bold">{v}</span> },
+          { key: "cost", label: "إجمالي التكلفة", type: "currency" },
+          { key: "avg_cost", label: "متوسط سعر الشراء", type: "currency" },
+          { key: "lines", label: "عدد البنود", type: "number", align: "center" },
+        ];
+      case "inventory-reconciliation":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "live_qty", label: "الكمية الحالية (products.quantity)", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs">{v}</span> },
+          { key: "derived_qty", label: "الكمية المحسوبة (Σ stock_movements)", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs">{v}</span> },
+          { key: "diff", label: "الفرق", type: "number", align: "center",
+            format: (v: number) => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.001 ? "text-emerald-600" : "text-red-600"}`}>{v}</span> },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["✅ مطابق", "⚠️ فرق"] },
+        ];
+      case "product-card":
+        return [
+          { key: "product", label: "الصنف", type: "text", filterType: "text", filterable: true },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "type", label: "النوع", type: "badge", filterType: "select", filterOptions: ["رصيد افتتاحي","شراء","بيع","بيع POS","مرتجع وارد","مرتجع صادر","تسوية","تحويل","تالف","مرتجع POS"] },
+          { key: "in_qty", label: "وارد", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs text-emerald-600">{v ? v : "—"}</span> },
+          { key: "out_qty", label: "صادر", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs text-red-600">{v ? v : "—"}</span> },
+          { key: "balance", label: "الرصيد", type: "number", align: "center", format: (v: number) => <span className="font-mono text-xs font-bold">{v}</span> },
+          { key: "ref", label: "المرجع", type: "text" },
         ];
       case "dead-stock":
         return [
@@ -652,6 +687,9 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "ar-aging": case "ap-aging": return { current: "sum", d30: "sum", d60: "sum", d90: "sum", over90: "sum", total: "sum" };
       case "daily-sales": return { count: "sum", sales: "sum", returns: "sum", net: "sum" };
       case "inventory-valuation": return { value: "sum" };
+      case "purchases-by-product": return { qty: "sum", qty_returned: "sum", qty_net: "sum", cost: "sum", lines: "sum" };
+      case "inventory-reconciliation": return { live_qty: "sum", derived_qty: "sum", diff: "sum" };
+      case "product-card": return { in_qty: "sum", out_qty: "sum" };
       case "collections": case "supplier-payments": return { amount: "sum" };
       case "invoice-register": case "purchase-invoice-register": return { subtotal: "sum", tax_amount: "sum", total_amount: "sum", paid_amount: "sum", remaining_amount: "sum" };
       case "sales-returns": case "purchase-returns": return { amount: "sum" };
