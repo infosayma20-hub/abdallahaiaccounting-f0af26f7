@@ -553,6 +553,32 @@ export async function loadPurchasesByProduct(uid: string, dateFrom: string, date
 }
 
 // B7 F3: Inventory Reconciliation — products.quantity (live) vs Σ stock_movements (derived)
+// Sign convention covers both English enum values and legacy Arabic strings
+// (وارد / صادر / مرتجع وارد / مرتجع صادر) found on older tenants.
+const stockMoveSign = (mt: string): number => {
+  switch ((mt || "").trim()) {
+    case "purchase":
+    case "return_in":
+    case "opening":
+    case "pos_return":
+    case "وارد":
+    case "مرتجع وارد":
+    case "رصيد افتتاحي":
+      return 1;
+    case "sale":
+    case "pos_sale":
+    case "return_out":
+    case "waste":
+    case "صادر":
+    case "مرتجع صادر":
+    case "تالف":
+      return -1;
+    // adjustment / transfer: use signed quantity as stored
+    default:
+      return 1;
+  }
+};
+
 export async function loadInventoryReconciliation(uid: string, setData: SetData) {
   const { data: products } = await supabase
     .from("products")
@@ -562,14 +588,7 @@ export async function loadInventoryReconciliation(uid: string, setData: SetData)
     .from("stock_movements")
     .select("product_id, movement_type, quantity")
     .eq("user_id", uid);
-  const sign = (mt: string): number => {
-    switch (mt) {
-      case "purchase": case "return_in": case "opening": return 1;
-      case "sale": case "pos_sale": case "return_out": case "waste": return -1;
-      // adjustment / transfer: use signed quantity as stored
-      default: return 1;
-    }
-  };
+  const sign = stockMoveSign;
   const derivedByPid: Record<string, number> = {};
   (moves || []).forEach((m: any) => {
     if (!m.product_id) return;
@@ -605,13 +624,7 @@ export async function loadProductCard(uid: string, dateFrom: string, dateTo: str
     .select("product_id, movement_type, quantity")
     .eq("user_id", uid)
     .lt("created_at", dateFrom);
-  const sign = (mt: string): number => {
-    switch (mt) {
-      case "purchase": case "return_in": case "opening": return 1;
-      case "sale": case "pos_sale": case "return_out": case "waste": return -1;
-      default: return 1;
-    }
-  };
+  const sign = stockMoveSign;
   const opening: Record<string, number> = {};
   (pre || []).forEach((m: any) => {
     if (!m.product_id) return;
