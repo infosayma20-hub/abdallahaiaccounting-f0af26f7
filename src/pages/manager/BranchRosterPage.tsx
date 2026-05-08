@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, Calendar, Trash2 } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   useManagerBranches,
@@ -90,6 +92,10 @@ export default function BranchRosterPage() {
   }, [roster]);
 
   const [cell, setCell] = useState<CellState | null>(null);
+  const [search, setSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState<string>("all");
+  const [onlyUnset, setOnlyUnset] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // Mobile day index (0..6) within the current week
   const [mobileDayIdx, setMobileDayIdx] = useState<number>(() => {
     const today = new Date();
@@ -97,6 +103,43 @@ export default function BranchRosterPage() {
     const diff = Math.round((today.getTime() - ws.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, Math.min(6, diff));
   });
+
+  const DEPT_UNSET = "غير محدد";
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach((e: any) => set.add((e.department || "").trim() || DEPT_UNSET));
+    return Array.from(set).sort((a, b) => (a === DEPT_UNSET ? 1 : b === DEPT_UNSET ? -1 : a.localeCompare(b, "ar")));
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (employees as any[]).filter((e) => {
+      const dept = (e.department || "").trim() || DEPT_UNSET;
+      if (deptFilter !== "all" && dept !== deptFilter) return false;
+      if (onlyUnset) {
+        const d = fmtISO(addDays(weekAnchor, mobileDayIdx));
+        if (rosterMap.get(`${e.id}|${d}`)) return false;
+      }
+      if (!q) return true;
+      return (
+        (e.full_name || "").toLowerCase().includes(q) ||
+        (e.position || "").toLowerCase().includes(q) ||
+        dept.toLowerCase().includes(q)
+      );
+    });
+  }, [employees, search, deptFilter, onlyUnset, weekAnchor, mobileDayIdx, rosterMap]);
+
+  const groupedEmployees = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    filteredEmployees.forEach((e: any) => {
+      const dept = (e.department || "").trim() || DEPT_UNSET;
+      if (!groups.has(dept)) groups.set(dept, []);
+      groups.get(dept)!.push(e);
+    });
+    return Array.from(groups.entries()).sort((a, b) =>
+      a[0] === DEPT_UNSET ? 1 : b[0] === DEPT_UNSET ? -1 : a[0].localeCompare(b[0], "ar")
+    );
+  }, [filteredEmployees]);
 
   if (bLoading) return <div className="p-8 text-center">جار التحميل…</div>;
   if (bError) {
