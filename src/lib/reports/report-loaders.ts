@@ -849,7 +849,7 @@ export async function loadEmployeeDirectory(uid: string, setData: SetData) {
 export async function loadEmployeeWithdrawals(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: vouchers } = await supabase
     .from("vouchers")
-    .select("id, ref_number, date, description, amount, amount_ils, employee_id")
+    .select("id, ref_number, date, description, amount, amount_ils, employee_id, linked_transaction_id")
     .eq("user_id", uid)
     .eq("type", "payment")
     .not("employee_id", "is", null)
