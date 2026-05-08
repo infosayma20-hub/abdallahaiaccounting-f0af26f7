@@ -26,6 +26,7 @@ import {
   loadMonthlyDepreciation, loadDepreciationSchedule, loadFullyDepreciated, loadAssetDisposal,
   loadAssetsByLocation, loadExchangeRates, loadCurrencyConversions, loadExchangeGainLoss,
   loadAllOrders, loadGenericTransactions,
+  loadPurchasesByProduct, loadInventoryReconciliation, loadProductCard,
 } from "@/lib/reports/report-loaders";
 import {
   loadPOSDailySales, loadPOSCashReconciliation, loadPOSCashierPerformance,
@@ -124,6 +125,9 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "supplier-comparison": await loadSupplierComparison(uid, dateFrom, dateTo, setData); break;
         case "inventory-valuation": await loadInventoryValuation(uid, setData); break;
         case "stock-movement": await loadStockMovement(uid, dateFrom, dateTo, setData); break;
+        case "purchases-by-product": await loadPurchasesByProduct(uid, dateFrom, dateTo, setData); break;
+        case "inventory-reconciliation": await loadInventoryReconciliation(uid, setData); break;
+        case "product-card": await loadProductCard(uid, dateFrom, dateTo, setData); break;
         case "below-reorder": await loadBelowReorder(uid, setData); break;
         case "employee-directory": await loadEmployeeDirectory(uid, setData); break;
         case "employee-withdrawals": await loadEmployeeWithdrawals(uid, dateFrom, dateTo, setData); break;
