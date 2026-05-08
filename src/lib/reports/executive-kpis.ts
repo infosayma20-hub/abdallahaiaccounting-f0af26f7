@@ -28,11 +28,12 @@ export interface ExecutiveKPIs {
 const N = (v: any) => Number(v) || 0;
 
 function sumByCode(txs: any[], code: string, side: "debit" | "credit", from?: string, to?: string) {
+  const field = side === "debit" ? "debit_account_code" : "credit_account_code";
   return txs
-    .filter((t) => String(t.account_code || "").startsWith(code))
+    .filter((t) => String(t[field] || "").startsWith(code))
     .filter((t) => !from || (t.transaction_date && t.transaction_date >= from))
     .filter((t) => !to || (t.transaction_date && t.transaction_date <= to))
-    .reduce((s, t) => s + N(t[side]), 0);
+    .reduce((s, t) => s + N(t.amount), 0);
 }
 
 function netByCode(txs: any[], code: string, nature: "debit" | "credit") {
@@ -48,7 +49,7 @@ export async function loadExecutiveKPIs(uid: string, opts?: { from?: string; to?
   const [{ data: txs }, { data: prods }] = await Promise.all([
     supabase
       .from("transactions")
-      .select("account_code, debit, credit, transaction_date, is_deleted")
+      .select("debit_account_code, credit_account_code, amount, transaction_date, is_deleted")
       .eq("user_id", uid)
       .eq("is_deleted", false),
     supabase
