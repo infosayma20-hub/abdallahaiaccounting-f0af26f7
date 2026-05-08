@@ -21,6 +21,7 @@ interface BaseProps {
 
 interface ReceiptPaymentProps extends BaseProps {
   variant: "receipt" | "payment";
+  isPosted?: boolean;
   amount: number;
   partyName?: string | null;
   partyId?: string | null;
@@ -43,6 +44,7 @@ interface ReceiptPaymentProps extends BaseProps {
 
 interface InvoiceProps extends BaseProps {
   variant: "invoice" | "credit_note" | "debit_note";
+  isPosted?: boolean;
   invoiceType: "sales" | "purchase";
   subtotal: number;
   totalDiscount: number;
@@ -96,6 +98,7 @@ export default function SmartSummaryPanel(props: Props) {
 
 function ReceiptPaymentSummary({
   variant,
+  isPosted = false,
   amount,
   partyName,
   partyType,
@@ -192,6 +195,7 @@ function ReceiptPaymentSummary({
           <div className="space-y-2">
             <BalanceBreakdown
               total={before}
+              label={isPosted ? "الرصيد حسب القيود المرحلة" : "الرصيد الحالي حسب كشف الحساب"}
               openInvoicesTotal={partyType === "contact" ? openInvoicesTotal : 0}
               unappliedCredit={partyType === "contact" ? unappliedCredit : 0}
               symbol={symbol}
@@ -199,7 +203,7 @@ function ReceiptPaymentSummary({
               onOpenStatement={onOpenStatement}
             />
             <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">{isReceipt ? "− تحصيل" : "+ صرف"}</span>
+              <span className="text-muted-foreground">أثر هذا المستند</span>
               <span
                 className={`font-bold ${accentText}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -207,7 +211,7 @@ function ReceiptPaymentSummary({
                 {balanceDelta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(balanceDelta))}
               </span>
             </div>
-            <BalanceRow label="الرصيد بعد" value={after} symbol={symbol} bold />
+            <BalanceRow label={isPosted ? "الرصيد بعد القيد" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
