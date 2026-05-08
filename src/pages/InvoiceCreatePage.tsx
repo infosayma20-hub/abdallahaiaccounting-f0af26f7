@@ -1040,6 +1040,7 @@ const InvoiceCreatePage = () => {
     if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: "يرجى اختيار منتج لكل بند", variant: "destructive" }); return false; }
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
+    if (form.items.some(i => Number(i.bonusQuantity || 0) < 0)) { toast({ title: "الكمية البونص لا يمكن أن تكون سالبة", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
     return true;
   };
@@ -1466,6 +1467,7 @@ const InvoiceCreatePage = () => {
     items: form.items.map(i => ({
       description: i.description || "—",
       quantity: i.quantity,
+      bonusQuantity: Number(i.bonusQuantity || 0),
       unitPrice: i.unitPrice,
       discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
       taxRate: i.taxRate,
