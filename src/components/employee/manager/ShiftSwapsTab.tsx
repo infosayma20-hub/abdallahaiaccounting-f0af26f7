@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Check, X, Repeat, Plus } from "lucide-react";
 import ManagerHeader from "./ManagerHeader";
 import { useAuth } from "@/hooks/useAuth";
+import { useManagedBranchEmployees } from "@/hooks/useBranchRoster";
 
 type Swap = {
   id: string;
@@ -24,12 +25,12 @@ export default function ShiftSwapsTab({ branchId, branchName, onBack }: { branch
   const [to, setTo] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState("");
+  const { data: employees = [], isLoading: employeesLoading } = useManagedBranchEmployees(branchId);
 
   const load = useCallback(async () => {
-    if (!branchId) return;
+    if (!branchId || employeesLoading) return;
     setLoading(true);
-    const { data: e } = await supabase.from("employees").select("id, full_name").eq("branch_id", branchId).eq("is_active", true).order("full_name");
-    const list = (e || []) as any[];
+    const list = employees.map((e) => ({ id: e.id, full_name: e.full_name }));
     setEmps(list);
     const ids = list.map(x => x.id);
     if (!ids.length) { setList([]); setLoading(false); return; }
@@ -43,7 +44,7 @@ export default function ShiftSwapsTab({ branchId, branchName, onBack }: { branch
       .limit(50);
     setList(((data as any[]) || []).map(r => ({ ...r, employee_name: nameMap.get(r.employee_id) })));
     setLoading(false);
-  }, [branchId]);
+  }, [branchId, employees, employeesLoading]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -106,7 +107,7 @@ export default function ShiftSwapsTab({ branchId, branchName, onBack }: { branch
             <button onClick={create} className="w-full h-10 rounded-xl bg-emerald-600 text-white font-semibold text-sm">حفظ الطلب</button>
           </div>
         )}
-        {loading ? (
+        {loading || employeesLoading ? (
           <div className="p-8 text-center text-muted-foreground text-sm">جار التحميل…</div>
         ) : !list.length ? (
           <div className="p-8 text-center text-muted-foreground text-sm">

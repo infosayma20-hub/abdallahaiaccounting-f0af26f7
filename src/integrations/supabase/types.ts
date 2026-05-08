@@ -16661,6 +16661,10 @@ export type Database = {
         Args: { _company: string; _user: string }
         Returns: boolean
       }
+      is_managed_branch_employee: {
+        Args: { _employee_id: string }
+        Returns: boolean
+      }
       is_manager_of_employee: {
         Args: { _perm?: string; _target_employee_id: string }
         Returns: boolean

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import ManagerHeader from "./ManagerHeader";
+import { useManagedBranchEmployees } from "@/hooks/useBranchRoster";
 
 type Row = {
   employee_id: string;
@@ -17,17 +18,12 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const { data: employees = [], isLoading: employeesLoading } = useManagedBranchEmployees(branchId);
 
   const load = useCallback(async () => {
-    if (!branchId) return;
+    if (!branchId || employeesLoading) return;
     setLoading(true);
-    const { data: emps } = await supabase
-      .from("employees")
-      .select("id, full_name, position")
-      .eq("branch_id", branchId)
-      .eq("is_active", true)
-      .order("full_name");
-    const list = (emps || []) as any[];
+    const list = employees;
     const ids = list.map(e => e.id);
     let days: any[] = [];
     if (ids.length) {
@@ -52,7 +48,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
       };
     }));
     setLoading(false);
-  }, [branchId, date]);
+  }, [branchId, date, employees, employeesLoading]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -104,7 +100,7 @@ export default function TeamAttendanceTab({ branchId, branchName, onBack }: { br
           ))}
         </div>
         <div className="space-y-2">
-          {loading ? (
+          {loading || employeesLoading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">جار التحميل…</div>
           ) : !rows.length ? (
             <div className="p-8 text-center text-muted-foreground text-sm">لا يوجد موظفين</div>

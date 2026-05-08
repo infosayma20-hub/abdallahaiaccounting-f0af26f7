@@ -10,11 +10,10 @@ import { toast } from "sonner";
 import {
   useManagerBranches,
   useShiftTemplates,
-  useBranchEmployees,
+  useManagedBranchEmployees,
   useWeekRoster,
   useUpsertRoster,
   useDeleteRosterEntry,
-  useCurrentEmployee,
   type RosterEntry,
   type ShiftTemplate,
 } from "@/hooks/useBranchRoster";
@@ -57,7 +56,6 @@ type CellState = {
 
 export default function BranchRosterPage() {
   const { user } = useAuth();
-  const { data: me } = useCurrentEmployee();
   const { data: branches = [], isLoading: bLoading, error: bError } = useManagerBranches();
   const [branchId, setBranchId] = useState<string>("");
   const [weekAnchor, setWeekAnchor] = useState<Date>(() => startOfWeek(new Date()));
@@ -79,11 +77,7 @@ export default function BranchRosterPage() {
   const weekEnd = fmtISO(addDays(weekAnchor, 6));
 
   const { data: templates = [] } = useShiftTemplates(companyId);
-  // Non-admin/HR managers: restrict to their direct team only
-  const { data: employees = [] } = useBranchEmployees(
-    effectiveBranchId,
-    isHrAdmin ? undefined : me?.id,
-  );
+  const { data: employees = [] } = useManagedBranchEmployees(effectiveBranchId);
   const { data: roster = [], isLoading: rLoading } = useWeekRoster(effectiveBranchId, weekStart, weekEnd);
 
   const upsert = useUpsertRoster();
