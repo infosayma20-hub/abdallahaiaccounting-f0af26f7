@@ -211,13 +211,25 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "cheque_type", label: "النوع", type: "badge" },
           { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["معلق", "محصل", "مرتجع", "ملغي"] },
         ];
-      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments":
+      case "collections": case "supplier-payments":
         return [
           { key: "transaction_date", label: "التاريخ", type: "date" },
           { key: "description", label: "البيان", type: "text" },
           { key: "amount", label: "المبلغ", type: "currency" },
           { key: "payment_method", label: "طريقة الدفع", type: "text" },
           { key: "reference", label: "المرجع", type: "text" },
+        ];
+      case "invoice-register": case "purchase-invoice-register":
+        return [
+          { key: "invoice_number", label: "رقم الفاتورة", type: "text" },
+          { key: "invoice_date", label: "التاريخ", type: "date" },
+          { key: "contact_name", label: reportKey === "invoice-register" ? "العميل" : "المورد", type: "text" },
+          { key: "subtotal", label: "الصافي", type: "currency" },
+          { key: "tax_amount", label: reportKey === "invoice-register" ? "ض.ق.م" : "ض.م المدخلات", type: "currency" },
+          { key: "total_amount", label: "الإجمالي", type: "currency" },
+          { key: "paid_amount", label: "المدفوع", type: "currency" },
+          { key: "remaining_amount", label: "المتبقي", type: "currency" },
+          { key: "payment_status", label: "حالة الدفع", type: "badge" },
         ];
       case "sales-returns": case "purchase-returns":
         return [
@@ -640,7 +652,8 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "ar-aging": case "ap-aging": return { current: "sum", d30: "sum", d60: "sum", d90: "sum", over90: "sum", total: "sum" };
       case "daily-sales": return { count: "sum", sales: "sum", returns: "sum", net: "sum" };
       case "inventory-valuation": return { value: "sum" };
-      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments": return { amount: "sum" };
+      case "collections": case "supplier-payments": return { amount: "sum" };
+      case "invoice-register": case "purchase-invoice-register": return { subtotal: "sum", tax_amount: "sum", total_amount: "sum", paid_amount: "sum", remaining_amount: "sum" };
       case "sales-returns": case "purchase-returns": return { amount: "sum" };
       case "by-customer": case "by-supplier": return { count: "sum", total: "sum" };
       case "pos-daily-sales": return { discount: "sum", total: "sum" };
