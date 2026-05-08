@@ -698,6 +698,7 @@ const InvoiceCreatePage = () => {
             productId: item.product_id || undefined,
             description: item.product_name || item.description || "",
             quantity: Number(item.quantity) || 1,
+            bonusQuantity: Number(item.bonus_quantity) || 0,
             unitPrice: Number(item.unit_price) || 0,
             discount: Number(item.discount) || 0,
             discountType: item.discount_type === "amount" ? "amount" : "percent",
@@ -1112,19 +1113,37 @@ const InvoiceCreatePage = () => {
       const buildItemsPayload = (invoiceId: string) =>
         form.items
           .filter(i => i.description.trim())
-          .map(item => ({
-            invoice_id: invoiceId,
-            product_id: item.productId || null,
-            product_name: item.description,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            discount: item.discount,
-            discount_type: item.discountType,
-            tax_rate: item.taxRate,
-            total_amount: calcItemSubtotal(item),
-            unit_of_measure: item.unitOfMeasure,
-            workshop_id: item.workshopId || form.workshopId || null,
-          }));
+          .map(item => {
+            const bonusQty = Number(item.bonusQuantity || 0);
+            // Cost / line_profit: only set for sales when product cost is known.
+            // COGS includes bonus units (delivered = quantity + bonus_quantity).
+            // VAT note: VAT is calculated only on paid quantity revenue.
+            // Bonus VAT (deemed-supply) treatment may need accountant/legal review later.
+            const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+            const buyPrice = Number(prod?.buy_price || 0);
+            const isSalesLine = form.type === "sales";
+            const cost_price = isSalesLine && buyPrice > 0 ? buyPrice : null;
+            const lineRevenue = calcItemSubtotal(item); // qty*price - discount
+            const line_profit = (isSalesLine && cost_price != null)
+              ? Number((lineRevenue - cost_price * (item.quantity + bonusQty)).toFixed(4))
+              : null;
+            return {
+              invoice_id: invoiceId,
+              product_id: item.productId || null,
+              product_name: item.description,
+              quantity: item.quantity,
+              bonus_quantity: bonusQty,
+              unit_price: item.unitPrice,
+              discount: item.discount,
+              discount_type: item.discountType,
+              tax_rate: item.taxRate,
+              total_amount: lineRevenue,
+              unit_of_measure: item.unitOfMeasure,
+              workshop_id: item.workshopId || form.workshopId || null,
+              cost_price,
+              line_profit,
+            };
+          });
 
       const syncContactBalance = async (targetContactId: string | null, delta: number) => {
         if (!targetContactId || !delta) return;
@@ -1299,16 +1318,19 @@ const InvoiceCreatePage = () => {
           const prod = products.find(p => p.id === item.productId);
           if (!prod) continue;
 
+          // Sales: deduct delivered quantity (quantity + bonus). Purchase bonus is out of scope.
+          const bonusQty = form.type === "sales" ? Number(item.bonusQuantity || 0) : 0;
+          const deliveredQty = item.quantity + bonusQty;
           const newQty = form.type === "sales"
-            ? Number(prod.quantity) - item.quantity
+            ? Number(prod.quantity) - deliveredQty
             : Number(prod.quantity) + item.quantity;
 
           await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
           await supabase.from("stock_movements").insert({
             product_id: item.productId,
-            quantity: item.quantity,
+            quantity: form.type === "sales" ? deliveredQty : item.quantity,
             movement_type: form.type === "sales" ? "صادر" : "وارد",
-            reference_note: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}`,
+            reference_note: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}${bonusQty > 0 ? ` (شامل بونص: ${bonusQty})` : ""}`,
             user_id: user.id,
           } as any);
         }
