@@ -434,6 +434,31 @@ export async function loadSalesByProductReport(uid: string, dateFrom: string, da
   const invIds = invoices.map(i => i.id);
   // 2) get items
   const { data: items } = await supabase.from("invoice_items").select("product_name, quantity, total_amount, cost_price, line_profit").in("invoice_id", invIds);
+  // 3) get sales returns in same window for net qty (B7 F2)
+  const { data: retHeaders } = await supabase
+    .from("returns")
+    .select("id")
+    .eq("user_id", uid)
+    .eq("return_type", "sales")
+    .eq("is_deleted", false)
+    .gte("return_date", dateFrom)
+    .lte("return_date", dateTo);
+  const retIds = (retHeaders || []).map(r => r.id);
+  const { data: retItems } = retIds.length
+    ? await supabase.from("return_items").select("product_id, quantity").in("return_id", retIds)
+    : { data: [] as any[] };
+  // resolve product_id -> product_name (for joining returns to sold-items map keyed by name)
+  const retProductIds = Array.from(new Set((retItems || []).map((r: any) => r.product_id).filter(Boolean) as string[]));
+  const { data: retProducts } = retProductIds.length
+    ? await supabase.from("products").select("id, name").in("id", retProductIds)
+    : { data: [] as any[] };
+  const retNameMap = new Map((retProducts || []).map((p: any) => [p.id, p.name]));
+  const returnedByName: Record<string, number> = {};
+  (retItems || []).forEach((ri: any) => {
+    const name = retNameMap.get(ri.product_id) || "—";
+    returnedByName[name] = (returnedByName[name] || 0) + (Number(ri.quantity) || 0);
+  });
+
   const pm: Record<string, { name: string; qty: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
   (items || []).forEach(it => {
     const name = it.product_name || "—";
@@ -448,12 +473,200 @@ export async function loadSalesByProductReport(uid: string, dateFrom: string, da
       pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * q);
     }
   });
-  dbg("salesByProduct", { source, invoices: invoices.length, items: (items || []).length, products: Object.keys(pm).length });
-  setData(Object.values(pm).map(p => ({
-    ...p,
-    margin: p.revenue > 0 ? (p.profit / p.revenue * 100) : 0,
-    profitDisplay: p.missingCost ? "تكلفة غير محددة" : p.profit,
-  })).sort((a, b) => b.revenue - a.revenue));
+  dbg("salesByProduct", { source, invoices: invoices.length, items: (items || []).length, products: Object.keys(pm).length, returns: (retItems || []).length });
+  setData(Object.values(pm).map(p => {
+    const qty_returned = returnedByName[p.name] || 0;
+    return {
+      ...p,
+      qty_returned,
+      qty_net: p.qty - qty_returned,
+      margin: p.revenue > 0 ? (p.profit / p.revenue * 100) : 0,
+      profitDisplay: p.missingCost ? "تكلفة غير محددة" : p.profit,
+    };
+  }).sort((a, b) => b.revenue - a.revenue));
+}
+
+// B7 F1: Purchases by Product — mirrors sales-by-product, invoice_type='purchase'
+export async function loadPurchasesByProduct(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id")
+    .eq("user_id", uid)
+    .eq("invoice_type", "purchase")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+  if (!invoices?.length) { dbg("purchasesByProduct", { invoices: 0 }); setData([]); return; }
+  const invIds = invoices.map(i => i.id);
+  const { data: items } = await supabase
+    .from("invoice_items")
+    .select("product_name, quantity, unit_price, total_amount")
+    .in("invoice_id", invIds);
+
+  // Purchase returns in window
+  const { data: retHeaders } = await supabase
+    .from("returns")
+    .select("id")
+    .eq("user_id", uid)
+    .eq("return_type", "purchase")
+    .eq("is_deleted", false)
+    .gte("return_date", dateFrom)
+    .lte("return_date", dateTo);
+  const retIds = (retHeaders || []).map(r => r.id);
+  const { data: retItems } = retIds.length
+    ? await supabase.from("return_items").select("product_id, quantity").in("return_id", retIds)
+    : { data: [] as any[] };
+  const retPids = Array.from(new Set((retItems || []).map((r: any) => r.product_id).filter(Boolean) as string[]));
+  const { data: retProducts } = retPids.length
+    ? await supabase.from("products").select("id, name").in("id", retPids)
+    : { data: [] as any[] };
+  const nameMap = new Map((retProducts || []).map((p: any) => [p.id, p.name]));
+  const returnedByName: Record<string, number> = {};
+  (retItems || []).forEach((ri: any) => {
+    const name = nameMap.get(ri.product_id) || "—";
+    returnedByName[name] = (returnedByName[name] || 0) + (Number(ri.quantity) || 0);
+  });
+
+  const pm: Record<string, { name: string; qty: number; cost: number; lines: number }> = {};
+  (items || []).forEach((it: any) => {
+    const name = it.product_name || "—";
+    if (!pm[name]) pm[name] = { name, qty: 0, cost: 0, lines: 0 };
+    const q = Number(it.quantity) || 0;
+    pm[name].qty += q;
+    pm[name].cost += Number(it.total_amount) || 0;
+    pm[name].lines += 1;
+  });
+  dbg("purchasesByProduct", { invoices: invoices.length, items: (items || []).length, products: Object.keys(pm).length });
+  setData(Object.values(pm).map(p => {
+    const qty_returned = returnedByName[p.name] || 0;
+    return {
+      name: p.name,
+      qty: p.qty,
+      qty_returned,
+      qty_net: p.qty - qty_returned,
+      cost: p.cost,
+      avg_cost: p.qty > 0 ? p.cost / p.qty : 0,
+      lines: p.lines,
+    };
+  }).sort((a, b) => b.cost - a.cost));
+}
+
+// B7 F3: Inventory Reconciliation — products.quantity (live) vs Σ stock_movements (derived)
+export async function loadInventoryReconciliation(uid: string, setData: SetData) {
+  const { data: products } = await supabase
+    .from("products")
+    .select("id, name, quantity")
+    .eq("user_id", uid);
+  const { data: moves } = await supabase
+    .from("stock_movements")
+    .select("product_id, movement_type, quantity")
+    .eq("user_id", uid);
+  const sign = (mt: string): number => {
+    switch (mt) {
+      case "purchase": case "return_in": case "opening": return 1;
+      case "sale": case "pos_sale": case "return_out": case "waste": return -1;
+      // adjustment / transfer: use signed quantity as stored
+      default: return 1;
+    }
+  };
+  const derivedByPid: Record<string, number> = {};
+  (moves || []).forEach((m: any) => {
+    if (!m.product_id) return;
+    const q = Number(m.quantity) || 0;
+    derivedByPid[m.product_id] = (derivedByPid[m.product_id] || 0) + sign(m.movement_type) * q;
+  });
+  dbg("inventoryReconciliation", { products: (products || []).length, moves: (moves || []).length });
+  setData((products || []).map((p: any) => {
+    const live = Number(p.quantity) || 0;
+    const derived = derivedByPid[p.id] || 0;
+    const diff = live - derived;
+    return {
+      name: p.name,
+      live_qty: live,
+      derived_qty: derived,
+      diff,
+      status: Math.abs(diff) < 0.001 ? "✅ مطابق" : "⚠️ فرق",
+    };
+  }).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)));
+}
+
+// B7 F4: Product Card / Item Ledger — chronological stock_movements with running balance per product
+export async function loadProductCard(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+  const { data: products } = await supabase
+    .from("products")
+    .select("id, name")
+    .eq("user_id", uid);
+  const productMap = new Map((products || []).map((p: any) => [p.id, p.name]));
+
+  // 1) opening balance per product = signed sum of all movements BEFORE dateFrom
+  const { data: pre } = await supabase
+    .from("stock_movements")
+    .select("product_id, movement_type, quantity")
+    .eq("user_id", uid)
+    .lt("created_at", dateFrom);
+  const sign = (mt: string): number => {
+    switch (mt) {
+      case "purchase": case "return_in": case "opening": return 1;
+      case "sale": case "pos_sale": case "return_out": case "waste": return -1;
+      default: return 1;
+    }
+  };
+  const opening: Record<string, number> = {};
+  (pre || []).forEach((m: any) => {
+    if (!m.product_id) return;
+    opening[m.product_id] = (opening[m.product_id] || 0) + sign(m.movement_type) * (Number(m.quantity) || 0);
+  });
+
+  // 2) period movements
+  const { data: moves } = await supabase
+    .from("stock_movements")
+    .select("created_at, product_id, movement_type, quantity, reference_note")
+    .eq("user_id", uid)
+    .gte("created_at", dateFrom)
+    .lte("created_at", dateTo + "T23:59:59")
+    .order("created_at", { ascending: true });
+
+  const typeLabel: Record<string, string> = {
+    sale: "بيع", purchase: "شراء", return_in: "مرتجع وارد", return_out: "مرتجع صادر",
+    adjustment: "تسوية", transfer: "تحويل", pos_sale: "بيع POS", pos_return: "مرتجع POS",
+    opening: "رصيد افتتاحي", waste: "تالف",
+  };
+
+  // 3) group by product & compute running balance
+  const byProd: Record<string, any[]> = {};
+  (moves || []).forEach((m: any) => {
+    if (!m.product_id) return;
+    (byProd[m.product_id] ||= []).push(m);
+  });
+
+  const rows: any[] = [];
+  Object.entries(byProd).forEach(([pid, list]) => {
+    let bal = opening[pid] || 0;
+    const productName = productMap.get(pid) || "—";
+    // opening row
+    rows.push({
+      product: productName, date: dateFrom, type: "رصيد افتتاحي",
+      in_qty: 0, out_qty: 0, balance: bal, ref: "—",
+    });
+    list.forEach((m: any) => {
+      const q = Number(m.quantity) || 0;
+      const s = sign(m.movement_type);
+      const signed = s * q;
+      bal += signed;
+      rows.push({
+        product: productName,
+        date: (m.created_at || "").split("T")[0],
+        type: typeLabel[m.movement_type as string] || m.movement_type,
+        in_qty: signed > 0 ? signed : 0,
+        out_qty: signed < 0 ? -signed : 0,
+        balance: bal,
+        ref: m.reference_note || "",
+      });
+    });
+  });
+  dbg("productCard", { products: Object.keys(byProd).length, moves: (moves || []).length });
+  setData(rows);
 }
 
 export async function loadDeadStockReport(uid: string, setData: SetData) {
