@@ -336,9 +336,31 @@ export async function loadByCustomer(uid: string, dateFrom: string, dateTo: stri
     row.total += Number(r.total_amount) || 0;
     if (r.invoice_date > row.lastDate) row.lastDate = r.invoice_date;
   });
-  dbg("byCustomer", { source, customers: Object.keys(custMap).length });
-  // Keep legacy `total` key as net for back-compat with existing UI columns/totals.
-  setData(Object.values(custMap).map(c => ({ ...c, total: c.net, gross: c.total })).sort((a, b) => b.total - a.total));
+  // P1 fix: subtract sales returns by contact_id. `returns` total_amount is gross
+  // (incl. tax); we subtract from gross then expose net of returns as `total`
+  // for back-compat with existing UI/totals.
+  const ret = await loadReturnsByContact(uid, "sales", dateFrom, dateTo);
+  dbg("byCustomer", { source, customers: Object.keys(custMap).length, returnsAvailable: ret.available });
+  setData(Object.values(custMap).map(c => {
+    // map back to contact_id from the keys used in custMap
+    return c;
+  }).map((c, idx, arr) => c) as any);
+  // Re-aggregate using contactId mapping
+  const rows: any[] = [];
+  Object.entries(custMap).forEach(([key, c]) => {
+    const contactId = key.startsWith("__name:") ? null : key;
+    const returnsTotal = contactId ? (ret.byContactId.get(contactId) || 0) : 0;
+    const grossWithVat = c.total;
+    const netOfReturns = grossWithVat - returnsTotal;
+    rows.push({
+      ...c,
+      total: netOfReturns,        // back-compat: `total` now = net of returns
+      gross: grossWithVat,        // gross incl. VAT
+      returns: returnsTotal,
+      returns_not_included: !ret.available,
+    });
+  });
+  setData(rows.sort((a, b) => b.total - a.total));
 }
 
 export async function loadCollections(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
