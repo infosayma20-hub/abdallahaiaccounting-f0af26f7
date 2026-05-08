@@ -1121,6 +1121,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           );
         })()}
         {renderContent()}
+        {!loading && data.length > 0 && (
+          <ReportMetadataBar
+            generatedAt={new Date().toISOString()}
+            user={user?.email || null}
+            filters={{
+              "من": dateFrom,
+              "إلى": dateTo,
+              ...(showSourceFilter && salesSource !== "all" ? { "نوع": salesSource } : {}),
+            }}
+            source="GL transactions + invoices/products (read-only)"
+          />
+        )}
       </Card>
     </div>
   );
