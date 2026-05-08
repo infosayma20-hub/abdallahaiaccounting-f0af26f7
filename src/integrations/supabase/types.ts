@@ -6377,8 +6377,10 @@ export type Database = {
       }
       invoice_items: {
         Row: {
+          bonus_quantity: number
           cost_price: number | null
           created_at: string | null
+          delivered_quantity: number | null
           description: string | null
           discount: number | null
           discount_type: string | null
@@ -6397,8 +6399,10 @@ export type Database = {
           workshop_id: string | null
         }
         Insert: {
+          bonus_quantity?: number
           cost_price?: number | null
           created_at?: string | null
+          delivered_quantity?: number | null
           description?: string | null
           discount?: number | null
           discount_type?: string | null
@@ -6417,8 +6421,10 @@ export type Database = {
           workshop_id?: string | null
         }
         Update: {
+          bonus_quantity?: number
           cost_price?: number | null
           created_at?: string | null
+          delivered_quantity?: number | null
           description?: string | null
           discount?: number | null
           discount_type?: string | null
