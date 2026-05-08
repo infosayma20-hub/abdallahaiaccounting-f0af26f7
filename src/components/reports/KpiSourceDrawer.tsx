@@ -2,7 +2,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ExternalLink, Calculator, Database, Filter, Check, X, Clock, Code2 } from "lucide-react";
+import { ExternalLink, Calculator, Database, Filter, Check, X, Clock, Code2, CalendarRange } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { KPI_META, type KpiKey } from "@/lib/reports/kpi-metadata";
 
@@ -24,6 +24,19 @@ export function KpiSourceDrawer({ open, onClose, kpiKey, value, generatedAt, dat
   const meta = kpiKey ? KPI_META[kpiKey] : null;
 
   const isDev = import.meta.env.DEV;
+  const today = new Date().toISOString().slice(0, 10);
+  const asOf = dateRange?.to || today;
+  const scopeLabel = meta
+    ? meta.isLifetime
+      ? `الأرصدة حتى ${asOf}`
+      : `الفترة: من ${dateRange?.from || "البداية"} إلى ${dateRange?.to || today}`
+    : "";
+
+  const reconcileHref = meta
+    ? meta.isLifetime
+      ? `${meta.reconcilePath}${dateRange?.to ? `?asOf=${dateRange.to}` : ""}`
+      : `${meta.reconcilePath}?from=${dateRange?.from || ""}&to=${dateRange?.to || ""}`
+    : "";
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -46,9 +59,13 @@ export function KpiSourceDrawer({ open, onClose, kpiKey, value, generatedAt, dat
               <div className="rounded-md border bg-muted/30 p-3">
                 <p className="text-[11px] text-muted-foreground mb-1">القيمة الحالية</p>
                 <p className="font-mono font-bold text-lg text-foreground">{fmt(value)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <CalendarRange className="h-3 w-3" />
+                  <span>{scopeLabel}</span>
+                </p>
                 {meta.isLifetime && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
-                    لقطة لحظية — لا يتأثر بنطاق التاريخ
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                    رصيد لحظي (Snapshot) — يعرض الرصيد التراكمي حتى التاريخ المحدد
                   </p>
                 )}
               </div>
@@ -89,14 +106,14 @@ export function KpiSourceDrawer({ open, onClose, kpiKey, value, generatedAt, dat
                   <span className="text-[11px] font-semibold">الفلاتر النشطة</span>
                 </div>
                 <ul className="space-y-1 text-xs">
-                  {!meta.isLifetime && (
-                    <li>
-                      نطاق التاريخ:{" "}
-                      <span className="font-mono">
-                        {dateRange?.from || "البداية"} ← {dateRange?.to || "اليوم"}
-                      </span>
-                    </li>
-                  )}
+                  <li>
+                    نطاق الحساب:{" "}
+                    <span className="font-mono">
+                      {meta.isLifetime
+                        ? `حتى ${asOf}`
+                        : `${dateRange?.from || "البداية"} ← ${dateRange?.to || today}`}
+                    </span>
+                  </li>
                   {meta.filters.map((f) => (
                     <li key={f}>{f}</li>
                   ))}
@@ -143,7 +160,7 @@ export function KpiSourceDrawer({ open, onClose, kpiKey, value, generatedAt, dat
 
               {/* Reconcile */}
               <Button
-                onClick={() => { navigate(meta.reconcilePath); onClose(); }}
+                onClick={() => { navigate(reconcileHref); onClose(); }}
                 className="w-full gap-2"
                 size="sm"
               >
