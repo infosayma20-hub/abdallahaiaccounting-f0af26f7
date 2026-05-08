@@ -550,8 +550,34 @@ export async function loadTotalPurchases(uid: string, dateFrom: string, dateTo: 
 }
 
 export async function loadPurchaseInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, transaction_type, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
-  setData(txns || []);
+  // Source of truth: invoices (invoice_type='purchase'). Excludes voided/cancelled/reversed.
+  // Net (subtotal) and input VAT (tax_amount) are reported separately. Returns are NOT mixed in.
+  const { data: invs } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, invoice_date, contact_id, contact_name, subtotal, tax_amount, total_amount, paid_amount, remaining_amount, payment_status, status, payment_method")
+    .eq("user_id", uid)
+    .eq("invoice_type", "purchase")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo)
+    .order("invoice_date", { ascending: false });
+  dbg("purchaseInvoiceRegister", { count: (invs || []).length });
+  setData((invs || []).map((r: any) => ({
+    id: r.id,
+    invoice_number: r.invoice_number,
+    invoice_date: r.invoice_date,
+    contact_name: r.contact_name || "—",
+    contact_id: r.contact_id,
+    subtotal: Number(r.subtotal) || 0,
+    tax_amount: Number(r.tax_amount) || 0,
+    total_amount: Number(r.total_amount) || 0,
+    paid_amount: Number(r.paid_amount) || 0,
+    remaining_amount: Number(r.remaining_amount) || 0,
+    payment_status: r.payment_status || "—",
+    status: r.status,
+    payment_method: r.payment_method,
+  })));
 }
 
 export async function loadBySupplier(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
