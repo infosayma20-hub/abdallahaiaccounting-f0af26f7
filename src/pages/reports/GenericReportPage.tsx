@@ -560,7 +560,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "name", label: "الزبون", type: "text" },
           { key: "revenue", label: "الإيرادات", type: "currency" },
           { key: "cogs", label: "تكلفة المبيعات", type: "currency" },
-          { key: "returns", label: "المرتجعات", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة لهذه الفترة">غير متوفر</span> : <span className="font-mono text-xs">{v > 0 ? `(${fmtAmtCell(v)})` : "—"}</span> },
           { key: "profit", label: "الربح", type: "currency", format: v => <span className={`font-mono text-xs font-bold ${v >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
           { key: "margin", label: "هامش %", type: "percent" },
           { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
@@ -586,7 +586,9 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "supplier-purchase-analysis":
         return [
           { key: "name", label: "المورد", type: "text" },
-          { key: "total", label: "إجمالي المشتريات", type: "currency" },
+          { key: "gross", label: "إجمالي المشتريات", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة">غير متوفر</span> : (v > 0 ? <span className="text-destructive font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span>) },
+          { key: "total", label: "الصافي", type: "currency" },
           { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
           { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
           { key: "pct", label: "% من الإجمالي", type: "percent" },
