@@ -119,6 +119,7 @@ export default function SortableReportTable({
   storageKey,
   defaultSort,
   rowClassName,
+  onRowClick,
 }: SortableReportTableProps) {
   // Sort state (multi-column, up to 3)
   const [sorts, setSorts] = useState<SortState[]>(defaultSort || []);
