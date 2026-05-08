@@ -75,7 +75,7 @@ export const reportConfigs: Record<string, { title: string; description: string 
   "ar-aging-advanced": { title: "تعمير الذمم المدينة المتقدم", description: "توزيع الذمم على شرائح زمنية مع تفصيل كل فاتورة" },
   "collection-efficiency": { title: "كفاءة التحصيل", description: "نسبة الفواتير المسدّدة في موعدها وتطورها شهرياً" },
   "payment-allocation": { title: "سجل المدفوعات المرتبطة", description: "كل سند قبض مرتبط بأي فاتورة وبأي مبلغ" },
-  "unpaid-invoices": { title: "فواتير بدون نشاط دفع", description: "فواتير لم يُسجَّل عليها أي سند قبض" },
+  "unpaid-invoices": { title: "الفواتير المستحقة (Outstanding)", description: "فواتير المبيعات النشطة التي لها رصيد متبقٍ > 0" },
   "vat-reconciliation": { title: "تطابق ضريبة القيمة المضافة", description: "مقارنة سجل الضريبة (tax_ledger) مع حركة حسابات ضريبة المبيعات والمدخلات في الأستاذ العام شهرياً" },
   "pos-gl-reconciliation": { title: "تطابق نقطة البيع مع الأستاذ العام", description: "مقارنة يومية بين فواتير POS وقيود الأستاذ العام: الإيرادات / الضريبة / النقد / البنك" },
 };
