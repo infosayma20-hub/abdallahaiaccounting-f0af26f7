@@ -80,6 +80,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
 
   const taxEnabled = settings.vat_enabled ?? true;
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
+  const displayContactName = (invoice.contactName || "").trim()
+    || (invoice.paymentMethod === "cash" ? "عميل نقدي" : "—");
 
   const centeredLogoWrapperStyle = hasExtraWideLogo
     ? { display: "inline-block", background: "white", borderRadius: "10px", padding: "6px 12px", boxShadow: "none", lineHeight: 0 }
@@ -337,7 +339,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
             {isSales ? "العميل" : "المورد"}
           </div>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{invoice.contactName}</div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{displayContactName}</div>
           {invoice.contactTaxNumber && (
             <div style={{ fontSize: "10px", color: "#4B5563", marginTop: "2px" }}>
               <strong style={{ color: "#1B3A5C" }}>الرقم الضريبي:</strong> {invoice.contactTaxNumber}
@@ -381,16 +383,16 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed", border: "1px solid #E5E7EB" }}>
           <colgroup>
             <col style={{ width: "5%" }} />
-            <col style={{ width: "35%" }} />
+            <col style={{ width: taxEnabled ? "33%" : "39%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "11%" }} />
+            {taxEnabled && <col style={{ width: "12%" }} />}
+            <col style={{ width: taxEnabled ? "14%" : "20%" }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
-              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => {
+              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الضريبة", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => {
                 const isLast = i === (taxEnabled ? 6 : 5);
                 return (
                 <th
@@ -433,7 +435,11 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                   <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
                   </td>
-                  <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(calc.afterDiscount)}</td>
+                  {taxEnabled && (
+                    <td style={{ padding: "12px 6px", textAlign: "center", color: calc.tax > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
+                      {calc.tax > 0 ? fmtAmount(calc.tax) : "—"}
+                    </td>
+                  )}
                   <td style={{ padding: "12px 6px", textAlign: "center", fontWeight: 800, color: "#1B3A5C", fontFeatureSettings: "'tnum'", fontSize: "15px", background: "#EEF4FB" }}>
                     {fmtAmount(calc.total)}
                   </td>
