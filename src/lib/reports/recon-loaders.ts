@@ -105,7 +105,7 @@ export async function loadVATReconciliation(
 ) {
   const accounts = await getTaxAccounts(uid);
 
-  const [{ data: ledgerRows }, { data: txns }] = await Promise.all([
+  const [{ data: ledgerRows }, { data: txns }, { data: invs }] = await Promise.all([
     supabase
       .from("tax_ledger")
       .select("transaction_date, tax_type, tax_amount")
@@ -123,6 +123,12 @@ export async function loadVATReconciliation(
         `debit_account_code.like.${accounts.output}%,credit_account_code.like.${accounts.output}%,` +
         `debit_account_code.like.${accounts.input}%,credit_account_code.like.${accounts.input}%`,
       ),
+    supabase
+      .from("invoices")
+      .select("invoice_date, invoice_type, tax_amount, is_voided, status")
+      .eq("user_id", uid)
+      .gte("invoice_date", dateFrom)
+      .lte("invoice_date", dateTo),
   ]);
 
   // Bucket per period (YYYY-MM)
@@ -130,10 +136,14 @@ export async function loadVATReconciliation(
     period: string;
     vat_output_ledger: number;
     vat_output_gl: number;
+    vat_output_invoice: number;
     diff_output: number;
+    diff_output_invoice: number;
     vat_input_ledger: number;
     vat_input_gl: number;
+    vat_input_invoice: number;
     diff_input: number;
+    diff_input_invoice: number;
     status: string;
     output_account: string;
     input_account: string;
@@ -145,10 +155,14 @@ export async function loadVATReconciliation(
         period: key,
         vat_output_ledger: 0,
         vat_output_gl: 0,
+        vat_output_invoice: 0,
         diff_output: 0,
+        diff_output_invoice: 0,
         vat_input_ledger: 0,
         vat_input_gl: 0,
+        vat_input_invoice: 0,
         diff_input: 0,
+        diff_input_invoice: 0,
         status: "",
         output_account: accounts.output,
         input_account: accounts.input,
@@ -187,12 +201,30 @@ export async function loadVATReconciliation(
     b.vat_input_gl = netMovement(list as any, accounts.input, "debit_minus_credit");
   }
 
+  // Invoice side: SUM(invoices.tax_amount) per month, excluding voided/cancelled/reversed.
+  (invs || []).forEach((i: any) => {
+    const key = (i.invoice_date || "").slice(0, 7);
+    if (!key) return;
+    if (i.is_voided === true) return;
+    if (["cancelled", "void", "reversed"].includes(String(i.status || ""))) return;
+    const b = ensure(key);
+    const tax = Number(i.tax_amount) || 0;
+    if (i.invoice_type === "sale") b.vat_output_invoice += tax;
+    else if (i.invoice_type === "purchase") b.vat_input_invoice += tax;
+  });
+
   // Finalize diffs + status
   const rows = Array.from(buckets.values())
     .map(b => {
       b.diff_output = b.vat_output_gl - b.vat_output_ledger;
       b.diff_input = b.vat_input_gl - b.vat_input_ledger;
-      const ok = Math.abs(b.diff_output) < APPROX_ZERO && Math.abs(b.diff_input) < APPROX_ZERO;
+      b.diff_output_invoice = b.vat_output_invoice - b.vat_output_ledger;
+      b.diff_input_invoice = b.vat_input_invoice - b.vat_input_ledger;
+      const ok =
+        Math.abs(b.diff_output) < APPROX_ZERO &&
+        Math.abs(b.diff_input) < APPROX_ZERO &&
+        Math.abs(b.diff_output_invoice) < APPROX_ZERO &&
+        Math.abs(b.diff_input_invoice) < APPROX_ZERO;
       b.status = ok ? "✅ مطابق" : "⚠️ فرق";
       return b;
     })
