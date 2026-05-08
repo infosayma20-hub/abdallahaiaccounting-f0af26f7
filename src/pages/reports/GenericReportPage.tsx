@@ -250,14 +250,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "name", label: "الزبون", type: "text" },
           { key: "cls", label: "التصنيف", type: "badge" },
           { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
-          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "gross", label: "الإجمالي", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة">غير متوفر</span> : (v > 0 ? <span className="text-destructive font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span>) },
+          { key: "total", label: "الصافي", type: "currency" },
           { key: "lastDate", label: "آخر عملية", type: "date" },
         ];
       case "by-supplier":
         return [
           { key: "name", label: "المورد", type: "text" },
           { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
-          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "gross", label: "الإجمالي", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة">غير متوفر</span> : (v > 0 ? <span className="text-destructive font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span>) },
+          { key: "total", label: "الصافي", type: "currency" },
         ];
       case "inventory-valuation":
         return [
