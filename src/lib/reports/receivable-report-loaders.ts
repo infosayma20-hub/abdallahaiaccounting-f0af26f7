@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { loadReturnsByContact } from "./returns-helper";
 
 type SetData = (data: any[]) => void;
 
