@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { multiWordMatchAny } from "@/lib/utils";
 import ExecutiveKPIBar from "@/components/reports/ExecutiveKPIBar";
 import { useAuth } from "@/hooks/useAuth";
+import { Label } from "@/components/ui/label";
 
 interface ReportItem {
   slug: string;
@@ -289,13 +290,55 @@ const ReportsPage = () => {
 
   const { user } = useAuth();
 
+  // Default range: current calendar month (matches P&L "الشهر" preset).
+  const monthRange = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const last = new Date(y, now.getMonth() + 1, 0).getDate();
+    return { from: `${y}-${m}-01`, to: `${y}-${m}-${String(last).padStart(2, "0")}` };
+  }, []);
+  const [kpiFrom, setKpiFrom] = useState(monthRange.from);
+  const [kpiTo, setKpiTo] = useState(monthRange.to);
+
   return (
     <div className="space-y-8 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Page Header */}
       <PageHeader title="التقارير" breadcrumb={["الرئيسية", "التقارير"]} />
 
       {/* P5 — Executive KPI snapshot (read-only) */}
-      {user?.id && <ExecutiveKPIBar uid={user.id} />}
+      {user?.id && (
+        <div className="space-y-2">
+          <div className="flex items-end gap-2 flex-wrap">
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">من</Label>
+              <Input
+                type="date"
+                value={kpiFrom}
+                onChange={(e) => setKpiFrom(e.target.value)}
+                className="h-8 w-[140px] text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">إلى</Label>
+              <Input
+                type="date"
+                value={kpiTo}
+                onChange={(e) => setKpiTo(e.target.value)}
+                className="h-8 w-[140px] text-xs"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setKpiFrom(monthRange.from); setKpiTo(monthRange.to); }}
+              className="h-8 px-3 text-xs rounded-md border border-border hover:bg-muted/40"
+            >
+              الشهر الحالي
+            </button>
+          </div>
+          <ExecutiveKPIBar uid={user.id} from={kpiFrom} to={kpiTo} />
+        </div>
+      )}
 
       {/* Search & Stats */}
       <div className="flex items-center gap-4 flex-wrap">
