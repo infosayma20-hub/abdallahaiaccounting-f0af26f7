@@ -341,11 +341,6 @@ export async function loadByCustomer(uid: string, dateFrom: string, dateTo: stri
   // for back-compat with existing UI/totals.
   const ret = await loadReturnsByContact(uid, "sales", dateFrom, dateTo);
   dbg("byCustomer", { source, customers: Object.keys(custMap).length, returnsAvailable: ret.available });
-  setData(Object.values(custMap).map(c => {
-    // map back to contact_id from the keys used in custMap
-    return c;
-  }).map((c, idx, arr) => c) as any);
-  // Re-aggregate using contactId mapping
   const rows: any[] = [];
   Object.entries(custMap).forEach(([key, c]) => {
     const contactId = key.startsWith("__name:") ? null : key;
