@@ -808,9 +808,10 @@ const AccountStatementV2Page = () => {
     }
   }, [selectedEntityId, selectedEntityName, filteredRows, statementRowsWithDetails, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, detailsMap, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, statementOptions, toast]);
 
-  const handlePrintStatement = useCallback(() => {
-    if (!selectedEntityId || filteredRows.length === 0) return;
-    const html = buildAccountStatementPrintHTML({
+  /** Minimal B&W print HTML — single source of truth for both PDF preview iframe and printout. */
+  const printHTML = useMemo(() => {
+    if (!selectedEntityId || filteredRows.length === 0) return "";
+    return buildAccountStatementPrintHTML({
       company: {
         name: companyInfo.name || "AMWALI",
         logo_url: companyInfo.logo_url,
@@ -850,13 +851,6 @@ const AccountStatementV2Page = () => {
       showReference: !!statementOptions.showReference,
       showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
     });
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { try { w.print(); } catch {} }, 700);
   }, [
     selectedEntityId, selectedEntityName, selectedEntityCode, selectedContact,
     isEmployeesTab, isAccountsTab,
@@ -864,6 +858,17 @@ const AccountStatementV2Page = () => {
     dateFrom, dateTo, stableSOANumber, statementCurrency,
     companyInfo, statementOptions, detailsMap,
   ]);
+
+  const handlePrintStatement = useCallback(() => {
+    if (!printHTML) return;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.open();
+    w.document.write(printHTML);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { try { w.print(); } catch {} }, 700);
+  }, [printHTML]);
 
   // Balance color helper
   const balColor = (val: number) => {
