@@ -485,12 +485,24 @@ export async function loadPaymentAllocation(uid: string, dateFrom: string, dateT
 }
 
 export async function loadUnpaidInvoices(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  // Outstanding Invoices = active sales invoices with remaining_amount > 0.
+  // Outstanding Invoices = ALL active sales invoices with remaining_amount > 0
+  // as of `dateTo` (treated as "as-of date"). `dateFrom` is intentionally ignored
+  // because outstanding balance is a point-in-time snapshot — filtering on
+  // invoice_date >= dateFrom would hide historical unpaid invoices (P0 fix).
   // Excludes voided/cancelled/reversed. Includes partially-paid invoices
   // regardless of payment_invoice_links presence.
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gt("remaining_amount", 0).gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+  const asOf = dateTo || new Date().toISOString().slice(0, 10);
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gt("remaining_amount", 0)
+    .lte("invoice_date", asOf);
   if (!invoices?.length) { setData([]); return; }
-  const today = new Date();
+  const today = new Date(asOf);
   setData(invoices.map(inv => ({
     invoiceNumber: inv.invoice_number || "—",
     customer: inv.contact_name || "—",
