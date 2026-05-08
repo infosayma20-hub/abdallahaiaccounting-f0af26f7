@@ -932,7 +932,7 @@ const AccountStatementV2Page = () => {
               {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
               معاينة PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowPdfModal(true); setTimeout(handlePrintStatement, 300); }} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
