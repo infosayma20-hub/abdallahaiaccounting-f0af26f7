@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
@@ -122,6 +123,7 @@ const accountTypeOptions = [
 const TrialBalancePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
   const companyInfo = useCompanyInfo();
 
@@ -142,12 +144,12 @@ const TrialBalancePage = () => {
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     try {
       const [txData, accData, profileRes] = await Promise.all([
-        fetchTransactions(user.id),
-        fetchAccounts(user.id),
+        fetchTransactions(dataOwnerId),
+        fetchAccounts(dataOwnerId),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);
       setTransactions(txData);
@@ -160,7 +162,7 @@ const TrialBalancePage = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { fetchData(); }, [user, dataOwnerId]);
 
   const handleQuickPeriod = (key: string) => {
     setActivePeriod(key);

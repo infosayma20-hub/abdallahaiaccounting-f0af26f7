@@ -3,6 +3,7 @@ import { Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet
 import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -95,6 +96,7 @@ const computeTotals = (accounts: SupabaseAccount[], balances: Record<string, num
 const BalanceSheetPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const companyInfo = useCompanyInfo();
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
@@ -114,18 +116,18 @@ const BalanceSheetPage = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const load = async () => {
       setLoading(true);
       try {
-        const [txData, accData] = await Promise.all([fetchTransactions(user.id), fetchAccounts(user.id)]);
+        const [txData, accData] = await Promise.all([fetchTransactions(dataOwnerId), fetchAccounts(dataOwnerId)]);
         setTransactions(txData);
         setAccounts(accData);
       } catch { /* silent */ }
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const handleQuickPeriod = (key: string) => {
     setActivePeriod(key);

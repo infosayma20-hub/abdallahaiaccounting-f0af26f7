@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { Loader2, Wallet, Building2, AlertTriangle, ArrowUpRight, ArrowDownRight, FileText } from "lucide-react";
 
 interface CashAccount {
@@ -24,24 +25,25 @@ const fmt = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2,
 
 export default function CashLiquidityPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<CashAccount[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     (async () => {
       setLoading(true);
       const [acctRes, txRes] = await Promise.all([
         supabase
           .from("accounts")
           .select("account_code, account_name")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId)
           .or("account_code.like.111%,account_code.like.112%"),
         supabase
           .from("transactions")
           .select("debit_account_code, credit_account_code, amount, transaction_date, description")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId)
           .eq("is_deleted", false)
           .or("debit_account_code.like.111%,debit_account_code.like.112%,credit_account_code.like.111%,credit_account_code.like.112%")
           .order("transaction_date", { ascending: false })
@@ -81,7 +83,7 @@ export default function CashLiquidityPage() {
       setAccounts(computed);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const totalBalance = useMemo(() => accounts.reduce((s, a) => s + a.balance, 0), [accounts]);
   const negativeAccounts = useMemo(() => accounts.filter((a) => a.balance < 0), [accounts]);

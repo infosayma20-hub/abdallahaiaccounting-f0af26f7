@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { multiWordMatchAny } from "@/lib/utils";
@@ -34,6 +35,7 @@ const GeneralLedgerPage = () => {
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
 
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -57,7 +59,7 @@ const GeneralLedgerPage = () => {
   }, [accounts]);
 
   const fetchData = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     try {
       // Fetch ALL transactions (no limit) to ensure complete ledger
@@ -69,7 +71,7 @@ const GeneralLedgerPage = () => {
           const { data, error } = await supabase
             .from("transactions")
             .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id")
-            .eq("user_id", user.id)
+            .eq("user_id", dataOwnerId)
             .range(from, from + batchSize - 1)
             .order("transaction_date", { ascending: true });
           if (error) throw error;
@@ -83,7 +85,7 @@ const GeneralLedgerPage = () => {
 
       const [txData, accRes, profileRes] = await Promise.all([
         fetchAllTransactions(),
-        supabase.from("accounts").select("id, account_name, account_code, account_type, is_active, parent_code").eq("user_id", user.id).order("account_code"),
+        supabase.from("accounts").select("id, account_name, account_code, account_type, is_active, parent_code").eq("user_id", dataOwnerId).order("account_code"),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);
       setTransactions(txData);
@@ -102,7 +104,7 @@ const GeneralLedgerPage = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { fetchData(); }, [user, dataOwnerId]);
 
   const accountNames = useMemo(() =>
     accounts.map(a => a.account_name).filter(Boolean).sort(),

@@ -3,6 +3,7 @@ import { ArrowRight, Loader2, Package, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
@@ -26,25 +27,26 @@ const fmtAmt = (n: number) => `₪${Math.abs(n).toLocaleString("en", { minimumFr
 const InventoryValuationPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const load = async () => {
       setLoading(true);
       const { data } = await supabase
         .from("products")
         .select("id, name, category, sku, buy_price, sell_price, quantity, min_quantity, unit")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId)
         .order("name");
       setProducts(data || []);
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const categories = useMemo(() => [...new Set(products.map(p => p.category))].filter(Boolean), [products]);
 

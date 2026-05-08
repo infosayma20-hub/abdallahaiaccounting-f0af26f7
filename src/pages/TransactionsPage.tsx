@@ -25,6 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
@@ -185,6 +186,7 @@ const TransactionsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
   const { settings } = useCompanySettings();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -243,13 +245,13 @@ const TransactionsPage = () => {
   };
 
   const fetchData = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     setError(null);
     try {
       const [txRes, accRes] = await Promise.all([
-        supabase.from('transactions').select('*').eq('user_id', user.id).eq('is_deleted', false).order('transaction_date', { ascending: false }),
-        supabase.from('accounts').select('*').eq('user_id', user.id).order('account_code'),
+        supabase.from('transactions').select('*').eq('user_id', dataOwnerId).eq('is_deleted', false).order('transaction_date', { ascending: false }),
+        supabase.from('accounts').select('*').eq('user_id', dataOwnerId).order('account_code'),
       ]);
       if (txRes.error) throw txRes.error;
       if (accRes.error) throw accRes.error;
@@ -263,10 +265,10 @@ const TransactionsPage = () => {
   };
 
   const fetchDeletedTransactions = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoadingTrash(true);
     try {
-      const { data, error } = await supabase.from('transactions').select('*').eq('user_id', user.id).eq('is_deleted', true).order('transaction_date', { ascending: false });
+      const { data, error } = await supabase.from('transactions').select('*').eq('user_id', dataOwnerId).eq('is_deleted', true).order('transaction_date', { ascending: false });
       if (error) throw error;
       setDeletedTransactions(data || []);
     } catch (err: any) {
@@ -276,7 +278,7 @@ const TransactionsPage = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { fetchData(); }, [user, dataOwnerId]);
   useEffect(() => { if (showTrash) fetchDeletedTransactions(); }, [showTrash]);
 
   const getAccountName = (code: string) => {
