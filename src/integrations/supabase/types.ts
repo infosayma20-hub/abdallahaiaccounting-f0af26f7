@@ -16132,6 +16132,11 @@ export type Database = {
             }
             Returns: Json
           }
+      _pos_sync_stock_movements: {
+        Args: { p_is_return: boolean; p_order_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      _pos_vat_output_account: { Args: { p_user_id: string }; Returns: string }
       allocate_voucher_to_invoices_atomic: {
         Args: {
           p_allocations: Json
