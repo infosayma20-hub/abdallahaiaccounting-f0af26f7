@@ -16870,6 +16870,7 @@ export type Database = {
         Args: { p_new_password: string; p_task_user_id: string }
         Returns: boolean
       }
+      sync_pos_tax_ledger: { Args: { p_order_id: string }; Returns: undefined }
       update_last_seen: { Args: never; Returns: undefined }
       update_voucher_atomic: {
         Args: {
