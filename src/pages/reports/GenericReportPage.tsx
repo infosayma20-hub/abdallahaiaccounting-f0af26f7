@@ -72,11 +72,14 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   const showSourceFilter = SOURCE_FILTERED_REPORTS.has(reportKey);
 
   // Debug mode (persisted in localStorage; logs surface in browser console for every loader)
+  // SAFETY: force-disabled in production regardless of localStorage value.
   const [debugMode, setDebugMode] = useState<boolean>(() => {
+    if (!import.meta.env.DEV) return false;
     try { return typeof window !== "undefined" && localStorage.getItem("amwali:reports:debug") === "1"; }
     catch { return false; }
   });
   const toggleDebug = () => {
+    if (!import.meta.env.DEV) return; // hard-block in production
     const next = !debugMode;
     setDebugMode(next);
     try { localStorage.setItem("amwali:reports:debug", next ? "1" : "0"); } catch {}
