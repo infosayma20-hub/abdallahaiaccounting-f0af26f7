@@ -45,6 +45,8 @@ interface SortableReportTableProps {
   storageKey?: string;
   defaultSort?: SortState[];
   rowClassName?: (row: any, index: number) => string;
+  /** P5: optional row click handler — when provided, rows become clickable for drilldown. */
+  onRowClick?: (row: any, index: number) => void;
 }
 
 const GOLD = "#4A9EE8";
@@ -117,6 +119,7 @@ export default function SortableReportTable({
   storageKey,
   defaultSort,
   rowClassName,
+  onRowClick,
 }: SortableReportTableProps) {
   // Sort state (multi-column, up to 3)
   const [sorts, setSorts] = useState<SortState[]>(defaultSort || []);
@@ -522,7 +525,8 @@ export default function SortableReportTable({
               processedData.map((row, i) => (
                 <tr
                   key={row.id || row.key || i}
-                  className={`border-b border-border/30 transition-colors hover:bg-muted/40 ${i % 2 === 0 ? "" : "bg-muted/15"} ${rowClassName?.(row, i) || ""}`}
+                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                  className={`border-b border-border/30 transition-colors hover:bg-muted/40 ${i % 2 === 0 ? "" : "bg-muted/15"} ${onRowClick ? "cursor-pointer" : ""} ${rowClassName?.(row, i) || ""}`}
                 >
                   {visibleColumns.map(col => {
                     const val = row[col.key];

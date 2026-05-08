@@ -5,6 +5,7 @@ import { ArrowRight, Printer, CalendarDays, FileSpreadsheet, Search } from "luci
 import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 import ReportEmptyState from "@/components/reports/ReportEmptyState";
 import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
+import ReportMetadataBar from "@/components/reports/ReportMetadataBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -997,6 +998,13 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           rowClassName={reportKey === "inventory-valuation"
             ? (row) => row.qty < 0 ? "!bg-red-50 dark:!bg-red-950/20" : ""
             : undefined}
+          onRowClick={
+            reportKey === "inventory-reconciliation"
+              ? (row: any) => navigate(`/reports/product-card?product=${encodeURIComponent(row.name || "")}`)
+              : reportKey === "stock-movement"
+              ? (row: any) => row?.product && navigate(`/reports/product-card?product=${encodeURIComponent(row.product)}`)
+              : undefined
+          }
         />
       );
     }
@@ -1113,6 +1121,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           );
         })()}
         {renderContent()}
+        {!loading && data.length > 0 && (
+          <ReportMetadataBar
+            generatedAt={new Date().toISOString()}
+            user={user?.email || null}
+            filters={{
+              "من": dateFrom,
+              "إلى": dateTo,
+              ...(showSourceFilter && salesSource !== "all" ? { "نوع": salesSource } : {}),
+            }}
+            source="GL transactions + invoices/products (read-only)"
+          />
+        )}
       </Card>
     </div>
   );
