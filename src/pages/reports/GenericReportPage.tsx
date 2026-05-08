@@ -501,9 +501,12 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "customer-profitability":
         return [
           { key: "name", label: "الزبون", type: "text" },
-          { key: "totalSales", label: "إجمالي المبيعات", type: "currency" },
+          { key: "revenue", label: "الإيرادات", type: "currency" },
+          { key: "cogs", label: "تكلفة المبيعات", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency" },
+          { key: "profit", label: "الربح", type: "currency", format: v => <span className={`font-mono text-xs font-bold ${v >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "margin", label: "هامش %", type: "percent" },
           { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
-          { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
         ];
       case "customer-statement-all": case "supplier-statement-all":
         return [
@@ -615,7 +618,8 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "pos-invoice-timing": return { total: "sum" };
       case "pos-credit-sales": return { orders: "sum", credit_total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail": return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
-      case "customer-profitability": case "supplier-purchase-analysis": return { totalSales: "sum", total: "sum", invCount: "sum" };
+      case "customer-profitability": return { revenue: "sum", cogs: "sum", returns: "sum", profit: "sum", invCount: "sum" };
+      case "supplier-purchase-analysis": return { totalSales: "sum", total: "sum", invCount: "sum" };
       case "checks-receivable": case "checks-payable": return { amount: "sum" };
       case "employee-withdrawals": return { amount: "sum" };
       case "customer-statement-all": case "supplier-statement-all": return { debit: "sum", credit: "sum" };
