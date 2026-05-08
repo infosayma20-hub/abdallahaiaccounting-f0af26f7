@@ -944,8 +944,23 @@ export async function loadBySupplier(uid: string, dateFrom: string, dateTo: stri
     if (r.invoice_date > row.lastDate) row.lastDate = r.invoice_date;
   });
   dbg("bySupplier", { suppliers: Object.keys(suppMap).length, invs: (invs || []).length });
-  // Keep legacy `total` key as net for back-compat with existing UI columns/totals.
-  setData(Object.values(suppMap).map(s => ({ ...s, total: s.net, gross: s.total })).sort((a, b) => b.total - a.total));
+  // P1 fix: subtract purchase returns by contact_id from gross (incl. tax).
+  const ret = await loadReturnsByContact(uid, "purchase", dateFrom, dateTo);
+  const rows: any[] = [];
+  Object.entries(suppMap).forEach(([key, s]) => {
+    const contactId = key.startsWith("__name:") ? null : key;
+    const returnsTotal = contactId ? (ret.byContactId.get(contactId) || 0) : 0;
+    const grossWithVat = s.total;
+    const netOfReturns = grossWithVat - returnsTotal;
+    rows.push({
+      ...s,
+      total: netOfReturns,        // back-compat: net of returns
+      gross: grossWithVat,
+      returns: returnsTotal,
+      returns_not_included: !ret.available,
+    });
+  });
+  setData(rows.sort((a, b) => b.total - a.total));
 }
 
 export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
