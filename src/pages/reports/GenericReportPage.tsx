@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { fmtDateDisplay } from "@/lib/utils";
 import { reportConfigs, fmtAmt, fmtNum, fmtAmtCell } from "@/lib/reports/report-helpers";
 import { exportToExcel } from "@/lib/reports/report-export";
+import { printGenericReport } from "@/lib/reports/report-print";
 import { getPOSKPIs } from "@/lib/reports/report-kpis";
 import {
   loadAgingReport, loadCashFlowReport, loadAccountMovement, loadChequesReport,
@@ -1061,6 +1062,28 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     exportToExcel(data, getReportColumns(), getReportTotals(), config.title, dateFrom, dateTo);
   };
 
+  const handlePrint = async () => {
+    const cols = getReportColumns();
+    if (!cols || !cols.length) {
+      // No structured columns (custom render branches) — fall back to browser print
+      window.print();
+      return;
+    }
+    await printGenericReport({
+      uid,
+      reportTitle: config.title,
+      reportSubtitle: config.description,
+      dateFrom,
+      dateTo,
+      userEmail: user?.email || null,
+      source: "GL transactions + invoices/products (read-only)",
+      extraFilters: showSourceFilter && salesSource !== "all" ? { "نوع العملية": salesSource } : undefined,
+      columns: cols,
+      data,
+      totals: getReportTotals(),
+    });
+  };
+
   return (
     <div className="space-y-4 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Header */}
@@ -1078,7 +1101,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1.5 text-xs">
             <FileSpreadsheet className="h-3.5 w-3.5" />Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 text-xs">
             <Printer className="h-3.5 w-3.5" />طباعة
           </Button>
         </div>
