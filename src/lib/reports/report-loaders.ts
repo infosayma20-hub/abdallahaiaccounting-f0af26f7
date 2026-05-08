@@ -59,31 +59,62 @@ async function getVoidedInvoiceTxnIds(uid: string, dateFrom: string, dateTo: str
 // ── General / Accounting Loaders ──
 
 export async function loadAgingReport(uid: string, contactType: string, setData: SetData) {
-  const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class, last_transaction_date").eq("user_id", uid).eq("contact_type", contactType).gt("current_balance", 0);
-  if (!contacts?.length) { setData([]); return; }
+  // Invoice-level aging: bucket each open invoice by days overdue from due_date
+  // (fallback to invoice_date), aggregate per contact. Replaces previous
+  // contact_balance-based logic which dumped each contact's full balance into
+  // one bucket based on the oldest invoice date.
+  const isAR = contactType === "عميل";
+  const invoiceType = isAR ? "sale" : "purchase";
 
-  // Get unpaid invoices for proper per-invoice aging
-  const txTypes = contactType === "عميل"
-    ? ["sale_cash", "sale_bank", "sale_credit", "sale_cheque"]
-    : ["purchase_cash", "purchase_credit", "purchase_bank"];
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", txTypes);
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("contact_id, contact_name, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, is_voided")
+    .eq("user_id", uid)
+    .eq("invoice_type", invoiceType)
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gt("remaining_amount", 0);
+
+  if (!invoices?.length) { setData([]); return; }
+
+  // Optional contact_class join (only relevant for AR display)
+  const contactIds = Array.from(new Set((invoices || []).map(i => i.contact_id).filter(Boolean) as string[]));
+  const { data: contacts } = contactIds.length
+    ? await supabase.from("contacts").select("id, contact_name, contact_class").in("id", contactIds)
+    : { data: [] as any[] };
+  const contactMap = new Map((contacts || []).map(c => [c.id, c]));
 
   const today = new Date();
-  setData(contacts.map(c => {
-    // Use oldest unpaid transaction for aging, not last_transaction_date
-    const cTxns = (txns || []).filter(t => t.contact_id === c.id).sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
-    const oldestDate = cTxns.length > 0 ? cTxns[0].transaction_date : null;
-    const days = oldestDate ? differenceInDays(today, new Date(oldestDate)) : 0;
-    return {
-      name: c.contact_name, cls: c.contact_class || "-",
-      current: days <= 0 ? c.current_balance : 0,
-      d30: days > 0 && days <= 30 ? c.current_balance : 0,
-      d60: days > 30 && days <= 60 ? c.current_balance : 0,
-      d90: days > 60 && days <= 90 ? c.current_balance : 0,
-      over90: days > 90 ? c.current_balance : 0,
-      total: c.current_balance || 0,
-    };
-  }).sort((a, b) => b.total - a.total));
+  const agg: Record<string, { name: string; cls: string; current: number; d30: number; d60: number; d90: number; over90: number; total: number }> = {};
+
+  (invoices || []).forEach(inv => {
+    const remaining = Number(inv.remaining_amount ?? ((inv.total_amount || 0) - (inv.paid_amount || 0))) || 0;
+    if (remaining <= 0) return;
+    if ((inv.payment_status || "").toLowerCase() === "paid") return;
+
+    const refDateStr = inv.due_date || inv.invoice_date;
+    const days = refDateStr ? differenceInDays(today, new Date(refDateStr)) : 0;
+
+    const key = (inv.contact_id as string) || `__name:${inv.contact_name || "—"}`;
+    if (!agg[key]) {
+      const c = inv.contact_id ? contactMap.get(inv.contact_id) : null;
+      agg[key] = {
+        name: c?.contact_name || inv.contact_name || "—",
+        cls: c?.contact_class || "-",
+        current: 0, d30: 0, d60: 0, d90: 0, over90: 0, total: 0,
+      };
+    }
+    const row = agg[key];
+    row.total += remaining;
+    if (days <= 0) row.current += remaining;
+    else if (days <= 30) row.d30 += remaining;
+    else if (days <= 60) row.d60 += remaining;
+    else if (days <= 90) row.d90 += remaining;
+    else row.over90 += remaining;
+  });
+
+  dbg("agingReport", { contactType, contacts: Object.keys(agg).length, openInvoices: (invoices || []).length });
+  setData(Object.values(agg).sort((a, b) => b.total - a.total));
 }
 
 export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
