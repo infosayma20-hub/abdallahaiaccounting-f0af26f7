@@ -490,6 +490,9 @@ const App = () => (
                       <Route path="/reports/supplier-comparison" element={<GenericReportPage reportKey="supplier-comparison" />} />
                       <Route path="/reports/inventory-valuation" element={<GenericReportPage reportKey="inventory-valuation" />} />
                       <Route path="/reports/stock-movement" element={<GenericReportPage reportKey="stock-movement" />} />
+                      <Route path="/reports/purchases-by-product" element={<GenericReportPage reportKey="purchases-by-product" />} />
+                      <Route path="/reports/inventory-reconciliation" element={<GenericReportPage reportKey="inventory-reconciliation" />} />
+                      <Route path="/reports/product-card" element={<GenericReportPage reportKey="product-card" />} />
                       <Route path="/reports/below-reorder" element={<GenericReportPage reportKey="below-reorder" />} />
                       <Route path="/reports/dead-stock" element={<GenericReportPage reportKey="dead-stock" />} />
                       <Route path="/reports/product-profitability" element={<GenericReportPage reportKey="product-profitability" />} />
