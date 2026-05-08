@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
@@ -73,6 +74,7 @@ type SortDir = "asc" | "desc";
 const StockMovementsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
 
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -90,13 +92,13 @@ const StockMovementsPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const load = async () => {
       setLoading(true);
       const [movRes, prodRes, whRes] = await Promise.all([
-        supabase.from("stock_movements").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", user.id),
-        supabase.from("warehouses").select("id, name, code").eq("user_id", user.id).eq("is_active", true).order("name"),
+        supabase.from("stock_movements").select("*").eq("user_id", dataOwnerId).order("created_at", { ascending: false }),
+        supabase.from("products").select("id, name, category, unit, sku, barcode").eq("user_id", dataOwnerId),
+        supabase.from("warehouses").select("id, name, code").eq("user_id", dataOwnerId).eq("is_active", true).order("name"),
       ]);
       setMovements(movRes.data || []);
       setProducts(prodRes.data || []);
@@ -104,7 +106,7 @@ const StockMovementsPage = () => {
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const productMap = useMemo(() => {
     const m = new Map<string, Product>();
