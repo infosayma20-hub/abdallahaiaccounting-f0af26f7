@@ -525,7 +525,8 @@ export default function SortableReportTable({
               processedData.map((row, i) => (
                 <tr
                   key={row.id || row.key || i}
-                  className={`border-b border-border/30 transition-colors hover:bg-muted/40 ${i % 2 === 0 ? "" : "bg-muted/15"} ${rowClassName?.(row, i) || ""}`}
+                  onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                  className={`border-b border-border/30 transition-colors hover:bg-muted/40 ${i % 2 === 0 ? "" : "bg-muted/15"} ${onRowClick ? "cursor-pointer" : ""} ${rowClassName?.(row, i) || ""}`}
                 >
                   {visibleColumns.map(col => {
                     const val = row[col.key];
