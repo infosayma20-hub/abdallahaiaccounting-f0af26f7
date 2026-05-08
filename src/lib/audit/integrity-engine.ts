@@ -12,7 +12,21 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { stockMoveSign } from "@/lib/reports/report-helpers";
+
+// Local copy of the stock-move sign convention used by report-loaders.
+// Kept inline to keep this engine self-contained for scheduled callers.
+function stockMoveSign(mt: string): number {
+  switch ((mt || "").trim()) {
+    case "purchase": case "return_in": case "opening": case "pos_return":
+    case "وارد": case "مرتجع وارد": case "رصيد افتتاحي":
+      return 1;
+    case "sale": case "pos_sale": case "return_out": case "waste":
+    case "صادر": case "مرتجع صادر": case "تالف":
+      return -1;
+    default:
+      return 1; // adjustment/transfer: relies on signed quantity (see WB-2)
+  }
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Types
