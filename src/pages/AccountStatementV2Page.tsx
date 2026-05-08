@@ -808,9 +808,10 @@ const AccountStatementV2Page = () => {
     }
   }, [selectedEntityId, selectedEntityName, filteredRows, statementRowsWithDetails, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, detailsMap, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, statementOptions, toast]);
 
-  const handlePrintStatement = useCallback(() => {
-    if (!selectedEntityId || filteredRows.length === 0) return;
-    const html = buildAccountStatementPrintHTML({
+  /** Minimal B&W print HTML — single source of truth for both PDF preview iframe and printout. */
+  const printHTML = useMemo(() => {
+    if (!selectedEntityId || filteredRows.length === 0) return "";
+    return buildAccountStatementPrintHTML({
       company: {
         name: companyInfo.name || "AMWALI",
         logo_url: companyInfo.logo_url,
@@ -850,13 +851,6 @@ const AccountStatementV2Page = () => {
       showReference: !!statementOptions.showReference,
       showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
     });
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { try { w.print(); } catch {} }, 700);
   }, [
     selectedEntityId, selectedEntityName, selectedEntityCode, selectedContact,
     isEmployeesTab, isAccountsTab,
@@ -864,6 +858,17 @@ const AccountStatementV2Page = () => {
     dateFrom, dateTo, stableSOANumber, statementCurrency,
     companyInfo, statementOptions, detailsMap,
   ]);
+
+  const handlePrintStatement = useCallback(() => {
+    if (!printHTML) return;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.open();
+    w.document.write(printHTML);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { try { w.print(); } catch {} }, 700);
+  }, [printHTML]);
 
   // Balance color helper
   const balColor = (val: number) => {
@@ -911,8 +916,8 @@ const AccountStatementV2Page = () => {
                 <span className="text-sm">{selectedEntityEmoji}</span>
                 <span className="text-sm font-semibold" style={{ color: "#111827" }}>{selectedEntityName}</span>
                 {selectedEntityCode && <span className="text-xs" style={{ color: "#6B7280" }}>— {selectedEntityCode}</span>}
-                {displayCurrency !== "ILS" && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "#DBEAFE", color: "#1E40AF", fontWeight: 600 }}>— {displayCurrencyLabel}</span>}
-                <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1" style={{ color: "#1E40AF" }}>تغيير</button>
+                {displayCurrency !== "ILS" && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "#DBEAFE", color: "#111827", fontWeight: 600 }}>— {displayCurrencyLabel}</span>}
+                <button onClick={() => setSelectedEntityId("")} className="text-xs underline mr-1" style={{ color: "#111827" }}>تغيير</button>
               </div>
             )}
           </div>
@@ -1008,7 +1013,7 @@ const AccountStatementV2Page = () => {
             {displayCurrency !== "ILS" && !hasMixedCurrencies && (
               <div className="rounded-lg mb-3 flex items-center gap-2" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", padding: "8px 16px" }}>
                 <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "#2563EB" }} />
-                <span style={{ fontSize: 11, color: "#1E40AF" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف يوم القيد (أو سعر اليوم إن لم يُحفظ سعر تاريخي).</span>
+                <span style={{ fontSize: 11, color: "#111827" }}>الكشف معروض بال{displayCurrencyLabel.split(" ")[0]}. الحركات المحوّلة محتسبة بسعر صرف يوم القيد (أو سعر اليوم إن لم يُحفظ سعر تاريخي).</span>
               </div>
             )}
 
@@ -1016,8 +1021,8 @@ const AccountStatementV2Page = () => {
             <div className="rounded-lg mb-4" style={{ background: "white", border: "1px solid #E5E7EB", padding: "12px 20px" }}>
               <div className="flex items-center gap-8 flex-wrap text-[13px]">
                 <div><span style={{ color: "#6B7280" }}>رصيد افتتاحي: </span><span style={{ color: "#111827", fontWeight: 600 }}>{fmtAmount(openingBalance, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#1E40AF", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
-                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#065F46", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>مدين: </span><span style={{ color: "#111827", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</span></div>
+                <div><span style={{ color: "#6B7280" }}>دائن: </span><span style={{ color: "#374151", fontWeight: 600 }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</span></div>
                 <div className="mr-auto">
                   {hasMixedCurrencies ? (
                     <span style={{ color: "#D97706", fontWeight: 600, fontSize: 12 }}>⚠️ عملات مختلطة — لا يمكن احتساب رصيد إجمالي</span>
@@ -1039,9 +1044,9 @@ const AccountStatementV2Page = () => {
                       onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
                       className="px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
                       style={{
-                        color: activePeriod === p.label ? "#1E40AF" : "#6B7280",
+                        color: activePeriod === p.label ? "#111827" : "#6B7280",
                         background: activePeriod === p.label ? "#EFF6FF" : "transparent",
-                        borderBottom: activePeriod === p.label ? "2px solid #1E40AF" : "2px solid transparent",
+                        borderBottom: activePeriod === p.label ? "2px solid #111827" : "2px solid transparent",
                       }}
                     >
                       {p.label}
@@ -1116,8 +1121,8 @@ const AccountStatementV2Page = () => {
                       if (c.key === "date") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>{fmtDate(dateFrom)}</td>;
                       if (c.key === "reference") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280" }}>—</td>;
                       if (c.key === "description") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, color: "#6B7280", fontStyle: "italic" }}>رصيد أول المدة</td>;
-                      if (c.key === "debit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
-                      if (c.key === "credit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#065F46", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "debit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#111827", textAlign: "left", direction: "ltr" }}>{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
+                      if (c.key === "credit") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#374151", textAlign: "left", direction: "ltr" }}>{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>;
                       if (c.key === "balance") return <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: balColor(openingBalance), textAlign: "left", direction: "ltr" }}>{fmtAmount(openingBalance, statementCurrency)}</td>;
                       return <td key={c.key} style={{ padding: "8px 12px" }} />;
                     })}
@@ -1135,7 +1140,7 @@ const AccountStatementV2Page = () => {
                         const isSingle = items.length === 1;
                         const cardStyle: React.CSSProperties = {
                           background: "#F8FAFC",
-                          borderRight: "3px solid #0D1B2E",
+                          borderRight: "3px solid #9CA3AF",
                           borderRadius: 8,
                           padding: "8px 12px",
                           margin: "4px 32px 8px 8px",
@@ -1169,10 +1174,10 @@ const AccountStatementV2Page = () => {
                               <td colSpan={colSpan} style={{ padding: 0 }}>
                                 <div style={cardStyle}>
                                   <div style={headerStyle}>
-                                    تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{row.reference}</span> · 1 صنف
+                                    تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#9CA3AF" }}>{row.reference}</span> · 1 صنف
                                   </div>
                                   <div style={{ display: "flex", flexWrap: "wrap" }}>
-                                    <span style={{ ...chipStyle, background: "#0D1B2E", borderColor: "#0D1B2E", color: "#fff", fontWeight: 700 }}>
+                                    <span style={{ ...chipStyle, background: "#9CA3AF", borderColor: "#9CA3AF", color: "#fff", fontWeight: 700 }}>
                                       {it.productName || "—"}
                                     </span>
                                     <span style={chipStyle}>
@@ -1193,9 +1198,9 @@ const AccountStatementV2Page = () => {
                                       <span style={chipLabel}>الضريبة:</span>
                                       <span style={{ ...chipValue, color: "#475569" }}>{it.tax > 0 ? `${it.tax}%` : "—"}</span>
                                     </span>
-                                    <span style={{ ...chipStyle, background: "#ECFDF5", borderColor: "#A7F3D0" }}>
+                                    <span style={{ ...chipStyle, background: "#FAFAFA", borderColor: "#E5E7EB" }}>
                                       <span style={chipLabel}>الإجمالي:</span>
-                                      <span style={{ ...chipValue, color: "#065F46", fontWeight: 700 }}>{fmtAmount(it.total, row.currency)}</span>
+                                      <span style={{ ...chipValue, color: "#374151", fontWeight: 700 }}>{fmtAmount(it.total, row.currency)}</span>
                                     </span>
                                   </div>
                                 </div>
@@ -1209,7 +1214,7 @@ const AccountStatementV2Page = () => {
                             <td colSpan={colSpan} style={{ padding: 0 }}>
                               <div style={cardStyle}>
                                 <div style={headerStyle}>
-                                  تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#0D1B2E" }}>{row.reference}</span> · {items.length} أصناف
+                                  تفاصيل الفاتورة <span style={{ fontFamily: "monospace", color: "#9CA3AF" }}>{row.reference}</span> · {items.length} أصناف
                                 </div>
                                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, background: "#fff", borderRadius: 6, overflow: "hidden", border: "1px solid #E2E8F0" }}>
                                   <thead>
@@ -1232,12 +1237,12 @@ const AccountStatementV2Page = () => {
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#475569", fontFamily: "tabular-nums", fontSize: 10.5 }}>{fmtAmount(it.unitPrice, row.currency)}</td>
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: it.discount > 0 ? "#B45309" : "#CBD5E1", fontFamily: "tabular-nums", fontSize: 10.5 }}>{it.discount > 0 ? `${it.discount}` : "—"}</td>
                                         <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#64748B", fontFamily: "tabular-nums", fontSize: 10.5 }}>{it.tax > 0 ? `${it.tax}%` : "—"}</td>
-                                        <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 10.5 }}>{fmtAmount(it.total, row.currency)}</td>
+                                        <td style={{ padding: "3px 8px", textAlign: "left", direction: "ltr", color: "#374151", fontFamily: "tabular-nums", fontWeight: 600, fontSize: 10.5 }}>{fmtAmount(it.total, row.currency)}</td>
                                       </tr>
                                     ))}
-                                    <tr style={{ background: "#ECFDF5" }}>
+                                    <tr style={{ background: "#FAFAFA" }}>
                                       <td colSpan={5} style={{ padding: "4px 8px", textAlign: "left", fontSize: 10, color: "#475569", fontWeight: 600 }}>الإجمالي</td>
-                                      <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#065F46", fontFamily: "tabular-nums", fontWeight: 700, fontSize: 11 }}>{fmtAmount(subtotal, row.currency)}</td>
+                                      <td style={{ padding: "4px 8px", textAlign: "left", direction: "ltr", color: "#374151", fontFamily: "tabular-nums", fontWeight: 700, fontSize: 11 }}>{fmtAmount(subtotal, row.currency)}</td>
                                     </tr>
                                   </tbody>
                                 </table>
@@ -1337,7 +1342,7 @@ const AccountStatementV2Page = () => {
                             <td key={c.key} style={{ padding: "8px 12px", fontSize: 10, color: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? "#B45309" : "#6B7280", fontWeight: (row.transaction_type === "reversal" || row.transaction_type?.includes("reverse")) ? 700 : 400 }}>{getTypeBadge(row.transaction_type)}</td>
                           );
                           if (c.key === "debit") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#1E40AF", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#111827", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                           {row.debit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
                           {row.debit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
@@ -1345,7 +1350,7 @@ const AccountStatementV2Page = () => {
                             </td>
                           );
                           if (c.key === "credit") return (
-                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#065F46", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
+                            <td key={c.key} style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: row.isMismatch ? "#D97706" : "#374151", textAlign: "left", direction: "ltr", fontFamily: "tabular-nums" }}>
                           {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                           {row.credit > 0 && row.foreignDetail && <span style={{ fontSize: 9, color: "#9CA3AF", marginLeft: 4 }}>{row.foreignDetail}</span>}
                           {row.credit > 0 && row.isConverted && <span title={row.usedHistoricRate ? `محوّل بسعر يوم القيد: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}` : `محوّل بسعر اليوم: 1${getCurrencySymbol(row.currency)} = ₪${row.conversionRate?.toFixed(4) || "?"}`} style={{ fontSize: 10, marginLeft: 3, cursor: "help" }}>⚡</span>}
@@ -1377,8 +1382,8 @@ const AccountStatementV2Page = () => {
                         if (c.key === "date") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>—</td>;
                         if (c.key === "reference") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11 }}>—</td>;
                         if (c.key === "description") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#111827" }}>{hasMixedCurrencies ? "⚠️ لا يمكن احتساب رصيد إجمالي عند وجود عملات مختلطة" : "رصيد الختام"}</td>;
-                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#1E40AF", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>;
-                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#065F46", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>;
+                        if (c.key === "debit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#111827", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalDebit, statementCurrency)}</td>;
+                        if (c.key === "credit") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: "#374151", textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(totalCredit, statementCurrency)}</td>;
                         if (c.key === "balance") return <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, fontWeight: 800, color: hasMixedCurrencies ? "#D97706" : balColor(closingBalance), textAlign: "left", direction: "ltr" }}>{hasMixedCurrencies ? "—" : fmtAmount(closingBalance, statementCurrency)}</td>;
                         return <td key={c.key} style={{ padding: "10px 12px" }} />;
                       })}
@@ -1465,7 +1470,7 @@ const AccountStatementV2Page = () => {
                     <thead>
                       <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
                         <th className="text-right" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>البيان</th>
-                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#1E40AF" }}>{yearComparisonData.currentYear} (الحالي)</th>
+                        <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#111827" }}>{yearComparisonData.currentYear} (الحالي)</th>
                         <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>{yearComparisonData.prevYear} (السابق)</th>
                         <th className="text-center" style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6B7280" }}>التغيير %</th>
                       </tr>
@@ -1517,57 +1522,33 @@ const AccountStatementV2Page = () => {
         userId={user?.id || ""}
       />
 
-      {/* ─── PDF PREVIEW MODAL ─── */}
+      {/* ─── PDF PREVIEW MODAL (minimal B&W — same HTML as printout) ─── */}
       {showPdfModal && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column" }}>
-          <div style={{ background: "#1B3A5C", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }} dir="rtl">
-            <span style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
-              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle" }} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column" }}>
+          <div style={{ background: "#FFFFFF", borderBottom: "1px solid #E5E7EB", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }} dir="rtl">
+            <span style={{ color: "#111827", fontWeight: 700, fontSize: 14 }}>
+              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle", color: "#374151" }} />
               معاينة كشف الحساب
             </span>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
                 {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                 {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
               </Button>
-              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
                 <Printer className="w-3.5 h-3.5" /> طباعة
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setShowPdfModal(false)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPdfModal(false)}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
-          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-            <div id="statement-preview-doc" style={{ width: "780px", minHeight: "1100px", background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4 }}>
-              <StatementPrintViewClean
-                company={companyInfo}
-                contact={{
-                  name: selectedEntityName,
-                  type: isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد",
-                  phone: isAccountsTab ? "" : isEmployeesTab ? selectedEmployee?.phone || "" : selectedContact?.phone || "",
-                  address: selectedContact?.address || "",
-                  email: selectedContact?.email || "",
-                }}
-                rows={statementRowsWithDetails}
-                openingBalance={openingBalance}
-                closingBalance={closingBalance}
-                totalDebit={totalDebit}
-                totalCredit={totalCredit}
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                contactCode={selectedEntityCode}
-                statementNumber={stableSOANumber}
-                showCompanyLogo={statementOptions.showCompanyLogo}
-                showContactInfo={statementOptions.showContactInfo}
-                showSignature={statementOptions.showSignature}
-                showReference={statementOptions.showReference}
-                showDueDate={statementOptions.showDueDate}
-                showType={statementOptions.showType}
-                showAging={statementOptions.showAging}
-                agingData={agingData}
-              />
-            </div>
+          <div style={{ flex: 1, overflow: "auto", background: "#F3F4F6", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+            <iframe
+              title="معاينة كشف الحساب"
+              srcDoc={printHTML}
+              style={{ width: "820px", minHeight: "1100px", background: "white", boxShadow: "0 2px 12px rgba(0,0,0,0.12)", border: "none", borderRadius: 4 }}
+            />
           </div>
         </div>
       )}
