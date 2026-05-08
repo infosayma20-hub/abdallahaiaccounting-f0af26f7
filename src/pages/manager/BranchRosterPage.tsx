@@ -359,13 +359,30 @@ export default function BranchRosterPage() {
 
       <Card className="hidden md:block">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">{activeBranch?.branch_name} • {employees.length} موظف</CardTitle>
+          <CardTitle className="text-base flex items-center justify-between gap-3 flex-wrap">
+            <span>{activeBranch?.branch_name} • {filteredEmployees.length} / {employees.length} موظف</span>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث..." className="pr-8 h-9 w-48" />
+              </div>
+              <Select value={deptFilter} onValueChange={setDeptFilter}>
+                <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأقسام</SelectItem>
+                  {departments.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {rLoading ? (
             <div className="p-8 text-center text-muted-foreground">جار التحميل…</div>
           ) : !employees.length ? (
             <div className="p-8 text-center text-muted-foreground">لا يوجد موظفين في هذا الفرع</div>
+          ) : !filteredEmployees.length ? (
+            <div className="p-8 text-center text-muted-foreground">لا نتائج مطابقة</div>
           ) : (
             <table className="w-full border-collapse">
               <thead>
@@ -383,7 +400,11 @@ export default function BranchRosterPage() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp: any) => (
+                {groupedEmployees.flatMap(([dept, list]) => [
+                  <tr key={`h-${dept}`} className="bg-muted/20">
+                    <td colSpan={8} className="px-2 py-1.5 text-xs font-bold text-muted-foreground">{dept} ({list.length})</td>
+                  </tr>,
+                  ...list.map((emp: any) => (
                   <tr key={emp.id} className="border-t">
                     <td className="p-2 text-sm font-medium sticky right-0 bg-card">
                       {emp.full_name}
@@ -413,7 +434,8 @@ export default function BranchRosterPage() {
                       );
                     })}
                   </tr>
-                ))}
+                  )),
+                ])}
               </tbody>
             </table>
           )}
