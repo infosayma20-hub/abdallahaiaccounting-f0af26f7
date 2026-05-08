@@ -1241,12 +1241,18 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
           // Update linked transaction (Golden Rule: delete old + insert fresh)
           const linkedTxId = (existingReceipt as any)?.linked_transaction_id;
-          if (linkedTxId) {
-            // Soft-delete old transaction
-            await supabase.from("transactions").update({
-              is_deleted: true,
-              idempotency_key: null,
-            } as any).eq("id", linkedTxId);
+          // Also recover legacy receipts that were saved as "posted" but never
+          // got a transaction created (linked_transaction_id IS NULL). Without
+          // this, editing such vouchers would skip posting entirely and the
+          // Account Statement would never see them.
+          if (linkedTxId || !asDraft) {
+            if (linkedTxId) {
+              // Soft-delete old transaction
+              await supabase.from("transactions").update({
+                is_deleted: true,
+                idempotency_key: null,
+              } as any).eq("id", linkedTxId);
+            }
 
             // Insert fresh transaction
             const { data: newTx } = await supabase.from("transactions").insert({
@@ -1260,7 +1266,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               transaction_type: "receipt",
               contact_id: selectedContact?.id || null,
               payment_method: paymentMethod,
-              idempotency_key: `RCV-EDIT-${Date.now()}`,
+              idempotency_key: linkedTxId ? `RCV-EDIT-${Date.now()}` : `RCV-REPAIR-${editId}-${Date.now()}`,
               foreign_amount: currency !== "ILS" ? amountNum : null,
               exchange_rate: currency !== "ILS" ? exchangeRate : null,
               workshop_id: selectedWorkshop?.id || null,
