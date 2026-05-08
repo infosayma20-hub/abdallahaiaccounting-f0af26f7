@@ -307,23 +307,37 @@ export async function loadInvoiceRegister(uid: string, dateFrom: string, dateTo:
 }
 
 export async function loadByCustomer(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
-  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
-  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
-  const { data: txns } = await supabase.from("transactions").select("id, contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
+  // Single source of truth: invoices (invoice_type='sale'). Reconciles with B1/B2.
+  // Aggregates net (subtotal excl. VAT) by contact_id. Excludes voided/cancelled/reversed.
+  let q = supabase
+    .from("invoices")
+    .select("contact_id, contact_name, invoice_date, subtotal, tax_amount, total_amount, source")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+  if (source !== "all") q = q.eq("source", source);
+  const { data: invs } = await q;
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).eq("contact_type", "عميل");
   const cMap = new Map((contacts || []).map(c => [c.id, c]));
-  const custMap: Record<string, { name: string; cls: string; count: number; total: number; lastDate: string }> = {};
-  filtered.forEach(tx => {
-    if (!tx.contact_id) return;
-    const c = cMap.get(tx.contact_id);
-    const key = tx.contact_id;
-    if (!custMap[key]) custMap[key] = { name: c?.contact_name || "غير محدد", cls: c?.contact_class || "-", count: 0, total: 0, lastDate: "" };
-    custMap[key].count++; custMap[key].total += tx.amount;
-    if (tx.transaction_date > custMap[key].lastDate) custMap[key].lastDate = tx.transaction_date;
+  type Agg = { name: string; cls: string; count: number; net: number; vat: number; total: number; lastDate: string };
+  const custMap: Record<string, Agg> = {};
+  (invs || []).forEach((r: any) => {
+    const key = (r.contact_id as string) || `__name:${r.contact_name || "غير محدد"}`;
+    const c = r.contact_id ? cMap.get(r.contact_id) : null;
+    if (!custMap[key]) custMap[key] = { name: c?.contact_name || r.contact_name || "غير محدد", cls: c?.contact_class || "-", count: 0, net: 0, vat: 0, total: 0, lastDate: "" };
+    const row = custMap[key];
+    row.count++;
+    row.net += Number(r.subtotal) || 0;
+    row.vat += Number(r.tax_amount) || 0;
+    row.total += Number(r.total_amount) || 0;
+    if (r.invoice_date > row.lastDate) row.lastDate = r.invoice_date;
   });
   dbg("byCustomer", { source, customers: Object.keys(custMap).length });
-  setData(Object.values(custMap).sort((a, b) => b.total - a.total));
+  // Keep legacy `total` key as net for back-compat with existing UI columns/totals.
+  setData(Object.values(custMap).map(c => ({ ...c, total: c.net, gross: c.total })).sort((a, b) => b.total - a.total));
 }
 
 export async function loadCollections(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -634,18 +648,35 @@ export async function loadPurchaseInvoiceRegister(uid: string, dateFrom: string,
 }
 
 export async function loadBySupplier(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  // Single source of truth: invoices (invoice_type='purchase'). Reconciles with B1/B2.
+  // Aggregates net (subtotal excl. input VAT) by contact_id. Excludes voided/cancelled/reversed.
+  const { data: invs } = await supabase
+    .from("invoices")
+    .select("contact_id, contact_name, invoice_date, subtotal, tax_amount, total_amount")
+    .eq("user_id", uid)
+    .eq("invoice_type", "purchase")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   const cMap = new Map((contacts || []).map(c => [c.id, c]));
-  const suppMap: Record<string, { name: string; count: number; total: number }> = {};
-  (txns || []).forEach(tx => {
-    if (!tx.contact_id) return;
-    const c = cMap.get(tx.contact_id);
-    const key = tx.contact_id;
-    if (!suppMap[key]) suppMap[key] = { name: c?.contact_name || "غير محدد", count: 0, total: 0 };
-    suppMap[key].count++; suppMap[key].total += tx.amount;
+  type Agg = { name: string; count: number; net: number; vat: number; total: number; lastDate: string };
+  const suppMap: Record<string, Agg> = {};
+  (invs || []).forEach((r: any) => {
+    const key = (r.contact_id as string) || `__name:${r.contact_name || "غير محدد"}`;
+    const c = r.contact_id ? cMap.get(r.contact_id) : null;
+    if (!suppMap[key]) suppMap[key] = { name: c?.contact_name || r.contact_name || "غير محدد", count: 0, net: 0, vat: 0, total: 0, lastDate: "" };
+    const row = suppMap[key];
+    row.count++;
+    row.net += Number(r.subtotal) || 0;
+    row.vat += Number(r.tax_amount) || 0;
+    row.total += Number(r.total_amount) || 0;
+    if (r.invoice_date > row.lastDate) row.lastDate = r.invoice_date;
   });
-  setData(Object.values(suppMap).sort((a, b) => b.total - a.total));
+  dbg("bySupplier", { suppliers: Object.keys(suppMap).length, invs: (invs || []).length });
+  // Keep legacy `total` key as net for back-compat with existing UI columns/totals.
+  setData(Object.values(suppMap).map(s => ({ ...s, total: s.net, gross: s.total })).sort((a, b) => b.total - a.total));
 }
 
 export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -676,13 +707,37 @@ export async function loadPurchaseReturns(uid: string, dateFrom: string, dateTo:
 }
 
 export async function loadSupplierComparison(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("contact_id, description, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-  const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
-  const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
-  setData((txns || []).map(tx => ({
-    supplier: cMap.get(tx.contact_id || "") || "غير محدد",
-    description: tx.description, amount: tx.amount, date: tx.transaction_date,
-  })));
+  // Compare same product across suppliers using purchase invoice line items.
+  // Source: invoice_items joined with purchase invoices. Excludes voided/cancelled/reversed.
+  const { data: invs } = await supabase
+    .from("invoices")
+    .select("id, contact_id, contact_name, invoice_date")
+    .eq("user_id", uid)
+    .eq("invoice_type", "purchase")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+  if (!invs?.length) { setData([]); return; }
+  const invMap = new Map(invs.map((i: any) => [i.id, i]));
+  const { data: items } = await supabase
+    .from("invoice_items")
+    .select("invoice_id, product_name, quantity, unit_price, total_amount")
+    .in("invoice_id", invs.map((i: any) => i.id));
+  const rows = (items || []).map((it: any) => {
+    const inv: any = invMap.get(it.invoice_id);
+    return {
+      product: it.product_name || "—",
+      supplier: inv?.contact_name || "غير محدد",
+      date: inv?.invoice_date,
+      qty: Number(it.quantity) || 0,
+      unit_price: Number(it.unit_price) || 0,
+      amount: Number(it.total_amount) || 0,
+      description: it.product_name || "",
+    };
+  }).sort((a, b) => (a.product + a.date).localeCompare(b.product + b.date));
+  dbg("supplierComparison", { rows: rows.length });
+  setData(rows);
 }
 
 export async function loadInventoryValuation(uid: string, setData: SetData) {
