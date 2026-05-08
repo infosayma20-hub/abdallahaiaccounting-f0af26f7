@@ -832,16 +832,39 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderPOSCashReconciliation = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>التاريخ</th><th className={thClass}>الكاشير</th><th className={thClass}>الافتتاحي</th><th className={thClass}>الختامي</th><th className={thClass}>المتوقع</th><th className={thClass}>الفرق</th>
+      <th className={thClass}>التاريخ</th><th className={thClass}>الكاشير</th><th className={thClass}>العملة</th><th className={thClass}>الافتتاحي</th><th className={thClass}>الختامي</th><th className={thClass}>المتوقع</th><th className={thClass}>الفرق</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={trClass}>
         <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} font-medium`}>{r.cashier}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.currency || "ILS"}</td>
         <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.opening)}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.closing)}</td>
         <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.expected)}</td>
         <td className={`${tdClass} ${monoClass} font-bold ${r.variance === 0 ? "text-green-600" : r.variance > 0 ? "text-yellow-600" : "text-red-600"}`}>
-          {r.variance === 0 ? "متطابق" : r.variance > 0 ? `+${fmtNum(r.variance)}` : fmtNum(r.variance)}
+          {r.variance === 0 ? "متطابق" : `${r.variance > 0 ? "+" : ""}${fmtNum(r.variance)} ${r.currency || "ILS"}`}
         </td>
       </tr>)}
+      {(() => {
+        // Per-currency totals to avoid mis-summing ILS/USD/EUR.
+        const byCcy: Record<string, { opening: number; closing: number; expected: number; variance: number }> = {};
+        data.forEach((r: any) => {
+          const c = r.currency || "ILS";
+          byCcy[c] ||= { opening: 0, closing: 0, expected: 0, variance: 0 };
+          byCcy[c].opening += Number(r.opening) || 0;
+          byCcy[c].closing += Number(r.closing) || 0;
+          byCcy[c].expected += Number(r.expected) || 0;
+          byCcy[c].variance += Number(r.variance) || 0;
+        });
+        return Object.entries(byCcy).map(([c, t]) => (
+          <tr key={`tot-${c}`} className="bg-muted/40 border-t font-bold">
+            <td className={tdClass} colSpan={2}>الإجمالي ({c})</td>
+            <td className={`${tdClass} ${monoClass}`}>{c}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(t.opening)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(t.closing)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(t.expected)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtNum(t.variance)} {c}</td>
+          </tr>
+        ));
+      })()}
     </tbody></table></div>
   );
 
