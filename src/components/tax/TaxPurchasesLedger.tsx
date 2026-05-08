@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { filterOutVoidedInvoiceRows } from "@/lib/reports/tax-ledger-filter";
 
 interface Props { ownerId: string; }
 
@@ -29,7 +30,8 @@ export default function TaxPurchasesLedger({ ownerId }: Props) {
       .eq("period_year", year)
       .eq("period_month", month)
       .order("transaction_date", { ascending: true });
-    setRows(data || []);
+    const cleaned = await filterOutVoidedInvoiceRows(ownerId, data || []);
+    setRows(cleaned);
     setLoading(false);
   };
 
