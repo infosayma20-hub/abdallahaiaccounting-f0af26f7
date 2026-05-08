@@ -1522,57 +1522,33 @@ const AccountStatementV2Page = () => {
         userId={user?.id || ""}
       />
 
-      {/* ─── PDF PREVIEW MODAL ─── */}
+      {/* ─── PDF PREVIEW MODAL (minimal B&W — same HTML as printout) ─── */}
       {showPdfModal && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column" }}>
-          <div style={{ background: "#1B3A5C", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }} dir="rtl">
-            <span style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
-              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle" }} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column" }}>
+          <div style={{ background: "#FFFFFF", borderBottom: "1px solid #E5E7EB", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }} dir="rtl">
+            <span style={{ color: "#111827", fontWeight: 700, fontSize: 14 }}>
+              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle", color: "#374151" }} />
               معاينة كشف الحساب
             </span>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleDownloadPDF} disabled={pdfGenerating}>
                 {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                 {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
               </Button>
-              <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrintStatement}>
                 <Printer className="w-3.5 h-3.5" /> طباعة
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setShowPdfModal(false)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPdfModal(false)}>
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
-          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-            <div id="statement-preview-doc" style={{ width: "780px", minHeight: "1100px", background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", borderRadius: 4 }}>
-              <StatementPrintViewClean
-                company={companyInfo}
-                contact={{
-                  name: selectedEntityName,
-                  type: isAccountsTab ? "حساب" : isEmployeesTab ? "موظف" : activeTab === "customers" ? "عميل" : "مورد",
-                  phone: isAccountsTab ? "" : isEmployeesTab ? selectedEmployee?.phone || "" : selectedContact?.phone || "",
-                  address: selectedContact?.address || "",
-                  email: selectedContact?.email || "",
-                }}
-                rows={statementRowsWithDetails}
-                openingBalance={openingBalance}
-                closingBalance={closingBalance}
-                totalDebit={totalDebit}
-                totalCredit={totalCredit}
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                contactCode={selectedEntityCode}
-                statementNumber={stableSOANumber}
-                showCompanyLogo={statementOptions.showCompanyLogo}
-                showContactInfo={statementOptions.showContactInfo}
-                showSignature={statementOptions.showSignature}
-                showReference={statementOptions.showReference}
-                showDueDate={statementOptions.showDueDate}
-                showType={statementOptions.showType}
-                showAging={statementOptions.showAging}
-                agingData={agingData}
-              />
-            </div>
+          <div style={{ flex: 1, overflow: "auto", background: "#F3F4F6", padding: "24px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+            <iframe
+              title="معاينة كشف الحساب"
+              srcDoc={printHTML}
+              style={{ width: "820px", minHeight: "1100px", background: "white", boxShadow: "0 2px 12px rgba(0,0,0,0.12)", border: "none", borderRadius: 4 }}
+            />
           </div>
         </div>
       )}
