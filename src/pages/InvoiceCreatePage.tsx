@@ -42,6 +42,7 @@ import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
 import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
+import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -428,39 +429,10 @@ const InvoiceCreatePage = () => {
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       
-      // Fetch balances from transactions
-      const contactIds = contactsList.map(c => c.id);
-      const { data: txData } = contactIds.length > 0
-        ? await supabase.from("transactions").select("contact_id, debit_account_code, credit_account_code, amount").eq("user_id", user.id).eq("is_deleted", false).in("contact_id", contactIds)
-        : { data: [] };
-      
-      // Build per-contact balances: customers use 1130, suppliers use 2110
-      const customerBalanceMap: Record<string, number> = {};
-      const supplierBalanceMap: Record<string, number> = {};
-      ((txData as any[]) || []).forEach((tx: any) => {
-        const cid = tx.contact_id;
-        if (!cid) return;
-        const amt = Number(tx.amount || 0);
-        // Customer receivables (1130): debit = they owe us more, credit = they paid
-        if (tx.debit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
-        if (tx.credit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
-        // Supplier payables (2110): credit = we owe them more, debit = we paid
-        if (tx.credit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
-        if (tx.debit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
-        // Smart Allocation advance accounts:
-        //   2115 = customer advance (credit = customer prepaid → reduces receivable)
-        //   1146 = supplier advance (debit = we prepaid → reduces payable)
-        if (tx.credit_account_code === "2115") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
-        if (tx.debit_account_code === "2115")  customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
-        if (tx.debit_account_code === "1146")  supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
-        if (tx.credit_account_code === "1146") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
-      });
+      const statementBalanceMap = await fetchManyContactStatementBalances(contactsList, { userId: user.id });
       
       const contactsWithBalance = contactsList.map(c => {
-        const isSupplier = c.contact_type === "مورد";
-        const balance = isSupplier 
-          ? (supplierBalanceMap[c.id] || 0) 
-          : (customerBalanceMap[c.id] || 0);
+        const balance = statementBalanceMap[c.id] ?? 0;
         return { ...c, balance };
       });
       setContacts(contactsWithBalance);
