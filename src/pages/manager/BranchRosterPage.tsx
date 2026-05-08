@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, Calendar, Trash2 } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   useManagerBranches,
@@ -90,6 +92,10 @@ export default function BranchRosterPage() {
   }, [roster]);
 
   const [cell, setCell] = useState<CellState | null>(null);
+  const [search, setSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState<string>("all");
+  const [onlyUnset, setOnlyUnset] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // Mobile day index (0..6) within the current week
   const [mobileDayIdx, setMobileDayIdx] = useState<number>(() => {
     const today = new Date();
@@ -97,6 +103,43 @@ export default function BranchRosterPage() {
     const diff = Math.round((today.getTime() - ws.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, Math.min(6, diff));
   });
+
+  const DEPT_UNSET = "غير محدد";
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach((e: any) => set.add((e.department || "").trim() || DEPT_UNSET));
+    return Array.from(set).sort((a, b) => (a === DEPT_UNSET ? 1 : b === DEPT_UNSET ? -1 : a.localeCompare(b, "ar")));
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (employees as any[]).filter((e) => {
+      const dept = (e.department || "").trim() || DEPT_UNSET;
+      if (deptFilter !== "all" && dept !== deptFilter) return false;
+      if (onlyUnset) {
+        const d = fmtISO(addDays(weekAnchor, mobileDayIdx));
+        if (rosterMap.get(`${e.id}|${d}`)) return false;
+      }
+      if (!q) return true;
+      return (
+        (e.full_name || "").toLowerCase().includes(q) ||
+        (e.position || "").toLowerCase().includes(q) ||
+        dept.toLowerCase().includes(q)
+      );
+    });
+  }, [employees, search, deptFilter, onlyUnset, weekAnchor, mobileDayIdx, rosterMap]);
+
+  const groupedEmployees = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    filteredEmployees.forEach((e: any) => {
+      const dept = (e.department || "").trim() || DEPT_UNSET;
+      if (!groups.has(dept)) groups.set(dept, []);
+      groups.get(dept)!.push(e);
+    });
+    return Array.from(groups.entries()).sort((a, b) =>
+      a[0] === DEPT_UNSET ? 1 : b[0] === DEPT_UNSET ? -1 : a[0].localeCompare(b[0], "ar")
+    );
+  }, [filteredEmployees]);
 
   if (bLoading) return <div className="p-8 text-center">جار التحميل…</div>;
   if (bError) {
@@ -214,13 +257,74 @@ export default function BranchRosterPage() {
         </div>
 
         {/* Mobile day cards */}
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {/* Search + filters */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث عن موظف..."
+                className="pr-9 h-10"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+              <button
+                onClick={() => setDeptFilter("all")}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs border ${deptFilter === "all" ? "bg-primary text-primary-foreground border-primary font-bold" : "bg-card border-border"}`}
+              >
+                الكل ({employees.length})
+              </button>
+              {departments.map((d) => {
+                const count = (employees as any[]).filter((e) => ((e.department || "").trim() || DEPT_UNSET) === d).length;
+                const active = deptFilter === d;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setDeptFilter(d)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs border ${active ? "bg-primary text-primary-foreground border-primary font-bold" : "bg-card border-border"}`}
+                  >
+                    {d} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => setOnlyUnset((v) => !v)}
+                className={`text-[11px] px-2.5 py-1 rounded-md border ${onlyUnset ? "bg-warning/10 border-warning text-warning font-bold" : "bg-card border-border text-muted-foreground"}`}
+              >
+                {onlyUnset ? "✓ غير المحدد فقط" : "إظهار غير المحدد فقط"}
+              </button>
+              <span className="text-[10px] text-muted-foreground">المصدر: ملف الموظف (الفرع + القسم)</span>
+            </div>
+          </div>
+
           {rLoading ? (
             <div className="p-8 text-center text-muted-foreground">جار التحميل…</div>
           ) : !employees.length ? (
             <div className="p-8 text-center text-muted-foreground">لا يوجد موظفين في هذا الفرع</div>
+          ) : !filteredEmployees.length ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">لا نتائج مطابقة</div>
           ) : (
-            employees.map((emp: any) => {
+            groupedEmployees.map(([dept, list]) => {
+              const isCollapsed = collapsed[dept];
+              return (
+                <div key={dept} className="space-y-2">
+                  <button
+                    onClick={() => setCollapsed((c) => ({ ...c, [dept]: !c[dept] }))}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-sm font-bold sticky top-0 z-10"
+                  >
+                    <span>{dept} ({list.length})</span>
+                    <span className="text-xs text-muted-foreground">{isCollapsed ? "▾" : "▴"}</span>
+                  </button>
+                  {!isCollapsed && list.map((emp: any) => {
               const d = fmtISO(addDays(weekAnchor, mobileDayIdx));
               const entry = rosterMap.get(`${emp.id}|${d}`) || null;
               const tpl = entry?.shift_template_id ? templates.find((t) => t.id === entry.shift_template_id) : null;
@@ -245,6 +349,9 @@ export default function BranchRosterPage() {
                   </div>
                 </button>
               );
+                  })}
+                </div>
+              );
             })
           )}
         </div>
@@ -252,13 +359,30 @@ export default function BranchRosterPage() {
 
       <Card className="hidden md:block">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">{activeBranch?.branch_name} • {employees.length} موظف</CardTitle>
+          <CardTitle className="text-base flex items-center justify-between gap-3 flex-wrap">
+            <span>{activeBranch?.branch_name} • {filteredEmployees.length} / {employees.length} موظف</span>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث..." className="pr-8 h-9 w-48" />
+              </div>
+              <Select value={deptFilter} onValueChange={setDeptFilter}>
+                <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأقسام</SelectItem>
+                  {departments.map((d) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {rLoading ? (
             <div className="p-8 text-center text-muted-foreground">جار التحميل…</div>
           ) : !employees.length ? (
             <div className="p-8 text-center text-muted-foreground">لا يوجد موظفين في هذا الفرع</div>
+          ) : !filteredEmployees.length ? (
+            <div className="p-8 text-center text-muted-foreground">لا نتائج مطابقة</div>
           ) : (
             <table className="w-full border-collapse">
               <thead>
@@ -276,7 +400,11 @@ export default function BranchRosterPage() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp: any) => (
+                {groupedEmployees.flatMap(([dept, list]) => [
+                  <tr key={`h-${dept}`} className="bg-muted/20">
+                    <td colSpan={8} className="px-2 py-1.5 text-xs font-bold text-muted-foreground">{dept} ({list.length})</td>
+                  </tr>,
+                  ...list.map((emp: any) => (
                   <tr key={emp.id} className="border-t">
                     <td className="p-2 text-sm font-medium sticky right-0 bg-card">
                       {emp.full_name}
@@ -306,7 +434,8 @@ export default function BranchRosterPage() {
                       );
                     })}
                   </tr>
-                ))}
+                  )),
+                ])}
               </tbody>
             </table>
           )}
