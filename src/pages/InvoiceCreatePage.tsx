@@ -57,6 +57,7 @@ interface InvoiceItem {
   productId?: string;
   description: string;
   quantity: number;
+  bonusQuantity: number;
   unitPrice: number;
   discount: number;
   discountType: "percent" | "amount";
@@ -107,6 +108,7 @@ const createEmptyItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
   description: "",
   quantity: 1,
+  bonusQuantity: 0,
   unitPrice: 0,
   discount: 0,
   discountType: "percent",
