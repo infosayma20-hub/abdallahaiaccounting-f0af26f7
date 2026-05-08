@@ -748,16 +748,31 @@ export async function loadProductProfitability(uid: string, setData: SetData, da
     }
   });
   dbg("productProfitability", { source, from, to, products: Object.keys(pm).length });
-  setData(Object.values(pm).map(p => ({
-    name: p.name,
-    qtySold: p.qtySold,
-    revenue: p.revenue,
-    cost: p.cost,
-    profit: p.profit,
-    profitDisplay: p.missingCost ? "تكلفة غير محددة" : p.profit,
-    margin: p.revenue > 0 ? (p.profit / p.revenue * 100) : 0,
-    stock: stockMap.get(p.name) || 0,
-  })).sort((a, b) => b.profit - a.profit));
+  // P1 fix: subtract sales returns by product_name (mapped via product_id when
+  // available). Returns reduce revenue and profit; cost side is unknown without
+  // joining return_items to original invoice_items, so we deliberately leave
+  // `cost` as-is and document the limitation via returns_not_included.
+  const ret = await loadReturnsByProduct(uid, "sales", from, to);
+  setData(Object.values(pm).map(p => {
+    const r = ret.byProductName.get(p.name) || { qty: 0, amount: 0 };
+    const revenue = p.revenue - r.amount;
+    const profit = p.profit - r.amount;
+    return {
+      name: p.name,
+      qtySold: p.qtySold,
+      qtyReturned: r.qty,
+      qtyNet: p.qtySold - r.qty,
+      revenue,
+      revenueGross: p.revenue,
+      returns: r.amount,
+      cost: p.cost,
+      profit,
+      profitDisplay: p.missingCost ? "تكلفة غير محددة" : profit,
+      margin: revenue > 0 ? (profit / revenue * 100) : 0,
+      stock: stockMap.get(p.name) || 0,
+      returns_not_included: !ret.available,
+    };
+  }).sort((a, b) => b.profit - a.profit));
 }
 
 export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
