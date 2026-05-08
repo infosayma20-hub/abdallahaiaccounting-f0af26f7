@@ -1386,14 +1386,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             .eq("user_id", user.id);
           if (error) throw error;
 
-          // Update linked transaction (Golden Rule: delete old + insert fresh)
+          // Update linked transaction (Golden Rule: delete old + insert fresh).
+          // Also self-heal legacy payment vouchers that were posted but never
+          // got a transaction created (linked_transaction_id IS NULL). Without
+          // this, editing such vouchers would skip posting entirely and the
+          // Supplier Statement would never see them.
           const linkedTxId = (existingVoucher as any)?.linked_transaction_id;
-          if (linkedTxId) {
-            // Soft-delete old transaction
-            await supabase.from("transactions").update({
-              is_deleted: true,
-              idempotency_key: null,
-            } as any).eq("id", linkedTxId);
+          if (linkedTxId || !asDraft) {
+            if (linkedTxId) {
+              // Soft-delete old transaction
+              await supabase.from("transactions").update({
+                is_deleted: true,
+                idempotency_key: null,
+              } as any).eq("id", linkedTxId);
+            }
 
             // Insert fresh transaction
             const payMethodMapAr: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
@@ -1408,7 +1414,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               transaction_type: isEmployeePaymentEdit ? "employee_payment" : isAccountPayment ? "journal" : "payment",
               contact_id: editTxContactId,
               payment_method: payMethodMapAr[paymentMethod] || "نقدي",
-              idempotency_key: `PAY-EDIT-${Date.now()}`,
+              idempotency_key: linkedTxId ? `PAY-EDIT-${Date.now()}` : `PAY-REPAIR-${editId}-${Date.now()}`,
               foreign_amount: currency !== "ILS" ? amountNum : null,
               exchange_rate: currency !== "ILS" ? exchangeRate : null,
               expense_category: isEmployeePaymentEdit ? (empCategory === "أخرى" ? empCategoryCustom : empCategory) : null,
