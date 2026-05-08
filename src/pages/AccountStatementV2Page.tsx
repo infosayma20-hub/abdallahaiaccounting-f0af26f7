@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears } from "date-fns";
@@ -111,6 +112,7 @@ const AccountStatementV2Page = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { toast } = useToast();
 
   const urlContactId = searchParams.get("contact_id") || "";
@@ -152,18 +154,18 @@ const AccountStatementV2Page = () => {
 
   // ─── FETCH DATA ───
   const fetchData = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     try {
       const [{ data: contactData }, { data: accData }, { data: txData }, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
-        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", user.id).eq("is_active", true).order("contact_name"),
-        supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+        supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class").eq("user_id", dataOwnerId).eq("is_active", true).order("contact_name"),
+        supabase.from("accounts").select("id, account_code, account_name, account_type").eq("user_id", dataOwnerId).eq("is_active", true).order("account_code"),
         // ✅ Reversal-aware: include both active rows AND soft-deleted rows that were reversed
         // (so the original entry shows alongside its reversal, keeping the statement balanced)
-        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id").eq("user_id", user.id).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
-        supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", user.id).eq("is_active", true).order("full_name"),
+        supabase.from("transactions").select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate, reversed_by_id").eq("user_id", dataOwnerId).or("is_deleted.eq.false,reversed_by_id.not.is.null").order("transaction_date", { ascending: true }).order("created_at", { ascending: true }),
+        supabase.from("employees").select("id, full_name, department, job_title, phone, base_salary").eq("user_id", dataOwnerId).eq("is_active", true).order("full_name"),
         supabase.from("company_settings").select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start").eq("user_id", user.id).maybeSingle(),
-        supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", user.id).order("cheque_date", { ascending: false }),
+        supabase.from("cheques").select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name").eq("user_id", dataOwnerId).order("cheque_date", { ascending: false }),
         supabase.from("companies").select("id, name, logo_url, address, phone, email, tax_number").eq("owner_id", user.id).maybeSingle(),
       ]);
 
@@ -201,7 +203,7 @@ const AccountStatementV2Page = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { fetchData(); }, [user, dataOwnerId]);
 
   useEffect(() => { setDetailsMap(prev => ({ ...prev, companySettings: companyInfo })); }, [companyInfo]);
 
@@ -484,7 +486,7 @@ const AccountStatementV2Page = () => {
   useEffect(() => { setDetailsMap(prev => ({ ...prev, agingSummary: agingData, companySettings: companyInfo })); }, [agingData, companyInfo]);
 
   useEffect(() => {
-    if (!user || filteredRows.length === 0 || (!statementOptions.showInvoiceDetails && !statementOptions.showVoucherDetails)) {
+    if (!user || !dataOwnerId || filteredRows.length === 0 || (!statementOptions.showInvoiceDetails && !statementOptions.showVoucherDetails)) {
       setDetailsMap(emptyDetailsMap(companyInfo));
       return;
     }
@@ -498,8 +500,8 @@ const AccountStatementV2Page = () => {
 
       if (statementOptions.showInvoiceDetails && invoiceRefs.length > 0) {
         const [{ data: saleInvoices }, { data: purchaseInvoices }] = await Promise.all([
-          supabase.from("invoices").select("id, invoice_number").eq("user_id", user.id).in("invoice_number", invoiceRefs),
-          supabase.from("purchase_invoices").select("id, invoice_number").eq("user_id", user.id).in("invoice_number", invoiceRefs),
+          supabase.from("invoices").select("id, invoice_number").eq("user_id", dataOwnerId).in("invoice_number", invoiceRefs),
+          supabase.from("purchase_invoices").select("id, invoice_number").eq("user_id", dataOwnerId).in("invoice_number", invoiceRefs),
         ]);
         const saleById: Record<string, string> = {}; (saleInvoices || []).forEach((inv: any) => { saleById[inv.id] = inv.invoice_number; });
         const purchaseById: Record<string, string> = {}; (purchaseInvoices || []).forEach((inv: any) => { purchaseById[inv.id] = inv.invoice_number; });
@@ -519,8 +521,8 @@ const AccountStatementV2Page = () => {
 
       if (statementOptions.showVoucherDetails && voucherRefs.length > 0) {
         const [{ data: receipts }, { data: vouchers }] = await Promise.all([
-          supabase.from("receipt_vouchers").select("receipt_number, payment_method, bank_name, check_number, check_date, notes, cash_box_id, bank_account_id").eq("user_id", user.id).in("receipt_number", voucherRefs),
-          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id, cash_box_id").eq("user_id", user.id).in("ref_number", voucherRefs),
+          supabase.from("receipt_vouchers").select("receipt_number, payment_method, bank_name, check_number, check_date, notes, cash_box_id, bank_account_id").eq("user_id", dataOwnerId).in("receipt_number", voucherRefs),
+          supabase.from("vouchers").select("ref_number, payment_method, cheque_bank_name, cheque_number, cheque_due_date, notes, bank_account_id, cash_box_id").eq("user_id", dataOwnerId).in("ref_number", voucherRefs),
         ]);
         // Resolve cash box / bank account UUIDs → human names
         const cashBoxIds = Array.from(new Set([
@@ -532,8 +534,8 @@ const AccountStatementV2Page = () => {
           ...(vouchers || []).map((v: any) => v.bank_account_id).filter(Boolean),
         ]));
         const [{ data: cashBoxesData }, { data: bankAccountsData }] = await Promise.all([
-          cashBoxIds.length ? supabase.from("cash_boxes").select("id, name").eq("user_id", user.id).in("id", cashBoxIds) : Promise.resolve({ data: [] as any[] }),
-          bankAccountIds.length ? supabase.from("bank_accounts").select("id, account_name, bank_name").eq("user_id", user.id).in("id", bankAccountIds) : Promise.resolve({ data: [] as any[] }),
+          cashBoxIds.length ? supabase.from("cash_boxes").select("id, name").eq("user_id", dataOwnerId).in("id", cashBoxIds) : Promise.resolve({ data: [] as any[] }),
+          bankAccountIds.length ? supabase.from("bank_accounts").select("id, account_name, bank_name").eq("user_id", dataOwnerId).in("id", bankAccountIds) : Promise.resolve({ data: [] as any[] }),
         ]);
         const cashBoxMap: Record<string, string> = {}; (cashBoxesData || []).forEach((b: any) => { cashBoxMap[b.id] = b.name; });
         const bankAccountMap: Record<string, { name: string; bank: string }> = {};
