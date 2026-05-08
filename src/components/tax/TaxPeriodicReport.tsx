@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, FileSpreadsheet, Send, Receipt } from "lucide-react";
 import { toast } from "sonner";
+import { filterOutVoidedInvoiceRows } from "@/lib/reports/tax-ledger-filter";
 
 interface Props { ownerId: string; }
 
@@ -46,7 +47,7 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
       .eq("period_year", year)
       .eq("period_month", month);
 
-    const rows = ledger || [];
+    const rows = await filterOutVoidedInvoiceRows(ownerId, ledger || []);
     const output = rows.filter(r => r.tax_type === "output");
     const input = rows.filter(r => r.tax_type === "input");
 
