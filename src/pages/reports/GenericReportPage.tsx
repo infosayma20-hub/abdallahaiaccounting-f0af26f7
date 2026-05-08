@@ -998,6 +998,13 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           rowClassName={reportKey === "inventory-valuation"
             ? (row) => row.qty < 0 ? "!bg-red-50 dark:!bg-red-950/20" : ""
             : undefined}
+          onRowClick={
+            reportKey === "inventory-reconciliation"
+              ? (row: any) => navigate(`/reports/product-card?product=${encodeURIComponent(row.name || "")}`)
+              : reportKey === "stock-movement"
+              ? (row: any) => row?.product && navigate(`/reports/product-card?product=${encodeURIComponent(row.product)}`)
+              : undefined
+          }
         />
       );
     }
