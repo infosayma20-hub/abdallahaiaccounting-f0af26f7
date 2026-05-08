@@ -7,8 +7,8 @@ const APPROX_ZERO = 0.01;
 const FALLBACK_OUTPUT_VAT = "2190";
 const FALLBACK_INPUT_VAT = "1180";
 const FALLBACK_POS_REVENUE_PREFIX = "4";
-const FALLBACK_POS_CASH = "1110";
-const FALLBACK_POS_BANK = "1120";
+const FALLBACK_POS_CASH_PREFIX = "111";
+const FALLBACK_POS_BANK_PREFIX = "112";
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,51 @@ async function getTaxAccounts(uid: string): Promise<{ output: string; input: str
     output: (data?.output_tax_account_code || FALLBACK_OUTPUT_VAT).trim(),
     input: (data?.input_tax_account_code || FALLBACK_INPUT_VAT).trim(),
   };
+}
+
+// Resolve POS cash & bank account codes from terminals + company_settings.
+// Returns sets of exact codes; matcher also accepts prefix fallback.
+async function getPOSAccountCodes(uid: string): Promise<{
+  cashCodes: Set<string>;
+  bankCodes: Set<string>;
+  cashUsedFallback: boolean;
+  bankUsedFallback: boolean;
+}> {
+  const cashCodes = new Set<string>();
+  const bankCodes = new Set<string>();
+
+  const [{ data: terminals }, { data: settings }] = await Promise.all([
+    supabase
+      .from("pos_terminals")
+      .select("cash_account_code")
+      .eq("user_id", uid),
+    supabase
+      .from("company_settings")
+      .select("default_cash_account, default_bank_account")
+      .eq("user_id", uid)
+      .maybeSingle(),
+  ]);
+
+  (terminals || []).forEach((t: any) => {
+    const c = (t.cash_account_code || "").trim();
+    if (c) cashCodes.add(c);
+  });
+  if (settings?.default_cash_account) cashCodes.add(String(settings.default_cash_account).trim());
+  if (settings?.default_bank_account) bankCodes.add(String(settings.default_bank_account).trim());
+
+  const cashUsedFallback = cashCodes.size === 0;
+  const bankUsedFallback = bankCodes.size === 0;
+  return { cashCodes, bankCodes, cashUsedFallback, bankUsedFallback };
+}
+
+// Match account code against a resolved set, with prefix fallback when set is empty.
+function matchesAccount(code: string, set: Set<string>, fallbackPrefix: string): boolean {
+  if (!code) return false;
+  if (set.size === 0) return code.startsWith(fallbackPrefix);
+  for (const c of set) {
+    if (code === c || code.startsWith(c)) return true;
+  }
+  return false;
 }
 
 // Net movement on a given account code (and its sub-accounts via LIKE prefix)
@@ -165,8 +210,7 @@ export async function loadPOSGLReconciliation(
   setData: SetData,
 ) {
   const taxAccounts = await getTaxAccounts(uid);
-  const cashCode = FALLBACK_POS_CASH;
-  const bankCode = FALLBACK_POS_BANK;
+  const posAccounts = await getPOSAccountCodes(uid);
 
   // Pull POS data + GL transactions tagged with pos_* types in parallel
   const [ordersRes, paymentsRes, txnsRes] = await Promise.all([
@@ -280,12 +324,19 @@ export async function loadPOSGLReconciliation(
       if (dc === taxAccounts.output || dc.startsWith(taxAccounts.output)) r.gl_vat -= sign * amt;
     }
 
-    // Cash / Bank movement on pos_sale/pos_return only (not VAT-only entries)
-    if (t.transaction_type === "pos_sale" || t.transaction_type === "pos_return") {
-      if (dc.startsWith(cashCode)) r.gl_cash += sign * amt;
-      if (cc.startsWith(cashCode)) r.gl_cash -= sign * amt;
-      if (dc.startsWith(bankCode)) r.gl_bank += sign * amt;
-      if (cc.startsWith(bankCode)) r.gl_bank -= sign * amt;
+    // Cash / Bank movement: include sale + return + their VAT legs.
+    // Sign comes from debit/credit side directly (sale debits cash; return credits cash),
+    // not from transaction_type — so VAT legs net correctly.
+    if (
+      t.transaction_type === "pos_sale" ||
+      t.transaction_type === "pos_return" ||
+      t.transaction_type === "pos_sale_vat" ||
+      t.transaction_type === "pos_return_vat"
+    ) {
+      if (matchesAccount(dc, posAccounts.cashCodes, FALLBACK_POS_CASH_PREFIX)) r.gl_cash += amt;
+      if (matchesAccount(cc, posAccounts.cashCodes, FALLBACK_POS_CASH_PREFIX)) r.gl_cash -= amt;
+      if (matchesAccount(dc, posAccounts.bankCodes, FALLBACK_POS_BANK_PREFIX)) r.gl_bank += amt;
+      if (matchesAccount(cc, posAccounts.bankCodes, FALLBACK_POS_BANK_PREFIX)) r.gl_bank -= amt;
     }
   }
 
