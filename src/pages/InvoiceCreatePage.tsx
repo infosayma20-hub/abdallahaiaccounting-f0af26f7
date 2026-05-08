@@ -57,6 +57,7 @@ interface InvoiceItem {
   productId?: string;
   description: string;
   quantity: number;
+  bonusQuantity: number;
   unitPrice: number;
   discount: number;
   discountType: "percent" | "amount";
@@ -107,6 +108,7 @@ const createEmptyItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
   description: "",
   quantity: 1,
+  bonusQuantity: 0,
   unitPrice: 0,
   discount: 0,
   discountType: "percent",
@@ -696,6 +698,7 @@ const InvoiceCreatePage = () => {
             productId: item.product_id || undefined,
             description: item.product_name || item.description || "",
             quantity: Number(item.quantity) || 1,
+            bonusQuantity: Number(item.bonus_quantity) || 0,
             unitPrice: Number(item.unit_price) || 0,
             discount: Number(item.discount) || 0,
             discountType: item.discount_type === "amount" ? "amount" : "percent",
@@ -1037,6 +1040,7 @@ const InvoiceCreatePage = () => {
     if (form.items.some(i => !i.productId && !i.description.trim())) { toast({ title: "يرجى اختيار منتج لكل بند", variant: "destructive" }); return false; }
     if (form.items.some(i => i.unitPrice <= 0)) { toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" }); return false; }
     if (form.items.some(i => i.quantity <= 0)) { toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" }); return false; }
+    if (form.items.some(i => Number(i.bonusQuantity || 0) < 0)) { toast({ title: "الكمية البونص لا يمكن أن تكون سالبة", variant: "destructive" }); return false; }
     if (summary.total <= 0) { toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" }); return false; }
     return true;
   };
@@ -1110,19 +1114,37 @@ const InvoiceCreatePage = () => {
       const buildItemsPayload = (invoiceId: string) =>
         form.items
           .filter(i => i.description.trim())
-          .map(item => ({
-            invoice_id: invoiceId,
-            product_id: item.productId || null,
-            product_name: item.description,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            discount: item.discount,
-            discount_type: item.discountType,
-            tax_rate: item.taxRate,
-            total_amount: calcItemSubtotal(item),
-            unit_of_measure: item.unitOfMeasure,
-            workshop_id: item.workshopId || form.workshopId || null,
-          }));
+          .map(item => {
+            const bonusQty = Number(item.bonusQuantity || 0);
+            // Cost / line_profit: only set for sales when product cost is known.
+            // COGS includes bonus units (delivered = quantity + bonus_quantity).
+            // VAT note: VAT is calculated only on paid quantity revenue.
+            // Bonus VAT (deemed-supply) treatment may need accountant/legal review later.
+            const prod = item.productId ? products.find(p => p.id === item.productId) : null;
+            const buyPrice = Number(prod?.buy_price || 0);
+            const isSalesLine = form.type === "sales";
+            const cost_price = isSalesLine && buyPrice > 0 ? buyPrice : null;
+            const lineRevenue = calcItemSubtotal(item); // qty*price - discount
+            const line_profit = (isSalesLine && cost_price != null)
+              ? Number((lineRevenue - cost_price * (item.quantity + bonusQty)).toFixed(4))
+              : null;
+            return {
+              invoice_id: invoiceId,
+              product_id: item.productId || null,
+              product_name: item.description,
+              quantity: item.quantity,
+              bonus_quantity: bonusQty,
+              unit_price: item.unitPrice,
+              discount: item.discount,
+              discount_type: item.discountType,
+              tax_rate: item.taxRate,
+              total_amount: lineRevenue,
+              unit_of_measure: item.unitOfMeasure,
+              workshop_id: item.workshopId || form.workshopId || null,
+              cost_price,
+              line_profit,
+            };
+          });
 
       const syncContactBalance = async (targetContactId: string | null, delta: number) => {
         if (!targetContactId || !delta) return;
@@ -1297,16 +1319,19 @@ const InvoiceCreatePage = () => {
           const prod = products.find(p => p.id === item.productId);
           if (!prod) continue;
 
+          // Sales: deduct delivered quantity (quantity + bonus). Purchase bonus is out of scope.
+          const bonusQty = form.type === "sales" ? Number(item.bonusQuantity || 0) : 0;
+          const deliveredQty = item.quantity + bonusQty;
           const newQty = form.type === "sales"
-            ? Number(prod.quantity) - item.quantity
+            ? Number(prod.quantity) - deliveredQty
             : Number(prod.quantity) + item.quantity;
 
           await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
           await supabase.from("stock_movements").insert({
             product_id: item.productId,
-            quantity: item.quantity,
+            quantity: form.type === "sales" ? deliveredQty : item.quantity,
             movement_type: form.type === "sales" ? "صادر" : "وارد",
-            reference_note: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}`,
+            reference_note: `فاتورة ${form.type === "sales" ? "مبيعات" : "مشتريات"} ${dbInv.invoice_number}${bonusQty > 0 ? ` (شامل بونص: ${bonusQty})` : ""}`,
             user_id: user.id,
           } as any);
         }
@@ -1442,6 +1467,7 @@ const InvoiceCreatePage = () => {
     items: form.items.map(i => ({
       description: i.description || "—",
       quantity: i.quantity,
+      bonusQuantity: Number(i.bonusQuantity || 0),
       unitPrice: i.unitPrice,
       discount: i.discountType === "percent" ? i.quantity * i.unitPrice * (i.discount / 100) : i.discount,
       taxRate: i.taxRate,
@@ -2086,6 +2112,7 @@ const InvoiceCreatePage = () => {
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
                   <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
                   <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
+                  <th className="py-2.5 px-3 text-center w-[70px]" title="كمية بونص / مجاني">بونص</th>
                   <th className="py-2.5 px-3 text-center w-[110px] bg-muted/90">السعر</th>
                   <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
                   {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
@@ -2179,6 +2206,19 @@ const InvoiceCreatePage = () => {
                           onKeyDown={handleCellEnter("qty", item.id)}
                           className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm font-semibold"
                           dir="ltr"
+                        />
+                      </td>
+
+                      {/* Bonus quantity (free units) */}
+                      <td className="py-1.5 px-2 align-middle">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={item.bonusQuantity}
+                          onChange={e => updateItem(item.id, "bonusQuantity", Math.max(0, Number(e.target.value)))}
+                          className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm"
+                          dir="ltr"
+                          title="كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"
                         />
                       </td>
 

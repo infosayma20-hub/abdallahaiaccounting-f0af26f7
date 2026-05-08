@@ -4,6 +4,7 @@ import { amountToArabicWords } from "@/lib/arabic-number-words";
 interface InvoiceItem {
   description: string;
   quantity: number;
+  bonusQuantity?: number;
   unitPrice: number;
   discount: number;
   taxRate: number;
@@ -82,6 +83,9 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
   const hasExtraWideLogo = settings.user_id === LARGE_WIDE_LOGO_OWNER_ID;
   const displayContactName = (invoice.contactName || "").trim()
     || (invoice.paymentMethod === "cash" ? "عميل نقدي" : "—");
+  // Bonus columns (بونص / المسلم) are rendered only when at least one line has bonus.
+  // This keeps regular invoices clean while still showing bonus clearly when used.
+  const hasAnyBonus = invoice.items.some(it => Number(it.bonusQuantity || 0) > 0);
 
   const centeredLogoWrapperStyle = hasExtraWideLogo
     ? { display: "inline-block", background: "white", borderRadius: "10px", padding: "6px 12px", boxShadow: "none", lineHeight: 0 }
@@ -383,17 +387,26 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed", border: "1px solid #E5E7EB" }}>
           <colgroup>
             <col style={{ width: "5%" }} />
-            <col style={{ width: taxEnabled ? "33%" : "39%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "11%" }} />
-            {taxEnabled && <col style={{ width: "12%" }} />}
-            <col style={{ width: taxEnabled ? "14%" : "20%" }} />
+            <col style={{ width: hasAnyBonus ? (taxEnabled ? "25%" : "31%") : (taxEnabled ? "33%" : "39%") }} />
+            <col style={{ width: hasAnyBonus ? "7%" : "10%" }} />
+            {hasAnyBonus && <col style={{ width: "7%" }} />}
+            {hasAnyBonus && <col style={{ width: "9%" }} />}
+            <col style={{ width: hasAnyBonus ? "12%" : "15%" }} />
+            <col style={{ width: hasAnyBonus ? "9%" : "11%" }} />
+            {taxEnabled && <col style={{ width: hasAnyBonus ? "11%" : "12%" }} />}
+            <col style={{ width: hasAnyBonus ? (taxEnabled ? "15%" : "17%") : (taxEnabled ? "14%" : "20%") }} />
           </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
-              {(taxEnabled ? ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الضريبة", "الإجمالي"] : ["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "الإجمالي"]).map((h, i) => {
-                const isLast = i === (taxEnabled ? 6 : 5);
+              {(() => {
+                const headers: string[] = ["#", "الصنف / الوصف", "الكمية"];
+                if (hasAnyBonus) { headers.push("بونص"); headers.push("المسلم"); }
+                headers.push("سعر الوحدة", "الخصم");
+                if (taxEnabled) headers.push("الضريبة");
+                headers.push("الإجمالي");
+                return headers;
+              })().map((h, i, arr) => {
+                const isLast = i === arr.length - 1;
                 return (
                 <th
                   key={i}
@@ -416,6 +429,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <tbody>
             {invoice.items.map((item, idx) => {
               const calc = calcItemTotal(item);
+              const bonusQty = Number(item.bonusQuantity || 0);
+              const deliveredQty = Number(item.quantity || 0) + bonusQty;
               const rowMinHeight = invoice.items.length === 1 ? 56 : 40;
               return (
                 <tr
@@ -431,6 +446,16 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                     {item.description}
                   </td>
                   <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px", borderRight: "1px solid #F1F5F9" }}>{item.quantity}</td>
+                  {hasAnyBonus && (
+                    <td style={{ padding: "12px 6px", textAlign: "center", color: bonusQty > 0 ? "#1B3A5C" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
+                      {bonusQty > 0 ? bonusQty : "—"}
+                    </td>
+                  )}
+                  {hasAnyBonus && (
+                    <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", color: "#4B5563", borderRight: "1px solid #F1F5F9" }}>
+                      {deliveredQty}
+                    </td>
+                  )}
                   <td style={{ padding: "12px 6px", textAlign: "center", fontFeatureSettings: "'tnum'", fontWeight: 700, fontSize: "14px", borderRight: "1px solid #F1F5F9" }}>{fmtAmount(item.unitPrice)}</td>
                   <td style={{ padding: "12px 6px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'", fontWeight: 600, fontSize: "13px", borderRight: "1px solid #F1F5F9" }}>
                     {item.discount > 0 ? fmtAmount(item.discount) : "—"}
