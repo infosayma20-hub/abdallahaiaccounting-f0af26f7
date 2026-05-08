@@ -41,6 +41,7 @@ import {
   loadDSODetailed, loadARAgingAdvanced, loadCollectionEfficiency, loadPaymentAllocation,
   loadUnpaidInvoices,
 } from "@/lib/reports/receivable-report-loaders";
+import { loadVATReconciliation, loadPOSGLReconciliation } from "@/lib/reports/recon-loaders";
 
 interface GenericReportPageProps {
   reportKey: string;
@@ -167,6 +168,8 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "collection-efficiency": await loadCollectionEfficiency(uid, setData); break;
         case "payment-allocation": await loadPaymentAllocation(uid, dateFrom, dateTo, setData); break;
         case "unpaid-invoices": await loadUnpaidInvoices(uid, dateFrom, dateTo, setData); break;
+        case "vat-reconciliation": await loadVATReconciliation(uid, dateFrom, dateTo, setData); break;
+        case "pos-gl-reconciliation": await loadPOSGLReconciliation(uid, dateFrom, dateTo, setData); break;
         default: await loadGenericTransactions(uid, dateFrom, dateTo, setData); break;
       }
     } catch (e: any) {
