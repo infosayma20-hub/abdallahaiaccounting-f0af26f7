@@ -1891,7 +1891,7 @@ const InvoiceCreatePage = () => {
                   contactName={selectedContact.contact_name}
                   contactType={form.type as "sales" | "purchase"}
                   creditLimit={selectedContact.credit_limit}
-                  ledgerBalance={selectedContact.balance ?? selectedContact.current_balance ?? 0}
+                  ledgerBalance={contactStatementBalance ?? selectedContact.balance ?? selectedContact.current_balance ?? 0}
                   compact
                 />
               )}
@@ -2041,7 +2041,7 @@ const InvoiceCreatePage = () => {
           itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
           partyName={selectedContact?.contact_name || form.contactName || null}
           partyId={selectedContact?.id || null}
-          balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
+          balanceBefore={contactStatementBalance ?? selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
           openInvoicesTotal={contactOpenInvoicesTotal}
           unappliedCredit={contactUnappliedCredit}
           creditLimit={selectedContact?.credit_limit ?? null}
