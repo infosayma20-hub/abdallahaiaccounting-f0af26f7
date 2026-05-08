@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users } from "lucide-react";
 import ManagerHeader from "./ManagerHeader";
+import { useManagedBranchEmployees } from "@/hooks/useBranchRoster";
 
 type Emp = {
   id: string;
@@ -26,18 +27,13 @@ export default function MyTeamTab({ branchId, branchName, onBack }: { branchId: 
   const [employees, setEmployees] = useState<Emp[]>([]);
   const [today, setToday] = useState<Record<string, TodayInfo>>({});
   const [loading, setLoading] = useState(true);
+  const { data: managedEmployees = [], isLoading: employeesLoading } = useManagedBranchEmployees(branchId);
 
   useEffect(() => {
-    if (!branchId) { setLoading(false); return; }
+    if (!branchId || employeesLoading) { setLoading(employeesLoading); return; }
     (async () => {
       setLoading(true);
-      const { data: emps } = await supabase
-        .from("employees")
-        .select("id, full_name, position, phone")
-        .eq("branch_id", branchId)
-        .eq("is_active", true)
-        .order("full_name");
-      const list = (emps || []) as Emp[];
+      const list = managedEmployees as Emp[];
       setEmployees(list);
       if (list.length) {
         const ids = list.map(e => e.id);
@@ -59,7 +55,7 @@ export default function MyTeamTab({ branchId, branchName, onBack }: { branchId: 
       }
       setLoading(false);
     })();
-  }, [branchId]);
+  }, [branchId, managedEmployees, employeesLoading]);
 
   const statusBadge = (s: string | null) => {
     if (!s) return { label: "—", cls: "bg-secondary text-muted-foreground" };
