@@ -245,12 +245,40 @@ export async function loadDailySalesReport(uid: string, dateFrom: string, dateTo
 }
 
 export async function loadInvoiceRegister(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
-  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
-  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, transaction_type, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
-  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
-  dbg("invoiceRegister", { source, count: filtered.length });
-  setData(filtered);
+  // Source of truth: invoices (invoice_type='sale'). Excludes voided/cancelled/reversed.
+  // VAT is NOT counted as revenue: subtotal = net, tax_amount = VAT, total_amount = net + VAT.
+  // Note: POS receipts that are NOT persisted into the `invoices` table (legacy POS without
+  // invoice mirroring) will not appear here. POS invoices that do live in `invoices` (source='pos')
+  // are included unless the user filters by source.
+  let q = supabase
+    .from("invoices")
+    .select("id, invoice_number, invoice_date, contact_id, contact_name, subtotal, tax_amount, total_amount, paid_amount, remaining_amount, payment_status, status, source, payment_method")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo)
+    .order("invoice_date", { ascending: false });
+  if (source !== "all") q = q.eq("source", source);
+  const { data: invs } = await q;
+  dbg("invoiceRegister", { source, count: (invs || []).length });
+  setData((invs || []).map((r: any) => ({
+    id: r.id,
+    invoice_number: r.invoice_number,
+    invoice_date: r.invoice_date,
+    contact_name: r.contact_name || "—",
+    contact_id: r.contact_id,
+    subtotal: Number(r.subtotal) || 0,
+    tax_amount: Number(r.tax_amount) || 0,
+    total_amount: Number(r.total_amount) || 0,
+    paid_amount: Number(r.paid_amount) || 0,
+    remaining_amount: Number(r.remaining_amount) || 0,
+    payment_status: r.payment_status || "—",
+    status: r.status,
+    source: r.source,
+    payment_method: r.payment_method,
+  })));
 }
 
 export async function loadByCustomer(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
