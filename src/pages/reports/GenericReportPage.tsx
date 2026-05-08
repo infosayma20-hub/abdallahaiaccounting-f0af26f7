@@ -211,13 +211,25 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "cheque_type", label: "النوع", type: "badge" },
           { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["معلق", "محصل", "مرتجع", "ملغي"] },
         ];
-      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments":
+      case "collections": case "supplier-payments":
         return [
           { key: "transaction_date", label: "التاريخ", type: "date" },
           { key: "description", label: "البيان", type: "text" },
           { key: "amount", label: "المبلغ", type: "currency" },
           { key: "payment_method", label: "طريقة الدفع", type: "text" },
           { key: "reference", label: "المرجع", type: "text" },
+        ];
+      case "invoice-register": case "purchase-invoice-register":
+        return [
+          { key: "invoice_number", label: "رقم الفاتورة", type: "text" },
+          { key: "invoice_date", label: "التاريخ", type: "date" },
+          { key: "contact_name", label: reportKey === "invoice-register" ? "العميل" : "المورد", type: "text" },
+          { key: "subtotal", label: "الصافي", type: "currency" },
+          { key: "tax_amount", label: reportKey === "invoice-register" ? "ض.ق.م" : "ض.م المدخلات", type: "currency" },
+          { key: "total_amount", label: "الإجمالي", type: "currency" },
+          { key: "paid_amount", label: "المدفوع", type: "currency" },
+          { key: "remaining_amount", label: "المتبقي", type: "currency" },
+          { key: "payment_status", label: "حالة الدفع", type: "badge" },
         ];
       case "sales-returns": case "purchase-returns":
         return [
