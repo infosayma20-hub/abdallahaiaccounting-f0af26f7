@@ -321,6 +321,7 @@ function BalanceRow({
 
 function BalanceBreakdown({
   total,
+  label = "الرصيد الحالي حسب كشف الحساب",
   openInvoicesTotal,
   unappliedCredit,
   symbol,
@@ -328,6 +329,7 @@ function BalanceBreakdown({
   onOpenStatement,
 }: {
   total: number;
+  label?: string;
   openInvoicesTotal: number;
   unappliedCredit: number;
   symbol: string;
@@ -378,8 +380,7 @@ function BalanceBreakdown({
         className={`w-full flex items-center justify-between text-[11px] ${hasBreakdown ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
       >
         <span className="flex items-center gap-1 text-muted-foreground">
-          الرصيد الإجمالي
-          <span className="text-[9px] text-muted-foreground/60">(كشف الحساب)</span>
+          {label}
           {hasBreakdown && (
             <ChevronDown
               className={`h-3 w-3 text-muted-foreground/60 transition-transform ${expanded ? "rotate-180" : ""}`}
