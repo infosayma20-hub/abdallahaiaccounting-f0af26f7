@@ -33,6 +33,16 @@ export type ManagerBranch = {
   branch_name: string;
 };
 
+export type ManagedBranchEmployee = {
+  id: string;
+  full_name: string;
+  position: string | null;
+  phone: string | null;
+  branch_id: string | null;
+  company_id: string;
+  manager_employee_id: string | null;
+};
+
 /** Current employee row (the one linked to auth.uid via auth_user_id). */
 export function useCurrentEmployee() {
   const { user } = useAuth();
@@ -53,10 +63,9 @@ export function useCurrentEmployee() {
 
 /** Branches the current manager-employee can see (derived from team employees). */
 export function useManagerBranches() {
-  const { data: me } = useCurrentEmployee();
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["manager-branches", me?.id || "no-emp", user?.id],
+    queryKey: ["manager-branches", user?.id],
     enabled: !!user?.id,
     queryFn: async (): Promise<ManagerBranch[]> => {
       // 1) Admin / HR manager → return ALL company branches
@@ -89,31 +98,66 @@ export function useManagerBranches() {
           branch_name: b.name || "—",
         }));
       }
-      // 2) Regular manager → branches derived from team employees
-      if (!me?.id) return [];
+      // 2) Branch scheduler/manager → branches explicitly assigned to their account
+      const { data, error } = await supabase
+        .from("branch_manager_assignments")
+        .select("branch_id, company_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      const assignments = (data || []) as { branch_id: string; company_id: string }[];
+      if (!assignments.length) return [];
+      const { data: br, error: brErr } = await supabase
+        .from("branches")
+        .select("id, name")
+        .in("id", assignments.map((a) => a.branch_id))
+        .order("name");
+      if (brErr) throw brErr;
+      const branchNames = new Map((br || []).map((b: any) => [b.id, b.name || "—"]));
+      return assignments.map((a) => ({
+        branch_id: a.branch_id,
+        company_id: a.company_id,
+        branch_name: branchNames.get(a.branch_id) || "—",
+      }));
+    },
+  });
+}
+
+/** Unified source for team members managed by the current user: branch_manager_assignments → employees.branch_id. */
+export function useManagedBranchEmployees(branchId?: string | null) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["managed-branch-employees", user?.id, branchId || "all"],
+    enabled: !!user?.id,
+    queryFn: async (): Promise<ManagedBranchEmployee[]> => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id);
+      const roleList = (roles || []).map((r: any) => r.role);
+      const isAdmin = roleList.length === 0 || roleList.includes("admin") || roleList.includes("hr_manager");
+
+      let allowedBranchIds: string[] = [];
+      if (isAdmin && branchId) {
+        allowedBranchIds = [branchId];
+      } else {
+        const { data: assignments, error: assignmentError } = await supabase
+          .from("branch_manager_assignments")
+          .select("branch_id")
+          .eq("user_id", user!.id);
+        if (assignmentError) throw assignmentError;
+        allowedBranchIds = ((assignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
+        if (branchId) allowedBranchIds = allowedBranchIds.filter((id) => id === branchId);
+      }
+
+      if (!allowedBranchIds.length) return [];
       const { data, error } = await supabase
         .from("employees")
-        .select("branch_id, company_id, branches:branch_id(name)")
-        .eq("manager_employee_id", me!.id)
-        .eq("is_active", true);
+        .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id")
+        .in("branch_id", allowedBranchIds)
+        .eq("is_active", true)
+        .order("full_name");
       if (error) throw error;
-      const seen = new Set<string>();
-      const out: ManagerBranch[] = [];
-      (data || []).forEach((r: any) => {
-        if (!r.branch_id || seen.has(r.branch_id)) return;
-        seen.add(r.branch_id);
-        out.push({
-          branch_id: r.branch_id,
-          company_id: r.company_id,
-          branch_name: r.branches?.name || "—",
-        });
-      });
-      // Fallback: if manager has no team yet, expose their own branch
-      if (!out.length && me?.branch_id) {
-        const { data: br } = await supabase.from("branches").select("name").eq("id", me.branch_id).maybeSingle();
-        out.push({ branch_id: me.branch_id, company_id: me.company_id, branch_name: (br as any)?.name || "—" });
-      }
-      return out;
+      return (data || []) as ManagedBranchEmployee[];
     },
   });
 }
