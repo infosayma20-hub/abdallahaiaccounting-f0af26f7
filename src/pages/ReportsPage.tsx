@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { multiWordMatchAny } from "@/lib/utils";
+import ExecutiveKPIBar from "@/components/reports/ExecutiveKPIBar";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ReportItem {
   slug: string;
@@ -285,10 +287,15 @@ const ReportsPage = () => {
     }
   }, [searchQuery]);
 
+  const { user } = useAuth();
+
   return (
     <div className="space-y-8 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Page Header */}
       <PageHeader title="التقارير" breadcrumb={["الرئيسية", "التقارير"]} />
+
+      {/* P5 — Executive KPI snapshot (read-only) */}
+      {user?.id && <ExecutiveKPIBar uid={user.id} />}
 
       {/* Search & Stats */}
       <div className="flex items-center gap-4 flex-wrap">
