@@ -604,30 +604,35 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     fetchRate();
   }, [currency, user, isReceipt]);
 
-  // ─── Compute real balance from transactions ───
+  // ─── Compute real balance from transactions (SOA parity) ───
+  // Mirrors AccountStatementV2Page exactly:
+  //   - filter: is_deleted=false OR reversed_by_id IS NOT NULL
+  //     (so cancelled originals + their reversals both contribute and cancel out)
+  //   - account roots by contact_type:
+  //       customer → 113%, 2115%
+  //       supplier → 211%, 1146%
+  //   - balance = Σ(amount where Dr matches root) − Σ(amount where Cr matches root)
   useEffect(() => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
-    // Reset immediately so stale balance from previous contact never shows
     setComputedBalance(null);
     let cancelled = false;
     supabase.from("transactions")
-      .select("debit_account_code, credit_account_code, amount")
+      .select("debit_account_code, credit_account_code, amount, is_deleted, reversed_by_id")
       .eq("user_id", user.id)
-      .eq("is_deleted", false)
       .eq("contact_id", selectedContact.id)
+      .or("is_deleted.eq.false,reversed_by_id.not.is.null")
       .then(({ data }) => {
         if (cancelled) return;
         if (!data) { setComputedBalance(0); return; }
+        const roots = (selectedContact as any)?.contact_type === "مورد"
+          ? ["211", "1146"]
+          : ["113", "2115"];
+        const matches = (code: string | null | undefined) =>
+          !!code && roots.some(r => code === r || code.startsWith(r));
         let ledger = 0;
         for (const t of data) {
-          if (t.debit_account_code === "1130") ledger += t.amount;
-          if (t.credit_account_code === "1130") ledger -= t.amount;
-          if (t.credit_account_code === "2110") ledger -= t.amount;
-          if (t.debit_account_code === "2110") ledger += t.amount;
-          if (t.credit_account_code === "2115") ledger -= t.amount;
-          if (t.debit_account_code === "2115") ledger += t.amount;
-          if (t.debit_account_code === "1146") ledger -= t.amount;
-          if (t.credit_account_code === "1146") ledger += t.amount;
+          if (matches(t.debit_account_code)) ledger += t.amount || 0;
+          if (matches(t.credit_account_code)) ledger -= t.amount || 0;
         }
         setComputedBalance(ledger);
       });
