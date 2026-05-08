@@ -6,22 +6,44 @@ type SetData = (data: any[]) => void;
 // ── Receivables & Payables Loaders ──
 
 export async function loadARAgingDetail(uid: string, setData: SetData) {
-  const contactTypes = ["عميل", "customer", "زبون"];
-  const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).in("contact_type", contactTypes).gt("current_balance", 0);
-  if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_credit", "sale_cash", "sale_bank", "sale_cheque"]).order("transaction_date", { ascending: true });
+  // Invoice-level AR aging detail. Uses invoices.remaining_amount > 0 bucketed by
+  // COALESCE(due_date, invoice_date). Replaces previous contacts.current_balance
+  // logic (forbidden by Core memory rule).
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("contact_id, contact_name, invoice_date, due_date, remaining_amount, total_amount, paid_amount, payment_status")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gt("remaining_amount", 0);
+  if (!invoices?.length) { setData([]); return; }
+  const contactIds = Array.from(new Set(invoices.map(i => i.contact_id).filter(Boolean) as string[]));
+  const { data: contacts } = contactIds.length
+    ? await supabase.from("contacts").select("id, contact_name, contact_class").in("id", contactIds)
+    : { data: [] as any[] };
+  const cMap = new Map((contacts || []).map(c => [c.id, c]));
   const today = new Date();
-  setData(contacts.map(c => {
-    const cTxns = (txns || []).filter(t => t.contact_id === c.id);
-    // Use oldest unpaid transaction for aging
-    const oldestDate = cTxns.length > 0 ? new Date(cTxns[0].transaction_date) : today;
-    const days = differenceInDays(today, oldestDate);
-    return {
-      name: c.contact_name, cls: c.contact_class || "C", total: c.current_balance || 0,
-      current: days <= 30 ? c.current_balance : 0, d31_60: days > 30 && days <= 60 ? c.current_balance : 0,
-      d61_90: days > 60 && days <= 90 ? c.current_balance : 0, over90: days > 90 ? c.current_balance : 0,
-    };
-  }).sort((a, b) => b.total - a.total));
+  const agg: Record<string, { name: string; cls: string; current: number; d31_60: number; d61_90: number; over90: number; total: number }> = {};
+  invoices.forEach(inv => {
+    const remaining = Number(inv.remaining_amount ?? ((inv.total_amount || 0) - (inv.paid_amount || 0))) || 0;
+    if (remaining <= 0) return;
+    if ((inv.payment_status || "").toLowerCase() === "paid") return;
+    const refDate = inv.due_date || inv.invoice_date;
+    const days = refDate ? differenceInDays(today, new Date(refDate)) : 0;
+    const key = (inv.contact_id as string) || `__name:${inv.contact_name || "—"}`;
+    if (!agg[key]) {
+      const c = inv.contact_id ? cMap.get(inv.contact_id) : null;
+      agg[key] = { name: c?.contact_name || inv.contact_name || "—", cls: c?.contact_class || "C", current: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
+    }
+    const row = agg[key];
+    row.total += remaining;
+    if (days <= 30) row.current += remaining;
+    else if (days <= 60) row.d31_60 += remaining;
+    else if (days <= 90) row.d61_90 += remaining;
+    else row.over90 += remaining;
+  });
+  setData(Object.values(agg).sort((a, b) => b.total - a.total));
 }
 
 export async function loadDSOReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -170,6 +192,8 @@ export async function loadCustomerProfitability(uid: string, dateFrom: string, d
 }
 
 export async function loadCustomerStatementAll(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+  // AR sub-account prefix is 113% (1130 root). Fixed assets live under 12xx and
+  // must NOT be treated as AR movement.
   const contactTypes = ["عميل", "customer", "زبون"];
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
   if (!contacts?.length) { setData([]); return; }
@@ -180,10 +204,11 @@ export async function loadCustomerStatementAll(uid: string, dateFrom: string, da
     if (!cTxns.length) return;
     let balance = 0;
     cTxns.forEach(tx => {
-      // Debit to receivables accounts (12xx) means customer owes more
-      const isDebit = (tx.debit_account_code || "").startsWith("12");
-      const debit = isDebit ? tx.amount : 0;
-      const credit = !isDebit ? tx.amount : 0;
+      const debHitsAR = (tx.debit_account_code || "").startsWith("113");
+      const creHitsAR = (tx.credit_account_code || "").startsWith("113");
+      if (!debHitsAR && !creHitsAR) return; // skip lines unrelated to AR
+      const debit = debHitsAR ? Number(tx.amount) || 0 : 0;
+      const credit = creHitsAR ? Number(tx.amount) || 0 : 0;
       balance += debit - credit;
       rows.push({ contactName: c.contact_name, date: tx.transaction_date, ref: tx.reference || "—", desc: tx.description, debit, credit, balance });
     });
@@ -192,25 +217,48 @@ export async function loadCustomerStatementAll(uid: string, dateFrom: string, da
 }
 
 export async function loadAPAgingDetail(uid: string, setData: SetData) {
-  const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("user_id", uid).eq("contact_type", "مورد").gt("current_balance", 0);
-  if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_credit", "purchase_cash", "purchase_bank"]).order("transaction_date", { ascending: true });
+  // Invoice-level AP aging detail. Uses invoices.remaining_amount > 0 bucketed by
+  // COALESCE(due_date, invoice_date). Replaces previous contacts.current_balance
+  // logic (forbidden by Core memory rule).
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("contact_id, contact_name, invoice_date, due_date, remaining_amount, total_amount, paid_amount, payment_status")
+    .eq("user_id", uid)
+    .eq("invoice_type", "purchase")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gt("remaining_amount", 0);
+  if (!invoices?.length) { setData([]); return; }
+  const contactIds = Array.from(new Set(invoices.map(i => i.contact_id).filter(Boolean) as string[]));
+  const { data: contacts } = contactIds.length
+    ? await supabase.from("contacts").select("id, contact_name").in("id", contactIds)
+    : { data: [] as any[] };
+  const cMap = new Map((contacts || []).map(c => [c.id, c]));
   const today = new Date();
-  setData(contacts.map(c => {
-    const cTxns = (txns || []).filter(t => t.contact_id === c.id);
-    const oldest = cTxns.length > 0 ? new Date(cTxns[0].transaction_date) : today;
-    const days = differenceInDays(today, oldest);
-    const bal = c.current_balance || 0;
-    const priority = days > 90 ? "🔴 حرج" : days > 60 ? "🟠 مرتفع" : days > 30 ? "🟡 متوسط" : "🟢 مريح";
-    return {
-      name: c.contact_name, total: bal,
-      current: days <= 30 ? bal : 0,
-      d31_60: days > 30 && days <= 60 ? bal : 0,
-      d61_90: days > 60 && days <= 90 ? bal : 0,
-      over90: days > 90 ? bal : 0,
-      priority,
-    };
-  }).sort((a, b) => b.total - a.total));
+  const agg: Record<string, { name: string; current: number; d31_60: number; d61_90: number; over90: number; total: number; priority: string }> = {};
+  invoices.forEach(inv => {
+    const remaining = Number(inv.remaining_amount ?? ((inv.total_amount || 0) - (inv.paid_amount || 0))) || 0;
+    if (remaining <= 0) return;
+    if ((inv.payment_status || "").toLowerCase() === "paid") return;
+    const refDate = inv.due_date || inv.invoice_date;
+    const days = refDate ? differenceInDays(today, new Date(refDate)) : 0;
+    const key = (inv.contact_id as string) || `__name:${inv.contact_name || "—"}`;
+    if (!agg[key]) {
+      const c = inv.contact_id ? cMap.get(inv.contact_id) : null;
+      agg[key] = { name: c?.contact_name || inv.contact_name || "—", current: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0, priority: "" };
+    }
+    const row = agg[key];
+    row.total += remaining;
+    if (days <= 30) row.current += remaining;
+    else if (days <= 60) row.d31_60 += remaining;
+    else if (days <= 90) row.d61_90 += remaining;
+    else row.over90 += remaining;
+  });
+  Object.values(agg).forEach(r => {
+    const maxDays = r.over90 > 0 ? 91 : r.d61_90 > 0 ? 61 : r.d31_60 > 0 ? 31 : 0;
+    r.priority = maxDays > 90 ? "🔴 حرج" : maxDays > 60 ? "🟠 مرتفع" : maxDays > 30 ? "🟡 متوسط" : "🟢 مريح";
+  });
+  setData(Object.values(agg).sort((a, b) => b.total - a.total));
 }
 
 export async function loadDPOReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -263,6 +311,8 @@ export async function loadSupplierPurchaseAnalysis(uid: string, dateFrom: string
 }
 
 export async function loadSupplierStatementAll(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+  // AP sub-account prefix is 211% (2110 root). Tightened from 21% to avoid
+  // 22xx long-term liabilities leaking in.
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
   const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
@@ -272,10 +322,11 @@ export async function loadSupplierStatementAll(uid: string, dateFrom: string, da
     if (!cTxns.length) return;
     let balance = 0;
     cTxns.forEach(tx => {
-      // Credit to payables accounts (21xx) means we owe more
-      const isCredit = (tx.credit_account_code || "").startsWith("21");
-      const debit = !isCredit ? tx.amount : 0;
-      const credit = isCredit ? tx.amount : 0;
+      const debHitsAP = (tx.debit_account_code || "").startsWith("211");
+      const creHitsAP = (tx.credit_account_code || "").startsWith("211");
+      if (!debHitsAP && !creHitsAP) return;
+      const debit = debHitsAP ? Number(tx.amount) || 0 : 0;
+      const credit = creHitsAP ? Number(tx.amount) || 0 : 0;
       balance += credit - debit;
       rows.push({ contactName: c.contact_name, date: tx.transaction_date, ref: tx.reference || "—", desc: tx.description, debit, credit, balance });
     });
@@ -355,11 +406,14 @@ export async function loadARAgingAdvanced(uid: string, setData: SetData) {
   const today = new Date();
   const customerMap: Record<string, { name: string; current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number }> = {};
   invoices.forEach(inv => {
-    const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+    const remaining = Number(inv.remaining_amount ?? ((inv.total_amount || 0) - (inv.paid_amount || 0))) || 0;
     if (remaining <= 0) return;
+    if ((inv.payment_status || "").toLowerCase() === "paid") return;
     const key = inv.contact_name || "غير محدد";
     if (!customerMap[key]) customerMap[key] = { name: key, current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
-    const overdue = inv.due_date ? differenceInDays(today, new Date(inv.due_date)) : 0;
+    // Fallback to invoice_date when due_date is missing so legacy invoices age correctly.
+    const refDate = inv.due_date || inv.invoice_date;
+    const overdue = refDate ? differenceInDays(today, new Date(refDate)) : 0;
     if (overdue <= 0) customerMap[key].current += remaining;
     else if (overdue <= 30) customerMap[key].d1_30 += remaining;
     else if (overdue <= 60) customerMap[key].d31_60 += remaining;
@@ -431,19 +485,17 @@ export async function loadPaymentAllocation(uid: string, dateFrom: string, dateT
 }
 
 export async function loadUnpaidInvoices(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+  // Outstanding Invoices = active sales invoices with remaining_amount > 0.
+  // Excludes voided/cancelled/reversed. Includes partially-paid invoices
+  // regardless of payment_invoice_links presence.
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gt("remaining_amount", 0).gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
   if (!invoices?.length) { setData([]); return; }
-  const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id");
-  const linkedIds = new Set((linkData || []).map(l => l.invoice_id));
   const today = new Date();
-  setData(invoices.filter(inv => {
-    const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
-    return remaining > 0 && !linkedIds.has(inv.id);
-  }).map(inv => ({
+  setData(invoices.map(inv => ({
     invoiceNumber: inv.invoice_number || "—",
     customer: inv.contact_name || "—",
     issueDate: inv.invoice_date,
-    total: inv.total_amount,
+    total: Number(inv.total_amount) || 0,
     daysSinceIssue: differenceInDays(today, new Date(inv.invoice_date)),
   })).sort((a, b) => b.daysSinceIssue - a.daysSinceIssue));
 }
