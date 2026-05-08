@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Check, X, Inbox } from "lucide-react";
 import ManagerHeader from "./ManagerHeader";
 import { useAuth } from "@/hooks/useAuth";
+import { useManagedBranchEmployees } from "@/hooks/useBranchRoster";
 
 type Req = {
   id: string;
@@ -29,20 +30,20 @@ export default function TeamRequestsTab({ branchId, branchName, onBack }: { bran
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [notesById, setNotesById] = useState<Record<string, string>>({});
+  const { data: employees = [], isLoading: employeesLoading } = useManagedBranchEmployees(branchId);
 
   const load = useCallback(async () => {
-    if (!branchId) return;
+    if (!branchId || employeesLoading) return;
     setLoading(true);
-    const { data: emps } = await supabase.from("employees").select("id, full_name").eq("branch_id", branchId).eq("is_active", true);
-    const ids = (emps || []).map((e: any) => e.id);
-    const nameMap = new Map((emps || []).map((e: any) => [e.id, e.full_name]));
+    const ids = employees.map((e) => e.id);
+    const nameMap = new Map(employees.map((e) => [e.id, e.full_name]));
     if (!ids.length) { setRequests([]); setLoading(false); return; }
     let q = supabase.from("correction_requests").select("*").in("employee_id", ids).order("created_at", { ascending: false }).limit(100);
     if (filter === "pending") q = q.eq("status", "pending");
     const { data } = await q;
     setRequests(((data as any[]) || []).map(r => ({ ...r, employee_name: nameMap.get(r.employee_id) })));
     setLoading(false);
-  }, [branchId, filter]);
+  }, [branchId, filter, employees, employeesLoading]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -75,7 +76,7 @@ export default function TeamRequestsTab({ branchId, branchName, onBack }: { bran
             </button>
           ))}
         </div>
-        {loading ? (
+        {loading || employeesLoading ? (
           <div className="p-8 text-center text-muted-foreground text-sm">جار التحميل…</div>
         ) : !requests.length ? (
           <div className="p-8 text-center text-muted-foreground text-sm">
