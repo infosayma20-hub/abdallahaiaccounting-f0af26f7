@@ -257,13 +257,74 @@ export default function BranchRosterPage() {
         </div>
 
         {/* Mobile day cards */}
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {/* Search + filters */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث عن موظف..."
+                className="pr-9 h-10"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+              <button
+                onClick={() => setDeptFilter("all")}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs border ${deptFilter === "all" ? "bg-primary text-primary-foreground border-primary font-bold" : "bg-card border-border"}`}
+              >
+                الكل ({employees.length})
+              </button>
+              {departments.map((d) => {
+                const count = (employees as any[]).filter((e) => ((e.department || "").trim() || DEPT_UNSET) === d).length;
+                const active = deptFilter === d;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setDeptFilter(d)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs border ${active ? "bg-primary text-primary-foreground border-primary font-bold" : "bg-card border-border"}`}
+                  >
+                    {d} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => setOnlyUnset((v) => !v)}
+                className={`text-[11px] px-2.5 py-1 rounded-md border ${onlyUnset ? "bg-warning/10 border-warning text-warning font-bold" : "bg-card border-border text-muted-foreground"}`}
+              >
+                {onlyUnset ? "✓ غير المحدد فقط" : "إظهار غير المحدد فقط"}
+              </button>
+              <span className="text-[10px] text-muted-foreground">المصدر: ملف الموظف (الفرع + القسم)</span>
+            </div>
+          </div>
+
           {rLoading ? (
             <div className="p-8 text-center text-muted-foreground">جار التحميل…</div>
           ) : !employees.length ? (
             <div className="p-8 text-center text-muted-foreground">لا يوجد موظفين في هذا الفرع</div>
+          ) : !filteredEmployees.length ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">لا نتائج مطابقة</div>
           ) : (
-            employees.map((emp: any) => {
+            groupedEmployees.map(([dept, list]) => {
+              const isCollapsed = collapsed[dept];
+              return (
+                <div key={dept} className="space-y-2">
+                  <button
+                    onClick={() => setCollapsed((c) => ({ ...c, [dept]: !c[dept] }))}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-sm font-bold sticky top-0 z-10"
+                  >
+                    <span>{dept} ({list.length})</span>
+                    <span className="text-xs text-muted-foreground">{isCollapsed ? "▾" : "▴"}</span>
+                  </button>
+                  {!isCollapsed && list.map((emp: any) => {
               const d = fmtISO(addDays(weekAnchor, mobileDayIdx));
               const entry = rosterMap.get(`${emp.id}|${d}`) || null;
               const tpl = entry?.shift_template_id ? templates.find((t) => t.id === entry.shift_template_id) : null;
@@ -287,6 +348,9 @@ export default function BranchRosterPage() {
                     {time && <div className="text-xs text-muted-foreground" dir="ltr">{time}</div>}
                   </div>
                 </button>
+              );
+                  })}
+                </div>
               );
             })
           )}
