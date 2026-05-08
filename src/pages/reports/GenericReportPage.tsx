@@ -1108,16 +1108,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           </div>
         )}
         <Button variant="outline" size="sm" onClick={loadReport} className="text-xs h-8">تحديث</Button>
-        <Button
-          variant={debugMode ? "default" : "ghost"}
-          size="sm"
-          onClick={toggleDebug}
-          className="text-xs h-8 gap-1"
-          title="تشغيل/إيقاف وضع التشخيص (يطبع تفاصيل المصدر والعدد في console المتصفح)"
-        >
-          <Bug className="h-3.5 w-3.5" />
-          {debugMode ? "Debug ON" : "Debug"}
-        </Button>
+        {import.meta.env.DEV && (
+          <Button
+            variant={debugMode ? "default" : "ghost"}
+            size="sm"
+            onClick={toggleDebug}
+            className="text-xs h-8 gap-1"
+            title="تشغيل/إيقاف وضع التشخيص (DEV فقط — يطبع تفاصيل المصدر والعدد في console المتصفح)"
+          >
+            <Bug className="h-3.5 w-3.5" />
+            {debugMode ? "Debug ON" : "Debug"}
+          </Button>
+        )}
       </Card>
 
       {/* KPI Summary Cards for POS reports */}
