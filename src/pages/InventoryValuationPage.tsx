@@ -50,15 +50,30 @@ const InventoryValuationPage = () => {
 
   const categories = useMemo(() => [...new Set(products.map(p => p.category))].filter(Boolean), [products]);
 
-  // Enrich data for table
+  // Phase A: cost basis = avg_cost if the column exists on the row, else buy_price.
+  // (products table currently has no avg_cost column — fallback wins, but logic
+  // is forward-compatible if avg_cost is added later.)
+  const pickCostBasis = (p: any): { cost: number; basis: "avg_cost" | "buy_price" } => {
+    const avg = p?.avg_cost;
+    if (avg != null && Number(avg) > 0) return { cost: Number(avg), basis: "avg_cost" };
+    return { cost: Number(p?.buy_price) || 0, basis: "buy_price" };
+  };
+  const basisLabel = (b: string) => b === "avg_cost" ? "متوسط مرجح" : "آخر سعر شراء";
+
   const tableData = useMemo(() => {
-    const totalVal = products.reduce((s, p) => s + Math.max(0, p.quantity) * p.buy_price, 0);
-    return products.map(p => {
-      const value = Math.max(0, p.quantity) * p.buy_price; // Don't multiply negative qty
+    const enriched = products.map(p => {
+      const { cost, basis } = pickCostBasis(p);
+      return { p, cost, basis };
+    });
+    const totalVal = enriched.reduce((s, e) => s + Math.max(0, e.p.quantity) * e.cost, 0);
+    return enriched.map(({ p, cost, basis }) => {
+      const value = Math.max(0, p.quantity) * cost; // Don't multiply negative qty
       const stockStatus = p.quantity <= 0 ? "نفد" : p.quantity <= p.min_quantity ? "منخفض" : "متوفر";
       return {
         ...p,
         code: p.sku || "-",
+        cost_used: cost,
+        cost_basis: basisLabel(basis),
         value,
         pct: totalVal > 0 ? (value / totalVal) * 100 : 0,
         stockStatus,
@@ -86,6 +101,7 @@ const InventoryValuationPage = () => {
     },
     { key: "min_quantity", label: "الحد الأدنى", type: "number", align: "center", defaultHidden: true },
     { key: "buy_price", label: "سعر التكلفة", type: "currency" },
+    { key: "cost_basis", label: "أساس التكلفة", type: "badge", filterType: "select", filterOptions: ["متوسط مرجح", "آخر سعر شراء"] },
     { key: "sell_price", label: "سعر البيع", type: "currency", defaultHidden: true },
     { key: "value", label: "القيمة الإجمالية", type: "currency",
       format: (v) => <span className="font-mono text-xs font-bold text-foreground">{fmtAmt(v)}</span>
