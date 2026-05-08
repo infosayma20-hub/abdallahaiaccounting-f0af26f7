@@ -231,6 +231,7 @@ const InvoiceCreatePage = () => {
   // Bridge of Understanding data — fetched per-contact for the SmartSummaryPanel
   const [contactOpenInvoicesTotal, setContactOpenInvoicesTotal] = useState<number>(0);
   const [contactUnappliedCredit, setContactUnappliedCredit] = useState<number>(0);
+  const [contactStatementBalance, setContactStatementBalance] = useState<number | null>(null);
 
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -747,6 +748,7 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!form.contactId) {
       setSelectedContact(null);
+      setContactStatementBalance(null);
       setContactOpenInvoicesTotal(0);
       setContactUnappliedCredit(0);
       return;
@@ -754,6 +756,19 @@ const InvoiceCreatePage = () => {
     const matched = contacts.find(c => c.id === form.contactId) || null;
     setSelectedContact(matched);
   }, [contacts, form.contactId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !selectedContact?.id) { setContactStatementBalance(null); return; }
+    fetchContactStatementBalance({
+      contactId: selectedContact.id,
+      userId: user.id,
+      contactType: selectedContact.contact_type,
+    }).then((balance) => {
+      if (!cancelled) setContactStatementBalance(balance);
+    });
+    return () => { cancelled = true; };
+  }, [user, selectedContact?.id, selectedContact?.contact_type]);
 
   // ─── Bridge of Understanding: fetch open invoices + unapplied credits for selected contact ───
   useEffect(() => {
