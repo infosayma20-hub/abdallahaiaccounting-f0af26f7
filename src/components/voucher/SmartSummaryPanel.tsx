@@ -547,6 +547,7 @@ function Warning({
  */
 function InvoiceSummary({
   variant,
+  isPosted = false,
   invoiceType,
   subtotal,
   totalDiscount,
@@ -679,6 +680,7 @@ function InvoiceSummary({
           <div className="space-y-2">
             <BalanceBreakdown
               total={before}
+              label={isPosted ? "الرصيد حسب القيود المرحلة" : "الرصيد الحالي حسب كشف الحساب"}
               openInvoicesTotal={openInvoicesTotal}
               unappliedCredit={unappliedCredit}
               symbol={symbol}
@@ -686,9 +688,7 @@ function InvoiceSummary({
               onOpenStatement={onOpenStatement}
             />
             <div className="flex items-center justify-between text-[11px] py-1 border-y border-dashed border-border/40">
-              <span className="text-muted-foreground">
-                {isCreditNote ? "− تخفيض" : isPurchase ? "+ التزام جديد" : "+ ذمة جديدة"}
-              </span>
+              <span className="text-muted-foreground">أثر هذا المستند</span>
               <span
                 className={`font-bold ${delta >= 0 ? (isPurchase ? "text-emerald-600" : "text-rose-600") : "text-emerald-600"}`}
                 style={{ fontVariantNumeric: "tabular-nums" }}
@@ -696,7 +696,7 @@ function InvoiceSummary({
                 {delta >= 0 ? "+" : "−"}{symbol}{fmt(Math.abs(delta))}
               </span>
             </div>
-            <BalanceRow label="الرصيد بعد" value={after} symbol={symbol} bold />
+            <BalanceRow label={isPosted ? "الرصيد بعد القيد" : "الرصيد المتوقع بعد الحفظ"} value={after} symbol={symbol} bold />
           </div>
         </div>
       )}
