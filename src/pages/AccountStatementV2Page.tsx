@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import StatementPrintViewClean from "@/components/StatementPrintViewClean";
+import { buildAccountStatementPrintHTML } from "@/lib/reports/account-statement-print";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -808,20 +809,61 @@ const AccountStatementV2Page = () => {
   }, [selectedEntityId, selectedEntityName, filteredRows, statementRowsWithDetails, dateFrom, dateTo, statementCurrency, openingBalance, closingBalance, totalDebit, totalCredit, agingData, detailsMap, companyInfo, isAccountsTab, isEmployeesTab, activeTab, selectedAccount, selectedEmployee, selectedContact, statementOptions, toast]);
 
   const handlePrintStatement = useCallback(() => {
-    const printContent = document.getElementById("statement-preview-doc");
-    if (!printContent) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>كشف حساب - ${selectedEntityName}</title><style>
-      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-      @media print { @page { size: A4; margin: 0; } }
-      * { box-sizing: border-box; }
-      body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; padding: 15mm 20mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    </style></head><body>${printContent.innerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 600);
-  }, [selectedEntityName]);
+    if (!selectedEntityId || filteredRows.length === 0) return;
+    const html = buildAccountStatementPrintHTML({
+      company: {
+        name: companyInfo.name || "AMWALI",
+        logo_url: companyInfo.logo_url,
+        address: companyInfo.address,
+        phone: companyInfo.phone,
+        email: companyInfo.email,
+        tax_number: companyInfo.tax_number,
+      },
+      contact: {
+        name: selectedEntityName,
+        type: selectedContact?.contact_type || (isEmployeesTab ? "موظف" : isAccountsTab ? "حساب" : ""),
+        code: selectedEntityCode,
+        phone: selectedContact?.phone || "",
+      },
+      rows: filteredRows.map((r) => ({
+        date: r.date,
+        description: r.description,
+        transaction_type: r.transaction_type,
+        reference: r.reference,
+        debit: r.debit,
+        credit: r.credit,
+        balance: r.balance,
+        transaction_id: r.transaction_id,
+        dueDate: r.dueDate,
+      })),
+      openingBalance,
+      totalDebit,
+      totalCredit,
+      closingBalance,
+      dateFrom,
+      dateTo,
+      statementNumber: stableSOANumber,
+      currencyLabel: statementCurrency || "شيكل إسرائيلي (₪)",
+      currencySymbol: getCurrencySymbol(statementCurrency || "شيكل"),
+      includeInvoiceDetails: !!statementOptions.showInvoiceDetails,
+      invoiceDetailsByRef: detailsMap.invoiceDetailsById || {},
+      showReference: !!statementOptions.showReference,
+      showDueOrType: !!(statementOptions.showDueDate || statementOptions.showType),
+    });
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { try { w.print(); } catch {} }, 700);
+  }, [
+    selectedEntityId, selectedEntityName, selectedEntityCode, selectedContact,
+    isEmployeesTab, isAccountsTab,
+    filteredRows, openingBalance, totalDebit, totalCredit, closingBalance,
+    dateFrom, dateTo, stableSOANumber, statementCurrency,
+    companyInfo, statementOptions, detailsMap,
+  ]);
 
   // Balance color helper
   const balColor = (val: number) => {
@@ -890,7 +932,7 @@ const AccountStatementV2Page = () => {
               {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
               معاينة PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { setShowPdfModal(true); setTimeout(handlePrintStatement, 300); }} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || filteredRows.length === 0} className="h-8 gap-1.5 text-xs">
