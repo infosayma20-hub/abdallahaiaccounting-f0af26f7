@@ -6,7 +6,7 @@ export const fmtAmtCell = (v: any) => v != null && v !== 0 ? `₪${Math.abs(Numb
 export const reportConfigs: Record<string, { title: string; description: string }> = {
   "ar-aging": { title: "أعمار الذمم المدينة", description: "أرصدة الزبائن المستحقة مصنفة حسب العمر" },
   "ap-aging": { title: "أعمار الذمم الدائنة", description: "أرصدة الموردين المستحقة مصنفة حسب العمر" },
-  "cash-flow": { title: "التدفقات النقدية", description: "التدفقات التشغيلية والاستثمارية والتمويلية (IAS 7)" },
+  "cash-flow": { title: "حركة النقد حسب النشاط", description: "حركة النقد المباشرة مصنفة: تشغيلي / استثماري / تمويلي / غير مصنف / تحويلات داخلية" },
   "daily-sales": { title: "المبيعات اليومية", description: "ملخص المبيعات يوماً بيوم" },
   "sales-returns": { title: "مرتجعات المبيعات", description: "جميع مردودات المبيعات وإشعارات الدائن" },
   "sales-by-product": { title: "المبيعات حسب الصنف", description: "كمية وقيمة المبيعات لكل منتج" },
