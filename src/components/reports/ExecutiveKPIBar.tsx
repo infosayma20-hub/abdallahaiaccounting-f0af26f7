@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { TrendingUp, Package, Users, Building2, Receipt, Banknote, Info } from "lucide-react";
+import { TrendingUp, Package, Users, Building2, Receipt, Banknote, Info, CalendarRange } from "lucide-react";
 import { loadExecutiveKPIs, type ExecutiveKPIs } from "@/lib/reports/executive-kpis";
 import { KPI_META, type KpiKey } from "@/lib/reports/kpi-metadata";
 import { KpiSourceDrawer } from "./KpiSourceDrawer";
@@ -58,7 +58,22 @@ export function ExecutiveKPIBar({ uid, from, to }: { uid: string; from?: string;
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div dir="rtl" className="grid grid-cols-2 md:grid-cols-4 gap-2 print:grid-cols-4">
+      <div dir="rtl" className="space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <CalendarRange className="h-3.5 w-3.5" />
+            <span>
+              مؤشرات الفترة:{" "}
+              <span className="font-mono text-foreground/80">
+                {from || "البداية"} ← {to || new Date().toISOString().slice(0, 10)}
+              </span>
+            </span>
+          </div>
+          <div className="text-[10px]">
+            الأرصدة (مخزون/ذمم/سيولة/ضريبة) لقطة لحظية حتى {to || new Date().toISOString().slice(0, 10)}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 print:grid-cols-4">
         {ITEMS.map(({ key, label, icon: Icon, tone }) => {
           const value = kpis ? (kpis[key] as number) : 0;
           const isNeg = (key === "netProfit" || key === "grossProfit") && value < 0;
@@ -83,6 +98,9 @@ export function ExecutiveKPIBar({ uid, from, to }: { uid: string; from?: string;
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       <Icon className="h-3 w-3" />
                       <span>{label}</span>
+                      <span className="text-[9px] text-muted-foreground/60">
+                        {meta.isLifetime ? "(لقطة)" : "(فترة)"}
+                      </span>
                     </div>
                     <Info className="h-3 w-3 text-muted-foreground/60" />
                   </div>
@@ -103,6 +121,7 @@ export function ExecutiveKPIBar({ uid, from, to }: { uid: string; from?: string;
             </Tooltip>
           );
         })}
+        </div>
       </div>
       <KpiSourceDrawer
         open={openKey !== null}
