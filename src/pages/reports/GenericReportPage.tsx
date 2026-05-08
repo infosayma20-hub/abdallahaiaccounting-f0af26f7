@@ -4,6 +4,7 @@ import { format, startOfMonth } from "date-fns";
 import { ArrowRight, Printer, CalendarDays, FileSpreadsheet, Search } from "lucide-react";
 import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 import ReportEmptyState from "@/components/reports/ReportEmptyState";
+import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -1100,6 +1101,17 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
       {/* Content */}
       <Card className="overflow-hidden border-border/50">
+        {/* P4: integrity badge for reconciliation-style reports */}
+        {!loading && data.length > 0 && reportKey === "inventory-reconciliation" && (() => {
+          const mismatched = (data as any[]).filter(r => Math.abs(Number(r.diff) || 0) >= 0.01).length;
+          const status = mismatched === 0 ? "balanced" : mismatched <= 5 ? "warning" : "needs_review";
+          const label = mismatched === 0 ? "كل الأصناف مطابقة" : `${mismatched} صنف بحاجة مراجعة`;
+          return (
+            <div className="px-4 pt-3 flex justify-end">
+              <ReportStatusBadge status={status} label={label} size="sm" />
+            </div>
+          );
+        })()}
         {renderContent()}
       </Card>
     </div>
