@@ -2112,6 +2112,7 @@ const InvoiceCreatePage = () => {
                   <th className="py-2.5 px-3 text-center w-[42px]">#</th>
                   <th className="py-2.5 px-3 text-right">المنتج / الخدمة</th>
                   <th className="py-2.5 px-3 text-center w-[80px]">الكمية</th>
+                  <th className="py-2.5 px-3 text-center w-[70px]" title="كمية بونص / مجاني">بونص</th>
                   <th className="py-2.5 px-3 text-center w-[110px] bg-muted/90">السعر</th>
                   <th className="py-2.5 px-3 text-center w-[120px]">الخصم</th>
                   {taxEnabled && <th className="py-2.5 px-3 text-center w-[130px]">الضريبة</th>}
@@ -2205,6 +2206,19 @@ const InvoiceCreatePage = () => {
                           onKeyDown={handleCellEnter("qty", item.id)}
                           className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm font-semibold"
                           dir="ltr"
+                        />
+                      </td>
+
+                      {/* Bonus quantity (free units) */}
+                      <td className="py-1.5 px-2 align-middle">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={item.bonusQuantity}
+                          onChange={e => updateItem(item.id, "bonusQuantity", Math.max(0, Number(e.target.value)))}
+                          className="rounded-md text-[12px] h-9 text-center border border-input bg-background hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/15 tabular-nums shadow-sm"
+                          dir="ltr"
+                          title="كمية بونص — مجانية، تخصم من المخزون ولكن لا تضاف للإيراد"
                         />
                       </td>
 
