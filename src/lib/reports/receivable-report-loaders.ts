@@ -96,7 +96,7 @@ export async function loadCustomerProfitability(uid: string, dateFrom: string, d
   try {
     const { data: rets, error } = await supabase
       .from("returns" as any)
-      .select("contact_id, total, status, return_type, return_date")
+      .select("contact_id, total_amount, status, return_type, return_date")
       .eq("user_id", uid)
       .eq("return_type", "sales")
       .gte("return_date", dateFrom)
@@ -106,7 +106,7 @@ export async function loadCustomerProfitability(uid: string, dateFrom: string, d
       (rets || []).forEach((r: any) => {
         if (r.status && !["confirmed", "posted"].includes(r.status)) return;
         const k = r.contact_id || "__none__";
-        returnsByContact[k] = (returnsByContact[k] || 0) + (Number(r.total) || 0);
+        returnsByContact[k] = (returnsByContact[k] || 0) + (Number(r.total_amount) || 0);
       });
     }
   } catch {
