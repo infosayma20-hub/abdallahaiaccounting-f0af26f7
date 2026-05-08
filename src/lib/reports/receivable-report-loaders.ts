@@ -300,15 +300,24 @@ export async function loadSupplierPurchaseAnalysis(uid: string, dateFrom: string
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
   const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  // Subtract purchase returns by contact_id (P1 fix). Flag rows where the
+  // returns table is unavailable so the UI can surface a warning.
+  const ret = await loadReturnsByContact(uid, "purchase", dateFrom, dateTo);
   const totalAllPurchases = (txns || []).filter(t => t.transaction_type?.includes("purchase")).reduce((s, t) => s + (t.amount || 0), 0);
   setData(contacts.map(c => {
     const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
-    const total = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+    const gross = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+    const returns = ret.byContactId.get(c.id) || 0;
+    const total = gross - returns;
     const invCount = purchases.length;
     const avgInv = invCount > 0 ? Math.round(total / invCount) : 0;
-    const pct = totalAllPurchases > 0 ? Math.round((total / totalAllPurchases) * 100) : 0;
-    return { name: c.contact_name, total, invCount, avgInv, pct };
-  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total));
+    const pct = totalAllPurchases > 0 ? Math.round((gross / totalAllPurchases) * 100) : 0;
+    return {
+      name: c.contact_name,
+      gross, returns, total, invCount, avgInv, pct,
+      returns_not_included: !ret.available,
+    };
+  }).filter(r => r.gross > 0 || r.returns > 0).sort((a, b) => b.total - a.total));
 }
 
 export async function loadSupplierStatementAll(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
