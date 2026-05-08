@@ -1050,13 +1050,26 @@ export async function loadSupplierComparison(uid: string, dateFrom: string, date
 }
 
 export async function loadInventoryValuation(uid: string, setData: SetData) {
+  // Snapshot valuation = current quantity × buy_price.
+  // P1 fix: clamp negative quantities to 0 for the valuation total so a single
+  // bad sign does not understate inventory value. Negative-qty rows remain
+  // visible (and are highlighted by the UI) so the user can investigate.
   const { data: products } = await supabase.from("products").select("id, name, quantity, buy_price, sell_price, category").eq("user_id", uid);
-  const totalValue = (products || []).reduce((s, p) => s + (p.quantity || 0) * (p.buy_price || 0), 0);
-  setData((products || []).map(p => ({
-    name: p.name, qty: p.quantity || 0, cost: p.buy_price || 0,
-    value: (p.quantity || 0) * (p.buy_price || 0),
-    pct: totalValue > 0 ? ((p.quantity || 0) * (p.buy_price || 0) / totalValue * 100) : 0,
-  })).sort((a, b) => b.value - a.value));
+  const valueOf = (qty: number, cost: number) => Math.max(0, qty) * cost;
+  const totalValue = (products || []).reduce((s, p) => s + valueOf(Number(p.quantity) || 0, Number(p.buy_price) || 0), 0);
+  setData((products || []).map(p => {
+    const qty = Number(p.quantity) || 0;
+    const cost = Number(p.buy_price) || 0;
+    const value = valueOf(qty, cost);
+    return {
+      name: p.name,
+      qty,
+      cost,
+      value,
+      pct: totalValue > 0 ? (value / totalValue * 100) : 0,
+      negative: qty < 0,
+    };
+  }).sort((a, b) => b.value - a.value));
 }
 
 // Stock movement — single source of truth: stock_movements (covers POS + invoices + purchases + manual)
