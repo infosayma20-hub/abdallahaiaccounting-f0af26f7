@@ -702,7 +702,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "collections": case "supplier-payments": return { amount: "sum" };
       case "invoice-register": case "purchase-invoice-register": return { subtotal: "sum", tax_amount: "sum", total_amount: "sum", paid_amount: "sum", remaining_amount: "sum" };
       case "sales-returns": case "purchase-returns": return { amount: "sum" };
-      case "by-customer": case "by-supplier": return { count: "sum", total: "sum" };
+      case "by-customer": case "by-supplier": return { count: "sum", gross: "sum", returns: "sum", total: "sum" };
       case "pos-daily-sales": return { discount: "sum", total: "sum" };
       case "pos-sales-by-category": return { qty: "sum", revenue: "sum", cost: "sum", profit: "sum" };
       case "pos-period-comparison": return { orders: "sum", sales: "sum", discounts: "sum" };
@@ -716,7 +716,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "pos-credit-sales": return { orders: "sum", credit_total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail": return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": return { revenue: "sum", cogs: "sum", returns: "sum", profit: "sum", invCount: "sum" };
-      case "supplier-purchase-analysis": return { totalSales: "sum", total: "sum", invCount: "sum" };
+      case "supplier-purchase-analysis": return { gross: "sum", returns: "sum", total: "sum", invCount: "sum" };
       case "checks-receivable": case "checks-payable": return { amount: "sum" };
       case "employee-withdrawals": return { amount: "sum" };
       case "customer-statement-all": case "supplier-statement-all": return { debit: "sum", credit: "sum" };
