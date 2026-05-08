@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { loadReturnsByContact } from "./returns-helper";
 
 type SetData = (data: any[]) => void;
 
@@ -299,15 +300,24 @@ export async function loadSupplierPurchaseAnalysis(uid: string, dateFrom: string
   const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
   if (!contacts?.length) { setData([]); return; }
   const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+  // Subtract purchase returns by contact_id (P1 fix). Flag rows where the
+  // returns table is unavailable so the UI can surface a warning.
+  const ret = await loadReturnsByContact(uid, "purchase", dateFrom, dateTo);
   const totalAllPurchases = (txns || []).filter(t => t.transaction_type?.includes("purchase")).reduce((s, t) => s + (t.amount || 0), 0);
   setData(contacts.map(c => {
     const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
-    const total = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+    const gross = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+    const returns = ret.byContactId.get(c.id) || 0;
+    const total = gross - returns;
     const invCount = purchases.length;
     const avgInv = invCount > 0 ? Math.round(total / invCount) : 0;
-    const pct = totalAllPurchases > 0 ? Math.round((total / totalAllPurchases) * 100) : 0;
-    return { name: c.contact_name, total, invCount, avgInv, pct };
-  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total));
+    const pct = totalAllPurchases > 0 ? Math.round((gross / totalAllPurchases) * 100) : 0;
+    return {
+      name: c.contact_name,
+      gross, returns, total, invCount, avgInv, pct,
+      returns_not_included: !ret.available,
+    };
+  }).filter(r => r.gross > 0 || r.returns > 0).sort((a, b) => b.total - a.total));
 }
 
 export async function loadSupplierStatementAll(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -485,12 +495,24 @@ export async function loadPaymentAllocation(uid: string, dateFrom: string, dateT
 }
 
 export async function loadUnpaidInvoices(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  // Outstanding Invoices = active sales invoices with remaining_amount > 0.
+  // Outstanding Invoices = ALL active sales invoices with remaining_amount > 0
+  // as of `dateTo` (treated as "as-of date"). `dateFrom` is intentionally ignored
+  // because outstanding balance is a point-in-time snapshot — filtering on
+  // invoice_date >= dateFrom would hide historical unpaid invoices (P0 fix).
   // Excludes voided/cancelled/reversed. Includes partially-paid invoices
   // regardless of payment_invoice_links presence.
-  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").eq("is_voided", false).not("status", "in", "(cancelled,void,reversed)").gt("remaining_amount", 0).gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+  const asOf = dateTo || new Date().toISOString().slice(0, 10);
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gt("remaining_amount", 0)
+    .lte("invoice_date", asOf);
   if (!invoices?.length) { setData([]); return; }
-  const today = new Date();
+  const today = new Date(asOf);
   setData(invoices.map(inv => ({
     invoiceNumber: inv.invoice_number || "—",
     customer: inv.contact_name || "—",

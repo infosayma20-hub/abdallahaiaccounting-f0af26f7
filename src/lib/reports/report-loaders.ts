@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format, subDays, subMonths, startOfMonth, endOfMonth, getHours, getDay } from "date-fns";
 import { fmtAmt } from "./report-helpers";
+import { loadReturnsByContact, loadReturnsByProduct } from "./returns-helper";
 
 type SetData = (data: any[]) => void;
 
@@ -335,9 +336,26 @@ export async function loadByCustomer(uid: string, dateFrom: string, dateTo: stri
     row.total += Number(r.total_amount) || 0;
     if (r.invoice_date > row.lastDate) row.lastDate = r.invoice_date;
   });
-  dbg("byCustomer", { source, customers: Object.keys(custMap).length });
-  // Keep legacy `total` key as net for back-compat with existing UI columns/totals.
-  setData(Object.values(custMap).map(c => ({ ...c, total: c.net, gross: c.total })).sort((a, b) => b.total - a.total));
+  // P1 fix: subtract sales returns by contact_id. `returns` total_amount is gross
+  // (incl. tax); we subtract from gross then expose net of returns as `total`
+  // for back-compat with existing UI/totals.
+  const ret = await loadReturnsByContact(uid, "sales", dateFrom, dateTo);
+  dbg("byCustomer", { source, customers: Object.keys(custMap).length, returnsAvailable: ret.available });
+  const rows: any[] = [];
+  Object.entries(custMap).forEach(([key, c]) => {
+    const contactId = key.startsWith("__name:") ? null : key;
+    const returnsTotal = contactId ? (ret.byContactId.get(contactId) || 0) : 0;
+    const grossWithVat = c.total;
+    const netOfReturns = grossWithVat - returnsTotal;
+    rows.push({
+      ...c,
+      total: netOfReturns,        // back-compat: `total` now = net of returns
+      gross: grossWithVat,        // gross incl. VAT
+      returns: returnsTotal,
+      returns_not_included: !ret.available,
+    });
+  });
+  setData(rows.sort((a, b) => b.total - a.total));
 }
 
 export async function loadCollections(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -730,16 +748,31 @@ export async function loadProductProfitability(uid: string, setData: SetData, da
     }
   });
   dbg("productProfitability", { source, from, to, products: Object.keys(pm).length });
-  setData(Object.values(pm).map(p => ({
-    name: p.name,
-    qtySold: p.qtySold,
-    revenue: p.revenue,
-    cost: p.cost,
-    profit: p.profit,
-    profitDisplay: p.missingCost ? "تكلفة غير محددة" : p.profit,
-    margin: p.revenue > 0 ? (p.profit / p.revenue * 100) : 0,
-    stock: stockMap.get(p.name) || 0,
-  })).sort((a, b) => b.profit - a.profit));
+  // P1 fix: subtract sales returns by product_name (mapped via product_id when
+  // available). Returns reduce revenue and profit; cost side is unknown without
+  // joining return_items to original invoice_items, so we deliberately leave
+  // `cost` as-is and document the limitation via returns_not_included.
+  const ret = await loadReturnsByProduct(uid, "sales", from, to);
+  setData(Object.values(pm).map(p => {
+    const r = ret.byProductName.get(p.name) || { qty: 0, amount: 0 };
+    const revenue = p.revenue - r.amount;
+    const profit = p.profit - r.amount;
+    return {
+      name: p.name,
+      qtySold: p.qtySold,
+      qtyReturned: r.qty,
+      qtyNet: p.qtySold - r.qty,
+      revenue,
+      revenueGross: p.revenue,
+      returns: r.amount,
+      cost: p.cost,
+      profit,
+      profitDisplay: p.missingCost ? "تكلفة غير محددة" : profit,
+      margin: revenue > 0 ? (profit / revenue * 100) : 0,
+      stock: stockMap.get(p.name) || 0,
+      returns_not_included: !ret.available,
+    };
+  }).sort((a, b) => b.profit - a.profit));
 }
 
 export async function loadFinancialKPIs(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -926,8 +959,23 @@ export async function loadBySupplier(uid: string, dateFrom: string, dateTo: stri
     if (r.invoice_date > row.lastDate) row.lastDate = r.invoice_date;
   });
   dbg("bySupplier", { suppliers: Object.keys(suppMap).length, invs: (invs || []).length });
-  // Keep legacy `total` key as net for back-compat with existing UI columns/totals.
-  setData(Object.values(suppMap).map(s => ({ ...s, total: s.net, gross: s.total })).sort((a, b) => b.total - a.total));
+  // P1 fix: subtract purchase returns by contact_id from gross (incl. tax).
+  const ret = await loadReturnsByContact(uid, "purchase", dateFrom, dateTo);
+  const rows: any[] = [];
+  Object.entries(suppMap).forEach(([key, s]) => {
+    const contactId = key.startsWith("__name:") ? null : key;
+    const returnsTotal = contactId ? (ret.byContactId.get(contactId) || 0) : 0;
+    const grossWithVat = s.total;
+    const netOfReturns = grossWithVat - returnsTotal;
+    rows.push({
+      ...s,
+      total: netOfReturns,        // back-compat: net of returns
+      gross: grossWithVat,
+      returns: returnsTotal,
+      returns_not_included: !ret.available,
+    });
+  });
+  setData(rows.sort((a, b) => b.total - a.total));
 }
 
 export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -1017,13 +1065,26 @@ export async function loadSupplierComparison(uid: string, dateFrom: string, date
 }
 
 export async function loadInventoryValuation(uid: string, setData: SetData) {
+  // Snapshot valuation = current quantity × buy_price.
+  // P1 fix: clamp negative quantities to 0 for the valuation total so a single
+  // bad sign does not understate inventory value. Negative-qty rows remain
+  // visible (and are highlighted by the UI) so the user can investigate.
   const { data: products } = await supabase.from("products").select("id, name, quantity, buy_price, sell_price, category").eq("user_id", uid);
-  const totalValue = (products || []).reduce((s, p) => s + (p.quantity || 0) * (p.buy_price || 0), 0);
-  setData((products || []).map(p => ({
-    name: p.name, qty: p.quantity || 0, cost: p.buy_price || 0,
-    value: (p.quantity || 0) * (p.buy_price || 0),
-    pct: totalValue > 0 ? ((p.quantity || 0) * (p.buy_price || 0) / totalValue * 100) : 0,
-  })).sort((a, b) => b.value - a.value));
+  const valueOf = (qty: number, cost: number) => Math.max(0, qty) * cost;
+  const totalValue = (products || []).reduce((s, p) => s + valueOf(Number(p.quantity) || 0, Number(p.buy_price) || 0), 0);
+  setData((products || []).map(p => {
+    const qty = Number(p.quantity) || 0;
+    const cost = Number(p.buy_price) || 0;
+    const value = valueOf(qty, cost);
+    return {
+      name: p.name,
+      qty,
+      cost,
+      value,
+      pct: totalValue > 0 ? (value / totalValue * 100) : 0,
+      negative: qty < 0,
+    };
+  }).sort((a, b) => b.value - a.value));
 }
 
 // Stock movement — single source of truth: stock_movements (covers POS + invoices + purchases + manual)

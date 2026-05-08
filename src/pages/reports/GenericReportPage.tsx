@@ -250,14 +250,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "name", label: "الزبون", type: "text" },
           { key: "cls", label: "التصنيف", type: "badge" },
           { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
-          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "gross", label: "الإجمالي", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة">غير متوفر</span> : (v > 0 ? <span className="text-destructive font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span>) },
+          { key: "total", label: "الصافي", type: "currency" },
           { key: "lastDate", label: "آخر عملية", type: "date" },
         ];
       case "by-supplier":
         return [
           { key: "name", label: "المورد", type: "text" },
           { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
-          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "gross", label: "الإجمالي", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة">غير متوفر</span> : (v > 0 ? <span className="text-destructive font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span>) },
+          { key: "total", label: "الصافي", type: "currency" },
         ];
       case "inventory-valuation":
         return [
@@ -556,7 +560,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "name", label: "الزبون", type: "text" },
           { key: "revenue", label: "الإيرادات", type: "currency" },
           { key: "cogs", label: "تكلفة المبيعات", type: "currency" },
-          { key: "returns", label: "المرتجعات", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة لهذه الفترة">غير متوفر</span> : <span className="font-mono text-xs">{v > 0 ? `(${fmtAmtCell(v)})` : "—"}</span> },
           { key: "profit", label: "الربح", type: "currency", format: v => <span className={`font-mono text-xs font-bold ${v >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
           { key: "margin", label: "هامش %", type: "percent" },
           { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
@@ -582,7 +586,9 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "supplier-purchase-analysis":
         return [
           { key: "name", label: "المورد", type: "text" },
-          { key: "total", label: "إجمالي المشتريات", type: "currency" },
+          { key: "gross", label: "إجمالي المشتريات", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: (v: number, row: any) => row.returns_not_included ? <span className="text-amber-600 font-mono text-xs" title="بيانات المرتجعات غير متوفرة">غير متوفر</span> : (v > 0 ? <span className="text-destructive font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span>) },
+          { key: "total", label: "الصافي", type: "currency" },
           { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
           { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
           { key: "pct", label: "% من الإجمالي", type: "percent" },
@@ -696,7 +702,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "collections": case "supplier-payments": return { amount: "sum" };
       case "invoice-register": case "purchase-invoice-register": return { subtotal: "sum", tax_amount: "sum", total_amount: "sum", paid_amount: "sum", remaining_amount: "sum" };
       case "sales-returns": case "purchase-returns": return { amount: "sum" };
-      case "by-customer": case "by-supplier": return { count: "sum", total: "sum" };
+      case "by-customer": case "by-supplier": return { count: "sum", gross: "sum", returns: "sum", total: "sum" };
       case "pos-daily-sales": return { discount: "sum", total: "sum" };
       case "pos-sales-by-category": return { qty: "sum", revenue: "sum", cost: "sum", profit: "sum" };
       case "pos-period-comparison": return { orders: "sum", sales: "sum", discounts: "sum" };
@@ -710,7 +716,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "pos-credit-sales": return { orders: "sum", credit_total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail": return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": return { revenue: "sum", cogs: "sum", returns: "sum", profit: "sum", invCount: "sum" };
-      case "supplier-purchase-analysis": return { totalSales: "sum", total: "sum", invCount: "sum" };
+      case "supplier-purchase-analysis": return { gross: "sum", returns: "sum", total: "sum", invCount: "sum" };
       case "checks-receivable": case "checks-payable": return { amount: "sum" };
       case "employee-withdrawals": return { amount: "sum" };
       case "customer-statement-all": case "supplier-statement-all": return { debit: "sum", credit: "sum" };
@@ -826,16 +832,39 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderPOSCashReconciliation = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>التاريخ</th><th className={thClass}>الكاشير</th><th className={thClass}>الافتتاحي</th><th className={thClass}>الختامي</th><th className={thClass}>المتوقع</th><th className={thClass}>الفرق</th>
+      <th className={thClass}>التاريخ</th><th className={thClass}>الكاشير</th><th className={thClass}>العملة</th><th className={thClass}>الافتتاحي</th><th className={thClass}>الختامي</th><th className={thClass}>المتوقع</th><th className={thClass}>الفرق</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={trClass}>
         <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} font-medium`}>{r.cashier}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.currency || "ILS"}</td>
         <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.opening)}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.closing)}</td>
         <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.expected)}</td>
         <td className={`${tdClass} ${monoClass} font-bold ${r.variance === 0 ? "text-green-600" : r.variance > 0 ? "text-yellow-600" : "text-red-600"}`}>
-          {r.variance === 0 ? "متطابق" : r.variance > 0 ? `+${fmtNum(r.variance)}` : fmtNum(r.variance)}
+          {r.variance === 0 ? "متطابق" : `${r.variance > 0 ? "+" : ""}${fmtNum(r.variance)} ${r.currency || "ILS"}`}
         </td>
       </tr>)}
+      {(() => {
+        // Per-currency totals to avoid mis-summing ILS/USD/EUR.
+        const byCcy: Record<string, { opening: number; closing: number; expected: number; variance: number }> = {};
+        data.forEach((r: any) => {
+          const c = r.currency || "ILS";
+          byCcy[c] ||= { opening: 0, closing: 0, expected: 0, variance: 0 };
+          byCcy[c].opening += Number(r.opening) || 0;
+          byCcy[c].closing += Number(r.closing) || 0;
+          byCcy[c].expected += Number(r.expected) || 0;
+          byCcy[c].variance += Number(r.variance) || 0;
+        });
+        return Object.entries(byCcy).map(([c, t]) => (
+          <tr key={`tot-${c}`} className="bg-muted/40 border-t font-bold">
+            <td className={tdClass} colSpan={2}>الإجمالي ({c})</td>
+            <td className={`${tdClass} ${monoClass}`}>{c}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(t.opening)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(t.closing)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(t.expected)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtNum(t.variance)} {c}</td>
+          </tr>
+        ));
+      })()}
     </tbody></table></div>
   );
 
