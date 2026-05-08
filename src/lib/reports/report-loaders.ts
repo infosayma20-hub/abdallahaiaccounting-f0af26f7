@@ -451,7 +451,7 @@ export async function loadSalesByProductReport(uid: string, dateFrom: string, da
   if (!invoices?.length) { dbg("salesByProduct", { source, invoices: 0 }); setData([]); return; }
   const invIds = invoices.map(i => i.id);
   // 2) get items
-  const { data: items } = await supabase.from("invoice_items").select("product_name, quantity, total_amount, cost_price, line_profit").in("invoice_id", invIds);
+  const { data: items } = await supabase.from("invoice_items").select("product_name, quantity, bonus_quantity, total_amount, cost_price, line_profit").in("invoice_id", invIds);
   // 3) get sales returns in same window for net qty (B7 F2)
   const { data: retHeaders } = await supabase
     .from("returns")
@@ -477,18 +477,23 @@ export async function loadSalesByProductReport(uid: string, dateFrom: string, da
     returnedByName[name] = (returnedByName[name] || 0) + (Number(ri.quantity) || 0);
   });
 
-  const pm: Record<string, { name: string; qty: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
+  const pm: Record<string, { name: string; qty: number; bonusQty: number; deliveredQty: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
   (items || []).forEach(it => {
     const name = it.product_name || "—";
-    if (!pm[name]) pm[name] = { name, qty: 0, revenue: 0, cost: 0, profit: 0, missingCost: false };
+    if (!pm[name]) pm[name] = { name, qty: 0, bonusQty: 0, deliveredQty: 0, revenue: 0, cost: 0, profit: 0, missingCost: false };
     const q = Number(it.quantity) || 0;
+    const bq = Number((it as any).bonus_quantity) || 0;
+    const dq = q + bq;
     pm[name].qty += q;
+    pm[name].bonusQty += bq;
+    pm[name].deliveredQty += dq;
     pm[name].revenue += Number(it.total_amount) || 0;
     if (it.cost_price == null) {
       pm[name].missingCost = true;
     } else {
-      pm[name].cost += Number(it.cost_price) * q;
-      pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * q);
+      // COGS uses delivered qty (paid + bonus). Bonus reduces margin correctly.
+      pm[name].cost += Number(it.cost_price) * dq;
+      pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * dq);
     }
   });
   dbg("salesByProduct", { source, invoices: invoices.length, items: (items || []).length, products: Object.keys(pm).length, returns: (retItems || []).length });
@@ -729,22 +734,26 @@ export async function loadProductProfitability(uid: string, setData: SetData, da
   const { data: invoices } = await invQ;
   const invIds = (invoices || []).map(i => i.id);
   const { data: items } = invIds.length
-    ? await supabase.from("invoice_items").select("product_name, quantity, unit_price, total_amount, cost_price, line_profit").in("invoice_id", invIds)
+    ? await supabase.from("invoice_items").select("product_name, quantity, bonus_quantity, unit_price, total_amount, cost_price, line_profit").in("invoice_id", invIds)
     : { data: [] as any[] };
   const { data: products } = await supabase.from("products").select("id, name, quantity").eq("user_id", uid);
   const stockMap = new Map((products || []).map(p => [p.name, p.quantity || 0]));
 
-  const pm: Record<string, { name: string; qtySold: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
+  const pm: Record<string, { name: string; qtySold: number; bonusQty: number; deliveredQty: number; revenue: number; cost: number; profit: number; missingCost: boolean }> = {};
   (items || []).forEach(it => {
     const name = it.product_name || "—";
-    if (!pm[name]) pm[name] = { name, qtySold: 0, revenue: 0, cost: 0, profit: 0, missingCost: false };
+    if (!pm[name]) pm[name] = { name, qtySold: 0, bonusQty: 0, deliveredQty: 0, revenue: 0, cost: 0, profit: 0, missingCost: false };
     const q = Number(it.quantity) || 0;
+    const bq = Number((it as any).bonus_quantity) || 0;
+    const dq = q + bq;
     pm[name].qtySold += q;
+    pm[name].bonusQty += bq;
+    pm[name].deliveredQty += dq;
     pm[name].revenue += Number(it.total_amount) || 0;
     if (it.cost_price == null) pm[name].missingCost = true;
     else {
-      pm[name].cost += Number(it.cost_price) * q;
-      pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * q);
+      pm[name].cost += Number(it.cost_price) * dq;
+      pm[name].profit += it.line_profit != null ? Number(it.line_profit) : (Number(it.total_amount) - Number(it.cost_price) * dq);
     }
   });
   dbg("productProfitability", { source, from, to, products: Object.keys(pm).length });
