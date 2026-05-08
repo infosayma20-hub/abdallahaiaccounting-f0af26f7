@@ -45,6 +45,8 @@ interface SortableReportTableProps {
   storageKey?: string;
   defaultSort?: SortState[];
   rowClassName?: (row: any, index: number) => string;
+  /** P5: optional row click handler — when provided, rows become clickable for drilldown. */
+  onRowClick?: (row: any, index: number) => void;
 }
 
 const GOLD = "#4A9EE8";
