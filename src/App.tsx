@@ -507,6 +507,8 @@ const App = () => (
                       <Route path="/reports/exchange-gain-loss" element={<GenericReportPage reportKey="exchange-gain-loss" />} />
                       <Route path="/reports/all-orders" element={<GenericReportPage reportKey="all-orders" />} />
                       <Route path="/reports/order-performance" element={<GenericReportPage reportKey="order-performance" />} />
+                      <Route path="/reports/vat-reconciliation" element={<GenericReportPage reportKey="vat-reconciliation" />} />
+                      <Route path="/reports/pos-gl-reconciliation" element={<GenericReportPage reportKey="pos-gl-reconciliation" />} />
                       <Route path="/reports/pos-daily-sales" element={<GenericReportPage reportKey="pos-daily-sales" />} />
                       <Route path="/reports/pos-sales-by-category" element={<GenericReportPage reportKey="pos-sales-by-category" />} />
                       <Route path="/reports/pos-period-comparison" element={<GenericReportPage reportKey="pos-period-comparison" />} />

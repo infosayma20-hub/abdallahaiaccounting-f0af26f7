@@ -596,6 +596,40 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "daysSinceIssue", label: "أيام منذ الإصدار", type: "number",
             format: v => <span className={`font-mono text-xs font-bold ${v > 60 ? "text-red-600" : v > 30 ? "text-amber-600" : ""}`}>{v} يوم {v > 60 ? "🔴" : ""}</span> },
         ];
+      case "vat-reconciliation":
+        return [
+          { key: "period", label: "الشهر", type: "text" },
+          { key: "vat_output_ledger", label: "ضريبة المبيعات (سجل)", type: "currency" },
+          { key: "vat_output_gl", label: "ضريبة المبيعات (أستاذ)", type: "currency" },
+          { key: "diff_output", label: "الفرق", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.01 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "vat_input_ledger", label: "ضريبة المدخلات (سجل)", type: "currency" },
+          { key: "vat_input_gl", label: "ضريبة المدخلات (أستاذ)", type: "currency" },
+          { key: "diff_input", label: "الفرق", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.01 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["✅ مطابق", "⚠️ فرق"] },
+        ];
+      case "pos-gl-reconciliation":
+        return [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "pos_revenue", label: "إيرادات POS", type: "currency" },
+          { key: "gl_revenue", label: "إيرادات الأستاذ", type: "currency" },
+          { key: "diff_revenue", label: "فرق الإيرادات", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.01 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "pos_vat", label: "ضريبة POS", type: "currency" },
+          { key: "gl_vat", label: "ضريبة الأستاذ", type: "currency" },
+          { key: "diff_vat", label: "فرق الضريبة", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.01 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "pos_cash", label: "نقد POS", type: "currency" },
+          { key: "gl_cash", label: "نقد الأستاذ", type: "currency" },
+          { key: "diff_cash", label: "فرق النقد", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.01 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "pos_bank", label: "بنك/بطاقات POS", type: "currency" },
+          { key: "gl_bank", label: "بنك الأستاذ", type: "currency" },
+          { key: "diff_bank", label: "فرق البنك", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${Math.abs(Number(v)) < 0.01 ? "text-emerald-600" : "text-red-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["✅ مطابق", "⚠️ فرق"] },
+        ];
       default:
         return null;
     }
@@ -633,6 +667,8 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "collection-efficiency": return { issued: "sum", collected: "sum", onTime: "sum", late: "sum" };
       case "payment-allocation": return { allocated: "sum" };
       case "unpaid-invoices": return { total: "sum" };
+      case "vat-reconciliation": return { vat_output_ledger: "sum", vat_output_gl: "sum", diff_output: "sum", vat_input_ledger: "sum", vat_input_gl: "sum", diff_input: "sum" };
+      case "pos-gl-reconciliation": return { pos_revenue: "sum", gl_revenue: "sum", diff_revenue: "sum", pos_vat: "sum", gl_vat: "sum", diff_vat: "sum", pos_cash: "sum", gl_cash: "sum", diff_cash: "sum", pos_bank: "sum", gl_bank: "sum", diff_bank: "sum" };
       default: return undefined;
     }
   };
