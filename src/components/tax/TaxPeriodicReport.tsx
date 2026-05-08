@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Printer, FileSpreadsheet, Send, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { filterOutVoidedInvoiceRows } from "@/lib/reports/tax-ledger-filter";
+import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 
 interface Props { ownerId: string; }
 
@@ -114,7 +115,17 @@ export default function TaxPeriodicReport({ ownerId }: Props) {
   return (
     <Card className="p-6 border border-border">
       <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-        <h3 className="text-lg font-bold text-foreground">التقرير الدوري الشهري</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-lg font-bold text-foreground">التقرير الدوري الشهري</h3>
+          {data && (
+            <ReportStatusBadge
+              size="sm"
+              status={netTax > 0 ? "needs_review" : netTax < 0 ? "warning" : "balanced"}
+              label={netTax > 0 ? "مستحق للسلطات" : netTax < 0 ? "استرداد" : "صفر صافي"}
+              detail={fmt(Math.abs(netTax))}
+            />
+          )}
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
             <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ReportSummary, exportToExcel } from "@/components/ReportComponents";
+import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType,
@@ -357,8 +358,16 @@ const BalanceSheetPage = () => {
             </div>
           )}
 
-          <div className={`text-center text-xs py-2 rounded-lg ${isBalanced ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-            {isBalanced ? "✅ الميزانية متوازنة (الأصول = الالتزامات + حقوق الملكية)" : `⚠️ الميزانية غير متوازنة — فرق: ₪${Math.abs(current.totalAssets - current.totalLiabilities - current.totalEquity).toLocaleString()}`}
+          <div className="flex items-center justify-center py-2">
+            <ReportStatusBadge
+              status={isBalanced ? "balanced" : "needs_review"}
+              label={isBalanced ? "الميزانية متوازنة" : "الميزانية غير متوازنة"}
+              detail={
+                isBalanced
+                  ? "الأصول = الالتزامات + حقوق الملكية"
+                  : `فرق ₪${Math.abs(current.totalAssets - current.totalLiabilities - current.totalEquity).toLocaleString()}`
+              }
+            />
           </div>
 
           {renderHierarchicalSection("الأصول", assetLines, current.totalAssets, "text-primary", previous?.totalAssets)}

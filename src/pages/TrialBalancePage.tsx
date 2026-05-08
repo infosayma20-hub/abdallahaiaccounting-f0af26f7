@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import * as XLSX from "xlsx";
+import ReportStatusBadge from "@/components/reports/ReportStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -759,19 +760,11 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
         <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
           <p className="text-[11px] text-muted-foreground">حالة التوازن</p>
           <div className="flex items-center gap-1.5 mt-1">
-            {isBalanced ? (
-              <>
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span className="text-sm font-bold text-primary">متوازن ✅</span>
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                <span className="text-sm font-bold text-destructive">
-                  فرق: ₪{Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}
-                </span>
-              </>
-            )}
+            <ReportStatusBadge
+              status={isBalanced ? "balanced" : "needs_review"}
+              label={isBalanced ? "متوازن" : "غير متوازن"}
+              detail={isBalanced ? undefined : `فرق ₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`}
+            />
           </div>
         </div>
       </div>
@@ -990,15 +983,11 @@ tbody td{padding:6px 8px;border-bottom:1px solid #F3F4F6;text-align:right}
               آخر تحديث: {new Date().toLocaleString("en-US")}
             </p>
             <div className="flex items-center gap-1.5">
-              {isBalanced ? (
-                <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> الميزان متوازن
-                </span>
-              ) : (
-                <span className="text-[10px] text-destructive font-semibold flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" /> الميزان غير متوازن
-                </span>
-              )}
+              <ReportStatusBadge
+                status={isBalanced ? "balanced" : "needs_review"}
+                size="sm"
+                label={isBalanced ? "الميزان متوازن" : "الميزان غير متوازن"}
+              />
             </div>
           </div>
         </div>
