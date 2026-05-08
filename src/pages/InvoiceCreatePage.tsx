@@ -42,6 +42,7 @@ import SmartSummaryPanel from "@/components/voucher/SmartSummaryPanel";
 import InlineProductAutocomplete from "@/components/invoice/InlineProductAutocomplete";
 import ProductSearchDialog from "@/components/invoice/ProductSearchDialog";
 import AccountingShell from "@/components/layout/AccountingShell";
+import { fetchManyContactStatementBalances, fetchContactStatementBalance } from "@/lib/contact-balance";
 
 // ─── Types ───
 type TaxCategory = "taxable" | "zero" | "exempt";
@@ -230,6 +231,7 @@ const InvoiceCreatePage = () => {
   // Bridge of Understanding data — fetched per-contact for the SmartSummaryPanel
   const [contactOpenInvoicesTotal, setContactOpenInvoicesTotal] = useState<number>(0);
   const [contactUnappliedCredit, setContactUnappliedCredit] = useState<number>(0);
+  const [contactStatementBalance, setContactStatementBalance] = useState<number | null>(null);
 
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -428,39 +430,10 @@ const InvoiceCreatePage = () => {
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       
-      // Fetch balances from transactions
-      const contactIds = contactsList.map(c => c.id);
-      const { data: txData } = contactIds.length > 0
-        ? await supabase.from("transactions").select("contact_id, debit_account_code, credit_account_code, amount").eq("user_id", user.id).eq("is_deleted", false).in("contact_id", contactIds)
-        : { data: [] };
-      
-      // Build per-contact balances: customers use 1130, suppliers use 2110
-      const customerBalanceMap: Record<string, number> = {};
-      const supplierBalanceMap: Record<string, number> = {};
-      ((txData as any[]) || []).forEach((tx: any) => {
-        const cid = tx.contact_id;
-        if (!cid) return;
-        const amt = Number(tx.amount || 0);
-        // Customer receivables (1130): debit = they owe us more, credit = they paid
-        if (tx.debit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
-        if (tx.credit_account_code === "1130") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
-        // Supplier payables (2110): credit = we owe them more, debit = we paid
-        if (tx.credit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
-        if (tx.debit_account_code === "2110") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
-        // Smart Allocation advance accounts:
-        //   2115 = customer advance (credit = customer prepaid → reduces receivable)
-        //   1146 = supplier advance (debit = we prepaid → reduces payable)
-        if (tx.credit_account_code === "2115") customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) - amt;
-        if (tx.debit_account_code === "2115")  customerBalanceMap[cid] = (customerBalanceMap[cid] || 0) + amt;
-        if (tx.debit_account_code === "1146")  supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) - amt;
-        if (tx.credit_account_code === "1146") supplierBalanceMap[cid] = (supplierBalanceMap[cid] || 0) + amt;
-      });
+      const statementBalanceMap = await fetchManyContactStatementBalances(contactsList, { userId: user.id });
       
       const contactsWithBalance = contactsList.map(c => {
-        const isSupplier = c.contact_type === "مورد";
-        const balance = isSupplier 
-          ? (supplierBalanceMap[c.id] || 0) 
-          : (customerBalanceMap[c.id] || 0);
+        const balance = statementBalanceMap[c.id] ?? 0;
         return { ...c, balance };
       });
       setContacts(contactsWithBalance);
@@ -775,6 +748,7 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!form.contactId) {
       setSelectedContact(null);
+      setContactStatementBalance(null);
       setContactOpenInvoicesTotal(0);
       setContactUnappliedCredit(0);
       return;
@@ -782,6 +756,19 @@ const InvoiceCreatePage = () => {
     const matched = contacts.find(c => c.id === form.contactId) || null;
     setSelectedContact(matched);
   }, [contacts, form.contactId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !selectedContact?.id) { setContactStatementBalance(null); return; }
+    fetchContactStatementBalance({
+      contactId: selectedContact.id,
+      userId: user.id,
+      contactType: selectedContact.contact_type,
+    }).then((balance) => {
+      if (!cancelled) setContactStatementBalance(balance);
+    });
+    return () => { cancelled = true; };
+  }, [user, selectedContact?.id, selectedContact?.contact_type]);
 
   // ─── Bridge of Understanding: fetch open invoices + unapplied credits for selected contact ───
   useEffect(() => {
@@ -1904,7 +1891,7 @@ const InvoiceCreatePage = () => {
                   contactName={selectedContact.contact_name}
                   contactType={form.type as "sales" | "purchase"}
                   creditLimit={selectedContact.credit_limit}
-                  ledgerBalance={selectedContact.balance ?? selectedContact.current_balance ?? 0}
+                  ledgerBalance={contactStatementBalance ?? selectedContact.balance ?? selectedContact.current_balance ?? 0}
                   compact
                 />
               )}
@@ -2054,7 +2041,7 @@ const InvoiceCreatePage = () => {
           itemsCount={form.items.filter(i => i.productId || i.description?.trim()).length}
           partyName={selectedContact?.contact_name || form.contactName || null}
           partyId={selectedContact?.id || null}
-          balanceBefore={selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
+          balanceBefore={contactStatementBalance ?? selectedContact?.balance ?? selectedContact?.current_balance ?? 0}
           openInvoicesTotal={contactOpenInvoicesTotal}
           unappliedCredit={contactUnappliedCredit}
           creditLimit={selectedContact?.credit_limit ?? null}

@@ -32,6 +32,101 @@ export interface ContactBalanceResult {
   error?: string;
 }
 
+export type ContactBalanceContactType = "عميل" | "مورد" | "customer" | "supplier" | string | null | undefined;
+
+export interface LedgerBalanceTx {
+  contact_id?: string | null;
+  amount: number | null;
+  debit_account_code: string | null;
+  credit_account_code: string | null;
+}
+
+const matchesAccountRoot = (code: string | null | undefined, roots: string[]) =>
+  !!code && roots.some((root) => code === root || code.startsWith(root));
+
+export const getStatementBalanceAccountRoots = (contactType: ContactBalanceContactType): string[] => {
+  const t = String(contactType || "").toLowerCase();
+  if (contactType === "مورد" || t === "supplier" || t === "purchase") return ["211", "1146"];
+  return ["113", "2115"];
+};
+
+export function calculateStatementBalanceFromTransactions(
+  transactions: LedgerBalanceTx[],
+  contactType: ContactBalanceContactType,
+): number {
+  const roots = getStatementBalanceAccountRoots(contactType);
+  return transactions.reduce((balance, tx) => {
+    const amount = Number(tx.amount || 0);
+    let next = balance;
+    if (matchesAccountRoot(tx.debit_account_code, roots)) next += amount;
+    if (matchesAccountRoot(tx.credit_account_code, roots)) next -= amount;
+    return next;
+  }, 0);
+}
+
+/**
+ * Account Statement parity balance for side-panels.
+ * Includes active rows plus cancelled rows that have a reversal link so the
+ * original and reversal net to zero exactly like AccountStatementV2Page.
+ */
+export async function fetchContactStatementBalance(options: {
+  contactId: string;
+  userId: string;
+  contactType?: ContactBalanceContactType;
+  asOfDate?: string;
+  currency?: string | null;
+}): Promise<number> {
+  if (!options.contactId || !options.userId) return 0;
+  let query = supabase
+    .from("transactions")
+    .select("amount, debit_account_code, credit_account_code")
+    .eq("user_id", options.userId)
+    .eq("contact_id", options.contactId)
+    .or("is_deleted.eq.false,reversed_by_id.not.is.null");
+
+  if (options.asOfDate) query = query.lte("transaction_date", options.asOfDate);
+  if (options.currency) query = query.eq("currency", options.currency);
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn("[contact-balance] statement query error:", error.message);
+    return 0;
+  }
+  return calculateStatementBalanceFromTransactions((data || []) as LedgerBalanceTx[], options.contactType);
+}
+
+export async function fetchManyContactStatementBalances(
+  contacts: { id: string; contact_type?: ContactBalanceContactType }[],
+  options: { userId: string; asOfDate?: string; currency?: string | null },
+): Promise<Record<string, number>> {
+  if (!contacts.length || !options.userId) return {};
+  let query = supabase
+    .from("transactions")
+    .select("contact_id, amount, debit_account_code, credit_account_code")
+    .eq("user_id", options.userId)
+    .in("contact_id", contacts.map((c) => c.id))
+    .or("is_deleted.eq.false,reversed_by_id.not.is.null");
+
+  if (options.asOfDate) query = query.lte("transaction_date", options.asOfDate);
+  if (options.currency) query = query.eq("currency", options.currency);
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn("[contact-balance] batch statement query error:", error.message);
+    return {};
+  }
+
+  const typeById = Object.fromEntries(contacts.map((c) => [c.id, c.contact_type]));
+  const grouped: Record<string, LedgerBalanceTx[]> = {};
+  for (const tx of ((data || []) as LedgerBalanceTx[])) {
+    if (!tx.contact_id) continue;
+    (grouped[tx.contact_id] ||= []).push(tx);
+  }
+  return Object.fromEntries(
+    contacts.map((c) => [c.id, calculateStatementBalanceFromTransactions(grouped[c.id] || [], typeById[c.id])]),
+  );
+}
+
 /**
  * Fetch live balance for a single contact from the ledger.
  * Returns 0 on any error so the UI never crashes.

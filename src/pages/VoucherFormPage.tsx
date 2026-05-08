@@ -47,10 +47,12 @@ import {
   computeSummary as engineSummary,
 } from "@/lib/voucher-allocation";
 import RelatedJournalPanel from "@/components/accounting/RelatedJournalPanel";
+import { calculateStatementBalanceFromTransactions, fetchContactStatementBalance } from "@/lib/contact-balance";
 
 interface Contact {
   id: string;
   contact_name: string;
+  contact_type?: string;
   current_balance: number;
   ledger_balance?: number;
   open_invoices_balance?: number;
@@ -464,26 +466,22 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         const contactsList0 = (contactsRes.data as any[]) || [];
         const typeById: Record<string, string> = {};
         for (const c of contactsList0) typeById[c.id] = c.contact_type || "";
-        // SOA root families per contact_type (must match AccountStatementV2Page).
-        const rootsFor = (t: string): string[] =>
-          t === "مورد" ? ["211", "1146"] : ["113", "2115"]; // default treat as customer
         const advanceRoots = (t: string): string[] =>
           t === "مورد" ? ["1146"] : ["2115"];
         const matchesRoot = (code: string | null | undefined, roots: string[]) =>
           !!code && roots.some(r => code === r || code.startsWith(r));
+        const txByContact: Record<string, any[]> = {};
         for (const tx of (txRes.data || [])) {
           if (!tx.contact_id) continue;
-          const roots = rootsFor(typeById[tx.contact_id] || "");
           const advRoots = advanceRoots(typeById[tx.contact_id] || "");
-          if (ledgerMap[tx.contact_id] == null) ledgerMap[tx.contact_id] = 0;
           if (advanceMap[tx.contact_id] == null) advanceMap[tx.contact_id] = 0;
-          const isDr = matchesRoot(tx.debit_account_code, roots);
-          const isCr = matchesRoot(tx.credit_account_code, roots);
-          if (isDr) ledgerMap[tx.contact_id] += tx.amount || 0;
-          if (isCr) ledgerMap[tx.contact_id] -= tx.amount || 0;
+          (txByContact[tx.contact_id] ||= []).push(tx);
           // Track unapplied advances separately (display-only).
           if (matchesRoot(tx.credit_account_code, advRoots)) advanceMap[tx.contact_id] += tx.amount || 0;
           if (matchesRoot(tx.debit_account_code, advRoots)) advanceMap[tx.contact_id] -= tx.amount || 0;
+        }
+        for (const c of contactsList0) {
+          ledgerMap[c.id] = calculateStatementBalanceFromTransactions(txByContact[c.id] || [], c.contact_type);
         }
 
         const openInvoiceMap: Record<string, number> = {};
@@ -616,24 +614,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
     setComputedBalance(null);
     let cancelled = false;
-    supabase.from("transactions")
-      .select("debit_account_code, credit_account_code, amount, is_deleted, reversed_by_id")
-      .eq("user_id", user.id)
-      .eq("contact_id", selectedContact.id)
-      .or("is_deleted.eq.false,reversed_by_id.not.is.null")
-      .then(({ data }) => {
+    fetchContactStatementBalance({
+      contactId: selectedContact.id,
+      userId: user.id,
+      contactType: selectedContact.contact_type,
+    })
+      .then((ledger) => {
         if (cancelled) return;
-        if (!data) { setComputedBalance(0); return; }
-        const roots = (selectedContact as any)?.contact_type === "مورد"
-          ? ["211", "1146"]
-          : ["113", "2115"];
-        const matches = (code: string | null | undefined) =>
-          !!code && roots.some(r => code === r || code.startsWith(r));
-        let ledger = 0;
-        for (const t of data) {
-          if (matches(t.debit_account_code)) ledger += t.amount || 0;
-          if (matches(t.credit_account_code)) ledger -= t.amount || 0;
-        }
         setComputedBalance(ledger);
       });
     return () => { cancelled = true; };
