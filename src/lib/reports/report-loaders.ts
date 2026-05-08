@@ -118,10 +118,19 @@ export async function loadAgingReport(uid: string, contactType: string, setData:
 }
 
 export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
+  // Phase A: honest direct-cash-movement classification.
+  // - Cash accounts = 111x (cash), 112x (bank).
+  // - Skip cash↔cash internal transfers but report them on a separate line.
+  // - Classify by the NON-cash counter-account prefix:
+  //     Operating: 4xxx revenue, 5xxx COGS, 6xxx expense, 12xx AR, 21xx AP
+  //     Investing: 15xx fixed assets / investments
+  //     Financing: 3xxx equity, 22xx long-term liabilities
+  //   Anything else → Unclassified (no silent default to operating).
+  // - operating + investing + financing + unclassified = net change in cash
+  //   (internal transfers are excluded from the net by design).
   const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-  if (!txns?.length) { setData([]); return; }
 
-  // Calculate opening cash balance (cash = 111x, bank = 112x)
+  // Opening cash from prior periods (always computed even if period is empty)
   const { data: openTxns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or("debit_account_code.like.111%,credit_account_code.like.111%,debit_account_code.like.112%,credit_account_code.like.112%");
   let openingCash = 0;
   (openTxns || []).forEach(tx => {
@@ -130,39 +139,45 @@ export async function loadCashFlowReport(uid: string, dateFrom: string, dateTo: 
     if (cc.startsWith("111") || cc.startsWith("112")) openingCash -= tx.amount;
   });
 
-  let operating = 0, investing = 0, financing = 0;
-  txns.forEach(tx => {
+  const isCash = (code: string) => code.startsWith("111") || code.startsWith("112");
+  const classify = (code: string): "operating" | "investing" | "financing" | "unclassified" => {
+    if (code.startsWith("4") || code.startsWith("5") || code.startsWith("6") || code.startsWith("12") || code.startsWith("21")) return "operating";
+    if (code.startsWith("15")) return "investing";
+    if (code.startsWith("3") || code.startsWith("22")) return "financing";
+    return "unclassified";
+  };
+
+  let operating = 0, investing = 0, financing = 0, unclassified = 0, internalTransfers = 0;
+  (txns || []).forEach(tx => {
     const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
-    // Operating: revenue (4xxx), COGS (5xxx), expenses (6xxx), receivables (12xx), payables (21xx)
-    const isOpDc = dc.startsWith("4") || dc.startsWith("5") || dc.startsWith("6") || dc.startsWith("12") || dc.startsWith("21");
-    const isOpCc = cc.startsWith("4") || cc.startsWith("5") || cc.startsWith("6") || cc.startsWith("12") || cc.startsWith("21");
-    // Investing: fixed assets (15xx), long-term investments
-    const isInvDc = dc.startsWith("15");
-    const isInvCc = cc.startsWith("15");
-    // Financing: equity (3xxx), long-term liabilities (22xx)
-    const isFinDc = dc.startsWith("3") || dc.startsWith("22");
-    const isFinCc = cc.startsWith("3") || cc.startsWith("22");
+    const dcCash = isCash(dc), ccCash = isCash(cc);
+    if (!dcCash && !ccCash) return;
 
-    // Only count transactions that touch cash/bank accounts
-    const touchesCashDc = dc.startsWith("111") || dc.startsWith("112");
-    const touchesCashCc = cc.startsWith("111") || cc.startsWith("112");
-    if (!touchesCashDc && !touchesCashCc) return;
+    // Cash↔cash internal transfer: track separately, do not classify
+    if (dcCash && ccCash) {
+      internalTransfers += tx.amount; // gross volume of internal moves
+      return;
+    }
 
-    const cashIn = touchesCashDc ? tx.amount : 0;
-    const cashOut = touchesCashCc ? tx.amount : 0;
+    const cashIn = dcCash ? tx.amount : 0;
+    const cashOut = ccCash ? tx.amount : 0;
     const netCash = cashIn - cashOut;
-
-    if (isOpDc || isOpCc) operating += netCash;
-    else if (isInvDc || isInvCc) investing += netCash;
-    else if (isFinDc || isFinCc) financing += netCash;
-    else operating += netCash; // default to operating
+    const counter = dcCash ? cc : dc; // the non-cash side drives classification
+    const bucket = classify(counter);
+    if (bucket === "operating") operating += netCash;
+    else if (bucket === "investing") investing += netCash;
+    else if (bucket === "financing") financing += netCash;
+    else unclassified += netCash;
   });
-  const netChange = operating + investing + financing;
+
+  const netChange = operating + investing + financing + unclassified;
   setData([
     { section: "الرصيد الافتتاحي للنقد", amount: openingCash },
     { section: "أنشطة تشغيلية", amount: operating },
     { section: "أنشطة استثمارية", amount: investing },
     { section: "أنشطة تمويلية", amount: financing },
+    { section: "غير مصنّف", amount: unclassified },
+    { section: "تحويلات داخلية بين حسابات النقد (مستثناة)", amount: internalTransfers },
     { section: "صافي التغير في النقد", amount: netChange },
     { section: "الرصيد الختامي للنقد", amount: openingCash + netChange },
   ]);
