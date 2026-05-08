@@ -22,9 +22,17 @@ export async function loadPOSDailySales(uid: string, dateFrom: string, dateTo: s
 }
 
 export async function loadPOSCashReconciliation(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, state").eq("user_id", uid).eq("is_deleted", false).gte("opened_at", dateFrom).lte("opened_at", dateTo + "T23:59:59").order("opened_at", { ascending: false });
+  // P1 fix: include the cash box currency on every row so multi-currency
+  // shifts (ILS / USD / EUR) are not silently summed into one number.
+  const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, state, cash_box_id").eq("user_id", uid).eq("is_deleted", false).gte("opened_at", dateFrom).lte("opened_at", dateTo + "T23:59:59").order("opened_at", { ascending: false });
+  const boxIds = Array.from(new Set((sessions || []).map((s: any) => s.cash_box_id).filter(Boolean) as string[]));
+  const { data: boxes } = boxIds.length
+    ? await supabase.from("cash_boxes").select("id, currency").in("id", boxIds)
+    : { data: [] as any[] };
+  const ccyMap = new Map((boxes || []).map((b: any) => [b.id, b.currency || "ILS"]));
   setData((sessions || []).map(s => ({
     date: s.opened_at?.split("T")[0] || "", cashier: s.cashier_name || "غير محدد",
+    currency: (s.cash_box_id ? ccyMap.get(s.cash_box_id) : null) || "ILS",
     opening: s.opening_cash || 0, closing: s.closing_cash || 0,
     expected: s.expected_cash || 0, variance: s.cash_variance || 0,
     state: s.state,
