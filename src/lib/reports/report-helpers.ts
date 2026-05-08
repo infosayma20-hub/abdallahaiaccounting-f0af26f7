@@ -31,7 +31,7 @@ export const reportConfigs: Record<string, { title: string; description: string 
   "purchase-invoice-register": { title: "فواتير المشتريات", description: "سجل فواتير الشراء" },
   "by-supplier": { title: "المشتريات حسب المورد", description: "تحليل مشتريات كل مورد" },
   "supplier-payments": { title: "المدفوعات للموردين", description: "جميع المبالغ المدفوعة" },
-  "inventory-valuation": { title: "جرد وتقييم المخزون", description: "الكميات والقيم الحالية لجميع الأصناف" },
+  "inventory-valuation": { title: "جرد وتقييم المخزون (لحظي)", description: "كميات وقيم المخزون كما هي الآن — التكلفة = سعر الشراء الحالي للمنتج (products.buy_price)" },
   "stock-movement": { title: "حركة المخزون", description: "حركات الوارد والصادر" },
   "purchases-by-product": { title: "المشتريات حسب الصنف", description: "كميات وقيم المشتريات لكل منتج (صافي بعد المرتجعات)" },
   "inventory-reconciliation": { title: "تطابق المخزون", description: "مقارنة كمية المنتج الحية مع مجموع حركات المخزون" },
