@@ -208,23 +208,48 @@ export async function loadChequesReport(uid: string, dateFrom: string, dateTo: s
 }
 
 export async function loadTotalSales(uid: string, dateFrom: string, dateTo: string, setData: SetData, source: SalesSourceFilter = "all") {
-  const txnIds = await getInvoiceTxnIdsBySource(uid, source, dateFrom, dateTo);
-  const voidedTxnIds = await getVoidedInvoiceTxnIds(uid, dateFrom, dateTo);
-  let q = supabase.from("transactions").select("id, transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
-  const { data: txns } = await q;
-  const filtered = (txnIds ? (txns || []).filter(t => txnIds.has(t.id)) : (txns || [])).filter(t => !voidedTxnIds.has(t.id));
-  dbg("totalSales", { source, txnCount: filtered.length, total: filtered.reduce((s, t) => s + t.amount, 0) });
-  // Sales returns from new returns table (confirmed only) + legacy transactions
-  const { data: rets } = await supabase.from("returns" as any).select("return_date, total, status").eq("user_id", uid).eq("return_type", "sales").gte("return_date", dateFrom).lte("return_date", dateTo);
-  const dayMap: Record<string, { date: string; count: number; total: number; returns: number; net: number }> = {};
-  filtered.forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
-  (rets || []).forEach((r: any) => {
-    if (r.status !== "confirmed" && r.status !== "posted") return;
-    const d = r.return_date;
-    if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0, returns: 0, net: 0 };
-    dayMap[d].returns += Number(r.total) || 0;
+  // Source of truth: invoices (invoice_type='sale'). Reconciles with Sales Invoice Register (B1).
+  // Net (subtotal) and output VAT are reported separately. Returns are shown separately, NOT silently netted.
+  // POS orders are included only when mirrored into `invoices` (source='pos'); pure pos_orders are not counted here.
+  let q = supabase
+    .from("invoices")
+    .select("invoice_date, subtotal, tax_amount, total_amount, paid_amount, remaining_amount, source")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+  if (source !== "all") q = q.eq("source", source);
+  const { data: invs } = await q;
+  const { data: rets } = await supabase
+    .from("returns" as any)
+    .select("return_date, subtotal, tax_amount, total_amount, status, return_type, is_deleted")
+    .eq("user_id", uid)
+    .in("return_type", ["sales", "sale"]) // tolerate either spelling
+    .eq("is_deleted", false)
+    .gte("return_date", dateFrom)
+    .lte("return_date", dateTo);
+  type Row = { date: string; count: number; net: number; vat: number; total: number; paid: number; remaining: number; returns_net: number; returns_vat: number; returns_total: number };
+  const dayMap: Record<string, Row> = {};
+  const ensure = (d: string): Row => (dayMap[d] ||= { date: d, count: 0, net: 0, vat: 0, total: 0, paid: 0, remaining: 0, returns_net: 0, returns_vat: 0, returns_total: 0 });
+  (invs || []).forEach((r: any) => {
+    const row = ensure(r.invoice_date);
+    row.count += 1;
+    row.net += Number(r.subtotal) || 0;
+    row.vat += Number(r.tax_amount) || 0;
+    row.total += Number(r.total_amount) || 0;
+    row.paid += Number(r.paid_amount) || 0;
+    row.remaining += Number(r.remaining_amount) || 0;
   });
-  Object.values(dayMap).forEach(d => { d.net = d.total - d.returns; });
+  (rets || []).forEach((r: any) => {
+    if (!["confirmed", "posted"].includes(r.status)) return;
+    const row = ensure(r.return_date);
+    row.returns_net += Number(r.subtotal) || 0;
+    row.returns_vat += Number(r.tax_amount) || 0;
+    row.returns_total += Number(r.total_amount) || 0;
+  });
+  dbg("totalSales", { source, days: Object.keys(dayMap).length, invs: (invs || []).length, rets: (rets || []).length });
   setData(Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date)));
 }
 
