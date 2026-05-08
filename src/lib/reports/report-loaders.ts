@@ -341,8 +341,33 @@ export async function loadByCustomer(uid: string, dateFrom: string, dateTo: stri
 }
 
 export async function loadCollections(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "receipt").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
-  setData(txns || []);
+  // Source of truth: transactions where transaction_type='receipt' AND is_deleted=false.
+  // Reverse entries flip is_deleted on both rows, so this filter excludes voided/reversed receipts.
+  // Cash/bank account = debit side of the receipt (1110/111x cash, 1120/112x bank, 1150/115x cheques under collection).
+  const { data: txns } = await supabase
+    .from("transactions")
+    .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
+    .eq("user_id", uid)
+    .eq("is_deleted", false)
+    .eq("transaction_type", "receipt")
+    .gte("transaction_date", dateFrom)
+    .lte("transaction_date", dateTo)
+    .order("transaction_date", { ascending: false });
+  const contactIds = Array.from(new Set((txns || []).map(t => t.contact_id).filter(Boolean) as string[]));
+  const { data: contacts } = contactIds.length
+    ? await supabase.from("contacts").select("id, contact_name").in("id", contactIds)
+    : { data: [] as any[] };
+  const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
+  const isCashBank = (code: string | null | undefined) => {
+    const c = code || "";
+    return c.startsWith("111") || c.startsWith("112") || c.startsWith("115") || c.startsWith("116");
+  };
+  dbg("collections", { count: (txns || []).length });
+  setData((txns || []).map((t: any) => ({
+    ...t,
+    contact_name: cMap.get(t.contact_id) || "—",
+    cash_bank_code: isCashBank(t.debit_account_code) ? t.debit_account_code : "",
+  })));
 }
 
 export async function loadSalesReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -680,8 +705,33 @@ export async function loadBySupplier(uid: string, dateFrom: string, dateTo: stri
 }
 
 export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "payment").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
-  setData(txns || []);
+  // Source of truth: transactions where transaction_type='payment' AND is_deleted=false.
+  // Reverse entries flip is_deleted on both rows, so this filter excludes voided/reversed payments.
+  // Cash/bank account = credit side of the payment (1110/111x cash, 1120/112x bank, 1160/116x outbound cheques).
+  const { data: txns } = await supabase
+    .from("transactions")
+    .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
+    .eq("user_id", uid)
+    .eq("is_deleted", false)
+    .eq("transaction_type", "payment")
+    .gte("transaction_date", dateFrom)
+    .lte("transaction_date", dateTo)
+    .order("transaction_date", { ascending: false });
+  const contactIds = Array.from(new Set((txns || []).map(t => t.contact_id).filter(Boolean) as string[]));
+  const { data: contacts } = contactIds.length
+    ? await supabase.from("contacts").select("id, contact_name").in("id", contactIds)
+    : { data: [] as any[] };
+  const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
+  const isCashBank = (code: string | null | undefined) => {
+    const c = code || "";
+    return c.startsWith("111") || c.startsWith("112") || c.startsWith("115") || c.startsWith("116");
+  };
+  dbg("supplierPayments", { count: (txns || []).length });
+  setData((txns || []).map((t: any) => ({
+    ...t,
+    contact_name: cMap.get(t.contact_id) || "—",
+    cash_bank_code: isCashBank(t.credit_account_code) ? t.credit_account_code : "",
+  })));
 }
 
 export async function loadPurchaseReturns(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
@@ -799,7 +849,7 @@ export async function loadEmployeeDirectory(uid: string, setData: SetData) {
 export async function loadEmployeeWithdrawals(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: vouchers } = await supabase
     .from("vouchers")
-    .select("id, ref_number, date, description, amount, amount_ils, employee_id, linked_transaction_id")
+    .select("id, ref_number, date, description, amount, amount_ils, employee_id")
     .eq("user_id", uid)
     .eq("type", "payment")
     .not("employee_id", "is", null)
