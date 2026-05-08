@@ -447,8 +447,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      supabase.from("contacts").select("id, contact_name, current_balance").eq("user_id", user.id).order("contact_name"),
-      supabase.from("transactions").select("contact_id, amount, debit_account_code, credit_account_code").eq("user_id", user.id).eq("is_deleted", false),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).order("contact_name"),
+      // SOA parity: include cancelled-but-reversed entries so the original
+      // and its reversal both contribute and cancel out (matches AccountStatementV2).
+      supabase.from("transactions")
+        .select("contact_id, amount, debit_account_code, credit_account_code, is_deleted, reversed_by_id")
+        .eq("user_id", user.id)
+        .or("is_deleted.eq.false,reversed_by_id.not.is.null"),
       (supabase.from("invoices").select("contact_id, remaining_amount, total_amount, paid_amount").eq("user_id", user.id).in("payment_status", ["unpaid", "partial"]) as any)
         .neq("status", "cancelled")
         .not("status", "in", '("مسودة","draft")'),
@@ -456,32 +461,29 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .then(([contactsRes, txRes, openInvoicesRes]) => {
         const ledgerMap: Record<string, number> = {};
         const advanceMap: Record<string, number> = {};
-
+        const contactsList0 = (contactsRes.data as any[]) || [];
+        const typeById: Record<string, string> = {};
+        for (const c of contactsList0) typeById[c.id] = c.contact_type || "";
+        // SOA root families per contact_type (must match AccountStatementV2Page).
+        const rootsFor = (t: string): string[] =>
+          t === "مورد" ? ["211", "1146"] : ["113", "2115"]; // default treat as customer
+        const advanceRoots = (t: string): string[] =>
+          t === "مورد" ? ["1146"] : ["2115"];
+        const matchesRoot = (code: string | null | undefined, roots: string[]) =>
+          !!code && roots.some(r => code === r || code.startsWith(r));
         for (const tx of (txRes.data || [])) {
           if (!tx.contact_id) continue;
-          if (!ledgerMap[tx.contact_id]) ledgerMap[tx.contact_id] = 0;
-          if (!advanceMap[tx.contact_id]) advanceMap[tx.contact_id] = 0;
-
-          if (tx.debit_account_code === "1130") ledgerMap[tx.contact_id] += tx.amount || 0;
-          if (tx.credit_account_code === "1130") ledgerMap[tx.contact_id] -= tx.amount || 0;
-          if (tx.credit_account_code === "2110") ledgerMap[tx.contact_id] -= tx.amount || 0;
-          if (tx.debit_account_code === "2110") ledgerMap[tx.contact_id] += tx.amount || 0;
-          if (tx.credit_account_code === "2115") {
-            ledgerMap[tx.contact_id] -= tx.amount || 0;
-            advanceMap[tx.contact_id] += tx.amount || 0;
-          }
-          if (tx.debit_account_code === "2115") {
-            ledgerMap[tx.contact_id] += tx.amount || 0;
-            advanceMap[tx.contact_id] -= tx.amount || 0;
-          }
-          if (tx.debit_account_code === "1146") {
-            ledgerMap[tx.contact_id] -= tx.amount || 0;
-            advanceMap[tx.contact_id] += tx.amount || 0;
-          }
-          if (tx.credit_account_code === "1146") {
-            ledgerMap[tx.contact_id] += tx.amount || 0;
-            advanceMap[tx.contact_id] -= tx.amount || 0;
-          }
+          const roots = rootsFor(typeById[tx.contact_id] || "");
+          const advRoots = advanceRoots(typeById[tx.contact_id] || "");
+          if (ledgerMap[tx.contact_id] == null) ledgerMap[tx.contact_id] = 0;
+          if (advanceMap[tx.contact_id] == null) advanceMap[tx.contact_id] = 0;
+          const isDr = matchesRoot(tx.debit_account_code, roots);
+          const isCr = matchesRoot(tx.credit_account_code, roots);
+          if (isDr) ledgerMap[tx.contact_id] += tx.amount || 0;
+          if (isCr) ledgerMap[tx.contact_id] -= tx.amount || 0;
+          // Track unapplied advances separately (display-only).
+          if (matchesRoot(tx.credit_account_code, advRoots)) advanceMap[tx.contact_id] += tx.amount || 0;
+          if (matchesRoot(tx.debit_account_code, advRoots)) advanceMap[tx.contact_id] -= tx.amount || 0;
         }
 
         const openInvoiceMap: Record<string, number> = {};
@@ -602,30 +604,35 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     fetchRate();
   }, [currency, user, isReceipt]);
 
-  // ─── Compute real balance from transactions ───
+  // ─── Compute real balance from transactions (SOA parity) ───
+  // Mirrors AccountStatementV2Page exactly:
+  //   - filter: is_deleted=false OR reversed_by_id IS NOT NULL
+  //     (so cancelled originals + their reversals both contribute and cancel out)
+  //   - account roots by contact_type:
+  //       customer → 113%, 2115%
+  //       supplier → 211%, 1146%
+  //   - balance = Σ(amount where Dr matches root) − Σ(amount where Cr matches root)
   useEffect(() => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
-    // Reset immediately so stale balance from previous contact never shows
     setComputedBalance(null);
     let cancelled = false;
     supabase.from("transactions")
-      .select("debit_account_code, credit_account_code, amount")
+      .select("debit_account_code, credit_account_code, amount, is_deleted, reversed_by_id")
       .eq("user_id", user.id)
-      .eq("is_deleted", false)
       .eq("contact_id", selectedContact.id)
+      .or("is_deleted.eq.false,reversed_by_id.not.is.null")
       .then(({ data }) => {
         if (cancelled) return;
         if (!data) { setComputedBalance(0); return; }
+        const roots = (selectedContact as any)?.contact_type === "مورد"
+          ? ["211", "1146"]
+          : ["113", "2115"];
+        const matches = (code: string | null | undefined) =>
+          !!code && roots.some(r => code === r || code.startsWith(r));
         let ledger = 0;
         for (const t of data) {
-          if (t.debit_account_code === "1130") ledger += t.amount;
-          if (t.credit_account_code === "1130") ledger -= t.amount;
-          if (t.credit_account_code === "2110") ledger -= t.amount;
-          if (t.debit_account_code === "2110") ledger += t.amount;
-          if (t.credit_account_code === "2115") ledger -= t.amount;
-          if (t.debit_account_code === "2115") ledger += t.amount;
-          if (t.debit_account_code === "1146") ledger -= t.amount;
-          if (t.credit_account_code === "1146") ledger += t.amount;
+          if (matches(t.debit_account_code)) ledger += t.amount || 0;
+          if (matches(t.credit_account_code)) ledger -= t.amount || 0;
         }
         setComputedBalance(ledger);
       });
