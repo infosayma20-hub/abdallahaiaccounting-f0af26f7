@@ -346,7 +346,7 @@ export async function loadCollections(uid: string, dateFrom: string, dateTo: str
   // Cash/bank account = debit side of the receipt (1110/111x cash, 1120/112x bank, 1150/115x cheques under collection).
   const { data: txns } = await supabase
     .from("transactions")
-    .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code, linked_transaction_id")
+    .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
     .eq("user_id", uid)
     .eq("is_deleted", false)
     .eq("transaction_type", "receipt")
@@ -710,7 +710,7 @@ export async function loadSupplierPayments(uid: string, dateFrom: string, dateTo
   // Cash/bank account = credit side of the payment (1110/111x cash, 1120/112x bank, 1160/116x outbound cheques).
   const { data: txns } = await supabase
     .from("transactions")
-    .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code, linked_transaction_id")
+    .select("id, transaction_date, description, amount, payment_method, contact_id, reference, debit_account_code, credit_account_code")
     .eq("user_id", uid)
     .eq("is_deleted", false)
     .eq("transaction_type", "payment")
@@ -849,7 +849,7 @@ export async function loadEmployeeDirectory(uid: string, setData: SetData) {
 export async function loadEmployeeWithdrawals(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
   const { data: vouchers } = await supabase
     .from("vouchers")
-    .select("id, ref_number, date, description, amount, amount_ils, employee_id, linked_transaction_id")
+    .select("id, ref_number, date, description, amount, amount_ils, employee_id")
     .eq("user_id", uid)
     .eq("type", "payment")
     .not("employee_id", "is", null)
