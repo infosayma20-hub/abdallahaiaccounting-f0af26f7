@@ -975,11 +975,10 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       </div>
     );
     if (!data.length) return (
-      <div className="text-center py-16">
-        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4"><Search className="h-6 w-6 text-muted-foreground" /></div>
-        <p className="text-sm font-medium text-foreground mb-1">لا توجد بيانات للفترة المحددة</p>
-        <p className="text-xs text-muted-foreground">جرّب تغيير نطاق التاريخ أو الفلاتر</p>
-      </div>
+      <ReportEmptyState
+        title="لا توجد بيانات للفترة المحددة"
+        hint="جرّب تغيير نطاق التاريخ أو الفلاتر"
+      />
     );
 
     const cols = getReportColumns();
