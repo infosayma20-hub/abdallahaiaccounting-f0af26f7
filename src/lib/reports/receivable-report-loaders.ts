@@ -67,18 +67,106 @@ export async function loadChecksReceivable(uid: string, setData: SetData) {
 }
 
 export async function loadCustomerProfitability(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const contactTypes = ["عميل", "customer", "زبون"];
-  const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
-  if (!contacts?.length) { setData([]); return; }
-  const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
-  const totalAllSales = (txns || []).filter(t => t.transaction_type?.includes("sale")).reduce((s, t) => s + (t.amount || 0), 0);
-  setData(contacts.map(c => {
-    const sales = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("sale"));
-    const totalSales = sales.reduce((s, t) => s + (t.amount || 0), 0);
-    const invCount = sales.length;
-    const avgInv = invCount > 0 ? Math.round(totalSales / invCount) : 0;
-    return { name: c.contact_name, totalSales, invCount, avgInv };
-  }).filter(r => r.totalSales > 0).sort((a, b) => b.totalSales - a.totalSales));
+  // Real profitability from invoices + invoice_items (revenue, cogs, profit, margin).
+  // Returns are subtracted when the `returns` table exists with sales rows;
+  // otherwise the row is flagged via returns_not_included (kept 0 for sum safety).
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, contact_id, contact_name")
+    .eq("user_id", uid)
+    .eq("invoice_type", "sale")
+    .eq("is_voided", false)
+    .not("status", "in", "(cancelled,void,reversed)")
+    .gte("invoice_date", dateFrom)
+    .lte("invoice_date", dateTo);
+
+  if (!invoices?.length) { setData([]); return; }
+
+  const invIds = invoices.map(i => i.id);
+  const invMap = new Map(invoices.map(i => [i.id, i]));
+
+  const { data: items } = await supabase
+    .from("invoice_items")
+    .select("invoice_id, quantity, total_amount, cost_price, line_profit")
+    .in("invoice_id", invIds);
+
+  // Optional returns subtraction — query defensively (table may differ across tenants)
+  let returnsByContact: Record<string, number> = {};
+  let returnsAvailable = false;
+  try {
+    const { data: rets, error } = await supabase
+      .from("returns" as any)
+      .select("contact_id, total, status, return_type, return_date")
+      .eq("user_id", uid)
+      .eq("return_type", "sales")
+      .gte("return_date", dateFrom)
+      .lte("return_date", dateTo);
+    if (!error) {
+      returnsAvailable = true;
+      (rets || []).forEach((r: any) => {
+        if (r.status && !["confirmed", "posted"].includes(r.status)) return;
+        const k = r.contact_id || "__none__";
+        returnsByContact[k] = (returnsByContact[k] || 0) + (Number(r.total) || 0);
+      });
+    }
+  } catch {
+    returnsAvailable = false;
+  }
+
+  type Agg = { contactId: string | null; name: string; revenue: number; cogs: number; profit: number; invIds: Set<string>; missingCost: boolean };
+  const agg: Record<string, Agg> = {};
+
+  (items || []).forEach(it => {
+    const inv = invMap.get(it.invoice_id);
+    if (!inv) return;
+    const key = (inv.contact_id as string) || `__name:${inv.contact_name || "—"}`;
+    if (!agg[key]) {
+      agg[key] = { contactId: inv.contact_id || null, name: inv.contact_name || "—", revenue: 0, cogs: 0, profit: 0, invIds: new Set(), missingCost: false };
+    }
+    const row = agg[key];
+    const qty = Number(it.quantity) || 0;
+    const rev = Number(it.total_amount) || 0;
+    row.revenue += rev;
+    row.invIds.add(it.invoice_id);
+    if (it.cost_price == null) {
+      row.missingCost = true;
+    } else {
+      const cost = Number(it.cost_price) * qty;
+      row.cogs += cost;
+      row.profit += it.line_profit != null ? Number(it.line_profit) : (rev - cost);
+    }
+  });
+
+  // Make sure every invoice contributes to invCount even if it has no items
+  invoices.forEach(inv => {
+    const key = (inv.contact_id as string) || `__name:${inv.contact_name || "—"}`;
+    if (!agg[key]) agg[key] = { contactId: inv.contact_id || null, name: inv.contact_name || "—", revenue: 0, cogs: 0, profit: 0, invIds: new Set(), missingCost: false };
+    agg[key].invIds.add(inv.id);
+  });
+
+  dbg("customerProfitability", { contacts: Object.keys(agg).length, returnsAvailable });
+
+  const rows = Object.values(agg).map(a => {
+    const returnsTotal = returnsAvailable ? (returnsByContact[a.contactId || "__none__"] || 0) : 0;
+    const netRevenue = a.revenue - returnsTotal;
+    const profit = a.profit - returnsTotal; // returns reduce profit by their net amount (cost side unknown without join)
+    return {
+      name: a.name,
+      revenue: a.revenue,
+      cogs: a.cogs,
+      profit,
+      margin: netRevenue > 0 ? (profit / netRevenue * 100) : 0,
+      returns: returnsTotal,
+      invCount: a.invIds.size,
+      // Back-compat keys (older totals/columns reference these)
+      totalSales: a.revenue,
+      avgInv: a.invIds.size > 0 ? Math.round(a.revenue / a.invIds.size) : 0,
+      returns_not_included: !returnsAvailable,
+      cost_incomplete: a.missingCost,
+    };
+  }).filter(r => r.revenue > 0 || r.invCount > 0).sort((a, b) => b.profit - a.profit);
+
+  setData(rows);
 }
 
 export async function loadCustomerStatementAll(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
