@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { format, startOfMonth } from "date-fns";
 import { ArrowRight, Printer, CalendarDays, FileSpreadsheet, Search } from "lucide-react";
 import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
+import ReportEmptyState from "@/components/reports/ReportEmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
