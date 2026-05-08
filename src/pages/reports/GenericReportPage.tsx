@@ -871,33 +871,47 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   );
 
   const renderDailyTotalsTable = () => {
-    const grossTotal = data.reduce((s: number, r: any) => s + (Number(r.total) || 0), 0);
-    const returnsTotal = data.reduce((s: number, r: any) => s + (Number(r.returns) || 0), 0);
-    const netTotal = grossTotal - returnsTotal;
-    const countTotal = data.reduce((s: number, r: any) => s + (Number(r.count) || 0), 0);
+    const isPurchases = reportKey === "total-purchases";
+    const sum = (k: string) => data.reduce((s: number, r: any) => s + (Number(r[k]) || 0), 0);
+    const countTotal = sum("count");
+    const netTotal = sum("net");
+    const vatTotal = sum("vat");
+    const grossTotal = sum("total");
+    const paidTotal = sum("paid");
+    const remainingTotal = sum("remaining");
+    const returnsNetTotal = sum("returns_net");
     return (
       <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
         <th className={thClass}>التاريخ</th>
         <th className={thClass}>العدد</th>
-        <th className={thClass}>الإجمالي</th>
-        <th className={thClass}>المردودات</th>
         <th className={thClass}>الصافي</th>
+        <th className={thClass}>{isPurchases ? "ض.م المدخلات" : "ض.ق.م"}</th>
+        <th className={thClass}>الإجمالي</th>
+        <th className={thClass}>المدفوع</th>
+        <th className={thClass}>المتبقي</th>
+        <th className={thClass}>{isPurchases ? "مرتجعات (صافي)" : "مرتجعات (صافي)"}</th>
       </tr></thead><tbody>
         {data.map((r: any, i) => (
           <tr key={i} className={trClass}>
             <td className={`${tdClass} ${monoClass}`}>{r.date}</td>
             <td className={`${tdClass} text-center ${monoClass}`}>{r.count}</td>
+            <td className={`${tdClass} ${monoClass} font-bold text-emerald-600`}>{fmtAmt(r.net)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.vat)}</td>
             <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
-            <td className={`${tdClass} ${monoClass} text-destructive`}>{r.returns ? `(${fmtAmt(r.returns)})` : "—"}</td>
-            <td className={`${tdClass} ${monoClass} font-bold text-emerald-600`}>{fmtAmt((r.net ?? r.total) || 0)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.paid)}</td>
+            <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.remaining)}</td>
+            <td className={`${tdClass} ${monoClass} text-destructive`}>{r.returns_net ? `(${fmtAmt(r.returns_net)})` : "—"}</td>
           </tr>
         ))}
         <tr className="bg-muted/40 border-t-2 border-foreground/30 font-bold">
           <td className={`${tdClass} font-bold`}>الإجمالي</td>
           <td className={`${tdClass} text-center ${monoClass} font-bold`}>{countTotal}</td>
-          <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(grossTotal)}</td>
-          <td className={`${tdClass} ${monoClass} font-bold text-destructive`}>{returnsTotal ? `(${fmtAmt(returnsTotal)})` : "—"}</td>
           <td className={`${tdClass} ${monoClass} font-bold text-emerald-600`}>{fmtAmt(netTotal)}</td>
+          <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(vatTotal)}</td>
+          <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(grossTotal)}</td>
+          <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(paidTotal)}</td>
+          <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(remainingTotal)}</td>
+          <td className={`${tdClass} ${monoClass} font-bold text-destructive`}>{returnsNetTotal ? `(${fmtAmt(returnsNetTotal)})` : "—"}</td>
         </tr>
       </tbody></table></div>
     );
