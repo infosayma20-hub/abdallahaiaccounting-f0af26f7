@@ -144,7 +144,7 @@ export async function loadCustomerProfitability(uid: string, dateFrom: string, d
     agg[key].invIds.add(inv.id);
   });
 
-  dbg("customerProfitability", { contacts: Object.keys(agg).length, returnsAvailable });
+  // (debug logging intentionally omitted to avoid cross-file dep)
 
   const rows = Object.values(agg).map(a => {
     const returnsTotal = returnsAvailable ? (returnsByContact[a.contactId || "__none__"] || 0) : 0;
