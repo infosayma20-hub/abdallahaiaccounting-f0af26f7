@@ -652,7 +652,8 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "ar-aging": case "ap-aging": return { current: "sum", d30: "sum", d60: "sum", d90: "sum", over90: "sum", total: "sum" };
       case "daily-sales": return { count: "sum", sales: "sum", returns: "sum", net: "sum" };
       case "inventory-valuation": return { value: "sum" };
-      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments": return { amount: "sum" };
+      case "collections": case "supplier-payments": return { amount: "sum" };
+      case "invoice-register": case "purchase-invoice-register": return { subtotal: "sum", tax_amount: "sum", total_amount: "sum", paid_amount: "sum", remaining_amount: "sum" };
       case "sales-returns": case "purchase-returns": return { amount: "sum" };
       case "by-customer": case "by-supplier": return { count: "sum", total: "sum" };
       case "pos-daily-sales": return { discount: "sum", total: "sum" };
