@@ -41,6 +41,7 @@ export type ManagedBranchEmployee = {
   branch_id: string | null;
   company_id: string;
   manager_employee_id: string | null;
+  department: string | null;
 };
 
 /** Current employee row (the one linked to auth.uid via auth_user_id). */
@@ -152,7 +153,7 @@ export function useManagedBranchEmployees(branchId?: string | null) {
       if (!allowedBranchIds.length) return [];
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id")
+        .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
         .in("branch_id", allowedBranchIds)
         .eq("is_active", true)
         .order("full_name");
