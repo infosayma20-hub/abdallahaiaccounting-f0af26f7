@@ -74,12 +74,12 @@ export default function EmployeeFormsManagementPage() {
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && dataOwnerId) {
       fetchForms();
       fetchEmployees();
       fetchPolicies();
     }
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const fetchForms = async () => {
     if (!user) return;
@@ -93,11 +93,11 @@ export default function EmployeeFormsManagementPage() {
   };
 
   const fetchEmployees = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const { data } = await supabase
       .from("employees")
       .select("id, full_name, branch_id, branches(name)")
-      .eq("user_id", dataOwnerId!);
+      .eq("user_id", dataOwnerId);
     const map: Record<string, { name: string; branch: string }> = {};
     const branchSet = new Set<string>();
     (data || []).forEach((e: any) => {
