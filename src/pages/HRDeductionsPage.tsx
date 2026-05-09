@@ -24,6 +24,7 @@ const normalizeArabicName = (value: string = "") => value.replace(/عبدالل�
 
 export default function HRDeductionsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");

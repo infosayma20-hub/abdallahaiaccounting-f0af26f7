@@ -305,6 +305,7 @@ function computeIssue(
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   const [branches, setBranches] = useState<Branch[]>([]);

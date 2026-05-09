@@ -31,6 +31,7 @@ function yesterdayISO() {
  */
 export default function HRReadinessPanel() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [c, setC] = useState<Counts>({
     templates: 0, tomorrowRoster: 0, activeNoShift: 0,

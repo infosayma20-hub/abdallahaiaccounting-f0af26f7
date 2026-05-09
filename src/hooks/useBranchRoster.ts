@@ -48,6 +48,7 @@ export type ManagedBranchEmployee = {
 /** Current employee row (the one linked to auth.uid via auth_user_id). */
 export function useCurrentEmployee() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   return useQuery({
     queryKey: ["current-employee", user?.id],
     enabled: !!user?.id,
@@ -66,6 +67,7 @@ export function useCurrentEmployee() {
 /** Branches the current manager-employee can see (derived from team employees). */
 export function useManagerBranches() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   return useQuery({
     queryKey: ["manager-branches", user?.id],
     enabled: !!user?.id,
@@ -127,6 +129,7 @@ export function useManagerBranches() {
 /** Unified source for team members managed by the current user: branch_manager_assignments → employees.branch_id. */
 export function useManagedBranchEmployees(branchId?: string | null) {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   return useQuery({
     queryKey: ["managed-branch-employees", user?.id, branchId || "all"],
     enabled: !!user?.id,
@@ -220,6 +223,7 @@ export function useWeekRoster(branchId: string | undefined, weekStart: string | 
 export function useUpsertRoster() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   return useMutation({
     mutationFn: async (entry: Partial<RosterEntry> & {
       company_id: string;
