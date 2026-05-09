@@ -5189,6 +5189,7 @@ export type Database = {
           shift_end: string | null
           shift_id: string | null
           shift_start: string | null
+          show_in_employee_team_schedule: boolean
           sick_leave_days: number
           special_work_allowance: number | null
           spouse_allowance_amount: number | null
@@ -5261,6 +5262,7 @@ export type Database = {
           shift_end?: string | null
           shift_id?: string | null
           shift_start?: string | null
+          show_in_employee_team_schedule?: boolean
           sick_leave_days?: number
           special_work_allowance?: number | null
           spouse_allowance_amount?: number | null
@@ -5333,6 +5335,7 @@ export type Database = {
           shift_end?: string | null
           shift_id?: string | null
           shift_start?: string | null
+          show_in_employee_team_schedule?: boolean
           sick_leave_days?: number
           special_work_allowance?: number | null
           spouse_allowance_amount?: number | null
@@ -16639,6 +16642,23 @@ export type Database = {
         Returns: string
       }
       get_employee_id_for_user: { Args: { _user: string }; Returns: string }
+      get_employee_team_schedule: {
+        Args: { _end_date: string; _start_date: string }
+        Returns: {
+          branch_id: string
+          branch_name: string
+          department: string
+          employee_id: string
+          employee_name: string
+          end_time: string
+          roster_date: string
+          shift_color: string
+          shift_name: string
+          shift_template_id: string
+          start_time: string
+          status: string
+        }[]
+      }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number

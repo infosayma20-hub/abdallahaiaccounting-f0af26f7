@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useMyRoster, useShiftTemplates } from "@/hooks/useBranchRoster";
+import TeamScheduleTab from "./TeamScheduleTab";
 
 function fmtISO(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(d: Date, n: number) { const o = new Date(d); o.setDate(o.getDate() + n); return o; }
@@ -13,6 +15,7 @@ function startOfWeek(d: Date) {
 const DAY_NAMES = ["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
 
 export default function MyScheduleTab({ employeeId, companyId }: { employeeId: string | undefined; companyId?: string | undefined }) {
+  const [showTeam, setShowTeam] = useState(false);
   const weekStart = useMemo(() => startOfWeek(new Date()), []);
   const startStr = fmtISO(weekStart);
   const endStr = fmtISO(addDays(weekStart, 13)); // 2 weeks
@@ -26,11 +29,19 @@ export default function MyScheduleTab({ employeeId, companyId }: { employeeId: s
     return m;
   }, [roster]);
 
+  if (showTeam) return <TeamScheduleTab onBack={() => setShowTeam(false)} />;
+
   return (
     <div className="px-4 py-4 space-y-4 pb-24" dir="rtl">
-      <div className="flex items-center gap-2">
-        <Calendar className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-bold">دوامي للأسبوعين القادمين</h2>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-bold">دوامي للأسبوعين القادمين</h2>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setShowTeam(true)} className="gap-1">
+          <Users className="h-4 w-4" />
+          <span className="text-xs">دوام الفريق</span>
+        </Button>
       </div>
 
       {isLoading ? (
