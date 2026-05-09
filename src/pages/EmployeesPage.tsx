@@ -91,6 +91,7 @@ interface Employee {
   can_view_team?: boolean;
   can_manage_schedule?: boolean;
   can_manage_attendance?: boolean;
+  show_in_employee_team_schedule?: boolean;
 }
 
 const emptyEmployee: Partial<Employee> = {
