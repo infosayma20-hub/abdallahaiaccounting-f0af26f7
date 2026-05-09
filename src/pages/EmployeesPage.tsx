@@ -328,15 +328,32 @@ const EmployeesPage = () => {
   const handleSave = async () => {
     if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
     const payload = { ...form, user_id: user.id };
+    let savedId: string | null = editingId;
     if (editingId) {
       const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
       if (error) toast.error("خطأ في التحديث"); else { toast.success("تم التحديث"); setShowForm(false); setEditingId(null); fetchEmployees(); }
     } else {
-      const { error } = await supabase.from("employees").insert(payload as any);
+      const { data: inserted, error } = await supabase.from("employees").insert(payload as any).select("id").single();
       if (error) toast.error("خطأ في الإضافة");
-      else { toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); await ensureEmployeeAccount(form.full_name!); }
+      else {
+        savedId = inserted?.id || null;
+        toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); await ensureEmployeeAccount(form.full_name!);
+      }
+    }
+    // Sync allowed extra branches
+    if (savedId) {
+      try {
+        await supabase.from("employee_allowed_branches").delete().eq("employee_id", savedId);
+        const rows = allowedExtraBranchIds
+          .filter(bId => bId && bId !== form.branch_id)
+          .map(bId => ({ employee_id: savedId!, branch_id: bId, user_id: user.id }));
+        if (rows.length) {
+          await supabase.from("employee_allowed_branches").insert(rows);
+        }
+      } catch (e) { console.error("allowed branches sync failed", e); }
     }
     setForm(emptyEmployee);
+    setAllowedExtraBranchIds([]);
   };
 
   const handleDelete = async (id: string) => {
