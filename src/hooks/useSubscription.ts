@@ -32,10 +32,19 @@ export function useSubscription() {
     if (!user?.id) { setLoading(false); return; }
     
     try {
+      // Resolve billing owner: team accounts (HR manager, accountant, employee, ...)
+      // must inherit the subscription of the company owner — never their own.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("invited_by")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const billingOwnerId = profile?.invited_by || user.id;
+
       const { data: sub } = await supabase
         .from("subscriptions")
         .select("*, plans(*)")
-        .eq("user_id", user.id)
+        .eq("user_id", billingOwnerId)
         .in("status", ["active", "trial", "trialing", "grace", "grace_period", "past_due", "expired"])
         .order("created_at", { ascending: false })
         .limit(1)
