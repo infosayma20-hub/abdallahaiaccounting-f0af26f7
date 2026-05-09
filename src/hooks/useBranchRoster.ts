@@ -69,23 +69,22 @@ export function useManagerBranches() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   return useQuery({
-    queryKey: ["manager-branches", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["manager-branches", user?.id, dataOwnerId],
+    enabled: !!user?.id && !!dataOwnerId,
     queryFn: async (): Promise<ManagerBranch[]> => {
-      // 1) Admin / HR manager → return ALL company branches
-      let isAdmin = false;
-      if (user?.id) {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", dataOwnerId!);
-        const r = (roles || []).map((x: any) => x.role);
-        isAdmin = r.includes("admin") || r.includes("hr_manager");
-      }
+      // Check the CURRENT user's roles (HR manager team accounts hold
+      // hr_manager on their own auth uid, not on the owner's uid).
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id);
+      const r = (roles || []).map((x: any) => x.role);
+      const isAdmin = r.includes("admin") || r.includes("hr_manager") || r.includes("super_admin");
       if (isAdmin) {
         const { data: allBr, error: brErr } = await supabase
           .from("branches")
           .select("id, name, user_id")
+          .eq("user_id", dataOwnerId!)
           .eq("is_active", true)
           .order("name");
         if (brErr) {
@@ -98,7 +97,7 @@ export function useManagerBranches() {
         });
         return (allBr || []).map((b: any) => ({
           branch_id: b.id,
-          company_id: b.user_id, // tenant root = branch.user_id
+          company_id: b.user_id,
           branch_name: b.name || "—",
         }));
       }
@@ -106,7 +105,7 @@ export function useManagerBranches() {
       const { data, error } = await supabase
         .from("branch_manager_assignments")
         .select("branch_id, company_id")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", user!.id);
       if (error) throw error;
       const assignments = (data || []) as { branch_id: string; company_id: string }[];
       if (!assignments.length) return [];
@@ -131,24 +130,26 @@ export function useManagedBranchEmployees(branchId?: string | null) {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   return useQuery({
-    queryKey: ["managed-branch-employees", user?.id, branchId || "all"],
-    enabled: !!user?.id,
+    queryKey: ["managed-branch-employees", user?.id, dataOwnerId, branchId || "all"],
+    enabled: !!user?.id && !!dataOwnerId,
     queryFn: async (): Promise<ManagedBranchEmployee[]> => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", user!.id);
       const roleList = (roles || []).map((r: any) => r.role);
-      const isAdmin = roleList.length === 0 || roleList.includes("admin") || roleList.includes("hr_manager");
+      const isAdmin = roleList.includes("admin") || roleList.includes("hr_manager") || roleList.includes("super_admin");
 
       let allowedBranchIds: string[] = [];
       if (isAdmin && branchId) {
         allowedBranchIds = [branchId];
+      } else if (isAdmin && !branchId) {
+        allowedBranchIds = [];
       } else {
         const { data: assignments, error: assignmentError } = await supabase
           .from("branch_manager_assignments")
           .select("branch_id")
-          .eq("user_id", dataOwnerId!);
+          .eq("user_id", user!.id);
         if (assignmentError) throw assignmentError;
         allowedBranchIds = ((assignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
         if (branchId) allowedBranchIds = allowedBranchIds.filter((id) => id === branchId);
@@ -158,6 +159,7 @@ export function useManagedBranchEmployees(branchId?: string | null) {
       const { data, error } = await supabase
         .from("employees")
         .select("id, full_name, position, phone, branch_id, company_id, manager_employee_id, department")
+        .eq("user_id", dataOwnerId!)
         .in("branch_id", allowedBranchIds)
         .eq("is_active", true)
         .order("full_name");
