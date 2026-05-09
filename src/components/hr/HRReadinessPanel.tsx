@@ -44,11 +44,11 @@ export default function HRReadinessPanel() {
       const tomorrow = tomorrowISO();
       const yesterday = yesterdayISO();
       const [t, r, a, v, m] = await Promise.all([
-        supabase.from("work_shifts").select("id", { head: true, count: "exact" }).eq("user_id", user.id),
-        supabase.from("daily_roster").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("roster_date", tomorrow),
-        supabase.from("employees").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("is_active", true).eq("is_terminated", false).is("shift_id", null),
-        supabase.from("employees").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("is_active", true).eq("is_terminated", false).eq("show_in_employee_team_schedule", true),
-        supabase.from("attendance_days").select("id", { head: true, count: "exact" }).eq("attendance_date", yesterday).not("first_check_in", "is", null).is("last_check_out", null),
+        (supabase as any).from("work_shifts").select("id", { head: true, count: "exact" }).eq("user_id", user.id),
+        (supabase as any).from("daily_roster").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("roster_date", tomorrow),
+        (supabase as any).from("employees").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("is_active", true).eq("is_terminated", false).is("shift_id", null),
+        (supabase as any).from("employees").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("is_active", true).eq("is_terminated", false).eq("show_in_employee_team_schedule", true),
+        (supabase as any).from("attendance_days").select("id", { head: true, count: "exact" }).eq("attendance_date", yesterday).not("first_check_in", "is", null).is("last_check_out", null),
       ]);
       if (cancel) return;
       setC({
