@@ -366,14 +366,20 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
 
               {expandedId === m.id && (
                 <div className="p-3 bg-muted/20 border-t border-border">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">الصلاحيات</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
-                    {permGroups.flatMap(g => g.items).map(item => (
-                      <div key={item.key} className="flex items-center gap-1.5 text-xs">
-                        <span className={m[item.key] ? "text-green-600" : "text-red-400"}>
-                          {m[item.key] ? "✅" : "❌"}
-                        </span>
-                        <span>{item.label}</span>
+                  <p className="text-xs font-semibold text-muted-foreground mb-3">الصلاحيات (التغييرات تُحفظ تلقائياً)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {permGroups.map(group => (
+                      <div key={group.group} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+                        <p className="text-xs font-semibold text-muted-foreground">{group.group}</p>
+                        {group.items.map(item => (
+                          <div key={item.key} className="flex items-center justify-between">
+                            <span className="text-sm">{item.label}</span>
+                            <Switch
+                              checked={!!m[item.key]}
+                              onCheckedChange={(v) => updatePerm(m, item.key, v)}
+                            />
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
