@@ -427,6 +427,7 @@ const EmployeesPage = () => {
   const openEmployeeDrawer = (emp: Employee) => {
     setSelectedEmployee(emp);
     fetchEmployeeDetails(emp.id);
+    loadAllowedBranches(emp.id);
     setActiveTab("info");
     setDrawerOpen(true);
   };
@@ -940,6 +941,9 @@ const EmployeesPage = () => {
                       ["عدد الأبناء", (selectedEmployee as any).children_count || 0],
                       ["المنصب", selectedEmployee.position],
                       ["الفرع", getBranchName(selectedEmployee)],
+                      ["الفروع الفرعية", allowedExtraBranchIds.length
+                        ? allowedExtraBranchIds.map(id => branchMap[id]).filter(Boolean).join("، ")
+                        : "—"],
                       ["المسمى الوظيفي", selectedEmployee.job_title],
                       ["نوع العقد", (selectedEmployee as any).contract_type || "دائم"],
                       ["تاريخ البداية", selectedEmployee.start_date],
