@@ -411,18 +411,18 @@ const App = () => (
                       <Route path="/reports/cash-liquidity" element={<CashLiquidityPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
-                      <Route path="/employees" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard></ModuleGuard>} />
+                      <Route path="/employees" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_employees", "can_edit_employees", "can_add_employees"]}><EmployeesPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
                       <Route path="/hr" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrCommandCenter /></RoleGuard></ModuleGuard>} />
-                      <Route path="/hr/people" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard></ModuleGuard>} />
-                      <Route path="/hr/definitions" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrDefinitionsPage /></RoleGuard></ModuleGuard>} />
-                      <Route path="/hr/day-types" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrDayTypesPage /></RoleGuard></ModuleGuard>} />
-                      <Route path="/hr/shifts" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HrWorkShiftsPage /></RoleGuard></ModuleGuard>} />
-                      <Route path="/manager/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><BranchRosterPage /></RoleGuard>} />
+                      <Route path="/hr/people" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_employees", "can_edit_employees", "can_add_employees"]}><EmployeesPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
+                      <Route path="/hr/definitions" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings", "can_manage_day_types", "can_manage_shift_templates"]}><HrDefinitionsPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
+                      <Route path="/hr/day-types" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_day_types", "can_manage_hr_settings"]}><HrDayTypesPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
+                      <Route path="/hr/shifts" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_shift_templates", "can_view_roster", "can_manage_schedule"]}><HrWorkShiftsPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
+                      <Route path="/manager/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><HRPermGuard requires={["can_view_roster", "can_manage_schedule", "can_publish_roster"]}><BranchRosterPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/manager/rep-reports" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><RepReportsPage /></RoleGuard>} />
-                      <Route path="/attendance/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><BranchRosterPage /></RoleGuard>} />
+                      <Route path="/attendance/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><HRPermGuard requires={["can_view_roster", "can_manage_schedule", "can_publish_roster"]}><BranchRosterPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/hr/settings" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/employee/:id" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard>} />
-                      <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
+                      <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_forms", "can_approve_requests"]}><EmployeeFormsManagementPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/admin/sales-reps-live" element={<RoleGuard allowedRoles={["admin"]}><SalesRepsLivePage /></RoleGuard>} />
                       <Route path="/admin/sales-rep-orders" element={<RoleGuard allowedRoles={["admin"]}><SalesRepOrdersPage /></RoleGuard>} />
@@ -440,18 +440,18 @@ const App = () => (
                       <Route path="/delivery-notes/new" element={<DeliveryNoteCreatePage />} />
                       <Route path="/delivery-notes/:id" element={<DeliveryNoteCreatePage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
-                      <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_attendance"]}><HRAttendancePage /></HRPermGuard></RoleGuard>} />
+                      <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_attendance", "can_manage_attendance"]}><HRAttendancePage /></HRPermGuard></RoleGuard>} />
                       <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_advances"]}><AdvancesPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/loans" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_loans"]}><LoansPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/hr-deductions" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_deductions"]}><HRDeductionsPage /></HRPermGuard></RoleGuard>} />
-                      <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_process_payroll", "can_view_salary_info"]}><PayrollPage /></HRPermGuard></RoleGuard>} />
+                      <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_payroll", "can_process_payroll"]}><PayrollPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/payroll/inputs" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_process_payroll"]}><MonthlyPayrollInputPage /></HRPermGuard></RoleGuard>} />
-                      <Route path="/payroll/preview-all" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_process_payroll"]}><PayrollPreviewAllPage /></HRPermGuard></RoleGuard>} />
+                      <Route path="/payroll/preview-all" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_preview_payroll", "can_process_payroll"]}><PayrollPreviewAllPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/payroll/approval" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_approve_payroll"]}><PayrollApprovalCenter /></HRPermGuard></RoleGuard>} />
                       <Route path="/payroll/payment" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><PayrollPaymentCenter /></RoleGuard>} />
                       <Route path="/hr/__engine-comparison" element={<RoleGuard allowedRoles={["admin"]}><PayrollEngineComparisonPage /></RoleGuard>} />
                       <Route path="/hr/__payroll-settings-v2" element={<RoleGuard allowedRoles={["admin"]}><PayrollSettingsV2Page /></RoleGuard>} />
-                      <Route path="/leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_approve_leaves", "can_manage_leave_policy"]}><LeavesPage /></HRPermGuard></RoleGuard>} />
+                      <Route path="/leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_leaves", "can_approve_leaves", "can_manage_leave_policy"]}><LeavesPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/hr/import-employees" element={<Navigate to="/employees" replace />} />
                       <Route path="/payroll-settings" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
@@ -465,10 +465,10 @@ const App = () => (
                       <Route path="/warranty/reports" element={<WarrantyReportsPage />} />
                       <Route path="/general-ledger" element={<GeneralLedgerPage />} />
                       <Route path="/account-statement" element={<AccountStatementPage />} />
-                      <Route path="/reports/hr-payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_salary_info"]}><HRPayrollReport /></HRPermGuard></RoleGuard>} />
-                      <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_reports"]}><HRAttendanceReport /></HRPermGuard></RoleGuard>} />
-                      <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_reports"]}><HRLeaveReport /></HRPermGuard></RoleGuard>} />
-                      <Route path="/reports/hr-staff-cost" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_salary_info"]}><HRStaffCostReport /></HRPermGuard></RoleGuard>} />
+                      <Route path="/reports/hr-payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_payroll_reports", "can_view_salary_info"]}><HRPayrollReport /></HRPermGuard></RoleGuard>} />
+                      <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_attendance_reports", "can_view_hr_reports"]}><HRAttendanceReport /></HRPermGuard></RoleGuard>} />
+                      <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_leave_reports", "can_view_hr_reports"]}><HRLeaveReport /></HRPermGuard></RoleGuard>} />
+                      <Route path="/reports/hr-staff-cost" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_view_hr_staff_cost_reports", "can_view_staff_cost"]}><HRStaffCostReport /></HRPermGuard></RoleGuard>} />
                       <Route path="/reports/ar-aging" element={<GenericReportPage reportKey="ar-aging" />} />
                       <Route path="/reports/ap-aging" element={<GenericReportPage reportKey="ap-aging" />} />
                       <Route path="/reports/cash-flow" element={<GenericReportPage reportKey="cash-flow" />} />
