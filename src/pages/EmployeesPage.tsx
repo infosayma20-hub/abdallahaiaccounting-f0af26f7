@@ -164,6 +164,7 @@ const EmployeesPage = () => {
   // Reset password
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [allowedExtraBranchIds, setAllowedExtraBranchIds] = useState<string[]>([]);
   const [resettingPassword, setResettingPassword] = useState(false);
 
   const handleResetPassword = async () => {
