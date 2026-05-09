@@ -18,6 +18,7 @@ import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import RoleGuard from "./components/RoleGuard";
+import HRPermGuard from "./components/HRPermGuard";
 import InvoicesPage from "./pages/InvoicesPage";
 const ModuleGuard = lazy(() => import("./components/layout/ModuleGuard"));
 
