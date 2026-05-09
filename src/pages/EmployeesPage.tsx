@@ -969,7 +969,7 @@ const EmployeesPage = () => {
                   {/* ── Opening Balance Section ── */}
                   <EmployeeOpeningBalance
                     employee={selectedEmployee}
-                    userId={user?.id || ""}
+                    userId={dataOwnerId || user?.id || ""}
                     onSaved={() => fetchEmployeeDetails(selectedEmployee.id)}
                   />
                 </TabsContent>
@@ -1005,7 +1005,7 @@ const EmployeesPage = () => {
                     <EmployeeDeductionsTab
                       employeeId={selectedEmployee.id}
                       employeeName={selectedEmployee.full_name}
-                      userId={user.id}
+                      userId={dataOwnerId || user.id}
                       deductions={deductions}
                       onRefresh={() => fetchEmployeeDetails(selectedEmployee.id)}
                     />
@@ -1017,7 +1017,7 @@ const EmployeesPage = () => {
                     <EmployeeFinancialMovementsTab
                       employeeId={selectedEmployee.id}
                       employeeName={selectedEmployee.full_name}
-                      userId={user.id}
+                      userId={dataOwnerId || user.id}
                     />
                   )}
                 </TabsContent>
@@ -1026,7 +1026,7 @@ const EmployeesPage = () => {
                   {user && selectedEmployee && (
                     <EmployeeLeavesTab
                       employeeId={selectedEmployee.id}
-                      userId={user.id}
+                      userId={dataOwnerId || user.id}
                       employee={selectedEmployee}
                       leaves={leaves}
                       onRefresh={() => fetchEmployeeDetails(selectedEmployee.id)}
@@ -1039,7 +1039,7 @@ const EmployeesPage = () => {
                     {user && selectedEmployee && (
                       <EmployeeHRTab
                         employeeId={selectedEmployee.id}
-                        userId={user.id}
+                        userId={dataOwnerId || user.id}
                         employee={selectedEmployee}
                       />
                     )}
@@ -1396,13 +1396,13 @@ const EmployeesPage = () => {
       </Dialog>
 
       {/* Import Dialog */}
-      {user && <EmployeeImportDialog open={showImport} onClose={() => setShowImport(false)} userId={user.id} onSuccess={fetchEmployees} />}
+      {user && <EmployeeImportDialog open={showImport} onClose={() => setShowImport(false)} userId={dataOwnerId || user.id} onSuccess={fetchEmployees} />}
 
       {/* Official Holidays Dialog */}
-      {user && <OfficialHolidaysDialog open={showHolidays} onClose={() => setShowHolidays(false)} userId={user.id} />}
+      {user && <OfficialHolidaysDialog open={showHolidays} onClose={() => setShowHolidays(false)} userId={dataOwnerId || user.id} />}
 
       {/* Termination Dialog */}
-      {user && <TerminationDialog open={showTermination} onClose={() => setShowTermination(false)} employee={selectedEmployee} userId={user.id} onSuccess={() => { fetchEmployees(); setSelectedEmployee(null); setDrawerOpen(false); }} />}
+      {user && <TerminationDialog open={showTermination} onClose={() => setShowTermination(false)} employee={selectedEmployee} userId={dataOwnerId || user.id} onSuccess={() => { fetchEmployees(); setSelectedEmployee(null); setDrawerOpen(false); }} />}
 
       {/* Salary Slip Dialog */}
       <SalarySlipDialog
@@ -1426,7 +1426,7 @@ const EmployeesPage = () => {
           children_count: selectedEmployee.children_count,
           child_allowance_per_child: selectedEmployee.child_allowance_per_child,
         } : undefined}
-        userId={user?.id}
+        userId={dataOwnerId || user?.id}
       />
 
       {/* Deductions Export Dialog */}
@@ -1434,7 +1434,7 @@ const EmployeesPage = () => {
         <DeductionsExportDialog
           open={showDeductionsExport}
           onClose={() => setShowDeductionsExport(false)}
-          userId={user.id}
+          userId={dataOwnerId || user.id}
           employees={employees.map(e => ({ id: e.id, full_name: e.full_name, department: e.department, job_title: e.job_title }))}
         />
       )}
