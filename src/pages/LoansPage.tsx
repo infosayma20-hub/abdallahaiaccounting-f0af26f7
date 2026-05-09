@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ interface Employee {
 
 export default function LoansPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const { company } = useCompany();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("الكل");
@@ -647,7 +649,7 @@ export default function LoansPage() {
       <AddLoanDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        userId={user?.id || ""}
+        userId={dataOwnerId || user?.id || ""}
         companyId={company?.id || null}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["employee-loans"] });
