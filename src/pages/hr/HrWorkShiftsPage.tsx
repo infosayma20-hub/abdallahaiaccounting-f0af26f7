@@ -29,10 +29,11 @@ type WorkShift = {
 const hhmm = (t?: string | null) => (t || "").slice(0, 5);
 
 const DEFAULT_SHIFTS: Array<Omit<WorkShift, "id" | "user_id">> = [
-  { name: "صباحي",  start_time: "08:00", end_time: "16:00", break_duration_minutes: 30, late_tolerance_minutes: 15, overtime_after_minutes: 30, crosses_midnight: false, is_active: true },
-  { name: "Mid",    start_time: "12:00", end_time: "20:00", break_duration_minutes: 30, late_tolerance_minutes: 15, overtime_after_minutes: 30, crosses_midnight: false, is_active: true },
-  { name: "مسائي",  start_time: "14:00", end_time: "22:00", break_duration_minutes: 30, late_tolerance_minutes: 15, overtime_after_minutes: 30, crosses_midnight: false, is_active: true },
-  { name: "ليلي",   start_time: "22:00", end_time: "06:00", break_duration_minutes: 30, late_tolerance_minutes: 15, overtime_after_minutes: 30, crosses_midnight: true,  is_active: true },
+  // P0 Plaza Mall defaults — match the temporary fallback used in the attendance dashboard.
+  // Safe to seed: only inserted when zero shifts exist; never reassigns employees automatically.
+  { name: "صباحي", start_time: "09:00", end_time: "17:00", break_duration_minutes: 30, late_tolerance_minutes: 10, overtime_after_minutes: 30, crosses_midnight: false, is_active: true },
+  { name: "ميد",   start_time: "14:00", end_time: "22:00", break_duration_minutes: 30, late_tolerance_minutes: 10, overtime_after_minutes: 30, crosses_midnight: false, is_active: true },
+  { name: "مسائي", start_time: "17:00", end_time: "01:00", break_duration_minutes: 30, late_tolerance_minutes: 10, overtime_after_minutes: 30, crosses_midnight: true,  is_active: true },
 ];
 
 export default function HrWorkShiftsPage() {
@@ -70,10 +71,15 @@ export default function HrWorkShiftsPage() {
 
   const seedDefaults = async () => {
     if (!user) return;
+    // Safety: never overwrite. Only seed when zero templates exist.
+    if (shifts.length > 0) {
+      toast.info("الشفتات موجودة بالفعل — لم يتم تغيير شيء");
+      return;
+    }
     const rows = DEFAULT_SHIFTS.map(s => ({ ...s, user_id: user.id }));
     const { error } = await supabase.from("work_shifts").insert(rows as any);
     if (error) return toast.error(error.message);
-    toast.success("تمت تهيئة الشفتات الافتراضية");
+    toast.success("تمت تهيئة 3 شفتات افتراضية (صباحي/ميد/مسائي)");
     fetchAll();
   };
 
