@@ -164,6 +164,7 @@ const EmployeesPage = () => {
   // Reset password
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [allowedExtraBranchIds, setAllowedExtraBranchIds] = useState<string[]>([]);
   const [resettingPassword, setResettingPassword] = useState(false);
 
   const handleResetPassword = async () => {
@@ -324,18 +325,43 @@ const EmployeesPage = () => {
     } catch (err) { console.error("Error creating employee account:", err); }
   };
 
+  const loadAllowedBranches = async (empId: string) => {
+    const { data } = await supabase
+      .from("employee_allowed_branches")
+      .select("branch_id")
+      .eq("employee_id", empId);
+    setAllowedExtraBranchIds((data || []).map((r: any) => r.branch_id));
+  };
+
   const handleSave = async () => {
     if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
     const payload = { ...form, user_id: user.id };
+    let savedId: string | null = editingId;
     if (editingId) {
       const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
       if (error) toast.error("خطأ في التحديث"); else { toast.success("تم التحديث"); setShowForm(false); setEditingId(null); fetchEmployees(); }
     } else {
-      const { error } = await supabase.from("employees").insert(payload as any);
+      const { data: inserted, error } = await supabase.from("employees").insert(payload as any).select("id").single();
       if (error) toast.error("خطأ في الإضافة");
-      else { toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); await ensureEmployeeAccount(form.full_name!); }
+      else {
+        savedId = inserted?.id || null;
+        toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); await ensureEmployeeAccount(form.full_name!);
+      }
+    }
+    // Sync allowed extra branches
+    if (savedId) {
+      try {
+        await supabase.from("employee_allowed_branches").delete().eq("employee_id", savedId);
+        const rows = allowedExtraBranchIds
+          .filter(bId => bId && bId !== form.branch_id)
+          .map(bId => ({ employee_id: savedId!, branch_id: bId, user_id: user.id }));
+        if (rows.length) {
+          await supabase.from("employee_allowed_branches").insert(rows);
+        }
+      } catch (e) { console.error("allowed branches sync failed", e); }
     }
     setForm(emptyEmployee);
+    setAllowedExtraBranchIds([]);
   };
 
   const handleDelete = async (id: string) => {
@@ -566,7 +592,7 @@ const EmployeesPage = () => {
             <button onClick={() => navigate(`/hr/employee/${emp.id}`)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="ملف 360">
               <Users className="h-3.5 w-3.5 text-primary" />
             </button>
-            <button onClick={() => { setForm(emp); setEditingId(emp.id); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
+            <button onClick={() => { setForm(emp); setEditingId(emp.id); setShowForm(true); loadAllowedBranches(emp.id); }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
               <Pencil className="h-3.5 w-3.5 text-primary" />
             </button>
             <button onClick={() => navigate(`/account-statement?employee_name=${encodeURIComponent(emp.full_name)}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="كشف حساب">
@@ -596,7 +622,7 @@ const EmployeesPage = () => {
           <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
             <Download className="h-4 w-4" /> تصدير المسحوبات
           </Button>
-          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
+          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
             <Plus className="h-4 w-4" /> إضافة موظف
           </Button>
         </div>
@@ -849,7 +875,7 @@ const EmployeesPage = () => {
                     <LogOutIcon className="h-3 w-3" /> إنهاء خدمة
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
+                <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); loadAllowedBranches(selectedEmployee.id); }}><Edit className="h-3 w-3" /></Button>
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
 
@@ -1087,6 +1113,32 @@ const EmployeesPage = () => {
                   </div>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs text-muted-foreground">فروع إضافية مسموح بتسجيل الحضور فيها (اختياري)</label>
+              <div className="flex flex-wrap gap-2 mt-1 p-2 border border-border rounded-lg bg-muted/20">
+                {branchesList.filter(b => b.id !== form.branch_id).length === 0 ? (
+                  <span className="text-xs text-muted-foreground">لا توجد فروع أخرى</span>
+                ) : branchesList.filter(b => b.id !== form.branch_id).map(b => {
+                  const checked = allowedExtraBranchIds.includes(b.id);
+                  return (
+                    <label key={b.id} className={`text-xs px-2 py-1 rounded-md border cursor-pointer transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"}`}>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={checked}
+                        onChange={() => {
+                          setAllowedExtraBranchIds(prev =>
+                            prev.includes(b.id) ? prev.filter(x => x !== b.id) : [...prev, b.id]
+                          );
+                        }}
+                      />
+                      {b.name}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">يستطيع الموظف تسجيل الحضور في فرعه الأساسي + الفروع المحددة هنا.</p>
             </div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
             <div>

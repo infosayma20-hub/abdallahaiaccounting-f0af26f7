@@ -200,17 +200,40 @@ Deno.serve(async (req) => {
           branch_id, branch_owner: branch.user_id,
         });
         return new Response(
-          JSON.stringify({ error: "غير مسموح لك بتسجيل الحضور في هذا الفرع." }),
+          JSON.stringify({ error: "هذا الفرع لا يتبع شركتك." }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       // 4.c Branch assignment guard — if employee is pinned to a branch, block other branches
+      // Allowed if: matches main branch OR present in employee_allowed_branches.
       if (employee.branch_id && employee.branch_id !== branch_id) {
-        return new Response(
-          JSON.stringify({ error: "غير مسموح لك بتسجيل الحضور في هذا الفرع." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const { data: allowed } = await supabase
+          .from("employee_allowed_branches")
+          .select("id")
+          .eq("employee_id", employee.id)
+          .eq("branch_id", branch_id)
+          .maybeSingle();
+
+        if (!allowed) {
+          // Look up the employee's main branch name for a clearer message
+          const { data: mainBranch } = await supabase
+            .from("branches")
+            .select("name")
+            .eq("id", employee.branch_id)
+            .maybeSingle();
+          console.warn("[attendance] branch mismatch", {
+            employee_id: employee.id,
+            employee_main_branch: employee.branch_id,
+            scanned_branch: branch_id,
+          });
+          return new Response(
+            JSON.stringify({
+              error: `هذا QR لفرع "${branch.name}" بينما فرعك المخصص هو "${mainBranch?.name || "غير محدد"}". يرجى مراجعة الإدارة لإضافة هذا الفرع لقائمة فروعك المسموح بها.`,
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
 
       const today = new Date().toISOString().split("T")[0];
