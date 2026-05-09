@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft, Users } from "lucide-react";
+import { ChevronRight, ChevronLeft, Users, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 function fmtISO(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(d: Date, n: number) { const o = new Date(d); o.setDate(o.getDate() + n); return o; }
@@ -30,10 +31,24 @@ type Row = {
 };
 
 export default function TeamScheduleTab({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
   const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
   const startStr = fmtISO(weekStart);
   const endStr = fmtISO(addDays(weekStart, 6));
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["team-schedule-is-admin", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id);
+      const roles = (data || []).map((r: any) => r.role);
+      return roles.includes("admin") || roles.includes("hr_manager");
+    },
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["team-schedule", startStr, endStr],
@@ -60,6 +75,10 @@ export default function TeamScheduleTab({ onBack }: { onBack: () => void }) {
   }, [data]);
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+
+  // Distinguish: no visible employees configured vs no roster this week.
+  const hasVisibleEmployees = employees.length > 0;
+  const hasAnyRoster = employees.some((e) => e.days.size > 0);
 
   return (
     <div className="px-3 py-4 space-y-4 pb-24" dir="rtl">
@@ -92,9 +111,28 @@ export default function TeamScheduleTab({ onBack }: { onBack: () => void }) {
       )}
 
       {!isLoading && !isError && employees.length === 0 && (
-        <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
-          لا يوجد دوام زملاء متاح للعرض حالياً
-        </CardContent></Card>
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground space-y-2">
+            <div>لا يوجد دوام زملاء متاح للعرض حالياً</div>
+            {isAdmin && (
+              <div className="mt-3 flex items-start gap-2 justify-center text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3 max-w-md mx-auto">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="text-start">
+                  لم يتم تفعيل أي موظف للظهور في دوام الفريق. فعّل الخيار
+                  «إظهار دوام هذا الموظف للزملاء» من شاشة إدارة الموظفين.
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && !isError && hasVisibleEmployees && !hasAnyRoster && (
+        <Card>
+          <CardContent className="py-6 text-center text-xs text-muted-foreground">
+            لا يوجد دوام منشور لهذا الأسبوع
+          </CardContent>
+        </Card>
       )}
 
       {/* Mobile: per-day cards */}
