@@ -287,7 +287,7 @@ const EmployeesPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("user_roles").select("role").eq("user_id", dataOwnerId!).then(({ data }) => {
+    supabase.from("user_roles").select("role").eq("user_id", user!.id).then(({ data }) => {
       setUserRoles((data || []).map((r: any) => r.role));
     });
   }, [user]);
