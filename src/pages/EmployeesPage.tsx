@@ -1114,6 +1114,32 @@ const EmployeesPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="md:col-span-2">
+              <label className="text-xs text-muted-foreground">فروع إضافية مسموح بتسجيل الحضور فيها (اختياري)</label>
+              <div className="flex flex-wrap gap-2 mt-1 p-2 border border-border rounded-lg bg-muted/20">
+                {branchesList.filter(b => b.id !== form.branch_id).length === 0 ? (
+                  <span className="text-xs text-muted-foreground">لا توجد فروع أخرى</span>
+                ) : branchesList.filter(b => b.id !== form.branch_id).map(b => {
+                  const checked = allowedExtraBranchIds.includes(b.id);
+                  return (
+                    <label key={b.id} className={`text-xs px-2 py-1 rounded-md border cursor-pointer transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"}`}>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={checked}
+                        onChange={() => {
+                          setAllowedExtraBranchIds(prev =>
+                            prev.includes(b.id) ? prev.filter(x => x !== b.id) : [...prev, b.id]
+                          );
+                        }}
+                      />
+                      {b.name}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">يستطيع الموظف تسجيل الحضور في فرعه الأساسي + الفروع المحددة هنا.</p>
+            </div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
             <div>
               <label className="text-xs text-muted-foreground">المسمى الوظيفي (مسجَّل)</label>
