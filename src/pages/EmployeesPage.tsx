@@ -218,9 +218,9 @@ const EmployeesPage = () => {
   };
 
   const fetchEmployees = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees").select("*").eq("user_id", dataOwnerId!);
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", dataOwnerId);
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
     else {
       const sorted = ((data as any[]) || []).sort((a, b) => {
@@ -234,17 +234,17 @@ const EmployeesPage = () => {
   };
 
   const fetchBranches = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("branches").select("id, name").eq("user_id", dataOwnerId!).eq("is_active", true).order("name");
+    if (!user || !dataOwnerId) return;
+    const { data } = await supabase.from("branches").select("id, name").eq("user_id", dataOwnerId).eq("is_active", true).order("name");
     setBranchesList((data as Branch[]) || []);
   };
 
   const fetchDefinitions = async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const [dRes, jRes, sRes] = await Promise.all([
-      supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", dataOwnerId!).eq("is_deleted", false).eq("is_active", true).order("name"),
-      supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", dataOwnerId!).eq("is_deleted", false).eq("is_active", true).order("name"),
-      supabase.from("work_shifts").select("id,name,start_time,end_time").eq("user_id", dataOwnerId!).eq("is_active", true).order("start_time"),
+      supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", dataOwnerId).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", dataOwnerId).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("work_shifts").select("id,name,start_time,end_time").eq("user_id", dataOwnerId).eq("is_active", true).order("start_time"),
     ]);
     setDepartmentsList(((dRes.data as any[]) || []).map((d) => ({ id: d.id, name: d.name_ar || d.name })));
     setJobTitlesList(((jRes.data as any[]) || []).map((j) => ({ id: j.id, name: j.name_ar || j.name, department_id: j.department_id })));
@@ -264,7 +264,7 @@ const EmployeesPage = () => {
     fetchBranches();
   };
 
-  useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user]);
+  useEffect(() => { fetchEmployees(); fetchBranches(); fetchDefinitions(); }, [user, dataOwnerId]);
 
   // Deep-link: open employee drawer + (optionally) create-account dialog
   // when navigated with ?openAccount=<employeeId> from Employee360 / elsewhere.
