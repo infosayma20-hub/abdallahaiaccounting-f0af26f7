@@ -1120,8 +1120,8 @@ const EmployeesPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2">
-              <label className="text-xs text-muted-foreground">فروع إضافية مسموح بتسجيل الحضور فيها (اختياري)</label>
+            <div className="col-span-2">
+              <label className="text-xs text-muted-foreground">الفروع الفرعية (يستطيع الموظف تسجيل الحضور فيها أيضاً)</label>
               <div className="flex flex-wrap gap-2 mt-1 p-2 border border-border rounded-lg bg-muted/20">
                 {branchesList.filter(b => b.id !== form.branch_id).length === 0 ? (
                   <span className="text-xs text-muted-foreground">لا توجد فروع أخرى</span>
