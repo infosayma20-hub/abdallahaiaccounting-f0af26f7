@@ -146,8 +146,26 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
 
   const initPerms = () => {
     const defaults: Record<string, boolean> = {};
+    // Safer defaults: salary/payroll/loans/advances/deductions/exports OFF by default for HR managers.
+    const HR_OFF_BY_DEFAULT = new Set([
+      "can_delete_employees",
+      "can_view_salary_info",
+      "can_process_payroll",
+      "can_approve_payroll",
+      "can_manage_deductions",
+      "can_manage_advances",
+      "can_manage_loans",
+      "can_manage_hr_settings",
+      "can_export_hr_data",
+      "can_manage_leave_policy",
+      "can_manage_holidays",
+    ]);
     permGroups.forEach(g => g.items.forEach(i => {
-      defaults[i.key] = !i.key.includes("delete") && !i.key.includes("approve_payroll") && !i.key.includes("manage_hr_settings");
+      if (type === "hr_manager") {
+        defaults[i.key] = !HR_OFF_BY_DEFAULT.has(i.key);
+      } else {
+        defaults[i.key] = !i.key.includes("delete") && !i.key.includes("approve_payroll") && !i.key.includes("manage_hr_settings");
+      }
     }));
     setPerms(defaults);
   };
