@@ -5794,25 +5794,55 @@ export type Database = {
       hr_manager_permissions: {
         Row: {
           can_add_employees: boolean | null
+          can_approve_attendance_corrections: boolean
           can_approve_leaves: boolean | null
           can_approve_payroll: boolean | null
           can_approve_requests: boolean | null
           can_delete_employees: boolean | null
           can_edit_attendance: boolean | null
+          can_edit_employee_documents: boolean
           can_edit_employees: boolean | null
+          can_export_attendance: boolean
           can_export_hr_data: boolean | null
+          can_issue_penalties: boolean
           can_manage_advances: boolean | null
           can_manage_attendance: boolean | null
           can_manage_branches: boolean | null
+          can_manage_day_types: boolean
           can_manage_deductions: boolean | null
           can_manage_forms: boolean | null
           can_manage_holidays: boolean | null
           can_manage_hr_settings: boolean | null
           can_manage_leave_policy: boolean | null
           can_manage_loans: boolean | null
+          can_manage_schedule: boolean
+          can_manage_shift_templates: boolean
+          can_manage_team_schedule_visibility: boolean
+          can_pay_payroll: boolean
+          can_preview_payroll: boolean
+          can_print_hr_reports: boolean
           can_process_payroll: boolean | null
+          can_publish_roster: boolean
+          can_reset_employee_passwords: boolean
+          can_view_attendance: boolean
+          can_view_employee_bank_info: boolean
+          can_view_employee_documents: boolean
+          can_view_employee_portal_links: boolean
+          can_view_employee_private_info: boolean
+          can_view_employee_requests: boolean
+          can_view_employees: boolean
+          can_view_gps_qr_details: boolean
+          can_view_hr_attendance_reports: boolean
+          can_view_hr_leave_reports: boolean
+          can_view_hr_payroll_reports: boolean
           can_view_hr_reports: boolean | null
+          can_view_hr_staff_cost_reports: boolean
+          can_view_leaves: boolean
+          can_view_payroll: boolean
+          can_view_roster: boolean
           can_view_salary_info: boolean | null
+          can_view_staff_cost: boolean
+          can_view_team_schedule_admin: boolean
           created_at: string | null
           email: string
           full_name: string
@@ -5824,25 +5854,55 @@ export type Database = {
         }
         Insert: {
           can_add_employees?: boolean | null
+          can_approve_attendance_corrections?: boolean
           can_approve_leaves?: boolean | null
           can_approve_payroll?: boolean | null
           can_approve_requests?: boolean | null
           can_delete_employees?: boolean | null
           can_edit_attendance?: boolean | null
+          can_edit_employee_documents?: boolean
           can_edit_employees?: boolean | null
+          can_export_attendance?: boolean
           can_export_hr_data?: boolean | null
+          can_issue_penalties?: boolean
           can_manage_advances?: boolean | null
           can_manage_attendance?: boolean | null
           can_manage_branches?: boolean | null
+          can_manage_day_types?: boolean
           can_manage_deductions?: boolean | null
           can_manage_forms?: boolean | null
           can_manage_holidays?: boolean | null
           can_manage_hr_settings?: boolean | null
           can_manage_leave_policy?: boolean | null
           can_manage_loans?: boolean | null
+          can_manage_schedule?: boolean
+          can_manage_shift_templates?: boolean
+          can_manage_team_schedule_visibility?: boolean
+          can_pay_payroll?: boolean
+          can_preview_payroll?: boolean
+          can_print_hr_reports?: boolean
           can_process_payroll?: boolean | null
+          can_publish_roster?: boolean
+          can_reset_employee_passwords?: boolean
+          can_view_attendance?: boolean
+          can_view_employee_bank_info?: boolean
+          can_view_employee_documents?: boolean
+          can_view_employee_portal_links?: boolean
+          can_view_employee_private_info?: boolean
+          can_view_employee_requests?: boolean
+          can_view_employees?: boolean
+          can_view_gps_qr_details?: boolean
+          can_view_hr_attendance_reports?: boolean
+          can_view_hr_leave_reports?: boolean
+          can_view_hr_payroll_reports?: boolean
           can_view_hr_reports?: boolean | null
+          can_view_hr_staff_cost_reports?: boolean
+          can_view_leaves?: boolean
+          can_view_payroll?: boolean
+          can_view_roster?: boolean
           can_view_salary_info?: boolean | null
+          can_view_staff_cost?: boolean
+          can_view_team_schedule_admin?: boolean
           created_at?: string | null
           email: string
           full_name: string
@@ -5854,25 +5914,55 @@ export type Database = {
         }
         Update: {
           can_add_employees?: boolean | null
+          can_approve_attendance_corrections?: boolean
           can_approve_leaves?: boolean | null
           can_approve_payroll?: boolean | null
           can_approve_requests?: boolean | null
           can_delete_employees?: boolean | null
           can_edit_attendance?: boolean | null
+          can_edit_employee_documents?: boolean
           can_edit_employees?: boolean | null
+          can_export_attendance?: boolean
           can_export_hr_data?: boolean | null
+          can_issue_penalties?: boolean
           can_manage_advances?: boolean | null
           can_manage_attendance?: boolean | null
           can_manage_branches?: boolean | null
+          can_manage_day_types?: boolean
           can_manage_deductions?: boolean | null
           can_manage_forms?: boolean | null
           can_manage_holidays?: boolean | null
           can_manage_hr_settings?: boolean | null
           can_manage_leave_policy?: boolean | null
           can_manage_loans?: boolean | null
+          can_manage_schedule?: boolean
+          can_manage_shift_templates?: boolean
+          can_manage_team_schedule_visibility?: boolean
+          can_pay_payroll?: boolean
+          can_preview_payroll?: boolean
+          can_print_hr_reports?: boolean
           can_process_payroll?: boolean | null
+          can_publish_roster?: boolean
+          can_reset_employee_passwords?: boolean
+          can_view_attendance?: boolean
+          can_view_employee_bank_info?: boolean
+          can_view_employee_documents?: boolean
+          can_view_employee_portal_links?: boolean
+          can_view_employee_private_info?: boolean
+          can_view_employee_requests?: boolean
+          can_view_employees?: boolean
+          can_view_gps_qr_details?: boolean
+          can_view_hr_attendance_reports?: boolean
+          can_view_hr_leave_reports?: boolean
+          can_view_hr_payroll_reports?: boolean
           can_view_hr_reports?: boolean | null
+          can_view_hr_staff_cost_reports?: boolean
+          can_view_leaves?: boolean
+          can_view_payroll?: boolean
+          can_view_roster?: boolean
           can_view_salary_info?: boolean | null
+          can_view_staff_cost?: boolean
+          can_view_team_schedule_admin?: boolean
           created_at?: string | null
           email?: string
           full_name?: string
