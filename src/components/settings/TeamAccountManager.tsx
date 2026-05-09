@@ -64,37 +64,141 @@ const ACCOUNTANT_PERMS = [
 
 const HR_PERMS = [
   { group: "الموظفين", items: [
+    { key: "can_view_employees", label: "عرض قائمة الموظفين" },
     { key: "can_add_employees", label: "إضافة موظفين" },
     { key: "can_edit_employees", label: "تعديل بيانات الموظفين" },
     { key: "can_delete_employees", label: "حذف/أرشفة الموظفين" },
     { key: "can_view_salary_info", label: "عرض معلومات الرواتب" },
+    { key: "can_view_employee_documents", label: "عرض مستندات الموظف" },
+    { key: "can_edit_employee_documents", label: "تعديل/رفع مستندات الموظف" },
+    { key: "can_view_employee_bank_info", label: "عرض البيانات البنكية" },
+    { key: "can_view_employee_private_info", label: "عرض البيانات الشخصية الحساسة" },
   ]},
   { group: "الحضور", items: [
+    { key: "can_view_attendance", label: "عرض الحضور" },
     { key: "can_manage_attendance", label: "إدارة الحضور والانصراف" },
     { key: "can_edit_attendance", label: "تعديل سجلات الحضور" },
+    { key: "can_approve_attendance_corrections", label: "اعتماد طلبات تصحيح الحضور" },
+    { key: "can_issue_penalties", label: "إصدار عقوبات/إنذارات" },
     { key: "can_manage_branches", label: "إدارة الأفرع" },
+    { key: "can_view_gps_qr_details", label: "عرض تفاصيل GPS/QR" },
+    { key: "can_export_attendance", label: "تصدير الحضور" },
   ]},
-  { group: "الإجازات", items: [
+  { group: "الجدولة والورديات", items: [
+    { key: "can_view_roster", label: "عرض جدول الدوام" },
+    { key: "can_manage_schedule", label: "إدارة الجدول" },
+    { key: "can_publish_roster", label: "نشر الجدول" },
+    { key: "can_manage_shift_templates", label: "إدارة قوالب الورديات" },
+    { key: "can_manage_day_types", label: "إدارة أنواع الأيام" },
+  ]},
+  { group: "الإجازات والطلبات", items: [
+    { key: "can_view_leaves", label: "عرض الإجازات" },
     { key: "can_approve_leaves", label: "الموافقة على الإجازات" },
     { key: "can_manage_leave_policy", label: "إدارة سياسات الإجازات" },
     { key: "can_manage_holidays", label: "إدارة العطل الرسمية" },
-  ]},
-  { group: "الرواتب", items: [
-    { key: "can_process_payroll", label: "معالجة كشوف الرواتب" },
-    { key: "can_approve_payroll", label: "اعتماد الرواتب" },
-    { key: "can_manage_deductions", label: "إدارة الخصومات والبدلات" },
-    { key: "can_manage_advances", label: "إدارة السلف" },
-    { key: "can_manage_loans", label: "إدارة القروض" },
-  ]},
-  { group: "الطلبات", items: [
+    { key: "can_view_employee_requests", label: "عرض طلبات الموظفين" },
     { key: "can_approve_requests", label: "الموافقة/رفض طلبات الموظفين" },
     { key: "can_manage_forms", label: "إدارة نماذج الطلبات" },
   ]},
-  { group: "التقارير والإعدادات", items: [
-    { key: "can_view_hr_reports", label: "عرض تقارير HR" },
-    { key: "can_export_hr_data", label: "تصدير بيانات HR" },
-    { key: "can_manage_hr_settings", label: "تعديل إعدادات الرواتب" },
+  { group: "الرواتب", items: [
+    { key: "can_view_payroll", label: "عرض كشوف الرواتب" },
+    { key: "can_preview_payroll", label: "معاينة كشف الرواتب" },
+    { key: "can_process_payroll", label: "معالجة كشوف الرواتب" },
+    { key: "can_approve_payroll", label: "اعتماد الرواتب" },
+    { key: "can_pay_payroll", label: "صرف الرواتب" },
+    { key: "can_manage_deductions", label: "إدارة الخصومات والبدلات" },
+    { key: "can_manage_advances", label: "إدارة السلف" },
+    { key: "can_manage_loans", label: "إدارة القروض" },
+    { key: "can_view_staff_cost", label: "عرض إجمالي تكلفة الموظفين" },
   ]},
+  { group: "التقارير", items: [
+    { key: "can_view_hr_reports", label: "عرض تقارير HR العامة" },
+    { key: "can_view_hr_payroll_reports", label: "تقارير الرواتب" },
+    { key: "can_view_hr_attendance_reports", label: "تقارير الحضور" },
+    { key: "can_view_hr_leave_reports", label: "تقارير الإجازات" },
+    { key: "can_view_hr_staff_cost_reports", label: "تقارير تكلفة الموظفين" },
+    { key: "can_export_hr_data", label: "تصدير بيانات HR" },
+    { key: "can_print_hr_reports", label: "طباعة تقارير HR" },
+  ]},
+  { group: "الإعدادات وبوابة الموظفين", items: [
+    { key: "can_manage_hr_settings", label: "تعديل إعدادات HR/الرواتب" },
+    { key: "can_view_team_schedule_admin", label: "عرض جدول الفريق (إدارة)" },
+    { key: "can_manage_team_schedule_visibility", label: "إدارة ظهور جدول الفريق" },
+    { key: "can_view_employee_portal_links", label: "عرض روابط بوابة الموظفين" },
+    { key: "can_reset_employee_passwords", label: "إعادة تعيين كلمات مرور الموظفين" },
+  ]},
+];
+
+// Recommended HR presets — owner can still customise after applying.
+const HR_PRESETS: { id: string; label: string; keys: string[] }[] = [
+  {
+    id: "attendance_only",
+    label: "تشغيل الحضور فقط",
+    keys: [
+      "can_view_employees",
+      "can_view_attendance", "can_manage_attendance", "can_edit_attendance",
+      "can_approve_attendance_corrections",
+      "can_view_roster",
+      "can_view_employee_requests", "can_approve_requests",
+    ],
+  },
+  {
+    id: "employees_attendance",
+    label: "موظفون + حضور",
+    keys: [
+      "can_view_employees", "can_add_employees", "can_edit_employees",
+      "can_view_employee_documents",
+      "can_view_attendance", "can_manage_attendance", "can_edit_attendance",
+      "can_approve_attendance_corrections", "can_issue_penalties",
+      "can_view_roster", "can_manage_schedule", "can_publish_roster",
+      "can_view_leaves", "can_approve_leaves",
+      "can_view_employee_requests", "can_approve_requests",
+      "can_view_hr_reports", "can_view_hr_attendance_reports", "can_view_hr_leave_reports",
+    ],
+  },
+  {
+    id: "hr_no_payroll",
+    label: "HR كامل بدون رواتب",
+    keys: [
+      "can_view_employees", "can_add_employees", "can_edit_employees",
+      "can_view_employee_documents", "can_edit_employee_documents",
+      "can_view_attendance", "can_manage_attendance", "can_edit_attendance",
+      "can_approve_attendance_corrections", "can_issue_penalties",
+      "can_manage_branches", "can_view_gps_qr_details",
+      "can_view_roster", "can_manage_schedule", "can_publish_roster",
+      "can_manage_shift_templates", "can_manage_day_types",
+      "can_view_leaves", "can_approve_leaves", "can_manage_leave_policy", "can_manage_holidays",
+      "can_view_employee_requests", "can_approve_requests", "can_manage_forms",
+      "can_view_hr_reports", "can_view_hr_attendance_reports", "can_view_hr_leave_reports",
+      "can_view_employee_portal_links",
+    ],
+  },
+  {
+    id: "hr_full",
+    label: "HR كامل مع الرواتب",
+    keys: [
+      "can_view_employees", "can_add_employees", "can_edit_employees",
+      "can_view_employee_documents", "can_edit_employee_documents",
+      "can_view_employee_bank_info",
+      "can_view_salary_info",
+      "can_view_attendance", "can_manage_attendance", "can_edit_attendance",
+      "can_approve_attendance_corrections", "can_issue_penalties",
+      "can_manage_branches", "can_view_gps_qr_details", "can_export_attendance",
+      "can_view_roster", "can_manage_schedule", "can_publish_roster",
+      "can_manage_shift_templates", "can_manage_day_types",
+      "can_view_leaves", "can_approve_leaves", "can_manage_leave_policy", "can_manage_holidays",
+      "can_view_employee_requests", "can_approve_requests", "can_manage_forms",
+      "can_view_payroll", "can_preview_payroll", "can_process_payroll",
+      "can_approve_payroll", "can_manage_deductions", "can_manage_advances", "can_manage_loans",
+      "can_view_staff_cost",
+      "can_view_hr_reports", "can_view_hr_payroll_reports", "can_view_hr_attendance_reports",
+      "can_view_hr_leave_reports", "can_view_hr_staff_cost_reports",
+      "can_export_hr_data", "can_print_hr_reports",
+      "can_manage_hr_settings",
+      "can_view_team_schedule_admin", "can_manage_team_schedule_visibility",
+      "can_view_employee_portal_links", "can_reset_employee_passwords",
+    ],
+  },
 ];
 
 const ROLE_OPTIONS = {
@@ -146,28 +250,44 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
 
   const initPerms = () => {
     const defaults: Record<string, boolean> = {};
-    // Safer defaults: salary/payroll/loans/advances/deductions/exports OFF by default for HR managers.
-    const HR_OFF_BY_DEFAULT = new Set([
-      "can_delete_employees",
-      "can_view_salary_info",
-      "can_process_payroll",
-      "can_approve_payroll",
-      "can_manage_deductions",
-      "can_manage_advances",
-      "can_manage_loans",
-      "can_manage_hr_settings",
-      "can_export_hr_data",
-      "can_manage_leave_policy",
-      "can_manage_holidays",
+    // Safer defaults for new HR managers: only the basic operational toggles ON.
+    const HR_ON_BY_DEFAULT = new Set([
+      "can_view_employees", "can_edit_employees",
+      "can_view_attendance", "can_manage_attendance",
+      "can_view_roster", "can_manage_schedule",
+      "can_view_leaves", "can_view_employee_requests", "can_approve_requests",
     ]);
     permGroups.forEach(g => g.items.forEach(i => {
       if (type === "hr_manager") {
-        defaults[i.key] = !HR_OFF_BY_DEFAULT.has(i.key);
+        defaults[i.key] = HR_ON_BY_DEFAULT.has(i.key);
       } else {
         defaults[i.key] = !i.key.includes("delete") && !i.key.includes("approve_payroll") && !i.key.includes("manage_hr_settings");
       }
     }));
     setPerms(defaults);
+  };
+
+  const applyPreset = (preset: typeof HR_PRESETS[number]) => {
+    const next: Record<string, boolean> = {};
+    permGroups.forEach(g => g.items.forEach(i => {
+      next[i.key] = preset.keys.includes(i.key);
+    }));
+    setPerms(next);
+    toast.success(`تم تطبيق: ${preset.label}`);
+  };
+
+  const applyPresetToMember = async (member: any, preset: typeof HR_PRESETS[number]) => {
+    const update: Record<string, boolean> = {};
+    permGroups.forEach(g => g.items.forEach(i => {
+      update[i.key] = preset.keys.includes(i.key);
+    }));
+    const { error } = await supabase
+      .from(tableName as any)
+      .update(update as any)
+      .eq("id", member.id);
+    if (error) { toast.error("فشل تطبيق القالب"); return; }
+    toast.success(`تم تطبيق: ${preset.label}`);
+    loadMembers();
   };
 
   const handleCreate = async () => {
@@ -298,6 +418,16 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
           {/* Permissions */}
           <div className="space-y-3">
             <h4 className="font-medium text-sm text-foreground">الصلاحيات</h4>
+            {type === "hr_manager" && (
+              <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <span className="text-xs text-muted-foreground self-center ml-2">قوالب جاهزة:</span>
+                {HR_PRESETS.map(p => (
+                  <Button key={p.id} type="button" size="sm" variant="outline" onClick={() => applyPreset(p)}>
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {permGroups.map(group => (
                 <div key={group.group} className="border border-border rounded-lg p-3 space-y-2">
@@ -367,6 +497,16 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
               {expandedId === m.id && (
                 <div className="p-3 bg-muted/20 border-t border-border">
                   <p className="text-xs font-semibold text-muted-foreground mb-3">الصلاحيات (التغييرات تُحفظ تلقائياً)</p>
+                  {type === "hr_manager" && (
+                    <div className="flex flex-wrap gap-2 mb-3 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                      <span className="text-xs text-muted-foreground self-center ml-2">تطبيق قالب:</span>
+                      {HR_PRESETS.map(p => (
+                        <Button key={p.id} size="sm" variant="outline" onClick={() => applyPresetToMember(m, p)}>
+                          {p.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {permGroups.map(group => (
                       <div key={group.group} className="border border-border rounded-lg p-3 space-y-2 bg-card">
