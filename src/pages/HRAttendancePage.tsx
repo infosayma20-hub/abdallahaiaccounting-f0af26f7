@@ -1358,6 +1358,15 @@ export default function HRAttendancePage() {
                               </div>
                               <span>{r.employees?.full_name || "—"}</span>
                               {r.is_manually_adjusted && <Badge variant="outline" className="text-[10px] h-4 px-1">معدّل يدوياً</Badge>}
+                              {issue.isEstimatedShift && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] h-4 px-1 border-amber-300 bg-amber-50 text-amber-700"
+                                  title={`لم يتم تحديد وردية رسمية لهذا الموظف اليوم — تم استخدام تقدير مؤقت (${issue.estimatedLabel || "—"}). لن يُعتمد في الرواتب بدون موافقة المدير.`}
+                                >
+                                  وردية مقدّرة{issue.estimatedLabel ? ` · ${issue.estimatedLabel}` : ""}
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           <td className="px-3 py-3 text-sm">{branchName}</td>
