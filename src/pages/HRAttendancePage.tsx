@@ -163,6 +163,8 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
   graceMin: number;
   overtimeAfterMin: number;
   crossesMidnight: boolean;
+  isEstimated: boolean;
+  estimatedLabel?: "صباحي" | "ميد" | "مسائي";
 } {
   const sh = emp?.shift;
   if (sh?.start_time && sh?.end_time) {
@@ -172,6 +174,7 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
       graceMin: sh.late_tolerance_minutes ?? 0,
       overtimeAfterMin: sh.overtime_after_minutes ?? 0,
       crossesMidnight: !!sh.crosses_midnight,
+      isEstimated: false,
     };
   }
   return {
@@ -180,7 +183,38 @@ function resolveShift(emp: AttendanceRecord["employees"]): {
     graceMin: 0,
     overtimeAfterMin: 0,
     crossesMidnight: false,
+    isEstimated: false,
   };
+}
+
+/**
+ * Fallback shift estimator (display-only).
+ * Used in HR Attendance screen when an employee has NO official shift assigned
+ * (no work_shifts.shift_id) AND a first check-in exists.
+ * Buckets:
+ *   07:00 – 12:59  → صباحي  09:00–17:00
+ *   13:00 – 16:59  → ميد    14:00–22:00
+ *   17:00 – 02:59  → مسائي  17:00–01:00 (crosses midnight)
+ * Default grace = 10 min. Never written to DB; never used for payroll.
+ */
+function estimateFallbackShift(firstCheckInISO: string): {
+  start: string;
+  end: string;
+  graceMin: number;
+  overtimeAfterMin: number;
+  crossesMidnight: boolean;
+  isEstimated: true;
+  estimatedLabel: "صباحي" | "ميد" | "مسائي";
+} {
+  const h = new Date(firstCheckInISO).getHours();
+  if (h >= 7 && h <= 12) {
+    return { start: "09:00", end: "17:00", graceMin: 10, overtimeAfterMin: 30, crossesMidnight: false, isEstimated: true, estimatedLabel: "صباحي" };
+  }
+  if (h >= 13 && h <= 16) {
+    return { start: "14:00", end: "22:00", graceMin: 10, overtimeAfterMin: 30, crossesMidnight: false, isEstimated: true, estimatedLabel: "ميد" };
+  }
+  // 17:00+ or before 03:00
+  return { start: "17:00", end: "01:00", graceMin: 10, overtimeAfterMin: 30, crossesMidnight: true, isEstimated: true, estimatedLabel: "مسائي" };
 }
 
 const fmtMin = (mins: number) => {
@@ -193,8 +227,13 @@ const fmtMin = (mins: number) => {
 function computeIssue(
   r: AttendanceRecord,
   dayType: DayType = "working",
-): { text: string; severity: "ok" | "warn" | "err"; lateMin: number; earlyLeaveMin?: number; overtimeMin?: number } {
-  const sh = resolveShift(r.employees);
+): { text: string; severity: "ok" | "warn" | "err"; lateMin: number; earlyLeaveMin?: number; overtimeMin?: number; isEstimatedShift?: boolean; estimatedLabel?: string } {
+  // Prefer official shift; if none AND we have a check-in, estimate from check-in time
+  let sh: ReturnType<typeof resolveShift> | ReturnType<typeof estimateFallbackShift> = resolveShift(r.employees);
+  const hasOfficialShift = !!r.employees?.shift?.id;
+  if (!hasOfficialShift && r.first_check_in) {
+    sh = estimateFallbackShift(r.first_check_in);
+  }
 
   // Build expected shift start/end timestamps anchored on the day of check-in.
   // For overnight shifts (crosses_midnight), the expected END is the next day.
@@ -247,19 +286,19 @@ function computeIssue(
 
   if (r.status === "absent") return { text: "غياب كامل", severity: "err", lateMin: 0 };
   if (!r.first_check_in) return { text: "لم يسجل دخول", severity: "err", lateMin: 0 };
-  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin };
+  if (!r.last_check_out) return { text: "لم يسجل خروج", severity: "err", lateMin, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
 
   // Order of precedence in summary text: late > early_leave > overtime > ok
   if (lateMin > 0) {
-    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin };
+    return { text: `تأخير ${fmtMin(lateMin)}`, severity: "warn", lateMin, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
   }
   if (earlyLeaveMin >= 5) {
-    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin };
+    return { text: `انصراف مبكر ${fmtMin(earlyLeaveMin)}`, severity: "warn", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
   }
   if (overtimeMin > 0) {
-    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
+    return { text: `إضافي ${fmtMin(overtimeMin)}`, severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
   }
-  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin };
+  return { text: "—", severity: "ok", lateMin: 0, earlyLeaveMin, overtimeMin, isEstimatedShift: sh.isEstimated, estimatedLabel: sh.estimatedLabel };
 }
 
 export default function HRAttendancePage() {
