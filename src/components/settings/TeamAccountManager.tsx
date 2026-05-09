@@ -218,6 +218,19 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
     loadMembers();
   };
 
+  const updatePerm = async (member: any, key: string, value: boolean) => {
+    const { error } = await supabase
+      .from(tableName as any)
+      .update({ [key]: value } as any)
+      .eq("id", member.id);
+    if (error) {
+      toast.error("فشل تحديث الصلاحية");
+      return;
+    }
+    toast.success(value ? "تم تفعيل الصلاحية" : "تم إلغاء الصلاحية");
+    loadMembers();
+  };
+
   return (
     <div>
       <Separator className="my-6" />
