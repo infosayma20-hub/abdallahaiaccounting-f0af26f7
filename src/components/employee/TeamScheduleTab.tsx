@@ -58,7 +58,13 @@ export default function TeamScheduleTab({ onBack }: { onBack: () => void }) {
         _end_date: endStr,
       });
       if (error) throw error;
-      return (data || []) as Row[];
+      const rows = (data || []) as Row[];
+      if (import.meta.env.DEV && rows.length === 0) {
+        // Dev-only diagnostic — production users see the friendly empty-state below.
+        // eslint-disable-next-line no-console
+        console.warn("[TeamSchedule] RPC returned 0 rows", { startStr, endStr });
+      }
+      return rows;
     },
   });
 
@@ -113,13 +119,14 @@ export default function TeamScheduleTab({ onBack }: { onBack: () => void }) {
       {!isLoading && !isError && employees.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground space-y-2">
-            <div>لا يوجد دوام زملاء متاح للعرض حالياً</div>
+            <div className="font-medium">
+              لم يتم تفعيل أي موظف للظهور في دوام الفريق. يرجى من الإدارة تفعيل الموظفين المسموح عرض دوامهم.
+            </div>
             {isAdmin && (
               <div className="mt-3 flex items-start gap-2 justify-center text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3 max-w-md mx-auto">
                 <Info className="h-4 w-4 shrink-0 mt-0.5" />
                 <div className="text-start">
-                  لم يتم تفعيل أي موظف للظهور في دوام الفريق. فعّل الخيار
-                  «إظهار دوام هذا الموظف للزملاء» من شاشة إدارة الموظفين.
+                  فعّل الخيار «إظهار دوام هذا الموظف للزملاء» من ملف الموظف لكل من تريد إظهار دوامه.
                 </div>
               </div>
             )}
@@ -130,7 +137,7 @@ export default function TeamScheduleTab({ onBack }: { onBack: () => void }) {
       {!isLoading && !isError && hasVisibleEmployees && !hasAnyRoster && (
         <Card>
           <CardContent className="py-6 text-center text-xs text-muted-foreground">
-            لا يوجد دوام منشور لهذا الأسبوع
+            لا يوجد دوام منشور لهذا الأسبوع.
           </CardContent>
         </Card>
       )}
