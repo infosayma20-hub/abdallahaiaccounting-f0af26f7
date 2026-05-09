@@ -5,10 +5,13 @@ export function Table({ children, className, ...props }: React.HTMLAttributes<HT
     <div style={{
       border: '1px solid #E2E8F0',
       borderRadius: '12px',
+      overflow: 'hidden',
+      direction: 'rtl',
     }}>
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',
+        direction: 'rtl',
       }} className={className} {...props}>
         {children}
       </table>
@@ -17,7 +20,7 @@ export function Table({ children, className, ...props }: React.HTMLAttributes<HT
 }
 
 export function TableHeader({ children, className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead style={{ background: '#F1F5F9' }} className={className} {...props}>{children}</thead>;
+  return <thead style={{ background: '#0D1B2E' }} className={className} {...props}>{children}</thead>;
 }
 
 export function TableRow({ children, className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
@@ -29,12 +32,12 @@ export function TableHead({ children, className, ...props }: React.ThHTMLAttribu
     <th style={{
       padding: '10px 14px',
       textAlign: 'right',
-      fontSize: '11px',
-      fontWeight: 500,
-      color: 'hsl(var(--muted-foreground))',
-      letterSpacing: '0.4px',
+      fontSize: '12px',
+      fontWeight: 600,
+      color: '#FFFFFF',
+      letterSpacing: '0.3px',
       whiteSpace: 'nowrap',
-      borderBottom: '1px solid hsl(var(--border))'
+      borderBottom: 'none',
     }} className={className} {...props}>
       {children}
     </th>
