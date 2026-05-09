@@ -482,15 +482,15 @@ export default function HRAttendancePage() {
   };
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     setLoading(true);
     try {
       // branches with employees
-      const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", dataOwnerId!);
+      const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", dataOwnerId);
       const { data: emps } = await supabase
         .from("employees")
         .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight)")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", dataOwnerId);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
@@ -515,14 +515,14 @@ export default function HRAttendancePage() {
       const { data: hol } = await supabase
         .from("official_holidays")
         .select("holiday_date, name, is_recurring, recurring_month, recurring_day, is_active")
-        .eq("user_id", dataOwnerId!);
+        .eq("user_id", dataOwnerId);
       // Respect is_active when present; fallback to "treat as active" if column missing/null
       const activeHol = (hol || []).filter((h: any) => h.is_active !== false);
       setHolidays(activeHol as HolidayRow[]);
       const { data: lv } = await supabase
         .from("employee_leaves")
         .select("employee_id, start_date, end_date, leave_type")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", dataOwnerId)
         .eq("status", "approved")
         .lte("start_date", selectedDate)
         .gte("end_date", selectedDate);
@@ -532,7 +532,7 @@ export default function HRAttendancePage() {
       const { data: ww } = await supabase
         .from("hr_work_week_config")
         .select("weekly_off_days")
-        .eq("user_id", dataOwnerId!)
+        .eq("user_id", dataOwnerId)
         .maybeSingle();
       if (ww?.weekly_off_days && Array.isArray(ww.weekly_off_days) && ww.weekly_off_days.length > 0) {
         setWeeklyOffDays(ww.weekly_off_days as number[]);
@@ -545,7 +545,7 @@ export default function HRAttendancePage() {
       console.error(e);
     }
     setLoading(false);
-  }, [user, selectedDate, selectedBranch]);
+  }, [user, dataOwnerId, selectedDate, selectedBranch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
