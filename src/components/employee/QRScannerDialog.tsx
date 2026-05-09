@@ -101,6 +101,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         lng = pos.coords.longitude;
       } catch (geoErr) {
         console.warn("Geolocation failed, proceeding without location:", geoErr);
+        const code = (geoErr as GeolocationPositionError)?.code;
+        let msg = "تعذّر الوصول لخدمات الموقع (GPS).";
+        if (code === 1) msg = "صلاحية الموقع مرفوضة. فعّل GPS واسمح للمتصفح بالوصول للموقع، ثم أعد المحاولة.";
+        else if (code === 2) msg = "إشارة GPS غير متوفرة. تأكد من تفعيل خدمات الموقع وحاول في مكان مفتوح.";
+        else if (code === 3) msg = "انتهت مهلة تحديد الموقع. تأكد من تفعيل GPS وأعد المحاولة.";
+        setResult({ success: false, message: msg });
+        setProcessing(false);
+        return;
       }
 
       const session = await supabase.auth.getSession();
