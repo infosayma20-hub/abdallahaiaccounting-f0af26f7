@@ -95,7 +95,7 @@ export default function EmployeeFormsManagementPage() {
     const { data } = await supabase
       .from("employees")
       .select("id, full_name, branch_id, branches(name)")
-      .eq("user_id", user.id);
+      .eq("user_id", dataOwnerId!);
     const map: Record<string, { name: string; branch: string }> = {};
     const branchSet = new Set<string>();
     (data || []).forEach((e: any) => {
@@ -157,7 +157,7 @@ export default function EmployeeFormsManagementPage() {
     if (uploadErr) { toast.error("خطأ في رفع الملف"); setUploadingPolicy(false); return; }
     const { data: urlData } = supabase.storage.from("employee-forms").getPublicUrl(path);
     const { error } = await supabase.from("employee_policy_documents").insert({
-      user_id: user.id, title: policyForm.title, description: policyForm.description || null,
+      user_id: dataOwnerId, title: policyForm.title, description: policyForm.description || null,
       file_url: urlData.publicUrl, category: policyForm.category,
     } as any);
     setUploadingPolicy(false);

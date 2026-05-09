@@ -75,7 +75,7 @@ export function useManagerBranches() {
         const { data: roles } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id);
+          .eq("user_id", dataOwnerId!);
         const r = (roles || []).map((x: any) => x.role);
         isAdmin = r.includes("admin") || r.includes("hr_manager");
       }
@@ -91,7 +91,7 @@ export function useManagerBranches() {
         }
         console.debug("[useManagerBranches] admin branches loaded:", {
           count: allBr?.length || 0,
-          user_id: user?.id,
+          user_id: dataOwnerId,
         });
         return (allBr || []).map((b: any) => ({
           branch_id: b.id,
@@ -103,7 +103,7 @@ export function useManagerBranches() {
       const { data, error } = await supabase
         .from("branch_manager_assignments")
         .select("branch_id, company_id")
-        .eq("user_id", user!.id);
+        .eq("user_id", dataOwnerId!);
       if (error) throw error;
       const assignments = (data || []) as { branch_id: string; company_id: string }[];
       if (!assignments.length) return [];
@@ -133,7 +133,7 @@ export function useManagedBranchEmployees(branchId?: string | null) {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user!.id);
+        .eq("user_id", dataOwnerId!);
       const roleList = (roles || []).map((r: any) => r.role);
       const isAdmin = roleList.length === 0 || roleList.includes("admin") || roleList.includes("hr_manager");
 
@@ -144,7 +144,7 @@ export function useManagedBranchEmployees(branchId?: string | null) {
         const { data: assignments, error: assignmentError } = await supabase
           .from("branch_manager_assignments")
           .select("branch_id")
-          .eq("user_id", user!.id);
+          .eq("user_id", dataOwnerId!);
         if (assignmentError) throw assignmentError;
         allowedBranchIds = ((assignments || []) as { branch_id: string }[]).map((a) => a.branch_id);
         if (branchId) allowedBranchIds = allowedBranchIds.filter((id) => id === branchId);

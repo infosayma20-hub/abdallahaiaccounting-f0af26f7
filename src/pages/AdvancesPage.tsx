@@ -28,7 +28,7 @@ export default function AdvancesPage() {
       const { data, error } = await supabase
         .from("employee_advances")
         .select("*, employees(full_name, department)")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -45,7 +45,7 @@ export default function AdvancesPage() {
       const { data } = await supabase
         .from("employee_advance_installments")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("due_month", currentMonth)
         .eq("status", "pending");
       return data || [];
