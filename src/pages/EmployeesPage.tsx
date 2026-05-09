@@ -3,6 +3,7 @@ import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import PageHeader from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,7 @@ type SortDir = "asc" | "desc";
 
 const EmployeesPage = () => {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
@@ -218,7 +220,7 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id);
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", dataOwnerId!);
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
     else {
       const sorted = ((data as any[]) || []).sort((a, b) => {
@@ -233,16 +235,16 @@ const EmployeesPage = () => {
 
   const fetchBranches = async () => {
     if (!user) return;
-    const { data } = await supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true).order("name");
+    const { data } = await supabase.from("branches").select("id, name").eq("user_id", dataOwnerId!).eq("is_active", true).order("name");
     setBranchesList((data as Branch[]) || []);
   };
 
   const fetchDefinitions = async () => {
     if (!user) return;
     const [dRes, jRes, sRes] = await Promise.all([
-      supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
-      supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", user.id).eq("is_deleted", false).eq("is_active", true).order("name"),
-      supabase.from("work_shifts").select("id,name,start_time,end_time").eq("user_id", user.id).eq("is_active", true).order("start_time"),
+      supabase.from("departments").select("id,name,name_ar,is_active,is_deleted").eq("user_id", dataOwnerId!).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("job_titles").select("id,name,name_ar,department_id,is_active,is_deleted").eq("user_id", dataOwnerId!).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("work_shifts").select("id,name,start_time,end_time").eq("user_id", dataOwnerId!).eq("is_active", true).order("start_time"),
     ]);
     setDepartmentsList(((dRes.data as any[]) || []).map((d) => ({ id: d.id, name: d.name_ar || d.name })));
     setJobTitlesList(((jRes.data as any[]) || []).map((j) => ({ id: j.id, name: j.name_ar || j.name, department_id: j.department_id })));
@@ -252,7 +254,7 @@ const EmployeesPage = () => {
   const handleAddBranch = async () => {
     if (!user || !newBranchName.trim()) return;
     const { error } = await supabase.from("branches").insert({
-      user_id: user.id, name: newBranchName.trim(),
+      user_id: dataOwnerId, name: newBranchName.trim(),
       latitude: 0, longitude: 0, radius_meters: 100,
     } as any);
     if (error) { toast.error("خطأ في إضافة الفرع"); return; }
@@ -287,7 +289,7 @@ const EmployeesPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+    supabase.from("user_roles").select("role").eq("user_id", user!.id).then(({ data }) => {
       setUserRoles((data || []).map((r: any) => r.role));
     });
   }, [user]);
@@ -297,10 +299,10 @@ const EmployeesPage = () => {
   const fetchEmployeeDetails = async (empId: string) => {
     if (!user) return;
     const [dedRes, allRes, levRes, advRes] = await Promise.all([
-      supabase.from("employee_deductions").select("*").eq("employee_id", empId).eq("user_id", user.id).order("deduction_date", { ascending: false }),
-      supabase.from("employee_allowances").select("*").eq("employee_id", empId).eq("user_id", user.id),
-      supabase.from("employee_leaves").select("*").eq("employee_id", empId).eq("user_id", user.id).order("start_date", { ascending: false }),
-      supabase.from("employee_advances").select("*").eq("employee_id", empId).eq("user_id", user.id).in("status", ["approved", "active"]),
+      supabase.from("employee_deductions").select("*").eq("employee_id", empId).eq("user_id", dataOwnerId!).order("deduction_date", { ascending: false }),
+      supabase.from("employee_allowances").select("*").eq("employee_id", empId).eq("user_id", dataOwnerId!),
+      supabase.from("employee_leaves").select("*").eq("employee_id", empId).eq("user_id", dataOwnerId!).order("start_date", { ascending: false }),
+      supabase.from("employee_advances").select("*").eq("employee_id", empId).eq("user_id", dataOwnerId!).in("status", ["approved", "active"]),
     ]);
     setDeductions((dedRes.data as any[]) || []);
     setAllowances((allRes.data as any[]) || []);
@@ -311,16 +313,16 @@ const EmployeesPage = () => {
   const ensureEmployeeAccount = async (employeeName: string) => {
     if (!user) return;
     try {
-      const { data: parentExists } = await supabase.from("accounts").select("id").eq("user_id", user.id).eq("account_code", "2180").maybeSingle();
+      const { data: parentExists } = await supabase.from("accounts").select("id").eq("user_id", dataOwnerId!).eq("account_code", "2180").maybeSingle();
       if (!parentExists) {
-        await supabase.from("accounts").insert({ user_id: user.id, account_code: "2180", account_name: "ذمم موظفين", account_type: "التزامات", parent_code: "2100", is_system: true, is_active: true });
+        await supabase.from("accounts").insert({ user_id: dataOwnerId, account_code: "2180", account_name: "ذمم موظفين", account_type: "التزامات", parent_code: "2100", is_system: true, is_active: true });
       }
-      const { data: existingSubs } = await supabase.from("accounts").select("account_code").eq("user_id", user.id).eq("parent_code", "2180").order("account_code", { ascending: false }).limit(1);
+      const { data: existingSubs } = await supabase.from("accounts").select("account_code").eq("user_id", dataOwnerId!).eq("parent_code", "2180").order("account_code", { ascending: false }).limit(1);
       const lastCode = existingSubs?.[0]?.account_code;
       const nextCode = lastCode ? String(Number(lastCode) + 1) : "21801";
-      const { data: alreadyExists } = await supabase.from("accounts").select("id").eq("user_id", user.id).eq("account_name", `ذمم موظف - ${employeeName}`).maybeSingle();
+      const { data: alreadyExists } = await supabase.from("accounts").select("id").eq("user_id", dataOwnerId!).eq("account_name", `ذمم موظف - ${employeeName}`).maybeSingle();
       if (!alreadyExists) {
-        await supabase.from("accounts").insert({ user_id: user.id, account_code: nextCode, account_name: `ذمم موظف - ${employeeName}`, account_type: "التزامات", parent_code: "2180", is_system: false, is_active: true });
+        await supabase.from("accounts").insert({ user_id: dataOwnerId, account_code: nextCode, account_name: `ذمم موظف - ${employeeName}`, account_type: "التزامات", parent_code: "2180", is_system: false, is_active: true });
       }
     } catch (err) { console.error("Error creating employee account:", err); }
   };
@@ -335,7 +337,7 @@ const EmployeesPage = () => {
 
   const handleSave = async () => {
     if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
-    const payload = { ...form, user_id: user.id };
+    const payload = { ...form, user_id: dataOwnerId };
     let savedId: string | null = editingId;
     if (editingId) {
       const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
@@ -354,7 +356,7 @@ const EmployeesPage = () => {
         await supabase.from("employee_allowed_branches").delete().eq("employee_id", savedId);
         const rows = allowedExtraBranchIds
           .filter(bId => bId && bId !== form.branch_id)
-          .map(bId => ({ employee_id: savedId!, branch_id: bId, user_id: user.id }));
+          .map(bId => ({ employee_id: savedId!, branch_id: bId, user_id: dataOwnerId }));
         if (rows.length) {
           await supabase.from("employee_allowed_branches").insert(rows);
         }
@@ -371,11 +373,11 @@ const EmployeesPage = () => {
     if (error) { toast.error("خطأ في الحذف"); return; }
     if (employeeToDelete && user) {
       const accountName = `ذمم موظف - ${employeeToDelete.full_name}`;
-      const { data: empAccount } = await supabase.from("accounts").select("account_code").eq("user_id", user.id).eq("account_name", accountName).maybeSingle();
+      const { data: empAccount } = await supabase.from("accounts").select("account_code").eq("user_id", dataOwnerId!).eq("account_name", accountName).maybeSingle();
       if (empAccount) {
-        const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("user_id", user.id).or(`debit_account_code.eq.${empAccount.account_code},credit_account_code.eq.${empAccount.account_code}`);
-        if (!count || count === 0) await supabase.from("accounts").delete().eq("user_id", user.id).eq("account_name", accountName);
-        else await supabase.from("accounts").update({ is_active: false }).eq("user_id", user.id).eq("account_name", accountName);
+        const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("user_id", dataOwnerId!).or(`debit_account_code.eq.${empAccount.account_code},credit_account_code.eq.${empAccount.account_code}`);
+        if (!count || count === 0) await supabase.from("accounts").delete().eq("user_id", dataOwnerId!).eq("account_name", accountName);
+        else await supabase.from("accounts").update({ is_active: false }).eq("user_id", dataOwnerId!).eq("account_name", accountName);
       }
     }
     toast.success("تم الحذف");
@@ -385,13 +387,13 @@ const EmployeesPage = () => {
 
   const handleAddDeduction = async () => {
     if (!user || !selectedEmployee) return;
-    const { error } = await supabase.from("employee_deductions").insert({ ...deductionForm, employee_id: selectedEmployee.id, user_id: user.id } as any);
+    const { error } = await supabase.from("employee_deductions").insert({ ...deductionForm, employee_id: selectedEmployee.id, user_id: dataOwnerId } as any);
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowDeductionForm(false); setDeductionForm({ deduction_type: "سلفة", amount: 0, deduction_date: new Date().toISOString().split("T")[0], description: "", notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
   };
 
   const handleAddAllowance = async () => {
     if (!user || !selectedEmployee) return;
-    const { error } = await supabase.from("employee_allowances").insert({ ...allowanceForm, employee_id: selectedEmployee.id, user_id: user.id, is_active: true } as any);
+    const { error } = await supabase.from("employee_allowances").insert({ ...allowanceForm, employee_id: selectedEmployee.id, user_id: dataOwnerId, is_active: true } as any);
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowAllowanceForm(false); setAllowanceForm({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
   };
 
@@ -403,7 +405,7 @@ const EmployeesPage = () => {
     const workDays = getWorkDaysInMonth(year, month);
     const weeklyOff = getWeeklyDaysOffInMonth(year, month);
     const customAllowancesTotal = allowances.filter(a => a.is_active).reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
-    const { data: movementsData } = await supabase.from("employee_financial_movements").select("*").eq("employee_id", selectedEmployee.id).eq("user_id", user.id).eq("salary_month", month).eq("salary_year", year).eq("status", "approved").eq("movement_type", "debit");
+    const { data: movementsData } = await supabase.from("employee_financial_movements").select("*").eq("employee_id", selectedEmployee.id).eq("user_id", dataOwnerId!).eq("salary_month", month).eq("salary_year", year).eq("status", "approved").eq("movement_type", "debit");
     const movementsTotal = (movementsData || []).reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
     const legacyDeductions = deductions.filter(d => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
     const slip = calculateSalarySlip({
@@ -967,7 +969,7 @@ const EmployeesPage = () => {
                   {/* ── Opening Balance Section ── */}
                   <EmployeeOpeningBalance
                     employee={selectedEmployee}
-                    userId={user?.id || ""}
+                    userId={dataOwnerId || user?.id || ""}
                     onSaved={() => fetchEmployeeDetails(selectedEmployee.id)}
                   />
                 </TabsContent>
@@ -1003,7 +1005,7 @@ const EmployeesPage = () => {
                     <EmployeeDeductionsTab
                       employeeId={selectedEmployee.id}
                       employeeName={selectedEmployee.full_name}
-                      userId={user.id}
+                      userId={dataOwnerId || user.id}
                       deductions={deductions}
                       onRefresh={() => fetchEmployeeDetails(selectedEmployee.id)}
                     />
@@ -1015,7 +1017,7 @@ const EmployeesPage = () => {
                     <EmployeeFinancialMovementsTab
                       employeeId={selectedEmployee.id}
                       employeeName={selectedEmployee.full_name}
-                      userId={user.id}
+                      userId={dataOwnerId || user.id}
                     />
                   )}
                 </TabsContent>
@@ -1024,7 +1026,7 @@ const EmployeesPage = () => {
                   {user && selectedEmployee && (
                     <EmployeeLeavesTab
                       employeeId={selectedEmployee.id}
-                      userId={user.id}
+                      userId={dataOwnerId || user.id}
                       employee={selectedEmployee}
                       leaves={leaves}
                       onRefresh={() => fetchEmployeeDetails(selectedEmployee.id)}
@@ -1037,7 +1039,7 @@ const EmployeesPage = () => {
                     {user && selectedEmployee && (
                       <EmployeeHRTab
                         employeeId={selectedEmployee.id}
-                        userId={user.id}
+                        userId={dataOwnerId || user.id}
                         employee={selectedEmployee}
                       />
                     )}
@@ -1394,13 +1396,13 @@ const EmployeesPage = () => {
       </Dialog>
 
       {/* Import Dialog */}
-      {user && <EmployeeImportDialog open={showImport} onClose={() => setShowImport(false)} userId={user.id} onSuccess={fetchEmployees} />}
+      {user && <EmployeeImportDialog open={showImport} onClose={() => setShowImport(false)} userId={dataOwnerId || user.id} onSuccess={fetchEmployees} />}
 
       {/* Official Holidays Dialog */}
-      {user && <OfficialHolidaysDialog open={showHolidays} onClose={() => setShowHolidays(false)} userId={user.id} />}
+      {user && <OfficialHolidaysDialog open={showHolidays} onClose={() => setShowHolidays(false)} userId={dataOwnerId || user.id} />}
 
       {/* Termination Dialog */}
-      {user && <TerminationDialog open={showTermination} onClose={() => setShowTermination(false)} employee={selectedEmployee} userId={user.id} onSuccess={() => { fetchEmployees(); setSelectedEmployee(null); setDrawerOpen(false); }} />}
+      {user && <TerminationDialog open={showTermination} onClose={() => setShowTermination(false)} employee={selectedEmployee} userId={dataOwnerId || user.id} onSuccess={() => { fetchEmployees(); setSelectedEmployee(null); setDrawerOpen(false); }} />}
 
       {/* Salary Slip Dialog */}
       <SalarySlipDialog
@@ -1424,7 +1426,7 @@ const EmployeesPage = () => {
           children_count: selectedEmployee.children_count,
           child_allowance_per_child: selectedEmployee.child_allowance_per_child,
         } : undefined}
-        userId={user?.id}
+        userId={dataOwnerId || user?.id}
       />
 
       {/* Deductions Export Dialog */}
@@ -1432,7 +1434,7 @@ const EmployeesPage = () => {
         <DeductionsExportDialog
           open={showDeductionsExport}
           onClose={() => setShowDeductionsExport(false)}
-          userId={user.id}
+          userId={dataOwnerId || user.id}
           employees={employees.map(e => ({ id: e.id, full_name: e.full_name, department: e.department, job_title: e.job_title }))}
         />
       )}

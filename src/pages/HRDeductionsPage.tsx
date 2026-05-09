@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Download, Filter, ExternalLink, Trash2, Calendar } from "lucide-react";
@@ -23,6 +24,7 @@ const normalizeArabicName = (value: string = "") => value.replace(/عبدالل�
 
 export default function HRDeductionsPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");
@@ -37,7 +39,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("employees")
         .select("id, full_name, department, branch_id")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .neq("is_active", false)
         .order("full_name");
 
@@ -58,7 +60,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("branches")
         .select("id, name")
-        .eq("user_id", user!.id);
+        .eq("user_id", dataOwnerId!);
 
       if (error) {
         console.error("Failed to load branches", error);
@@ -77,7 +79,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("accounts")
         .select("account_code, account_name")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .eq("parent_code", "2180")
         .neq("is_active", false)
         .order("account_code");
@@ -99,7 +101,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("employee_deductions")
         .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .order("deduction_date", { ascending: false });
 
       if (error) {
@@ -119,7 +121,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("vouchers")
         .select("id, ref_number, description, notes, amount, date, status, linked_transaction_id, created_at")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .eq("type", "payment")
         .neq("status", "cancelled")
         .order("created_at", { ascending: false });
@@ -141,7 +143,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("transactions")
         .select("id, description, amount, transaction_date, transaction_type, payment_method, debit_account_code, credit_account_code, is_deleted, created_at")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .eq("is_deleted", false)
         .in("transaction_type", ["employee_payment", "payment"])
         .order("created_at", { ascending: false });
@@ -163,7 +165,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("employee_advances")
         .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .in("status", ["approved", "partially_paid"])
         .order("created_at", { ascending: false });
 
@@ -184,7 +186,7 @@ export default function HRDeductionsPage() {
       const { data, error } = await (supabase as any)
         .from("employee_financial_movements")
         .select("*, employees(full_name, department, branch_id)")
-        .eq("user_id", user!.id)
+        .eq("user_id", dataOwnerId!)
         .eq("source_type", "pos_meal")
         .order("created_at", { ascending: false });
 

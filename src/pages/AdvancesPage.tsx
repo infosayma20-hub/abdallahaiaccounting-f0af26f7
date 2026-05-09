@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Download } from "lucide-react";
@@ -17,6 +18,7 @@ import * as XLSX from "xlsx";
 import { setNextExportBranding } from "@/lib/excel-export";
 export default function AdvancesPage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
@@ -28,7 +30,7 @@ export default function AdvancesPage() {
       const { data, error } = await supabase
         .from("employee_advances")
         .select("*, employees(full_name, department)")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -45,7 +47,7 @@ export default function AdvancesPage() {
       const { data } = await supabase
         .from("employee_advance_installments")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("due_month", currentMonth)
         .eq("status", "pending");
       return data || [];

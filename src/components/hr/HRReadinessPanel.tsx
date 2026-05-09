@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { useNavigate } from "react-router-dom";
 
 type Counts = {
@@ -30,6 +31,7 @@ function yesterdayISO() {
  */
 export default function HRReadinessPanel() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const [c, setC] = useState<Counts>({
     templates: 0, tomorrowRoster: 0, activeNoShift: 0,
@@ -44,10 +46,10 @@ export default function HRReadinessPanel() {
       const tomorrow = tomorrowISO();
       const yesterday = yesterdayISO();
       const [t, r, a, v, m] = await Promise.all([
-        (supabase as any).from("work_shifts").select("id", { head: true, count: "exact" }).eq("user_id", user.id),
-        (supabase as any).from("daily_roster").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("roster_date", tomorrow),
-        (supabase as any).from("employees").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("is_active", true).eq("is_terminated", false).is("shift_id", null),
-        (supabase as any).from("employees").select("id", { head: true, count: "exact" }).eq("user_id", user.id).eq("is_active", true).eq("is_terminated", false).eq("show_in_employee_team_schedule", true),
+        (supabase as any).from("work_shifts").select("id", { head: true, count: "exact" }).eq("user_id", dataOwnerId!),
+        (supabase as any).from("daily_roster").select("id", { head: true, count: "exact" }).eq("user_id", dataOwnerId!).eq("roster_date", tomorrow),
+        (supabase as any).from("employees").select("id", { head: true, count: "exact" }).eq("user_id", dataOwnerId!).eq("is_active", true).eq("is_terminated", false).is("shift_id", null),
+        (supabase as any).from("employees").select("id", { head: true, count: "exact" }).eq("user_id", dataOwnerId!).eq("is_active", true).eq("is_terminated", false).eq("show_in_employee_team_schedule", true),
         (supabase as any).from("attendance_days").select("id", { head: true, count: "exact" }).eq("attendance_date", yesterday).not("first_check_in", "is", null).is("last_check_out", null),
       ]);
       if (cancel) return;

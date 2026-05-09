@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { toast } from "@/hooks/use-toast";
 import { fmtDateDisplay, cn } from "@/lib/utils";
 import {
@@ -304,6 +305,7 @@ function computeIssue(
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
+  const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -450,7 +452,7 @@ export default function HRAttendancePage() {
           if (error) throw error;
         } else {
           const { error } = await supabase.from("hr_attendance_locks").insert({
-            auth_user_id: user.id,
+            auth_user_id: dataOwnerId,
             attendance_date: selectedDate,
             status: "locked",
             locked_by: user.id,
@@ -484,11 +486,11 @@ export default function HRAttendancePage() {
     setLoading(true);
     try {
       // branches with employees
-      const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
+      const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", dataOwnerId!);
       const { data: emps } = await supabase
         .from("employees")
         .select("id, full_name, branch_id, department, job_title, shift_start, shift_end, shift_id, is_active, is_terminated, work_days_per_week, start_date, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight)")
-        .eq("user_id", user.id);
+        .eq("user_id", dataOwnerId!);
       setEmployees((emps as EmployeeLite[]) || []);
       const usedBranchIds = new Set((emps || []).map(e => e.branch_id).filter(Boolean));
       setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
@@ -513,14 +515,14 @@ export default function HRAttendancePage() {
       const { data: hol } = await supabase
         .from("official_holidays")
         .select("holiday_date, name, is_recurring, recurring_month, recurring_day, is_active")
-        .eq("user_id", user.id);
+        .eq("user_id", dataOwnerId!);
       // Respect is_active when present; fallback to "treat as active" if column missing/null
       const activeHol = (hol || []).filter((h: any) => h.is_active !== false);
       setHolidays(activeHol as HolidayRow[]);
       const { data: lv } = await supabase
         .from("employee_leaves")
         .select("employee_id, start_date, end_date, leave_type")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .eq("status", "approved")
         .lte("start_date", selectedDate)
         .gte("end_date", selectedDate);
@@ -530,7 +532,7 @@ export default function HRAttendancePage() {
       const { data: ww } = await supabase
         .from("hr_work_week_config")
         .select("weekly_off_days")
-        .eq("user_id", user.id)
+        .eq("user_id", dataOwnerId!)
         .maybeSingle();
       if (ww?.weekly_off_days && Array.isArray(ww.weekly_off_days) && ww.weekly_off_days.length > 0) {
         setWeeklyOffDays(ww.weekly_off_days as number[]);
@@ -550,7 +552,7 @@ export default function HRAttendancePage() {
   // Fetch user roles for permission gating
   useEffect(() => {
     if (!user) return;
-    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+    supabase.from("user_roles").select("role").eq("user_id", user!.id).then(({ data }) => {
       setUserRoles((data || []).map((r: any) => r.role));
     });
   }, [user]);
@@ -663,7 +665,7 @@ export default function HRAttendancePage() {
       toast({ title: "خطأ", description: "الاسم والإحداثيات مطلوبة", variant: "destructive" }); return;
     }
     const { error } = await supabase.from("branches").insert({
-      user_id: user!.id, name: branchForm.name, address: branchForm.address || null,
+      user_id: dataOwnerId, name: branchForm.name, address: branchForm.address || null,
       latitude: parseFloat(branchForm.latitude), longitude: parseFloat(branchForm.longitude),
       radius_meters: parseInt(branchForm.radius_meters) || 100,
     });
@@ -908,7 +910,7 @@ export default function HRAttendancePage() {
     }
     const { error } = await supabase.from("correction_requests").insert({
       employee_id: r.employee_id,
-      auth_user_id: user!.id,
+      auth_user_id: dataOwnerId,
       attendance_date: r.attendance_date,
       request_type: "hr_message",
       reason: `المشكلة: ${issue.text}\nرسالة HR: يرجى توضيح السبب أو تقديم طلب تصحيح بصمة.`,
@@ -1016,7 +1018,7 @@ export default function HRAttendancePage() {
       if (isDup) { dup++; continue; }
       const { error } = await supabase.from("correction_requests").insert({
         employee_id: t.employee_id,
-        auth_user_id: user!.id,
+        auth_user_id: dataOwnerId,
         attendance_date: t.attendance_date,
         request_type: "hr_message",
         reason,
