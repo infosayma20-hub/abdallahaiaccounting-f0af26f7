@@ -146,8 +146,26 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
 
   const initPerms = () => {
     const defaults: Record<string, boolean> = {};
+    // Safer defaults: salary/payroll/loans/advances/deductions/exports OFF by default for HR managers.
+    const HR_OFF_BY_DEFAULT = new Set([
+      "can_delete_employees",
+      "can_view_salary_info",
+      "can_process_payroll",
+      "can_approve_payroll",
+      "can_manage_deductions",
+      "can_manage_advances",
+      "can_manage_loans",
+      "can_manage_hr_settings",
+      "can_export_hr_data",
+      "can_manage_leave_policy",
+      "can_manage_holidays",
+    ]);
     permGroups.forEach(g => g.items.forEach(i => {
-      defaults[i.key] = !i.key.includes("delete") && !i.key.includes("approve_payroll") && !i.key.includes("manage_hr_settings");
+      if (type === "hr_manager") {
+        defaults[i.key] = !HR_OFF_BY_DEFAULT.has(i.key);
+      } else {
+        defaults[i.key] = !i.key.includes("delete") && !i.key.includes("approve_payroll") && !i.key.includes("manage_hr_settings");
+      }
     }));
     setPerms(defaults);
   };
@@ -197,6 +215,19 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
       .update({ is_active: newStatus } as any)
       .eq("id", member.id);
     toast.success(newStatus ? "تم تفعيل الحساب" : "تم تعطيل الحساب");
+    loadMembers();
+  };
+
+  const updatePerm = async (member: any, key: string, value: boolean) => {
+    const { error } = await supabase
+      .from(tableName as any)
+      .update({ [key]: value } as any)
+      .eq("id", member.id);
+    if (error) {
+      toast.error("فشل تحديث الصلاحية");
+      return;
+    }
+    toast.success(value ? "تم تفعيل الصلاحية" : "تم إلغاء الصلاحية");
     loadMembers();
   };
 
@@ -335,14 +366,20 @@ export default function TeamAccountManager({ type }: TeamAccountManagerProps) {
 
               {expandedId === m.id && (
                 <div className="p-3 bg-muted/20 border-t border-border">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">الصلاحيات</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
-                    {permGroups.flatMap(g => g.items).map(item => (
-                      <div key={item.key} className="flex items-center gap-1.5 text-xs">
-                        <span className={m[item.key] ? "text-green-600" : "text-red-400"}>
-                          {m[item.key] ? "✅" : "❌"}
-                        </span>
-                        <span>{item.label}</span>
+                  <p className="text-xs font-semibold text-muted-foreground mb-3">الصلاحيات (التغييرات تُحفظ تلقائياً)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {permGroups.map(group => (
+                      <div key={group.group} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+                        <p className="text-xs font-semibold text-muted-foreground">{group.group}</p>
+                        {group.items.map(item => (
+                          <div key={item.key} className="flex items-center justify-between">
+                            <span className="text-sm">{item.label}</span>
+                            <Switch
+                              checked={!!m[item.key]}
+                              onCheckedChange={(v) => updatePerm(m, item.key, v)}
+                            />
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
