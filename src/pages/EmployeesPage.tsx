@@ -592,7 +592,7 @@ const EmployeesPage = () => {
             <button onClick={() => navigate(`/hr/employee/${emp.id}`)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="ملف 360">
               <Users className="h-3.5 w-3.5 text-primary" />
             </button>
-            <button onClick={() => { setForm(emp); setEditingId(emp.id); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
+            <button onClick={() => { setForm(emp); setEditingId(emp.id); setShowForm(true); loadAllowedBranches(emp.id); }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
               <Pencil className="h-3.5 w-3.5 text-primary" />
             </button>
             <button onClick={() => navigate(`/account-statement?employee_name=${encodeURIComponent(emp.full_name)}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="كشف حساب">
@@ -622,7 +622,7 @@ const EmployeesPage = () => {
           <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
             <Download className="h-4 w-4" /> تصدير المسحوبات
           </Button>
-          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
+          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setAllowedExtraBranchIds([]); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
             <Plus className="h-4 w-4" /> إضافة موظف
           </Button>
         </div>
@@ -875,7 +875,7 @@ const EmployeesPage = () => {
                     <LogOutIcon className="h-3 w-3" /> إنهاء خدمة
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
+                <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); loadAllowedBranches(selectedEmployee.id); }}><Edit className="h-3 w-3" /></Button>
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
 
