@@ -1160,6 +1160,9 @@ export default function HRAttendancePage() {
         </div>
       </div>
 
+      {/* Go-Live readiness (P0) — informational only */}
+      <HRReadinessPanel />
+
       {/* Action banner */}
       {isLocked && (
         <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
