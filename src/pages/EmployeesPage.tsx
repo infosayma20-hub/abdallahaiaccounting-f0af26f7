@@ -1248,6 +1248,15 @@ const EmployeesPage = () => {
                   onChange={e => setForm({ ...form, can_manage_attendance: e.target.checked })}
                 />
               </label>
+              <label className="flex items-center justify-between gap-2 text-sm border-t pt-2 mt-1">
+                <span>إظهار دوام هذا الموظف للزملاء</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={!!form.show_in_employee_team_schedule}
+                  onChange={e => setForm({ ...form, show_in_employee_team_schedule: e.target.checked })}
+                />
+              </label>
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
