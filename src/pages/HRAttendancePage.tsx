@@ -24,6 +24,7 @@ import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
+import HRReadinessPanel from "@/components/hr/HRReadinessPanel";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
