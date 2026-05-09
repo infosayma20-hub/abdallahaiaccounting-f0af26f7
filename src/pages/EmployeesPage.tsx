@@ -325,9 +325,15 @@ const EmployeesPage = () => {
     } catch (err) { console.error("Error creating employee account:", err); }
   };
 
+  const loadAllowedBranches = async (empId: string) => {
+    const { data } = await supabase
+      .from("employee_allowed_branches")
+      .select("branch_id")
+      .eq("employee_id", empId);
+    setAllowedExtraBranchIds((data || []).map((r: any) => r.branch_id));
+  };
+
   const handleSave = async () => {
-    void 0;
-    // (helper noop kept for diff stability)
     if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
     const payload = { ...form, user_id: user.id };
     let savedId: string | null = editingId;
