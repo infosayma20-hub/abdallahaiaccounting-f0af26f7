@@ -420,7 +420,7 @@ const App = () => (
                       <Route path="/manager/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><BranchRosterPage /></RoleGuard>} />
                       <Route path="/manager/rep-reports" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><RepReportsPage /></RoleGuard>} />
                       <Route path="/attendance/roster" element={<RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><BranchRosterPage /></RoleGuard>} />
-                      <Route path="/hr/settings" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollSettingsPage /></RoleGuard></ModuleGuard>} />
+                      <Route path="/hr/settings" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard></ModuleGuard>} />
                       <Route path="/hr/employee/:id" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard>} />
                       <Route path="/employee-forms-management" element={<ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard></ModuleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
