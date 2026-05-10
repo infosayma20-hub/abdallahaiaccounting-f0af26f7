@@ -28,12 +28,27 @@ export function useDataOwnerId(): { dataOwnerId: string | null; userId: string |
       return;
     }
     let cancelled = false;
-    supabase
-      .rpc("get_team_owner_id", { _user_id: user.id })
-      .then(({ data }) => {
-        if (cancelled) return;
-        setDataOwnerId(((data as string) || user.id) ?? null);
-      });
+    (async () => {
+      const { data, error } = await supabase.rpc("get_team_owner_id", { _user_id: user.id });
+      if (cancelled) return;
+
+      if (!error && data) {
+        setDataOwnerId(data as string);
+        return;
+      }
+
+      // Safety net for team accounts: never silently fall back to auth.uid()
+      // before checking profiles.invited_by, otherwise HR managers read an empty tenant.
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("invited_by")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (profileError) console.error("[useDataOwnerId] owner resolution failed", { error, profileError });
+      setDataOwnerId(((profile as any)?.invited_by as string | null) || user.id);
+    })();
     return () => {
       cancelled = true;
     };
