@@ -524,8 +524,8 @@ export default function EmployeeFormsManagementPage() {
                   <div className="flex items-center justify-between p-3 border-t border-border">
                     <span className="text-xs text-muted-foreground">صفحة {page} من {totalPages}</span>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronRight className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 )}
