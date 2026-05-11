@@ -78,7 +78,7 @@ export default function EmployeeFormsManagementPage() {
   const [search, setSearch] = useState("");
   const [searchParams] = useSearchParams();
   const [filterType, setFilterType] = useState(searchParams.get("type") || "all");
-  const [filterStatus, setFilterStatus] = useState("pending");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
   const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = useState("all");
