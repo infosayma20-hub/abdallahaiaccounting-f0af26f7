@@ -191,6 +191,20 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       }
     }
 
+    // Attach loan eligibility snapshot
+    if (activeForm === "loan_request") {
+      const elig = evaluateLoanEligibility({
+        loanAmount: submitData.loan_amount,
+        installments: submitData.installments,
+        workStartDate: submitData.work_start_date || employeeProfile?.start_date,
+        baseSalary: submitData.salary || employeeProfile?.base_salary,
+      });
+      submitData.eligibility_status = elig.eligibility_status;
+      submitData.eligibility_reason = elig.eligibility_reason;
+      if (elig.calculated_loan_limit != null) submitData.calculated_loan_limit = String(elig.calculated_loan_limit);
+      if (elig.months_of_service != null) submitData.months_of_service = String(elig.months_of_service);
+    }
+
     // Validate before submission
     const v = validateEmployeeForm(activeForm, submitData);
     if (v.ok === false) {
