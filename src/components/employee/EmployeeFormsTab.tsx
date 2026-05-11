@@ -138,7 +138,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       .select("id, full_name, branch_id, department_id, base_salary, start_date")
       .eq("id", employeeId)
       .maybeSingle();
-    if (data) setEmployeeProfile(data);
+    if (!data) return;
+    let branchName = "";
+    if (data.branch_id) {
+      const { data: br } = await supabase
+        .from("branches_safe")
+        .select("name")
+        .eq("id", data.branch_id)
+        .maybeSingle();
+      branchName = br?.name || "";
+    }
+    setEmployeeProfile({ ...data, branch_name: branchName });
   };
 
   // Auto-prefill loan form when opened
@@ -146,7 +156,8 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     if (activeForm !== "loan_request" || !employeeProfile) return;
     setFormData((prev) => ({
       full_name: prev.full_name || employeeProfile.full_name || "",
-      branch: prev.branch || employeeProfile.branch_id || "",
+      branch: prev.branch || employeeProfile.branch_name || "",
+      branch_id: prev.branch_id || employeeProfile.branch_id || "",
       work_start_date: prev.work_start_date || employeeProfile.start_date || "",
       salary: prev.salary || (employeeProfile.base_salary ? String(employeeProfile.base_salary) : ""),
       ...prev,
