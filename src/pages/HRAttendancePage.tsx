@@ -354,6 +354,25 @@ export default function HRAttendancePage() {
   // Indicator
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
 
+  // Apply ?filter= and ?tab= query params (e.g. from HR Dashboard "بصمات ناقصة" KPI)
+  useEffect(() => {
+    const f = searchParams.get("filter") || searchParams.get("issue");
+    const tab = searchParams.get("tab");
+    if (f) {
+      const allowed: RowFilter[] = ["all", "issues", "present", "late", "absent", "incomplete", "missing_checkin", "missing_checkout"];
+      const mapped = (f === "incomplete_punches" ? "incomplete" : f) as RowFilter;
+      if (allowed.includes(mapped)) {
+        setFilter(mapped);
+        setActiveTab("live");
+        setAlertsOpen(false);
+      }
+    }
+    if (tab === "corrections" || tab === "monthly" || tab === "reports" || tab === "live") {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Bulk selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
