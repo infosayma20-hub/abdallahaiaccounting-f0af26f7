@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart,
-  Users, CalendarDays, ClipboardCheck, Shield
+  Users, CalendarDays, ClipboardCheck, Shield, Receipt, Wallet
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -402,7 +402,8 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
       {/* Quick Links */}
       <div className="grid grid-cols-2 gap-2">
         {[
-          { icon: ClipboardList, label: "سجلي الكامل", tab: "history" },
+          { icon: Receipt, label: "قسائم الراتب", tab: "payslips" },
+          { icon: Wallet, label: "ملخصي المالي", tab: "financials" },
           { icon: Send, label: "النماذج والطلبات", tab: "forms" },
           { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
           { icon: User, label: "ملفي الشخصي", tab: "profile" },
