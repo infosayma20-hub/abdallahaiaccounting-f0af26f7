@@ -21,7 +21,7 @@ export function HRShell({ children }: { children: ReactNode }) {
   return (
     <>
       <div
-        className="sticky top-0 z-40 -mx-5 lg:-mx-8 -mt-5 lg:-mt-8 mb-4 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-b border-border shadow-sm"
+        className="sticky top-0 z-40 -mx-5 lg:-mx-8 -mt-5 lg:-mt-8 mb-4 bg-card border-b border-border shadow-sm"
       >
         <HRTopNav />
         {showPayrollNav && <PayrollSubNav />}
