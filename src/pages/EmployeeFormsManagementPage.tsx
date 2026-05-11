@@ -28,6 +28,7 @@ import {
 import { displayReason } from "@/lib/hrMessages";
 import { getRequestSummary, getDetailGroups } from "@/lib/employeeRequestDisplay";
 import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
+import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -326,8 +327,13 @@ export default function EmployeeFormsManagementPage() {
                   </SelectContent>
                 </Select>
               )}
-              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="w-[150px] h-9" dir="ltr" />
-              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="w-[150px] h-9" dir="ltr" />
+              <HRDateRangeFilter
+                from={dateFrom}
+                to={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(1); }}
+                onToChange={(v) => { setDateTo(v); setPage(1); }}
+                fieldClassName="w-[160px]"
+              />
             </div>
 
             {/* Table */}
