@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { tFormType } from "@/lib/hrLabels";
 
 interface EmployeeLite {
   id: string;
@@ -44,11 +45,21 @@ const FORM_TYPE_AR: Record<string, { label: string; icon: any }> = {
   correction_request: { label: "تصحيح بصمة", icon: Fingerprint },
   overtime_request: { label: "طلب أوفر تايم", icon: Clock },
   hr_message: { label: "رسالة لـ HR", icon: MessageSquare },
+  complaint: { label: "شكوى وملاحظات", icon: MessageSquare },
+  complaints: { label: "شكوى وملاحظات", icon: MessageSquare },
+  employee_info: { label: "معلومات الموظف", icon: FileText },
+  birthday_whatsapp: { label: "معلومات الموظف", icon: FileText },
+  disciplinary_action: { label: "إجراء عقابي", icon: FileText },
   other: { label: "أخرى", icon: HelpCircle },
 };
 
-const formTypeMeta = (t: string) =>
-  FORM_TYPE_AR[t] ?? { label: t || "أخرى", icon: FileText };
+const formTypeMeta = (t: string) => {
+  const hit = FORM_TYPE_AR[t];
+  if (hit) return hit;
+  // fallback: use shared Arabic helper, never expose raw English keys
+  const arabic = tFormType(t);
+  return { label: arabic && arabic !== t ? arabic : "أخرى", icon: FileText };
+};
 
 const STATUS_AR: Record<string, string> = {
   pending: "قيد المراجعة",
