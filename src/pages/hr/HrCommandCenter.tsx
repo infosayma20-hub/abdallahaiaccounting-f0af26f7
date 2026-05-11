@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHrCommandCenter } from "@/hooks/hr/useHrCommandCenter";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -22,6 +23,8 @@ import {
   Banknote,
   ClipboardList,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { HrKpiCard } from "./components/HrKpiCard";
 import { HrAttendanceToday } from "./components/HrAttendanceToday";
@@ -41,6 +44,19 @@ export default function HrCommandCenter() {
   const navigate = useNavigate();
   const [branchFilter, setBranchFilter] = useState<string>(ALL);
   const [deptFilter, setDeptFilter] = useState<string>(ALL);
+  const [showSummary, setShowSummary] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("hr:summary:hidden") !== "1";
+  });
+  const toggleSummary = () => {
+    setShowSummary((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("hr:summary:hidden", next ? "0" : "1");
+      } catch {}
+      return next;
+    });
+  };
 
   const { data, isLoading, isError, error } = useHrCommandCenter({
     branchId: branchFilter === ALL ? null : branchFilter,
@@ -230,25 +246,49 @@ export default function HrCommandCenter() {
 
       {/* ─── ملخص اليوم — قسم ثابت ─── */}
       <div className="border-t pt-4 space-y-5">
-        <h2 className="text-sm font-semibold text-foreground text-right">
-          ملخص اليوم
-        </h2>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <HrAttendanceToday employees={employees} />
-          <HrRequestsPanel
-            pendingRequests={pendingRequests}
-            employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
-          />
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSummary}
+            className="h-8 gap-1 text-xs"
+          >
+            {showSummary ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                إخفاء
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                عرض
+              </>
+            )}
+          </Button>
+          <h2 className="text-sm font-semibold text-foreground text-right">
+            ملخص اليوم
+          </h2>
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-right flex items-center justify-end gap-2">
-            <BarChart3 className="h-4 w-4" />
-            التحليلات
-          </h3>
-          <HrCharts charts={charts} />
-        </div>
+        {showSummary && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <HrAttendanceToday employees={employees} />
+              <HrRequestsPanel
+                pendingRequests={pendingRequests}
+                employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-right flex items-center justify-end gap-2">
+                <BarChart3 className="h-4 w-4" />
+                التحليلات
+              </h3>
+              <HrCharts charts={charts} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
