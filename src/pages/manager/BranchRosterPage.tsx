@@ -84,12 +84,57 @@ export default function BranchRosterPage() {
 
   const upsert = useUpsertRoster();
   const del = useDeleteRosterEntry();
+  const [copying, setCopying] = useState(false);
 
   const rosterMap = useMemo(() => {
     const m = new Map<string, RosterEntry>();
     roster.forEach((r) => m.set(`${r.employee_id}|${r.roster_date}`, r));
     return m;
   }, [roster]);
+
+  const isWeekEmpty = !rLoading && employees.length > 0 && roster.length === 0;
+
+  async function copyFromPreviousWeek() {
+    if (!effectiveBranchId || !companyId) return;
+    const prevStart = fmtISO(addDays(weekAnchor, -7));
+    const prevEnd = fmtISO(addDays(weekAnchor, -1));
+    setCopying(true);
+    try {
+      const { data, error } = await supabase
+        .from("daily_roster")
+        .select("*")
+        .eq("branch_id", effectiveBranchId)
+        .gte("roster_date", prevStart)
+        .lte("roster_date", prevEnd);
+      if (error) throw error;
+      const prev = (data || []) as RosterEntry[];
+      if (!prev.length) {
+        toast.info("لا يوجد جدول للأسبوع السابق لنسخه");
+        return;
+      }
+      let ok = 0;
+      for (const r of prev) {
+        const newDate = fmtISO(addDays(new Date(r.roster_date + "T00:00:00"), 7));
+        try {
+          await upsert.mutateAsync({
+            company_id: companyId,
+            branch_id: effectiveBranchId,
+            employee_id: r.employee_id,
+            roster_date: newDate,
+            shift_template_id: r.shift_template_id ?? null,
+            status: r.status,
+            notes: (r as any).notes ?? null,
+          } as any);
+          ok++;
+        } catch {/* skip */}
+      }
+      toast.success(`تم نسخ ${ok} وردية من الأسبوع السابق`);
+    } catch (e: any) {
+      toast.error(e?.message || "فشل النسخ");
+    } finally {
+      setCopying(false);
+    }
+  }
 
   const [cell, setCell] = useState<CellState | null>(null);
   const [search, setSearch] = useState("");
@@ -218,6 +263,27 @@ export default function BranchRosterPage() {
           </div>
         ))}
       </div>
+
+      {isWeekEmpty && (
+        <div className="rounded-2xl border border-dashed bg-muted/20 p-8 text-center space-y-4">
+          <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50" />
+          <div>
+            <h2 className="text-lg font-bold">لا يوجد جدول دوام لهذا الأسبوع</h2>
+            <p className="text-sm text-muted-foreground mt-1">ابدأ بإنشاء جدول جديد، أو انسخ ورديات من الأسبوع السابق.</p>
+          </div>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Button onClick={copyFromPreviousWeek} disabled={copying}>
+              {copying ? "جارٍ النسخ…" : "نسخ من الأسبوع السابق"}
+            </Button>
+            <Button variant="outline" onClick={() => setWeekAnchor(startOfWeek(new Date()))}>هذا الأسبوع</Button>
+            {employees[0] && (
+              <Button variant="outline" onClick={() => setCell({ employeeId: (employees[0] as any).id, date: fmtISO(weekAnchor), existing: null })}>
+                إنشاء أول وردية
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mobile day picker */}
       <div className="md:hidden">

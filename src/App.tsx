@@ -155,6 +155,7 @@ const HrCommandCenter = lazy(() => import("./pages/hr/HrCommandCenter"));
 const HrDefinitionsPage = lazy(() => import("./pages/hr/HrDefinitionsPage"));
 const HrDayTypesPage = lazy(() => import("./pages/hr/HrDayTypesPage"));
 const HrWorkShiftsPage = lazy(() => import("./pages/hr/HrWorkShiftsPage"));
+const HrSettingsPage = lazy(() => import("./pages/hr/HrSettingsPage"));
 const BranchRosterPage = lazy(() => import("./pages/manager/BranchRosterPage"));
 const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
 const PayrollEngineComparisonPage = lazy(() => import("./pages/hr/__internal/PayrollEngineComparisonPage"));
@@ -421,7 +422,7 @@ const App = () => (
                       <Route path="/manager/roster" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><HRPermGuard requires={["can_view_roster", "can_manage_schedule", "can_publish_roster"]}><BranchRosterPage /></HRPermGuard></RoleGuard></HRShell>} />
                       <Route path="/manager/rep-reports" element={<RoleGuard allowedRoles={["admin", "accountant_senior"]}><RepReportsPage /></RoleGuard>} />
                       <Route path="/attendance/roster" element={<HRShell><RoleGuard allowedRoles={["admin", "hr_manager", "branch_scheduler"]} allowEmployeePerm="can_manage_schedule"><HRPermGuard requires={["can_view_roster", "can_manage_schedule", "can_publish_roster"]}><BranchRosterPage /></HRPermGuard></RoleGuard></HRShell>} />
-                      <Route path="/hr/settings" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><PayrollSettingsPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
+                      <Route path="/hr/settings" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_hr_settings"]}><HrSettingsPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/hr/employee/:id" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><Employee360Page /></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/employee-forms-management" element={<HRShell><ModuleGuard><RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPermGuard requires={["can_manage_forms", "can_approve_requests"]}><EmployeeFormsManagementPage /></HRPermGuard></RoleGuard></ModuleGuard></HRShell>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
