@@ -94,6 +94,7 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
           <button
             key={a.to}
             type="button"
+            dir="rtl"
             onClick={(e) => {
               e.stopPropagation();
               navigate(a.to);
@@ -101,14 +102,16 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
             className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-right
                        hover:bg-muted/60 transition-colors group"
           >
-            <div className="flex items-center gap-1.5 justify-end min-w-0 flex-1 text-right">
+            {/* النص + العداد على اليمين */}
+            <div className="flex items-center gap-1.5 min-w-0 flex-1 text-right">
+              <span className="text-xs font-medium text-foreground truncate text-right">{a.label}</span>
               {a.count != null && a.count > 0 && (
                 <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md", t.chip, "border-0")}>
                   {a.count}
                 </span>
               )}
-              <span className="text-xs font-medium text-foreground truncate text-right">{a.label}</span>
             </div>
+            {/* السهم على الشمال */}
             <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors shrink-0" />
           </button>
         ))}
