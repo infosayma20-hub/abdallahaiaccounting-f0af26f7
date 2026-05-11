@@ -224,7 +224,7 @@ export default function HrCommandCenter() {
           hint={totals.incompletePunchesToday > 0 ? "دخول بدون خروج اليوم" : "كل البصمات مكتملة"}
           Icon={AlertTriangle}
           tone={totals.incompletePunchesToday > 0 ? "warning" : "positive"}
-          onClick={() => navigate("/hr-attendance")}
+          onClick={() => navigate("/hr-attendance?filter=incomplete")}
         />
         <HrKpiCard
           label="طلبات معلقة"
