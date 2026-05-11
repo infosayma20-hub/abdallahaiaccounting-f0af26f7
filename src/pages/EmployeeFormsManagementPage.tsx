@@ -369,27 +369,39 @@ export default function EmployeeFormsManagementPage() {
                                     <>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
                                         onClick={() => handleAction("approved", f)}
-                                        disabled={!!processing} title="موافقة">
+                                        disabled={!!processing} title="موافقة" aria-label="موافقة">
                                         {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                                       </Button>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                         onClick={() => handleAction("rejected", f)}
-                                        disabled={!!processing} title="رفض">
+                                        disabled={!!processing} title="رفض" aria-label="رفض">
                                         {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
                                       </Button>
                                     </>
                                   )}
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
                                     <Eye className="h-3.5 w-3.5" />
                                   </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/10" title="طباعة" onClick={() => setPrintForm(f)}>
-                                    <Printer className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleDelete(f)}
-                                    disabled={!!processing} title="حذف">
-                                    {processing === f.id + "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="المزيد" aria-label="المزيد">
+                                        <MoreHorizontal className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="min-w-[140px]">
+                                      <DropdownMenuItem onClick={() => setPrintForm(f)} className="gap-2">
+                                        <Printer className="h-3.5 w-3.5" /> طباعة
+                                      </DropdownMenuItem>
+                                      {canDelete && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => handleDelete(f)} disabled={!!processing} className="gap-2 text-destructive focus:text-destructive">
+                                            <Trash2 className="h-3.5 w-3.5" /> حذف
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableCell>
                               <TableCell>
