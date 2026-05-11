@@ -180,7 +180,7 @@ export default function HrCommandCenter() {
               { label: "قائمة الموظفين", to: "/employees", count: totals.total },
               { label: "الأقسام والمسميات الوظيفية", to: "/hr/definitions" },
               { label: "أنواع الأيام والعطل الرسمية", to: "/hr/day-types" },
-              { label: "إدارة الفروع", to: "/settings?tab=branches" },
+              { label: "إدارة الفروع", to: "/settings?section=branches" },
             ]}
           />
           <HrSectionCard
