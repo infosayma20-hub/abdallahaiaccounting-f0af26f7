@@ -14,6 +14,8 @@ import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
 import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
 import EmployeeMyRequestsTab from "@/components/employee/EmployeeMyRequestsTab";
 import MyScheduleTab from "@/components/employee/MyScheduleTab";
+import EmployeePayslipsTab from "@/components/employee/EmployeePayslipsTab";
+import EmployeeFinancialSummaryTab from "@/components/employee/EmployeeFinancialSummaryTab";
 import BranchRosterPage from "@/pages/manager/BranchRosterPage";
 import MyTeamTab from "@/components/employee/manager/MyTeamTab";
 import TeamAttendanceTab from "@/components/employee/manager/TeamAttendanceTab";
@@ -31,6 +33,7 @@ function NoPerm({ onBack, text }: { onBack: () => void; text: string }) {
 }
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms" | "schedule"
+  | "payslips" | "financials"
   | "manager-roster" | "manager-team" | "manager-attendance" | "manager-requests" | "manager-swaps";
 
 type AttendanceDay = {
@@ -255,6 +258,14 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
         {activeTab === "requests" && (
           <EmployeeMyRequestsTab employeeId={employee.id} />
+        )}
+
+        {activeTab === "payslips" && (
+          <EmployeePayslipsTab employeeId={employee.id} />
+        )}
+
+        {activeTab === "financials" && (
+          <EmployeeFinancialSummaryTab employeeId={employee.id} />
         )}
 
         {activeTab === "alerts" && (
