@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
@@ -134,9 +134,15 @@ export function useHrCommandCenter(filters?: {
   department?: string | null;
 }) {
   const { dataOwnerId } = useDataOwnerId();
+  const lastGoodDataRef = useRef<HrCommandCenterData | undefined>(undefined);
   const query = useQuery<HrCommandCenterData>({
     queryKey: ["hr-command-center", dataOwnerId],
     staleTime: 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
     enabled: !!dataOwnerId,
     queryFn: async () => {
       const since30 = daysAgo(30);
@@ -488,17 +494,39 @@ export function useHrCommandCenter(filters?: {
     },
   });
 
+  useEffect(() => {
+    if (query.data) {
+      lastGoodDataRef.current = query.data;
+    }
+  }, [query.data]);
+
+  const sourceData = query.data ?? lastGoodDataRef.current;
+
   // Apply filters client-side (cheap, avoids re-fetching)
   const filtered = useMemo(() => {
-    if (!query.data) return query.data;
-    if (!filters?.branchId && !filters?.department) return query.data;
-    const filteredEmployees = query.data.employees.filter((e) => {
+    if (!sourceData) return sourceData;
+    if (!filters?.branchId && !filters?.department) return sourceData;
+    const filteredEmployees = sourceData.employees.filter((e) => {
       if (filters.branchId && e.branch !== filters.branchId) return false;
       if (filters.department && e.department !== filters.department) return false;
       return true;
     });
-    return { ...query.data, employees: filteredEmployees };
-  }, [query.data, filters?.branchId, filters?.department]);
+    return { ...sourceData, employees: filteredEmployees };
+  }, [sourceData, filters?.branchId, filters?.department]);
 
-  return { ...query, data: filtered };
+  const hasDisplayData = !!sourceData;
+  const isInitialLoading = !hasDisplayData && (!dataOwnerId || query.isPending || query.isLoading);
+  const isRefreshing = hasDisplayData && query.isFetching;
+  const isRefreshError = hasDisplayData && query.isError;
+  const showFatalError = !hasDisplayData && query.isError && !query.isLoading;
+
+  return {
+    ...query,
+    data: filtered,
+    lastGoodData: lastGoodDataRef.current,
+    isInitialLoading,
+    isRefreshing,
+    isRefreshError,
+    showFatalError,
+  };
 }
