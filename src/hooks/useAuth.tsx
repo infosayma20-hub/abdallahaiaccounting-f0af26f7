@@ -49,7 +49,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      // Only update the user object when the identity actually changes.
+      // Supabase fires INITIAL_SESSION, TOKEN_REFRESHED and (on tab focus) extra
+      // events with a fresh User object that has the same id — updating state
+      // every time forces every `useEffect([user])` consumer to refetch.
+      setUser((prev) => {
+        const next = session?.user ?? null;
+        if (prev?.id === next?.id) return prev;
+        return next;
+      });
       setLoading(false);
 
       if (event === "SIGNED_IN") {
@@ -63,7 +71,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      setUser((prev) => {
+        const next = session?.user ?? null;
+        if (prev?.id === next?.id) return prev;
+        return next;
+      });
       setLoading(false);
     });
 
