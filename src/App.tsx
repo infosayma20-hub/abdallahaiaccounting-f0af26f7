@@ -224,7 +224,17 @@ const Customer360Page = lazy(() => import("./pages/crm/Customer360Page"));
 const OpportunityDetailsPage = lazy(() => import("./pages/crm/OpportunityDetailsPage"));
 
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      staleTime: 60_000,
+      gcTime: 10 * 60_000,
+      retry: 1,
+    },
+  },
+});
 
 // Wrapper to force remount InvoiceCreatePage when edit param changes
 const InvoiceCreatePageWrapper = () => {
