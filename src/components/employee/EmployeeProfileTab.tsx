@@ -1,7 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, User, Building2, Briefcase, Phone, Mail } from "lucide-react";
+import {
+  LogOut, User, Building2, Briefcase, Phone, Mail, Cake, IdCard,
+  Heart, Users as UsersIcon, GraduationCap, Calendar, Clock, MessageSquare,
+  PenLine, Image as ImageIcon
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Employee {
@@ -11,23 +15,99 @@ interface Employee {
   phone: string | null;
   email: string | null;
   branch_id: string | null;
+  date_of_birth?: string | null;
+  id_number?: string | null;
+  marital_status?: string | null;
+  children_count?: number | null;
+  start_date?: string | null;
+  photo_url?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  shift_id?: string | null;
+  shift_start?: string | null;
+  shift_end?: string | null;
 }
 
 interface Props {
   employee: Employee;
   branchName?: string;
+  latestInfoForm?: Record<string, any> | null;
+  onUpdateInfo?: () => void;
 }
 
-export default function EmployeeProfileTab({ employee, branchName }: Props) {
-  const { signOut, user } = useAuth();
+const PLACEHOLDER = "غير مضاف";
 
-  const fields = [
-    { icon: Briefcase, label: "المنصب", value: employee.position },
-    { icon: Building2, label: "القسم", value: employee.department },
-    { icon: Building2, label: "الفرع", value: branchName },
-    { icon: Phone, label: "الهاتف", value: employee.phone },
-    { icon: Mail, label: "البريد", value: employee.email || user?.email },
-  ].filter((f) => f.value);
+function fmtDate(v?: string | null) {
+  if (!v) return null;
+  try {
+    return new Date(v).toLocaleDateString("ar-EG-u-ca-gregory", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+    });
+  } catch { return String(v); }
+}
+
+function pick<T = any>(...vals: (T | null | undefined | "")[]): T | undefined {
+  for (const v of vals) {
+    if (v !== null && v !== undefined && v !== "") return v as T;
+  }
+  return undefined;
+}
+
+function tMarital(v?: string | null) {
+  if (!v) return null;
+  const map: Record<string, string> = {
+    single: "أعزب", married: "متزوج", divorced: "مطلق", widowed: "أرمل",
+  };
+  return map[v] || v;
+}
+
+export default function EmployeeProfileTab({ employee, branchName, latestInfoForm, onUpdateInfo }: Props) {
+  const { signOut, user } = useAuth();
+  const f = latestInfoForm || {};
+
+  // Merge: employees row first, then last submitted employee_info
+  const merged = {
+    full_name: pick<string>(employee.full_name, f.full_name, f.name),
+    position: pick<string>(employee.position),
+    department: pick<string>(employee.department, f.department),
+    branch: pick<string>(branchName, f.branch_name, f.branch),
+    phone: pick<string>(employee.phone, f.phone, f.whatsapp),
+    email: pick<string>(employee.email, f.email, user?.email || undefined),
+    date_of_birth: pick<string>(employee.date_of_birth, f.date_of_birth, f.birth_date),
+    whatsapp: pick<string>(f.whatsapp, employee.phone),
+    id_number: pick<string>(employee.id_number, f.id_number),
+    marital_status: pick<string>(tMarital(employee.marital_status), f.marital_status),
+    spouse_name: pick<string>(f.spouse_name),
+    children_count:
+      employee.children_count != null ? String(employee.children_count) :
+      f.children_count != null ? String(f.children_count) : undefined,
+    education: pick<string>(f.education),
+    shift: pick<string>(
+      f.shift,
+      employee.shift_start && employee.shift_end ? `${employee.shift_start} → ${employee.shift_end}` : undefined,
+    ),
+    start_date: pick<string>(employee.start_date, f.work_start_date),
+    notes: pick<string>(employee.notes, f.notes),
+  };
+
+  const photoUrl = pick<string>(employee.photo_url, f.attachment_url, f.photo_url);
+
+  const fields: { icon: any; label: string; value?: string }[] = [
+    { icon: Briefcase, label: "المنصب", value: merged.position },
+    { icon: Building2, label: "القسم", value: merged.department },
+    { icon: Building2, label: "الفرع", value: merged.branch },
+    { icon: Phone, label: "الهاتف", value: merged.phone },
+    { icon: Phone, label: "واتساب", value: merged.whatsapp },
+    { icon: Mail, label: "البريد", value: merged.email },
+    { icon: Cake, label: "تاريخ الميلاد", value: fmtDate(merged.date_of_birth) || undefined },
+    { icon: IdCard, label: "رقم الهوية", value: merged.id_number },
+    { icon: Heart, label: "الحالة الاجتماعية", value: merged.marital_status },
+    { icon: User, label: "اسم الزوج/الزوجة", value: merged.spouse_name },
+    { icon: UsersIcon, label: "عدد الأطفال", value: merged.children_count },
+    { icon: GraduationCap, label: "المستوى التعليمي", value: merged.education },
+    { icon: Clock, label: "الشفت", value: merged.shift },
+    { icon: Calendar, label: "تاريخ بدء العمل", value: fmtDate(merged.start_date) || undefined },
+  ];
 
   const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
 
@@ -35,29 +115,65 @@ export default function EmployeeProfileTab({ employee, branchName }: Props) {
     <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       {/* Avatar & Name */}
       <div className="text-center pt-4">
-        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-          <User className="h-10 w-10 text-primary" />
-        </div>
-        <h2 className="text-lg font-bold text-foreground">{employee.full_name}</h2>
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={merged.full_name || "موظف"}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border border-border"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+            <User className="h-10 w-10 text-primary" />
+          </div>
+        )}
+        <h2 className="text-lg font-bold text-foreground">{merged.full_name || PLACEHOLDER}</h2>
         <Badge variant="outline" className="mt-1 text-[10px]">موظف</Badge>
       </div>
+
+      {/* Update info CTA */}
+      {onUpdateInfo && (
+        <Button
+          variant="outline"
+          className="w-full h-11 rounded-2xl gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          onClick={onUpdateInfo}
+        >
+          <PenLine className="h-4 w-4" />
+          تحديث معلوماتي
+        </Button>
+      )}
 
       {/* Info Card */}
       <Card className="border-border bg-card">
         <CardContent className="p-4 space-y-3">
-          {fields.map((f, i) => (
+          {fields.map((row, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                <f.icon className="h-4 w-4 text-muted-foreground" />
+                <row.icon className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] text-muted-foreground">{f.label}</div>
-                <div className="text-sm font-medium text-foreground truncate">{f.value}</div>
+                <div className="text-[10px] text-muted-foreground">{row.label}</div>
+                <div className={`text-sm font-medium truncate ${row.value ? "text-foreground" : "text-muted-foreground/60"}`}>
+                  {row.value || PLACEHOLDER}
+                </div>
               </div>
             </div>
           ))}
         </CardContent>
       </Card>
+
+      {/* Notes */}
+      {merged.notes && (
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-xs font-semibold">ملاحظات</h3>
+            </div>
+            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{merged.notes}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sign out */}
       <Button
