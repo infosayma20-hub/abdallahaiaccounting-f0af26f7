@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +20,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
-  Lock, Unlock, CheckSquare,
+  Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -32,7 +33,7 @@ import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 type Branch = {
   id: string;
@@ -308,6 +309,8 @@ export default function HRAttendancePage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [employees, setEmployees] = useState<EmployeeLite[]>([]);
@@ -350,6 +353,25 @@ export default function HRAttendancePage() {
 
   // Indicator
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+
+  // Apply ?filter= and ?tab= query params (e.g. from HR Dashboard "بصمات ناقصة" KPI)
+  useEffect(() => {
+    const f = searchParams.get("filter") || searchParams.get("issue");
+    const tab = searchParams.get("tab");
+    if (f) {
+      const allowed: RowFilter[] = ["all", "issues", "present", "late", "absent", "incomplete", "missing_checkin", "missing_checkout"];
+      const mapped = (f === "incomplete_punches" ? "incomplete" : f) as RowFilter;
+      if (allowed.includes(mapped)) {
+        setFilter(mapped);
+        setActiveTab("live");
+        setAlertsOpen(false);
+      }
+    }
+    if (tab === "corrections" || tab === "monthly" || tab === "reports" || tab === "live") {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Bulk selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1138,17 +1160,61 @@ export default function HRAttendancePage() {
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={fetchData} className="gap-1"><RefreshCw className="h-4 w-4" /> تحديث</Button>
-          <Button
-            variant={isLocked ? "destructive" : "outline"}
-            size="sm"
-            onClick={openLockDialog}
-            disabled={!canManageLock}
-            title={!canManageLock ? "متاح فقط لمدير الموارد البشرية أو الأدمن" : (isLocked ? `مقفل: ${dayLock?.reason || "—"}` : "إغلاق اليوم لمنع التعديلات")}
-            className="gap-1"
-          >
-            {isLocked ? <><Unlock className="h-4 w-4" /> فتح اليوم</> : <><Lock className="h-4 w-4" /> إغلاق اليوم</>}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1"><Building2 className="h-4 w-4" /> إضافة فرع</Button>
+          {/* ملخص الفروع - popover compact بدل الكروت الكبيرة */}
+          {branches.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Building2 className="h-4 w-4" /> الفروع ({branches.length})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[360px] max-h-[420px] overflow-y-auto p-2" dir="rtl">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowBranchDialog(true)}>
+                    <Building2 className="h-3.5 w-3.5" /> إضافة فرع
+                  </Button>
+                  <span className="text-xs font-semibold text-muted-foreground">ملخص الفروع</span>
+                </div>
+                <div className="space-y-1.5">
+                  {branches.map(b => {
+                    const empCount = employees.filter(e => e.branch_id === b.id && e.is_active && !e.is_terminated).length;
+                    const qrOn = !!companySettings?.hr_require_qr;
+                    const gpsOn = b.require_gps ?? true;
+                    return (
+                      <div key={b.id} className="rounded-md border p-2 hover:bg-muted/40 transition-colors">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditBranch(b)} className="gap-2"><Pencil className="h-3.5 w-3.5" /> إعدادات الحضور</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate('/settings?tab=branches')} className="gap-2"><Building2 className="h-3.5 w-3.5" /> تعديل بيانات الفرع</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => setDeletingBranch(b)} className="gap-2 text-destructive"><Trash2 className="h-3.5 w-3.5" /> حذف</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-medium text-sm truncate">{b.name}</span>
+                            <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1 text-[11px] mb-1.5 justify-end">
+                          <Badge variant="secondary" className="gap-1 px-1.5"><Users className="h-3 w-3" /> {empCount}</Badge>
+                          <Badge variant={gpsOn ? "default" : "outline"} className="gap-1 px-1.5"><MapPin className="h-3 w-3" /> GPS {gpsOn ? "مطلوب" : "اختياري"}</Badge>
+                          <Badge variant={qrOn ? "default" : "outline"} className="gap-1 px-1.5"><QrCode className="h-3 w-3" /> QR {qrOn ? "فعال" : "معطل"}</Badge>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1 h-7" onClick={() => openDisplayPage(b.id)}><Eye className="h-3 w-3" /> شاشة</Button>
+                          <Button size="sm" variant="outline" className="gap-1 text-xs flex-1 h-7" onClick={() => generateQRToken(b)}><QrCode className="h-3 w-3" /> عرض QR</Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1"><Download className="h-4 w-4" /> تصدير</Button>
@@ -1160,14 +1226,107 @@ export default function HRAttendancePage() {
               <DropdownMenuItem onClick={() => exportExcel("incomplete")}>تقرير البصمات الناقصة</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {/* قائمة المزيد — إجراءات متقدمة (إغلاق/فتح يوم، إضافة فرع) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1" title="المزيد">
+                <MoreHorizontal className="h-4 w-4" /> المزيد
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowBranchDialog(true)} className="gap-2">
+                <Building2 className="h-3.5 w-3.5" /> إضافة فرع
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={openLockDialog}
+                disabled={!canManageLock}
+                className="gap-2"
+              >
+                {isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                {isLocked ? "فتح يوم الحضور" : "قفل سجلات اليوم"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Go-Live readiness (P0) — informational only */}
-      <HRReadinessPanel />
+      {/* شريط تنبيهات مختصر collapsed */}
+      {(() => {
+        const alertsCount = (isLocked ? 1 : 0) + (kpis.issues > 0 ? 1 : 0);
+        if (alertsCount === 0) return null;
+        return (
+          <div className="rounded-md border bg-card">
+            <button
+              type="button"
+              onClick={() => setAlertsOpen(o => !o)}
+              className="w-full flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 transition-colors text-right"
+            >
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                {alertsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {alertsOpen ? "إخفاء" : "عرض"}
+              </span>
+              <span className="text-sm font-medium flex items-center gap-2">
+                {isLocked && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1 text-[10px]"><Lock className="h-3 w-3" /> اليوم مغلق</Badge>}
+                {kpis.issues > 0 && (
+                  <span className="text-amber-700">يحتاج متابعة: {kpis.issues}</span>
+                )}
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                تنبيهات الحضور ({alertsCount})
+              </span>
+            </button>
+            {alertsOpen && (
+              <div className="border-t p-3 space-y-3">
+                <HRReadinessPanel />
+                {isLocked && (
+                  <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 text-sm text-red-800">
+                      <Lock className="h-4 w-4" />
+                      <span className="font-semibold">اليوم مغلق:</span>
+                      <span>{dayLock?.reason || "بدون سبب مذكور"}</span>
+                      <span className="text-xs text-red-700/80">
+                        · {dayLock?.locked_at ? format(new Date(dayLock.locked_at), "yyyy-MM-dd hh:mm a") : ""}
+                      </span>
+                    </div>
+                    {canManageLock && (
+                      <Button size="sm" variant="outline" onClick={openLockDialog} className="gap-1">
+                        <Unlock className="h-3.5 w-3.5" /> فتح اليوم
+                      </Button>
+                    )}
+                  </Card>
+                )}
+                {kpis.issues > 0 && (
+                  <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                        <AlertTriangle className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-amber-900">يحتاج متابعة الآن</div>
+                        <div className="text-sm text-amber-800/80 flex items-center gap-3 flex-wrap">
+                          {kpis.incomplete > 0 && <span>بصمات غير مكتملة: <b>{kpis.incomplete}</b></span>}
+                          {kpis.late > 0 && <span>متأخرون: <b>{kpis.late}</b></span>}
+                          {kpis.absent > 0 && <span>غياب: <b>{kpis.absent}</b></span>}
+                          {kpis.pendingCorrections > 0 && <span>⏳ طلبات تعديل: <b>{kpis.pendingCorrections}</b></span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { setActiveTab("live"); setFilter("issues"); }}>عرض المشاكل</Button>
+                      {kpis.pendingCorrections > 0 && (
+                        <Button size="sm" onClick={() => setActiveTab("corrections")}>مراجعة الطلبات ({kpis.pendingCorrections})</Button>
+                      )}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
-      {/* Action banner */}
-      {isLocked && (
+      {/* Action banner — احتفاظ بـ legacy block للحالات القديمة لكن مخفي (الآن داخل التنبيهات) */}
+      {false && isLocked && (
         <Card className="p-3 border-red-300 bg-red-50/50 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-sm text-red-800">
             <Lock className="h-4 w-4" />
@@ -1184,7 +1343,7 @@ export default function HRAttendancePage() {
           )}
         </Card>
       )}
-      {kpis.issues > 0 && (
+      {false && kpis.issues > 0 && (
         <Card className="p-3 border-amber-300 bg-amber-50/50 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
@@ -1219,7 +1378,7 @@ export default function HRAttendancePage() {
       </div>
 
       {/* Branches strip */}
-      {branches.length > 0 && (
+      {false && branches.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {branches.map(b => {
             const empCount = employees.filter(e => e.branch_id === b.id && e.is_active && !e.is_terminated).length;
