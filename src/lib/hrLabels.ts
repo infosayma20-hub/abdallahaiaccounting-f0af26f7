@@ -210,6 +210,7 @@ const LEAVE_TYPE: Record<string, string> = {
   annual: "سنوية",
   regular: "عادية",
   sick: "مرضية",
+  personal: "شخصية",
   unpaid: "بدون راتب",
   maternity: "أمومة",
   emergency: "طارئة",
