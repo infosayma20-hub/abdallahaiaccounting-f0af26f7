@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Palmtree, Banknote, HandCoins, UserCog, CalendarHeart, Award, FileText,
+  Palmtree, Banknote, HandCoins, UserCog, Award, FileText,
   Scale, Clock, Gavel, MessageSquare, Shield, Wrench, AlertTriangle,
   Package, Send, ChevronLeft, Upload, CheckCircle2, XCircle, Loader2, Eye,
   PenLine, Timer
@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { validateEmployeeForm, diffDaysInclusive, diffHours } from "@/lib/employeeFormValidators";
 
 interface Props {
   employeeId: string;
@@ -41,10 +42,8 @@ const employeeForms: FormCard[] = [
   { id: "advance_request", label: "طلب سلفة", icon: Banknote, color: "text-warning", type: "form" },
   { id: "loan_request", label: "التقدم بطلب قرض حسن", icon: HandCoins, color: "text-blue-500", type: "form" },
   { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
-  { id: "overtime_request", label: "طلب أوفرتايم", icon: Timer, color: "text-blue-400", type: "form" },
   { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
-  { id: "employee_info", label: "تعبئة معلومات الموظفين", icon: UserCog, color: "text-purple-500", type: "form" },
-  { id: "birthday_whatsapp", label: "تعبئة تاريخ الميلاد ورقم الواتساب", icon: CalendarHeart, color: "text-pink-500", type: "form" },
+  { id: "employee_info", label: "تعبئة معلومات الموظف", icon: UserCog, color: "text-purple-500", type: "form" },
   { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
 ];
 
@@ -59,6 +58,7 @@ const policyCards: FormCard[] = [
 
 // === Manager-only forms ===
 const managerForms: FormCard[] = [
+  { id: "overtime_request", label: "طلب أوفرتايم", icon: Timer, color: "text-blue-400", type: "form", managerOnly: true },
   { id: "disciplinary_action", label: "طلب إجراء عقابي", icon: Gavel, color: "text-red-500", type: "form", managerOnly: true },
   { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form", managerOnly: true },
   { id: "equipment_fault", label: "نموذج الإبلاغ عن أعطال المعدات والمرافق", icon: AlertTriangle, color: "text-orange-600", type: "form", managerOnly: true },
@@ -148,13 +148,33 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
   const submitForm = async () => {
     if (!activeForm) return;
-    setSubmitting(true);
 
-    // Ensure leave_type default
-    const submitData = { ...formData };
-    if (activeForm === "leave_request" && !submitData.leave_type) {
-      submitData.leave_type = "annual";
+    // Build the data we'll submit (allow auto-computation for some forms)
+    const submitData: Record<string, any> = { ...formData };
+
+    // Auto-compute leave days if not entered
+    if (activeForm === "leave_request") {
+      if (!submitData.leave_type) submitData.leave_type = "annual";
+      if (!submitData.days_count && submitData.from_date && submitData.to_date) {
+        submitData.days_count = String(diffDaysInclusive(submitData.from_date, submitData.to_date));
+      }
     }
+
+    // Auto-compute overtime hours if not entered
+    if (activeForm === "overtime_request") {
+      if (!submitData.hours && submitData.from_time && submitData.to_time) {
+        submitData.hours = String(diffHours(submitData.from_time, submitData.to_time));
+      }
+    }
+
+    // Validate before submission
+    const v = validateEmployeeForm(activeForm, submitData);
+    if (v.ok === false) {
+      toast({ title: "تعذّر الإرسال", description: v.error, variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
 
     const { error } = await supabase.from("employee_forms").insert({
       employee_id: employeeId,
@@ -190,11 +210,10 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       case "leave_request": {
         const leaveOptions = [
           { value: "annual", label: "سنوية" },
-          { value: "sick", label: "مرضية" },
-          { value: "personal", label: "شخصية" },
-          { value: "unpaid", label: "بدون راتب" },
+          { value: "regular", label: "عادية" },
         ];
         const selectedLeave = formData.leave_type || "annual";
+        const autoDays = diffDaysInclusive(formData.from_date, formData.to_date);
         return (
           <>
             <div>
@@ -204,6 +223,24 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ *</label>
               <Input type="date" value={formData.to_date || ""} onChange={e => setFormData(p => ({ ...p, to_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+              {formData.from_date && formData.to_date && formData.to_date < formData.from_date && (
+                <p className="text-[10px] text-destructive mt-1">⚠️ تاريخ النهاية قبل تاريخ البداية</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">عدد أيام الإجازة *</label>
+              <Input
+                type="number"
+                min={1}
+                value={formData.days_count || (autoDays > 0 ? String(autoDays) : "")}
+                onChange={e => setFormData(p => ({ ...p, days_count: e.target.value }))}
+                dir="ltr"
+                className="rounded-xl"
+                placeholder={autoDays > 0 ? String(autoDays) : "1"}
+              />
+              {autoDays > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">محسوب تلقائياً: {autoDays} يوم</p>
+              )}
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة *</label>
@@ -276,14 +313,26 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       case "employee_info":
         return (
           <>
+            <p className="text-[11px] text-muted-foreground bg-primary/5 rounded-xl p-2.5 leading-relaxed">
+              املأ معلوماتك الأساسية ليتم تحديث ملفك في HR (تاريخ الميلاد، الواتساب، الهوية...).
+            </p>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الاسم *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">الاسم الكامل *</label>
               <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">تاريخ الميلاد *</label>
+                <Input type="date" value={formData.date_of_birth || ""} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب *</label>
+                <Input value={formData.whatsapp || ""} onChange={e => setFormData(p => ({ ...p, whatsapp: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="05X-XXXXXXX" />
+              </div>
+            </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">العمر *</label>
-              <Input type="number" value={formData.age || ""} onChange={e => setFormData(p => ({ ...p, age: e.target.value }))} dir="ltr" className="rounded-xl" />
-              <p className="text-[10px] text-destructive mt-0.5">الإجابة بالأرقام الإنجليزية</p>
+              <label className="text-xs text-muted-foreground mb-1 block">رقم الهوية *</label>
+              <Input value={formData.id_number || ""} onChange={e => setFormData(p => ({ ...p, id_number: e.target.value }))} dir="ltr" className="rounded-xl" />
             </div>
              <div>
                <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
@@ -296,8 +345,20 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                  ))}
                </div>
              </div>
+            {(formData.marital_status === "متزوج" || formData.marital_status === "مطلق" || formData.marital_status === "أرمل") && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">اسم الزوج/الزوجة</label>
+                  <Input value={formData.spouse_name || ""} onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value }))} className="rounded-xl" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">عدد الأطفال</label>
+                  <Input type="number" min={0} value={formData.children_count || ""} onChange={e => setFormData(p => ({ ...p, children_count: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="0" />
+                </div>
+              </div>
+            )}
              <div>
-               <label className="text-xs text-muted-foreground mb-1 block">الحالة الدراسية</label>
+               <label className="text-xs text-muted-foreground mb-1 block">المستوى التعليمي</label>
                <div className="grid grid-cols-3 gap-2">
                  {["ثانوي", "دبلوم", "بكالوريوس", "ماجستير", "دكتوراه"].map(v => (
                    <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, education: v }))}
@@ -307,27 +368,32 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                  ))}
                </div>
              </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">أضف ملاحظتك</label>
-              <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={3} className="rounded-xl" placeholder="أضف أي شيء تحب إعلامنا به" />
-            </div>
-          </>
-        );
-
-      case "birthday_whatsapp":
-        return (
-          <>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الاسم *</label>
-              <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">تاريخ الميلاد *</label>
-              <Input type="date" value={formData.date_of_birth || ""} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} dir="ltr" className="rounded-xl" />
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الشفت</label>
+                <Input value={formData.shift || ""} onChange={e => setFormData(p => ({ ...p, shift: e.target.value }))} className="rounded-xl" />
+              </div>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب *</label>
-              <Input value={formData.whatsapp || ""} onChange={e => setFormData(p => ({ ...p, whatsapp: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="05X-XXXXXXX" />
+              <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
+              <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} className="rounded-xl" placeholder="أي معلومة إضافية..." />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">صورة الهوية / صورة شخصية (اختياري)</label>
+              <label className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-primary">اختر صورة</span>
+                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
+              </label>
+              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
             </div>
           </>
         );
@@ -390,6 +456,11 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                </div>
              </div>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">وقت البصمة *</label>
+              <Input type="time" value={formData.correction_time || ""} onChange={e => setFormData(p => ({ ...p, correction_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">الوقت الفعلي للدخول/الخروج</p>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب التصحيح..." />
             </div>
@@ -397,22 +468,74 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
         );
 
       case "overtime_request":
+        {
+          const autoH = diffHours(formData.from_time, formData.to_time);
         return (
           <>
+            <p className="text-[11px] text-muted-foreground bg-primary/5 rounded-xl p-2.5 leading-relaxed">
+              نموذج للمدراء فقط — لإبلاغ HR بأن الموظف بقي بعد دوامه أو تم تمديد دوامه.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">اسم الموظف *</label>
+              <Input value={formData.employee_name || ""} onChange={e => setFormData(p => ({ ...p, employee_name: e.target.value }))} className="rounded-xl" placeholder="الموظف الذي عمل أوفرتايم" />
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
               <Input type="date" value={formData.overtime_date || ""} onChange={e => setFormData(p => ({ ...p, overtime_date: e.target.value }))} dir="ltr" className="rounded-xl" />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">من ساعة *</label>
+                <Input type="time" value={formData.from_time || ""} onChange={e => setFormData(p => ({ ...p, from_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">إلى ساعة *</label>
+                <Input type="time" value={formData.to_time || ""} onChange={e => setFormData(p => ({ ...p, to_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">عدد الساعات *</label>
-              <Input type="number" value={formData.hours || ""} onChange={e => setFormData(p => ({ ...p, hours: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="2" />
+              <Input
+                type="number"
+                step="0.25"
+                value={formData.hours || (autoH > 0 ? String(autoH) : "")}
+                onChange={e => setFormData(p => ({ ...p, hours: e.target.value }))}
+                dir="ltr"
+                className="rounded-xl"
+                placeholder={autoH > 0 ? String(autoH) : "2"}
+              />
+              {autoH > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">محسوب تلقائياً: {autoH} ساعة</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الشفت</label>
+                <Input value={formData.shift || ""} onChange={e => setFormData(p => ({ ...p, shift: e.target.value }))} className="rounded-xl" />
+              </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="سبب الأوفرتايم..." />
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">مرفق (اختياري)</label>
+              <label className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-primary">اختر ملف</span>
+                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
+              </label>
+              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
+            </div>
           </>
         );
+        }
 
       case "hr_message":
         return (

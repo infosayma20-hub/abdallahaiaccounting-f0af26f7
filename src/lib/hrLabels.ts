@@ -28,12 +28,22 @@ const EVENT_TYPE: Record<string, string> = {
 const FORM_TYPE: Record<string, string> = {
   correction_request: "طلب تصحيح بصمة",
   attendance_correction: "طلب تصحيح بصمة",
+  attendance_edit_request: "طلب تعديل بصمة",
   leave_request: "طلب إجازة",
   loan_request: "طلب قرض",
   advance_request: "طلب سلفة",
   resignation: "طلب استقالة",
   document_request: "طلب مستند",
   complaint: "شكوى",
+  complaints: "شكاوى وملاحظات",
+  hr_message: "رسالة لـ HR",
+  overtime_request: "طلب أوفرتايم",
+  employee_info: "معلومات الموظف",
+  birthday_whatsapp: "معلومات الموظف",
+  disciplinary_action: "إجراء عقابي",
+  facility_quality: "جودة المرافق",
+  equipment_fault: "أعطال المعدات",
+  inventory_balance: "رصيد الأصناف",
   general: "طلب عام",
 };
 
@@ -198,6 +208,7 @@ export function payrollStatusTone(s?: string | null | boolean): string {
 
 const LEAVE_TYPE: Record<string, string> = {
   annual: "سنوية",
+  regular: "عادية",
   sick: "مرضية",
   unpaid: "بدون راتب",
   maternity: "أمومة",
