@@ -129,6 +129,25 @@ export default function EmployeeHRMessagesSection({ corrections, onRefresh, onOp
                     <div className="text-blue-900 whitespace-pre-wrap">{meta!.employee_response}</div>
                   </div>
                 )}
+                {row.review_notes && (
+                  <div className={[
+                    "rounded-md border p-2 text-xs",
+                    row.status === "rejected"
+                      ? "bg-red-50 border-red-200"
+                      : "bg-emerald-50 border-emerald-200",
+                  ].join(" ")}>
+                    <div className={[
+                      "font-medium mb-1 flex items-center gap-1",
+                      row.status === "rejected" ? "text-red-700" : "text-emerald-700",
+                    ].join(" ")}>
+                      <Reply className="h-3 w-3" />
+                      رد إدارة HR{row.status === "approved" ? " (مقبول)" : row.status === "rejected" ? " (مرفوض)" : ""}:
+                    </div>
+                    <div className={row.status === "rejected" ? "text-red-900 whitespace-pre-wrap" : "text-emerald-900 whitespace-pre-wrap"}>
+                      {row.review_notes}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 pt-1 flex-wrap">
                   {requiresResponse && !hasResponded && (
                     <Button
