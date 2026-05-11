@@ -427,6 +427,11 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                </div>
              </div>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">وقت البصمة *</label>
+              <Input type="time" value={formData.correction_time || ""} onChange={e => setFormData(p => ({ ...p, correction_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">الوقت الفعلي للدخول/الخروج</p>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب التصحيح..." />
             </div>
@@ -434,22 +439,74 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
         );
 
       case "overtime_request":
+        {
+          const autoH = diffHours(formData.from_time, formData.to_time);
         return (
           <>
+            <p className="text-[11px] text-muted-foreground bg-primary/5 rounded-xl p-2.5 leading-relaxed">
+              نموذج للمدراء فقط — لإبلاغ HR بأن الموظف بقي بعد دوامه أو تم تمديد دوامه.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">اسم الموظف *</label>
+              <Input value={formData.employee_name || ""} onChange={e => setFormData(p => ({ ...p, employee_name: e.target.value }))} className="rounded-xl" placeholder="الموظف الذي عمل أوفرتايم" />
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
               <Input type="date" value={formData.overtime_date || ""} onChange={e => setFormData(p => ({ ...p, overtime_date: e.target.value }))} dir="ltr" className="rounded-xl" />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">من ساعة *</label>
+                <Input type="time" value={formData.from_time || ""} onChange={e => setFormData(p => ({ ...p, from_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">إلى ساعة *</label>
+                <Input type="time" value={formData.to_time || ""} onChange={e => setFormData(p => ({ ...p, to_time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">عدد الساعات *</label>
-              <Input type="number" value={formData.hours || ""} onChange={e => setFormData(p => ({ ...p, hours: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="2" />
+              <Input
+                type="number"
+                step="0.25"
+                value={formData.hours || (autoH > 0 ? String(autoH) : "")}
+                onChange={e => setFormData(p => ({ ...p, hours: e.target.value }))}
+                dir="ltr"
+                className="rounded-xl"
+                placeholder={autoH > 0 ? String(autoH) : "2"}
+              />
+              {autoH > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">محسوب تلقائياً: {autoH} ساعة</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>
+                <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">القسم</label>
+                <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الشفت</label>
+                <Input value={formData.shift || ""} onChange={e => setFormData(p => ({ ...p, shift: e.target.value }))} className="rounded-xl" />
+              </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="سبب الأوفرتايم..." />
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">مرفق (اختياري)</label>
+              <label className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-primary">اختر ملف</span>
+                <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
+              </label>
+              {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
+            </div>
           </>
         );
+        }
 
       case "hr_message":
         return (
