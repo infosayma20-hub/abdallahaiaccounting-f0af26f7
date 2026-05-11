@@ -36,7 +36,7 @@ export default function MyScheduleTab({ employeeId, companyId }: { employeeId: s
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-bold">دوامي للأسبوعين القادمين</h2>
+          <h2 className="text-lg font-bold">ورديّاتي للأسبوعين القادمين</h2>
         </div>
         <Button size="sm" variant="outline" onClick={() => setShowTeam(true)} className="gap-1">
           <Users className="h-4 w-4" />
