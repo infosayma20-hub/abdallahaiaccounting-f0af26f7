@@ -169,7 +169,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
     // Validate before submission
     const v = validateEmployeeForm(activeForm, submitData);
-    if (!v.ok) {
+    if (v.ok === false) {
       toast({ title: "تعذّر الإرسال", description: v.error, variant: "destructive" });
       return;
     }
