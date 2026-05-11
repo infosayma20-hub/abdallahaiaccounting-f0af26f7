@@ -1,19 +1,39 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Clock, ChevronLeft } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, ChevronLeft, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import type { HrEmployeeRow } from "@/hooks/hr/useHrCommandCenter";
+import type { HrEmployeeRow, HrAttendanceTodayRow } from "@/hooks/hr/useHrCommandCenter";
 
 interface Props {
   employees: HrEmployeeRow[];
+  attendanceToday?: HrAttendanceTodayRow[];
 }
 
-export function HrAttendanceToday({ employees }: Props) {
+export function HrAttendanceToday({ employees, attendanceToday = [] }: Props) {
   const navigate = useNavigate();
-  const present = employees.filter((e) => e.presentToday === "present" && e.is_active);
-  const late = employees.filter((e) => e.presentToday === "late" && e.is_active);
-  const absent = employees.filter((e) => e.presentToday === "absent" && e.is_active);
+  // المصدر الحقيقي: attendance_days لليوم. الموظفون النشطون بدون سجل = غياب.
+  const recordByEmp = new Map(attendanceToday.map((r) => [r.employee_id, r]));
+  const activeEmployees = employees.filter((e) => e.is_active);
+  const present = attendanceToday.filter((r) => r.status === "present");
+  const late = attendanceToday.filter((r) => r.status === "late");
+  const incomplete = attendanceToday.filter((r) => r.status === "incomplete");
+  const absent = activeEmployees
+    .filter((e) => !recordByEmp.has(e.id))
+    .map<HrAttendanceTodayRow>((e) => ({
+      id: `abs-${e.id}`,
+      employee_id: e.id,
+      employeeName: e.name,
+      branch: e.branch,
+      department: e.department,
+      firstCheckIn: null,
+      lastCheckOut: null,
+      status: "absent",
+      issue: "لا توجد بصمة اليوم",
+      lateMinutes: 0,
+      isSynthetic: true,
+    }))
+    .concat(attendanceToday.filter((r) => r.status === "absent"));
 
   return (
     <Card>
@@ -29,7 +49,7 @@ export function HrAttendanceToday({ employees }: Props) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           <SummaryCell
             label="حاضر"
             count={present.length}
@@ -37,17 +57,22 @@ export function HrAttendanceToday({ employees }: Props) {
             Icon={CheckCircle2}
           />
           <SummaryCell label="متأخر" count={late.length} tone="warning" Icon={Clock} />
+          <SummaryCell label="بصمة ناقصة" count={incomplete.length} tone="warning" Icon={AlertTriangle} />
           <SummaryCell label="غائب" count={absent.length} tone="danger" Icon={XCircle} />
         </div>
 
         <Tabs defaultValue="absent">
-          <TabsList className="w-full justify-start">
+          <TabsList className="w-full justify-start flex-wrap h-auto">
             <TabsTrigger value="absent">غياب ({absent.length})</TabsTrigger>
+            <TabsTrigger value="incomplete">ناقصة ({incomplete.length})</TabsTrigger>
             <TabsTrigger value="late">تأخير ({late.length})</TabsTrigger>
             <TabsTrigger value="present">حضور ({present.length})</TabsTrigger>
           </TabsList>
           <TabsContent value="absent" className="mt-3">
             <List list={absent} tone="danger" navigate={navigate} />
+          </TabsContent>
+          <TabsContent value="incomplete" className="mt-3">
+            <List list={incomplete} tone="warning" navigate={navigate} />
           </TabsContent>
           <TabsContent value="late" className="mt-3">
             <List list={late} tone="warning" navigate={navigate} />
@@ -91,7 +116,7 @@ function List({
   tone,
   navigate,
 }: {
-  list: HrEmployeeRow[];
+  list: HrAttendanceTodayRow[];
   tone: "positive" | "warning" | "danger";
   navigate: ReturnType<typeof useNavigate>;
 }) {
@@ -103,24 +128,25 @@ function List({
     warning: "bg-amber-500/10 text-amber-700 border-amber-500/30",
     danger: "bg-rose-500/10 text-rose-700 border-rose-500/30",
   }[tone];
-  const label = tone === "positive" ? "حاضر" : tone === "warning" ? "متأخر" : "غائب";
   return (
     <ul className="divide-y divide-border max-h-[280px] overflow-y-auto">
-      {list.slice(0, 25).map((e) => (
-        <li key={e.id}>
+      {list.slice(0, 25).map((r) => (
+        <li key={r.id}>
           <button
-            onClick={() => navigate(`/hr/employee/${e.id}`)}
+            onClick={() => navigate(`/hr/employee/${r.employee_id}`)}
             className="w-full flex items-center justify-between gap-3 py-2 px-1 hover:bg-muted/40 transition-colors text-right"
           >
             <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{e.name}</p>
+              <p className="text-sm font-medium truncate">{r.employeeName}</p>
               <p className="text-[11px] text-muted-foreground truncate">
-                {e.branch || e.department || "—"}
+                {r.branch || r.department || "—"}
+                {r.firstCheckIn ? ` · دخول ${r.firstCheckIn}` : ""}
+                {r.lastCheckOut ? ` · خروج ${r.lastCheckOut}` : ""}
               </p>
             </div>
             <Badge variant="outline" className={`${cls} text-[10px] shrink-0`}>
-              {label}
+              {r.issue}
             </Badge>
           </button>
         </li>
