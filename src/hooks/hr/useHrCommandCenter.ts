@@ -329,9 +329,43 @@ export function useHrCommandCenter(filters?: {
         };
       });
 
+      const attendanceToday: HrAttendanceTodayRow[] = attendanceDays
+        .filter((d: any) => d.attendance_date === today)
+        .map((d: any) => {
+          const employee = d.employees || {};
+          const hasIn = !!d.first_check_in;
+          const hasOut = !!d.last_check_out;
+          const lateMinutes = getLateMinutes(d);
+          const normalizedStatus: HrAttendanceTodayRow["status"] =
+            (hasIn && !hasOut) || (!hasIn && hasOut)
+              ? "incomplete"
+              : lateStatuses.includes(d.status) || lateMinutes > 0
+                ? "late"
+                : absentStatuses.includes(d.status)
+                  ? "absent"
+                  : presentStatuses.includes(d.status)
+                    ? "present"
+                    : d.status === "leave"
+                      ? "leave"
+                      : "off";
+          return {
+            id: d.id || `${d.employee_id}-${today}`,
+            employee_id: d.employee_id,
+            employeeName: employee.full_name || "—",
+            branch: employee.branches?.name || null,
+            department: employee.department || null,
+            firstCheckIn: d.first_check_in ? fmtTime(d.first_check_in) : null,
+            lastCheckOut: d.last_check_out ? fmtTime(d.last_check_out) : null,
+            status: normalizedStatus,
+            issue: normalizedStatus === "incomplete" ? "بصمة غير مكتملة" : normalizedStatus === "late" ? `تأخير ${lateMinutes} د` : normalizedStatus === "absent" ? "غياب كامل" : "—",
+            lateMinutes,
+            isSynthetic: false,
+          };
+        });
+
       // ---- Filter dropdown values ----
       const branches = Array.from(
-        new Set(employees.map((e: any) => e.branch).filter(Boolean)),
+        new Set(employees.map((e: any) => e.branches?.name).filter(Boolean)),
       ) as string[];
       const departments = Array.from(
         new Set(employees.map((e: any) => e.department).filter(Boolean)),
@@ -340,12 +374,12 @@ export function useHrCommandCenter(filters?: {
       // ---- Totals ----
       const active = rows.filter((r) => r.is_active);
       const totalMonthlyCost = active.reduce((s, r) => s + r.monthlyCost, 0);
-      const avgAttendanceRate =
-        active.length > 0
-          ? active.reduce((s, r) => s + r.attendanceRate, 0) / active.length
-          : 0;
-      const totalLateDays = active.reduce((s, r) => s + r.lateDays, 0);
-      const avgDelayMinutes = totalLateDays > 0 ? Math.round((totalLateDays / active.length) * 15) : 0;
+      const presentToday = attendanceToday.filter((r) => r.status === "present").length;
+      const lateToday = attendanceToday.filter((r) => r.status === "late").length;
+      const absentToday = attendanceToday.filter((r) => r.status === "absent").length;
+      const avgAttendanceRate = attendanceToday.length > 0 ? (presentToday + lateToday) / attendanceToday.length : 0;
+      const totalLateDays = attendanceToday.reduce((s, r) => s + (r.lateMinutes > 0 ? 1 : 0), 0);
+      const avgDelayMinutes = totalLateDays > 0 ? Math.round(attendanceToday.reduce((s, r) => s + r.lateMinutes, 0) / totalLateDays) : 0;
       const totalPayrollThisMonth = payrollRuns
         .filter((p: any) => {
           const d = new Date(p.created_at);
@@ -356,12 +390,7 @@ export function useHrCommandCenter(filters?: {
 
       // ---- Incomplete punches today ----
       // موظف لديه سجل اليوم لكن بصمة دخول بدون خروج (أو العكس)
-      const incompletePunchesToday = attendanceDays.filter((d: any) => {
-        if (d.attendance_date !== today) return false;
-        const hasIn = !!d.first_check_in;
-        const hasOut = !!d.last_check_out;
-        return (hasIn && !hasOut) || (!hasIn && hasOut);
-      }).length;
+      const incompletePunchesToday = attendanceToday.filter((r) => r.status === "incomplete").length;
 
       // ---- Pending requests ----
       // employee_leaves uses Arabic statuses: "معلقة" / "موافقة" / "مرفوضة"
@@ -371,9 +400,8 @@ export function useHrCommandCenter(filters?: {
           r.status === "قيد المراجعة" ||
           r.status === "معلقة",
       );
-      const pendingForms = forms.filter(
-        (f: any) => f.status === "pending" || f.status === "قيد المراجعة" || f.status === "معلقة",
-      );
+      const pendingForms = forms.filter((f: any) => isPending(f.status));
+      const pendingCorrections = corrections.filter((f: any) => isPending(f.status));
       const pendingLoans: any[] = []; // loans table has no pending status in current schema
 
       // ---- Charts ----
@@ -433,9 +461,9 @@ export function useHrCommandCenter(filters?: {
           avgDelayMinutes,
           highRiskCount: rows.filter((r) => r.riskLevel === "high").length,
           mediumRiskCount: rows.filter((r) => r.riskLevel === "medium").length,
-          presentToday: rows.filter((r) => r.presentToday === "present").length,
-          absentToday: rows.filter((r) => r.presentToday === "absent").length,
-          lateToday: rows.filter((r) => r.presentToday === "late").length,
+          presentToday,
+          absentToday,
+          lateToday,
           totalDeductionsThisMonth: rows.reduce((s, r) => s + r.deductionsThisMonth, 0),
           totalLoansOutstanding: Array.from(loansByEmp.values()).reduce(
             (s, l) => s + l.remaining,
@@ -448,7 +476,9 @@ export function useHrCommandCenter(filters?: {
           leaves: pendingLeaves,
           loans: pendingLoans,
           forms: pendingForms,
+          corrections: pendingCorrections,
         },
+        attendanceToday,
         charts: {
           payrollTrend,
           attendancePerformance,
