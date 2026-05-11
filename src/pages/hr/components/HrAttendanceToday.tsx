@@ -15,7 +15,10 @@ export function HrAttendanceToday({ employees, attendanceToday = [] }: Props) {
   // المصدر الحقيقي: attendance_days لليوم. الموظفون النشطون بدون سجل = غياب.
   const recordByEmp = new Map(attendanceToday.map((r) => [r.employee_id, r]));
   const activeEmployees = employees.filter((e) => e.is_active);
-  const present = attendanceToday.filter((r) => r.status === "present");
+  // "حاضر" = أي موظف عمل دخول وخروج (يشمل المتأخر اللي خلّص دوامه)
+  const present = attendanceToday.filter(
+    (r) => r.status === "present" || r.status === "late",
+  );
   const late = attendanceToday.filter((r) => r.status === "late");
   const incomplete = attendanceToday.filter((r) => r.status === "incomplete");
   const absent = activeEmployees
