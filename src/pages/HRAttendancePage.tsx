@@ -309,6 +309,8 @@ export default function HRAttendancePage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const { settings: companySettings, updateSettings: updateCompanySettings } = useCompanySettings();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [employees, setEmployees] = useState<EmployeeLite[]>([]);
