@@ -464,7 +464,7 @@ export default function EmployeeFormsManagementPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1">
-                                  {isPending && (
+                                  {isPending && f._source !== "correction_requests" && (
                                     <>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
                                         onClick={() => handleAction("approved", f)}
@@ -478,9 +478,18 @@ export default function EmployeeFormsManagementPage() {
                                       </Button>
                                     </>
                                   )}
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
+                                  {f._source === "correction_requests" ? (
+                                    <Button size="sm" variant="ghost" className="h-7 px-2 gap-1 text-xs"
+                                      title="مراجعة في صفحة الحضور"
+                                      onClick={() => navigate(`/hr-attendance?tab=corrections&requestId=${f.id}`)}>
+                                      <Eye className="h-3.5 w-3.5" /> مراجعة
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {f._source !== "correction_requests" && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="المزيد" aria-label="المزيد">
@@ -501,6 +510,7 @@ export default function EmployeeFormsManagementPage() {
                                       )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
