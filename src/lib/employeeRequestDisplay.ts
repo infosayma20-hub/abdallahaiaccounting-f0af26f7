@@ -172,6 +172,7 @@ const FIELD_LABELS: Record<string, string> = {
   message: "الرسالة",
   body: "النص",
   complaint_type: "نوع الشكوى",
+  content: "المحتوى",
   type: "النوع",
   action_type: "نوع الإجراء",
   employee_name: "اسم الموظف",
@@ -196,6 +197,13 @@ const FIELD_LABELS: Record<string, string> = {
   attachment_url: "المرفق",
   attachment: "المرفق",
   file_url: "المرفق",
+  spouse_name: "اسم الزوج/الزوجة",
+  children_count: "عدد الأطفال",
+  work_start_date: "تاريخ بدء العمل",
+  date_of_birth: "تاريخ الميلاد",
+  salary: "الراتب",
+  calculated_loan_limit: "سقف القرض المحسوب",
+  months_of_service: "أشهر الخدمة",
 };
 
 const ROUTING_KEYS = new Set(["branch", "branch_id", "branch_name", "department", "department_id", "department_name", "shift", "shift_id", "shift_name"]);
