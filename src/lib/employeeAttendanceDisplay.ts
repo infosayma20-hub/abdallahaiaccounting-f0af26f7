@@ -33,6 +33,14 @@ export type DayRow = {
 
 const AR_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
+/** Local YYYY-MM-DD — never use toISOString here (it shifts to UTC). */
+function localISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function fmtTime(t?: string | null): string {
   if (!t) return "—";
   try {
@@ -78,8 +86,14 @@ export function buildMonthRows(
 
   const rows: DayRow[] = [];
   const cur = new Date(monthStart);
+  // Normalize to start of day to avoid DST drift
+  cur.setHours(12, 0, 0, 0);
+  const stop = new Date(monthEnd);
+  stop.setHours(12, 0, 0, 0);
   while (cur <= monthEnd) {
-    const iso = cur.toISOString().slice(0, 10);
+    // Stop strictly inside the month (defensive: never include next-month leak)
+    if (cur.getMonth() !== monthStart.getMonth() || cur.getFullYear() !== monthStart.getFullYear()) break;
+    const iso = localISODate(cur);
     const att = byDate.get(iso);
     const leave = isInLeave(iso, leaves);
     const status = deriveStatus(att, leave);

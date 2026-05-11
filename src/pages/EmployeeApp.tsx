@@ -75,6 +75,17 @@ type Employee = {
   can_manage_attendance?: boolean;
   user_id: string;
   company_id?: string;
+  date_of_birth?: string | null;
+  id_number?: string | null;
+  marital_status?: string | null;
+  children_count?: number | null;
+  start_date?: string | null;
+  photo_url?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  shift_id?: string | null;
+  shift_start?: string | null;
+  shift_end?: string | null;
 };
 
 export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
@@ -91,6 +102,8 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
   const [isCashier, setIsCashier] = useState(false);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [latestInfoForm, setLatestInfoForm] = useState<Record<string, any> | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -105,7 +118,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
 
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, can_view_team, can_manage_schedule, can_manage_attendance, user_id, company_id, date_of_birth, id_number, marital_status, children_count, start_date, photo_url, address, notes, shift_id, shift_start, shift_end")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -116,6 +129,27 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         const { data: br } = await supabase.from("branches_safe").select("name").eq("id", emp.branch_id).single();
         setBranchName(br?.name || "");
       }
+
+      // Company logo (best-effort, errors silently ignored)
+      if (emp.company_id) {
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("logo_url")
+          .eq("id", emp.company_id)
+          .maybeSingle();
+        setCompanyLogo(comp?.logo_url || null);
+      }
+
+      // Latest employee_info submission (for fields not yet on employees row)
+      const { data: infoForm } = await supabase
+        .from("employee_forms")
+        .select("form_data, status, created_at")
+        .eq("employee_id", emp.id)
+        .eq("form_type", "employee_info")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setLatestInfoForm((infoForm as any)?.form_data || null);
 
       const today = new Date().toISOString().split("T")[0];
 
@@ -202,6 +236,7 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
             canManageAttendance={!!employee.can_manage_attendance}
             isManager={!!employee.is_manager}
             branchName={branchName}
+            companyLogo={companyLogo}
             onOpenManagerRoute={(path) => {
               if (path.startsWith("/employee/roster") || path.startsWith("/manager/roster")) setActiveTab("manager-roster");
               else if (path.startsWith("/employee/team-attendance")) setActiveTab("manager-attendance");
@@ -299,7 +334,12 @@ export default function EmployeeApp({ initialTab }: { initialTab?: Tab } = {}) {
         )}
 
         {activeTab === "profile" && (
-          <EmployeeProfileTab employee={employee} branchName={branchName} />
+          <EmployeeProfileTab
+            employee={employee}
+            branchName={branchName}
+            latestInfoForm={latestInfoForm}
+            onUpdateInfo={() => setActiveTab("forms")}
+          />
         )}
       </div>
 
