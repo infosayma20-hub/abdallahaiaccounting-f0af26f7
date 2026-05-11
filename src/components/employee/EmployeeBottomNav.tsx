@@ -1,4 +1,4 @@
-import { Home, Calendar, User, Bell, ClipboardList, FileText, CalendarDays, Wallet } from "lucide-react";
+import { Home, User, ClipboardList, FileText, Wallet } from "lucide-react";
 
 type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms" | "schedule"
   | "payslips" | "financials" | "attendance" | "actions"
@@ -6,11 +6,9 @@ type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "fo
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "home", label: "الرئيسية", icon: Home },
-  { id: "schedule", label: "دوامي", icon: CalendarDays },
   { id: "forms", label: "النماذج", icon: ClipboardList },
   { id: "requests", label: "طلباتي", icon: FileText },
   { id: "financials", label: "محفظتي", icon: Wallet },
-  { id: "alerts", label: "تنبيهات", icon: Bell },
   { id: "profile", label: "ملفي", icon: User },
 ];
 
