@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 /**
  * useHrCommandCenter
@@ -35,6 +36,20 @@ export type HrEmployeeRow = {
   topIssue?: string;
 };
 
+export type HrAttendanceTodayRow = {
+  id: string;
+  employee_id: string;
+  employeeName: string;
+  branch: string | null;
+  department: string | null;
+  firstCheckIn: string | null;
+  lastCheckOut: string | null;
+  status: "present" | "late" | "absent" | "leave" | "off" | "incomplete";
+  issue: string;
+  lateMinutes: number;
+  isSynthetic: boolean;
+};
+
 export type HrCommandCenterData = {
   employees: HrEmployeeRow[];
   filters: {
@@ -63,7 +78,9 @@ export type HrCommandCenterData = {
     leaves: any[];
     loans: any[];
     forms: any[];
+    corrections: any[];
   };
+  attendanceToday: HrAttendanceTodayRow[];
   charts: {
     payrollTrend: { month: string; total: number; net: number }[];
     attendancePerformance: { day: string; present: number; late: number; absent: number }[];
@@ -77,21 +94,50 @@ const daysAgo = (n: number) => {
   return d.toISOString().split("T")[0];
 };
 
-const todayISO = () => new Date().toISOString().split("T")[0];
+const todayISO = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const monthStart = () => {
   const d = new Date();
   d.setDate(1);
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
 };
+
+const fmtTime = (v?: string | null) => v ? new Date(v).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "—";
+const isPending = (s?: string | null) => ["pending", "قيد المراجعة", "معلقة"].includes(String(s || ""));
+const presentStatuses = ["present", "حاضر", "complete", "مكتمل"];
+const lateStatuses = ["late", "متأخر"];
+const absentStatuses = ["absent", "غائب"];
+
+function getLateMinutes(record: any) {
+  const checkIn = record.first_check_in ? new Date(record.first_check_in) : null;
+  const shift = record.employees?.shift;
+  const shiftStart = shift?.start_time?.slice(0, 5) || record.employees?.shift_start;
+  if (!checkIn || !shiftStart) return 0;
+  const [h, m] = shiftStart.split(":").map(Number);
+  const expected = new Date(checkIn);
+  expected.setHours(h || 0, m || 0, 0, 0);
+  const grace = Number(shift?.late_tolerance_minutes || 0);
+  const late = Math.max(0, Math.round((checkIn.getTime() - expected.getTime()) / 60000));
+  return late > grace ? late : 0;
+}
 
 export function useHrCommandCenter(filters?: {
   branchId?: string | null;
   department?: string | null;
 }) {
+  const { dataOwnerId } = useDataOwnerId();
   const query = useQuery<HrCommandCenterData>({
-    queryKey: ["hr-command-center"],
+    queryKey: ["hr-command-center", dataOwnerId],
     staleTime: 60_000,
+    enabled: !!dataOwnerId,
     queryFn: async () => {
       const since30 = daysAgo(30);
       const since6Months = (() => {
@@ -108,11 +154,12 @@ export function useHrCommandCenter(filters?: {
         supabase
           .from("employees")
           .select(
-            "id, name, job_title, department, branch, base_salary, is_active, hire_date, meal_allowance_per_day, transportation_allowance_per_day, spouse_allowance_amount, child_allowance_per_child, children_count, marital_status, wives_count, admin_allowance, other_allowances",
-          ),
+            "id, full_name, job_title, position, department, branch_id, base_salary, is_active, is_terminated, start_date, shift_start, shift_end, meal_allowance_per_day, transportation_allowance_per_day, spouse_allowance_amount, child_allowance_per_child, children_count, marital_status, wives_count, admin_allowance, other_allowances, branches(name)",
+          )
+          .eq("user_id", dataOwnerId!),
         supabase
           .from("attendance_days")
-          .select("employee_id, attendance_date, status, total_hours, overtime_hours, first_check_in, last_check_out")
+          .select("id, employee_id, attendance_date, status, total_hours, overtime_hours, first_check_in, last_check_out, branch_id, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
           .gte("attendance_date", since30)
           .order("attendance_date", { ascending: false }),
         supabase
@@ -123,7 +170,7 @@ export function useHrCommandCenter(filters?: {
           .order("period_month", { ascending: false }),
       ]);
 
-      const [loansRes, deductionsRes, leaveReqRes, formsRes] = await Promise.all([
+      const [loansRes, deductionsRes, leaveReqRes, formsRes, correctionsRes] = await Promise.all([
         supabase
           .from("employee_loans")
           .select("employee_id, total_amount, monthly_installment, remaining_amount, status"),
@@ -142,6 +189,12 @@ export function useHrCommandCenter(filters?: {
           .select("id, employee_id, form_type, status, created_at, review_notes, form_data, attachment_url")
           .order("created_at", { ascending: false })
           .limit(100),
+        supabase
+          .from("correction_requests")
+          .select("id, employee_id, attendance_date, request_type, requested_time, reason, status, created_at, review_notes, employees!inner(full_name, branch_id, department)")
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(100),
       ]);
 
       const employees = employeesRes.data || [];
@@ -151,6 +204,7 @@ export function useHrCommandCenter(filters?: {
       const deductions = deductionsRes.data || [];
       const leaveReqs = leaveReqRes.data || [];
       const forms = formsRes.data || [];
+      const corrections = correctionsRes.data || [];
 
       // ---- Group attendance by employee ----
       const attByEmp = new Map<string, any[]>();
@@ -275,9 +329,43 @@ export function useHrCommandCenter(filters?: {
         };
       });
 
+      const attendanceToday: HrAttendanceTodayRow[] = attendanceDays
+        .filter((d: any) => d.attendance_date === today)
+        .map((d: any) => {
+          const employee = d.employees || {};
+          const hasIn = !!d.first_check_in;
+          const hasOut = !!d.last_check_out;
+          const lateMinutes = getLateMinutes(d);
+          const normalizedStatus: HrAttendanceTodayRow["status"] =
+            (hasIn && !hasOut) || (!hasIn && hasOut)
+              ? "incomplete"
+              : lateStatuses.includes(d.status) || lateMinutes > 0
+                ? "late"
+                : absentStatuses.includes(d.status)
+                  ? "absent"
+                  : presentStatuses.includes(d.status)
+                    ? "present"
+                    : d.status === "leave"
+                      ? "leave"
+                      : "off";
+          return {
+            id: d.id || `${d.employee_id}-${today}`,
+            employee_id: d.employee_id,
+            employeeName: employee.full_name || "—",
+            branch: employee.branches?.name || null,
+            department: employee.department || null,
+            firstCheckIn: d.first_check_in ? fmtTime(d.first_check_in) : null,
+            lastCheckOut: d.last_check_out ? fmtTime(d.last_check_out) : null,
+            status: normalizedStatus,
+            issue: normalizedStatus === "incomplete" ? "بصمة غير مكتملة" : normalizedStatus === "late" ? `تأخير ${lateMinutes} د` : normalizedStatus === "absent" ? "غياب كامل" : "—",
+            lateMinutes,
+            isSynthetic: false,
+          };
+        });
+
       // ---- Filter dropdown values ----
       const branches = Array.from(
-        new Set(employees.map((e: any) => e.branch).filter(Boolean)),
+        new Set(employees.map((e: any) => e.branches?.name).filter(Boolean)),
       ) as string[];
       const departments = Array.from(
         new Set(employees.map((e: any) => e.department).filter(Boolean)),
@@ -286,12 +374,12 @@ export function useHrCommandCenter(filters?: {
       // ---- Totals ----
       const active = rows.filter((r) => r.is_active);
       const totalMonthlyCost = active.reduce((s, r) => s + r.monthlyCost, 0);
-      const avgAttendanceRate =
-        active.length > 0
-          ? active.reduce((s, r) => s + r.attendanceRate, 0) / active.length
-          : 0;
-      const totalLateDays = active.reduce((s, r) => s + r.lateDays, 0);
-      const avgDelayMinutes = totalLateDays > 0 ? Math.round((totalLateDays / active.length) * 15) : 0;
+      const presentToday = attendanceToday.filter((r) => r.status === "present").length;
+      const lateToday = attendanceToday.filter((r) => r.status === "late").length;
+      const absentToday = attendanceToday.filter((r) => r.status === "absent").length;
+      const avgAttendanceRate = attendanceToday.length > 0 ? (presentToday + lateToday) / attendanceToday.length : 0;
+      const totalLateDays = attendanceToday.reduce((s, r) => s + (r.lateMinutes > 0 ? 1 : 0), 0);
+      const avgDelayMinutes = totalLateDays > 0 ? Math.round(attendanceToday.reduce((s, r) => s + r.lateMinutes, 0) / totalLateDays) : 0;
       const totalPayrollThisMonth = payrollRuns
         .filter((p: any) => {
           const d = new Date(p.created_at);
@@ -302,12 +390,7 @@ export function useHrCommandCenter(filters?: {
 
       // ---- Incomplete punches today ----
       // موظف لديه سجل اليوم لكن بصمة دخول بدون خروج (أو العكس)
-      const incompletePunchesToday = attendanceDays.filter((d: any) => {
-        if (d.attendance_date !== today) return false;
-        const hasIn = !!d.first_check_in;
-        const hasOut = !!d.last_check_out;
-        return (hasIn && !hasOut) || (!hasIn && hasOut);
-      }).length;
+      const incompletePunchesToday = attendanceToday.filter((r) => r.status === "incomplete").length;
 
       // ---- Pending requests ----
       // employee_leaves uses Arabic statuses: "معلقة" / "موافقة" / "مرفوضة"
@@ -317,9 +400,8 @@ export function useHrCommandCenter(filters?: {
           r.status === "قيد المراجعة" ||
           r.status === "معلقة",
       );
-      const pendingForms = forms.filter(
-        (f: any) => f.status === "pending" || f.status === "قيد المراجعة" || f.status === "معلقة",
-      );
+      const pendingForms = forms.filter((f: any) => isPending(f.status));
+      const pendingCorrections = corrections.filter((f: any) => isPending(f.status));
       const pendingLoans: any[] = []; // loans table has no pending status in current schema
 
       // ---- Charts ----
@@ -379,9 +461,9 @@ export function useHrCommandCenter(filters?: {
           avgDelayMinutes,
           highRiskCount: rows.filter((r) => r.riskLevel === "high").length,
           mediumRiskCount: rows.filter((r) => r.riskLevel === "medium").length,
-          presentToday: rows.filter((r) => r.presentToday === "present").length,
-          absentToday: rows.filter((r) => r.presentToday === "absent").length,
-          lateToday: rows.filter((r) => r.presentToday === "late").length,
+          presentToday,
+          absentToday,
+          lateToday,
           totalDeductionsThisMonth: rows.reduce((s, r) => s + r.deductionsThisMonth, 0),
           totalLoansOutstanding: Array.from(loansByEmp.values()).reduce(
             (s, l) => s + l.remaining,
@@ -394,7 +476,9 @@ export function useHrCommandCenter(filters?: {
           leaves: pendingLeaves,
           loans: pendingLoans,
           forms: pendingForms,
+          corrections: pendingCorrections,
         },
+        attendanceToday,
         charts: {
           payrollTrend,
           attendancePerformance,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
 import AppFooter from "./AppFooter";
@@ -18,9 +19,11 @@ interface WebLayoutProps {
 }
 
 const WebLayout = ({ children }: WebLayoutProps) => {
+  const { pathname } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { subscription } = useSubscription();
+  const isHRRoute = ["/hr", "/employees", "/employee-forms-management", "/hr-attendance", "/attendance/roster", "/manager/roster", "/leaves", "/loans", "/advances", "/hr-deductions", "/payroll", "/payroll-settings"].some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   // Show only ONE banner: TrialBanner for trial users, SubscriptionExpiryBanner for paid users
   const isTrial = subscription?.isTrial ?? false;
@@ -51,7 +54,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         {isTrial ? <TrialBanner /> : <SubscriptionExpiryBanner />}
 
         {/* Content — no heavy page transitions */}
-        <main className="flex-1 overflow-y-auto p-5 lg:p-8">
+        <main className={isHRRoute ? "flex-1 overflow-y-auto" : "flex-1 overflow-y-auto p-5 lg:p-8"}>
           <TrialExpiredGate>
             {children}
           </TrialExpiredGate>
