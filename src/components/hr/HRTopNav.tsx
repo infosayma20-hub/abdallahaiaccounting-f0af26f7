@@ -65,7 +65,7 @@ export function HRTopNav() {
   };
 
   return (
-    <div dir="rtl" className="border-b border-border bg-card sticky top-0 z-30">
+    <div dir="rtl" className="bg-transparent">
       <div className="container max-w-7xl mx-auto px-3 md:px-6">
         <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
           {items.slice(0, VISIBLE_DESKTOP).map((i) => {
