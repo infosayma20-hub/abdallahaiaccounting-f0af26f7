@@ -210,11 +210,10 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       case "leave_request": {
         const leaveOptions = [
           { value: "annual", label: "سنوية" },
-          { value: "sick", label: "مرضية" },
-          { value: "personal", label: "شخصية" },
-          { value: "unpaid", label: "بدون راتب" },
+          { value: "regular", label: "عادية" },
         ];
         const selectedLeave = formData.leave_type || "annual";
+        const autoDays = diffDaysInclusive(formData.from_date, formData.to_date);
         return (
           <>
             <div>
@@ -224,6 +223,24 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ *</label>
               <Input type="date" value={formData.to_date || ""} onChange={e => setFormData(p => ({ ...p, to_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+              {formData.from_date && formData.to_date && formData.to_date < formData.from_date && (
+                <p className="text-[10px] text-destructive mt-1">⚠️ تاريخ النهاية قبل تاريخ البداية</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">عدد أيام الإجازة *</label>
+              <Input
+                type="number"
+                min={1}
+                value={formData.days_count || (autoDays > 0 ? String(autoDays) : "")}
+                onChange={e => setFormData(p => ({ ...p, days_count: e.target.value }))}
+                dir="ltr"
+                className="rounded-xl"
+                placeholder={autoDays > 0 ? String(autoDays) : "1"}
+              />
+              {autoDays > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">محسوب تلقائياً: {autoDays} يوم</p>
+              )}
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة *</label>
