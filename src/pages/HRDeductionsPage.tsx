@@ -17,6 +17,7 @@ import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
+import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
@@ -30,8 +31,8 @@ export default function HRDeductionsPage() {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
+  const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
 
   // Fetch employees
   const { data: employees = [] } = useQuery({

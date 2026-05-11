@@ -30,6 +30,7 @@ import HRReadinessPanel from "@/components/hr/HRReadinessPanel";
 import { displayReason } from "@/lib/hrMessages";
 import DateInputDMY from "@/components/forms/DateInputDMY";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
+import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
@@ -1064,8 +1065,8 @@ export default function HRAttendancePage() {
 
   // ------------------ Exports ------------------
   // Reports filters
-  const [reportFromDate, setReportFromDate] = useState(selectedDate);
-  const [reportToDate, setReportToDate] = useState(selectedDate);
+  const [reportFromDate, setReportFromDate] = useState(() => getDefaultDateRangeThisYear().fromISO);
+  const [reportToDate, setReportToDate] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [reportBranch, setReportBranch] = useState<string>("all");
   const [reportDepartment, setReportDepartment] = useState<string>("all");
 

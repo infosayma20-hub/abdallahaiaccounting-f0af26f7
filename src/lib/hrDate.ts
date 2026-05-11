@@ -43,3 +43,28 @@ export function isInvalidRange(fromIso: string, toIso: string): boolean {
   if (!fromIso || !toIso) return false;
   return fromIso > toIso;
 }
+
+/** ISO yyyy-mm-dd for today (local). */
+export function todayISO(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Standard default date range for list/report filters across the app.
+ * From = Jan 1 of current year, To = today.
+ */
+export function getDefaultDateRangeThisYear(): { fromISO: string; toISO: string } {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  return { fromISO: `${yyyy}-01-01`, toISO: todayISO() };
+}
+
+/** Alias: dd/mm/yyyy formatter (matches public spec name). */
+export const formatDateDMY = formatHRDate;
+
+/** Alias: dd/mm/yyyy → ISO parser (matches public spec name). */
+export const parseDMYToISO = parseHRDate;

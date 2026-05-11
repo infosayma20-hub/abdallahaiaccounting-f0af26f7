@@ -28,6 +28,7 @@ import {
 import { displayReason, decodeHRMessage } from "@/lib/hrMessages";
 import { getRequestSummary, getDetailGroups } from "@/lib/employeeRequestDisplay";
 import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
+import { getDefaultDateRangeThisYear } from "@/lib/hrDate";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { useNavigate } from "react-router-dom";
 
@@ -78,8 +79,8 @@ export default function EmployeeFormsManagementPage() {
   const [searchParams] = useSearchParams();
   const [filterType, setFilterType] = useState(searchParams.get("type") || "all");
   const [filterStatus, setFilterStatus] = useState("pending");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => getDefaultDateRangeThisYear().fromISO);
+  const [dateTo, setDateTo] = useState(() => getDefaultDateRangeThisYear().toISO);
   const [filterBranch, setFilterBranch] = useState("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
