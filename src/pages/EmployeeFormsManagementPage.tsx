@@ -16,12 +16,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { displayReason } from "@/lib/hrMessages";
+import { getRequestSummary, getDetailGroups } from "@/lib/employeeRequestDisplay";
+import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -51,6 +57,8 @@ export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { settings: companySettings } = useCompanySettings();
+  const { can, isAdmin } = useHRManagerPermissions();
+  const canDelete = isAdmin || can("can_manage_forms");
   const [forms, setForms] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
@@ -174,22 +182,12 @@ export default function EmployeeFormsManagementPage() {
     return f.form_data?.amount || f.form_data?.loan_amount || null;
   };
 
-  const leaveTypeLabels: Record<string, string> = {
-    annual: "سنوية", sick: "مرضية", personal: "شخصية", unpaid: "بدون راتب",
-  };
-
+  // Smart Arabic summary that strips HRMSG raw JSON tags.
   const getFormDetails = (f: any) => {
-    const d = f.form_data || {};
-    if (f.form_type === "leave_request") {
-      const leaveLabel = d.leave_type ? (leaveTypeLabels[d.leave_type] || d.leave_type) : "";
-      const dates = d.from_date && d.to_date ? `${d.from_date} → ${d.to_date}` : "";
-      return [leaveLabel, dates, d.reason].filter(Boolean).join(" | ");
-    }
-    if (f.form_type === "advance_request") return d.reason || d.purpose || "سلفة";
-    if (f.form_type === "loan_request") return d.reason || d.purpose || "قرض حسن";
-    if (f.form_type === "correction_request") return d.date || d.reason || "";
-    if (f.form_type === "overtime_request") return d.hours ? `${d.hours} ساعة` : d.reason || "";
-    return d.reason || d.message || d.notes || "";
+    const summary = getRequestSummary(f);
+    if (summary && summary !== "—") return summary;
+    const reasonClean = displayReason(f?.reason || f?.form_data?.reason || "");
+    return reasonClean || "";
   };
 
   const filtered = forms.filter(f => {
@@ -371,27 +369,39 @@ export default function EmployeeFormsManagementPage() {
                                     <>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
                                         onClick={() => handleAction("approved", f)}
-                                        disabled={!!processing} title="موافقة">
+                                        disabled={!!processing} title="موافقة" aria-label="موافقة">
                                         {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                                       </Button>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                         onClick={() => handleAction("rejected", f)}
-                                        disabled={!!processing} title="رفض">
+                                        disabled={!!processing} title="رفض" aria-label="رفض">
                                         {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
                                       </Button>
                                     </>
                                   )}
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
                                     <Eye className="h-3.5 w-3.5" />
                                   </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/10" title="طباعة" onClick={() => setPrintForm(f)}>
-                                    <Printer className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleDelete(f)}
-                                    disabled={!!processing} title="حذف">
-                                    {processing === f.id + "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="المزيد" aria-label="المزيد">
+                                        <MoreHorizontal className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="min-w-[140px]">
+                                      <DropdownMenuItem onClick={() => setPrintForm(f)} className="gap-2">
+                                        <Printer className="h-3.5 w-3.5" /> طباعة
+                                      </DropdownMenuItem>
+                                      {canDelete && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => handleDelete(f)} disabled={!!processing} className="gap-2 text-destructive focus:text-destructive">
+                                            <Trash2 className="h-3.5 w-3.5" /> حذف
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -476,32 +486,53 @@ export default function EmployeeFormsManagementPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="bg-muted/30 rounded-xl p-4 space-y-2">
-              {selectedForm?.form_data && Object.entries(selectedForm.form_data).filter(([k]) => k !== "attachment_url").map(([key, value]) => {
-                const labelMap: Record<string, string> = {
-                  reason: "السبب", from_date: "من تاريخ", to_date: "إلى تاريخ",
-                  leave_type: "نوع الإجازة", amount: "المبلغ", loan_amount: "مبلغ القرض",
-                  purpose: "الغرض", date: "التاريخ", hours: "الساعات", message: "الرسالة",
-                  employee_name: "اسم الموظف", branch: "الفرع", notes: "ملاحظات",
-                  installments: "الأقساط", items: "الأصناف",
-                };
-                const leaveTypes: Record<string, string> = {
-                  annual: "سنوية", sick: "مرضية", personal: "شخصية", unpaid: "بدون راتب",
-                };
-                const displayValue = key === "leave_type" ? (leaveTypes[String(value)] || String(value)) : String(value);
-                return (
-                  <div key={key} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{labelMap[key] || key.replace(/_/g, " ")}:</span>
-                    <span className="font-medium">{displayValue}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {selectedForm?.attachment_url && (
-              <a href={selectedForm.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <Download className="h-4 w-4" /> عرض المرفق
-              </a>
-            )}
+            {(() => {
+              if (!selectedForm) return null;
+              const groups = getDetailGroups(selectedForm);
+              const hasAnyDetail = groups.some(g => g.title === "تفاصيل النموذج" && g.fields.length);
+              return (
+                <>
+                  {groups.map(g => (
+                    <div key={g.title} className="bg-muted/30 rounded-xl p-4 space-y-2">
+                      <div className="text-xs font-semibold text-foreground/80 mb-1">{g.title}</div>
+                      {g.fields.map((fld, i) => {
+                        const val = fld.value;
+                        const isAttachment = fld.isUrl || /^https?:\/\//i.test(String(val || ""));
+                        return (
+                          <div key={`${fld.label}-${i}`} className="flex justify-between gap-3 text-sm">
+                            <span className="text-muted-foreground shrink-0">{fld.label}:</span>
+                            {isAttachment ? (
+                              <a href={String(val)} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 truncate">
+                                <Download className="h-3.5 w-3.5" /> فتح المرفق
+                              </a>
+                            ) : (
+                              <span className="font-medium text-right break-words whitespace-pre-wrap">
+                                {typeof val === "object" ? JSON.stringify(val) : String(val)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  {!hasAnyDetail && (
+                    <div className="text-center text-xs text-muted-foreground py-2">لا توجد تفاصيل إضافية</div>
+                  )}
+                  {/* Always-visible reason summary (for legacy rows like complaints/content) */}
+                  {(() => {
+                    const reasonText = displayReason(selectedForm?.reason || selectedForm?.form_data?.reason || "");
+                    if (!reasonText) return null;
+                    if (groups.some(g => g.fields.some(fld => fld.label === "السبب" || fld.label === "المحتوى" || fld.label === "الرسالة"))) return null;
+                    return (
+                      <div className="bg-muted/30 rounded-xl p-4 text-sm whitespace-pre-wrap">
+                        <div className="text-xs font-semibold text-foreground/80 mb-1">الرسالة</div>
+                        {reasonText}
+                      </div>
+                    );
+                  })()}
+                </>
+              );
+            })()}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">الحالة الحالية:</span>
               <Badge variant={statusConfig[selectedForm?.status]?.variant || "outline"}>
