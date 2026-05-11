@@ -175,7 +175,7 @@ export function HrRequestsPanel({ pendingRequests, employees }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent dir="rtl">
-        <Tabs defaultValue="leaves" dir="rtl">
+        <Tabs defaultValue="forms" dir="rtl">
           <TabsList className="w-full justify-start mb-3 flex-row-reverse">
             <TabsTrigger value="leaves" className="gap-1.5">
               <Plane className="h-3.5 w-3.5" />
