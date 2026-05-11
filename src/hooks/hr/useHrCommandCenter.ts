@@ -105,8 +105,29 @@ const todayISO = () => {
 const monthStart = () => {
   const d = new Date();
   d.setDate(1);
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
 };
+
+const fmtTime = (v?: string | null) => v ? new Date(v).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "—";
+const isPending = (s?: string | null) => ["pending", "قيد المراجعة", "معلقة"].includes(String(s || ""));
+const presentStatuses = ["present", "حاضر", "complete", "مكتمل"];
+const lateStatuses = ["late", "متأخر"];
+const absentStatuses = ["absent", "غائب"];
+
+function getLateMinutes(record: any) {
+  const checkIn = record.first_check_in ? new Date(record.first_check_in) : null;
+  const shift = record.employees?.shift;
+  const shiftStart = shift?.start_time?.slice(0, 5) || record.employees?.shift_start;
+  if (!checkIn || !shiftStart) return 0;
+  const [h, m] = shiftStart.split(":").map(Number);
+  const expected = new Date(checkIn);
+  expected.setHours(h || 0, m || 0, 0, 0);
+  const grace = Number(shift?.late_tolerance_minutes || 0);
+  const late = Math.max(0, Math.round((checkIn.getTime() - expected.getTime()) / 60000));
+  return late > grace ? late : 0;
+}
 
 export function useHrCommandCenter(filters?: {
   branchId?: string | null;
