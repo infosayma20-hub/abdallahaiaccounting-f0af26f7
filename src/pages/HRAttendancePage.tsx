@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { setNextExportBranding } from "@/lib/excel-export";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import HRReadinessPanel from "@/components/hr/HRReadinessPanel";
+import { displayReason } from "@/lib/hrMessages";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
@@ -1454,7 +1455,7 @@ export default function HRAttendancePage() {
                   </div>
                   <Badge variant="outline">{tRequestType(req.request_type)}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">{req.reason}</p>
+                <p className="text-sm text-muted-foreground mb-3">{displayReason(req.reason)}</p>
                 <div className="flex gap-2">
                   <Button size="sm" className="gap-1" onClick={() => { setReviewDialog(req); setReviewNotes(""); }}>
                     <Eye className="h-3 w-3" /> مراجعة
@@ -1569,7 +1570,7 @@ export default function HRAttendancePage() {
                 <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">الموظف</p><p className="font-medium">{(reviewDialog as any).employees?.full_name}</p></div>
                 <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">التاريخ</p><p className="font-medium">{fmtDateDisplay(reviewDialog.attendance_date)}</p></div>
               </div>
-              <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">السبب</p><p className="text-sm">{reviewDialog.reason}</p></div>
+              <div className="bg-muted/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">السبب</p><p className="text-sm">{displayReason(reviewDialog.reason)}</p></div>
               <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} placeholder="ملاحظات HR..." rows={2} />
             </div>
           )}
