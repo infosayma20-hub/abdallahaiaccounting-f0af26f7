@@ -73,20 +73,20 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="min-w-0 flex-1 text-right order-1">
+          <h3 className="text-sm font-bold text-foreground text-right">{title}</h3>
+          <p className="text-[11px] text-muted-foreground leading-tight truncate text-right">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 order-2">
+          {badge != null && badge !== "" && (
+            <Badge variant="outline" className={cn("text-[10px] font-bold border", t.chip)}>
+              {badge}
+            </Badge>
+          )}
           <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", t.iconBg)}>
             <Icon className={cn("h-5 w-5", t.iconText)} />
           </div>
-          <div className="min-w-0 text-right">
-            <h3 className="text-sm font-bold text-foreground text-right">{title}</h3>
-            <p className="text-[11px] text-muted-foreground leading-tight truncate text-right">{subtitle}</p>
-          </div>
         </div>
-        {badge != null && badge !== "" && (
-          <Badge variant="outline" className={cn("text-[10px] font-bold border", t.chip)}>
-            {badge}
-          </Badge>
-        )}
       </div>
 
       <div className="space-y-0.5">
