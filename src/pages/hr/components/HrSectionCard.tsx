@@ -54,6 +54,7 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
 
   return (
     <Card
+      dir="rtl"
       role="button"
       tabIndex={0}
       onClick={() => navigate(to)}
@@ -64,7 +65,7 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
         }
       }}
       className={cn(
-        "relative overflow-hidden p-4 transition-all cursor-pointer",
+        "relative overflow-hidden p-4 transition-all cursor-pointer text-right",
         "hover:shadow-lg hover:-translate-y-0.5 hover:border-foreground/20",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         "before:absolute before:right-0 before:top-0 before:h-full before:w-1",
@@ -76,9 +77,9 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
           <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", t.iconBg)}>
             <Icon className={cn("h-5 w-5", t.iconText)} />
           </div>
-          <div className="min-w-0">
-            <h3 className="text-sm font-bold text-foreground">{title}</h3>
-            <p className="text-[11px] text-muted-foreground leading-tight truncate">{subtitle}</p>
+          <div className="min-w-0 text-right">
+            <h3 className="text-sm font-bold text-foreground text-right">{title}</h3>
+            <p className="text-[11px] text-muted-foreground leading-tight truncate text-right">{subtitle}</p>
           </div>
         </div>
         {badge != null && badge !== "" && (
@@ -100,15 +101,15 @@ export function HrSectionCard({ title, subtitle, Icon, tone, badge, actions, to 
             className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-right
                        hover:bg-muted/60 transition-colors group"
           >
-            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors shrink-0" />
-            <div className="flex items-center gap-1.5 justify-end min-w-0">
+            <div className="flex items-center gap-1.5 justify-end min-w-0 flex-1 text-right">
               {a.count != null && a.count > 0 && (
                 <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md", t.chip, "border-0")}>
                   {a.count}
                 </span>
               )}
-              <span className="text-xs font-medium text-foreground truncate">{a.label}</span>
+              <span className="text-xs font-medium text-foreground truncate text-right">{a.label}</span>
             </div>
+            <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors shrink-0" />
           </button>
         ))}
       </div>
