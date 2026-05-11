@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { validateEmployeeForm, diffDaysInclusive, diffHours } from "@/lib/employeeFormValidators";
 
 interface Props {
   employeeId: string;
@@ -41,10 +42,8 @@ const employeeForms: FormCard[] = [
   { id: "advance_request", label: "طلب سلفة", icon: Banknote, color: "text-warning", type: "form" },
   { id: "loan_request", label: "التقدم بطلب قرض حسن", icon: HandCoins, color: "text-blue-500", type: "form" },
   { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
-  { id: "overtime_request", label: "طلب أوفرتايم", icon: Timer, color: "text-blue-400", type: "form" },
   { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
-  { id: "employee_info", label: "تعبئة معلومات الموظفين", icon: UserCog, color: "text-purple-500", type: "form" },
-  { id: "birthday_whatsapp", label: "تعبئة تاريخ الميلاد ورقم الواتساب", icon: CalendarHeart, color: "text-pink-500", type: "form" },
+  { id: "employee_info", label: "تعبئة معلومات الموظف", icon: UserCog, color: "text-purple-500", type: "form" },
   { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
 ];
 
@@ -59,6 +58,7 @@ const policyCards: FormCard[] = [
 
 // === Manager-only forms ===
 const managerForms: FormCard[] = [
+  { id: "overtime_request", label: "طلب أوفرتايم", icon: Timer, color: "text-blue-400", type: "form", managerOnly: true },
   { id: "disciplinary_action", label: "طلب إجراء عقابي", icon: Gavel, color: "text-red-500", type: "form", managerOnly: true },
   { id: "facility_quality", label: "جودة المرافق والمعدات", icon: Wrench, color: "text-cyan-500", type: "form", managerOnly: true },
   { id: "equipment_fault", label: "نموذج الإبلاغ عن أعطال المعدات والمرافق", icon: AlertTriangle, color: "text-orange-600", type: "form", managerOnly: true },
