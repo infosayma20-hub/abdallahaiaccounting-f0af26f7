@@ -316,10 +316,10 @@ export function useHrCommandCenter(filters?: {
 
         return {
           id: e.id,
-          name: e.name || "—",
-          job_title: e.job_title || null,
+          name: e.full_name || e.name || "—",
+          job_title: e.job_title || e.position || null,
           department: e.department || null,
-          branch: e.branch || null,
+          branch: e.branches?.name || e.branch || null,
           base_salary: baseSalary,
           is_active: e.is_active !== false,
           riskScore: score,
