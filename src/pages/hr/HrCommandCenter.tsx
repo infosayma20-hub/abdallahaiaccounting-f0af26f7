@@ -94,7 +94,7 @@ export default function HrCommandCenter() {
     );
   }
 
-  const { totals, employees, filters, pendingRequests, charts } = data;
+  const { totals, employees, filters, pendingRequests, charts, attendanceToday } = data;
   const pendingCount = pendingRequests.leaves.length + pendingRequests.forms.length;
 
   return (
@@ -273,7 +273,7 @@ export default function HrCommandCenter() {
         {showSummary && (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <HrAttendanceToday employees={employees} />
+              <HrAttendanceToday employees={employees} attendanceToday={attendanceToday} />
               <HrRequestsPanel
                 pendingRequests={pendingRequests}
                 employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
