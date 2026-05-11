@@ -1,51 +1,27 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
+import { FileText, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import RequestDetailsDialog from "./RequestDetailsDialog";
+import {
+  getRequestTitle,
+  getRequestSummary,
+  getStatusBadge,
+  AnyRequest,
+} from "@/lib/employeeRequestDisplay";
+import { tLeaveType } from "@/lib/hrLabels";
 
 interface Props {
   employeeId: string;
 }
 
-const formLabels: Record<string, string> = {
-  leave_request: "طلب إجازة",
-  advance_request: "طلب سلفة",
-  loan_request: "طلب قرض حسن",
-  correction_request: "تصحيح بصمة",
-  attendance_edit_request: "تعديل بصمة",
-  overtime_request: "طلب أوفرتايم",
-  hr_message: "رسالة لـ HR",
-  employee_info: "معلومات الموظف",
-  birthday_whatsapp: "معلومات الموظف",
-  complaints: "شكاوى وملاحظات",
-  disciplinary_action: "إجراء عقابي",
-  facility_quality: "جودة المرافق",
-  equipment_fault: "أعطال المعدات",
-  inventory_balance: "رصيد الأصناف",
-};
-
-const statusLabel = (s: string) => {
-  switch (s) {
-    case "pending": return { text: "قيد المراجعة", emoji: "🟡", variant: "outline" as const };
-    case "approved": return { text: "تمت الموافقة", emoji: "✅", variant: "default" as const };
-    case "rejected": return { text: "مرفوض", emoji: "❌", variant: "destructive" as const };
-    default: return { text: s, emoji: "⏳", variant: "outline" as const };
-  }
-};
-
-const leaveTypeLabels: Record<string, string> = {
-  annual: "سنوية",
-  regular: "عادية",
-  sick: "مرضية",
-  personal: "شخصية",
-  unpaid: "بدون راتب",
-};
-
 export default function EmployeeMyRequestsTab({ employeeId }: Props) {
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<AnyRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<AnyRequest | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -56,7 +32,7 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
         .eq("employee_id", employeeId)
         .order("created_at", { ascending: false })
         .limit(50);
-      setSubmissions(data || []);
+      setSubmissions((data as any) || []);
       setLoading(false);
     };
     fetch();
@@ -81,34 +57,49 @@ export default function EmployeeMyRequestsTab({ employeeId }: Props) {
         </Card>
       ) : (
         submissions.map(sub => {
-          const st = statusLabel(sub.status);
-          const formData = sub.form_data as Record<string, any> | null;
-          const leaveType = formData?.leave_type;
-          const leaveLabel = leaveType ? leaveTypeLabels[leaveType] || leaveType : null;
+          const st = getStatusBadge(sub.status);
+          const leaveType = sub.form_data?.leave_type;
+          const leaveLabel = sub.form_type === "leave_request" && leaveType ? tLeaveType(leaveType) : null;
+          const summary = getRequestSummary(sub);
 
           return (
-            <Card key={sub.id} className="border-border bg-card">
-              <CardContent className="p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold">{formLabels[sub.form_type] || sub.form_type}</span>
-                    {leaveLabel && sub.form_type === "leave_request" && (
-                      <Badge variant="secondary" className="text-[10px]">{leaveLabel}</Badge>
-                    )}
+            <button
+              key={sub.id}
+              type="button"
+              onClick={() => { setSelected(sub); setOpen(true); }}
+              className="w-full text-right"
+            >
+              <Card className="border-border bg-card hover:bg-accent/30 transition-colors active:scale-[0.99]">
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-semibold truncate">{getRequestTitle(sub)}</span>
+                      {leaveLabel && (
+                        <Badge variant="secondary" className="text-[10px] shrink-0">{leaveLabel}</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-muted-foreground">
+                        {sub.created_at ? format(new Date(sub.created_at), "dd/MM/yyyy") : "—"}
+                      </span>
+                      <Badge variant={st.variant} className="text-[10px]">{st.emoji} {st.text}</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground">{format(new Date(sub.created_at), "dd/MM/yyyy")}</span>
-                    <Badge variant={st.variant} className="text-[10px]">{st.emoji} {st.text}</Badge>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground truncate">{summary}</p>
+                    <ChevronLeft className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
-                </div>
-                {sub.review_notes && (
-                  <p className="text-xs text-primary bg-primary/5 rounded-lg p-2">💬 {sub.review_notes}</p>
-                )}
-              </CardContent>
-            </Card>
+                  {sub.review_notes && (
+                    <p className="text-xs text-primary bg-primary/5 rounded-lg p-2 line-clamp-2">💬 {sub.review_notes}</p>
+                  )}
+                </CardContent>
+              </Card>
+            </button>
           );
         })
       )}
+
+      <RequestDetailsDialog request={selected} open={open} onOpenChange={setOpen} />
     </div>
   );
 }
