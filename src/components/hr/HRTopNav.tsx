@@ -91,7 +91,7 @@ export function HRTopNav() {
               <DropdownMenuTrigger className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60">
                 المزيد <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" dir="rtl">
+              <DropdownMenuContent align="end">
                 {items.slice(VISIBLE_DESKTOP).map((i) => (
                   <DropdownMenuItem key={i.to} asChild>
                     <NavLink to={i.to} className="flex items-center gap-2">
