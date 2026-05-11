@@ -18,6 +18,7 @@ import { ar } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { validateEmployeeForm, diffDaysInclusive, diffHours } from "@/lib/employeeFormValidators";
+import { evaluateLoanEligibility, eligibilityBadgeClass, formatCurrency } from "@/lib/employeeFinancialDisplay";
 
 interface Props {
   employeeId: string;
@@ -85,6 +86,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   const [policies, setPolicies] = useState<any[]>([]);
   const [showPolicies, setShowPolicies] = useState(true);
   const [showLoanForm, setShowLoanForm] = useState(true);
+  const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -93,6 +95,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     fetchSubmissions();
     fetchPolicies();
     fetchOwnerSettings();
+    fetchEmployeeProfile();
   }, [employeeId]);
 
   const fetchOwnerSettings = async () => {
@@ -128,6 +131,27 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
       .order("created_at", { ascending: false });
     setPolicies(data || []);
   };
+
+  const fetchEmployeeProfile = async () => {
+    const { data } = await supabase
+      .from("employees")
+      .select("id, full_name, branch_id, department_id, base_salary, start_date")
+      .eq("id", employeeId)
+      .maybeSingle();
+    if (data) setEmployeeProfile(data);
+  };
+
+  // Auto-prefill loan form when opened
+  useEffect(() => {
+    if (activeForm !== "loan_request" || !employeeProfile) return;
+    setFormData((prev) => ({
+      full_name: prev.full_name || employeeProfile.full_name || "",
+      branch: prev.branch || employeeProfile.branch_id || "",
+      work_start_date: prev.work_start_date || employeeProfile.start_date || "",
+      salary: prev.salary || (employeeProfile.base_salary ? String(employeeProfile.base_salary) : ""),
+      ...prev,
+    }));
+  }, [activeForm, employeeProfile]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
