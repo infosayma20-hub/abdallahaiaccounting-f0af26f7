@@ -31,7 +31,7 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
-  { to: "/hr", label: "لوحة HR", Icon: LayoutDashboard, matchPrefixes: ["/hr"] },
+  { to: "/hr", label: "لوحة HR", Icon: LayoutDashboard, matchPrefixes: [] },
   { to: "/employees", label: "الموظفون", Icon: Users, perms: ["can_view_employees", "can_edit_employees", "can_add_employees"], matchPrefixes: ["/employees", "/hr/employee", "/hr/people"] },
   { to: "/hr-attendance", label: "الحضور", Icon: Clock, perms: ["can_view_attendance", "can_manage_attendance"], matchPrefixes: ["/hr-attendance"] },
   { to: "/attendance/roster", label: "جدول الدوام", Icon: CalendarDays, perms: ["can_view_roster", "can_manage_schedule"], matchPrefixes: ["/attendance/roster", "/manager/roster", "/hr/shifts"] },
@@ -57,11 +57,10 @@ export function HRTopNav() {
   }, [isAdmin, isHRManager, can]);
 
   const isActive = (i: Item) => {
-    const prefixes = i.matchPrefixes || [i.to];
-    // Most-specific match wins: exact /hr should not light up when on /hr-attendance.
-    return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
-      // exact equality for short prefixes that overlap (avoid /hr matching /hr-attendance)
-      (i.to === "/hr" ? pathname === "/hr" : false);
+    // "/hr" is reserved for the dashboard only — exact match, never prefix.
+    if (i.to === "/hr") return pathname === "/hr";
+    const prefixes = i.matchPrefixes && i.matchPrefixes.length > 0 ? i.matchPrefixes : [i.to];
+    return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
   };
 
   return (
