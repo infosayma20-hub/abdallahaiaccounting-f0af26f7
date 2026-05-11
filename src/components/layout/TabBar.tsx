@@ -1,9 +1,32 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useAppTabs, ICON_MAP } from "@/contexts/TabsContext";
 import { cn } from "@/lib/utils";
 
+/**
+ * Routes that own a dedicated section navigation (HR top nav). The global
+ * closeable tab strip is suppressed on these routes so HR feels like a
+ * permanent admin module instead of a temporary tab.
+ */
+const HIDDEN_TABBAR_PREFIXES = [
+  "/hr",
+  "/employees",
+  "/employee-forms-management",
+  "/hr-attendance",
+  "/hr-deductions",
+  "/attendance/roster",
+  "/manager/roster",
+  "/leaves",
+  "/loans",
+  "/advances",
+  "/payroll",
+  "/payroll-settings",
+];
+
 const TabBar = () => {
+  const { pathname } = useLocation();
+  const isHRRoute = HIDDEN_TABBAR_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
   const { tabs, activeTabId, switchTab, closeTab, closeAllTabs } = useAppTabs();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -40,7 +63,7 @@ const TabBar = () => {
     el.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
   };
 
-  if (tabs.length === 0) return null;
+  if (tabs.length === 0 || isHRRoute) return null;
 
   return (
     <div
