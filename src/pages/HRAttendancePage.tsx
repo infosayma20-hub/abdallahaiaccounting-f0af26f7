@@ -1621,7 +1621,7 @@ export default function HRAttendancePage() {
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{displayReason(req.reason)}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" className="gap-1" onClick={() => { setReviewDialog(req); setReviewNotes(""); }}>
+                  <Button size="sm" className="gap-1" onClick={() => { setReviewDialog(req); setReviewNotes((req as any).review_notes || ""); }}>
                     <Eye className="h-3 w-3" /> مراجعة
                   </Button>
                 </div>
