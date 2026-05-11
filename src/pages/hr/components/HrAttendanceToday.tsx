@@ -15,11 +15,14 @@ export function HrAttendanceToday({ employees, attendanceToday = [] }: Props) {
   // المصدر الحقيقي: attendance_days لليوم. الموظفون النشطون بدون سجل = غياب.
   const recordByEmp = new Map(attendanceToday.map((r) => [r.employee_id, r]));
   const activeEmployees = employees.filter((e) => e.is_active);
-  // "حاضر" = أي موظف عمل دخول وخروج (يشمل المتأخر اللي خلّص دوامه)
-  const present = attendanceToday.filter(
-    (r) => r.status === "present" || r.status === "late",
+  // 🔗 منطق متطابق مع HRAttendancePage (المرجع الأساسي):
+  // - حضور كامل: دخول + خروج بدون تأخير
+  // - متأخر: أي سجل عنده دقائق تأخير (يشمل الناقصة المتأخرة) — الفئات تتداخل قصداً
+  // - ناقصة: دخول بدون خروج أو العكس
+  const present = attendanceToday.filter((r) => r.status === "present");
+  const late = attendanceToday.filter(
+    (r) => r.status === "late" || r.lateMinutes > 0,
   );
-  const late = attendanceToday.filter((r) => r.status === "late");
   const incomplete = attendanceToday.filter((r) => r.status === "incomplete");
   const absent = activeEmployees
     .filter((e) => !recordByEmp.has(e.id))
