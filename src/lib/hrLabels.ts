@@ -34,8 +34,8 @@ const FORM_TYPE: Record<string, string> = {
   advance_request: "طلب سلفة",
   resignation: "طلب استقالة",
   document_request: "طلب مستند",
-  complaint: "شكوى",
-  complaints: "شكاوى وملاحظات",
+  complaint: "شكوى وملاحظات",
+  complaints: "شكوى وملاحظات",
   hr_message: "رسالة لـ HR",
   overtime_request: "طلب أوفرتايم",
   employee_info: "معلومات الموظف",
@@ -68,12 +68,22 @@ export function tRequestType(s?: string | null): string {
 
 const FORM_STATUS: Record<string, string> = {
   pending: "قيد المراجعة",
+  "قيد المراجعة": "قيد المراجعة",
+  معلقة: "قيد المراجعة",
   approved: "معتمد",
+  معتمد: "معتمد",
+  موافقة: "معتمد",
   rejected: "مرفوض",
+  مرفوض: "مرفوض",
+  مرفوضة: "مرفوض",
   cancelled: "ملغي",
+  ملغي: "ملغي",
   closed: "مغلق",
+  مغلق: "مغلق",
   read: "تم الاطلاع",
+  "تم الاطلاع": "تم الاطلاع",
   responded: "تم الرد",
+  "تم الرد": "تم الرد",
 };
 
 const CONTRACT_TYPE: Record<string, string> = {
