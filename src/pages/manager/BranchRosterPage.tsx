@@ -123,7 +123,7 @@ export default function BranchRosterPage() {
             roster_date: newDate,
             shift_template_id: r.shift_template_id ?? null,
             status: r.status,
-            note: r.note ?? null,
+            notes: (r as any).notes ?? null,
           } as any);
           ok++;
         } catch {/* skip */}
