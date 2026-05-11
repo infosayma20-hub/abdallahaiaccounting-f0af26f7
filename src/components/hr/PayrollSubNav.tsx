@@ -11,7 +11,7 @@ const TABS = [
 export default function PayrollSubNav() {
   const { pathname } = useLocation();
   return (
-    <div dir="rtl" className="border-b border-border/60 bg-muted/30 mb-4">
+    <div dir="rtl" className="border-t border-border/60 bg-muted/30">
       <div className="container max-w-7xl mx-auto px-3 md:px-6">
         <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           {TABS.map((t) => {
