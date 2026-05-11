@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +20,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer,
   Search, Filter, MessageSquare, History, Calculator, Send, AlertCircle,
-  Lock, Unlock, CheckSquare,
+  Lock, Unlock, CheckSquare, MoreHorizontal, ChevronDown, ChevronUp, Info,
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -32,7 +33,7 @@ import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Switch } from "@/components/ui/switch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 type Branch = {
   id: string;
