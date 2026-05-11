@@ -144,21 +144,14 @@ export function usePortalData(userId: string | undefined) {
 
   useEffect(() => {
     fetchData();
-    const refreshIfVisible = () => {
-      if (document.visibilityState === 'visible') fetchData();
-    };
-
+    // Background refresh while the tab is visible only — never on tab focus,
+    // so returning to Amwali from another tab does not flash a loading state.
     intervalRef.current = window.setInterval(() => {
-      refreshIfVisible();
+      if (document.visibilityState === 'visible') fetchData();
     }, 15000);
-
-    window.addEventListener('focus', refreshIfVisible);
-    document.addEventListener('visibilitychange', refreshIfVisible);
 
     return () => {
       clearInterval(intervalRef.current);
-      window.removeEventListener('focus', refreshIfVisible);
-      document.removeEventListener('visibilitychange', refreshIfVisible);
     };
   }, [fetchData]);
 
