@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, ArrowLeft } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
@@ -38,6 +38,7 @@ export default function HRReadinessPanel() {
     visibleTeam: 0, yesterdayMissingCheckout: 0, loading: true,
   });
   const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -86,7 +87,7 @@ export default function HRReadinessPanel() {
 
   if (issues.length === 0) {
     return (
-      <Card className="p-3 border-emerald-300 bg-emerald-50/50 flex items-center gap-2 text-sm text-emerald-800">
+      <Card className="p-2 border-emerald-300 bg-emerald-50/50 flex items-center gap-2 text-xs text-emerald-800">
         <CheckCircle2 className="h-4 w-4" />
         <span>جاهزية الغد: لا توجد تنبيهات.</span>
       </Card>
@@ -94,13 +95,24 @@ export default function HRReadinessPanel() {
   }
 
   return (
-    <Card className="p-3 border-amber-300 bg-amber-50/50">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <div className="font-semibold text-amber-900 text-sm mb-1">جاهزية الغد — تنبيهات إعداد</div>
-            <ul className="space-y-1.5 text-sm text-amber-900/90 list-disc pr-4">
+    <Card className="border-amber-300 bg-amber-50/50">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 p-2.5 text-right"
+      >
+        <div className="flex items-center gap-2 text-amber-900">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-sm font-semibold">جاهزية الغد — {issues.length} تنبيه</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-amber-700/80">{expanded ? "إخفاء" : "عرض"}</span>
+          {expanded ? <ChevronUp className="h-4 w-4 text-amber-700" /> : <ChevronDown className="h-4 w-4 text-amber-700" />}
+        </div>
+      </button>
+      {expanded && (
+        <div className="px-3 pb-3 -mt-1">
+          <ul className="space-y-1.5 text-sm text-amber-900/90 list-disc pr-4">
               {issues.map(i => (
                 <li key={i.key} className="flex flex-wrap items-center gap-2">
                   <span>{i.text}</span>
@@ -111,12 +123,13 @@ export default function HRReadinessPanel() {
                   )}
                 </li>
               ))}
-            </ul>
-            <div className="text-[11px] text-amber-700/80 mt-2">معلوماتي فقط — لن يمنع البصمات. يحدّث عند تحديث الصفحة.</div>
+          </ul>
+          <div className="flex items-center justify-between mt-2">
+            <div className="text-[11px] text-amber-700/80">معلوماتي فقط — لن يمنع البصمات.</div>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setDismissed(true)}>إخفاء</Button>
           </div>
         </div>
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setDismissed(true)}>إخفاء</Button>
-      </div>
+      )}
     </Card>
   );
 }

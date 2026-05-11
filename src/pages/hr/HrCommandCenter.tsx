@@ -89,11 +89,11 @@ export default function HrCommandCenter() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="text-right">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            الموارد البشرية
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+            لوحة الموارد البشرية
           </h1>
           <p className="text-sm text-muted-foreground">
-            كل شيء في مكان واحد — تعريفات، حضور، طلبات، ورواتب
+            ملخّص اليوم: حضور، طلبات، رواتب، تنبيهات
           </p>
         </div>
         <div className="flex items-center gap-3">

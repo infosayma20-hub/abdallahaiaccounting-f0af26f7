@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,7 +57,8 @@ export default function EmployeeFormsManagementPage() {
   const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("all");
+  const [searchParams] = useSearchParams();
+  const [filterType, setFilterType] = useState(searchParams.get("type") || "all");
   const [filterStatus, setFilterStatus] = useState("pending");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -232,7 +234,7 @@ export default function EmployeeFormsManagementPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BackButton />
-            <h1 className="text-xl font-bold">إدارة نماذج الموظفين</h1>
+            <h1 className="text-xl font-bold">طلبات الموظفين</h1>
           </div>
         </div>
 

@@ -1,113 +1,92 @@
-# خطة تحسين تطبيق الموظفين ونظام HR
 
-طلبك ضخم جداً (16 محور، عشرات الحقول، جداول جديدة، صلاحيات، طباعة، تحقق، ذمم مالية، قسائم راتب، إجراءات عقابية). تنفيذه دفعة واحدة في رد واحد سيكسر أشياء بدون شك. سأقسّمه إلى **4 مراحل** نشتغلها بالترتيب — كل مرحلة قابلة للاختبار والمراجعة قبل ما ننتقل للي بعدها.
+## نطاق العمل
 
----
+إعادة تنظيم تجربة HR بدون أي تعديل على schema قاعدة البيانات أو RLS أو منطق الرواتب/الحضور — فقط: تنظيم التنقّل، تنظيف الواجهات المزدحمة، توحيد الأقسام المكرّرة، وإصلاح عرض البيانات (مثل HRMSG raw وJSON).
 
-## المرحلة 1 — توحيد النماذج والتحقق (Forms Foundation)
-**يغطي بنود: 1، 2، 3، 5، 6، 7، 8، 14**
+## الوضع الحالي (ما تم اكتشافه)
 
-### أ. توحيد التسميات (`src/lib/hrLabels.ts` + `EmployeeMyRequestsTab` + `FormsTab` + شاشات HR)
-- مصدر واحد للأسماء العربية لكل `form_type` و `request_type`.
-- إزالة `birthday_whatsapp` كنموذج مستقل (يُدمج داخل `employee_info`).
-- `correction_request` = "تصحيح بصمة" (وقت إلزامي)، نوع جديد `attendance_edit_request` = "تعديل بصمة" منفصل.
+- يوجد **+15 مسار HR متفرق** في `App.tsx` بدون شريط تبويبات موحّد:
+  `/hr`, `/employees`, `/hr-attendance`, `/leaves`, `/loans`, `/advances`, `/hr-deductions`, `/payroll`, `/payroll/inputs`, `/payroll/preview-all`, `/payroll/approval`, `/payroll-settings`, `/employee-forms-management`, `/hr/definitions`, `/hr/day-types`, `/hr/shifts`, `/hr/settings`, `/manager/roster`, `/hr/employee/:id`.
+- **`HrCommandCenter`** الحالية (لوحة HR) جيدة لكن تكرّر روابط الأقسام الأربعة + KPIs + ملخص قابل للطي → سنبقي البنية ونبسّطها.
+- **`HRAttendancePage`** ضخمة (1919 سطر): تنبيهات إعداد كبيرة + كروت كل الفروع + جدول → نطوي التنبيهات ونحدّ الكروت.
+- **`EmployeesPage`** (1449 سطر): KPIs زائدة → نخفّضها لـ 4 مفيدة.
+- **`EmployeeFormsManagementPage`** (583 سطر): يحتاج فلتر `?type=` (يستخدمه HrCommandCenter بالفعل) + إخفاء HRMSG raw عبر `decodeHRMessage` الموجود في `src/lib/hrMessages.ts`.
+- **الرواتب مفرّقة في 5 مسارات** بدون wrapper موحّد.
+- **جدول الدوام** (`BranchRosterPage`) يحتاج Empty State بدل جدول مليء بشرطات.
 
-### ب. نموذج الإجازة (`EmployeeFormsTab` → LeaveRequestForm)
-- نوعان فقط: `annual` (سنوية) + `regular` (عادية). إخفاء `sick` و `personal` و `unpaid` من الـ UI الجديد لكن دعم backward compat في العرض.
-- حقل "عدد الأيام" (محسوب تلقائياً + قابل للتعديل اليدوي).
-- Validation: `to >= from`، الحقول مطلوبة، toast خطأ واضح.
+## الخريطة النهائية
 
-### ج. تحقق موحد لكل النماذج
-- دالة helper `validateEmployeeForm(formType, data)` ترجع `{ ok, errors }`.
-- منع submit عند فشل validation + `toast.error` بالعربي.
+```
+الموارد البشرية (/hr)
+├─ لوحة HR              /hr
+├─ الموظفون             /employees           → Employee 360 /hr/employee/:id
+├─ الحضور               /hr-attendance       (تبويبات داخلية: اليوم / الشهري / طلبات التعديل / تقارير)
+├─ جدول الدوام          /attendance/roster
+├─ طلبات الموظفين       /employee-forms-management
+├─ الرواتب              /payroll             (تبويبات داخلية: معاينة / احتساب / قسائم / سياسات)
+├─ القروض               /loans
+└─ إعدادات HR           /hr/settings         (تبويبات: فروع وأقسام / شفتات / أنواع اليوم / بدلات وخصومات / ربط السياسات / إعدادات القرض والإجازات)
+```
 
-### د. حقول موحدة (الفرع، القسم، الشفت، مرفق)
-- Component مشترك `<FormCommonFields>` يُحقن في كل النماذج.
-- الـ values تُحفظ في `form_data.branch_id`, `form_data.department`, `form_data.shift_id`, `attachment_url`.
-- استخدام bucket التخزين الحالي للموظف (`employee-attachments` أو إنشاؤه إن لم يوجد).
+## المراحل (بالترتيب)
 
-### هـ. تصحيح بصمة الذكي
-- في `AlertsTab`: عند الضغط على "بصمة ناقصة" يفتح dialog مُعبّأ مسبقاً بـ `attendance_date` و `request_type` (in/out)، فقط الوقت والسبب يدخلهما الموظف.
+### المرحلة 1 — شريط تبويبات HR موحّد (الأهم)
+- إنشاء `src/components/hr/HRTopNav.tsx`: شريط تبويبات أفقي ثابت، RTL، 8 عناصر فقط، مع `dropdown "المزيد"` على الشاشات الضيقة. يستخدم `useHRManagerPermissions` لإخفاء التبويبات غير المسموح بها.
+- إنشاء `src/components/hr/HRShell.tsx`: layout يلفّ كل صفحات HR (يضع `HRTopNav` بالأعلى + `<Outlet/>` أو children).
+- تحديث المسارات الـ HR في `App.tsx` لتكون داخل `HRShell` (دون كسر RoleGuard/HRPermGuard الحاليين — نلفّ children فقط).
 
-### و. الأوفر تايم — للمدراء فقط
-- إخفاء البطاقة من `EmployeeFormsTab` إذا `!employee.is_manager && !employee.can_manage_attendance`.
-- نموذج جديد فيه: اسم الموظف (dropdown من فريقه)، التاريخ، من/إلى، عدد الساعات (محسوب)، السبب، فرع/قسم/شفت، مرفق اختياري.
+### المرحلة 2 — تنظيف لوحة HR
+- في `HrCommandCenter.tsx`: حذف رأس الصفحة المكرّر (سيظهر اسم القسم في `HRTopNav`)، إبقاء الفلاتر + الأقسام الأربعة + KPIs.
+- نقل "ملخص سريع" (حضور اليوم + الطلبات المعلقة + Charts) لتكون مفتوحة افتراضيًا على Desktop ومطوية على الموبايل.
 
-### ز. الطباعة
-- تحديث `formPrintLabels` map لعرض تسميات عربية لكل المفاتيح الجديدة (`correction_time` → "وقت البصمة"، إلخ).
+### المرحلة 3 — تنظيف الحضور
+- في `HRAttendancePage.tsx`:
+  - تنبيه الإعداد (`HRReadinessPanel` أو ما يقابله): قابل للطي + collapsed افتراضيًا إذا لا يوجد فعل عاجل.
+  - كروت الفروع: limit 5 + scroll أفقي للباقي.
+  - جدول التعديلات: ربط `decodeHRMessage` من `src/lib/hrMessages.ts` لإزالة `<<HRMSG:{...}>>` raw.
+  - تنظيم أعمدة جدول الحضور حسب: الموظف / الفرع / القسم / دخول / خروج / ساعات / الحالة / المشكلة / إجراء.
 
----
+### المرحلة 4 — توحيد الرواتب
+- إنشاء `src/pages/PayrollPage.tsx` (موجودة) → تحويلها إلى **wrapper بتبويبات داخلية**:
+  - معاينة: تستضيف `PayrollPreviewAllPage`
+  - احتساب: المحتوى الحالي للـ `PayrollPage`
+  - قسائم: drawer/list من `MalakiPayslipDialog`
+  - سياسات: `PayrollSettingsPage`
+- إعادة توجيه `/payroll/preview-all`, `/payroll-settings` إلى `/payroll?tab=preview|settings` (مع الإبقاء على المسارات القديمة كـ aliases لتجنّب كسر روابط خارجية).
+- إصلاح Empty States في "احتساب": رسالة واضحة (لا سياسة / لا حضور / لا مدخلات).
 
-## المرحلة 2 — شاشة "طلباتي" التفصيلية + معلومات الموظف
-**يغطي بنود: 4، 5 (الجزء الثاني)**
+### المرحلة 5 — طلبات الموظفين
+- في `EmployeeFormsManagementPage.tsx`:
+  - إعادة تسمية الترويسة لـ "طلبات الموظفين".
+  - دعم `?type=` filter من URL (موجود؟ نتأكد).
+  - استخدام `RequestDetailsDialog` الموجود (تم بناؤه في المرحلة 2 لتطبيق الموظف) — استخراجه ليكون عام وقابل لإعادة الاستخدام في الـ HR، أو إنشاء `RequestDetailsDialogHR.tsx` يعتمد على نفس `getDetailGroups`.
+  - إخفاء أزرار الحذف عن غير admin.
 
-### أ. تطوير `EmployeeMyRequestsTab`
-- كل كرت يعرض: اسم النموذج + الحالة + التاريخ + **ملخص ذكي** (`buildFormSummary(form_type, form_data)`).
-- ضغطة على الكرت → `<RequestDetailsDialog>` يعرض كل `form_data` بأسماء عربية + ملاحظات HR + سبب الرفض + المرفق.
-- قراءة آمنة للحقول (`?? "—"`) — لا يكسر إذا حقل ناقص.
+### المرحلة 6 — صفحات أصغر
+- `EmployeesPage`: تقليل KPIs لـ 4 (الإجمالي، نشط، غير نشط، إجمالي الرواتب). تقليل المساحة العلوية.
+- `BranchRosterPage`: Empty State + زر "نسخ من أسبوع سابق" فوق الجدول إذا كان فارغًا.
+- `Employee360Page`: مرتب أصلًا — لا تغيير.
+- `LoansPage`: تثبيت أزرار الإجراءات فوق + ضغط الكروت.
 
-### ب. نموذج معلومات الموظف الموسّع (`employee_info`)
-- الحقول: الاسم، تاريخ الميلاد، واتساب، رقم الهوية، الحالة الاجتماعية، اسم الزوج/الزوجة، عدد الأطفال، المستوى التعليمي، فرع، قسم، شفت، ملاحظات، صورة هوية (مرفق).
-- تنبيه أعلى الـ home screen إذا الحقول الأساسية ناقصة (`employees.birth_date IS NULL OR phone IS NULL`).
+### المرحلة 7 — إعدادات HR موحّدة
+- `src/pages/hr/HrSettingsPage.tsx` جديدة بتبويبات تستضيف: `HrDefinitionsPage`, `HrWorkShiftsPage`, `HrDayTypesPage`, `PayrollSettingsPage` (سياسات ربط الموظفين)، إلخ — كـ inner tabs بدون تكرار في الشريط العلوي.
 
----
+## ما لن يتغيّر (ضمانات)
+- Schema قاعدة البيانات / RLS / Migrations.
+- منطق `usePayrollCalculator`, `useEmployee360`, `useHrCommandCenter`.
+- مكوّنات تطبيق الموظف (`src/components/employee/*`, `src/pages/EmployeeApp.tsx`).
+- Edge functions.
 
-## المرحلة 3 — الأقسام الجديدة للموظف
-**يغطي بنود: 10، 11، 12، 13**
+## ملاحظات تنفيذية
 
-### أ. قسيمة الراتب (`PayslipsTab`)
-- قراءة من جدول `payroll_runs` / `payroll_payslips` الحالي (إن وجد) — استخدام الموجود، حالة فارغة لو لا توجد.
-- بطاقة لكل شهر → dialog بالتفاصيل (راتب أساسي، إضافات، خصومات، صافي).
+- نظرًا لحجم العمل (~10 ملفات كبيرة)، المنفّذ سيتم على دفعات: المرحلة 1+2 أولًا (الأكثر أثرًا)، ثم 3+5، ثم 4، ثم 6+7. بعد كل دفعة: `tsc --noEmit` + جولة بصرية في المعاينة على `/hr`, `/hr-attendance`, `/employee-forms-management`, `/payroll`.
+- إذا اكتشفنا أن `HRTopNav` يكسر صفحة فيها sidebar داخلي خاص، سنستثنيها من `HRShell`.
 
-### ب. ذمم الموظف (`EmployeeFinancialsTab`)
-- استخدام `useEmployeeFinancialMovements` الموجود.
-- بطاقات: سلف، أكل، مخالفات، مشتريات، عجز، فائض، قسط القرض.
-- ملخص: على الذمة / مستحق / صافي.
-- بطاقة قرض حسن: قيمة، بداية، دفعات، مدفوع، متبقي.
+## التقدير
+- المرحلة 1+2: ~5 ملفات جديدة، تعديل `App.tsx` + `HrCommandCenter.tsx`.
+- المرحلة 3: تعديل ضخم على `HRAttendancePage.tsx` (لكن نقطة-نقطة، بدون كسر منطق).
+- المرحلة 4: refactor `PayrollPage.tsx` إلى wrapper.
+- المرحلة 5: تعديل `EmployeeFormsManagementPage.tsx` + استخراج Dialog.
+- المراحل 6+7: تنظيفات بصرية صغيرة.
 
-### ج. جدول الدوام الشهري (`MyAttendanceMonthTab`)
-- قراءة من `attendance_days`.
-- جدول/قائمة موبايل: اليوم، التاريخ، من، إلى، ساعات، حالة.
-- ملخص شهري في الأعلى.
-
-### د. الإجراءات العقابية (`DisciplinaryActionsTab`)
-- قراءة من `correction_requests` بـ tag `HRMSG`/`disciplinary` حسب memory الحالية.
-- يعرض إجراءات الموظف فقط (RLS + `eq employee_id`).
-
----
-
-## المرحلة 4 — القرض الحسن الذكي + Migrations + QA
-**يغطي بنود: 9، 15، 16**
-
-### أ. نموذج القرض الحسن
-- Pre-fill: اسم، فرع، تاريخ بدء العمل، راتب، سقف القرض (من `hr_settings` أو ثابت).
-- منطق `evaluateLoanEligibility({ amount, hire_date, salary, ceiling, min_tenure })` يخزّن `eligibility_status` + `eligibility_reason` في `form_data`.
-- شارة في الـ UI: مؤهل مبدئياً / يتطلب مراجعة.
-
-### ب. Migrations عند الحاجة
-- التحقق أولاً من الجداول الموجودة (`payroll_*`, `employee_disciplinary_*`).
-- إنشاء فقط ما هو ناقص + RLS: الموظف يرى صفوفه فقط، HR/admin حسب الأدوار.
-- لا تعديل على بيانات قديمة.
-
-### ج. QA
-- Build + typecheck.
-- اختبار يدوي للسيناريوهات في بند 16.
-
----
-
-## ملاحظات تقنية مهمة
-
-- **ملفات أساسية ستُعدَّل**: `EmployeeFormsTab.tsx`, `EmployeeMyRequestsTab.tsx`, `EmployeeApp.tsx`, `EmployeeBottomNav.tsx`, `AlertsTab.tsx`, `hrLabels.ts`, `FormsTab.tsx` (HR).
-- **ملفات جديدة**: `forms/LeaveRequestForm.tsx`, `forms/EmployeeInfoForm.tsx`, `forms/LoanRequestForm.tsx`, `forms/OvertimeRequestForm.tsx`, `forms/CorrectionRequestForm.tsx`, `forms/FormCommonFields.tsx`, `forms/validators.ts`, `RequestDetailsDialog.tsx`, `PayslipsTab.tsx`, `EmployeeFinancialsTab.tsx`, `MyAttendanceMonthTab.tsx`, `DisciplinaryActionsTab.tsx`.
-- **Backward compat**: العرض في "طلباتي" يفهم القديم والجديد. لا حذف بيانات.
-- **RLS**: الموظف = `auth_user_id = auth.uid()`. HR/admin = حسب `has_role`.
-- **حجم العمل**: تقديري ~25-30 ملف في المجموع. لذلك التقسيم على 4 ردود (مرحلة في كل رد) ضروري لتسليم نظيف بدون كسر.
-
----
-
-## السؤال قبل البدء
-
-هل توافق على:
-1. تنفيذ **المرحلة 1** الآن في هذا الرد، ثم نكمل البقية مرحلة بمرحلة؟
-2. أو تفضّل ترتيب أولوية مختلف (مثلاً نبدأ بـ "طلباتي" + معلومات الموظف لأنها الأهم بصرياً)؟
-3. هل عندك جدول `payroll_payslips` أو ما يشابهه فعلياً، أم نحتاج migration جديدة له في المرحلة 3؟
+هل أبدأ التنفيذ بالمراحل بهذا الترتيب، أم تفضّل ترتيبًا مختلفًا (مثلًا الحضور أولًا لأنها الأكثر إزعاجًا اليوم)؟
