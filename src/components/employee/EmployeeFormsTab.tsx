@@ -308,7 +308,14 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
         );
 
       case "loan_request":
-        return (
+        {
+          const elig = evaluateLoanEligibility({
+            loanAmount: formData.loan_amount,
+            installments: formData.installments,
+            workStartDate: formData.work_start_date || employeeProfile?.start_date,
+            baseSalary: formData.salary || employeeProfile?.base_salary,
+          });
+          return (
           <>
             <p className="text-xs text-muted-foreground leading-relaxed bg-primary/5 rounded-xl p-3">
               انطلاقاً من حرص الشركة على دعم موظفيها ومساندتهم في مواجهة الظروف المالية الطارئة، تم اعتماد <strong>سياسة القرض الحسن</strong> كإحدى المزايا الاجتماعية المقدّمة للموظفين.
@@ -322,17 +329,46 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الفرع *</label>
               <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">تاريخ بدء العمل</label>
+                <Input type="date" value={formData.work_start_date || ""} onChange={e => setFormData(p => ({ ...p, work_start_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">الراتب (₪)</label>
+                <Input type="number" value={formData.salary || ""} onChange={e => setFormData(p => ({ ...p, salary: e.target.value }))} dir="ltr" className="rounded-xl" />
+              </div>
+            </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">قيمة القرض *</label>
               <Input type="number" value={formData.loan_amount || ""} onChange={e => setFormData(p => ({ ...p, loan_amount: e.target.value }))} dir="ltr" className="rounded-xl" />
               <p className="text-[10px] text-destructive mt-1">يتم اعتماد قيمة القرض النهائية حسب سقف القرض المعتمد ووفق سياسة القرض الحسن</p>
             </div>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">عدد الدفعات الشهرية *</label>
+              <Input type="number" min={1} value={formData.installments || ""} onChange={e => setFormData(p => ({ ...p, installments: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="6" />
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground mb-1 block">سبب طلب القرض *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" />
             </div>
+            <div className={`rounded-xl p-3 border text-xs space-y-1 ${eligibilityBadgeClass(elig.badge.tone)}`}>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">تقييم الأهلية المبدئي</span>
+                <span className="text-[10px] font-bold">{elig.badge.text}</span>
+              </div>
+              <p className="text-[11px] opacity-90 leading-relaxed">{elig.eligibility_reason}</p>
+              {elig.calculated_loan_limit != null && (
+                <p className="text-[10px] opacity-80">السقف التقديري: {formatCurrency(elig.calculated_loan_limit)}</p>
+              )}
+              {elig.months_of_service != null && (
+                <p className="text-[10px] opacity-80">مدة الخدمة: {elig.months_of_service} شهر</p>
+              )}
+              <p className="text-[10px] opacity-70">* ليس اعتماداً نهائياً — تبقى الموافقة لـ HR.</p>
+            </div>
           </>
-        );
+          );
+        }
 
       case "employee_info":
         return (
