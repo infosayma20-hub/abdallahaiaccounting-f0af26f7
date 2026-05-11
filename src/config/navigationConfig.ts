@@ -407,30 +407,7 @@ export const navigationSections: NavSection[] = [
           "إجازات", "سلف", "قروض", "خصومات", "بصمة", "بصمتي",
           "مدخلات الرواتب", "إعدادات الرواتب", "إعدادات HR",
         ],
-        groups: [
-          {
-            groupLabel: "أساسيات HR",
-            children: [
-              { label: "👥 الموظفون", path: "/employees" },
-              { label: "🕐 الحضور", path: "/hr-attendance" },
-              { label: "📅 جدول الدوام", path: "/attendance/roster" },
-            ],
-          },
-          {
-            groupLabel: "التشغيل",
-            children: [
-              { label: "💵 إدارة الرواتب", path: "/payroll" },
-              { label: "🏦 القروض", path: "/loans" },
-              { label: "📝 طلبات الموظفين", path: "/employee-forms-management" },
-            ],
-          },
-          {
-            groupLabel: "الإعدادات",
-            children: [
-              { label: "⚙️ إعدادات الرواتب", path: "/hr/__payroll-settings-v2" },
-            ],
-          },
-        ],
+        isDirect: true,
       },
     ],
   },
