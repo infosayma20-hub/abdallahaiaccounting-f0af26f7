@@ -81,7 +81,8 @@ const DateInputDMY = React.forwardRef<HTMLInputElement, DateInputDMYProps>(
       }
     };
 
-    const openPicker = () => {
+    const openPicker = (e?: React.MouseEvent) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       if (disabled) return;
       const el = hiddenRef.current;
       if (!el) return;
@@ -90,8 +91,7 @@ const DateInputDMY = React.forwardRef<HTMLInputElement, DateInputDMYProps>(
       if (typeof el.showPicker === "function") {
         try { (el as any).showPicker(); return; } catch {}
       }
-      el.focus();
-      el.click();
+      try { el.focus(); el.click(); } catch {}
     };
 
     return (
@@ -129,7 +129,19 @@ const DateInputDMY = React.forwardRef<HTMLInputElement, DateInputDMYProps>(
           }}
           tabIndex={-1}
           aria-hidden="true"
-          className="sr-only pointer-events-none absolute"
+          // sr-only-like positioning but WITHOUT pointer-events:none,
+          // so showPicker()/click() fallback can actually open the native picker.
+          style={{
+            position: "absolute",
+            right: 0,
+            bottom: 0,
+            width: 1,
+            height: 1,
+            opacity: 0,
+            border: 0,
+            padding: 0,
+            margin: 0,
+          }}
         />
       </div>
     );
