@@ -7,10 +7,9 @@ import PayrollSubNav from "./PayrollSubNav";
  * Wraps any HR page with the unified top tabs bar.
  * The nav stack is sticky to the top of the scrolling <main> region so it
  * stays visible while scrolling through long HR pages (attendance, roster…).
- * The page <main> uses its own padding (p-5 lg:p-8) which we counteract via
- * negative margins so the sticky bar sits flush at the very top of the
- * scroll viewport, exactly under the global TopBar/TabBar (which live
- * outside the scroll area).
+ * HR routes remove the outer <main> padding so the nav can be the first child
+ * of the actual scroll container. Page padding is applied below the sticky nav,
+ * which prevents the bar from floating over cards or covering page titles.
  */
 export function HRShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -20,13 +19,11 @@ export function HRShell({ children }: { children: ReactNode }) {
     pathname === "/payroll-settings";
   return (
     <>
-      <div
-        className="sticky top-0 z-40 -mx-5 lg:-mx-8 -mt-5 lg:-mt-8 mb-4 bg-card border-b border-border shadow-sm"
-      >
+      <div className="sticky top-0 z-40 bg-card border-b border-border shadow-sm">
         <HRTopNav />
         {showPayrollNav && <PayrollSubNav />}
       </div>
-      <div>{children}</div>
+      <div className="p-5 lg:p-8">{children}</div>
     </>
   );
 }
