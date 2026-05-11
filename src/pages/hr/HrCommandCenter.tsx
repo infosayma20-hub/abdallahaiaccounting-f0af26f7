@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import { HrKpiCard } from "./components/HrKpiCard";
 import { HrAttendanceToday } from "./components/HrAttendanceToday";
@@ -58,12 +59,20 @@ export default function HrCommandCenter() {
     });
   };
 
-  const { data, isLoading, isError, error } = useHrCommandCenter({
+  const {
+    data,
+    error,
+    refetch,
+    isInitialLoading,
+    isRefreshing,
+    isRefreshError,
+    showFatalError,
+  } = useHrCommandCenter({
     branchId: branchFilter === ALL ? null : branchFilter,
     department: deptFilter === ALL ? null : deptFilter,
   });
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="container max-w-7xl mx-auto p-4 md:p-6 space-y-4" dir="rtl">
         <Skeleton className="h-12 w-64" />
@@ -80,15 +89,18 @@ export default function HrCommandCenter() {
     );
   }
 
-  if (isError || !data) {
+  if (showFatalError || !data) {
     return (
       <div className="container max-w-3xl mx-auto p-6" dir="rtl">
         <Card className="p-8 text-center">
-          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-rose-500" />
+          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
           <h2 className="text-lg font-bold mb-2">تعذر تحميل لوحة الموارد البشرية</h2>
           <p className="text-sm text-muted-foreground">
             {error instanceof Error ? error.message : "حدث خطأ في جلب البيانات."}
           </p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
+            إعادة المحاولة
+          </Button>
         </Card>
       </div>
     );
@@ -109,7 +121,22 @@ export default function HrCommandCenter() {
             ملخّص اليوم: حضور، طلبات، رواتب، تنبيهات
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {isRefreshing && (
+            <div className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted/40 px-3 text-xs text-muted-foreground">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              جاري التحديث...
+            </div>
+          )}
+          {isRefreshError && !isRefreshing && (
+            <div className="inline-flex h-8 items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5" />
+              تعذر التحديث، يتم عرض آخر بيانات محفوظة
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => refetch()}>
+                إعادة المحاولة
+              </Button>
+            </div>
+          )}
           <Select value={deptFilter} onValueChange={setDeptFilter}>
             <SelectTrigger className="w-[160px] h-9">
               <SelectValue placeholder="القسم" />
