@@ -275,7 +275,10 @@ export function useCompanySettings() {
   useEffect(() => {
     if (!user) return;
     loadSettings();
-  }, [user]);
+    // Depend on user id only — Supabase fires onAuthStateChange (INITIAL_SESSION,
+    // TOKEN_REFRESHED, …) which produces a new User object identity for the same
+    // user, causing duplicate fetches on page entry and on tab focus return.
+  }, [user?.id]);
 
   const loadSettings = async () => {
     if (!user) return;
