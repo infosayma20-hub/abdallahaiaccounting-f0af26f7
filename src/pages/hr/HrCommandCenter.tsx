@@ -21,8 +21,6 @@ import {
   CalendarClock,
   Banknote,
   ClipboardList,
-  ChevronDown,
-  ChevronUp,
   AlertTriangle,
 } from "lucide-react";
 import { HrKpiCard } from "./components/HrKpiCard";
@@ -43,7 +41,6 @@ export default function HrCommandCenter() {
   const navigate = useNavigate();
   const [branchFilter, setBranchFilter] = useState<string>(ALL);
   const [deptFilter, setDeptFilter] = useState<string>(ALL);
-  const [showDetails, setShowDetails] = useState<boolean>(false);
 
   const { data, isLoading, isError, error } = useHrCommandCenter({
     branchId: branchFilter === ALL ? null : branchFilter,
@@ -231,43 +228,27 @@ export default function HrCommandCenter() {
         />
       </div>
 
-      {/* ─── ملخص سريع: قابل للطي ─── */}
-      <div className="border-t pt-4">
-        <button
-          type="button"
-          onClick={() => setShowDetails((v) => !v)}
-          className="w-full flex items-center justify-between text-right hover:opacity-80 transition-opacity"
-        >
-          <span className="flex items-center gap-2 text-muted-foreground text-xs">
-            {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {showDetails ? "إخفاء" : "عرض"}
-          </span>
-          <h2 className="text-sm font-semibold text-foreground">
-            ملخص سريع — حضور اليوم، الطلبات، التحليلات
-          </h2>
-        </button>
+      {/* ─── ملخص اليوم — قسم ثابت ─── */}
+      <div className="border-t pt-4 space-y-5">
+        <h2 className="text-sm font-semibold text-foreground text-right">
+          ملخص اليوم
+        </h2>
 
-        {showDetails && (
-          <div className="mt-4 space-y-5">
-            {/* حضور اليوم + الطلبات المعلقة */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <HrAttendanceToday employees={employees} />
-              <HrRequestsPanel
-                pendingRequests={pendingRequests}
-                employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <HrAttendanceToday employees={employees} />
+          <HrRequestsPanel
+            pendingRequests={pendingRequests}
+            employees={employees.map((e) => ({ id: e.id, name: e.name, branch: e.branch }))}
+          />
+        </div>
 
-            {/* التحليلات */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-right flex items-center justify-end gap-2">
-                <BarChart3 className="h-4 w-4" />
-                التحليلات
-              </h3>
-              <HrCharts charts={charts} />
-            </div>
-          </div>
-        )}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2 text-right flex items-center justify-end gap-2">
+            <BarChart3 className="h-4 w-4" />
+            التحليلات
+          </h3>
+          <HrCharts charts={charts} />
+        </div>
       </div>
     </div>
   );
