@@ -634,10 +634,10 @@ const EmployeesPage = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
+          { label: "إجمالي الموظفين", value: employees.length, icon: Users, color: "text-muted-foreground", bg: "bg-muted/50 border-border" },
           { label: "موظف نشط", value: activeCount, icon: Users, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
-          { label: "إجمالي الرواتب", value: `₪${totalSalaries.toLocaleString()}`, icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
           { label: "غير نشط", value: employees.length - activeCount, icon: Calendar, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
-          { label: "إجمالي السجلات", value: employees.length, icon: FileText, color: "text-muted-foreground", bg: "bg-muted/50 border-border" },
+          { label: "إجمالي الرواتب", value: `₪${totalSalaries.toLocaleString()}`, icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
         ].map((k, i) => (
           <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
             <div className="flex items-center justify-between">
