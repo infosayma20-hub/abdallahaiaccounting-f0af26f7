@@ -148,13 +148,33 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
   const submitForm = async () => {
     if (!activeForm) return;
-    setSubmitting(true);
 
-    // Ensure leave_type default
-    const submitData = { ...formData };
-    if (activeForm === "leave_request" && !submitData.leave_type) {
-      submitData.leave_type = "annual";
+    // Build the data we'll submit (allow auto-computation for some forms)
+    const submitData: Record<string, any> = { ...formData };
+
+    // Auto-compute leave days if not entered
+    if (activeForm === "leave_request") {
+      if (!submitData.leave_type) submitData.leave_type = "annual";
+      if (!submitData.days_count && submitData.from_date && submitData.to_date) {
+        submitData.days_count = String(diffDaysInclusive(submitData.from_date, submitData.to_date));
+      }
     }
+
+    // Auto-compute overtime hours if not entered
+    if (activeForm === "overtime_request") {
+      if (!submitData.hours && submitData.from_time && submitData.to_time) {
+        submitData.hours = String(diffHours(submitData.from_time, submitData.to_time));
+      }
+    }
+
+    // Validate before submission
+    const v = validateEmployeeForm(activeForm, submitData);
+    if (!v.ok) {
+      toast({ title: "تعذّر الإرسال", description: v.error, variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
 
     const { error } = await supabase.from("employee_forms").insert({
       employee_id: employeeId,
