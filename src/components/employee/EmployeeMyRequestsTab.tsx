@@ -14,10 +14,11 @@ const formLabels: Record<string, string> = {
   advance_request: "طلب سلفة",
   loan_request: "طلب قرض حسن",
   correction_request: "تصحيح بصمة",
+  attendance_edit_request: "تعديل بصمة",
   overtime_request: "طلب أوفرتايم",
   hr_message: "رسالة لـ HR",
-  employee_info: "معلومات الموظفين",
-  birthday_whatsapp: "تاريخ الميلاد والواتساب",
+  employee_info: "معلومات الموظف",
+  birthday_whatsapp: "معلومات الموظف",
   complaints: "شكاوى وملاحظات",
   disciplinary_action: "إجراء عقابي",
   facility_quality: "جودة المرافق",
@@ -36,6 +37,7 @@ const statusLabel = (s: string) => {
 
 const leaveTypeLabels: Record<string, string> = {
   annual: "سنوية",
+  regular: "عادية",
   sick: "مرضية",
   personal: "شخصية",
   unpaid: "بدون راتب",
