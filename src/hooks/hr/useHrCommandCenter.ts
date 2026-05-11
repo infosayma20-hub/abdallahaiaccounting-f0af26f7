@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useDataOwnerId } from "@/hooks/useDataOwnerId";
 
 /**
  * useHrCommandCenter
@@ -35,6 +36,20 @@ export type HrEmployeeRow = {
   topIssue?: string;
 };
 
+export type HrAttendanceTodayRow = {
+  id: string;
+  employee_id: string;
+  employeeName: string;
+  branch: string | null;
+  department: string | null;
+  firstCheckIn: string | null;
+  lastCheckOut: string | null;
+  status: "present" | "late" | "absent" | "leave" | "off" | "incomplete";
+  issue: string;
+  lateMinutes: number;
+  isSynthetic: boolean;
+};
+
 export type HrCommandCenterData = {
   employees: HrEmployeeRow[];
   filters: {
@@ -63,7 +78,9 @@ export type HrCommandCenterData = {
     leaves: any[];
     loans: any[];
     forms: any[];
+    corrections: any[];
   };
+  attendanceToday: HrAttendanceTodayRow[];
   charts: {
     payrollTrend: { month: string; total: number; net: number }[];
     attendancePerformance: { day: string; present: number; late: number; absent: number }[];
@@ -77,7 +94,13 @@ const daysAgo = (n: number) => {
   return d.toISOString().split("T")[0];
 };
 
-const todayISO = () => new Date().toISOString().split("T")[0];
+const todayISO = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const monthStart = () => {
   const d = new Date();
@@ -89,9 +112,11 @@ export function useHrCommandCenter(filters?: {
   branchId?: string | null;
   department?: string | null;
 }) {
+  const { dataOwnerId } = useDataOwnerId();
   const query = useQuery<HrCommandCenterData>({
-    queryKey: ["hr-command-center"],
+    queryKey: ["hr-command-center", dataOwnerId],
     staleTime: 60_000,
+    enabled: !!dataOwnerId,
     queryFn: async () => {
       const since30 = daysAgo(30);
       const since6Months = (() => {
