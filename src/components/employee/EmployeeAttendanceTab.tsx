@@ -13,7 +13,13 @@ function endOfMonth(d: Date)   { return new Date(d.getFullYear(), d.getMonth() +
 function fmtMonthLabel(d: Date) {
   return d.toLocaleDateString("ar-EG-u-ca-gregory", { month: "long", year: "numeric" });
 }
-function isoDate(d: Date) { return d.toISOString().slice(0, 10); }
+/** Local-time YYYY-MM-DD (avoids UTC shift that would leak the previous day). */
+function isoDate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export default function EmployeeAttendanceTab({ employeeId }: Props) {
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
