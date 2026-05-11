@@ -336,17 +336,17 @@ export default function EmployeeFormsManagementPage() {
             ) : (
               <Card className="border-border overflow-hidden rounded-xl">
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table dir="rtl">
                     <TableHeader className="bg-[#0D1B2E]">
                       <TableRow className="hover:bg-[#0D1B2E] border-b-0">
-                        <TableHead className="text-right text-white font-semibold">إجراء</TableHead>
-                        <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
-                        <TableHead className="text-right text-white font-semibold">التاريخ</TableHead>
+                        <TableHead className="text-right text-white font-semibold">الموظف</TableHead>
+                        <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
+                        <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
                         <TableHead className="text-right text-white font-semibold">التفاصيل</TableHead>
                         <TableHead className="text-right text-white font-semibold">المبلغ</TableHead>
-                        <TableHead className="text-right text-white font-semibold">النموذج</TableHead>
-                        <TableHead className="text-right text-white font-semibold">الفرع</TableHead>
-                        <TableHead className="text-right text-white font-semibold">الموظف</TableHead>
+                        <TableHead className="text-right text-white font-semibold">التاريخ</TableHead>
+                        <TableHead className="text-right text-white font-semibold">الحالة</TableHead>
+                        <TableHead className="text-center text-white font-semibold">الإجراء</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -363,8 +363,19 @@ export default function EmployeeFormsManagementPage() {
                           const isPending = f.status === "pending";
                           return (
                             <TableRow key={f.id} className="hover:bg-muted/40 border-b border-border">
+                              <TableCell className="font-medium text-sm whitespace-nowrap text-right">{emp?.name || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{emp?.branch || "—"}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap text-right">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate text-right" title={details}>{details || "—"}</TableCell>
+                              <TableCell className="text-sm font-semibold whitespace-nowrap text-right">
+                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap text-right">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                              </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center justify-center gap-1">
                                   {isPending && (
                                     <>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
@@ -404,17 +415,6 @@ export default function EmployeeFormsManagementPage() {
                                   </DropdownMenu>
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={details}>{details || "—"}</TableCell>
-                              <TableCell className="text-sm font-semibold whitespace-nowrap">
-                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
-                              </TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{emp?.branch || "—"}</TableCell>
-                              <TableCell className="font-medium text-sm whitespace-nowrap">{emp?.name || "—"}</TableCell>
                             </TableRow>
                           );
                         })
