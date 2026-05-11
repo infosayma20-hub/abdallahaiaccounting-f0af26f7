@@ -25,10 +25,11 @@ import { multiWordMatchAny } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { displayReason } from "@/lib/hrMessages";
+import { displayReason, decodeHRMessage } from "@/lib/hrMessages";
 import { getRequestSummary, getDetailGroups } from "@/lib/employeeRequestDisplay";
 import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
+import { useNavigate } from "react-router-dom";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -44,6 +45,12 @@ const formTypeLabels: Record<string, string> = {
   facility_quality: "🏢 جودة المرافق",
   equipment_fault: "🔧 إبلاغ أعطال",
   inventory_balance: "📦 رصيد الأصناف",
+  // Virtual types from correction_requests:
+  _attendance_correction: "✏️ تصحيح بصمة",
+  _hr_message: "💬 رسالة HR",
+  _hr_inquiry: "❓ طلب توضيح",
+  _hr_warning: "⚠️ إنذار",
+  _hr_penalty: "⚖️ إجراء عقابي",
 };
 
 const statusConfig: Record<string, { label: string; variant: "default" | "destructive" | "outline" | "secondary"; color: string }> = {
@@ -59,8 +66,10 @@ export default function EmployeeFormsManagementPage() {
   const { dataOwnerId } = useDataOwnerId();
   const { settings: companySettings } = useCompanySettings();
   const { can, isAdmin } = useHRManagerPermissions();
+  const navigate = useNavigate();
   const canDelete = isAdmin || can("can_manage_forms");
   const [forms, setForms] = useState<any[]>([]);
+  const [corrections, setCorrections] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
   const [branches, setBranches] = useState<string[]>([]);
@@ -87,6 +96,7 @@ export default function EmployeeFormsManagementPage() {
   useEffect(() => {
     if (user && dataOwnerId) {
       fetchForms();
+      fetchCorrections();
       fetchEmployees();
       fetchPolicies();
     }
@@ -102,6 +112,75 @@ export default function EmployeeFormsManagementPage() {
     setForms(data || []);
     setLoading(false);
   };
+
+  const fetchCorrections = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("correction_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setCorrections(data || []);
+  };
+
+  // Normalize correction_requests rows into the same shape as employee_forms rows.
+  const normalizedCorrections = (() => {
+    const dateLabel = (d?: string | null) => {
+      if (!d) return "";
+      try { return format(new Date(d), "dd/MM/yyyy"); } catch { return String(d); }
+    };
+    const timeLabel = (t?: string | null) => {
+      if (!t) return "";
+      try { return format(new Date(t), "HH:mm"); } catch { return String(t); }
+    };
+    const punchTypeAr: Record<string, string> = {
+      check_in: "بصمة دخول",
+      check_out: "بصمة خروج",
+      missing: "بصمة مفقودة",
+    };
+    return corrections.map((c: any) => {
+      const meta = decodeHRMessage(c.reason);
+      let virtualType: string;
+      let details: string;
+      if (meta) {
+        // HR message stored in correction_requests
+        if (meta.type === "inquiry") virtualType = "_hr_inquiry";
+        else if (meta.type === "warning") virtualType = "_hr_warning";
+        else if (meta.type === "penalty") virtualType = "_hr_penalty";
+        else virtualType = "_hr_message";
+        details = [meta.subject, meta.body].filter(Boolean).join(" — ");
+      } else {
+        // Real attendance-correction request
+        virtualType = "_attendance_correction";
+        const parts = [
+          dateLabel(c.attendance_date),
+          punchTypeAr[c.request_type] || c.request_type,
+          c.requested_time ? `الوقت ${timeLabel(c.requested_time)}` : "",
+          c.reason ? `— ${displayReason(c.reason)}` : "",
+        ].filter(Boolean);
+        details = parts.join(" · ");
+      }
+      return {
+        id: c.id,
+        _source: "correction_requests" as const,
+        employee_id: c.employee_id,
+        form_type: virtualType,
+        form_data: null,
+        reason: c.reason,
+        status: c.status,
+        review_notes: c.review_notes,
+        reviewed_at: c.reviewed_at,
+        created_at: c.created_at,
+        _details: details,
+        _hrMeta: meta,
+        _raw: c,
+      };
+    });
+  })();
+
+  // Tag employee_forms rows with _source="employee_forms" for unified handling
+  const normalizedForms = forms.map((f: any) => ({ ...f, _source: "employee_forms" as const }));
+  const allItems = [...normalizedForms, ...normalizedCorrections]
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 
   const fetchEmployees = async () => {
     if (!user || !dataOwnerId) return;
@@ -185,20 +264,22 @@ export default function EmployeeFormsManagementPage() {
 
   // Smart Arabic summary that strips HRMSG raw JSON tags.
   const getFormDetails = (f: any) => {
+    if (f._source === "correction_requests") return f._details || "";
     const summary = getRequestSummary(f);
     if (summary && summary !== "—") return summary;
     const reasonClean = displayReason(f?.reason || f?.form_data?.reason || "");
     return reasonClean || "";
   };
 
-  const filtered = forms.filter(f => {
+  const filtered = allItems.filter(f => {
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
     const emp = employeeMap[f.employee_id];
     if (filterBranch !== "all" && emp?.branch !== filterBranch) return false;
     if (search) {
       const empName = emp?.name || "";
-      if (!empName.includes(search) && !f.form_type.includes(search)) return false;
+      const det = (f._source === "correction_requests" ? f._details : "") || "";
+      if (!empName.includes(search) && !f.form_type.includes(search) && !det.includes(search)) return false;
     }
     if (dateFrom) {
       const created = f.created_at?.slice(0, 10);
@@ -215,10 +296,10 @@ export default function EmployeeFormsManagementPage() {
   const totalPages = Math.ceil(filtered.length / perPage);
 
   const counts = {
-    pending: forms.filter(f => f.status === "pending").length,
-    approved: forms.filter(f => f.status === "approved").length,
-    rejected: forms.filter(f => f.status === "rejected").length,
-    total: forms.length,
+    pending: allItems.filter(f => f.status === "pending").length,
+    approved: allItems.filter(f => f.status === "approved").length,
+    rejected: allItems.filter(f => f.status === "rejected").length,
+    total: allItems.length,
   };
 
   // Financial totals for filtered results
@@ -382,7 +463,7 @@ export default function EmployeeFormsManagementPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center gap-1">
-                                  {isPending && (
+                                  {isPending && f._source !== "correction_requests" && (
                                     <>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
                                         onClick={() => handleAction("approved", f)}
@@ -396,9 +477,18 @@ export default function EmployeeFormsManagementPage() {
                                       </Button>
                                     </>
                                   )}
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
+                                  {f._source === "correction_requests" ? (
+                                    <Button size="sm" variant="ghost" className="h-7 px-2 gap-1 text-xs"
+                                      title="مراجعة في صفحة الحضور"
+                                      onClick={() => navigate(`/hr-attendance?tab=corrections&requestId=${f.id}`)}>
+                                      <Eye className="h-3.5 w-3.5" /> مراجعة
+                                    </Button>
+                                  ) : (
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="عرض التفاصيل" aria-label="عرض التفاصيل" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {f._source !== "correction_requests" && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="المزيد" aria-label="المزيد">
@@ -419,6 +509,7 @@ export default function EmployeeFormsManagementPage() {
                                       )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
