@@ -16,12 +16,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer, MoreHorizontal
 } from "lucide-react";
 import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { displayReason } from "@/lib/hrMessages";
+import { getRequestSummary, getDetailGroups } from "@/lib/employeeRequestDisplay";
+import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -51,6 +57,8 @@ export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
   const { dataOwnerId } = useDataOwnerId();
   const { settings: companySettings } = useCompanySettings();
+  const { can, isAdmin } = useHRManagerPermissions();
+  const canDelete = isAdmin || can("can_manage_forms");
   const [forms, setForms] = useState<any[]>([]);
   const [printForm, setPrintForm] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
@@ -174,22 +182,12 @@ export default function EmployeeFormsManagementPage() {
     return f.form_data?.amount || f.form_data?.loan_amount || null;
   };
 
-  const leaveTypeLabels: Record<string, string> = {
-    annual: "سنوية", sick: "مرضية", personal: "شخصية", unpaid: "بدون راتب",
-  };
-
+  // Smart Arabic summary that strips HRMSG raw JSON tags.
   const getFormDetails = (f: any) => {
-    const d = f.form_data || {};
-    if (f.form_type === "leave_request") {
-      const leaveLabel = d.leave_type ? (leaveTypeLabels[d.leave_type] || d.leave_type) : "";
-      const dates = d.from_date && d.to_date ? `${d.from_date} → ${d.to_date}` : "";
-      return [leaveLabel, dates, d.reason].filter(Boolean).join(" | ");
-    }
-    if (f.form_type === "advance_request") return d.reason || d.purpose || "سلفة";
-    if (f.form_type === "loan_request") return d.reason || d.purpose || "قرض حسن";
-    if (f.form_type === "correction_request") return d.date || d.reason || "";
-    if (f.form_type === "overtime_request") return d.hours ? `${d.hours} ساعة` : d.reason || "";
-    return d.reason || d.message || d.notes || "";
+    const summary = getRequestSummary(f);
+    if (summary && summary !== "—") return summary;
+    const reasonClean = displayReason(f?.reason || f?.form_data?.reason || "");
+    return reasonClean || "";
   };
 
   const filtered = forms.filter(f => {
