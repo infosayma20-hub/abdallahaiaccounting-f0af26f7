@@ -28,6 +28,8 @@ import { setNextExportBranding } from "@/lib/excel-export";
 import SendHRMessageDialog, { SendTarget } from "@/components/hr/SendHRMessageDialog";
 import HRReadinessPanel from "@/components/hr/HRReadinessPanel";
 import { displayReason } from "@/lib/hrMessages";
+import DateInputDMY from "@/components/forms/DateInputDMY";
+import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 import { Shield } from "lucide-react";
 import { tAttendanceStatus, tRequestType, tFormStatus } from "@/lib/hrLabels";
 import MonthlyAttendanceTab from "@/pages/hr/components/MonthlyAttendanceTab";
@@ -1151,7 +1153,10 @@ export default function HRAttendancePage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-auto" dir="ltr" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">تاريخ الدوام</span>
+            <DateInputDMY value={selectedDate} onChange={setSelectedDate} className="w-[160px]" />
+          </div>
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="كل الفروع" /></SelectTrigger>
             <SelectContent>
@@ -1633,13 +1638,14 @@ export default function HRAttendancePage() {
               <span className="font-semibold text-sm">فلاتر التقرير</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">من تاريخ</label>
-                <Input type="date" value={reportFromDate} onChange={e => setReportFromDate(e.target.value)} dir="ltr" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">إلى تاريخ</label>
-                <Input type="date" value={reportToDate} onChange={e => setReportToDate(e.target.value)} dir="ltr" />
+              <div className="md:col-span-2">
+                <HRDateRangeFilter
+                  from={reportFromDate}
+                  to={reportToDate}
+                  onFromChange={setReportFromDate}
+                  onToChange={setReportToDate}
+                  fieldClassName="w-full"
+                />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الفرع</label>

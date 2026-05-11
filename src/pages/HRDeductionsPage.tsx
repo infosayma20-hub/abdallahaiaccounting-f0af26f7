@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/hr-utils";
 import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 import { multiWordMatchAny } from "@/lib/utils";
+import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
 
 import { setNextExportBranding } from "@/lib/excel-export";
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
@@ -518,12 +519,13 @@ export default function HRDeductionsPage() {
             {uniqueTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-1">
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-[130px] text-xs" />
-          <span className="text-xs text-muted-foreground">إلى</span>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-[130px] text-xs" />
-        </div>
+        <HRDateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+          fieldClassName="w-[150px]"
+        />
       </div>
 
       {/* Table */}
