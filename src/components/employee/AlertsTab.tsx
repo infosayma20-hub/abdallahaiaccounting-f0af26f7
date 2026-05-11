@@ -44,10 +44,10 @@ interface Props {
 
 export default function AlertsTab({ incompleteDays, corrections, employeeId, userId, onRefresh }: Props) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ date: "", type: "missing_checkout", reason: "" });
+  const [form, setForm] = useState({ date: "", type: "missing_checkout", time: "", reason: "" });
 
   const submitCorrection = async () => {
-    if (!form.reason.trim() || !form.date) {
+    if (!form.date || !form.type || !form.time || !form.reason.trim()) {
       toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
       return;
     }
@@ -56,7 +56,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
       auth_user_id: userId,
       attendance_date: form.date,
       request_type: form.type,
-      reason: form.reason,
+      reason: `[${form.time}] ${form.reason}`,
       status: "pending",
     });
     if (error) {
@@ -64,7 +64,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
     } else {
       toast({ title: "تم الإرسال ✅", description: "تم إرسال طلب التعديل" });
       setShowForm(false);
-      setForm({ date: "", type: "missing_checkout", reason: "" });
+      setForm({ date: "", type: "missing_checkout", time: "", reason: "" });
       onRefresh();
     }
   };
@@ -75,7 +75,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
       <EmployeeHRMessagesSection
         corrections={corrections as any}
         onRefresh={onRefresh}
-        onOpenCorrectionForm={(date) => { setForm({ date, type: "missing_checkout", reason: "" }); setShowForm(true); }}
+        onOpenCorrectionForm={(date) => { setForm({ date, type: "missing_checkout", time: "", reason: "" }); setShowForm(true); }}
       />
 
       {/* Incomplete days */}
@@ -97,7 +97,19 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
         </Card>
       ) : (
         incompleteDays.map((day) => (
-          <Card key={day.id} className="border-warning/20 bg-card">
+          <Card
+            key={day.id}
+            className="border-warning/20 bg-card cursor-pointer hover:bg-muted/30 active:scale-[0.99] transition-all"
+            onClick={() => {
+              const missingType = !day.first_check_in
+                ? "missing_checkin"
+                : !day.last_check_out
+                ? "missing_checkout"
+                : "wrong_time";
+              setForm({ date: day.attendance_date, type: missingType, time: "", reason: "" });
+              setShowForm(true);
+            }}
+          >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -112,6 +124,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
                   {day.last_check_out ? format(new Date(day.last_check_out), "hh:mm a") : "مفقود"}
                 </span>
               </div>
+              <p className="text-[10px] text-primary mt-1">اضغط للتعديل ▸</p>
             </CardContent>
           </Card>
         ))
@@ -170,6 +183,11 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
                   <SelectItem value="other">أخرى</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">وقت البصمة *</label>
+              <Input type="time" value={form.time} onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))} dir="ltr" className="rounded-xl" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">الوقت الفعلي للدخول/الخروج</p>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب</label>
