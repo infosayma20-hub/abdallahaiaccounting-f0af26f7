@@ -404,6 +404,8 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, todayEvents
         {[
           { icon: Receipt, label: "قسائم الراتب", tab: "payslips" },
           { icon: Wallet, label: "ملخصي المالي", tab: "financials" },
+          { icon: CalendarDays, label: "دوامي", tab: "attendance" },
+          { icon: Shield, label: "الإجراءات", tab: "actions" },
           { icon: Send, label: "النماذج والطلبات", tab: "forms" },
           { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
           { icon: User, label: "ملفي الشخصي", tab: "profile" },
