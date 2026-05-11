@@ -25,8 +25,7 @@ import { multiWordMatchAny } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { displayReason } from "@/lib/hrMessages";
-import { decodeHRMessage, typeLabel as hrTypeLabel } from "@/lib/hrMessages";
+import { displayReason, decodeHRMessage } from "@/lib/hrMessages";
 import { getRequestSummary, getDetailGroups } from "@/lib/employeeRequestDisplay";
 import { useHRManagerPermissions } from "@/hooks/useHRManagerPermissions";
 import { HRDateRangeFilter } from "@/components/hr/HRDateRangeFilter";
