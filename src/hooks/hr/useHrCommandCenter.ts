@@ -154,11 +154,12 @@ export function useHrCommandCenter(filters?: {
         supabase
           .from("employees")
           .select(
-            "id, name, job_title, department, branch, base_salary, is_active, hire_date, meal_allowance_per_day, transportation_allowance_per_day, spouse_allowance_amount, child_allowance_per_child, children_count, marital_status, wives_count, admin_allowance, other_allowances",
-          ),
+            "id, full_name, job_title, position, department, branch_id, base_salary, is_active, is_terminated, start_date, shift_start, shift_end, meal_allowance_per_day, transportation_allowance_per_day, spouse_allowance_amount, child_allowance_per_child, children_count, marital_status, wives_count, admin_allowance, other_allowances, branches(name)",
+          )
+          .eq("user_id", dataOwnerId!),
         supabase
           .from("attendance_days")
-          .select("employee_id, attendance_date, status, total_hours, overtime_hours, first_check_in, last_check_out")
+          .select("id, employee_id, attendance_date, status, total_hours, overtime_hours, first_check_in, last_check_out, branch_id, employees!inner(full_name, branch_id, department, job_title, shift_start, shift_end, shift:work_shifts(id,name,start_time,end_time,late_tolerance_minutes,overtime_after_minutes,crosses_midnight))")
           .gte("attendance_date", since30)
           .order("attendance_date", { ascending: false }),
         supabase
@@ -169,7 +170,7 @@ export function useHrCommandCenter(filters?: {
           .order("period_month", { ascending: false }),
       ]);
 
-      const [loansRes, deductionsRes, leaveReqRes, formsRes] = await Promise.all([
+      const [loansRes, deductionsRes, leaveReqRes, formsRes, correctionsRes] = await Promise.all([
         supabase
           .from("employee_loans")
           .select("employee_id, total_amount, monthly_installment, remaining_amount, status"),
@@ -188,6 +189,12 @@ export function useHrCommandCenter(filters?: {
           .select("id, employee_id, form_type, status, created_at, review_notes, form_data, attachment_url")
           .order("created_at", { ascending: false })
           .limit(100),
+        supabase
+          .from("correction_requests")
+          .select("id, employee_id, attendance_date, request_type, requested_time, reason, status, created_at, review_notes, employees!inner(full_name, branch_id, department)")
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(100),
       ]);
 
       const employees = employeesRes.data || [];
@@ -197,6 +204,7 @@ export function useHrCommandCenter(filters?: {
       const deductions = deductionsRes.data || [];
       const leaveReqs = leaveReqRes.data || [];
       const forms = formsRes.data || [];
+      const corrections = correctionsRes.data || [];
 
       // ---- Group attendance by employee ----
       const attByEmp = new Map<string, any[]>();
